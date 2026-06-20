@@ -17,6 +17,7 @@ import {
   Filter,
   Loader2,
   Package,
+  Play,
   RotateCcw,
   Search,
   SlidersHorizontal,
@@ -49,6 +50,7 @@ interface CJProduct {
   deliveryCycle?: string;
   countryCode?: string;
   isVideo?: number;
+  videoList?: string[];
   productWeight?: number;
 }
 
@@ -67,6 +69,7 @@ interface Filters {
   countryCode: string;
   deliveryTime: string;
   productFlag: string;
+  hasVideo: string;
   sort: string;
   orderBy: string;
 }
@@ -90,6 +93,7 @@ const DEFAULT_FILTERS: Filters = {
   countryCode: "",
   deliveryTime: "",
   productFlag: "",
+  hasVideo: "",
   sort: "desc",
   orderBy: "createAt",
 };
@@ -120,6 +124,7 @@ async function fetchCJProducts(filters: Filters, page: number, pageSize: number)
   if (filters.isFreeShipping) params.set("isFreeShipping", filters.isFreeShipping);
   if (filters.verifiedWarehouse) params.set("verifiedWarehouse", filters.verifiedWarehouse);
   if (filters.productFlag !== "") params.set("searchType", filters.productFlag);
+  if (filters.hasVideo === "1") params.set("hasVideo", "1");
   if (filters.countryCode) params.set("countryCode", filters.countryCode);
   if (filters.deliveryTime) params.set("deliveryTime", filters.deliveryTime);
   if (filters.sort) params.set("sort", filters.sort);
@@ -137,6 +142,14 @@ async function fetchCJCategories(): Promise<CJCategory[]> {
   if (!res.ok) return [];
   const json = await res.json();
   return json.categories || [];
+}
+
+function productHasVideo(p: CJProduct) {
+  return p.isVideo === 1 || (p.videoList?.length ?? 0) > 0;
+}
+
+function cjVideoPreviewSrc(url: string) {
+  return `/api/cj/video-proxy?url=${encodeURIComponent(url)}`;
 }
 
 function productPrice(p: CJProduct) {
@@ -377,7 +390,7 @@ export default function CJImportBrowser({
       {/* Workflow note */}
       <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 px-4 py-3 text-[13px] text-[var(--color-text-secondary)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <p>
-          Imports land as <strong className="font-medium text-[var(--color-text-primary)]">drafts</strong> with variants and shipping synced.
+          Imports land as <strong className="font-medium text-[var(--color-text-primary)]">drafts</strong> with variants, shipping, and product videos when CJ provides them.
           Open each draft to check pricing, then publish when ready.
         </p>
         <RefreshCJStockButton disabled={cjTotalCount === 0} />
@@ -440,7 +453,54 @@ export default function CJImportBrowser({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-[var(--color-border)]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-[var(--color-border)]">
+          <div className="space-y-2">
+            <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
+              Catalog
+            </p>
+            <div className="inline-flex items-stretch overflow-hidden rounded-sm ring-1 ring-[var(--color-border)] bg-[var(--color-surface)]">
+              {[
+                { value: "", label: "All products" },
+                { value: "1", label: "With video" },
+              ].map((opt, i) => {
+                const active = draft.hasVideo === opt.value;
+                return (
+                  <button
+                    key={opt.value || "all"}
+                    type="button"
+                    onClick={() => {
+                      const next = { ...draft, hasVideo: opt.value };
+                      setDraft(next);
+                      setFilters(next);
+                      load(next, 1);
+                    }}
+                    className={cn(
+                      "h-8 px-3.5 text-[12px] font-medium transition-colors",
+                      i > 0 && "border-l border-[var(--color-border)]",
+                      active
+                        ? "bg-[var(--color-text-primary)] text-[var(--color-surface)]"
+                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <label className="inline-flex items-center gap-2 h-8 px-3 rounded-sm border border-[var(--color-border)] text-[12px] cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={hideImported}
+              onChange={(e) => setHideImported(e.target.checked)}
+              className="rounded-sm border-[var(--color-border)]"
+            />
+            Hide already imported
+          </label>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-3 border-t border-[var(--color-border)]">
           <div className="flex-1 min-w-[200px]">
             <Input
               inputSize="sm"
@@ -543,6 +603,16 @@ export default function CJImportBrowser({
                 ]}
               />
             </Field>
+            <Field label="Catalog type">
+              <SelectInput
+                value={draft.hasVideo || ALL}
+                onChange={(v) => setDraft((d) => ({ ...d, hasVideo: v === ALL ? "" : v }))}
+                options={[
+                  { value: ALL, label: "All products" },
+                  { value: "1", label: "With product video" },
+                ]}
+              />
+            </Field>
             <Field label="Sort by">
               <SelectInput
                 value={draft.orderBy}
@@ -577,31 +647,32 @@ export default function CJImportBrowser({
 
       {/* Results bar */}
       {hasSearched && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[13px] text-[var(--color-text-muted)]">
-            {loading ? "Loading…" : (
-              <>
-                <span className="font-medium text-[var(--color-text-primary)] tabular-nums">
-                  {pagination.total.toLocaleString()}
-                </span>{" "}
-                results · page {pagination.page} of {totalPages}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+          <div className="space-y-1">
+            <p className="text-[13px] text-[var(--color-text-muted)]">
+              {loading ? "Loading…" : (
+                <>
+                  <span className="font-semibold text-[var(--color-text-primary)] tabular-nums">
+                    {pagination.total.toLocaleString()}
+                  </span>{" "}
+                  results · page {pagination.page} of {totalPages}
+                </>
+              )}
+            </p>
+            {!loading && (
+              <p className="text-[11px] text-[var(--color-text-muted)]">
+                {filters.hasVideo === "1" ? "Showing CJ products with video only" : "All CJ catalog products"}
                 {hideImported && visibleProducts.length !== products.length && (
-                  <> · showing {visibleProducts.length} not yet imported</>
+                  <> · {visibleProducts.length} not yet imported on this page</>
                 )}
-              </>
+                {!loading && products.length > 0 && (
+                  <> · {products.filter(productHasVideo).length} with video on this page</>
+                )}
+              </p>
             )}
-          </p>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex items-center gap-2 h-8 px-3 rounded-md border border-[var(--color-border)] text-[12.5px] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hideImported}
-                onChange={(e) => setHideImported(e.target.checked)}
-                className="rounded border-[var(--color-border)]"
-              />
-              Hide imported
-            </label>
-            <button type="button" onClick={selectAllVisible} className="h-8 px-3 rounded-md border border-[var(--color-border)] text-[12.5px] font-medium hover:bg-[var(--color-surface-secondary)]">
+            <button type="button" onClick={selectAllVisible} className="h-8 px-3 rounded-sm border border-[var(--color-border)] text-[12px] font-medium hover:bg-[var(--color-surface-secondary)]">
               Select page
             </button>
             {selectedPids.size > 0 && (
@@ -661,9 +732,15 @@ export default function CJImportBrowser({
       )}
 
       {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-28 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden animate-pulse">
+              <div className="aspect-[4/5] bg-[var(--color-surface-secondary)]" />
+              <div className="p-3 space-y-2">
+                <div className="h-3 bg-[var(--color-surface-secondary)] rounded-sm w-full" />
+                <div className="h-3 bg-[var(--color-surface-secondary)] rounded-sm w-2/3" />
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -675,9 +752,9 @@ export default function CJImportBrowser({
       )}
 
       {!loading && visibleProducts.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
           {visibleProducts.map((product) => (
-            <ProductRow
+            <ProductCard
               key={product.pid}
               product={product}
               imported={Boolean(importedMap[product.pid])}
@@ -846,7 +923,7 @@ function PageBtn({
   );
 }
 
-function ProductRow({
+function ProductCard({
   product,
   imported,
   importedProductId,
@@ -870,89 +947,139 @@ function ProductRow({
   const [imgErr, setImgErr] = useState(false);
   const price = productPrice(product);
   const stock = product.warehouseInventoryNum;
+  const hasVideo = productHasVideo(product);
 
   return (
     <article
       className={cn(
-        "flex gap-3 p-3 rounded-sm border bg-[var(--color-surface)] transition-colors",
-        selected ? "border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/20" : "border-[var(--color-border)]",
-        imported && "bg-emerald-50/30 dark:bg-emerald-950/10"
+        "group flex flex-col overflow-hidden rounded-sm border bg-[var(--color-surface)] transition-all",
+        selected ? "border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/25 shadow-sm" : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]",
+        imported && "bg-emerald-50/20 dark:bg-emerald-950/10",
       )}
     >
-      <button
-        type="button"
-        onClick={onToggleSelect}
-        disabled={imported}
-        className={cn(
-          "mt-1 h-4 w-4 shrink-0 rounded border flex items-center justify-center",
-          selected ? "bg-[var(--color-accent)] border-[var(--color-accent)] text-white" : "border-[var(--color-border)]",
-          imported && "opacity-40 cursor-not-allowed"
-        )}
-        aria-label={selected ? "Deselect" : "Select"}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onPreview}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onPreview();
+          }
+        }}
+        className="relative aspect-[4/5] w-full cursor-pointer overflow-hidden bg-[var(--color-surface-secondary)]"
       >
-        {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
-      </button>
-
-      <button type="button" onClick={onPreview} className="relative w-16 h-16 shrink-0 rounded-md overflow-hidden bg-[var(--color-surface-secondary)] ring-1 ring-[var(--color-border)]">
         {product.bigImage && !imgErr ? (
-          <Image src={product.bigImage} alt="" fill className="object-cover" onError={() => setImgErr(true)} unoptimized />
+          <Image
+            src={product.bigImage}
+            alt={product.productNameEn}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            onError={() => setImgErr(true)}
+            unoptimized
+          />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Package className="h-5 w-5 text-[var(--color-text-muted)]/50" />
+            <Package className="h-8 w-8 text-[var(--color-text-muted)]/40" />
           </div>
         )}
-      </button>
 
-      <div className="flex-1 min-w-0 flex flex-col gap-1">
+        <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-2">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
+            disabled={imported}
+            className={cn(
+              "h-6 w-6 shrink-0 rounded-sm border flex items-center justify-center backdrop-blur-sm",
+              selected
+                ? "bg-[var(--color-accent)] border-[var(--color-accent)] text-white"
+                : "bg-black/35 border-white/30 text-white",
+              imported && "opacity-40 cursor-not-allowed",
+            )}
+            aria-label={selected ? "Deselect" : "Select"}
+          >
+            {selected && <Check className="h-3 w-3" strokeWidth={3} />}
+          </button>
+
+          {imported && (
+            <span className="rounded-sm bg-emerald-600/90 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+              Imported
+            </span>
+          )}
+        </div>
+
+        {hasVideo && (
+          <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-sm bg-black/60 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
+            <Play className="h-3 w-3 fill-white" />
+            Video
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col gap-2 p-3">
         <button type="button" onClick={onPreview} className="text-left">
-          <p className="text-[13px] font-medium text-[var(--color-text-primary)] line-clamp-2 leading-snug hover:text-[var(--color-accent)]">
+          <p className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-2 leading-snug group-hover:text-[var(--color-accent)]">
             {product.productNameEn}
           </p>
         </button>
-        <p className="text-[11px] font-mono text-[var(--color-text-muted)] truncate">{product.productSku}</p>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--color-text-muted)]">
-          <span className="font-semibold text-[var(--color-text-primary)] tabular-nums">${price.toFixed(2)}</span>
-          {stock != null && <span>Stock {stock}</span>}
-          {product.countryCode && <span>{WAREHOUSE_LABELS[product.countryCode] ?? product.countryCode}</span>}
-          {(product.isFreeShipping || product.addMarkStatus === 1) && (
-            <span className="inline-flex items-center gap-0.5 text-emerald-600">
-              <Truck className="h-3 w-3" /> Free ship
+
+        <p className="text-[10.5px] font-mono text-[var(--color-text-muted)] truncate">{product.productSku}</p>
+
+        <div className="flex flex-wrap items-center gap-1.5 text-[10.5px]">
+          <span className="rounded-sm bg-[var(--color-surface-secondary)] px-1.5 py-0.5 font-semibold tabular-nums text-[var(--color-text-primary)]">
+            ${price.toFixed(2)}
+          </span>
+          {stock != null && (
+            <span className="rounded-sm bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[var(--color-text-muted)] tabular-nums">
+              Stock {stock.toLocaleString()}
             </span>
           )}
-          {product.verifiedWarehouse === 1 && <span className="text-sky-600">Verified</span>}
-          {imported && <span className="text-emerald-600 font-medium">In catalog</span>}
+          {(product.isFreeShipping || product.addMarkStatus === 1) && (
+            <span className="inline-flex items-center gap-0.5 rounded-sm bg-emerald-50 px-1.5 py-0.5 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+              <Truck className="h-3 w-3" /> Free
+            </span>
+          )}
         </div>
-      </div>
 
-      <div className="flex flex-col gap-1 shrink-0 justify-center">
-        {imported && importedProductId ? (
-          <>
-            <Link
-              href={`/admin/products/${importedProductId}`}
-              className="h-8 px-2.5 rounded-md text-[11px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 inline-flex items-center justify-center"
-            >
-              Open
-            </Link>
+        {(product.threeCategoryName || product.countryCode) && (
+          <p className="text-[10px] text-[var(--color-text-muted)] line-clamp-1">
+            {[product.threeCategoryName, product.countryCode ? (WAREHOUSE_LABELS[product.countryCode] ?? product.countryCode) : null]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
+
+        <div className="mt-auto pt-1 flex gap-2">
+          {imported && importedProductId ? (
+            <>
+              <Link
+                href={`/admin/products/${importedProductId}`}
+                className="flex-1 h-8 rounded-sm text-[11px] font-semibold bg-emerald-600 text-white inline-flex items-center justify-center hover:bg-emerald-700"
+              >
+                Open draft
+              </Link>
+              <button
+                type="button"
+                onClick={onResync}
+                disabled={importing}
+                title="Re-sync from CJ"
+                className="h-8 w-8 shrink-0 rounded-sm border border-[var(--color-border)] inline-flex items-center justify-center hover:bg-[var(--color-surface-secondary)]"
+              >
+                {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              </button>
+            </>
+          ) : (
             <button
               type="button"
-              onClick={onResync}
+              onClick={onImport}
               disabled={importing}
-              title="Re-sync from CJ"
-              className="h-8 w-full rounded-md border border-[var(--color-border)] inline-flex items-center justify-center"
+              className="w-full h-8 rounded-sm bg-[var(--color-text-primary)] text-[var(--color-surface)] text-[11px] font-semibold hover:bg-[var(--color-accent)] disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
             >
-              {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+              {importing ? "Importing…" : hasVideo ? "Import with video" : "Import draft"}
             </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={onImport}
-            disabled={importing}
-            className="h-8 px-3 rounded-md bg-[var(--color-text-primary)] text-[var(--color-surface)] text-[11px] font-semibold hover:bg-[var(--color-accent)] disabled:opacity-60"
-          >
-            {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Import"}
-          </button>
-        )}
+          )}
+        </div>
       </div>
     </article>
   );
@@ -976,12 +1103,61 @@ function PreviewPanel({
   onResync: () => void;
 }) {
   const price = productPrice(product);
+  const listHasVideo = productHasVideo(product);
+  const [mediaView, setMediaView] = useState<"video" | "image">("video");
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [poster, setPoster] = useState<string | null>(null);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaError, setMediaError] = useState("");
+  const [activeVideoIndex, setActiveVideoIndex] = useState(0);
+  const [videoPlayError, setVideoPlayError] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const activeVideo = videoUrls[activeVideoIndex] ?? null;
+  const resolvedHasVideo = videoUrls.length > 0;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setMediaLoading(true);
+    setMediaError("");
+    setVideoUrls([]);
+    setActiveVideoIndex(0);
+    setVideoPlayError(false);
+    setMediaView(listHasVideo ? "video" : "image");
+
+    fetch(`/api/cj/products/${encodeURIComponent(product.pid)}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled) return;
+        if (!json.success) throw new Error(json.error || "Could not load preview media");
+        const urls = Array.isArray(json.videos) ? json.videos.filter((u: unknown) => typeof u === "string") : [];
+        setVideoUrls(urls);
+        setPoster(typeof json.poster === "string" ? json.poster : product.bigImage ?? null);
+        setMediaView(urls.length > 0 ? "video" : "image");
+      })
+      .catch((e) => {
+        if (!cancelled) setMediaError((e as Error).message);
+      })
+      .finally(() => {
+        if (!cancelled) setMediaLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [product.pid, product.bigImage, listHasVideo]);
+
+  useEffect(() => {
+    setVideoPlayError(false);
+    if (mediaView === "video" && videoRef.current) {
+      videoRef.current.load();
+      void videoRef.current.play().catch(() => setVideoPlayError(true));
+    }
+  }, [activeVideo, mediaView]);
 
   return (
     <>
@@ -995,25 +1171,145 @@ function PreviewPanel({
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="relative aspect-square rounded-sm overflow-hidden bg-[var(--color-surface-secondary)] ring-1 ring-[var(--color-border)]">
-            {product.bigImage ? (
-              <Image src={product.bigImage} alt={product.productNameEn} fill className="object-contain p-2" unoptimized />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Package className="h-10 w-10 text-[var(--color-text-muted)]/40" />
+          <div className="space-y-2">
+            {(resolvedHasVideo || listHasVideo) && (
+              <div className="inline-flex items-stretch overflow-hidden rounded-sm ring-1 ring-[var(--color-border)]">
+                {resolvedHasVideo && (
+                  <button
+                    type="button"
+                    onClick={() => setMediaView("video")}
+                    className={cn(
+                      "h-8 px-3 text-[12px] font-medium transition-colors",
+                      mediaView === "video"
+                        ? "bg-[var(--color-text-primary)] text-[var(--color-surface)]"
+                        : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]",
+                    )}
+                  >
+                    Video{videoUrls.length > 1 ? ` (${videoUrls.length})` : ""}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setMediaView("image")}
+                  className={cn(
+                    "h-8 px-3 text-[12px] font-medium transition-colors",
+                    resolvedHasVideo && "border-l border-[var(--color-border)]",
+                    mediaView === "image"
+                      ? "bg-[var(--color-text-primary)] text-[var(--color-surface)]"
+                      : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]",
+                  )}
+                >
+                  Image
+                </button>
               </div>
+            )}
+
+            <div className="relative aspect-square rounded-sm overflow-hidden bg-black ring-1 ring-[var(--color-border)]">
+              {mediaLoading ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[var(--color-surface-secondary)]">
+                  <Loader2 className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
+                  <p className="text-[11px] text-[var(--color-text-muted)]">Loading video from CJ…</p>
+                </div>
+              ) : mediaView === "video" && activeVideo && !videoPlayError ? (
+                <video
+                  ref={videoRef}
+                  key={activeVideo}
+                  src={cjVideoPreviewSrc(activeVideo)}
+                  poster={poster ?? product.bigImage ?? undefined}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  controls
+                  className="absolute inset-0 h-full w-full object-contain"
+                  onError={() => setVideoPlayError(true)}
+                />
+              ) : product.bigImage ? (
+                <Image src={product.bigImage} alt={product.productNameEn} fill className="object-contain p-2" unoptimized />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-surface-secondary)]">
+                  <Package className="h-10 w-10 text-[var(--color-text-muted)]/40" />
+                </div>
+              )}
+
+              {mediaView === "video" && activeVideo && videoPlayError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[var(--color-surface-secondary)] p-4 text-center">
+                  <Play className="h-8 w-8 text-[var(--color-text-muted)]" />
+                  <p className="text-[12px] text-[var(--color-text-secondary)]">
+                    Video couldn&apos;t play in the browser preview.
+                  </p>
+                  <a
+                    href={activeVideo}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[12px] font-medium text-[var(--color-accent)] hover:underline"
+                  >
+                    Open video in new tab
+                  </a>
+                </div>
+              )}
+
+              {resolvedHasVideo && mediaView === "video" && !mediaLoading && (
+                <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-sm bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                  <Play className="h-3.5 w-3.5 fill-white" />
+                  CJ product video
+                </span>
+              )}
+            </div>
+
+            {videoUrls.length > 1 && mediaView === "video" && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {videoUrls.map((url, i) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => setActiveVideoIndex(i)}
+                    className={cn(
+                      "shrink-0 h-8 px-2.5 rounded-sm text-[11px] font-medium border transition-colors",
+                      i === activeVideoIndex
+                        ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                        : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]",
+                    )}
+                  >
+                    Video {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {mediaError && (
+              <p className="text-[11px] text-rose-600">{mediaError}</p>
             )}
           </div>
 
           <div>
             <h3 className="text-[15px] font-semibold text-[var(--color-text-primary)] leading-snug">{product.productNameEn}</h3>
             <p className="mt-2 text-2xl font-bold tabular-nums">${price.toFixed(2)} <span className="text-[13px] font-normal text-[var(--color-text-muted)]">USD cost</span></p>
+            {(resolvedHasVideo || listHasVideo) && (
+              <p className="mt-2 text-[12px] text-[var(--color-text-secondary)]">
+                {resolvedHasVideo
+                  ? `${videoUrls.length} video${videoUrls.length === 1 ? "" : "s"} will be saved to product_videos on import.`
+                  : "CJ lists a video for this product — URLs load on import."}
+              </p>
+            )}
           </div>
 
           <dl className="space-y-2 text-[13px]">
             <PreviewRow label="PID" value={product.pid} mono copyable />
             <PreviewRow label="SKU" value={product.productSku} mono copyable />
             <PreviewRow label="Category" value={product.threeCategoryName || product.categoryName || "—"} />
+            <PreviewRow
+              label="Product video"
+              value={
+                mediaLoading
+                  ? "Loading…"
+                  : resolvedHasVideo
+                    ? `Yes (${videoUrls.length} playable)`
+                    : listHasVideo
+                      ? "Listed on CJ (preview pending)"
+                      : "No"
+              }
+            />
             <PreviewRow label="Stock" value={product.warehouseInventoryNum != null ? String(product.warehouseInventoryNum) : "—"} />
             <PreviewRow label="Listed on stores" value={product.listedNum ? String(product.listedNum) : "—"} />
             <PreviewRow label="Warehouse" value={product.countryCode ? (WAREHOUSE_LABELS[product.countryCode] ?? product.countryCode) : "—"} />
@@ -1049,7 +1345,7 @@ function PreviewPanel({
               disabled={importing}
               className="w-full h-10 rounded-md bg-[var(--color-accent)] text-white text-[13px] font-semibold disabled:opacity-60"
             >
-              {importing ? "Importing…" : "Import as draft"}
+              {importing ? "Importing…" : (resolvedHasVideo || listHasVideo) ? "Import draft + video" : "Import as draft"}
             </button>
           )}
         </div>

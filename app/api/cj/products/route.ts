@@ -19,6 +19,7 @@ interface ListV2Product {
     oneCategoryName?: string;
     addMarkStatus?: number;
     isVideo?: number;
+    videoList?: string[];
     productType?: string;
     createAt?: number;
     warehouseInventoryNum?: number;
@@ -76,9 +77,14 @@ function buildListV2Params(sp: URLSearchParams): URLSearchParams {
     const free = sp.get("isFreeShipping");
     if (free) out.set("addMarkStatus", free);
 
-    // searchType (UI sends 0/1/2/3) → productFlag
-    const flag = sp.get("searchType");
-    if (flag !== null && flag !== "") out.set("productFlag", flag);
+    // searchType (UI sends 0/1/2/3) → productFlag — unless videos-only filter is active
+    const videosOnly = sp.get("hasVideo") === "1";
+    if (videosOnly) {
+        out.set("productFlag", "2");
+    } else {
+        const flag = sp.get("searchType");
+        if (flag !== null && flag !== "") out.set("productFlag", flag);
+    }
 
     // Date range: yyyy-MM-dd hh:mm:ss → ms timestamps
     const from = sp.get("createTimeFrom");
@@ -100,8 +106,8 @@ function buildListV2Params(sp: URLSearchParams): URLSearchParams {
     const sort = sp.get("sort");
     if (sort === "asc" || sort === "desc") out.set("sort", sort);
 
-    // Include category names in response so the card can show them
-    out.set("features", "enable_category");
+    // Include category names + video metadata in list response
+    out.set("features", "enable_category,enable_video");
 
     return out;
 }
@@ -129,6 +135,7 @@ function mapProduct(p: ListV2Product) {
         deliveryCycle: p.deliveryCycle,
         productType: p.productType ?? "",
         isVideo: p.isVideo,
+        videoList: Array.isArray(p.videoList) ? p.videoList : [],
         createAt: p.createAt,
     };
 }

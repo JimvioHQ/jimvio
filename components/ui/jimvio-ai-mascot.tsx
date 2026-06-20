@@ -14,17 +14,20 @@ type JimvioAIMascotProps = {
   size?: keyof typeof SIZES;
   className?: string;
   showRings?: boolean;
+  /** Disable bob animation — for inline header lockups */
+  motionless?: boolean;
 };
 
 export function JimvioAIMascot({
   size = "md",
   className,
   showRings = true,
+  motionless = false,
 }: JimvioAIMascotProps) {
   return (
     <div
       className={cn(
-        "relative max-w-full select-none overflow-hidden",
+        "pointer-events-none relative max-w-full select-none overflow-hidden",
         SIZES[size],
         className
       )}
@@ -43,8 +46,8 @@ export function JimvioAIMascot({
 
       <motion.div
         className="pointer-events-none relative z-10 h-full w-full"
-        animate={{ y: [0, -6, 0] }}
-        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+        animate={motionless ? undefined : { y: [0, -6, 0] }}
+        transition={motionless ? undefined : { duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
       >
         <Image
           src="/hero/jimvio-ai-mascot-cutout.png"
@@ -53,7 +56,12 @@ export function JimvioAIMascot({
           height={352}
           priority={size === "md"}
           draggable={false}
-          className="pointer-events-none h-full w-full select-none object-contain object-bottom [filter:drop-shadow(0_12px_28px_rgba(253,80,0,0.32))] [-webkit-user-drag:none]"
+          className={cn(
+            "pointer-events-none h-full w-full select-none object-contain object-bottom [-webkit-user-drag:none]",
+            motionless
+              ? "[filter:drop-shadow(0_3px_8px_rgba(253,80,0,0.2))]"
+              : "[filter:drop-shadow(0_12px_28px_rgba(253,80,0,0.32))]"
+          )}
         />
       </motion.div>
     </div>

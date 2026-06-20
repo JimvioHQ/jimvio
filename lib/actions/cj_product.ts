@@ -10,6 +10,7 @@ import {
     mergeProductVideoUrls,
     normalizeCjVideoUrls,
 } from "@/lib/cj/product-videos";
+import { syncProductVideos } from "@/lib/product-videos";
 import {
     normalizeCjVid,
     withCjVariantSourceMetadata,
@@ -40,6 +41,7 @@ export interface CJProduct {
     customizationVersion: number;
     isTestProduct: boolean;
     productVideos?: string[];
+    productImageSet?: string[];
 }
 
 export interface CJVariant {
@@ -212,24 +214,48 @@ export function extractImagesFromRemark(remark: string): string[] {
 
 export function buildImagesArray(
     primaryImage: string,
-    remarkImages: string[]
+    remarkImages: string[],
+    extraImages: string[] = [],
 ): string[] {
-    if (!primaryImage || !primaryImage.startsWith("http")) {
-        return [];
-    }
+    const images: string[] = [];
+    const seen = new Set<string>();
 
-    const images: string[] = [primaryImage];
-    const seen = new Set<string>([primaryImage]);
-
-    for (const url of remarkImages) {
-        if (images.length >= MAX_IMAGES) break;
-        if (!url || !url.startsWith("http")) continue;
-        if (seen.has(url)) continue;
+    const add = (url: string) => {
+        if (images.length >= MAX_IMAGES) return;
+        if (!url || !url.startsWith("http")) return;
+        if (seen.has(url)) return;
         seen.add(url);
         images.push(url);
+    };
+
+    if (primaryImage?.startsWith("http")) {
+        add(primaryImage);
+    }
+
+    for (const url of [...extraImages, ...remarkImages]) {
+        add(url);
     }
 
     return images;
+}
+
+function extractCJProductVideoUrls(cjProduct: CJProduct): string[] {
+    return mergeProductVideoUrls(
+        normalizeCjVideoUrls(cjProduct.productVideos),
+        extractVideosFromHtml(cjProduct.remark),
+    );
+}
+
+async function persistCJProductVideos(
+    supabase: SupabaseLike,
+    productId: string,
+    cjProduct: CJProduct,
+): Promise<void> {
+    const videoUrls = extractCJProductVideoUrls(cjProduct);
+    const { error } = await syncProductVideos(supabase, productId, videoUrls);
+    if (error) {
+        console.warn(`[CJ import] Failed to sync videos for product ${productId}:`, error);
+    }
 }
 
 /**
@@ -400,11 +426,12 @@ export async function mapCJProductToJimvio(
     const status = "draft" as const;
     const names = parseCJProductNames(cjProduct.productName);
     const remarkImages = extractImagesFromRemark(cjProduct.remark);
-    const images = buildImagesArray(cjProduct.productImage, remarkImages);
-    const productVideos = mergeProductVideoUrls(
-        normalizeCjVideoUrls(cjProduct.productVideos),
-        extractVideosFromHtml(cjProduct.remark),
+    const images = buildImagesArray(
+        cjProduct.productImage,
+        remarkImages,
+        cjProduct.productImageSet ?? [],
     );
+    const productVideos = extractCJProductVideoUrls(cjProduct);
 
     const {
         price, affiliate_price, affiliate_commission_rate,
@@ -701,6 +728,7 @@ export async function upsertCJProduct(
                     return { success: false, error: updErr.message };
                 }
 
+                await persistCJProductVideos(supabase, productId, cjProduct);
                 console.log(`[CJ import] Updated existing product ${productId} for cj_pid=${cjProduct.pid}`);
                 return { success: true, productId };
             }
@@ -725,6 +753,7 @@ export async function upsertCJProduct(
                 }
 
                 await supabase.from("cj_product_map").upsert({ cj_pid: cjProduct.pid, product_id: productId }, { onConflict: "cj_pid" });
+                await persistCJProductVideos(supabase, productId, cjProduct);
                 console.log(`[CJ import] Reconciled product ${productId} for cj_pid=${cjProduct.pid}`);
                 return { success: true, productId };
             }
@@ -755,6 +784,7 @@ export async function upsertCJProduct(
 
             // Ensure mapping exists
             await supabase.from("cj_product_map").upsert({ cj_pid: cjProduct.pid, product_id: productId }, { onConflict: "cj_pid" });
+            await persistCJProductVideos(supabase, productId, cjProduct);
 
             console.log(`[CJ import] Inserted new product ${productId} for cj_pid=${cjProduct.pid}`);
             return { success: true, productId };

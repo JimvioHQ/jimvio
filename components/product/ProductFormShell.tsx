@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import NextLink from "next/link";
 import { CloudinaryUploadButton, CloudinaryDropzone } from "@/components/ui/cloudinary-upload";
 import { CloudinaryImage } from "@/components/ui/cloudinary-image";
-import { cn } from "@/lib/utils";
+import { cn, getProductDiscountPercent, getProductDiscountLabel } from "@/lib/utils";
 import { StyledTextarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -187,6 +187,10 @@ interface FormState {
     show_reviews: boolean;
     enable_discussions: boolean;
     status: "active" | "draft" | "paused" | "archived";
+    discount_enabled: boolean;
+    compare_at_price: string;
+    discount_label: string;
+    is_flash_deal: boolean;
 }
 
 /* ── reusable primitives ── */
@@ -353,6 +357,16 @@ function TagInput({ value, onChange }: { value: string; onChange: (v: string) =>
 function LivePreview({ form }: { form: FormState }) {
     const price = parseFloat(form.price) || 0;
     const isFree = price === 0;
+    const compareAt = parseFloat(form.compare_at_price) || 0;
+    const showDiscount = form.discount_enabled && !isFree && compareAt > price;
+    const discountBadge = showDiscount || (form.discount_enabled && form.discount_label.trim())
+        ? getProductDiscountLabel({
+            price,
+            compare_at_price: showDiscount ? compareAt : null,
+            discount_label: form.discount_label || null,
+            is_flash_deal: form.is_flash_deal,
+        })
+        : "";
     const tags = form.tags ? form.tags.split(",").slice(0, 4).map(t => t.trim()).filter(Boolean) : [];
     const subtype = PRODUCT_SUBTYPES.find(s => s.id === form.product_subtype);
 
@@ -480,13 +494,38 @@ function LivePreview({ form }: { form: FormState }) {
                 )}
 
                 <p className="text-xl font-bold mb-2" style={{ color: t.textPrimary }}>
-                    {isFree ? "Free" : `$${price.toFixed(2)}`}
+                    {isFree ? "Free" : (
+                        <>
+                            ${price.toFixed(2)}
+                            {showDiscount && (
+                                <span
+                                    className="text-sm font-normal ml-2"
+                                    style={{ color: t.textMuted, textDecoration: "line-through" }}
+                                >
+                                    ${compareAt.toFixed(2)}
+                                </span>
+                            )}
+                        </>
+                    )}
                     {!isFree && form.pricing_type === "recurring" && form.product_type === "digital" && (
                         <span className="text-xs font-normal" style={{ color: t.textMuted }}>
                             {" "}/ {form.billing_period}
                         </span>
                     )}
                 </p>
+
+                {discountBadge && (
+                    <span
+                        className="inline-block text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 mb-2"
+                        style={{
+                            borderRadius: t.radiusFull,
+                            background: t.accent,
+                            color: "#fff",
+                        }}
+                    >
+                        {discountBadge}
+                    </span>
+                )}
 
                 <button
                     className="w-full py-2 text-xs font-semibold text-white cursor-default"
@@ -880,6 +919,26 @@ function StepDetails({
 /* ── STEP 2: Pricing ── */
 function StepPricing({ form, handleChange }: { form: FormState; handleChange: (f: string, v: unknown) => void }) {
     const isFree = parseFloat(form.price) === 0;
+    const salePrice = parseFloat(form.price) || 0;
+    const compareAt = parseFloat(form.compare_at_price) || 0;
+    const discountPreview = {
+        price: salePrice,
+        compare_at_price: form.discount_enabled && compareAt > salePrice ? compareAt : null,
+        discount_label: form.discount_label || null,
+        is_flash_deal: form.is_flash_deal,
+    };
+    const savingsPct = getProductDiscountPercent(discountPreview);
+    const badgeLabel = getProductDiscountLabel(discountPreview);
+
+    function setDiscountPercent(pct: number) {
+        if (salePrice <= 0 || pct <= 0 || pct >= 100) {
+            handleChange("compare_at_price", "");
+            return;
+        }
+        const original = salePrice / (1 - pct / 100);
+        handleChange("compare_at_price", original.toFixed(2));
+    }
+
     return (
         <div className="space-y-6">
             <div>
@@ -929,6 +988,119 @@ function StepPricing({ form, handleChange }: { form: FormState; handleChange: (f
                                     <Input type="number" value={form.price} onChange={e => handleChange("price", e.target.value)} className="pl-8 font-semibold text-base" min={0} step="0.01" />
                                 </div>
                             </div>
+                        </div>
+
+                        <div
+                            className="p-4 space-y-4"
+                            style={{
+                                borderRadius: "var(--radius-md)",
+                                border: "1px solid var(--color-border)",
+                                background: "var(--color-surface-secondary)",
+                            }}
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                                        Discount
+                                    </p>
+                                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+                                        Show a sale price with optional badge on marketplace cards
+                                    </p>
+                                </div>
+                                <Toggle
+                                    checked={form.discount_enabled}
+                                    onChange={v => handleChange("discount_enabled", v)}
+                                />
+                            </div>
+
+                            {form.discount_enabled && (
+                                <div className="space-y-4 pt-4" style={{ borderTop: "1px solid var(--color-border)" }}>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <Label hint="Was">Original price</Label>
+                                            <div className="relative">
+                                                <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--color-text-muted)" }} />
+                                                <Input
+                                                    type="number"
+                                                    value={form.compare_at_price}
+                                                    onChange={e => handleChange("compare_at_price", e.target.value)}
+                                                    className="pl-8"
+                                                    min={salePrice > 0 ? salePrice + 0.01 : 0}
+                                                    step="0.01"
+                                                    placeholder="e.g. 49.99"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <Label hint="Shortcut">% off</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    type="number"
+                                                    value={savingsPct > 0 ? String(savingsPct) : ""}
+                                                    onChange={e => setDiscountPercent(parseFloat(e.target.value) || 0)}
+                                                    className="pr-8"
+                                                    min={1}
+                                                    max={99}
+                                                    placeholder="e.g. 20"
+                                                />
+                                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-mono" style={{ color: "var(--color-text-muted)" }}>%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <Label hint="Optional">Badge label</Label>
+                                        <Input
+                                            value={form.discount_label}
+                                            onChange={e => handleChange("discount_label", e.target.value)}
+                                            placeholder='e.g. "Flash Sale" or leave blank for "-20%"'
+                                        />
+                                    </div>
+
+                                    <ToggleRow
+                                        title="Flash deal"
+                                        description="Feature this product in marketplace flash deals"
+                                        checked={form.is_flash_deal}
+                                        onChange={v => handleChange("is_flash_deal", v)}
+                                    />
+
+                                    {compareAt > salePrice && salePrice > 0 && (
+                                        <div
+                                            className="flex items-center justify-between gap-3 px-3 py-2.5 text-xs"
+                                            style={{
+                                                borderRadius: "var(--radius-sm)",
+                                                border: "1px solid var(--color-accent-subtle)",
+                                                background: "var(--color-accent-light)",
+                                                color: "var(--color-accent)",
+                                            }}
+                                        >
+                                            <span>
+                                                Buyers pay <strong>${salePrice.toFixed(2)}</strong>
+                                                {" "}(was <span style={{ textDecoration: "line-through" }}>${compareAt.toFixed(2)}</span>)
+                                            </span>
+                                            {badgeLabel && (
+                                                <span
+                                                    className="px-2 py-0.5 font-bold uppercase tracking-wide shrink-0"
+                                                    style={{
+                                                        borderRadius: "var(--radius-full)",
+                                                        background: "var(--color-accent)",
+                                                        color: "#fff",
+                                                    }}
+                                                >
+                                                    {badgeLabel}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {form.discount_enabled && compareAt > 0 && compareAt <= salePrice && (
+                                        <p className="text-xs flex items-center gap-1.5" style={{ color: "#b45309" }}>
+                                            <AlertTriangle size={12} />
+                                            Original price must be higher than the sale price.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {form.product_type === "digital" && (
@@ -1424,6 +1596,10 @@ export function ProductFormShell({
         weight: "", dimensions: "", images: [],
         show_author: true, show_reviews: true, enable_discussions: false,
         status: "active",
+        discount_enabled: false,
+        compare_at_price: "",
+        discount_label: "",
+        is_flash_deal: false,
     });
 
     useEffect(() => {
@@ -1519,6 +1695,14 @@ export function ProductFormShell({
                     show_reviews: (product.show_reviews as boolean) ?? true,
                     enable_discussions: (product.enable_discussions as boolean) ?? false,
                     status: ((product.status as FormState["status"]) ?? "active"),
+                    discount_enabled: !!(
+                        product.compare_at_price ||
+                        product.discount_label ||
+                        product.is_flash_deal
+                    ),
+                    compare_at_price: product.compare_at_price != null ? String(product.compare_at_price) : "",
+                    discount_label: (product.discount_label as string) ?? "",
+                    is_flash_deal: (product.is_flash_deal as boolean) ?? false,
                 });
             }
             setLoading(false);
@@ -1529,6 +1713,12 @@ export function ProductFormShell({
     function handleChange(field: string, value: unknown) {
         setForm(prev => {
             const updated = { ...prev, [field]: value };
+
+            if (field === "discount_enabled" && value === false) {
+                updated.compare_at_price = "";
+                updated.discount_label = "";
+                updated.is_flash_deal = false;
+            }
 
             if (field === "name" && !isEdit) updated.slug = slugify(value as string);
 
@@ -1586,6 +1776,20 @@ export function ProductFormShell({
         const price = parseFloat(form.price) || 0;
         if (price < 0) { setError("Price cannot be negative."); return; }
 
+        if (form.discount_enabled) {
+            const compareAt = parseFloat(form.compare_at_price) || 0;
+            const hasLabel = !!form.discount_label.trim();
+            const hasCompare = compareAt > price;
+            if (!hasLabel && !hasCompare && !form.is_flash_deal) {
+                setError("Set an original price, badge label, or enable flash deal for the discount.");
+                return;
+            }
+            if (compareAt > 0 && compareAt <= price) {
+                setError("Original price must be higher than the sale price.");
+                return;
+            }
+        }
+
         startTransition(async () => {
             const supabase = createClient();
 
@@ -1599,6 +1803,14 @@ export function ProductFormShell({
 
             const billingPeriod =
                 isDigital && form.pricing_type === "recurring" ? form.billing_period : null;
+
+            const compareAt = parseFloat(form.compare_at_price) || 0;
+            const discountActive = form.discount_enabled && price > 0;
+            const resolvedCompareAt =
+                discountActive && compareAt > price ? compareAt : null;
+            const resolvedDiscountLabel =
+                discountActive && form.discount_label.trim() ? form.discount_label.trim() : null;
+            const resolvedFlashDeal = discountActive && form.is_flash_deal;
 
             const payload: AdminProductUpdateInput = {
                 name: form.name,
@@ -1633,6 +1845,9 @@ export function ProductFormShell({
                 show_author: form.show_author,
                 show_reviews: form.show_reviews,
                 enable_discussions: form.enable_discussions,
+                compare_at_price: resolvedCompareAt,
+                discount_label: resolvedDiscountLabel,
+                is_flash_deal: resolvedFlashDeal,
             };
 
             if (isAdminMode && isEdit && productId) {

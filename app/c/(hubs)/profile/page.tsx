@@ -2,6 +2,11 @@
 
 import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  formatProfileLocation,
+  parseProfileLocationInput,
+  PROFILE_SELECT_FIELDS,
+} from "@/lib/profile-location";
 import { User, Mail, MapPin, Link as LinkIcon, Loader2, Check, X } from "lucide-react";
 
 interface Profile {
@@ -10,7 +15,8 @@ interface Profile {
   avatar_url: string | null;
   username: string | null;
   bio: string | null;
-  location: string | null;
+  city: string | null;
+  country: string | null;
   website: string | null;
   updated_at?: string;
 }
@@ -48,19 +54,19 @@ export default function MyProfilePage() {
     try {
       const { data, error } = await createClient()
         .from("profiles")
-        .select("id,full_name,avatar_url,username,bio,location,website,updated_at")
+        .select(PROFILE_SELECT_FIELDS)
         .eq("id", userId)
         .single();
 
       if (error) {
-        console.error("Failed to load profile:", error);
+        console.error("Failed to load profile:", error.message ?? error.code ?? error);
       } else if (data) {
         setProfile(data as Profile);
         setFormData({
           full_name: data.full_name || "",
           username: data.username || "",
           bio: data.bio || "",
-          location: data.location || "",
+          location: formatProfileLocation(data.city, data.country),
           website: data.website || "",
         });
       }
@@ -73,22 +79,36 @@ export default function MyProfilePage() {
     if (!currentUserId) return;
     setSaving(true);
     try {
+      const { city, country } = parseProfileLocationInput(formData.location);
       const { error } = await createClient()
         .from("profiles")
         .update({
           full_name: formData.full_name,
           username: formData.username,
           bio: formData.bio,
-          location: formData.location,
+          city,
+          country,
           website: formData.website,
           updated_at: new Date().toISOString(),
         })
         .eq("id", currentUserId);
 
       if (error) {
-        console.error("Failed to save profile:", error);
+        console.error("Failed to save profile:", error.message ?? error.code ?? error);
       } else {
-        setProfile(prev => prev ? { ...prev, ...formData } : null);
+        setProfile(prev =>
+          prev
+            ? {
+                ...prev,
+                full_name: formData.full_name,
+                username: formData.username,
+                bio: formData.bio,
+                website: formData.website,
+                city,
+                country,
+              }
+            : null,
+        );
         setEditing(false);
       }
     } finally {

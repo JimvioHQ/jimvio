@@ -183,6 +183,8 @@ function StatRevenue({
   desktop?: boolean;
   className?: string;
 }) {
+  if (!amount || amount <= 0) return null;
+
   return (
     <div
       className={`flex min-w-0 items-center gap-1.5 sm:gap-2 ${desktop ? "" : "justify-center"} ${className}`}

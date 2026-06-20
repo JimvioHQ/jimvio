@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
+import { SITE } from "@/lib/seo";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Jimvio – Global Creator-Commerce Ecosystem",
-    short_name: "Jimvio",
-    description:
-      "Jimvio connects creators, buyers, communities, campaigns and suppliers in a powerful global marketplace built for scale.",
+    name: SITE.title,
+    short_name: SITE.name,
+    description: SITE.description,
     id: "/",
     start_url: "/",
     scope: "/",

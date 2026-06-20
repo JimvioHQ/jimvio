@@ -1,18 +1,17 @@
-﻿import { Organization, WebSite, WithContext, SearchAction, PropertyValueSpecification } from "schema-dts";
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://jimvio.com";
+﻿import { Organization, WebSite, WithContext } from "schema-dts";
+import { SITE } from "@/lib/seo";
 
 const organization: Organization = {
   "@type": "Organization",
-  name: "Jimvio",
-  url: siteUrl,
+  name: SITE.name,
+  url: SITE.url,
   logo: {
     "@type": "ImageObject",
-    url: `${siteUrl}/jimvio-logo.png`,
+    url: `${SITE.url}/jimvio-logo.png`,
     width: "200",
     height: "200",
   },
-  description:
-    "Jimvio is a global creator-commerce ecosystem connecting creators, buyers, communities, campaigns and suppliers in a powerful marketplace built for scale.",
+  description: SITE.description,
   contactPoint: {
     "@type": "ContactPoint",
     email: "info@jimvio.com",
@@ -21,27 +20,27 @@ const organization: Organization = {
     availableLanguage: ["en", "fr"],
   },
   sameAs: [
-    'https://x.com/Jimvio_Official',
-    'https://www.linkedin.com/company/jimvio',
-    'https://www.youtube.com/@jimvio',
-    'https://www.tiktok.com/@jimvio_official',
+    "https://x.com/Jimvio_Official",
+    "https://www.linkedin.com/company/jimvio",
+    "https://www.youtube.com/@jimvio",
+    "https://www.tiktok.com/@jimvio_official",
     "https://www.instagram.com/jimvio_official",
   ],
 };
 
 const website: WebSite = {
   "@type": "WebSite",
-  name: "Jimvio",
-  url: siteUrl,
+  name: SITE.name,
+  url: SITE.url,
+  description: SITE.description,
   potentialAction: {
     "@type": "SearchAction",
     target: {
       "@type": "EntryPoint",
-      urlTemplate: `${siteUrl}/search?q={search_term_string}`,
+      urlTemplate: `${SITE.url}/marketplace?q={search_term_string}`,
     },
-    "valueRequired": true,
-    "valueName": "search_term_string"
-  } as any 
+    query: "required name=search_term_string",
+  },
 };
 
 const unifiedSchema: WithContext<any> = {

@@ -27,6 +27,7 @@ import {
   YAxis,
 } from "recharts";
 import { useCurrency } from "@/context/CurrencyContext";
+import { ProfileImage } from "@/components/ui/profile-image";
 import { cn } from "@/lib/utils";
 
 export interface AnalyticsRingMetric {
@@ -179,28 +180,38 @@ function ChartMoneyTooltip({
   formatValue: (n: number) => string;
   labels: Record<string, string>;
 }) {
-  if (!active || !payload?.length) return null;
+  if (!active || !label) return null;
+
+  const items = Object.entries(labels).map(([key, name]) => {
+    const entry = payload?.find((p) => p.dataKey === key || p.name === key);
+    const val = Number(entry?.value ?? 0);
+    const color =
+      entry?.color ??
+      (key === "store" ? "#7c3aed" : key === "campaigns" ? "#22d3ee" : "#7c3aed");
+    return { key, name, val, color };
+  });
+
+  const hasActivity = items.some((item) => item.val > 0);
+
   return (
     <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-md">
       <p className="mb-1.5 text-[12px] font-bold text-[var(--color-text-primary)]">{label}</p>
       <div className="space-y-1">
-        {payload.map((entry) => {
-          const key = String(entry.dataKey ?? entry.name ?? "");
-          const val = Number(entry.value ?? 0);
-          if (!val) return null;
-          return (
-            <div key={key} className="flex items-center justify-between gap-4 text-[11px]">
-              <span className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
-                <span className="size-2 rounded-sm" style={{ background: entry.color }} />
-                {labels[key] ?? entry.name ?? key}
-              </span>
-              <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
-                {formatValue(val)}
-              </span>
-            </div>
-          );
-        })}
+        {items.map((item) => (
+          <div key={item.key} className="flex items-center justify-between gap-4 text-[11px]">
+            <span className="flex items-center gap-1.5 text-[var(--color-text-muted)]">
+              <span className="size-2 rounded-sm" style={{ background: item.color }} />
+              {item.name}
+            </span>
+            <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
+              {formatValue(item.val)}
+            </span>
+          </div>
+        ))}
       </div>
+      {!hasActivity && (
+        <p className="mt-1.5 text-[10px] text-[var(--color-text-muted)]">No activity this period</p>
+      )}
     </div>
   );
 }
@@ -239,8 +250,6 @@ function ChartEmpty({ message }: { message: string }) {
 
 function PersonAvatar({
   name,
-  initials,
-  color,
   avatarUrl,
   size = "md",
 }: {
@@ -250,26 +259,13 @@ function PersonAvatar({
   avatarUrl?: string | null;
   size?: "md" | "lg";
 }) {
-  const dim = size === "lg" ? "size-11 text-[12px]" : "size-9 text-[11px]";
-  if (avatarUrl) {
-    return (
-      <img
-        src={avatarUrl}
-        alt=""
-        className={cn(dim, "shrink-0 rounded-full object-cover ring-1 ring-[var(--color-border)]")}
-      />
-    );
-  }
+  const dim = size === "lg" ? "size-11" : "size-9";
   return (
-    <span
-      className={cn(
-        dim,
-        "flex shrink-0 items-center justify-center rounded-full font-bold text-white ring-1 ring-black/5"
-      )}
-      style={{ background: color }}
-    >
-      {initials}
-    </span>
+    <ProfileImage
+      src={avatarUrl}
+      alt={name}
+      className={cn(dim, "shrink-0 rounded-full ring-1 ring-[var(--color-border)]")}
+    />
   );
 }
 
@@ -286,6 +282,13 @@ function PeriodSelect({ label = "This year" }: { label?: string }) {
 }
 
 const CHART_MARGIN = { top: 8, right: 12, left: 0, bottom: 0 };
+
+/** Disable Recharts' full-column gray hover block on bar charts */
+const BAR_TOOLTIP_PROPS = {
+  cursor: false as const,
+  allowEscapeViewBox: { x: true, y: true },
+  wrapperStyle: { outline: "none", zIndex: 20 },
+};
 
 const TRAFFIC_LABELS: Record<string, string> = {
   store: "Store sales",
@@ -365,12 +368,14 @@ export function AnalyticsPageBoard({
                     tickCount={5}
                   />
                   <Tooltip
-                    content={
+                    {...BAR_TOOLTIP_PROPS}
+                    content={(props) => (
                       <ChartMoneyTooltip
+                        {...props}
                         formatValue={formatChartValue}
                         labels={TRAFFIC_LABELS}
                       />
-                    }
+                    )}
                   />
                   <Bar dataKey="store" fill="#7c3aed" radius={[4, 4, 0, 0]} maxBarSize={32} />
                   <Bar dataKey="campaigns" fill="#22d3ee" radius={[4, 4, 0, 0]} maxBarSize={32} />
@@ -403,7 +408,10 @@ export function AnalyticsPageBoard({
                     domain={chartYDomain(ordersMax, 4)}
                     tickCount={5}
                   />
-                  <Tooltip content={<ChartCountTooltip />} />
+                  <Tooltip
+                    {...BAR_TOOLTIP_PROPS}
+                    content={(props) => <ChartCountTooltip {...props} />}
+                  />
                   <Bar dataKey="orders" name="Orders" fill="#7c3aed" radius={[4, 4, 0, 0]} maxBarSize={36} />
                 </BarChart>
               </ResponsiveContainer>
@@ -449,12 +457,16 @@ export function AnalyticsPageBoard({
                     tickCount={5}
                   />
                   <Tooltip
-                    content={
+                    cursor={{ stroke: "var(--color-border)", strokeWidth: 1, strokeDasharray: "4 4" }}
+                    allowEscapeViewBox={{ x: true, y: true }}
+                    wrapperStyle={{ outline: "none", zIndex: 20 }}
+                    content={(props) => (
                       <ChartMoneyTooltip
+                        {...props}
                         formatValue={formatChartValue}
                         labels={{ value: "Earnings" }}
                       />
-                    }
+                    )}
                   />
                   <Area type="monotone" dataKey="value" stroke="#7c3aed" strokeWidth={2} fill="url(#digitalFill)" />
                 </AreaChart>

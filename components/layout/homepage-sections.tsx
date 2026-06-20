@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useMemo, useEffect, Fragment } from "react";
+import { useState, useMemo, useEffect, Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
   ArrowRight, Check, ShieldCheck, Globe, Zap, Sparkles,
-  Bot, Wand2, Search, Clapperboard, Play, Instagram, Youtube, Share2,
+  Bot, Wand2, Search, Clapperboard, Share2,
   ChevronDown, Layers, TrendingUp, Wallet, Target, Award, BarChart3, LineChart,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -54,21 +54,35 @@ function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: stri
   );
 }
 
+/** Static two-row grid — fits viewport, no horizontal scroll */
+function TwoRowGrid({
+  children,
+  cols = "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
+  gap = "gap-2",
+}: {
+  children: ReactNode[];
+  cols?: string;
+  gap?: string;
+}) {
+  if (!children.length) return null;
+  return <div className={cn("grid auto-rows-fr", cols, gap)}>{children}</div>;
+}
+
 /* ═══ 1. What do you want to do today ═══ */
 const ACTIONS = [
-  { icon: ShoppingBag, title: "Buy Products", desc: "Shop trending products from verified global suppliers.", cta: "Start Buying", href: "/marketplace", color: ORANGE },
-  { icon: Store, title: "Sell Products", desc: "Launch your store and reach buyers worldwide.", cta: "Start Selling", href: "/dashboard", color: BLUE },
-  { icon: DollarSign, title: "Earn Commissions", desc: "Promote products and earn on every sale.", cta: "Start Earning", href: "/affiliates", color: GREEN },
-  { icon: Megaphone, title: "Create Campaigns", desc: "Launch UGC campaigns and reach creators worldwide.", cta: "Launch Campaign", href: "/dashboard/campaigns/new", color: PURPLE },
-  { icon: Target, title: "Join Campaigns", desc: "Create content for brands and get paid per view.", cta: "Join Campaigns", href: "/ugc", color: BLUE },
-  { icon: Users, title: "Build Communities", desc: "Grow, connect and monetize your audience.", cta: "Start Building", href: "/communities", color: YELLOW },
+  { icon: ShoppingBag, title: "Buy Products", desc: "Browse what's selling and order when you find a fit.", cta: "Go to marketplace", href: "/marketplace", color: ORANGE },
+  { icon: Store, title: "Sell Products", desc: "List inventory and manage orders from your dashboard.", cta: "Open dashboard", href: "/dashboard", color: BLUE },
+  { icon: DollarSign, title: "Earn Commissions", desc: "Share links and get a cut when someone checks out.", cta: "See affiliate program", href: "/affiliates", color: GREEN },
+  { icon: Megaphone, title: "Create Campaigns", desc: "Post a brief and pay creators for content.", cta: "New campaign", href: "/dashboard/campaigns/new", color: PURPLE },
+  { icon: Target, title: "Join Campaigns", desc: "Apply to brand briefs and get paid per post or view.", cta: "Browse campaigns", href: "/ugc", color: BLUE },
+  { icon: Users, title: "Build Communities", desc: "Start a group around your niche and charge if you want.", cta: "Create community", href: "/communities", color: YELLOW },
 ];
 
 export function WhatToDoToday() {
   return (
     <section className={`${section} py-10 sm:py-14`}>
       <div className={shell}>
-        <SectionTitle sub="Choose your path and dive into your goals.">What Do You Want To Do Today?</SectionTitle>
+        <SectionTitle sub="Pick what you're here for.">What do you want to do today?</SectionTitle>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-6">
           {ACTIONS.map((a) => (
             <div key={a.title} className={`flex h-full flex-col p-3 sm:p-5 ${cardBase}`}>
@@ -122,7 +136,9 @@ function flagSrc(code: string, size: 20 | 40 | 80 = 40) {
   return `https://flagcdn.com/w${size}/${code}.png`;
 }
 
-export function TrustedStrip({ usersLabel = "977K+", countriesLabel = "50+" }: { usersLabel?: string; countriesLabel?: string }) {
+export function TrustedStrip({ usersLabel, countriesLabel = "50+" }: { usersLabel?: string; countriesLabel?: string }) {
+  if (!usersLabel) return null;
+
   const moreLabel = countriesLabel.endsWith("+")
     ? `+${countriesLabel.slice(0, -1)}`
     : countriesLabel;
@@ -136,7 +152,7 @@ export function TrustedStrip({ usersLabel = "977K+", countriesLabel = "50+" }: {
           ))}
         </div>
         <p className="text-center text-sm text-[var(--color-text-secondary)]">
-          Trusted by <b className="text-[var(--color-text-primary)]">{usersLabel} users</b> in{" "}
+          Used by <b className="text-[var(--color-text-primary)]">{usersLabel} people</b> across{" "}
           <b className="text-[var(--color-text-primary)]">{countriesLabel} countries</b>
         </p>
         <div className="flex items-center gap-1">
@@ -352,25 +368,25 @@ export function ChooseYourJourney() {
 const STEPS = [
   {
     step: "01",
-    title: "Discover",
-    desc: "Explore products, brand campaigns, and communities before you commit to a path.",
-    detail: "Marketplace, UGC, and communities in one place.",
+    title: "Look around",
+    desc: "Check products, open campaigns, and skim communities before you pick a lane.",
+    detail: "Marketplace, UGC, and groups live in one app.",
     icon: Search,
     color: ORANGE,
   },
   {
     step: "02",
     title: "Promote & earn",
-    desc: "Sell inventory, share affiliate links, or publish creator content tied to live campaigns.",
-    detail: "Payouts land in your Jimvio wallet.",
+    desc: "List stock, drop affiliate links, or ship content for a live brief.",
+    detail: "Payouts hit your Jimvio wallet.",
     icon: Share2,
     color: GREEN,
   },
   {
     step: "03",
-    title: "Scale",
-    desc: "Track what converts, double down on winners, and grow store revenue or audience income.",
-    detail: "Dashboard analytics on every channel.",
+    title: "See what sticks",
+    desc: "Watch which links and posts actually convert, then do more of that.",
+    detail: "Sales and clicks in one dashboard.",
     icon: BarChart3,
     color: BLUE,
   },
@@ -385,15 +401,32 @@ function HowJimvioConnector({
   fromColor: string;
   toColor: string;
 }) {
+  const squares = 5;
+
   return (
-    <div className="relative h-0.5 flex-1 overflow-hidden rounded-full bg-[var(--color-border)]" aria-hidden>
-      <div
-        className={cn(
-          "absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out",
-          filled ? "w-full" : "w-0",
-        )}
-        style={{ background: `linear-gradient(90deg, ${fromColor}, ${toColor})` }}
-      />
+    <div
+      className="flex flex-1 items-center justify-center gap-1.5 px-2"
+      aria-hidden
+    >
+      {Array.from({ length: squares }, (_, i) => {
+        const t = squares === 1 ? 1 : i / (squares - 1);
+        const squareColor = filled
+          ? `color-mix(in srgb, ${fromColor} ${Math.round((1 - t) * 100)}%, ${toColor})`
+          : "var(--color-border)";
+
+        return (
+          <div
+            key={i}
+            className={cn(
+              "size-2.5 shrink-0 rounded-[3px] border transition-all duration-500 ease-out",
+              filled
+                ? "border-transparent opacity-100 scale-100"
+                : "border-[var(--color-border)] bg-[var(--color-surface-secondary)] opacity-55 scale-90",
+            )}
+            style={filled ? { background: squareColor } : undefined}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -419,8 +452,8 @@ export function HowJimvioWorks() {
   return (
     <section className={`${sectionAlt} py-10 sm:py-14`}>
       <div className={shell}>
-        <SectionTitle sub="Three steps from browsing to earning — tap a step to follow the flow.">
-          How Jimvio Works
+        <SectionTitle sub="Roughly how it goes — tap a step if you want the detail.">
+          How Jimvio works
         </SectionTitle>
 
         {/* Desktop interactive connector rail */}
@@ -584,65 +617,63 @@ export function TrendingProductsRow({ products = [] }: { products: any[] }) {
   const { formatMoney } = useCurrency();
   if (!products.length) return null;
 
+  const cards = products.slice(0, 10).map((p) => {
+    const verified = p.vendors?.verification_status === "verified";
+    const sold = p.sale_count ?? p.sold_count ?? 0;
+    return (
+      <Link
+        key={p.id}
+        href={`/marketplace/${p.slug}`}
+        className={cn("flex h-full min-w-0 items-center gap-2 p-2 transition-transform active:scale-[0.98]", cardBase)}
+      >
+        <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--color-surface-secondary)] p-1 sm:size-12">
+          <img
+            src={getImage(p.images)}
+            alt={p.name}
+            className="max-h-full max-w-full object-contain"
+            loading="lazy"
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h4 className="line-clamp-2 text-[10px] font-semibold leading-tight text-[var(--color-text-primary)] sm:text-[11px]">
+            {p.name}
+          </h4>
+          <div className="mt-0.5 text-[11px] font-black leading-none sm:text-[12px]" style={{ color: GREEN }}>
+            {formatMoney(p.price, p.currency)}
+          </div>
+          <p className="mt-0.5 text-[9px] text-[var(--color-text-muted)]">
+            {fmtCount(sold)} sold
+          </p>
+          {verified && (
+            <div className="mt-0.5 hidden items-center gap-0.5 text-[8px] font-semibold sm:flex" style={{ color: GREEN }}>
+              <Check className="size-2" strokeWidth={3} /> Verified
+            </div>
+          )}
+        </div>
+      </Link>
+    );
+  });
+
   return (
     <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-[22px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Trending Products</h2>
-          <Link href="/marketplace" className="inline-flex items-center gap-1 text-[13px] font-bold" style={{ color: ORANGE }}>
-            View Marketplace <ArrowRight className="size-3.5" />
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Trending Products</h2>
+          <Link href="/marketplace" className="inline-flex shrink-0 items-center gap-1 text-[12px] font-bold sm:text-[13px]" style={{ color: ORANGE }}>
+            Explore All <ArrowRight className="size-3" />
           </Link>
         </div>
-        <div className="flex gap-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {products.slice(0, 8).map((p) => {
-            const verified = p.vendors?.verification_status === "verified";
-            return (
-              <Link
-                key={p.id}
-                href={`/marketplace/${p.slug}`}
-                className={`w-[168px] shrink-0 overflow-hidden sm:w-[190px] ${cardBase}`}
-              >
-                <div className="flex aspect-square items-center justify-center bg-[var(--color-surface-secondary)] p-3">
-                  <img src={getImage(p.images)} alt={p.name} className="max-h-full max-w-full object-contain" loading="lazy" />
-                </div>
-                <div className="p-3">
-                  <h4 className="line-clamp-2 text-[12px] font-semibold leading-snug text-[var(--color-text-primary)]">{p.name}</h4>
-                  <div className="mt-1.5 text-[15px] font-black" style={{ color: GREEN }}>
-                    {formatMoney(p.price, p.currency)}
-                  </div>
-                  {verified && (
-                    <div className="mt-1 flex items-center gap-1 text-[10px] font-semibold" style={{ color: GREEN }}>
-                      <Check className="size-3" strokeWidth={3} /> Verified Supplier
-                    </div>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <TwoRowGrid cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {cards}
+        </TwoRowGrid>
       </div>
     </section>
   );
 }
 
 /* ═══ 7. Featured UGC campaigns ═══ */
-const PLATFORM_ICON: Record<string, typeof Play> = {
-  tiktok: Play,
-  instagram: Instagram,
-  youtube: Youtube,
-  x: Share2,
-};
-
 function campaignVendorLogo(vendor: SharedCampaignRow["vendor"] | SharedCampaignRow["vendors"]) {
   return vendor?.business_logo ?? vendor?.logo_url ?? null;
-}
-
-function campaignPlatforms(c: SharedCampaignRow) {
-  return (c.allowed_platforms ?? []).map((p) => p.toLowerCase()).filter(Boolean);
-}
-
-function formatCampaignType(type?: string) {
-  return (type ?? "ugc").replace(/_/g, " ");
 }
 
 function campaignDaysLeft(endsAt?: string | null) {
@@ -652,109 +683,72 @@ function campaignDaysLeft(endsAt?: string | null) {
 
 export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCampaignRow[] }) {
   const { formatMoney } = useCurrency();
-  const list = campaigns.slice(0, 4);
+  const list = campaigns.slice(0, 6);
   if (!list.length) return null;
+
+  const cards = list.map((c) => {
+    const joined = c.approved_count ?? c.submission_count ?? 0;
+    const daysLeft = campaignDaysLeft(c.ends_at);
+    const isFixed = c.payment_model === "fixed_per_content";
+    const payAmount = isFixed
+      ? formatMoney(c.fixed_rate ?? 0, "USD")
+      : formatMoney(c.rate_per_1k_views, "USD");
+    const vendor = c.vendor ?? c.vendors;
+    const banner = c.media?.find((m) => m.usage === "banner")?.url;
+    const logoUrl = campaignVendorLogo(vendor);
+
+    return (
+      <Link
+        key={c.id}
+        href={`/ugc/${c.id}`}
+        className={cn("flex h-full min-w-0 items-start gap-2 p-2 transition-transform active:scale-[0.98]", cardBase)}
+      >
+        <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--color-surface-secondary)] sm:size-12">
+          {banner ? (
+            <img src={banner} alt="" className="size-full object-cover" loading="lazy" />
+          ) : logoUrl ? (
+            <img src={logoUrl} alt="" className="size-full object-cover" loading="lazy" />
+          ) : (
+            <Clapperboard className="size-4 text-[var(--color-text-muted)] sm:size-5" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="line-clamp-2 text-[10px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[11px]">
+            {c.title}
+          </h3>
+          {vendor?.business_name && (
+            <p className="mt-0.5 truncate text-[9px] text-[var(--color-text-muted)]">
+              {vendor.business_name}
+            </p>
+          )}
+          <p className="mt-0.5 text-[11px] font-black leading-none sm:text-[12px]" style={{ color: GREEN }}>
+            {payAmount}
+          </p>
+          <p className="text-[9px] text-[var(--color-text-muted)]">
+            {joined} creator{joined === 1 ? "" : "s"}
+          </p>
+          {daysLeft !== null && (
+            <span className="mt-1 inline-flex rounded-full bg-[#ede9fe] px-1.5 py-0.5 text-[8px] font-bold text-[#7c3aed] sm:text-[9px]">
+              {daysLeft === 0 ? "Ends today" : `${daysLeft}d left`}
+            </span>
+          )}
+        </div>
+      </Link>
+    );
+  });
 
   return (
     <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-[22px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Featured UGC Campaigns</h2>
-          <Link href="/ugc" className="text-[13px] font-bold" style={{ color: ORANGE }}>
-            View All Campaigns →
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Featured UGC Campaigns</h2>
+          <Link href="/ugc" className="shrink-0 text-[12px] font-bold sm:text-[13px]" style={{ color: ORANGE }}>
+            Explore All <ArrowRight className="inline size-3" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {list.map((c) => {
-            const platforms = campaignPlatforms(c);
-            const primaryPlatform = platforms[0];
-            const PrimaryIcon = primaryPlatform ? (PLATFORM_ICON[primaryPlatform] ?? Clapperboard) : Clapperboard;
-            const joined = c.approved_count ?? c.submission_count ?? 0;
-            const budgetPct = Math.min(100, ((c.spent_budget ?? 0) / (c.total_budget || 1)) * 100);
-            const daysLeft = campaignDaysLeft(c.ends_at);
-            const isFixed = c.payment_model === "fixed_per_content";
-            const payAmount = isFixed
-              ? formatMoney(c.fixed_rate ?? 0, "USD")
-              : formatMoney(c.rate_per_1k_views, "USD");
-            const payLabel = isFixed ? "Pay Per Post" : "Pay Per View";
-            const vendor = c.vendor ?? c.vendors;
-            const logoUrl = campaignVendorLogo(vendor);
-
-            return (
-              <Link key={c.id} href={`/ugc/${c.id}`} className={`flex flex-col overflow-hidden ${cardBase}`}>
-                <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-3">
-                  <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-neutral-900 text-white dark:bg-neutral-800">
-                    <PrimaryIcon className="size-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] font-bold capitalize text-[var(--color-text-primary)]">
-                      {primaryPlatform ?? "Multi-platform"}
-                    </div>
-                    <div className="truncate text-[11px] capitalize text-[var(--color-text-muted)]">
-                      {formatCampaignType(c.campaign_type)}
-                    </div>
-                  </div>
-                  {platforms.length > 0 && (
-                    <div className="flex shrink-0 items-center gap-1">
-                      {platforms.slice(0, 4).map((p) => {
-                        const PlatformIcon = PLATFORM_ICON[p] ?? Clapperboard;
-                        return (
-                          <span
-                            key={p}
-                            className="grid size-6 place-items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
-                            title={p}
-                          >
-                            <PlatformIcon className="size-3 text-[var(--color-text-muted)]" />
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col p-4">
-                  <h3 className="line-clamp-2 text-[14px] font-bold text-[var(--color-text-primary)]">{c.title}</h3>
-                  <div className="mt-2 space-y-1 text-[11px] text-[var(--color-text-muted)]">
-                    <div>Budget: <b className="text-[var(--color-text-primary)]">{formatMoney(c.total_budget, "USD")}</b></div>
-                    <div>{payLabel}: <b style={{ color: GREEN }}>{payAmount}</b></div>
-                  </div>
-                  {vendor && (
-                    <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-md bg-green-500/10 px-2 py-0.5 text-[10px] font-bold dark:bg-green-500/15" style={{ color: GREEN }}>
-                      <Check className="size-3" /> Brand Verified
-                    </span>
-                  )}
-                  <div className="mt-3 flex items-center gap-2">
-                    {logoUrl ? (
-                      <img
-                        src={logoUrl}
-                        alt=""
-                        className="size-8 shrink-0 rounded-full border border-[var(--color-border)] object-cover"
-                      />
-                    ) : (
-                      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--color-surface-secondary)] text-[11px] font-bold text-[var(--color-text-muted)]">
-                        {(vendor?.business_name ?? "B").slice(0, 1)}
-                      </span>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
-                        <div className="h-full rounded-full" style={{ width: `${budgetPct}%`, background: ORANGE }} />
-                      </div>
-                      <div className="mt-1 flex justify-between text-[10px] text-[var(--color-text-muted)]">
-                        <span>{joined} joined · {Math.round(budgetPct)}% used</span>
-                        <span>
-                          {daysLeft !== null
-                            ? daysLeft === 0
-                              ? "Ends today"
-                              : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`
-                            : "Open"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <TwoRowGrid cols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {cards}
+        </TwoRowGrid>
       </div>
     </section>
   );
@@ -803,49 +797,62 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
     { id: "2", name: "Ecommerce Sellers", slug: "ecommerce-sellers", member_count: 8900, tagline: "Scale your online store." },
     { id: "3", name: "UGC Creators", slug: "ugc-creators", member_count: 15600, tagline: "Create content, get paid." },
     { id: "4", name: "Digital Products", slug: "digital-products", member_count: 6700, tagline: "Courses, tools and templates." },
-  ]).slice(0, 4);
+    { id: "5", name: "Jimvio Community", slug: "jimvio", member_count: 14, tagline: "Connect with sellers and creators worldwide." },
+    { id: "6", name: "Brand Growth", slug: "brand-growth", member_count: 4200, tagline: "Launch campaigns and scale your brand." },
+  ]).slice(0, 6);
+
+  const cards = list.map((c) => {
+    const style = communityStyle(c.name);
+    const Icon = style.icon;
+    const profileImage = communityProfileImage(c);
+    return (
+      <Link
+        key={c.id}
+        href={`/communities/${c.slug}`}
+        className={cn("flex h-full min-w-0 items-start gap-2 p-2 transition-transform active:scale-[0.98]", cardBase)}
+      >
+        {profileImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profileImage}
+            alt={c.name}
+            className="size-11 shrink-0 rounded-xl border border-[var(--color-border)] object-cover sm:size-12"
+            loading="lazy"
+          />
+        ) : (
+          <span
+            className="grid size-11 shrink-0 place-items-center rounded-xl sm:size-12"
+            style={{ background: style.bg, color: style.color }}
+          >
+            <Icon className="size-5 sm:size-6" />
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="line-clamp-1 text-[10px] font-bold text-[var(--color-text-primary)] sm:text-[11px]">{c.name}</h3>
+          <p className="mt-0.5 text-[9px] text-[var(--color-text-muted)]">{fmtCount(c.member_count ?? 0)} members</p>
+          <p className="mt-0.5 line-clamp-2 text-[9px] leading-snug text-[var(--color-text-muted)] sm:text-[10px]">
+            {c.tagline ?? "Connect with like-minded people."}
+          </p>
+          <span className="mt-1 inline-flex items-center gap-0.5 text-[9px] font-bold sm:text-[10px]" style={{ color: ORANGE }}>
+            Join <ArrowRight className="size-2.5" />
+          </span>
+        </div>
+      </Link>
+    );
+  });
 
   return (
     <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-[22px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Featured Communities</h2>
-          <Link href="/communities" className="text-[13px] font-bold" style={{ color: ORANGE }}>
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Featured Communities</h2>
+          <Link href="/communities" className="shrink-0 text-[12px] font-bold sm:text-[13px]" style={{ color: ORANGE }}>
             Explore All <ArrowRight className="inline size-3" />
           </Link>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {list.map((c) => {
-            const style = communityStyle(c.name);
-            const Icon = style.icon;
-            const profileImage = communityProfileImage(c);
-            return (
-              <Link key={c.id} href={`/communities/${c.slug}`} className={`p-5 ${cardBase}`}>
-                {profileImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={profileImage}
-                    alt={c.name}
-                    className="mb-4 size-12 rounded-2xl border border-[var(--color-border)] object-cover"
-                  />
-                ) : (
-                  <span
-                    className="mb-4 grid size-12 place-items-center rounded-2xl"
-                    style={{ background: style.bg, color: style.color }}
-                  >
-                    <Icon className="size-6" />
-                  </span>
-                )}
-                <h3 className="text-[15px] font-bold text-[var(--color-text-primary)]">{c.name}</h3>
-                <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{fmtCount(c.member_count ?? 0)} members</p>
-                <p className="mt-2 text-[12px] leading-relaxed text-[var(--color-text-muted)]">{c.tagline ?? "Connect with like-minded people."}</p>
-                <span className="mt-3 inline-flex items-center gap-1 text-[12px] font-bold" style={{ color: ORANGE }}>
-                  Join Community <ArrowRight className="size-3" />
-                </span>
-              </Link>
-            );
-          })}
-        </div>
+        <TwoRowGrid cols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {cards}
+        </TwoRowGrid>
       </div>
     </section>
   );
@@ -853,19 +860,19 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
 
 /* ═══ 9. One platform opportunities ═══ */
 const OPPS = [
-  { title: "Marketplace", color: ORANGE, items: ["Verified suppliers", "Global shipping", "Secure payments"], href: "/marketplace", cta: "Explore" },
-  { title: "Affiliate Program", color: GREEN, items: ["Up to 30% commission", "Real-time analytics", "Instant payouts"], href: "/affiliates", cta: "Learn More" },
-  { title: "Vendor Center", color: BLUE, items: ["Open your store", "Manage products", "Track orders"], href: "/dashboard", cta: "Open Store" },
-  { title: "Brand Growth", color: PURPLE, items: ["Launch campaigns", "Creator network", "Performance insights"], href: "/dashboard/campaigns/new", cta: "Grow Brand" },
-  { title: "UGC Campaigns", color: PURPLE, items: ["Paid per view", "Brand partnerships", "Content rewards"], href: "/ugc", cta: "View Campaigns" },
-  { title: "Communities", color: BLUE, items: ["Free & paid tiers", "Live rooms", "Courses & events"], href: "/communities", cta: "Join Now" },
+  { title: "Marketplace", color: ORANGE, items: ["Checked suppliers", "Shipping options", "Card & wallet pay"], href: "/marketplace", cta: "Browse" },
+  { title: "Affiliate program", color: GREEN, items: ["Up to 30% per sale", "Click tracking", "Wallet payouts"], href: "/affiliates", cta: "How it works" },
+  { title: "Vendor center", color: BLUE, items: ["Your own storefront", "Product uploads", "Order inbox"], href: "/dashboard", cta: "Open store" },
+  { title: "Brand campaigns", color: PURPLE, items: ["Post a brief", "Pick creators", "See submissions"], href: "/dashboard/campaigns/new", cta: "Start campaign" },
+  { title: "UGC campaigns", color: PURPLE, items: ["Paid per view", "Brand briefs", "Content approvals"], href: "/ugc", cta: "View open briefs" },
+  { title: "Communities", color: BLUE, items: ["Free or paid", "Live rooms", "Courses & events"], href: "/communities", cta: "Find a group" },
 ];
 
 export function OnePlatformOpportunities() {
   return (
     <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
-        <SectionTitle>One Platform. Endless Opportunities.</SectionTitle>
+        <SectionTitle>Everything in one place</SectionTitle>
         <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3">
           {OPPS.map((o) => (
             <div key={o.title} className="flex h-full flex-col px-1 sm:px-2">
@@ -895,19 +902,19 @@ export function OnePlatformOpportunities() {
 
 /* ═══ 10. AI growth tools ═══ */
 const AI_TOOLS = [
-  { icon: Search, title: "AI Product Finder", desc: "Discover winning products before they trend.", href: "/marketplace" },
-  { icon: Wand2, title: "AI Content Generator", desc: "Create posts, captions and scripts instantly.", href: "/ugc" },
-  { icon: Bot, title: "AI Campaign Builder", desc: "Build high-converting campaigns in minutes.", href: "/dashboard/campaigns/new" },
-  { icon: Users, title: "AI Creator Matching", desc: "Match with the right creators for your brand.", href: "/ugc" },
-  { icon: LineChart, title: "AI Performance Analytics", desc: "Analyze demand, pricing and competition.", href: "/dashboard" },
-  { icon: Store, title: "AI Vendor Assistant", desc: "Optimize listings, pricing and inventory.", href: "/dashboard" },
+  { icon: Search, title: "Product finder", desc: "Search the catalog and filter by what's moving.", href: "/marketplace" },
+  { icon: Wand2, title: "Content drafts", desc: "Rough out captions and scripts before you post.", href: "/ugc" },
+  { icon: Bot, title: "Campaign setup", desc: "Walk through budget, brief, and payout rules.", href: "/dashboard/campaigns/new" },
+  { icon: Users, title: "Creator search", desc: "Find people who already post in your category.", href: "/ugc" },
+  { icon: LineChart, title: "Sales snapshot", desc: "See clicks, orders, and what's lagging.", href: "/dashboard" },
+  { icon: Store, title: "Listing helper", desc: "Tidy titles, prices, and stock on your store.", href: "/dashboard" },
 ];
 
 export function GrowthStack() {
   return (
     <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
-        <SectionTitle>AI Powered Growth Tools</SectionTitle>
+        <SectionTitle>Tools that save you time</SectionTitle>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           {AI_TOOLS.map((t) => (
             <div key={t.title} className={`flex h-full flex-col p-4 sm:p-5 ${cardBase}`}>
@@ -917,7 +924,7 @@ export function GrowthStack() {
               <h3 className="text-[12px] font-bold text-[var(--color-text-primary)] sm:text-[14px]">{t.title}</h3>
               <p className="mt-1 flex-1 text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-[12px]">{t.desc}</p>
               <Link href={t.href} className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-violet-600 dark:text-violet-400 sm:text-[12px]">
-                Try Now <ArrowRight className="size-3" />
+                Try it <ArrowRight className="size-3" />
               </Link>
             </div>
           ))}
@@ -929,19 +936,19 @@ export function GrowthStack() {
 
 /* ═══ 11. Why choose Jimvio ═══ */
 const WHY = [
-  { icon: ShieldCheck, title: "Trusted & Secure", desc: "Every vendor verified. Every payment protected." },
-  { icon: Wallet, title: "Fast Payouts", desc: "Get your earnings quickly with instant transfers." },
-  { icon: Globe, title: "Global Reach", desc: "Buy, sell and earn across 50+ countries." },
-  { icon: Sparkles, title: "All-in-one Platform", desc: "Marketplace, affiliate, UGC and communities in one place." },
-  { icon: Clapperboard, title: "Creator Marketplace", desc: "Connect with creators ready to promote your brand." },
-  { icon: TrendingUp, title: "Brand Growth Network", desc: "Scale campaigns with data-driven creator partnerships." },
+  { icon: ShieldCheck, title: "Checked vendors", desc: "We review suppliers before they list." },
+  { icon: Wallet, title: "Wallet payouts", desc: "Earnings land in your Jimvio balance." },
+  { icon: Globe, title: "Works across borders", desc: "Buyers and sellers in 50+ countries." },
+  { icon: Sparkles, title: "One login", desc: "Store, affiliates, UGC, and groups together." },
+  { icon: Clapperboard, title: "Creator listings", desc: "Brands can find people to work with." },
+  { icon: TrendingUp, title: "Campaign stats", desc: "See views, clicks, and what's paying off." },
 ];
 
 export function WhyChooseJimvio() {
   return (
     <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
-        <SectionTitle>Why People Choose Jimvio</SectionTitle>
+        <SectionTitle>Why people stick with Jimvio</SectionTitle>
         <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
           {WHY.map((w) => (
             <div key={w.title} className="flex items-start gap-3">
@@ -976,19 +983,19 @@ const GLOBAL_MAP_PINS: WorldMapPin[] = [
   { lat: 35.68, lng: 139.69, color: BLUE },
 ];
 
-function formatNetworkCount(n: number, fallback: string): string {
-  if (!n) return fallback;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 10_000) return `${(n / 1_000).toFixed(1)}K`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
-  return `${n}`;
+function formatNetworkCount(n: number): string {
+  if (!n || n < 1) return "—";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 10_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
+  if (n >= 1_000) return `${Math.round(n / 1000)}K`;
+  return String(n);
 }
 
-function formatPlatformPlus(n: number, fallback: string, prefix = ""): string {
-  if (!n) return fallback;
-  if (n >= 1_000_000) return `${prefix}${(n / 1_000_000).toFixed(2)}M+`;
-  if (n >= 10_000) return `${prefix}${(n / 1_000).toFixed(1)}K+`;
-  if (n >= 1_000) return `${prefix}${Math.round(n / 1_000)}K+`;
+function formatPlatformPlus(n: number, prefix = ""): string {
+  if (!n || n < 1) return "—";
+  if (n >= 1_000_000) return `${prefix}${(n / 1_000_000).toFixed(2).replace(/\.00$/, "")}M+`;
+  if (n >= 10_000) return `${prefix}${(n / 1000).toFixed(1).replace(/\.0$/, "")}K+`;
+  if (n >= 1_000) return `${prefix}${Math.round(n / 1000)}K+`;
   return `${prefix}${n}+`;
 }
 
@@ -1001,16 +1008,16 @@ export function GlobalNetworkStats({
 }) {
   const networkRows = [
     { icon: Globe, value: countriesLabel, label: "Countries", tint: "#dcfce7", color: GREEN },
-    { icon: Users, value: formatNetworkCount(platform?.totalUsers ?? 0, "977K"), label: "Users", tint: "#dcfce7", color: GREEN },
-    { icon: Store, value: formatNetworkCount(platform?.totalVendors ?? 0, "12.4K"), label: "Businesses", tint: "#dbeafe", color: BLUE },
-    { icon: Package, value: formatNetworkCount(platform?.totalProducts ?? 0, "250K"), label: "Products", tint: "#dbeafe", color: BLUE },
+    { icon: Users, value: formatNetworkCount(platform?.totalUsers ?? 0), label: "Users", tint: "#dcfce7", color: GREEN },
+    { icon: Store, value: formatNetworkCount(platform?.totalVendors ?? 0), label: "Businesses", tint: "#dbeafe", color: BLUE },
+    { icon: Package, value: formatNetworkCount(platform?.totalProducts ?? 0), label: "Products", tint: "#dbeafe", color: BLUE },
   ];
 
   const platformStats = [
-    { value: formatPlatformPlus(platform?.totalEarnings ?? 0, "$1.24M+", "$"), label: "Paid Out", accent: ORANGE, bg: "#ffedd5" },
-    { value: formatPlatformPlus(platform?.totalUsers ?? 0, "977K+"), label: "Users", accent: PURPLE, bg: "#f3e8ff" },
-    { value: formatPlatformPlus(platform?.totalProducts ?? 0, "250K+"), label: "Products", accent: GREEN, bg: "#dcfce7" },
-    { value: formatPlatformPlus(platform?.totalVendors ?? 0, "12.4K+"), label: "Businesses", accent: BLUE, bg: "#dbeafe" },
+    { value: formatPlatformPlus(platform?.totalEarnings ?? 0, "$"), label: "Paid out", accent: ORANGE, bg: "#ffedd5" },
+    { value: formatPlatformPlus(platform?.totalUsers ?? 0), label: "Users", accent: PURPLE, bg: "#f3e8ff" },
+    { value: formatPlatformPlus(platform?.totalProducts ?? 0), label: "Products", accent: GREEN, bg: "#dcfce7" },
+    { value: formatPlatformPlus(platform?.totalVendors ?? 0), label: "Businesses", accent: BLUE, bg: "#dbeafe" },
     { value: countriesLabel.endsWith("+") ? countriesLabel : `${countriesLabel}+`, label: "Countries", accent: ORANGE, bg: "#ffedd5" },
   ];
 

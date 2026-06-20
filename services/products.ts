@@ -53,6 +53,7 @@ export type ProductWithRelations = Tables<"products"> & {
   product_categories: ProductCategoryPublic | null;
   product_variants: Tables<"product_variants">[];
   product_shipping_options: Tables<"product_shipping_options">[];
+  product_videos?: Array<Pick<Tables<"product_videos">, "id" | "video_url" | "sort_order">>;
   reviews: ProductReviewPublic[];
 };
 
@@ -115,6 +116,8 @@ const SHIPPING_COLS = `
   ship_from_name, ship_from_country, ship_to_country,
   source, is_active
 `;
+
+const VIDEO_COLS = `id, video_url, sort_order`;
 
 // ─────────────────────────────────────────────────────────────
 // SHARED UTILITIES
@@ -248,7 +251,8 @@ export async function getProducts(query: ProductQuery = {}) {
       created_at, source, currency, button_text,
       pricing_type, billing_period,
       vendors ( id, business_name, business_slug, rating, verification_status, business_country ),
-      product_categories${category ? "!inner" : ""} ( id, name, slug )
+      product_categories${category ? "!inner" : ""} ( id, name, slug ),
+      product_videos ( ${VIDEO_COLS} )
     `, { count: "exact" })
     .eq("status", "active")
     .eq("is_active", true);
@@ -318,7 +322,9 @@ export async function countActiveListedProducts() {
  * column constants) and consolidates it with `getProductPageData`.
  * Use `getProductPageData` when you also need related products & shipping.
  */
-export async function getProductBySlug(slug: string): Promise<ProductWithRelations | null> {
+export const getProductBySlug = cache(async function getProductBySlug(
+  slug: string,
+): Promise<ProductWithRelations | null> {
   const db = await getDB();
   const { data, error } = await db
     .from("products")
@@ -328,6 +334,7 @@ export async function getProductBySlug(slug: string): Promise<ProductWithRelatio
       product_categories ( id, name, slug, parent_id ),
       product_variants ( ${VARIANT_COLS} ),
       product_shipping_options ( ${SHIPPING_COLS} ),
+      product_videos ( ${VIDEO_COLS} ),
       reviews ( ${REVIEW_COLS} )
     `)
     .eq("slug", slug)
@@ -347,7 +354,7 @@ export async function getProductBySlug(slug: string): Promise<ProductWithRelatio
     Boolean(product.track_inventory)
   );
   return product;
-}
+});
 
 /**
  * One call returns everything a product detail page needs:

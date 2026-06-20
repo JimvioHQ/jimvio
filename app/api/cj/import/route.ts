@@ -104,6 +104,7 @@ function detailToCJProduct(d: CJDetailResponse["data"]): CJProduct {
             normalizeCjVideoUrls(d.productVideo),
             normalizeCjVideoUrls(d.videoList),
         ),
+        productImageSet: d.productImageSet ?? [],
     };
 }
 

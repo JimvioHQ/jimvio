@@ -291,13 +291,26 @@ export default function UGCBrowserPage() {
           ) : gridCampaigns.length === 0 && !spotlight ? (
             <div className="rounded-2xl border border-dashed border-[var(--color-border)] py-20 text-center">
               <Clapperboard className="mx-auto mb-3 h-8 w-8 text-[var(--color-text-muted)]" />
-              <p className="font-medium text-[var(--color-text-primary)]">No campaigns match</p>
-              <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">Try different filters or check back later.</p>
-              {hasFilter && (
+              <p className="font-medium text-[var(--color-text-primary)]">
+                {total === 0 && !hasFilter ? "No live campaigns yet" : "No campaigns match"}
+              </p>
+              <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+                {total === 0 && !hasFilter
+                  ? "Brands post briefs here when they launch. You can post one too."
+                  : "Try different filters or check back later."}
+              </p>
+              {total === 0 && !hasFilter ? (
+                <Link
+                  href="/dashboard/campaigns/new"
+                  className="mt-4 inline-flex text-[13px] font-medium text-[var(--color-accent)] hover:underline"
+                >
+                  Launch a campaign
+                </Link>
+              ) : hasFilter ? (
                 <button type="button" onClick={resetAll} className="mt-4 text-[13px] font-medium text-[var(--color-accent)] hover:underline">
                   Clear filters
                 </button>
-              )}
+              ) : null}
             </div>
           ) : (
             <div className={GRID}>

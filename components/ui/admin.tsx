@@ -235,6 +235,73 @@ export function RangePicker({ current, base }: { current: RangeKey; base: string
 
 // ─── Filter chip ──────────────────────────────────────────────────────────────
 
+export type FilterSegmentItem = {
+    value: string;
+    label: string;
+    href: string;
+    count?: number;
+    icon?: React.ReactNode;
+};
+
+/** Connected square segments — shared borders, no gaps between items. */
+export function FilterSegmentBar({
+    items,
+    activeValue,
+    "aria-label": ariaLabel,
+    className,
+}: {
+    items: FilterSegmentItem[];
+    activeValue: string;
+    "aria-label"?: string;
+    className?: string;
+}) {
+    return (
+        <div
+            role="group"
+            aria-label={ariaLabel}
+            className={cn(
+                "inline-flex max-w-full items-stretch overflow-x-auto rounded-md",
+                "ring-1 ring-[var(--color-border)] bg-[var(--color-surface)]",
+                className,
+            )}
+            style={{ scrollbarWidth: "none" }}
+        >
+            {items.map((item, i) => {
+                const active = item.value === activeValue;
+                return (
+                    <Link
+                        key={item.value}
+                        href={item.href}
+                        scroll={false}
+                        aria-pressed={active}
+                        className={cn(
+                            "inline-flex shrink-0 items-center gap-1.5 h-9 px-3.5 text-[12px] font-medium",
+                            "transition-colors duration-150 select-none",
+                            i > 0 && "border-l border-[var(--color-border)]",
+                            active
+                                ? "bg-[var(--color-text-primary)] text-[var(--color-surface)]"
+                                : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+                        )}
+                    >
+                        {item.icon}
+                        <span className="whitespace-nowrap capitalize">{item.label}</span>
+                        {item.count !== undefined && (
+                            <span className={cn(
+                                "inline-flex h-4 min-w-4 items-center justify-center rounded-[2px] px-1 text-[10px] font-semibold tabular-nums",
+                                active
+                                    ? "bg-white/20 text-white"
+                                    : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]",
+                            )}>
+                                {item.count}
+                            </span>
+                        )}
+                    </Link>
+                );
+            })}
+        </div>
+    );
+}
+
 export function FilterChip({
     label,
     href,
@@ -254,7 +321,7 @@ export function FilterChip({
             href={href}
             scroll={false}
             className={cn(
-                "inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[12px] font-medium transition-all duration-150 select-none",
+                "inline-flex items-center gap-1.5 h-8 px-3 rounded-sm text-[12px] font-medium transition-all duration-150 select-none",
                 active
                     ? "bg-[var(--color-text-primary)] text-[var(--color-surface)] ring-0"
                     : "bg-[var(--color-surface)] ring-[0.5px] ring-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:ring-[var(--color-border-strong)]",
@@ -264,7 +331,7 @@ export function FilterChip({
             {label}
             {count !== undefined && (
                 <span className={cn(
-                    "inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-full text-[10px] font-semibold",
+                    "inline-flex items-center justify-center h-4 min-w-4 px-1 rounded-[2px] text-[10px] font-semibold tabular-nums",
                     active
                         ? "bg-white/20 text-white"
                         : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]",

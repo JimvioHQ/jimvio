@@ -1,9 +1,13 @@
 import React from "react";
+import type { Metadata } from "next";
 import { Globe, Users, TrendingUp, ShieldCheck, Zap, ArrowRight, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { AboutPage } from "@/components/landing-page";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata("about");
 
 export default function About() {
     return (

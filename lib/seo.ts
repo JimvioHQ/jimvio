@@ -1,148 +1,138 @@
+import { Metadata } from "next";
+import { getSiteUrl } from "@/lib/site-url";
 
-// import { Metadata } from 'next';
-
-// const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://jimvio.com';
-
-// interface SeoProps {
-//   title?: string;
-//   description?: string;
-//   image?: string;
-//   path?: string;
-//   type?: 'website' | 'article' | 'product';
-//   noIndex?: boolean;
-// }
-
-// export function constructMetadata({
-//   title = "Jimvio – Global Creator-Commerce Ecosystem",
-//   description = "Jimvio connects creators, buyers, communities, campaigns and suppliers in a powerful global marketplace built for scale.",
-//   image = "/jimvio-og.png",
-//   path = "",
-//   type = 'website',
-//   noIndex = false,
-// }: SeoProps = {}): Metadata {
-//   const url = `${siteUrl}${path}`;
-//   const ogType = type === 'product' ? 'website' : type as 'website' | 'article';
-
-//   return {
-//     title: {
-//       default: "Jimvio – Global Creator-Commerce Ecosystem",
-//       template: `%s | Jimvio`,
-//     },
-//     description,
-//     metadataBase: new URL(siteUrl),
-//     alternates: {
-//       canonical: url,
-//     },
-
-//     openGraph: {
-//       title,         // 👈 dynamic, not hardcoded
-//       description,   // 👈 dynamic
-//       url,           // 👈 dynamic canonical URL
-//       siteName: 'Jimvio',
-//       images: [
-//         {
-//           url: image,
-//           width: 1200,
-//           height: 630,
-//           alt: title,
-//         },
-//       ],
-//       type: ogType,
-//       locale: 'en_US',
-//     },
-
-//     twitter: {
-//       card: 'summary_large_image',
-//       title,         // 👈 dynamic
-//       description,   // 👈 dynamic
-//       images: [image],
-//       creator: '@jimvio',
-//       site: '@jimvio',
-//     },
-
-//     robots: noIndex
-//       ? { index: false, follow: false }
-//       : {
-//         index: true,
-//         follow: true,
-//         googleBot: {
-//           index: true,
-//           follow: true,
-//           'max-video-preview': -1,
-//           'max-image-preview': 'large',
-//           'max-snippet': -1,
-//         },
-//       },
-
-//     icons: {
-//       icon: [{ url: '/Favicon.png' }],
-//       shortcut: '/Favicon.png',
-//       apple: '/apple-touch-icon.png', // 👈 ideally 180×180px dedicated file
-//     },
-
-//     verification: {
-//       google: "X3BENzfRf3Px2mMhw41lZgkOwJNs_BMpYSw2y_t6LO8",
-//     },
-//   };
-// }
-// lib/seo.ts
-
-import { Metadata } from 'next';
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://jimvio.com';
+const siteUrl = getSiteUrl();
 
 export const SITE = {
-  name: 'Jimvio',
+  name: "Jimvio",
   url: siteUrl,
   logo: `${siteUrl}/logo.png`,
   ogImage: `${siteUrl}/jimvio-og.png`,
-  twitter: '@jimvio',
-  description: 'Jimvio connects creators, buyers, communities, campaigns and suppliers in a powerful global marketplace built for scale.',
+  twitter: "@jimvio",
+  title: "Jimvio – marketplace & creator tools",
+  description:
+    "Sell products, share affiliate links, take UGC jobs, and run your community from one place. Free to start.",
+  keywords: [
+    "Jimvio",
+    "creator marketplace",
+    "affiliate program",
+    "UGC campaigns",
+    "sell online",
+    "creator community",
+  ],
 } as const;
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+export const PAGE_SEO = {
+  home: {
+    title: SITE.title,
+    description: SITE.description,
+    path: "/",
+  },
+  marketplace: {
+    title: "Marketplace",
+    description:
+      "Physical and digital products from suppliers on Jimvio. Filter by category, check shipping, and checkout when you're ready.",
+    path: "/marketplace",
+  },
+  communities: {
+    title: "Communities",
+    description:
+      "Groups for affiliates, sellers, and creators. Some are free, some charge a monthly fee. Find one that fits and join.",
+    path: "/communities",
+  },
+  affiliates: {
+    title: "Affiliate program",
+    description:
+      "Grab a link, share it, get paid when someone buys. Your dashboard shows clicks, sales, and what you've earned so far.",
+    path: "/affiliates",
+  },
+  deals: {
+    title: "Flash deals",
+    description:
+      "Products on sale right now. We refresh the list often, so check back if you don't see what you want.",
+    path: "/deals",
+  },
+  ugc: {
+    title: "UGC & clipping campaigns",
+    description:
+      "Paid brand briefs for creators. See budgets and rates before you apply.",
+    path: "/ugc",
+  },
+  vendors: {
+    title: "Suppliers & vendors",
+    description:
+      "Browse sellers on Jimvio. See what they list, where they ship, and their store ratings.",
+    path: "/vendors",
+  },
+  help: {
+    title: "Help center",
+    description:
+      "Guides for buying, selling, affiliates, and payouts on Jimvio.",
+    path: "/help",
+  },
+  influencers: {
+    title: "Creators",
+    description:
+      "Browse creator profiles and short clips. Useful if you're a brand looking for someone to work with.",
+    path: "/influencers",
+  },
+  about: {
+    title: "About Jimvio",
+    description:
+      "We got tired of jumping between apps to sell, promote, and get paid. Jimvio puts the main pieces in one spot.",
+    path: "/about",
+  },
+} as const;
 
 interface SeoProps {
   title?: string;
   description?: string;
   image?: string;
   path?: string;
-  type?: 'website' | 'article' | 'product';
+  type?: "website" | "article" | "product";
   noIndex?: boolean;
+  keywords?: string[];
 }
 
-// ── Main metadata builder ─────────────────────────────────────────────────────
+/** Trim meta descriptions to a Google-friendly length (~155 chars). */
+export function truncateDescription(text: string, max = 155): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  return `${(lastSpace > 80 ? cut.slice(0, lastSpace) : cut).trim()}…`;
+}
 
 export function constructMetadata({
-  title = 'Jimvio – Global Creator-Commerce Ecosystem',
+  title = SITE.title,
   description = SITE.description,
   image = SITE.ogImage,
-  path = '',
-  type = 'website',
+  path = "",
+  type = "website",
   noIndex = false,
+  keywords = [...SITE.keywords],
 }: SeoProps = {}): Metadata {
+  const canonicalUrl = `${SITE.url}${path === "/" ? "" : path}`;
+  const absoluteImage = image.startsWith("http") ? image : `${SITE.url}${image}`;
+  const metaDescription = truncateDescription(description);
 
-  const canonicalUrl = `${siteUrl}${path === '/' ? '' : path}`;
-  const absoluteImage = image.startsWith('http') ? image : `${siteUrl}${image}`;
-
-  const ogType: 'website' | 'article' = type === 'article' ? 'article' : 'website';
+  const ogType: "website" | "article" = type === "article" ? "article" : "website";
 
   return {
     title: {
-      default: 'Jimvio – Global Creator-Commerce Ecosystem',
-      template: `%s | ${SITE.name}`,
+      default: SITE.title,
+      template: `%s · ${SITE.name}`,
     },
     applicationName: SITE.name,
-    description,
-    metadataBase: new URL(siteUrl),
+    description: metaDescription,
+    keywords,
+    metadataBase: new URL(SITE.url),
     alternates: {
       canonical: canonicalUrl,
     },
-
     openGraph: {
       title,
-      description,
+      description: metaDescription,
       url: canonicalUrl,
       siteName: SITE.name,
       images: [
@@ -154,12 +144,12 @@ export function constructMetadata({
         },
       ],
       type: ogType,
-      locale: 'en_US',
+      locale: "en_US",
     },
     twitter: {
-      card: 'summary_large_image',
+      card: "summary_large_image",
       title,
-      description,
+      description: metaDescription,
       images: [absoluteImage],
       creator: SITE.twitter,
       site: SITE.twitter,
@@ -167,33 +157,46 @@ export function constructMetadata({
     robots: noIndex
       ? { index: false, follow: false }
       : {
-        index: true,
-        follow: true,
-        googleBot: {
           index: true,
           follow: true,
-          'max-video-preview': -1,
-          'max-image-preview': 'large',
-          'max-snippet': -1,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1,
+          },
         },
-      },
     icons: {
       icon: [
-        { url: '/Favicon.png' },
-        { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-        { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+        { url: "/Favicon.png" },
+        { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
       ],
-      shortcut: '/Favicon.png',
-      apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }],
+      shortcut: "/Favicon.png",
+      apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
     },
-    manifest: '/manifest.webmanifest',
+    manifest: "/manifest.webmanifest",
     appleWebApp: {
       capable: true,
       title: SITE.name,
-      statusBarStyle: 'default',
+      statusBarStyle: "default",
     },
     verification: {
-      google: 'X3BENzfRf3Px2mMhw41lZgkOwJNs_BMpYSw2y_t6LO8',
+      google: "X3BENzfRf3Px2mMhw41lZgkOwJNs_BMpYSw2y_t6LO8",
     },
   };
+}
+
+export function pageMetadata(
+  key: keyof typeof PAGE_SEO,
+  overrides: Partial<SeoProps> = {},
+): Metadata {
+  const page = PAGE_SEO[key];
+  return constructMetadata({
+    title: page.title,
+    description: page.description,
+    path: page.path,
+    ...overrides,
+  });
 }

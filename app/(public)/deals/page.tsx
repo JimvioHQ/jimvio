@@ -1,4 +1,5 @@
 import React from "react";
+import type { Metadata } from "next";
 import { Zap, Clock, TrendingUp, Package, Percent, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,9 @@ import { getProducts } from "@/services/db";
 import { getCartProductIds } from "@/lib/actions/marketplace";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import Link from "next/link";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata("deals");
 
 export default async function FlashDealsPage() {
   const [{ products }, cartProductIds] = await Promise.all([

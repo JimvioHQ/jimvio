@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAdminDB } from "@/services/base";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ function slugify(name: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const supabase = await createClient();
+  const supabase = getAdminDB();
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category");
   const search = searchParams.get("search");

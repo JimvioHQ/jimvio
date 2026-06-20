@@ -1,10 +1,14 @@
-﻿import { Suspense } from "react";
+﻿import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ProductChatWidgetLoader } from "@/components/marketplace/product-chat-widget-loader";
 import { AISourcingAssistant } from "@/components/marketplace/ai-sourcing-assistant";
 import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { getResolvedPlatformSettings, PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata("ugc");
 
 export default async function UGCLayout({ children }: { children: React.ReactNode }) {
   let profile = null;

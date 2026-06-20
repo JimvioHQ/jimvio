@@ -1,11 +1,36 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductPageData, getUserCountry } from "@/services/db";
+import { getProductPageData, getUserCountry, getProductBySlug } from "@/services/db";
 import { getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { DigitalProductDetail } from "@/components/marketplace/product-detail-digital";
 import { PhysicalProductDetail } from "@/components/marketplace/product-detail-physical";
+import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
+import { constructMetadata, truncateDescription } from "@/lib/seo";
+import { getImage } from "@/lib/utils";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product) return { title: "Product Not Found" };
+
+  const image = getImage(product.images);
+  const description = truncateDescription(
+    product.short_description ||
+      product.description?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() ||
+      `Shop ${product.name} on Jimvio.`,
+  );
+
+  return constructMetadata({
+    title: product.name,
+    description,
+    image: image.startsWith("http") ? image : image,
+    path: `/marketplace/${slug}`,
+    type: "product",
+  });
 }
 
 export default async function ProductDetailPage({ params }: PageProps) {
@@ -22,24 +47,52 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   const { product, vendor, relatedProducts, shippingOptions, isDigital } = pageData;
 
+  const reviews = product.reviews ?? [];
+  const reviewCount = reviews.length;
+  const averageRating =
+    reviewCount > 0
+      ? reviews.reduce((sum: number, r: { rating?: number }) => sum + (r.rating ?? 0), 0) / reviewCount
+      : null;
+
+  const jsonLdProduct = {
+    name: product.name,
+    slug: product.slug,
+    description: product.description,
+    short_description: product.short_description,
+    price: product.price,
+    currency: product.currency,
+    images: product.images,
+    sku: product.sku,
+    brand: vendor?.business_name ?? null,
+    average_rating: averageRating,
+    review_count: reviewCount,
+    in_stock: true,
+  };
+
   if (isDigital) {
     return (
-      <DigitalProductDetail
-        product={product}
-        vendor={vendor}
-        followedVendorIds={followedVendorIds}
-      />
+      <>
+        <ProductJsonLd product={jsonLdProduct} />
+        <DigitalProductDetail
+          product={product}
+          vendor={vendor}
+          followedVendorIds={followedVendorIds}
+        />
+      </>
     );
   }
 
   return (
-    <PhysicalProductDetail
-      product={product}
-      vendor={vendor}
-      relatedProducts={relatedProducts}
-      shippingOptions={shippingOptions}
-      userCountry={userCountry}
-      followedVendorIds={followedVendorIds}
-    />
+    <>
+      <ProductJsonLd product={jsonLdProduct} />
+      <PhysicalProductDetail
+        product={product}
+        vendor={vendor}
+        relatedProducts={relatedProducts}
+        shippingOptions={shippingOptions}
+        userCountry={userCountry}
+        followedVendorIds={followedVendorIds}
+      />
+    </>
   );
 }

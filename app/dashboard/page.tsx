@@ -12,6 +12,7 @@ import { Settings, BarChart3 } from "lucide-react";
 import { LiveTicker } from "@/components/dashboard/LiveTicker";
 import { HeroStatsRow } from "@/components/dashboard/HeroStatsRow";
 import { FeaturedCampaignBanner } from "@/components/dashboard/FeaturedCampaignBanner";
+import { JimvioAIPanel } from "@/components/ui/jimvio-ai-panel";
 import { StatCardsRow } from "@/components/dashboard/StatCardsRow";
 import { EarningsOverview } from "@/components/dashboard/EarningsOverview";
 import type { EarningsDataset } from "@/components/dashboard/EarningsOverview";
@@ -953,12 +954,7 @@ export default function DashboardHomePage() {
             ) : featuredProps ? (
               <FeaturedCampaignBanner {...featuredProps} />
             ) : (
-              <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-text-muted text-sm">
-                No active campaigns right now.{" "}
-                <Link href="/ugc" className="text-[#fd5000] font-semibold">
-                  Browse campaigns →
-                </Link>
-              </div>
+              <JimvioAIPanel />
             )}
 
             {/* Stat cards */}
@@ -986,15 +982,6 @@ export default function DashboardHomePage() {
 
             {!loading && stockRows.length > 0 && (
               <StockQuantityTable rows={stockRows} />
-            )}
-
-            {!loading && (
-              <DashboardOpportunities
-                campaignsCount={campaignsCount}
-                linksCount={activeLinks}
-                walletBalance={wallet?.available_balance ?? 0}
-                pendingBalance={wallet?.pending_balance ?? 0}
-              />
             )}
 
             {loading ? (
@@ -1025,13 +1012,23 @@ export default function DashboardHomePage() {
             trendingCampaigns={sidebarCampaigns}
             recommendedCreators={sidebarCreators}
             recentSearches={recentSearches}
+            showAIPanel={!!featuredProps}
           />
         </div>
 
-        <div className="mt-10 space-y-5">
+        <div className="mt-10 space-y-8 border-t border-[var(--color-border)] pt-8">
           <QuickActionsStrip actions={QUICK_ACTIONS} />
 
-          {/* Bottom 3-column grid */}
+          {!loading && (
+            <DashboardOpportunities
+              campaignsCount={campaignsCount}
+              linksCount={activeLinks}
+              walletBalance={wallet?.available_balance ?? 0}
+              pendingBalance={wallet?.pending_balance ?? 0}
+            />
+          )}
+
+          {/* Bottom discovery grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {loading ? (
               <>

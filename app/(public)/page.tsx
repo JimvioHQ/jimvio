@@ -1,5 +1,6 @@
 
 import React from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -12,6 +13,7 @@ import {
   getAffiliateProgramStats,
   getAffiliateSpotlightProducts,
 } from "@/services/db";
+import { formatPublicCount, formatPublicMoneyUsd } from "@/lib/social-proof-display";
 import { getProfile } from "@/lib/auth/actions";
 import {
   getResolvedPlatformSettings,
@@ -19,6 +21,9 @@ import {
 } from "@/lib/platform-settings";
 import { HomepageRedesign } from "@/components/layout/homepage-redesign";
 import { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
+import { pageMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = pageMetadata("home");
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -62,13 +67,10 @@ export default async function HomePage() {
         totalCommunities: platformStats.totalCommunities,
       }}
       stats={{
-        users: platformStats.totalUsers >= 1000
-          ? `${(platformStats.totalUsers / 1000).toFixed(0)}K+`
-          : platformStats.totalUsers > 0
-            ? `${platformStats.totalUsers}+`
-            : "977K+",
-        earned: "$1M+",
-        secure: "99.9%",
+        users: formatPublicCount(platformStats.totalUsers),
+        earned: formatPublicMoneyUsd(platformStats.totalEarnings),
+        secure: platformSettingsMaybe?.social_proof?.success_rate_display
+          ?? PLATFORM_SETTINGS_DEFAULTS.social_proof.success_rate_display,
         countries:
           platformSettingsMaybe?.social_proof?.countries_display
           ?? PLATFORM_SETTINGS_DEFAULTS.social_proof.countries_display,

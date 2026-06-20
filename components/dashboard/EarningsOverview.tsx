@@ -58,6 +58,9 @@ const PERIODS = [
 ] as const;
 type Period = (typeof PERIODS)[number];
 
+/** Fixed bar heights — avoids hydration mismatch from Math.sin float formatting */
+const CHART_SKELETON_HEIGHTS = [46, 63, 52, 68, 55, 71, 48, 66, 54, 62, 50, 69, 57, 64] as const;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function sliceForPeriod(
@@ -703,13 +706,13 @@ export function EarningsOverview({
 
         {/* Loading skeleton */}
         {!chartReady && !chartError && hasData && (
-          <div className="absolute inset-0 flex items-end gap-1 pb-6 px-1">
-            {Array.from({ length: 14 }).map((_, i) => (
+          <div className="absolute inset-0 flex items-end gap-1 px-1 pb-6">
+            {CHART_SKELETON_HEIGHTS.map((height, i) => (
               <div
                 key={i}
-                className="flex-1 rounded-sm bg-surface-secondary animate-pulse"
+                className="flex-1 animate-pulse rounded-sm bg-surface-secondary"
                 style={{
-                  height: `${28 + Math.sin(i * 0.9) * 22 + 18}%`,
+                  height: `${height}%`,
                   animationDelay: `${i * 50}ms`,
                 }}
               />

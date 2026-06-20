@@ -199,6 +199,16 @@ export default async function AdminProductDetailPage({
                   {formatAdminMoney(Number(product.compare_at_price), currency)}
                 </span>
               ) : null}
+              {product.discount_label ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-orange-50 text-orange-700 ring-1 ring-orange-600/20">
+                  {String(product.discount_label)}
+                </span>
+              ) : null}
+              {product.is_flash_deal ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-rose-50 text-rose-700 ring-1 ring-rose-600/20">
+                  Flash deal
+                </span>
+              ) : null}
               {product.cost_price ? (
                 <span className="text-[var(--color-text-muted)]">
                   Cost {formatAdminMoney(Number(product.cost_price), currency)}

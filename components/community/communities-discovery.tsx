@@ -33,57 +33,6 @@ type SortKey = (typeof SORTS)[number]["value"];
 
 type PriceFilter = "all" | "free" | "paid";
 
-type Testimonial = {
-  quote: string;
-  name: string;
-  role: string;
-};
-
-const TESTIMONIALS: Record<PriceFilter, Testimonial[]> = {
-  all: [
-    {
-      quote:
-        "I joined one hub for the content and stayed for the people. Weekly calls alone paid for the membership.",
-      name: "Daniel M.",
-      role: "E-commerce seller",
-    },
-    {
-      quote:
-        "Free groups got me started. When I was ready, upgrading to a paid room felt obvious — same people, deeper access.",
-      name: "Priya S.",
-      role: "Content creator",
-    },
-  ],
-  free: [
-    {
-      quote:
-        "No card upfront. I could lurk, ask questions, and see if the community was actually active before committing.",
-      name: "James O.",
-      role: "First-time founder",
-    },
-    {
-      quote:
-        "The free communities here aren't ghost towns — real replies, real resources, no paywall on the basics.",
-      name: "Lena V.",
-      role: "Marketing freelancer",
-    },
-  ],
-  paid: [
-    {
-      quote:
-        "Paid access filters out noise. I get direct feedback on launches and deals I would not find on public forums.",
-      name: "Marcus T.",
-      role: "SaaS operator",
-    },
-    {
-      quote:
-        "Worth it for the office hours alone. One session covered what I had been guessing at for months.",
-      name: "Aisha N.",
-      role: "Course creator",
-    },
-  ],
-};
-
 function featuredEyebrow(priceFilter: PriceFilter): string {
   if (priceFilter === "free") return "Top free community";
   if (priceFilter === "paid") return "Top paid community";
@@ -146,7 +95,6 @@ function CommunitiesHero({
   const price = priceLabel(community);
   const owner =
     community.profiles?.full_name || community.profiles?.username || null;
-  const testimonials = TESTIMONIALS[priceFilter];
 
   return (
     <section className="mb-6 grid gap-4 lg:grid-cols-[1.15fr_0.85fr] sm:mb-8">
@@ -227,30 +175,19 @@ function CommunitiesHero({
 
       <div className="flex flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 sm:p-6">
         <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-          What members say
+          Before you join
         </p>
-        <div className="mt-4 flex flex-1 flex-col gap-4">
-          {testimonials.map((t) => (
-            <figure
-              key={`${t.name}-${t.quote.slice(0, 24)}`}
-              className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 p-4"
-            >
-              <blockquote className="text-[13px] leading-relaxed text-[var(--color-text-primary)]">
-                &ldquo;{t.quote}&rdquo;
-              </blockquote>
-              <figcaption className="mt-3 text-[12px] text-[var(--color-text-muted)]">
-                <span className="font-medium text-[var(--color-text-primary)]">
-                  {t.name}
-                </span>
-                <span aria-hidden> · </span>
-                {t.role}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-        <p className="mt-4 text-[11px] leading-snug text-[var(--color-text-muted)]">
-          Spotlight updates when you switch All, Free, or Paid.
-        </p>
+        <ul className="mt-4 flex flex-1 flex-col gap-3 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
+          <li>See member count and price before you commit.</li>
+          <li>Free groups let you lurk first; paid groups bill monthly.</li>
+          <li>Owners can run courses, live rooms, and chat in one hub.</li>
+        </ul>
+        <Link
+          href="/communities/create"
+          className="mt-5 inline-flex h-9 items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)]"
+        >
+          Start your own
+        </Link>
       </div>
     </section>
   );
@@ -370,16 +307,22 @@ function PriceFilterChips({
   );
 }
 
-export function CommunitiesDiscovery() {
+export function CommunitiesDiscovery({
+  initialCommunities = [],
+  initialTotal = 0,
+}: {
+  initialCommunities?: CommunityRow[];
+  initialTotal?: number;
+}) {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
   const [category, setCategory] = useState<Category>("All");
   const [sort, setSort] = useState<SortKey>("popular");
   const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [items, setItems] = useState<CommunityRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(initialTotal);
+  const [items, setItems] = useState<CommunityRow[]>(initialCommunities);
+  const [loading, setLoading] = useState(initialCommunities.length === 0);
   const [loadingMore, setLoadingMore] = useState(false);
   const sortRef = useRef(sort);
   sortRef.current = sort;
@@ -413,12 +356,18 @@ export function CommunitiesDiscovery() {
   );
 
   useEffect(() => {
+    if (!debounced && category === "All" && initialCommunities.length > 0) {
+      setItems(sortCommunities(initialCommunities, sortRef.current));
+      setTotal(initialTotal);
+      setLoading(false);
+      return;
+    }
     setPage(1);
     setLoading(true);
     fetchPage(1, false)
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [debounced, category, fetchPage]);
+  }, [debounced, category, fetchPage, initialCommunities, initialTotal]);
 
   useEffect(() => {
     setItems((prev) => sortCommunities(prev, sort));

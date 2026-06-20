@@ -12,12 +12,9 @@ import {
 } from "@/lib/platform-settings";
 import { getImage } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Affiliate Program | Jimvio",
-  description:
-    "Promote verified Jimvio marketplace products with tracked links. Earn commission on every confirmed sale and withdraw when you reach the payout minimum.",
-};
+export const metadata: Metadata = pageMetadata("affiliates");
 
 export default async function AffiliatesPage() {
   const supabase = await createClient();

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { ActivityItem } from "@/types/dashboard";
 import { ProfileImage } from "@/components/ui/profile-image";
+import { JimvioAIPanel } from "@/components/ui/jimvio-ai-panel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -129,6 +130,7 @@ interface Props {
   trendingCampaigns?: TrendingCampaignItem[];
   recommendedCreators?: RecommendedCreator[];
   recentSearches?: RecentSearchItem[];
+  showAIPanel?: boolean;
 }
 
 export function DashboardSidebar({
@@ -137,6 +139,7 @@ export function DashboardSidebar({
   trendingCampaigns,
   recommendedCreators,
   recentSearches,
+  showAIPanel = false,
 }: Props) {
   const campaigns = trendingCampaigns ?? [];
   const creators = recommendedCreators ?? [];
@@ -335,6 +338,8 @@ export function DashboardSidebar({
           </div>
         )}
       </SidebarPanel>
+
+      {showAIPanel && <JimvioAIPanel compact className="hidden xl:block" />}
     </div>
   );
 }

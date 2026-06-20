@@ -44,8 +44,9 @@ module.exports = {
     "/admin/*",
     "/api/*",
 
-    // Utility / legal
-    "/404",
+    // Community hub (logged-in app shell — not for indexing)
+    "/c",
+    "/c/*",
     "/500",
     "/terms",
     "/privacy",

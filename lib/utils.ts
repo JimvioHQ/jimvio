@@ -166,10 +166,10 @@ export type ProductDiscountFields = {
   is_flash_deal?: boolean | null;
 };
 
-/** True only when a discount was explicitly set or the product is a flash deal with a higher compare price. */
+/** True when a product has an explicit discount badge, flash deal, or a higher compare-at price. */
 export function hasRealProductDiscount(p: ProductDiscountFields): boolean {
   if (p.discount_label?.trim()) return true;
-  if (p.is_flash_deal && p.compare_at_price != null && p.compare_at_price > p.price) return true;
+  if (p.compare_at_price != null && p.compare_at_price > p.price) return true;
   return false;
 }
 

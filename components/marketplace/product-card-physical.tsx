@@ -5,8 +5,10 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   MessageCircle, ShoppingBag, Check, X, Minus,
-  Heart, PercentSquare, AlertTriangle,
+  Heart, PercentSquare, AlertTriangle, Play,
 } from "lucide-react";
+import { productHasStoredVideos } from "@/lib/product-videos";
+import { getProductVideoUrls } from "@/lib/cj/product-videos";
 import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
@@ -55,6 +57,10 @@ export function ProductCardPhysical({
   const images = p.images ?? [];
   const imgSrc = images[0] ?? null;
   const hoverImg = images[1] ?? null;
+  const hasVideo = useMemo(() => {
+    if (productHasStoredVideos(p as any)) return true;
+    return getProductVideoUrls(p as any).length > 0;
+  }, [p]);
   const price = Number(p.price ?? 0);
   const discountFields = {
     price,
@@ -296,6 +302,24 @@ export function ProductCardPhysical({
             <span className="absolute flex items-center gap-1 top-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600">
               <Minus size={12} aria-hidden />
               {discount}%
+            </span>
+          )}
+
+          {hasVideo && imgSrc && (
+            <span className="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm text-[10px] font-semibold text-white">
+              <Play className="h-2.5 w-2.5 fill-white" aria-hidden />
+              Video
+            </span>
+          )}
+
+          {hasVideo && imgSrc && (
+            <span
+              className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              aria-hidden
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm">
+                <Play className="h-4 w-4 text-white fill-white" />
+              </span>
             </span>
           )}
 

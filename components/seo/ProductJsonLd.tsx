@@ -1,48 +1,66 @@
-﻿import { Product, Offer } from "schema-dts";
+﻿import type { Product, WithContext } from "schema-dts";
+import { SITE } from "@/lib/seo";
+import { getImage } from "@/lib/utils";
 
-interface ProductJsonLdProps {
-  product: {
-    name: string;
-    description?: string;
-    images?: string[];
-    price: number;
-    currency: string;
-    vendorName?: string;
-    sku?: string;
-    availability?: string;
-  };
-  siteUrl: string;
-}
+type ProductJsonLdInput = {
+  name: string;
+  slug: string;
+  description?: string | null;
+  short_description?: string | null;
+  price?: number | null;
+  currency?: string | null;
+  images?: unknown;
+  sku?: string | null;
+  brand?: string | null;
+  average_rating?: number | null;
+  review_count?: number | null;
+  in_stock?: boolean;
+};
 
-export const ProductJsonLd = ({ product, siteUrl }: ProductJsonLdProps) => {
-  const jsonLd: Product = {
+export function ProductJsonLd({ product }: { product: ProductJsonLdInput }) {
+  const image = getImage(product.images);
+  const absoluteImage = image.startsWith("http") ? image : `${SITE.url}${image}`;
+  const description =
+    product.short_description?.trim() ||
+    product.description?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 300) ||
+    `${product.name} — sold on Jimvio.`;
+
+  const schema: WithContext<any> = {
+    "@context": "https://schema.org",
     "@type": "Product",
-    "name": product.name,
-    "description": product.description || `Buy ${product.name} on Jimvio B2B Marketplace.`,
-    "image": product.images || [],
-    "sku": product.sku,
-    "brand": {
-      "@type": "Brand",
-      "name": product.vendorName || "Jimvio"
-    },
-    "offers": {
+    name: product.name,
+    description,
+    image: absoluteImage,
+    sku: product.sku ?? product.slug,
+    brand: product.brand
+      ? { "@type": "Brand", name: product.brand }
+      : { "@type": "Brand", name: "Jimvio" },
+    url: `${SITE.url}/marketplace/${product.slug}`,
+    offers: {
       "@type": "Offer",
-      "price": product.price,
-      "priceCurrency": product.currency,
-      "availability": (product.availability as "https://schema.org/InStock") || "https://schema.org/InStock",
-      "url": `${siteUrl}/products/${product.name.toLowerCase().replace(/ /g, '-')}`, // Usually we'd use the slug but fallback
-      "seller": {
-        "@type": "Organization",
-        "name": product.vendorName || "Jimvio"
-      }
-    }
+      url: `${SITE.url}/marketplace/${product.slug}`,
+      priceCurrency: (product.currency ?? "USD").toUpperCase(),
+      price: String(product.price ?? 0),
+      availability: product.in_stock === false
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock",
+      seller: { "@type": "Organization", name: SITE.name },
+    },
+    ...(product.average_rating && product.review_count
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: String(product.average_rating),
+            reviewCount: String(product.review_count),
+          },
+        }
+      : {}),
   };
 
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
     />
   );
-};
-
+}

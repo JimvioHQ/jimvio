@@ -603,7 +603,10 @@ export function ImageGallery({
         if (item?.type !== "video") {
             videoRef.current?.pause();
         }
-    }, [activeIndex, media]);
+        if (lightboxOpen && item?.type !== "image") {
+            setLightboxOpen(false);
+        }
+    }, [activeIndex, media, lightboxOpen]);
 
     // Scroll active thumbnail into view
     useEffect(() => {
@@ -654,7 +657,7 @@ export function ImageGallery({
                         border: "1px solid var(--color-border)",
                         borderRadius: "12px",
                         isolation: "isolate",
-                        cursor: zoom.active ? "none" : "crosshair",
+                        cursor: showZoom ? (zoom.active ? "none" : "crosshair") : "default",
                     }}
                     onMouseMove={(e) => { onMove(e); handleMouseEnter(); }}
                     onMouseLeave={onLeave}
@@ -671,7 +674,24 @@ export function ImageGallery({
                         }}
                     />
 
-                    {mainImage ? (
+                    {mainVideo ? (
+                        <>
+                            {!imageLoaded && <ImageSkeleton />}
+                            <video
+                                ref={videoRef}
+                                key={mainVideo.url}
+                                src={mainVideo.url}
+                                poster={mainVideo.poster}
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                                preload="metadata"
+                                className="absolute inset-0 w-full h-full object-contain p-2 z-[1]"
+                                onLoadedData={() => setImageLoaded(true)}
+                            />
+                        </>
+                    ) : mainImage ? (
                         <>
                             {/* Skeleton */}
                             {!imageLoaded && <ImageSkeleton />}
@@ -770,7 +790,7 @@ export function ImageGallery({
                                     backdropFilter: "blur(6px)",
                                 }}
                             >
-                                {activeIndex + 1}/{images.length}
+                                {activeIndex + 1}/{media.length}
                             </span>
                         )}
                         {mainImage && (
@@ -821,7 +841,7 @@ export function ImageGallery({
                             </button>
                             <button
                                 onClick={next}
-                                disabled={activeIndex === images.length - 1}
+                                disabled={activeIndex === media.length - 1}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:!opacity-0"
                                 style={{
                                     background: "var(--color-surface)",
@@ -866,24 +886,25 @@ export function ImageGallery({
                         )}
                         style={{ scrollbarWidth: "none" }}
                         role="tablist"
-                        aria-label="Product images"
+                        aria-label="Product media"
                     >
-                        {images.map((img, i) => (
+                        {media.map((item, i) => (
                             <Thumbnail
-                                key={img + i}
-                                src={img}
+                                key={`${item.type}-${item.url}-${i}`}
+                                src={item.type === "video" ? (item.poster ?? images[0] ?? item.url) : item.url}
                                 index={i}
                                 active={i === activeIndex}
                                 onClick={() => setActiveIndex(i)}
+                                isVideo={item.type === "video"}
                             />
                         ))}
                     </div>
                 )}
 
                 {/* ── Dot indicators (mobile only) ──────────────────────────────── */}
-                {hasMultiple && images.length <= 12 && (
+                {hasMultiple && media.length <= 12 && (
                     <div className="flex justify-center gap-1.5 md:hidden">
-                        {images.map((_, i) => (
+                        {media.map((_, i) => (
                             <button
                                 key={i}
                                 onClick={() => setActiveIndex(i)}
@@ -896,16 +917,16 @@ export function ImageGallery({
                                         : "var(--color-border-strong)",
                                     opacity: i === activeIndex ? 1 : 0.4,
                                 }}
-                                aria-label={`Go to image ${i + 1}`}
+                                aria-label={`Go to media ${i + 1}`}
                             />
                         ))}
                     </div>
                 )}
             </div>
-            {lightboxOpen && mainImage && (
+            {lightboxOpen && mainImage && activeMedia?.type === "image" && (
                 <Lightbox
                     images={images}
-                    activeIndex={activeIndex}
+                    activeIndex={Math.max(0, activeIndex - videos.length)}
                     productName={productName}
                     onClose={() => setLightboxOpen(false)}
                     onPrev={prev}

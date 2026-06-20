@@ -61,9 +61,9 @@ export const PLATFORM_SETTINGS_DEFAULTS: ResolvedPlatformSettings = {
   },
   social_proof: {
     success_rate_display: "99.2%",
-    countries_display: "80+",
-    fallback_verified_vendors: "2.4k+",
-    fallback_total_products: "180k+",
+    countries_display: "50+",
+    fallback_verified_vendors: "",
+    fallback_total_products: "",
   },
   marketing: {
     trending_search_keywords: [],
@@ -199,13 +199,13 @@ export function socialProofBarValues(
       ? `${(platformStats.totalVendors / 1000).toFixed(1)}k+`
       : platformStats.totalVendors > 0
         ? `${platformStats.totalVendors}+`
-        : sp.fallback_verified_vendors;
+        : "—";
   const totalProducts =
     platformStats.totalProducts >= 1000
       ? `${Math.round(platformStats.totalProducts / 1000)}k+`
       : platformStats.totalProducts > 0
         ? `${platformStats.totalProducts}+`
-        : sp.fallback_total_products;
+        : "—";
   return {
     verifiedVendors,
     successRate: sp.success_rate_display,

@@ -282,8 +282,7 @@ const socials = [
             </div>
 
             <p className="text-[13px] leading-relaxed text-text-muted max-w-[260px] mb-6 font-normal">
-              The global creator-commerce ecosystem. One platform for verified
-              suppliers, buyers, affiliates & influencers.
+              Marketplace, affiliate links, brand briefs, and communities — without juggling five apps.
             </p>
 
             {/* Socials */}

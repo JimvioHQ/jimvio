@@ -108,6 +108,9 @@ export type AdminProductUpdateInput = {
   show_author?: boolean;
   show_reviews?: boolean;
   enable_discussions?: boolean;
+  compare_at_price?: number | null;
+  discount_label?: string | null;
+  is_flash_deal?: boolean;
 };
 
 export async function getAdminProductForEdit(
@@ -181,6 +184,9 @@ export async function updateAdminProduct(
       show_author: input.show_author ?? true,
       show_reviews: input.show_reviews ?? true,
       enable_discussions: input.enable_discussions ?? false,
+      compare_at_price: input.compare_at_price ?? null,
+      discount_label: input.discount_label?.trim() || null,
+      is_flash_deal: input.is_flash_deal ?? false,
       source_metadata: existing.source_metadata ?? {},
       updated_at: new Date().toISOString(),
     })

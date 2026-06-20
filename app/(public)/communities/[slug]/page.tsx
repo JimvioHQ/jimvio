@@ -5,6 +5,7 @@ import {
     type CommunityDetailPayload,
     type MembershipPayload,
 } from "@/components/community/community-detail-view";
+import { constructMetadata, truncateDescription } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -19,15 +20,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         .maybeSingle();
 
     if (!data) return { title: "Community" };
-    return {
+
+    const image = data.cover_image ?? data.avatar_url ?? undefined;
+    return constructMetadata({
         title: data.name,
-        description: data.tagline ?? undefined,
-        openGraph: {
-            title: data.name,
-            description: data.tagline ?? undefined,
-            images: data.cover_image ? [data.cover_image] : data.avatar_url ? [data.avatar_url] : undefined,
-        },
-    };
+        description: truncateDescription(
+            data.tagline ?? `${data.name} on Jimvio.`,
+        ),
+        image,
+        path: `/communities/${slug}`,
+    });
 }
 
 export default async function CommunityDetailPage({

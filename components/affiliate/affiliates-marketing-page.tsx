@@ -61,23 +61,6 @@ type AffiliatesMarketingPageProps = {
   hasAffiliateAccount: boolean;
 };
 
-const TESTIMONIALS = [
-  {
-    quote:
-      "I promote three SKUs from one dashboard. Clicks, conversions, and payouts are all in one place — no spreadsheet chaos.",
-    name: "Kevin A.",
-    role: "Tech reviewer",
-    highlight: "12 conversions in week one",
-  },
-  {
-    quote:
-      "Rates are listed on every product before I share. I know exactly what a sale is worth before posting.",
-    name: "Sonia L.",
-    role: "Lifestyle creator",
-    highlight: "Focuses on high-commission SKUs",
-  },
-];
-
 const FAQ = [
   {
     q: "How much can I earn per sale?",
@@ -574,30 +557,25 @@ export function AffiliatesMarketingPage({
 
           <div className={cn(CARD, "p-5 sm:p-6")}>
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-              Affiliate voices
+              What you get
             </p>
-            <div className="mt-4 space-y-4">
-              {TESTIMONIALS.map((t) => (
-                <figure
-                  key={t.name}
-                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-4"
-                >
-                  <blockquote className="text-[14px] leading-relaxed text-[var(--color-text-primary)]">
-                    &ldquo;{t.quote}&rdquo;
-                  </blockquote>
-                  <figcaption className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[12px]">
-                    <span className="text-[var(--color-text-muted)]">
-                      <span className="font-medium text-[var(--color-text-primary)]">{t.name}</span>
-                      {" · "}
-                      {t.role}
-                    </span>
-                    <span className="rounded-md bg-[var(--color-accent-light)] px-2 py-0.5 font-medium text-[var(--color-accent)]">
-                      {t.highlight}
-                    </span>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
+            <ul className="mt-4 space-y-3 text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
+              <li className="flex gap-2">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+                Commission rate shown on every product before you share.
+              </li>
+              <li className="flex gap-2">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+                Tracked links with clicks and sales in your dashboard.
+              </li>
+              <li className="flex gap-2">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+                Payouts to your wallet after orders confirm.
+              </li>
+            </ul>
+            <p className="mt-5 text-[12px] text-[var(--color-text-muted)]">
+              Min. payout: {formatMoney(minPayout, "RWF")}
+            </p>
           </div>
         </div>
       </section>

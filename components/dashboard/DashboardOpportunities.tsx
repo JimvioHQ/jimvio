@@ -92,7 +92,7 @@ export function DashboardOpportunities({
           Ways to grow your earnings
         </h3>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {visible.map((item) => (
           <Link
             key={item.title}

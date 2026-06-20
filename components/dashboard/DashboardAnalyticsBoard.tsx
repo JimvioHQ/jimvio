@@ -281,8 +281,8 @@ export function DashboardAnalyticsBoard({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel className="lg:col-span-2">
+      <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-3">
+        <Panel className="min-w-0 lg:col-span-2">
           <PanelHeader
             title="Traffic"
             action={<PeriodSelect label="This year" />}
@@ -358,7 +358,7 @@ export function DashboardAnalyticsBoard({
           </div>
         </Panel>
 
-        <Panel>
+        <Panel className="min-w-0 lg:col-span-1">
           <PanelHeader
             title="My messages"
             action={
@@ -415,8 +415,8 @@ export function DashboardAnalyticsBoard({
         </Panel>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel>
+      <div className="grid w-full grid-cols-1 gap-4 lg:grid-cols-3">
+        <Panel className="min-w-0 lg:col-span-1">
           <PanelHeader
             title="Top selling products"
             action={
@@ -464,7 +464,7 @@ export function DashboardAnalyticsBoard({
           </div>
         </Panel>
 
-        <Panel className="lg:col-span-2">
+        <Panel className="min-w-0 lg:col-span-2">
           <PanelHeader
             title="Product sales"
             action={<PeriodSelect label="This year" />}
@@ -514,8 +514,9 @@ export function DashboardAnalyticsBoard({
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex h-full flex-col items-center justify-center text-center">
-                  <p className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+                <div className="flex h-full flex-col items-center justify-center gap-2 px-2 text-center">
+                  <LineChart className="size-7 text-[var(--color-text-muted)]" />
+                  <p className="text-[12px] font-medium text-[var(--color-text-secondary)]">
                     Sales chart appears once orders start coming in
                   </p>
                 </div>
