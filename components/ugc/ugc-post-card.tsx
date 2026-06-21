@@ -154,7 +154,7 @@ function ProductStrip({ tags }: { tags: Array<{ products: UGCPostProduct }> }) {
         return (
           <Link
             key={p.id}
-            href={`/marketplace/product/${p.slug}`}
+            href={`/marketplace/${p.slug}`}
             className="flex items-center gap-2 px-3 py-1.5 rounded-sm bg-[var(--color-surface-secondary)] border border-[var(--color-border)] hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-accent-light)] transition-all group text-xs font-medium"
           >
             {img && (
@@ -436,7 +436,7 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
         <div className="flex items-center gap-1">
           {tags.length > 0 && (
             <Link
-              href={`/marketplace/product/${tags[0].products.slug}`}
+              href={`/marketplace/${tags[0].products.slug}`}
               className="flex items-center gap-1.5 px-3 py-2 rounded-sm text-xs font-semibold text-[var(--color-accent)] bg-[var(--color-accent-light)] hover:bg-[var(--color-accent)] hover:text-white transition-all"
             >
               <ShoppingBag className="h-3.5 w-3.5" />

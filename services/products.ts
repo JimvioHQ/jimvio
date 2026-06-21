@@ -119,6 +119,38 @@ const SHIPPING_COLS = `
 
 const VIDEO_COLS = `id, video_url, sort_order`;
 
+type ProductVideoPublic = Pick<
+  Tables<"product_videos">,
+  "id" | "video_url" | "sort_order"
+>;
+
+/** Fetched separately so a missing `product_videos` table/migration never 404s product pages. */
+async function fetchProductVideosByProductIds(
+  db: Awaited<ReturnType<typeof getDB>>,
+  productIds: string[],
+): Promise<Map<string, ProductVideoPublic[]>> {
+  const map = new Map<string, ProductVideoPublic[]>();
+  if (productIds.length === 0) return map;
+
+  const { data, error } = await db
+    .from("product_videos")
+    .select(`${VIDEO_COLS}, product_id`)
+    .in("product_id", productIds)
+    .order("sort_order");
+
+  if (error) {
+    console.warn("[fetchProductVideosByProductIds]:", error.message);
+    return map;
+  }
+
+  for (const row of data ?? []) {
+    const list = map.get(row.product_id) ?? [];
+    list.push(row);
+    map.set(row.product_id, list);
+  }
+  return map;
+}
+
 // ─────────────────────────────────────────────────────────────
 // SHARED UTILITIES
 // ─────────────────────────────────────────────────────────────
@@ -251,8 +283,7 @@ export async function getProducts(query: ProductQuery = {}) {
       created_at, source, currency, button_text,
       pricing_type, billing_period,
       vendors ( id, business_name, business_slug, rating, verification_status, business_country ),
-      product_categories${category ? "!inner" : ""} ( id, name, slug ),
-      product_videos ( ${VIDEO_COLS} )
+      product_categories${category ? "!inner" : ""} ( id, name, slug )
     `, { count: "exact" })
     .eq("status", "active")
     .eq("is_active", true);
@@ -277,7 +308,18 @@ export async function getProducts(query: ProductQuery = {}) {
   }
 
   const { data, count } = await q.range(offset, offset + limit - 1);
-  return { products: data ?? [], total: count ?? 0 };
+  const products = data ?? [];
+  const videoMap = await fetchProductVideosByProductIds(
+    db,
+    products.map((p) => p.id),
+  );
+  return {
+    products: products.map((p) => ({
+      ...p,
+      product_videos: videoMap.get(p.id) ?? [],
+    })),
+    total: count ?? 0,
+  };
 }
 
 export async function getFeaturedProducts(limit = 4) {
@@ -334,11 +376,11 @@ export const getProductBySlug = cache(async function getProductBySlug(
       product_categories ( id, name, slug, parent_id ),
       product_variants ( ${VARIANT_COLS} ),
       product_shipping_options ( ${SHIPPING_COLS} ),
-      product_videos ( ${VIDEO_COLS} ),
       reviews ( ${REVIEW_COLS} )
     `)
     .eq("slug", slug)
     .eq("status", "active")
+    .eq("is_active", true)
     .is("deleted_at", null)
     .maybeSingle();
 
@@ -353,6 +395,8 @@ export const getProductBySlug = cache(async function getProductBySlug(
     product.product_variants,
     Boolean(product.track_inventory)
   );
+  const videoMap = await fetchProductVideosByProductIds(db, [product.id]);
+  product.product_videos = videoMap.get(product.id) ?? [];
   return product;
 });
 
