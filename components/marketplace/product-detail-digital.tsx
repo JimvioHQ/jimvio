@@ -497,6 +497,7 @@ import { ProductActionModule } from "@/components/marketplace/product-action-mod
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
 import { ImageGallery } from "@/components/marketplace/image-gallery";
+import { resolveProductVideoUrls } from "@/lib/product-videos";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
   ProductBreadcrumb,
@@ -1249,6 +1250,10 @@ export function DigitalProductDetail({
 
   // Derived values
   const images: string[] = asStringArray(product.images ?? []);
+  const productVideos = useMemo(
+    () => resolveProductVideoUrls(product),
+    [product],
+  );
   const saleCount = product.sale_count ?? 120;
   const reviewCount = product.review_count ?? 0;
   const rating = (product as { rating?: number | null }).rating ?? 4.9;
@@ -1369,10 +1374,11 @@ export function DigitalProductDetail({
                 <DigitalBadgePills product={product} savings={savings} />
                 <ImageGallery
                   images={images}
+                  videos={productVideos}
                   productName={product.name}
                   isFeatured={product.is_featured ?? false}
                   savings={savings}
-                  thumbnailsPosition="left"
+                  thumbnailsPosition="bottom"
                 />
                 <SocialProofActivityFeed liveViewers={liveViewers} saleCount={saleCount} />
               </section>

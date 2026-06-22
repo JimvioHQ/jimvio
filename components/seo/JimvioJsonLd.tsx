@@ -1,16 +1,23 @@
 ﻿import { Organization, WebSite, WithContext } from "schema-dts";
 import { SITE } from "@/lib/seo";
 
+const orgId = `${SITE.url}/#organization`;
+const websiteId = `${SITE.url}/#website`;
+
 const organization: Organization = {
   "@type": "Organization",
+  "@id": orgId,
   name: SITE.name,
+  legalName: SITE.name,
+  alternateName: ["Jimvio Marketplace", "Jimvio.com"],
   url: SITE.url,
   logo: {
     "@type": "ImageObject",
-    url: `${SITE.url}/jimvio-logo.png`,
-    width: "200",
-    height: "200",
+    url: `${SITE.url}/icons/icon-512.png`,
+    width: "512",
+    height: "512",
   },
+  image: `${SITE.url}/jimvio-og.png`,
   description: SITE.description,
   contactPoint: {
     "@type": "ContactPoint",
@@ -30,9 +37,13 @@ const organization: Organization = {
 
 const website: WebSite = {
   "@type": "WebSite",
+  "@id": websiteId,
   name: SITE.name,
+  alternateName: ["Jimvio", "Jimvio Marketplace"],
   url: SITE.url,
   description: SITE.description,
+  publisher: { "@id": orgId },
+  inLanguage: "en",
   potentialAction: {
     "@type": "SearchAction",
     target: {
@@ -43,9 +54,9 @@ const website: WebSite = {
   },
 };
 
-const unifiedSchema: WithContext<any> = {
+const unifiedSchema: WithContext<{ "@graph": (Organization | WebSite)[] }> = {
   "@context": "https://schema.org",
-  "@graph": [organization, website]
+  "@graph": [organization, website],
 };
 
 export function JimvioJsonLd() {

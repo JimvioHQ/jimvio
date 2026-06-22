@@ -57,7 +57,7 @@ interface Product {
     verification_status?: string;
   } | null;
   product_categories?: { id: string; name: string; slug: string } | null;
-  product_videos?: Array<{ video_url: string; sort_order?: number | null }>;
+  product_videos?: Array<{ url: string; sort_order?: number | null }>;
   source?: string;
   currency?: string;
 }

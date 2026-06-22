@@ -54,18 +54,27 @@ function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: stri
   );
 }
 
-/** Static two-row grid — fits viewport, no horizontal scroll */
-function TwoRowGrid({
+/** Two rows, horizontal scroll — columns grow with content (mockup-style carousels) */
+function TwoRowHorizontalScroll({
   children,
-  cols = "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5",
-  gap = "gap-2",
+  cardMinWidth = 168,
+  gap = "gap-2.5",
 }: {
   children: ReactNode[];
-  cols?: string;
+  cardMinWidth?: number;
   gap?: string;
 }) {
   if (!children.length) return null;
-  return <div className={cn("grid auto-rows-fr", cols, gap)}>{children}</div>;
+  return (
+    <div className="-mx-4 overflow-x-auto px-4 pb-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[var(--color-border)] sm:-mx-6 sm:px-6">
+      <div
+        className={cn("grid w-max grid-flow-col grid-rows-2", gap)}
+        style={{ gridAutoColumns: `minmax(${cardMinWidth}px, ${cardMinWidth + 24}px)` }}
+      >
+        {children}
+      </div>
+    </div>
+  );
 }
 
 /* ═══ 1. What do you want to do today ═══ */
@@ -396,37 +405,73 @@ function HowJimvioConnector({
   filled,
   fromColor,
   toColor,
+  id,
+  variant = "horizontal",
 }: {
   filled: boolean;
   fromColor: string;
   toColor: string;
+  id: string;
+  variant?: "horizontal" | "vertical";
 }) {
-  const squares = 5;
+  const strokeColor = filled ? `url(#${id})` : "var(--color-border)";
+  const opacity = filled ? 1 : 0.5;
+
+  if (variant === "vertical") {
+    return (
+      <div className="flex justify-center py-1 md:hidden" aria-hidden>
+        <svg
+          viewBox="0 0 36 100"
+          className="h-14 w-9"
+          fill="none"
+          style={{ opacity }}
+        >
+          {filled && (
+            <defs>
+              <linearGradient id={id} x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor={fromColor} />
+                <stop offset="100%" stopColor={toColor} />
+              </linearGradient>
+            </defs>
+          )}
+          <path d="M 6 8 H 30" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M 18 8 V 92" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
+          <path d="M 6 92 H 30" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <div
-      className="flex flex-1 items-center justify-center gap-1.5 px-2"
+      className="hidden min-w-[52px] max-w-[148px] flex-1 items-center justify-center self-center px-1 md:flex"
       aria-hidden
     >
-      {Array.from({ length: squares }, (_, i) => {
-        const t = i / (squares - 1);
-        const squareColor = filled
-          ? `color-mix(in srgb, ${fromColor} ${Math.round((1 - t) * 100)}%, ${toColor})`
-          : "var(--color-border)";
-
-        return (
-          <div
-            key={i}
-            className={cn(
-              "size-2.5 shrink-0 rounded-[3px] border transition-all duration-500 ease-out",
-              filled
-                ? "border-transparent opacity-100 scale-100"
-                : "border-[var(--color-border)] bg-[var(--color-surface-secondary)] opacity-55 scale-90",
-            )}
-            style={filled ? { background: squareColor } : undefined}
-          />
-        );
-      })}
+      <svg
+        viewBox="0 0 100 36"
+        className="h-9 w-full"
+        preserveAspectRatio="none"
+        fill="none"
+        style={{ opacity }}
+      >
+        {filled && (
+          <defs>
+            <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={fromColor} />
+              <stop offset="100%" stopColor={toColor} />
+            </linearGradient>
+          </defs>
+        )}
+        {/* Top rail */}
+        <path d="M 8 6 H 92" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
+        {/* Left drop */}
+        <path d="M 8 6 V 28" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
+        {/* Right drop */}
+        <path d="M 92 6 V 28" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
+        {/* Feet */}
+        <path d="M 3 28 H 13" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M 87 28 H 97" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
+      </svg>
     </div>
   );
 }
@@ -456,140 +501,100 @@ export function HowJimvioWorks() {
           How Jimvio works
         </SectionTitle>
 
-        {/* Desktop interactive connector rail */}
-        <div className="mb-6 hidden md:flex md:items-center md:gap-0">
-          {STEPS.map((s, index) => (
-            <Fragment key={s.step}>
-              {index > 0 && (
-                <HowJimvioConnector
-                  filled={index <= active}
-                  fromColor={STEPS[index - 1].color}
-                  toColor={s.color}
-                />
-              )}
-              <button
-                type="button"
-                onClick={() => focusStep(index)}
-                onMouseEnter={() => focusStep(index)}
-                aria-pressed={active === index}
-                aria-label={`Step ${s.step}: ${s.title}`}
-                className={cn(
-                  "relative z-10 flex shrink-0 flex-col items-center gap-2 rounded-2xl border px-4 py-3 transition-all duration-300",
-                  active === index
-                    ? "scale-105 border-transparent bg-[var(--color-surface)] shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
-                    : "border-[var(--color-border)] bg-[var(--color-surface)]/60 opacity-80 hover:opacity-100",
-                )}
-                style={
-                  active === index
-                    ? { boxShadow: `0 8px 28px ${s.color}22` }
-                    : undefined
-                }
-              >
-                <span
-                  className="grid size-11 place-items-center rounded-xl transition-colors duration-300"
-                  style={{
-                    background: active === index ? `${s.color}18` : `${s.color}10`,
-                    color: s.color,
-                  }}
-                >
-                  <s.icon className="size-5" strokeWidth={2.2} />
-                </span>
-                <span
-                  className="font-[family-name:var(--font-jetbrains-mono)] text-[10px] font-bold tracking-widest"
-                  style={{ color: s.color }}
-                >
-                  {s.step}
-                </span>
-                <span className="text-[12px] font-bold text-[var(--color-text-primary)]">{s.title}</span>
-              </button>
-            </Fragment>
-          ))}
-        </div>
-
         {/* Showcase cards */}
         <div
           className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-5"
           onMouseLeave={() => setPaused(false)}
         >
           {STEPS.map((s, index) => (
-            <article
-              key={s.step}
-              role="button"
-              tabIndex={0}
-              onClick={() => focusStep(index)}
-              onMouseEnter={() => focusStep(index)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  focusStep(index);
-                }
-              }}
-              className={cn(
-                "relative flex h-full cursor-pointer flex-col rounded-2xl border bg-[var(--color-surface)] p-4 transition-all duration-300 sm:p-5",
-                active === index
-                  ? "-translate-y-0.5 border-transparent shadow-[0_14px_36px_rgba(0,0,0,0.08)]"
-                  : "border-[var(--color-border)] opacity-75 hover:opacity-100",
+            <Fragment key={s.step}>
+              {index > 0 && (
+                <HowJimvioConnector
+                  id={`jimvio-connector-v-${index}`}
+                  filled={index <= active}
+                  fromColor={STEPS[index - 1].color}
+                  toColor={s.color}
+                  variant="vertical"
+                />
               )}
-              style={
-                active === index
-                  ? {
-                      boxShadow: `0 14px 36px ${s.color}20`,
-                      borderColor: `${s.color}35`,
-                    }
-                  : undefined
-              }
-            >
-              <span
+              <article
+                role="button"
+                tabIndex={0}
+                onClick={() => focusStep(index)}
+                onMouseEnter={() => focusStep(index)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    focusStep(index);
+                  }
+                }}
                 className={cn(
-                  "absolute left-0 top-5 bottom-5 w-1 rounded-r-full transition-all duration-300",
-                  active === index ? "opacity-100" : "opacity-35",
+                  "relative flex h-full cursor-pointer flex-col rounded-2xl border bg-[var(--color-surface)] p-4 transition-all duration-300 sm:p-5",
+                  active === index
+                    ? "-translate-y-0.5 border-transparent shadow-[0_14px_36px_rgba(0,0,0,0.08)]"
+                    : "border-[var(--color-border)] opacity-75 hover:opacity-100",
                 )}
-                style={{ background: s.color }}
-                aria-hidden
-              />
-
-              <div className="mb-4 flex items-center justify-between gap-3 pl-2.5">
-                <span
-                  className="font-[family-name:var(--font-jetbrains-mono)] text-[11px] font-bold tracking-widest"
-                  style={{ color: s.color }}
-                >
-                  {s.step}
-                </span>
+                style={
+                  active === index
+                    ? {
+                        boxShadow: `0 14px 36px ${s.color}20`,
+                        borderColor: `${s.color}35`,
+                      }
+                    : undefined
+                }
+              >
                 <span
                   className={cn(
-                    "grid size-10 place-items-center rounded-xl transition-transform duration-300",
-                    active === index && "scale-110",
+                    "absolute left-0 top-5 bottom-5 w-1 rounded-r-full transition-all duration-300",
+                    active === index ? "opacity-100" : "opacity-35",
                   )}
-                  style={{ background: `${s.color}12`, color: s.color }}
+                  style={{ background: s.color }}
+                  aria-hidden
+                />
+
+                <div className="mb-4 flex items-center justify-between gap-3 pl-2.5">
+                  <span
+                    className="font-[family-name:var(--font-jetbrains-mono)] text-[11px] font-bold tracking-widest"
+                    style={{ color: s.color }}
+                  >
+                    {s.step}
+                  </span>
+                  <span
+                    className={cn(
+                      "grid size-10 place-items-center rounded-xl transition-transform duration-300",
+                      active === index && "scale-110",
+                    )}
+                    style={{ background: `${s.color}12`, color: s.color }}
+                  >
+                    <s.icon className="size-[18px]" strokeWidth={2.2} />
+                  </span>
+                </div>
+
+                <h3 className="pl-2.5 text-[17px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[18px]">
+                  {s.title}
+                </h3>
+                <p
+                  className={cn(
+                    "mt-2 flex-1 pl-2.5 text-[13px] leading-relaxed transition-colors duration-300",
+                    active === index
+                      ? "text-[var(--color-text-secondary)]"
+                      : "text-[var(--color-text-muted)]",
+                  )}
                 >
-                  <s.icon className="size-[18px]" strokeWidth={2.2} />
-                </span>
-              </div>
+                  {s.desc}
+                </p>
 
-              <h3 className="pl-2.5 text-[17px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[18px]">
-                {s.title}
-              </h3>
-              <p
-                className={cn(
-                  "mt-2 flex-1 pl-2.5 text-[13px] leading-relaxed transition-colors duration-300",
-                  active === index
-                    ? "text-[var(--color-text-secondary)]"
-                    : "text-[var(--color-text-muted)]",
-                )}
-              >
-                {s.desc}
-              </p>
-
-              <p
-                className={cn(
-                  "mt-4 border-t pt-3 pl-2.5 text-[11px] font-medium leading-snug transition-opacity duration-300 sm:text-[12px]",
-                  active === index ? "opacity-100" : "opacity-70",
-                )}
-                style={{ borderColor: `${s.color}22`, color: s.color }}
-              >
-                {s.detail}
-              </p>
-            </article>
+                <p
+                  className={cn(
+                    "mt-4 border-t pt-3 pl-2.5 text-[11px] font-medium leading-snug transition-opacity duration-300 sm:text-[12px]",
+                    active === index ? "opacity-100" : "opacity-70",
+                  )}
+                  style={{ borderColor: `${s.color}22`, color: s.color }}
+                >
+                  {s.detail}
+                </p>
+              </article>
+            </Fragment>
           ))}
         </div>
 
@@ -617,16 +622,20 @@ export function TrendingProductsRow({ products = [] }: { products: any[] }) {
   const { formatMoney } = useCurrency();
   if (!products.length) return null;
 
-  const cards = products.slice(0, 10).map((p) => {
-    const verified = p.vendors?.verification_status === "verified";
+  const cards = products.map((p) => {
     const sold = p.sale_count ?? p.sold_count ?? 0;
+    const shortName =
+      p.name.length > 42 ? `${p.name.slice(0, 40).trim()}…` : p.name;
+
     return (
       <Link
         key={p.id}
         href={`/marketplace/${p.slug}`}
-        className={cn("flex h-full min-w-0 items-center gap-2 p-2 transition-transform active:scale-[0.98]", cardBase)}
+        className={cn(
+          "flex h-full min-h-[72px] items-center gap-2.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-transform active:scale-[0.98] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]",
+        )}
       >
-        <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--color-surface-secondary)] p-1 sm:size-12">
+        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-surface-secondary)] p-1">
           <img
             src={getImage(p.images)}
             alt={p.name}
@@ -635,20 +644,15 @@ export function TrendingProductsRow({ products = [] }: { products: any[] }) {
           />
         </div>
         <div className="min-w-0 flex-1">
-          <h4 className="line-clamp-2 text-[10px] font-semibold leading-tight text-[var(--color-text-primary)] sm:text-[11px]">
-            {p.name}
+          <h4 className="line-clamp-2 text-[11px] font-bold leading-snug text-[var(--color-text-primary)]">
+            {shortName}
           </h4>
-          <div className="mt-0.5 text-[11px] font-black leading-none sm:text-[12px]" style={{ color: GREEN }}>
+          <div className="mt-1 text-[12px] font-black leading-none" style={{ color: GREEN }}>
             {formatMoney(p.price, p.currency)}
           </div>
-          <p className="mt-0.5 text-[9px] text-[var(--color-text-muted)]">
+          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
             {fmtCount(sold)} sold
           </p>
-          {verified && (
-            <div className="mt-0.5 hidden items-center gap-0.5 text-[8px] font-semibold sm:flex" style={{ color: GREEN }}>
-              <Check className="size-2" strokeWidth={3} /> Verified
-            </div>
-          )}
         </div>
       </Link>
     );
@@ -663,9 +667,9 @@ export function TrendingProductsRow({ products = [] }: { products: any[] }) {
             Explore All <ArrowRight className="size-3" />
           </Link>
         </div>
-        <TwoRowGrid cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+        <TwoRowHorizontalScroll cardMinWidth={172}>
           {cards}
-        </TwoRowGrid>
+        </TwoRowHorizontalScroll>
       </div>
     </section>
   );
@@ -683,10 +687,9 @@ function campaignDaysLeft(endsAt?: string | null) {
 
 export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCampaignRow[] }) {
   const { formatMoney } = useCurrency();
-  const list = campaigns.slice(0, 6);
-  if (!list.length) return null;
+  if (!campaigns.length) return null;
 
-  const cards = list.map((c) => {
+  const cards = campaigns.map((c) => {
     const joined = c.approved_count ?? c.submission_count ?? 0;
     const daysLeft = campaignDaysLeft(c.ends_at);
     const isFixed = c.payment_model === "fixed_per_content";
@@ -696,40 +699,44 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
     const vendor = c.vendor ?? c.vendors;
     const banner = c.media?.find((m) => m.usage === "banner")?.url;
     const logoUrl = campaignVendorLogo(vendor);
+    const shortTitle =
+      c.title.length > 42 ? `${c.title.slice(0, 40).trim()}…` : c.title;
 
     return (
       <Link
         key={c.id}
         href={`/ugc/${c.id}`}
-        className={cn("flex h-full min-w-0 items-start gap-2 p-2 transition-transform active:scale-[0.98]", cardBase)}
+        className={cn(
+          "flex h-full min-h-[88px] items-start gap-2.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-transform active:scale-[0.98] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]",
+        )}
       >
-        <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--color-surface-secondary)] sm:size-12">
+        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-surface-secondary)]">
           {banner ? (
             <img src={banner} alt="" className="size-full object-cover" loading="lazy" />
           ) : logoUrl ? (
             <img src={logoUrl} alt="" className="size-full object-cover" loading="lazy" />
           ) : (
-            <Clapperboard className="size-4 text-[var(--color-text-muted)] sm:size-5" />
+            <Clapperboard className="size-5 text-[var(--color-text-muted)]" />
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 text-[10px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[11px]">
-            {c.title}
+          <h3 className="line-clamp-2 text-[11px] font-bold leading-snug text-[var(--color-text-primary)]">
+            {shortTitle}
           </h3>
           {vendor?.business_name && (
-            <p className="mt-0.5 truncate text-[9px] text-[var(--color-text-muted)]">
+            <p className="mt-0.5 truncate text-[10px] text-[var(--color-text-muted)]">
               {vendor.business_name}
             </p>
           )}
-          <p className="mt-0.5 text-[11px] font-black leading-none sm:text-[12px]" style={{ color: GREEN }}>
+          <p className="mt-1 text-[12px] font-black leading-none" style={{ color: GREEN }}>
             {payAmount}
           </p>
-          <p className="text-[9px] text-[var(--color-text-muted)]">
+          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
             {joined} creator{joined === 1 ? "" : "s"}
           </p>
           {daysLeft !== null && (
-            <span className="mt-1 inline-flex rounded-full bg-[#ede9fe] px-1.5 py-0.5 text-[8px] font-bold text-[#7c3aed] sm:text-[9px]">
-              {daysLeft === 0 ? "Ends today" : `${daysLeft}d left`}
+            <span className="mt-1 inline-flex rounded-full bg-[#ede9fe] px-1.5 py-0.5 text-[9px] font-bold text-[#7c3aed]">
+              {daysLeft === 0 ? "Ends today" : `${daysLeft} days left`}
             </span>
           )}
         </div>
@@ -746,9 +753,9 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
             Explore All <ArrowRight className="inline size-3" />
           </Link>
         </div>
-        <TwoRowGrid cols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <TwoRowHorizontalScroll cardMinWidth={188}>
           {cards}
-        </TwoRowGrid>
+        </TwoRowHorizontalScroll>
       </div>
     </section>
   );
@@ -792,49 +799,58 @@ function communityProfileImage(c: CommunityRow): string | null {
 }
 
 export function FeaturedCommunities({ communities = [] }: { communities: CommunityRow[] }) {
-  const list = (communities.length > 0 ? communities : [
+  const list = communities.length > 0 ? communities : [
     { id: "1", name: "Affiliate Hub", slug: "affiliate-hub", member_count: 12400, tagline: "Learn, share and earn together." },
     { id: "2", name: "Ecommerce Sellers", slug: "ecommerce-sellers", member_count: 8900, tagline: "Scale your online store." },
     { id: "3", name: "UGC Creators", slug: "ugc-creators", member_count: 15600, tagline: "Create content, get paid." },
     { id: "4", name: "Digital Products", slug: "digital-products", member_count: 6700, tagline: "Courses, tools and templates." },
     { id: "5", name: "Jimvio Community", slug: "jimvio", member_count: 14, tagline: "Connect with sellers and creators worldwide." },
     { id: "6", name: "Brand Growth", slug: "brand-growth", member_count: 4200, tagline: "Launch campaigns and scale your brand." },
-  ]).slice(0, 6);
+  ];
 
   const cards = list.map((c) => {
     const style = communityStyle(c.name);
     const Icon = style.icon;
     const profileImage = communityProfileImage(c);
+    const shortName =
+      c.name.length > 36 ? `${c.name.slice(0, 34).trim()}…` : c.name;
+
     return (
       <Link
         key={c.id}
         href={`/communities/${c.slug}`}
-        className={cn("flex h-full min-w-0 items-start gap-2 p-2 transition-transform active:scale-[0.98]", cardBase)}
+        className={cn(
+          "flex h-full min-h-[96px] items-start gap-2.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-transform active:scale-[0.98] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]",
+        )}
       >
         {profileImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={profileImage}
             alt={c.name}
-            className="size-11 shrink-0 rounded-xl border border-[var(--color-border)] object-cover sm:size-12"
+            className="size-12 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
             loading="lazy"
           />
         ) : (
           <span
-            className="grid size-11 shrink-0 place-items-center rounded-xl sm:size-12"
+            className="grid size-12 shrink-0 place-items-center rounded-xl"
             style={{ background: style.bg, color: style.color }}
           >
-            <Icon className="size-5 sm:size-6" />
+            <Icon className="size-6" />
           </span>
         )}
         <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-1 text-[10px] font-bold text-[var(--color-text-primary)] sm:text-[11px]">{c.name}</h3>
-          <p className="mt-0.5 text-[9px] text-[var(--color-text-muted)]">{fmtCount(c.member_count ?? 0)} members</p>
-          <p className="mt-0.5 line-clamp-2 text-[9px] leading-snug text-[var(--color-text-muted)] sm:text-[10px]">
+          <h3 className="line-clamp-1 text-[11px] font-bold text-[var(--color-text-primary)]">
+            {shortName}
+          </h3>
+          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
+            {fmtCount(c.member_count ?? 0)} members
+          </p>
+          <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[var(--color-text-muted)]">
             {c.tagline ?? "Connect with like-minded people."}
           </p>
-          <span className="mt-1 inline-flex items-center gap-0.5 text-[9px] font-bold sm:text-[10px]" style={{ color: ORANGE }}>
-            Join <ArrowRight className="size-2.5" />
+          <span className="mt-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: ORANGE }}>
+            Join Community <ArrowRight className="size-2.5" />
           </span>
         </div>
       </Link>
@@ -850,9 +866,9 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
             Explore All <ArrowRight className="inline size-3" />
           </Link>
         </div>
-        <TwoRowGrid cols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <TwoRowHorizontalScroll cardMinWidth={200}>
           {cards}
-        </TwoRowGrid>
+        </TwoRowHorizontalScroll>
       </div>
     </section>
   );

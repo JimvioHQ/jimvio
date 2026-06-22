@@ -17,8 +17,7 @@ import { ProductActionModule } from "@/components/marketplace/product-action-mod
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
 import { ImageGallery } from "@/components/marketplace/image-gallery";
-import { getProductVideoUrls } from "@/lib/cj/product-videos";
-import { sortProductVideoRows } from "@/lib/product-videos";
+import { resolveProductVideoUrls } from "@/lib/product-videos";
 import {
   VariantSelector,
   type ProductVariant,
@@ -1093,11 +1092,10 @@ export function PhysicalProductDetail({
     return baseImages;
   }, [selectedVariant, baseImages]);
 
-  const productVideos = useMemo(() => {
-    const fromTable = sortProductVideoRows((product as any).product_videos);
-    if (fromTable.length > 0) return fromTable;
-    return getProductVideoUrls(product);
-  }, [product]);
+  const productVideos = useMemo(
+    () => resolveProductVideoUrls(product as any),
+    [product],
+  );
 
   const savings = activeCompareAt ? getProductDiscountPercent(productDiscountFields) : null;
   const savingsAmount = activeCompareAt ? activeCompareAt - activePrice : 0;
@@ -1238,7 +1236,7 @@ export function PhysicalProductDetail({
                   productName={title}
                   isFeatured={product.is_featured}
                   savings={savings}
-                  thumbnailsPosition="left"
+                  thumbnailsPosition="bottom"
                 />
                 <SocialProofActivityFeed
                   liveViewers={liveViewers}

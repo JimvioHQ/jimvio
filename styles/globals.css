@@ -400,6 +400,18 @@
     display: none;
   }
 
+  .product-description img,
+  .product-description video {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+  }
+
+  .product-description video {
+    display: block;
+    width: 100%;
+  }
+
   /* Safe area for mobile bottom nav (notch/home indicator) */
   .safe-area-pb {
     padding-bottom: env(safe-area-inset-bottom, 0px);

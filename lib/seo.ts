@@ -6,14 +6,17 @@ const siteUrl = getSiteUrl();
 export const SITE = {
   name: "Jimvio",
   url: siteUrl,
-  logo: `${siteUrl}/logo.png`,
+  logo: `${siteUrl}/jimvio-logo.svg`,
   ogImage: `${siteUrl}/jimvio-og.png`,
   twitter: "@jimvio",
-  title: "Jimvio – marketplace & creator tools",
+  /** Brand-first title for Google site name & homepage SERP */
+  title: "Jimvio",
+  tagline: "Marketplace, affiliates, UGC & communities",
   description:
-    "Sell products, share affiliate links, take UGC jobs, and run your community from one place. Free to start.",
+    "Jimvio is the creator marketplace to sell products, share affiliate links, take UGC jobs, and run your community — free to start.",
   keywords: [
     "Jimvio",
+    "Jimvio marketplace",
     "creator marketplace",
     "affiliate program",
     "UGC campaigns",
@@ -121,17 +124,21 @@ export function constructMetadata({
   return {
     title: {
       default: SITE.title,
-      template: `%s · ${SITE.name}`,
+      template: `%s | ${SITE.name}`,
     },
     applicationName: SITE.name,
     description: metaDescription,
     keywords,
     metadataBase: new URL(SITE.url),
+    authors: [{ name: SITE.name, url: SITE.url }],
+    creator: SITE.name,
+    publisher: SITE.name,
+    category: "technology",
     alternates: {
       canonical: canonicalUrl,
     },
     openGraph: {
-      title,
+      title: title === SITE.title ? SITE.name : title,
       description: metaDescription,
       url: canonicalUrl,
       siteName: SITE.name,
@@ -148,7 +155,7 @@ export function constructMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: title === SITE.title ? SITE.name : title,
       description: metaDescription,
       images: [absoluteImage],
       creator: SITE.twitter,
@@ -169,12 +176,12 @@ export function constructMetadata({
         },
     icons: {
       icon: [
-        { url: "/Favicon.png" },
+        { url: "/favicon.svg", type: "image/svg+xml" },
         { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
         { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
       ],
-      shortcut: "/Favicon.png",
-      apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+      shortcut: "/favicon.svg",
+      apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     },
     manifest: "/manifest.webmanifest",
     appleWebApp: {

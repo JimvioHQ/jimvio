@@ -11,7 +11,8 @@
     "type-check": "tsc --noEmit",
     "postbuild": "next-sitemap",
     "pesapal:verify": "node scripts/pesapal-verify.mjs",
-    "pawapay:generate-signing-key": "node scripts/generate-pawapay-signing-key.mjs"
+    "pawapay:generate-signing-key": "node scripts/generate-pawapay-signing-key.mjs",
+    "icons:generate": "node scripts/generate-round-icons.mjs"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

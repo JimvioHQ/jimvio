@@ -860,6 +860,7 @@ import { MoveProductDialog } from "@/components/admin/MoveProductDialog";
 import { EmptyState, Th, StatusPill } from "@/components/ui/admin";
 import { formatAdminMoney } from "@/lib/admin/format-money";
 import { publishAdminProduct } from "@/lib/actions/admin-products";
+import { appConfirm } from "@/lib/app-dialog";
 import { SquarePen, Trash2, ExternalLink, Star, ChevronLeft, ChevronRight, ChevronDown, Package, AlertCircle, Eye, Rocket } from "lucide-react";
 
 const SOURCE_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
@@ -1104,7 +1105,13 @@ function PublishDraftButton({
                     toast.error("Add images before publishing");
                     return;
                 }
-                if (!confirm("Publish this product to the storefront?")) return;
+                const confirmed = await appConfirm({
+                    title: "Publish product",
+                    description: "Publish this product to the storefront?",
+                    confirmLabel: "Publish",
+                    variant: "success",
+                });
+                if (!confirmed) return;
                 setLoading(true);
                 const result = await publishAdminProduct(productId);
                 if (result.success) {

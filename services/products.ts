@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { getDB, getAdminDB } from "./base";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
+import { fetchProductVideosMap } from "@/lib/product-videos";
 
 import type { Tables } from "@/types/supabase";
 import type { Product, ProductStatus } from "@/types/db";
@@ -53,7 +54,7 @@ export type ProductWithRelations = Tables<"products"> & {
   product_categories: ProductCategoryPublic | null;
   product_variants: Tables<"product_variants">[];
   product_shipping_options: Tables<"product_shipping_options">[];
-  product_videos?: Array<Pick<Tables<"product_videos">, "id" | "video_url" | "sort_order">>;
+  product_videos?: Array<{ id: string; url: string; sort_order: number }>;
   reviews: ProductReviewPublic[];
 };
 
@@ -117,38 +118,30 @@ const SHIPPING_COLS = `
   source, is_active
 `;
 
-const VIDEO_COLS = `id, video_url, sort_order`;
-
-type ProductVideoPublic = Pick<
-  Tables<"product_videos">,
-  "id" | "video_url" | "sort_order"
->;
+type ProductVideoPublic = {
+  id: string;
+  url: string;
+  sort_order: number;
+};
 
 /** Fetched separately so a missing `product_videos` table/migration never 404s product pages. */
 async function fetchProductVideosByProductIds(
   db: Awaited<ReturnType<typeof getDB>>,
   productIds: string[],
 ): Promise<Map<string, ProductVideoPublic[]>> {
-  const map = new Map<string, ProductVideoPublic[]>();
-  if (productIds.length === 0) return map;
-
-  const { data, error } = await db
-    .from("product_videos")
-    .select(`${VIDEO_COLS}, product_id`)
-    .in("product_id", productIds)
-    .order("sort_order");
-
-  if (error) {
-    console.warn("[fetchProductVideosByProductIds]:", error.message);
-    return map;
+  const map = await fetchProductVideosMap(db, productIds);
+  const out = new Map<string, ProductVideoPublic[]>();
+  for (const [id, rows] of map) {
+    out.set(
+      id,
+      rows.map((r) => ({
+        id: (r as { id?: string }).id ?? "",
+        url: r.url ?? r.video_url ?? "",
+        sort_order: r.sort_order ?? 0,
+      })).filter((r) => r.url.startsWith("http")),
+    );
   }
-
-  for (const row of data ?? []) {
-    const list = map.get(row.product_id) ?? [];
-    list.push(row);
-    map.set(row.product_id, list);
-  }
-  return map;
+  return out;
 }
 
 // ─────────────────────────────────────────────────────────────

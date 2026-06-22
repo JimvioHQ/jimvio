@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -2696,6 +2696,73 @@ export type Database = {
           },
         ]
       }
+      product_media: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          media_type: string
+          product_id: string
+          sort_order: number
+          thumbnail_url: string | null
+          url: string
+          vendor_id: string
+          video_id: string | null
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          media_type: string
+          product_id: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          url: string
+          vendor_id: string
+          video_id?: string | null
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          media_type?: string
+          product_id?: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          url?: string
+          vendor_id?: string
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_media_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_media_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_media_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "product_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_shipping_options: {
         Row: {
           carrier: string | null
@@ -2772,38 +2839,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "product_shipping_options_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      product_videos: {
-        Row: {
-          created_at: string
-          id: string
-          product_id: string
-          sort_order: number
-          video_url: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          product_id: string
-          sort_order?: number
-          video_url: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          product_id?: string
-          sort_order?: number
-          video_url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "product_videos_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
@@ -2893,6 +2928,93 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_videos: {
+        Row: {
+          aspect_ratio: string | null
+          captions_url: string | null
+          created_at: string
+          description: string | null
+          duration_sec: number | null
+          file_size: number | null
+          height_px: number | null
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          mime_type: string | null
+          platform: string
+          platform_video_id: string | null
+          product_id: string
+          sort_order: number
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          url: string
+          vendor_id: string
+          width_px: number | null
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          captions_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_sec?: number | null
+          file_size?: number | null
+          height_px?: number | null
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          mime_type?: string | null
+          platform?: string
+          platform_video_id?: string | null
+          product_id: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          url: string
+          vendor_id: string
+          width_px?: number | null
+        }
+        Update: {
+          aspect_ratio?: string | null
+          captions_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_sec?: number | null
+          file_size?: number | null
+          height_px?: number | null
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          mime_type?: string | null
+          platform?: string
+          platform_video_id?: string | null
+          product_id?: string
+          sort_order?: number
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          url?: string
+          vendor_id?: string
+          width_px?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_videos_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_videos_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -5053,6 +5175,21 @@ export type Database = {
       get_or_create_community_inbox_conversation: {
         Args: { p_community_id: string; p_peer_id: string }
         Returns: string
+      }
+      get_product_gallery: {
+        Args: { p_product_id: string }
+        Returns: {
+          alt_text: string
+          aspect_ratio: string
+          duration_sec: number
+          id: string
+          is_primary: boolean
+          media_type: string
+          platform: string
+          sort_order: number
+          thumbnail_url: string
+          url: string
+        }[]
       }
       get_user_roles: { Args: { lookup_user_id: string }; Returns: string[] }
       increment_affiliate_clicks: {

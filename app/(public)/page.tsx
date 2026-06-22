@@ -43,13 +43,13 @@ export default async function HomePage() {
       totalCampaigns: 0, totalCommunities: 0, totalEarnings: 0,
     })),
     getResolvedPlatformSettings().catch(() => null),
-    getCampaigns(8).catch(() => []),
-    getPublicCommunities(6).catch(() => []),
+    getCampaigns(12).catch(() => []),
+    getPublicCommunities(12).catch(() => []),
     getProfile(),
     getAffiliateProgramStats(),
     getAffiliateSpotlightProducts(9),
     getResolvedPlatformSettings(),
-    getTrendingProducts(10).catch(() => []),
+    getTrendingProducts(20).catch(() => []),
     getTopCreators(6).catch(() => []),
   ]);
 

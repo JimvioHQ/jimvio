@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -13,7 +13,9 @@ import {
   Minus,
   Heart,
   PercentSquare,
+  Play,
 } from "lucide-react";
+import { productHasVideos } from "@/lib/product-videos";
 import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
@@ -65,6 +67,8 @@ export function ProductCardDigital({
   const onSale = compareAtPrice != null;
   const discount = getProductDiscountPercent(discountFields);
   const isRecurring = (p as any).pricing_type === "recurring";
+  const hasVideo = useMemo(() => productHasVideos(p as any), [p]);
+  const hasVideo = useMemo(() => productHasVideos(p as any), [p]);
 
   /* ── Affiliate helpers ── */
   const commissionRate = (p as any).affiliate_commission_rate as number | null | undefined;
@@ -215,6 +219,13 @@ export function ProductCardDigital({
             className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
             aria-hidden
           />
+
+          {hasVideo && imgSrc && (
+            <span className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
+              <Play className="h-2.5 w-2.5 fill-white" aria-hidden />
+              Video
+            </span>
+          )}
 
           {/* Top-left: type + recurring badge */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5">

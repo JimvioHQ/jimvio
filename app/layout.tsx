@@ -1,6 +1,7 @@
 
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { DialogProvider } from "@/components/providers/dialog-provider";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { Toaster } from "sonner";
 import NextTopLoader from "nextjs-toploader";
@@ -17,7 +18,7 @@ export const metadata: Metadata = constructMetadata();
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: light)", color: "#FB4C07" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
   width: "device-width",
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       >
         <JimvioJsonLd />
         <ThemeProvider>
+          <DialogProvider>
           <NextTopLoader
             color="#fd5000"
             height={3}
@@ -77,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               },
             }}
           />
+          </DialogProvider>
         </ThemeProvider>
         <ServiceWorkerRegister />
         <Analytics />

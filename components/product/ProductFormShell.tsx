@@ -1,7 +1,8 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, useMemo } from "react";
+import DOMPurify from "isomorphic-dompurify";
 import { useRouter, useParams } from "next/navigation";
 import {
     ArrowLeft, DollarSign, Loader2, CheckCircle2,
@@ -26,6 +27,18 @@ import {
     updateAdminProduct,
     type AdminProductUpdateInput,
 } from "@/lib/actions/admin-products";
+import { saveProductVideos } from "@/lib/actions/product-videos";
+import { sortProductVideoRows } from "@/lib/product-videos";
+import { useCurrency } from "@/context/CurrencyContext";
+import { cleanCJDescription } from "@/lib/cj/render";
+import { extractVideosFromHtml } from "@/lib/cj/product-videos";
+import {
+    deriveShortDescription,
+    extractImagesFromHtml,
+    getProductPreviewImage,
+    isHtmlContent,
+    mergeUniqueUrls,
+} from "@/lib/product-description";
 
 /* ── helpers ── */
 function slugify(text: string) {
@@ -183,6 +196,7 @@ interface FormState {
     weight: string;
     dimensions: string;
     images: string[];
+    videoUrls: string[];
     show_author: boolean;
     show_reviews: boolean;
     enable_discussions: boolean;
@@ -299,8 +313,13 @@ function Divider() {
     return <div className="my-6" style={{ borderTop: "1px solid var(--color-border)" }} />;
 }
 
-function SectionTitle({ label }: { label: string }) {
-    return <h3 className="text-sm font-semibold mb-5" style={{ color: "var(--color-text-primary)" }}>{label}</h3>;
+function SectionTitle({ label, hint }: { label: string; hint?: string }) {
+    return (
+        <div className="flex items-center justify-between gap-3 mb-5">
+            <h3 className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>{label}</h3>
+            {hint && <span className="text-[10px] shrink-0" style={{ color: "var(--color-text-muted)", opacity: 0.7 }}>{hint}</span>}
+        </div>
+    );
 }
 
 function TagInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -355,6 +374,7 @@ function TagInput({ value, onChange }: { value: string; onChange: (v: string) =>
 
 /* ── live preview ── */
 function LivePreview({ form }: { form: FormState }) {
+    const { formatMoney } = useCurrency();
     const price = parseFloat(form.price) || 0;
     const isFree = price === 0;
     const compareAt = parseFloat(form.compare_at_price) || 0;
@@ -369,6 +389,20 @@ function LivePreview({ form }: { form: FormState }) {
         : "";
     const tags = form.tags ? form.tags.split(",").slice(0, 4).map(t => t.trim()).filter(Boolean) : [];
     const subtype = PRODUCT_SUBTYPES.find(s => s.id === form.product_subtype);
+    const isPhysical = form.product_type === "physical";
+    const previewImage = useMemo(
+        () => getProductPreviewImage(form.images, form.description),
+        [form.images, form.description],
+    );
+    const stockQty = parseInt(form.inventory_quantity, 10) || 0;
+
+    const socialProofLine = isPhysical
+        ? form.track_inventory
+            ? stockQty > 0 ? `${stockQty} in stock` : "Out of stock"
+            : "Ships worldwide"
+        : subtype?.id === "course"
+            ? "Join thousands of students"
+            : "Instant digital access";
 
     const t = {
         surface: "var(--color-surface, #ffffff)",
@@ -427,8 +461,8 @@ function LivePreview({ form }: { form: FormState }) {
                         background: t.surfaceSecondary,
                     }}
                 >
-                    {form.images[0] ? (
-                        <CloudinaryImage src={form.images[0]} alt="cover" fill className="object-cover" />
+                    {previewImage ? (
+                        <CloudinaryImage src={previewImage} alt="cover" fill className="object-cover" />
                     ) : (
                         <div className="flex flex-col items-center gap-1" style={{ color: t.borderStrong }}>
                             <ImageIcon size={24} />
@@ -472,8 +506,10 @@ function LivePreview({ form }: { form: FormState }) {
                             />
                         ))}
                     </div>
-                    <span className="text-[11px]" style={{ color: t.textMuted }}>2.8k+ students</span>
-                    <span className="text-[11px] ml-auto" style={{ color: t.textMuted }}>★ 4.9</span>
+                    <span className="text-[11px]" style={{ color: t.textMuted }}>{socialProofLine}</span>
+                    {form.show_reviews && (
+                        <span className="text-[11px] ml-auto" style={{ color: t.textMuted }}>★ Reviews</span>
+                    )}
                 </div>
 
                 <p
@@ -496,13 +532,13 @@ function LivePreview({ form }: { form: FormState }) {
                 <p className="text-xl font-bold mb-2" style={{ color: t.textPrimary }}>
                     {isFree ? "Free" : (
                         <>
-                            ${price.toFixed(2)}
+                            {formatMoney(price, form.currency)}
                             {showDiscount && (
                                 <span
                                     className="text-sm font-normal ml-2"
                                     style={{ color: t.textMuted, textDecoration: "line-through" }}
                                 >
-                                    ${compareAt.toFixed(2)}
+                                    {formatMoney(compareAt, form.currency)}
                                 </span>
                             )}
                         </>
@@ -725,6 +761,31 @@ function StepDetails({
     handleImageUpload: (url: string) => void;
     removeImage: (i: number) => void;
 }) {
+    const [videoInput, setVideoInput] = React.useState("");
+    const [imageUrlInput, setImageUrlInput] = React.useState("");
+    const [descTab, setDescTab] = React.useState<"edit" | "preview">("edit");
+    const descIsHtml = isHtmlContent(form.description || "");
+    const descCharCount = (form.description || "").length;
+
+    const pullImagesFromDescription = () => {
+        const urls = extractImagesFromHtml(form.description);
+        if (urls.length === 0) return;
+        handleChange("images", mergeUniqueUrls(form.images, urls, 20));
+    };
+
+    const pullVideosFromDescription = () => {
+        const urls = extractVideosFromHtml(form.description);
+        if (urls.length === 0) return;
+        handleChange("videoUrls", mergeUniqueUrls(form.videoUrls, urls, 10));
+    };
+
+    const addImageUrl = () => {
+        const url = imageUrlInput.trim();
+        if (!url.startsWith("http") || form.images.includes(url)) return;
+        handleChange("images", [...form.images, url]);
+        setImageUrlInput("");
+    };
+
     const filteredCategories = categories.filter(c => {
         const ct = c.category_type;
         if (form.product_type === "digital") return ct === "digital";
@@ -790,8 +851,67 @@ function StepDetails({
                         <Input value={form.short_description} maxLength={80} onChange={e => handleChange("short_description", e.target.value)} placeholder="Step-by-step blueprint to build, launch & monetize" />
                     </div>
                     <div>
-                        <Label hint={`${(form.description || "").length}/500`}>Full description</Label>
-                        <StyledTextarea value={form.description || ""} maxLength={500} rows={5} onChange={e => handleChange("description", e.target.value)} placeholder="Describe your product in detail — features, what's included…" />
+                        <div className="flex items-center justify-between mb-1.5">
+                            <Label hint={descIsHtml ? `${descCharCount} chars · HTML` : `${descCharCount} chars`}>
+                                Full description
+                            </Label>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    onClick={() => setDescTab("edit")}
+                                    className="px-2 py-0.5 text-[10px] font-medium transition-all"
+                                    style={{
+                                        borderRadius: "var(--radius-full)",
+                                        background: descTab === "edit" ? "var(--color-accent-light)" : "transparent",
+                                        color: descTab === "edit" ? "var(--color-accent)" : "var(--color-text-muted)",
+                                        border: `1px solid ${descTab === "edit" ? "var(--color-accent-subtle)" : "var(--color-border)"}`,
+                                    }}
+                                >
+                                    Edit
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setDescTab("preview")}
+                                    className="px-2 py-0.5 text-[10px] font-medium transition-all"
+                                    style={{
+                                        borderRadius: "var(--radius-full)",
+                                        background: descTab === "preview" ? "var(--color-accent-light)" : "transparent",
+                                        color: descTab === "preview" ? "var(--color-accent)" : "var(--color-text-muted)",
+                                        border: `1px solid ${descTab === "preview" ? "var(--color-accent-subtle)" : "var(--color-border)"}`,
+                                    }}
+                                >
+                                    Preview
+                                </button>
+                            </div>
+                        </div>
+                        {descTab === "edit" ? (
+                            <StyledTextarea
+                                value={form.description || ""}
+                                rows={8}
+                                onChange={e => handleChange("description", e.target.value)}
+                                placeholder="Describe your product — plain text or HTML (CJ imports often include images here)"
+                            />
+                        ) : (
+                            <div
+                                className="min-h-[160px] max-h-[320px] overflow-y-auto p-3 text-sm prose prose-sm max-w-none"
+                                style={{
+                                    borderRadius: "var(--radius-sm)",
+                                    border: "1px solid var(--color-border)",
+                                    background: "var(--color-surface-secondary)",
+                                    color: "var(--color-text-secondary)",
+                                }}
+                                dangerouslySetInnerHTML={{
+                                    __html: form.description
+                                        ? DOMPurify.sanitize(cleanCJDescription(form.description))
+                                        : "<p style='opacity:0.5'>Nothing to preview yet.</p>",
+                                }}
+                            />
+                        )}
+                        {descIsHtml && descTab === "edit" && (
+                            <p className="text-[10px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>
+                                HTML detected — use Preview to see how buyers will read it, or import images below.
+                            </p>
+                        )}
                     </div>
 
                     <div>
@@ -855,7 +975,72 @@ function StepDetails({
             <Divider />
 
             <div>
-                <SectionTitle label="Media" />
+                <SectionTitle
+                    label="Media"
+                    hint={form.images.length > 0 ? `${form.images.length} image${form.images.length > 1 ? "s" : ""}` : undefined}
+                />
+                {(descIsHtml || form.description) && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                        <button
+                            type="button"
+                            onClick={pullImagesFromDescription}
+                            className="flex items-center gap-1.5 px-3 h-7 text-[11px] font-medium transition-all"
+                            style={{
+                                borderRadius: "var(--radius-full)",
+                                border: "1px solid var(--color-border)",
+                                color: "var(--color-text-muted)",
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.borderColor = "var(--color-accent)";
+                                e.currentTarget.style.color = "var(--color-accent)";
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.borderColor = "var(--color-border)";
+                                e.currentTarget.style.color = "var(--color-text-muted)";
+                            }}
+                        >
+                            <ImageIcon size={12} /> Import images from description
+                        </button>
+                        {descIsHtml && (
+                            <button
+                                type="button"
+                                onClick={pullVideosFromDescription}
+                                className="flex items-center gap-1.5 px-3 h-7 text-[11px] font-medium transition-all"
+                                style={{
+                                    borderRadius: "var(--radius-full)",
+                                    border: "1px solid var(--color-border)",
+                                    color: "var(--color-text-muted)",
+                                }}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.borderColor = "var(--color-accent)";
+                                    e.currentTarget.style.color = "var(--color-accent)";
+                                }}
+                                onMouseLeave={e => {
+                                    e.currentTarget.style.borderColor = "var(--color-border)";
+                                    e.currentTarget.style.color = "var(--color-text-muted)";
+                                }}
+                            >
+                                <Video size={12} /> Import videos from description
+                            </button>
+                        )}
+                    </div>
+                )}
+                <div className="flex gap-2 mb-3">
+                    <Input
+                        value={imageUrlInput}
+                        onChange={e => setImageUrlInput(e.target.value)}
+                        placeholder="Paste image URL (CJ, Shopify, etc.)"
+                        onKeyDown={e => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                addImageUrl();
+                            }
+                        }}
+                    />
+                    <Button type="button" variant="outline" className="shrink-0" onClick={addImageUrl}>
+                        Add URL
+                    </Button>
+                </div>
                 <div
                     className="p-8 text-center transition-colors cursor-pointer"
                     style={{
@@ -910,6 +1095,66 @@ function StepDetails({
                             </div>
                         ))}
                     </div>
+                )}
+            </div>
+
+            <div>
+                <SectionTitle label="Product videos" hint="MP4, YouTube, or Vimeo URLs" />
+                <div className="flex gap-2">
+                    <Input
+                        value={videoInput}
+                        onChange={(e) => setVideoInput(e.target.value)}
+                        placeholder="https://…"
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                const url = videoInput.trim();
+                                if (!url.startsWith("http") || form.videoUrls.includes(url)) return;
+                                handleChange("videoUrls", [...form.videoUrls, url]);
+                                setVideoInput("");
+                            }
+                        }}
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="shrink-0"
+                        onClick={() => {
+                            const url = videoInput.trim();
+                            if (!url.startsWith("http")) return;
+                            if (form.videoUrls.includes(url)) return;
+                            handleChange("videoUrls", [...form.videoUrls, url]);
+                            setVideoInput("");
+                        }}
+                    >
+                        Add
+                    </Button>
+                </div>
+                {form.videoUrls.length > 0 && (
+                    <ul className="mt-3 space-y-2">
+                        {form.videoUrls.map((url, i) => (
+                            <li
+                                key={url}
+                                className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs"
+                                style={{ borderColor: "var(--color-border)", color: "var(--color-text-secondary)" }}
+                            >
+                                <Video size={14} className="shrink-0" style={{ color: "var(--color-accent)" }} />
+                                <span className="min-w-0 flex-1 truncate">{url}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const next = [...form.videoUrls];
+                                        next.splice(i, 1);
+                                        handleChange("videoUrls", next);
+                                    }}
+                                    className="shrink-0 text-[var(--color-text-muted)] hover:text-red-500"
+                                    aria-label="Remove video"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
                 )}
             </div>
         </div>
@@ -1593,7 +1838,7 @@ export function ProductFormShell({
         affiliate_enabled: false, affiliate_commission_rate: "10",
         is_featured: false,
         button_text: "Join now", tags: "",
-        weight: "", dimensions: "", images: [],
+        weight: "", dimensions: "", images: [], videoUrls: [],
         show_author: true, show_reviews: true, enable_discussions: false,
         status: "active",
         discount_enabled: false,
@@ -1653,6 +1898,13 @@ export function ProductFormShell({
                     return;
                 }
 
+                const { data: videoRows } = await supabase
+                    .from("product_videos")
+                    .select("url, sort_order")
+                    .eq("product_id", productId)
+                    .eq("is_active", true)
+                    .order("sort_order");
+
                 const savedType: string = (product.product_type as string) ?? "digital";
                 const isDigitalBucket = DIGITAL_ENUM_VALUES.has(savedType);
                 const savedPricingType =
@@ -1665,11 +1917,22 @@ export function ProductFormShell({
                         ? savedType
                         : "";
 
+                const rawDescription = (product.description as string) ?? "";
+                let images = Array.isArray(product.images) ? product.images as string[] : [];
+                if (images.length === 0 && rawDescription) {
+                    images = extractImagesFromHtml(rawDescription).slice(0, 12);
+                }
+
+                let shortDescription = (product.short_description as string) ?? "";
+                if (!shortDescription.trim() && rawDescription) {
+                    shortDescription = deriveShortDescription(rawDescription);
+                }
+
                 setForm({
                     name: (product.name as string) ?? "",
                     slug: (product.slug as string) ?? "",
-                    short_description: (product.short_description as string) ?? "",
-                    description: (product.description as string) ?? "",
+                    short_description: shortDescription,
+                    description: rawDescription,
                     product_type: isDigitalBucket ? "digital" : "physical",
                     product_subtype: uiSubtype,
                     price: String(product.price ?? "0"),
@@ -1690,7 +1953,7 @@ export function ProductFormShell({
                     dimensions: typeof product.dimensions === "string"
                         ? product.dimensions
                         : (product.dimensions ? JSON.stringify(product.dimensions) : ""),
-                    images: Array.isArray(product.images) ? product.images as string[] : [],
+                    images,
                     show_author: (product.show_author as boolean) ?? true,
                     show_reviews: (product.show_reviews as boolean) ?? true,
                     enable_discussions: (product.enable_discussions as boolean) ?? false,
@@ -1703,6 +1966,7 @@ export function ProductFormShell({
                     compare_at_price: product.compare_at_price != null ? String(product.compare_at_price) : "",
                     discount_label: (product.discount_label as string) ?? "",
                     is_flash_deal: (product.is_flash_deal as boolean) ?? false,
+                    videoUrls: sortProductVideoRows(videoRows ?? []),
                 });
             }
             setLoading(false);
@@ -1856,12 +2120,18 @@ export function ProductFormShell({
                     setError("error" in result ? result.error : "Failed to save product.");
                     return;
                 }
+                const videoResult = await saveProductVideos(productId, form.videoUrls, { asAdmin: true });
+                if (!videoResult.success) {
+                    setError(videoResult.error ?? "Product saved but videos failed to update.");
+                    return;
+                }
                 setSuccess(true);
                 setTimeout(() => router.push(listHref), 1800);
                 return;
             }
 
             let insertErr: any = null;
+            let savedProductId = productId ?? null;
 
             if (isEdit && productId) {
                 const { error } = await supabase.from("products").update(payload).eq("id", productId);
@@ -1875,12 +2145,30 @@ export function ProductFormShell({
                     .eq("vendor_id", vendor.id)
                     .maybeSingle();
                 if (existing) payload.slug = `${slug}-${Date.now()}`;
-                const { error } = await supabase.from("products").insert({ ...payload, vendor_id: vendor.id });
+                const { data: inserted, error } = await supabase
+                    .from("products")
+                    .insert({ ...payload, vendor_id: vendor.id })
+                    .select("id")
+                    .single();
                 insertErr = error;
+                savedProductId = inserted?.id ?? null;
             }
 
-            if (insertErr) { setError(insertErr.message); }
-            else { setSuccess(true); setTimeout(() => router.push(listHref), 1800); }
+            if (insertErr) {
+                setError(insertErr.message);
+                return;
+            }
+
+            if (savedProductId && form.videoUrls.length >= 0) {
+                const videoResult = await saveProductVideos(savedProductId, form.videoUrls);
+                if (!videoResult.success) {
+                    setError(videoResult.error ?? "Product saved but videos failed to update.");
+                    return;
+                }
+            }
+
+            setSuccess(true);
+            setTimeout(() => router.push(listHref), 1800);
         });
     }
 

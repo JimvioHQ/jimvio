@@ -3,7 +3,7 @@ import { SITE } from "@/lib/seo";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: SITE.title,
+    name: SITE.name,
     short_name: SITE.name,
     description: SITE.description,
     id: "/",

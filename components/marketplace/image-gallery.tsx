@@ -313,11 +313,13 @@ type GalleryMedia =
 
 function buildGalleryMedia(images: string[], videos: string[] = []): GalleryMedia[] {
     const poster = images[0];
+    const normalizeUrl = (url: string) => (url.startsWith("//") ? `https:${url}` : url);
     const videoItems: GalleryMedia[] = videos
-        .filter((url) => url.startsWith("http"))
+        .map((url) => normalizeUrl(url.trim()))
+        .filter((url) => /^https?:\/\//i.test(url))
         .map((url) => ({ type: "video", url, poster }));
     const imageItems: GalleryMedia[] = images.map((url) => ({ type: "image", url }));
-    return [...videoItems, ...imageItems];
+    return [...imageItems, ...videoItems];
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -340,22 +342,34 @@ function useZoom() {
 }
 
 function useSwipe(onSwipeLeft: () => void, onSwipeRight: () => void) {
-    const startX = useRef<number | null>(null);
+    const start = useRef<{ x: number; y: number } | null>(null);
+    const moved = useRef(false);
 
     const onTouchStart = useCallback((e: React.TouchEvent) => {
-        startX.current = e.touches[0].clientX;
+        moved.current = false;
+        start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }, []);
+
+    const onTouchMove = useCallback((e: React.TouchEvent) => {
+        if (!start.current) return;
+        const dx = e.touches[0].clientX - start.current.x;
+        const dy = e.touches[0].clientY - start.current.y;
+        if (Math.abs(dx) > 8 || Math.abs(dy) > 8) moved.current = true;
     }, []);
 
     const onTouchEnd = useCallback((e: React.TouchEvent) => {
-        if (startX.current === null) return;
-        const dx = e.changedTouches[0].clientX - startX.current;
-        if (Math.abs(dx) > 40) {
+        if (!start.current) return;
+        const dx = e.changedTouches[0].clientX - start.current.x;
+        const dy = e.changedTouches[0].clientY - start.current.y;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
             dx < 0 ? onSwipeLeft() : onSwipeRight();
         }
-        startX.current = null;
+        start.current = null;
     }, [onSwipeLeft, onSwipeRight]);
 
-    return { onTouchStart, onTouchEnd };
+    const wasSwipe = useCallback(() => moved.current, []);
+
+    return { onTouchStart, onTouchMove, onTouchEnd, wasSwipe };
 }
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
@@ -367,6 +381,7 @@ function Lightbox({
     onClose,
     onPrev,
     onNext,
+    onSelect,
 }: {
     images: string[];
     activeIndex: number;
@@ -374,6 +389,7 @@ function Lightbox({
     onClose: () => void;
     onPrev: () => void;
     onNext: () => void;
+    onSelect: (index: number) => void;
 }) {
     // Close on Escape
     useEffect(() => {
@@ -463,7 +479,7 @@ function Lightbox({
                     {images.map((img, i) => (
                         <button
                             key={i}
-                            onClick={() => {/* handled via parent index */ }}
+                            onClick={() => onSelect(i)}
                             className={cn(
                                 "h-14 w-14 rounded-lg overflow-hidden shrink-0 border-2 transition-all",
                                 i === activeIndex
@@ -575,36 +591,58 @@ export function ImageGallery({
 }: ImageGalleryProps) {
     const images = useMemo(() => normalizeImages(imagesInput), [imagesInput]);
     const media = useMemo(() => buildGalleryMedia(images, videos), [images, videos]);
+    const mediaKey = useMemo(
+        () => media.map((m) => `${m.type}:${m.url}`).join("|"),
+        [media],
+    );
     const isLeftThumbnails = thumbnailsPosition === "left";
 
     const [activeIndex, setActiveIndex] = useState(0);
     const [imageLoaded, setImageLoaded] = useState(false);
+    const [mediaError, setMediaError] = useState(false);
+    const [videoNeedsTap, setVideoNeedsTap] = useState(false);
     const [zoomHintDismissed, setZoomHintDismissed] = useState(false);
     const [lightboxOpen, setLightboxOpen] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const mainImgRef = useRef<HTMLImageElement>(null);
 
     const stripRef = useRef<HTMLDivElement>(null);
     const { zoom, onMove, onLeave } = useZoom();
 
-    // Clamp activeIndex
+    // Clamp activeIndex + default to first image (not video) when product media changes
+    useEffect(() => {
+        if (media.length === 0) return;
+        const firstImage = media.findIndex((m) => m.type === "image");
+        setActiveIndex(firstImage >= 0 ? firstImage : 0);
+        setImageLoaded(false);
+        setMediaError(false);
+    }, [mediaKey, media.length]);
+
     useEffect(() => {
         if (activeIndex >= media.length && media.length > 0) {
             setActiveIndex(0);
         }
     }, [media.length, activeIndex]);
 
-    // Reset loaded state on media change
+    // Reset loaded state on slide change
     useEffect(() => {
         setImageLoaded(false);
+        setMediaError(false);
+        setVideoNeedsTap(false);
     }, [activeIndex]);
 
     useEffect(() => {
         const item = media[activeIndex];
         if (item?.type !== "video") {
             videoRef.current?.pause();
+            return;
         }
-        if (lightboxOpen && item?.type !== "image") {
-            setLightboxOpen(false);
+        if (lightboxOpen) setLightboxOpen(false);
+        const el = videoRef.current;
+        if (!el) return;
+        const attempt = el.play();
+        if (attempt) {
+            attempt.catch(() => setVideoNeedsTap(true));
         }
     }, [activeIndex, media, lightboxOpen]);
 
@@ -629,13 +667,44 @@ export function ImageGallery({
     const prev = useCallback(() => setActiveIndex((i) => Math.max(0, i - 1)), []);
     const next = useCallback(() => setActiveIndex((i) => Math.min(media.length - 1, i + 1)), [media.length]);
 
-    const { onTouchStart, onTouchEnd } = useSwipe(next, prev);
+    const { onTouchStart, onTouchMove, onTouchEnd, wasSwipe } = useSwipe(next, prev);
 
     const activeMedia = media[activeIndex] ?? null;
     const mainImage = activeMedia?.type === "image" ? activeMedia.url : null;
     const mainVideo = activeMedia?.type === "video" ? activeMedia : null;
     const hasMultiple = media.length > 1;
-    const showZoom = activeMedia?.type === "image";
+    const showZoom = activeMedia?.type === "image" && !mediaError;
+
+    // Cached images may load before onLoad fires — detect via ref after paint
+    useEffect(() => {
+        const raf = requestAnimationFrame(() => {
+            const img = mainImgRef.current;
+            if (!img || activeMedia?.type !== "image") return;
+            if (img.complete && img.naturalWidth > 0) {
+                setImageLoaded(true);
+            }
+        });
+        return () => cancelAnimationFrame(raf);
+    }, [activeIndex, activeMedia?.type, mainImage]);
+
+    const lightboxImageIndex = Math.max(
+        0,
+        media.slice(0, activeIndex + 1).filter((m) => m.type === "image").length - 1,
+    );
+
+    const handleMainTap = useCallback(() => {
+        if (wasSwipe() || !mainImage) return;
+        const isTouchDevice = window.matchMedia("(hover: none), (pointer: coarse)").matches;
+        if (isTouchDevice) setLightboxOpen(true);
+    }, [mainImage, wasSwipe]);
+
+    const playVideo = useCallback(() => {
+        const el = videoRef.current;
+        if (!el) return;
+        el.play()
+            .then(() => setVideoNeedsTap(false))
+            .catch(() => setVideoNeedsTap(true));
+    }, []);
 
     const handleMouseEnter = useCallback(() => {
         setZoomHintDismissed(true);
@@ -658,11 +727,23 @@ export function ImageGallery({
                         borderRadius: "12px",
                         isolation: "isolate",
                         cursor: showZoom ? (zoom.active ? "none" : "crosshair") : "default",
+                        touchAction: "manipulation",
                     }}
                     onMouseMove={(e) => { onMove(e); handleMouseEnter(); }}
                     onMouseLeave={onLeave}
                     onTouchStart={onTouchStart}
+                    onTouchMove={onTouchMove}
                     onTouchEnd={onTouchEnd}
+                    onClick={handleMainTap}
+                    role={mainImage ? "button" : undefined}
+                    tabIndex={mainImage ? 0 : undefined}
+                    onKeyDown={(e) => {
+                        if (mainImage && (e.key === "Enter" || e.key === " ")) {
+                            e.preventDefault();
+                            setLightboxOpen(true);
+                        }
+                    }}
+                    aria-label={mainImage ? "Tap to enlarge product image" : undefined}
                 >
                     {/* Subtle grid texture */}
                     <div
@@ -676,20 +757,58 @@ export function ImageGallery({
 
                     {mainVideo ? (
                         <>
-                            {!imageLoaded && <ImageSkeleton />}
-                            <video
-                                ref={videoRef}
-                                key={mainVideo.url}
-                                src={mainVideo.url}
-                                poster={mainVideo.poster}
-                                autoPlay
-                                muted
-                                loop
-                                playsInline
-                                preload="metadata"
-                                className="absolute inset-0 w-full h-full object-contain p-2 z-[1]"
-                                onLoadedData={() => setImageLoaded(true)}
-                            />
+                            {!imageLoaded && !mediaError && <ImageSkeleton />}
+                            {mediaError ? (
+                                <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 px-4 text-center">
+                                    <Play className="h-10 w-10 text-[var(--color-text-muted)]" />
+                                    <p className="text-[12px] text-[var(--color-text-muted)]">Video could not be loaded</p>
+                                    <a
+                                        href={mainVideo.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[11px] font-semibold text-[var(--color-accent)]"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        Open video
+                                    </a>
+                                </div>
+                            ) : (
+                                <>
+                                    <video
+                                        ref={videoRef}
+                                        key={mainVideo.url}
+                                        src={mainVideo.url}
+                                        poster={mainVideo.poster}
+                                        autoPlay
+                                        muted
+                                        loop
+                                        playsInline
+                                        controls
+                                        preload="metadata"
+                                        className="absolute inset-0 z-[1] h-full w-full object-contain p-2"
+                                        onLoadedData={() => setImageLoaded(true)}
+                                        onError={() => {
+                                            setMediaError(true);
+                                            setImageLoaded(true);
+                                        }}
+                                    />
+                                    {videoNeedsTap && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                playVideo();
+                                            }}
+                                            className="absolute inset-0 z-[2] flex items-center justify-center bg-black/35"
+                                            aria-label="Play product video"
+                                        >
+                                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
+                                                <Play className="h-7 w-7 fill-[var(--color-text-primary)] text-[var(--color-text-primary)]" />
+                                            </span>
+                                        </button>
+                                    )}
+                                </>
+                            )}
                         </>
                     ) : mainImage ? (
                         <>
@@ -710,14 +829,28 @@ export function ImageGallery({
 
                             {/* Main image */}
                             <img
+                                ref={mainImgRef}
                                 key={mainImage}
                                 src={mainImage}
                                 alt={productName}
+                                loading="eager"
+                                decoding="async"
                                 onLoad={() => setImageLoaded(true)}
-                                className="absolute inset-0 w-full h-full object-contain p-6 transition-opacity duration-300 z-[1]"
-                                style={{ opacity: zoom.active ? 0 : imageLoaded ? 1 : 0 }}
+                                onError={() => {
+                                    setMediaError(true);
+                                    setImageLoaded(true);
+                                }}
+                                className="absolute inset-0 z-[1] h-full w-full object-contain p-4 sm:p-6 transition-opacity duration-300"
+                                style={{
+                                    opacity: zoom.active ? 0 : mediaError ? 0 : imageLoaded ? 1 : 0.01,
+                                }}
                                 draggable={false}
                             />
+                            {mediaError && (
+                                <div className="absolute inset-0 z-[2] flex items-center justify-center px-4 text-center text-[12px] text-[var(--color-text-muted)]">
+                                    Image failed to load
+                                </div>
+                            )}
                         </>
                     ) : (
                         /* Placeholder */
@@ -795,8 +928,12 @@ export function ImageGallery({
                         )}
                         {mainImage && (
                             <button
-                                onClick={() => setLightboxOpen(true)}
-                                className="h-7 w-7 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLightboxOpen(true);
+                                }}
+                                className="h-7 w-7 rounded-md flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200"
                                 style={{
                                     background: "rgba(0,0,0,0.45)",
                                     backdropFilter: "blur(6px)",
@@ -810,26 +947,40 @@ export function ImageGallery({
 
                     {/* ── Zoom hint ─────────────────────────────────────────────── */}
                     {mainImage && !zoomHintDismissed && (
-                        <div
-                            className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-medium pointer-events-none transition-opacity duration-300"
-                            style={{
-                                background: "rgba(0,0,0,0.5)",
-                                color: "rgba(255,255,255,0.75)",
-                                backdropFilter: "blur(6px)",
-                            }}
-                        >
-                            <ZoomIn className="h-3 w-3" />
-                            Hover to zoom
-                        </div>
+                        <>
+                            <div
+                                className="absolute bottom-3 right-3 z-10 hidden items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-medium pointer-events-none transition-opacity duration-300 md:flex"
+                                style={{
+                                    background: "rgba(0,0,0,0.5)",
+                                    color: "rgba(255,255,255,0.75)",
+                                    backdropFilter: "blur(6px)",
+                                }}
+                            >
+                                <ZoomIn className="h-3 w-3" />
+                                Hover to zoom
+                            </div>
+                            <div
+                                className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-medium pointer-events-none md:hidden"
+                                style={{
+                                    background: "rgba(0,0,0,0.5)",
+                                    color: "rgba(255,255,255,0.75)",
+                                    backdropFilter: "blur(6px)",
+                                }}
+                            >
+                                <Maximize2 className="h-3 w-3" />
+                                Tap to enlarge
+                            </div>
+                        </>
                     )}
 
                     {/* ── Prev / Next arrows ─────────────────────────────────────── */}
                     {hasMultiple && (
                         <>
                             <button
-                                onClick={prev}
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); prev(); }}
                                 disabled={activeIndex === 0}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:!opacity-0"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-xl flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 disabled:!opacity-0"
                                 style={{
                                     background: "var(--color-surface)",
                                     border: "1px solid var(--color-border)",
@@ -840,9 +991,10 @@ export function ImageGallery({
                                 <ChevronLeft className="h-4 w-4" style={{ color: "var(--color-text-primary)" }} />
                             </button>
                             <button
-                                onClick={next}
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); next(); }}
                                 disabled={activeIndex === media.length - 1}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 disabled:!opacity-0"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-xl flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 disabled:!opacity-0"
                                 style={{
                                     background: "var(--color-surface)",
                                     border: "1px solid var(--color-border)",
@@ -879,24 +1031,25 @@ export function ImageGallery({
                     <div
                         ref={stripRef}
                         className={cn(
-                            "gap-2 pb-0.5",
+                            "flex w-full min-w-0 flex-nowrap gap-2 overflow-x-auto overscroll-x-contain pb-1 touch-pan-x snap-x snap-mandatory",
                             isLeftThumbnails
-                                ? "flex flex-col overflow-y-auto max-h-[calc(100vh-220px)] pr-2 border-r border-[var(--color-border)] md:order-first"
-                                : "flex gap-2 overflow-x-auto",
+                                ? "md:flex-col md:flex-nowrap md:overflow-y-auto md:overflow-x-hidden md:snap-none md:max-h-[calc(100vh-220px)] md:pr-2 md:border-r md:border-[var(--color-border)] md:order-first"
+                                : "",
                         )}
-                        style={{ scrollbarWidth: "none" }}
+                        style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
                         role="tablist"
                         aria-label="Product media"
                     >
                         {media.map((item, i) => (
+                            <div key={`${item.type}-${item.url}-${i}`} className="snap-center shrink-0">
                             <Thumbnail
-                                key={`${item.type}-${item.url}-${i}`}
                                 src={item.type === "video" ? (item.poster ?? images[0] ?? item.url) : item.url}
                                 index={i}
                                 active={i === activeIndex}
                                 onClick={() => setActiveIndex(i)}
                                 isVideo={item.type === "video"}
                             />
+                            </div>
                         ))}
                     </div>
                 )}
@@ -926,11 +1079,29 @@ export function ImageGallery({
             {lightboxOpen && mainImage && activeMedia?.type === "image" && (
                 <Lightbox
                     images={images}
-                    activeIndex={Math.max(0, activeIndex - videos.length)}
+                    activeIndex={lightboxImageIndex}
                     productName={productName}
                     onClose={() => setLightboxOpen(false)}
-                    onPrev={prev}
-                    onNext={next}
+                    onPrev={() => {
+                        const prevImage = Math.max(0, lightboxImageIndex - 1);
+                        const mediaIdx = media.findIndex(
+                            (m, i) => m.type === "image" && media.slice(0, i + 1).filter((x) => x.type === "image").length - 1 === prevImage,
+                        );
+                        if (mediaIdx >= 0) setActiveIndex(mediaIdx);
+                    }}
+                    onNext={() => {
+                        const nextImage = Math.min(images.length - 1, lightboxImageIndex + 1);
+                        const mediaIdx = media.findIndex(
+                            (m, i) => m.type === "image" && media.slice(0, i + 1).filter((x) => x.type === "image").length - 1 === nextImage,
+                        );
+                        if (mediaIdx >= 0) setActiveIndex(mediaIdx);
+                    }}
+                    onSelect={(imageIdx) => {
+                        const mediaIdx = media.findIndex(
+                            (m, i) => m.type === "image" && media.slice(0, i + 1).filter((x) => x.type === "image").length - 1 === imageIdx,
+                        );
+                        if (mediaIdx >= 0) setActiveIndex(mediaIdx);
+                    }}
                 />
             )}
         </>

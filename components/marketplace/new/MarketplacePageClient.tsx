@@ -7,6 +7,7 @@ import {
   Sparkles, Camera,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { fetchProductVideosMap, attachProductVideos } from "@/lib/product-videos";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { FlashDealsClient } from "./FlashDealsClient";
 import { TrendingProductsClient } from "./TrendingProductsClient";
@@ -331,8 +332,15 @@ export function MarketplacePageClient({
         ),
       ]);
 
-      setFlashDeals((deals ?? []) as DbProduct[]);
-      setTrending((trend ?? []) as DbProduct[]);
+      const dealList = (deals ?? []) as DbProduct[];
+      const trendList = (trend ?? []) as DbProduct[];
+      const videoMap = await fetchProductVideosMap(
+        supabaseRef.current,
+        [...dealList, ...trendList].map((p) => p.id),
+      );
+
+      setFlashDeals(attachProductVideos(dealList, videoMap));
+      setTrending(attachProductVideos(trendList, videoMap));
       setListingCount(count ?? 0);
       setLoading(false);
     }
@@ -350,15 +358,17 @@ export function MarketplacePageClient({
     : flashDeals;
 
   return (
-    <div className="flex w-full max-w-full min-w-0 gap-4 overflow-x-hidden">
-      {/* Sidebar — receives current type */}
-      <Sidebar type={type} />
+    <div className="grid w-full min-w-0 grid-cols-1 gap-3 overflow-x-hidden lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-x-4 lg:gap-y-3">
+      {/* Sidebar — same row as search on desktop */}
+      <div className="hidden lg:block lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:self-start">
+        <Sidebar type={type} />
+      </div>
 
-      <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 overflow-x-hidden">
-        {/* ── Search bar + type switcher ── */}
+      {/* Search — aligns top with Categories */}
+      <div className="min-w-0 lg:col-start-2 lg:row-start-1">
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 rounded-sm border border-border bg-card px-3 py-2 shadow-sm sm:gap-3 sm:px-4">
-            <Search className="size-4 shrink-0 text-muted-foreground" />
+          <div className="flex items-center gap-2 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-sm sm:gap-3 sm:px-4">
+            <Search className="size-4 shrink-0 text-[var(--color-text-muted)]" />
             <input
               type="text"
               value={search}
@@ -368,19 +378,17 @@ export function MarketplacePageClient({
                   ? "Search for digital products, tools, software & more..."
                   : "Search for physical products & gear..."
               }
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              className="min-w-0 flex-1 bg-transparent text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
             />
 
-            {/* Visual / camera search */}
             <button
               type="button"
               aria-label="Visual search"
-              className="grid size-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted"
+              className="grid size-7 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)]"
             >
               <Camera className="size-4" />
             </button>
 
-            {/* AI assistant */}
             <button
               type="button"
               onClick={() => openAssistant(search.trim() || undefined)}
@@ -390,8 +398,7 @@ export function MarketplacePageClient({
               AI
             </button>
 
-            {/* Desktop-only inline type switcher */}
-            <div className="hidden shrink-0 items-center gap-1 rounded-xl border border-border p-1 sm:flex">
+            <div className="hidden shrink-0 items-center gap-1 rounded-xl border border-[var(--color-border)] p-1 sm:flex">
               {(["physical", "digital"] as ProductType[]).map((t) => (
                 <button
                   key={t}
@@ -415,7 +422,6 @@ export function MarketplacePageClient({
             </span>
           </div>
 
-          {/* Mobile-only centered type switcher pills */}
           <div className="flex items-center justify-center gap-2 sm:hidden">
             {(["physical", "digital"] as ProductType[]).map((t) => (
               <button
@@ -433,8 +439,10 @@ export function MarketplacePageClient({
             ))}
           </div>
         </div>
+      </div>
 
-        {/* ── Hero banner — always rendered, doesn't depend on loading ── */}
+      {/* Main content below search */}
+      <div className="flex min-w-0 flex-col gap-3 overflow-x-hidden lg:col-start-2 lg:row-start-2">
         <HeroBannerView physical={heroPhysical} digital={heroDigital} initialType={type} />
 
         <div className="w-full min-w-0">

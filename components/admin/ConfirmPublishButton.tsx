@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { appConfirm } from "@/lib/app-dialog";
 
 export default function ConfirmPublishButton({
   productId,
@@ -40,7 +41,14 @@ export default function ConfirmPublishButton({
       toast.error("Product has no images — leave as Draft until images are added");
       return;
     }
-    if (!confirm("Publish this product to active? This will make it visible in the store.")) return;
+    const confirmed = await appConfirm({
+      title: "Publish product",
+      description:
+        "Publish this product to active? This will make it visible in the store.",
+      confirmLabel: "Publish",
+      variant: "success",
+    });
+    if (!confirmed) return;
 
     setLoading(true);
     try {

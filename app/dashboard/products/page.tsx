@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { appConfirm } from "@/lib/app-dialog";
 import type { Database } from "@/types/supabase";
 import { PageHeader, Th, StatusPill, EmptyState, RowArrow } from "@/components/ui/admin";
 import { Tile } from "@/components/ui/admin-tile";
@@ -221,7 +222,13 @@ export default function ProductsPage() {
 
   const archiveProduct = useCallback(async (productId: string, name: string) => {
     if (busyId) return;
-    if (!confirm(`Archive "${name}"? It will be hidden from your store but kept in your records.`)) return;
+    const archiveConfirmed = await appConfirm({
+      title: "Archive product",
+      description: `Archive "${name}"? It will be hidden from your store but kept in your records.`,
+      confirmLabel: "Archive",
+      variant: "default",
+    });
+    if (!archiveConfirmed) return;
 
     setBusyId(productId);
     setOpenMenu(null);
@@ -275,7 +282,13 @@ export default function ProductsPage() {
 
   const deleteProduct = useCallback(async (productId: string, name: string) => {
     if (busyId) return;
-    if (!confirm(`Permanently delete "${name}"?\n\nThis cannot be undone. Products with orders cannot be deleted.`)) return;
+    const deleteConfirmed = await appConfirm({
+      title: "Delete product",
+      description: `Permanently delete "${name}"? This cannot be undone. Products with orders cannot be deleted.`,
+      confirmLabel: "Delete",
+      variant: "destructive",
+    });
+    if (!deleteConfirmed) return;
 
     setBusyId(productId);
     setOpenMenu(null);

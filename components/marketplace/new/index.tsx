@@ -19,6 +19,7 @@ import {
   getDiscount,
 } from "@/lib/utils";
 import { LiveActivityBar } from "./Liveactivitybar";
+import { fetchProductVideosMap, attachProductVideos } from "@/lib/product-videos";
 export type { DbProduct };
 
 type DbCategory = {
@@ -110,9 +111,14 @@ async function fetchMarketplaceData() {
     (sum: number, o: { total_amount: number | null }) => sum + (o.total_amount ?? 0), 0,
   );
 
+  const flashDealsRawList = (flashDealsRaw ?? []) as DbProduct[];
+  const trendingRawList = (trendingRaw ?? []) as DbProduct[];
+  const videoIds = [...flashDealsRawList, ...trendingRawList].map((p) => p.id);
+  const videoMap = await fetchProductVideosMap(supabase, videoIds);
+
   return {
-    flashDeals: (flashDealsRaw ?? []) as DbProduct[],
-    trending: (trendingRaw ?? []) as DbProduct[],
+    flashDeals: attachProductVideos(flashDealsRawList, videoMap),
+    trending: attachProductVideos(trendingRawList, videoMap),
     categories: (categoriesRaw ?? []) as DbCategory[],
     stats: {
       viewers_now: (viewerCountRaw as { count?: number } | null)?.count ?? 0,

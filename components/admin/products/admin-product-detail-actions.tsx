@@ -12,6 +12,7 @@ import {
   SquarePen,
 } from "lucide-react";
 import { publishAdminProduct } from "@/lib/actions/admin-products";
+import { appConfirm } from "@/lib/app-dialog";
 import { MoveProductDialog } from "@/components/admin/MoveProductDialog";
 
 type Props = {
@@ -40,12 +41,18 @@ export function AdminProductDetailActions({
   const isDraft = status === "draft";
   const isCj = source === "cj" && Boolean(cjPid);
 
-  function handlePublish() {
+  async function handlePublish() {
     if (!hasImages) {
       toast.error("Add images before publishing");
       return;
     }
-    if (!confirm("Publish this product to the storefront?")) return;
+    const confirmed = await appConfirm({
+      title: "Publish product",
+      description: "Publish this product to the storefront?",
+      confirmLabel: "Publish",
+      variant: "success",
+    });
+    if (!confirmed) return;
 
     startTransition(async () => {
       const result = await publishAdminProduct(productId);

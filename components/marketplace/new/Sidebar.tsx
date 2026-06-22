@@ -175,7 +175,7 @@ function CheckRow({
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center justify-between rounded-md px-1.5 py-1 text-xs transition-colors hover:bg-black/5"
+      className="flex w-full items-center justify-between rounded-md px-1.5 py-1 text-xs transition-colors hover:bg-[var(--color-surface-secondary)]"
       style={{ color: "var(--color-text-secondary)" }}
     >
       <span className="flex items-center gap-1.5">
@@ -336,10 +336,10 @@ export function Sidebar({ type = "physical" }: Props) {
 
   return (
     <aside
-      className="hidden w-60 shrink-0 flex-col gap-0 self-start lg:flex"
+      className="flex w-full shrink-0 flex-col gap-0 self-start"
       style={{
         position: "sticky",
-        top: "calc(var(--navbar-height) + 1rem)",
+        top: "calc(var(--navbar-height, 64px) + 0.75rem)",
       }}
     >
 
@@ -383,6 +383,7 @@ export function Sidebar({ type = "physical" }: Props) {
                 placeholder="Select category"
                 searchable
                 isClearable
+                className="h-10"
                 textSize="sm"
               />
               {sidebarCategories.length === 0 && (

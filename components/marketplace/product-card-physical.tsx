@@ -7,8 +7,7 @@ import {
   MessageCircle, ShoppingBag, Check, X, Minus,
   Heart, PercentSquare, AlertTriangle, Play,
 } from "lucide-react";
-import { productHasStoredVideos } from "@/lib/product-videos";
-import { getProductVideoUrls } from "@/lib/cj/product-videos";
+import { productHasVideos } from "@/lib/product-videos";
 import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
@@ -57,10 +56,7 @@ export function ProductCardPhysical({
   const images = p.images ?? [];
   const imgSrc = images[0] ?? null;
   const hoverImg = images[1] ?? null;
-  const hasVideo = useMemo(() => {
-    if (productHasStoredVideos(p as any)) return true;
-    return getProductVideoUrls(p as any).length > 0;
-  }, [p]);
+  const hasVideo = useMemo(() => productHasVideos(p as any), [p]);
   const price = Number(p.price ?? 0);
   const discountFields = {
     price,
