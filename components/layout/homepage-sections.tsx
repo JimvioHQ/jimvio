@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
   ArrowRight, Check, ShieldCheck, Globe, Zap, Sparkles,
-  Bot, Wand2, Search, Clapperboard, Share2,
+  Bot, Wand2, Search, Clapperboard, Share2, Star,
   ChevronDown, Layers, TrendingUp, Wallet, Target, Award, BarChart3, LineChart,
 } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -74,6 +74,31 @@ function TwoRowHorizontalScroll({
         {children}
       </div>
     </div>
+  );
+}
+
+/** Mobile: compact two-row carousel. Desktop (lg+): spacious responsive grid. */
+function HomepageShowcaseLayout({
+  children,
+  cardMinWidth = 168,
+  gap = "gap-2.5",
+  desktopCols = "lg:grid-cols-3 xl:grid-cols-4",
+}: {
+  children: ReactNode[];
+  cardMinWidth?: number;
+  gap?: string;
+  desktopCols?: string;
+}) {
+  if (!children.length) return null;
+  return (
+    <>
+      <div className="lg:hidden">
+        <TwoRowHorizontalScroll cardMinWidth={cardMinWidth} gap={gap}>
+          {children}
+        </TwoRowHorizontalScroll>
+      </div>
+      <div className={cn("hidden gap-3 lg:grid", desktopCols)}>{children}</div>
+    </>
   );
 }
 
@@ -618,41 +643,128 @@ export function HowJimvioWorks() {
 }
 
 /* ═══ 6. Trending products ═══ */
+function truncateLabel(text: string, max: number) {
+  const t = text.trim();
+  if (t.length <= max) return t;
+  return `${t.slice(0, max - 1).trim()}…`;
+}
+
+function productTypeLabel(type?: string | null) {
+  return type === "physical" ? "Physical" : "Digital";
+}
+
 export function TrendingProductsRow({ products = [] }: { products: any[] }) {
   const { formatMoney } = useCurrency();
   if (!products.length) return null;
 
   const cards = products.map((p) => {
     const sold = p.sale_count ?? p.sold_count ?? 0;
-    const shortName =
-      p.name.length > 42 ? `${p.name.slice(0, 40).trim()}…` : p.name;
+    const shortName = truncateLabel(p.name, 42);
+    const desktopName = truncateLabel(p.name, 48);
+    const compareAt = p.compare_at_price ?? null;
+    const hasDiscount =
+      compareAt != null && Number(compareAt) > Number(p.price ?? 0);
+    const discountPct = hasDiscount
+      ? Math.round((1 - Number(p.price) / Number(compareAt)) * 100)
+      : 0;
+    const rating = Number(p.rating ?? 0);
+    const typeLabel = productTypeLabel(p.product_type);
 
     return (
       <Link
         key={p.id}
         href={`/marketplace/${p.slug}`}
+        title={p.name}
         className={cn(
           "flex h-full min-h-[72px] items-center gap-2.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-transform active:scale-[0.98] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]",
+          "lg:min-h-0 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-hidden lg:p-0",
+          "lg:transition-all lg:hover:-translate-y-0.5 lg:hover:shadow-lg lg:active:scale-100",
         )}
       >
-        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-surface-secondary)] p-1">
-          <img
-            src={getImage(p.images)}
-            alt={p.name}
-            className="max-h-full max-w-full object-contain"
-            loading="lazy"
-          />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h4 className="line-clamp-2 text-[11px] font-bold leading-snug text-[var(--color-text-primary)]">
-            {shortName}
-          </h4>
-          <div className="mt-1 text-[12px] font-black leading-none" style={{ color: GREEN }}>
-            {formatMoney(p.price, p.currency)}
+        {/* ── Mobile: compact horizontal row (unchanged) ── */}
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 lg:hidden">
+          <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-surface-secondary)] p-1">
+            <img
+              src={getImage(p.images)}
+              alt={p.name}
+              className="max-h-full max-w-full object-contain"
+              loading="lazy"
+            />
           </div>
-          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
-            {fmtCount(sold)} sold
-          </p>
+          <div className="min-w-0 flex-1">
+            <h4 className="line-clamp-2 text-[11px] font-bold leading-snug text-[var(--color-text-primary)]">
+              {shortName}
+            </h4>
+            <div className="mt-1 text-[12px] font-black leading-none" style={{ color: GREEN }}>
+              {formatMoney(p.price, p.currency)}
+            </div>
+            <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
+              {fmtCount(sold)} sold
+            </p>
+          </div>
+        </div>
+
+        {/* ── Desktop: compact vertical product card ── */}
+        <div className="hidden lg:flex lg:flex-col lg:h-full">
+          <div className="relative h-28 w-full shrink-0 overflow-hidden bg-[var(--color-surface-secondary)]">
+            <img
+              src={getImage(p.images)}
+              alt={p.name}
+              className="size-full object-cover"
+              loading="lazy"
+            />
+            {hasDiscount && discountPct > 0 && (
+              <span className="absolute left-2 top-2 rounded-full bg-[#ef4444] px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
+                -{discountPct}%
+              </span>
+            )}
+            {p.affiliate_enabled && (
+              <span
+                className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm"
+                style={{ background: GREEN }}
+              >
+                Earn
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-1 flex-col gap-1 p-2.5">
+            <div className="flex items-center justify-between gap-1">
+              <span
+                className="rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide"
+                style={{ background: `${ORANGE}14`, color: ORANGE }}
+              >
+                {typeLabel}
+              </span>
+              {rating > 0 && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--color-text-secondary)]">
+                  <Star className="size-2.5 fill-amber-400 text-amber-400" />
+                  {rating.toFixed(1)}
+                </span>
+              )}
+            </div>
+
+            <h4 className="line-clamp-2 text-[12px] font-bold leading-snug text-[var(--color-text-primary)]">
+              {desktopName}
+            </h4>
+
+            <div className="mt-auto flex items-center justify-between gap-1.5 pt-1">
+              <div className="min-w-0">
+                <div className="text-[13px] font-black leading-none" style={{ color: GREEN }}>
+                  {formatMoney(p.price, p.currency)}
+                </div>
+                <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
+                  {hasDiscount && (
+                    <span className="mr-1 line-through">
+                      {formatMoney(compareAt, p.currency)}
+                    </span>
+                  )}
+                  {fmtCount(sold)} sold
+                </p>
+              </div>
+              <ArrowRight className="size-3.5 shrink-0" style={{ color: ORANGE }} />
+            </div>
+          </div>
         </div>
       </Link>
     );
@@ -667,9 +779,12 @@ export function TrendingProductsRow({ products = [] }: { products: any[] }) {
             Explore All <ArrowRight className="size-3" />
           </Link>
         </div>
-        <TwoRowHorizontalScroll cardMinWidth={172}>
+        <HomepageShowcaseLayout
+          cardMinWidth={172}
+          desktopCols="lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+        >
           {cards}
-        </TwoRowHorizontalScroll>
+        </HomepageShowcaseLayout>
       </div>
     </section>
   );
@@ -708,34 +823,39 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
         href={`/ugc/${c.id}`}
         className={cn(
           "flex h-full min-h-[88px] items-start gap-2.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-transform active:scale-[0.98] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]",
+          "lg:min-h-0 lg:gap-4 lg:p-4 lg:transition-all lg:hover:-translate-y-0.5 lg:hover:shadow-lg lg:active:scale-100",
         )}
       >
-        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-surface-secondary)]">
+        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-surface-secondary)] lg:size-[4.5rem] lg:rounded-2xl">
           {banner ? (
             <img src={banner} alt="" className="size-full object-cover" loading="lazy" />
           ) : logoUrl ? (
             <img src={logoUrl} alt="" className="size-full object-cover" loading="lazy" />
           ) : (
-            <Clapperboard className="size-5 text-[var(--color-text-muted)]" />
+            <Clapperboard className="size-5 text-[var(--color-text-muted)] lg:size-7" />
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 text-[11px] font-bold leading-snug text-[var(--color-text-primary)]">
-            {shortTitle}
+          <h3 className="line-clamp-2 text-[11px] font-bold leading-snug text-[var(--color-text-primary)] lg:text-[15px] lg:leading-tight">
+            <span className="lg:hidden">{shortTitle}</span>
+            <span className="hidden lg:line-clamp-2 lg:block">{c.title}</span>
           </h3>
           {vendor?.business_name && (
-            <p className="mt-0.5 truncate text-[10px] text-[var(--color-text-muted)]">
+            <p className="mt-0.5 truncate text-[10px] text-[var(--color-text-muted)] lg:mt-1 lg:text-[12px]">
               {vendor.business_name}
             </p>
           )}
-          <p className="mt-1 text-[12px] font-black leading-none" style={{ color: GREEN }}>
+          <p
+            className="mt-1 text-[12px] font-black leading-none lg:mt-2 lg:text-[17px]"
+            style={{ color: GREEN }}
+          >
             {payAmount}
           </p>
-          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
+          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] lg:mt-1 lg:text-[12px]">
             {joined} creator{joined === 1 ? "" : "s"}
           </p>
           {daysLeft !== null && (
-            <span className="mt-1 inline-flex rounded-full bg-[#ede9fe] px-1.5 py-0.5 text-[9px] font-bold text-[#7c3aed]">
+            <span className="mt-1 inline-flex rounded-full bg-[#ede9fe] px-1.5 py-0.5 text-[9px] font-bold text-[#7c3aed] lg:mt-2 lg:px-2 lg:py-1 lg:text-[11px]">
               {daysLeft === 0 ? "Ends today" : `${daysLeft} days left`}
             </span>
           )}
@@ -753,9 +873,12 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
             Explore All <ArrowRight className="inline size-3" />
           </Link>
         </div>
-        <TwoRowHorizontalScroll cardMinWidth={188}>
+        <HomepageShowcaseLayout
+          cardMinWidth={188}
+          desktopCols="lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+        >
           {cards}
-        </TwoRowHorizontalScroll>
+        </HomepageShowcaseLayout>
       </div>
     </section>
   );
@@ -812,46 +935,98 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
     const style = communityStyle(c.name);
     const Icon = style.icon;
     const profileImage = communityProfileImage(c);
-    const shortName =
-      c.name.length > 36 ? `${c.name.slice(0, 34).trim()}…` : c.name;
+    const heroImage = c.cover_image ?? c.avatar_url ?? profileImage;
+    const shortName = truncateLabel(c.name, 36);
+    const desktopName = truncateLabel(c.name, 48);
+    const tagline = c.tagline ?? "Connect with like-minded people.";
 
     return (
       <Link
         key={c.id}
         href={`/communities/${c.slug}`}
+        title={c.name}
         className={cn(
           "flex h-full min-h-[96px] items-start gap-2.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-transform active:scale-[0.98] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]",
+          "lg:min-h-0 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-hidden lg:p-0",
+          "lg:transition-all lg:hover:-translate-y-0.5 lg:hover:shadow-lg lg:active:scale-100",
         )}
       >
-        {profileImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profileImage}
-            alt={c.name}
-            className="size-12 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <span
-            className="grid size-12 shrink-0 place-items-center rounded-xl"
-            style={{ background: style.bg, color: style.color }}
-          >
-            <Icon className="size-6" />
-          </span>
-        )}
-        <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-1 text-[11px] font-bold text-[var(--color-text-primary)]">
-            {shortName}
-          </h3>
-          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
-            {fmtCount(c.member_count ?? 0)} members
-          </p>
-          <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[var(--color-text-muted)]">
-            {c.tagline ?? "Connect with like-minded people."}
-          </p>
-          <span className="mt-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: ORANGE }}>
-            Join Community <ArrowRight className="size-2.5" />
-          </span>
+        {/* ── Mobile: compact horizontal row (unchanged) ── */}
+        <div className="flex min-w-0 flex-1 items-start gap-2.5 lg:hidden">
+          {profileImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profileImage}
+              alt={c.name}
+              className="size-12 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <span
+              className="grid size-12 shrink-0 place-items-center rounded-xl"
+              style={{ background: style.bg, color: style.color }}
+            >
+              <Icon className="size-6" />
+            </span>
+          )}
+          <div className="min-w-0 flex-1">
+            <h3 className="line-clamp-1 text-[11px] font-bold text-[var(--color-text-primary)]">
+              {shortName}
+            </h3>
+            <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
+              {fmtCount(c.member_count ?? 0)} members
+            </p>
+            <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[var(--color-text-muted)]">
+              {tagline}
+            </p>
+            <span className="mt-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: ORANGE }}>
+              Join Community <ArrowRight className="size-2.5" />
+            </span>
+          </div>
+        </div>
+
+        {/* ── Desktop: compact vertical community card ── */}
+        <div className="hidden lg:flex lg:flex-col lg:h-full">
+          <div className="relative h-28 w-full shrink-0 overflow-hidden bg-[var(--color-surface-secondary)]">
+            {heroImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={heroImage}
+                alt={c.name}
+                className="size-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <div
+                className="flex size-full items-center justify-center"
+                style={{ background: style.bg, color: style.color }}
+              >
+                <Icon className="size-10" />
+              </div>
+            )}
+            <span
+              className="absolute left-2 top-2 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm"
+              style={{ background: "rgba(0,0,0,.55)" }}
+            >
+              {fmtCount(c.member_count ?? 0)} members
+            </span>
+          </div>
+
+          <div className="flex flex-1 flex-col gap-1 p-2.5">
+            <h3 className="line-clamp-2 text-[12px] font-bold leading-snug text-[var(--color-text-primary)]">
+              {desktopName}
+            </h3>
+            <p className="line-clamp-2 text-[10px] leading-snug text-[var(--color-text-muted)]">
+              {tagline}
+            </p>
+            <span
+              className="mt-auto inline-flex items-center gap-0.5 pt-1 text-[10px] font-bold"
+              style={{ color: ORANGE }}
+            >
+              Join Community
+              <ArrowRight className="size-2.5" />
+            </span>
+          </div>
         </div>
       </Link>
     );
@@ -866,9 +1041,12 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
             Explore All <ArrowRight className="inline size-3" />
           </Link>
         </div>
-        <TwoRowHorizontalScroll cardMinWidth={200}>
+        <HomepageShowcaseLayout
+          cardMinWidth={200}
+          desktopCols="lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+        >
           {cards}
-        </TwoRowHorizontalScroll>
+        </HomepageShowcaseLayout>
       </div>
     </section>
   );

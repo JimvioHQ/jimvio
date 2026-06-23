@@ -1634,8 +1634,10 @@ import {
     TrustedStrip,
     PlatformOverviewBar,
     ChooseYourJourney,
-    HowJimvioWorks,
     TrendingProductsRow,
+} from "./homepage-sections";
+import {
+    HowJimvioWorks,
     FeaturedUGCCampaigns,
     FeaturedCommunities,
     OnePlatformOpportunities,
@@ -1647,7 +1649,7 @@ import {
     FAQSection,
     TrustedBrands,
     TakeJimvioEverywhere,
-} from "./homepage-sections";
+} from "./homepage-sections-lazy";
 
 import {
     GridPattern,
@@ -1722,6 +1724,7 @@ interface HomepageRedesignProps {
         secure: string;
         countries: string;
     };
+    totalUsers?: number;
 }
 
 /* ═══════════════════════════════════════════════
@@ -3086,11 +3089,12 @@ export function HomepageRedesign({
     creators = [],
     platform,
     stats,
+    totalUsers,
 }: HomepageRedesignProps) {
     return (
         <div className="min-h-screen w-full max-w-[100dvw] overflow-x-hidden" style={{ background: "var(--color-bg)" }}>
             {/* Hero */}
-            <Hero />
+            <Hero totalUsers={totalUsers} />
 
             <WhatToDoToday />
             <TrustedStrip usersLabel={stats?.users} countriesLabel={stats?.countries} />

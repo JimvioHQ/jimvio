@@ -28,14 +28,14 @@ export const viewport: Viewport = {
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "700"],
   variable: "--font-dm-sans",
   display: "swap",
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "700"],
   variable: "--font-jetbrains-mono",
   display: "swap",
 });

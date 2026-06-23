@@ -898,7 +898,7 @@ export function MarketplaceClient({
         className="sticky top-0 z-50 backdrop-blur-sm"
         style={{ background: "var(--color-surface)", borderBottom: "1px solid var(--color-border)" }}
       >
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-3">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 py-3">
           <div className="flex flex-col md:flex-row items-center justify-between gap-3 md:gap-6">
             <div className="w-full md:max-w-[460px]">
               <MarketplaceSearch currentParams={paramsRecord} className="w-full" basePath={basePath} />
@@ -950,7 +950,7 @@ export function MarketplaceClient({
         onAffiliateChange={setShowAffiliate}
       />
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 flex flex-col lg:flex-row gap-6">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 py-6 flex flex-col lg:flex-row gap-6">
         <aside className="hidden lg:block lg:w-56 shrink-0" aria-label="Filters and categories">
           <div className="sticky top-[73px] space-y-4">
             <div className="rounded-sm overflow-hidden" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>

@@ -5,14 +5,16 @@ import Link from "next/link";
 import {
     Star, TrendingUp, Clock, ThumbsUp, CheckCircle2,
     ChevronRight, ChevronDown, Users, DollarSign,
-    ExternalLink, Share2, Heart, BadgeCheck, Globe,
-    Package,
+    Share2, Heart, BadgeCheck, Globe,
+    Package, ArrowRight, Link2, Wallet, Zap, Sparkles,
+    ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Product, Vendor } from "@/types/db";
 import { CurrencyCode } from "@/lib/currency/config";
+import { useCurrency } from "@/context/CurrencyContext";
 
 
 

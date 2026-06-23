@@ -1,55 +1,58 @@
 
-import React from "react";
+import React, { Suspense } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
 import {
-  Zap, Shirt, Settings, Sprout, Pill, Car, Home, Package,
-} from "lucide-react";
-import {
-  getCategories, getFeaturedProducts, getTrendingProducts, getAffiliateLinks,
-  getCampaigns, getPlatformStats, getTopCreators, getProducts,
-  getPublicCommunities,
-  getAffiliateProgramStats,
-  getAffiliateSpotlightProducts,
+  getHomepageCampaigns,
+  getHomepageTrendingProducts,
+  getPlatformStats,
+  getTopCreators,
+  getHomepageCommunities,
 } from "@/services/db";
 import { formatPublicCount, formatPublicMoneyUsd } from "@/lib/social-proof-display";
-import { getProfile } from "@/lib/auth/actions";
 import {
   getResolvedPlatformSettings,
   PLATFORM_SETTINGS_DEFAULTS,
 } from "@/lib/platform-settings";
 import { HomepageRedesign } from "@/components/layout/homepage-redesign";
-import { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata("home");
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+export const revalidate = 60;
 
-export default async function HomePage() {
+const DEFAULT_STATS = {
+  totalUsers: 0,
+  totalVendors: 0,
+  totalProducts: 0,
+  totalCampaigns: 0,
+  totalCommunities: 0,
+  totalEarnings: 0,
+};
+
+function HomepageFallback() {
+  return (
+    <div
+      aria-hidden
+      className="min-h-[60vh] w-full"
+      style={{ background: "var(--color-bg)" }}
+    />
+  );
+}
+
+async function HomepageContent() {
   const [
     platformStats,
-    platformSettingsMaybe,
+    platformSettings,
     campaigns,
     communitiesList,
-    profile,
-    stats, spotlightRes, settings,
     trendingProducts,
     topCreators,
   ] = await Promise.all([
-    getPlatformStats().catch(() => ({
-      totalUsers: 0, totalVendors: 0, totalProducts: 0,
-      totalCampaigns: 0, totalCommunities: 0, totalEarnings: 0,
-    })),
+    getPlatformStats().catch(() => DEFAULT_STATS),
     getResolvedPlatformSettings().catch(() => null),
-    getCampaigns(12).catch(() => []),
-    getPublicCommunities(12).catch(() => []),
-    getProfile(),
-    getAffiliateProgramStats(),
-    getAffiliateSpotlightProducts(9),
-    getResolvedPlatformSettings(),
-    getTrendingProducts(20).catch(() => []),
+    getHomepageCampaigns(8).catch(() => []),
+    getHomepageCommunities(8).catch(() => []),
+    getHomepageTrendingProducts(12).catch(() => []),
     getTopCreators(6).catch(() => []),
   ]);
 
@@ -69,12 +72,22 @@ export default async function HomePage() {
       stats={{
         users: formatPublicCount(platformStats.totalUsers),
         earned: formatPublicMoneyUsd(platformStats.totalEarnings),
-        secure: platformSettingsMaybe?.social_proof?.success_rate_display
+        secure:
+          platformSettings?.social_proof?.success_rate_display
           ?? PLATFORM_SETTINGS_DEFAULTS.social_proof.success_rate_display,
         countries:
-          platformSettingsMaybe?.social_proof?.countries_display
+          platformSettings?.social_proof?.countries_display
           ?? PLATFORM_SETTINGS_DEFAULTS.social_proof.countries_display,
       }}
+      totalUsers={platformStats.totalUsers}
     />
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<HomepageFallback />}>
+      <HomepageContent />
+    </Suspense>
   );
 }

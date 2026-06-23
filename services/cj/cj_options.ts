@@ -89,8 +89,8 @@ export function parseVariantKey(
     const cleanKey = variantKey.replace(/\s*\([^)]+\)\s*$/, "").trim();
 
     if (optionKeys.length === 1) {
-        // Single dimension — whole string is the value
-        result[optionKeys[0]] = cleanKey;
+        const value = cleanKey.trim();
+        if (value) result[optionKeys[0]] = value;
         return result;
     }
 

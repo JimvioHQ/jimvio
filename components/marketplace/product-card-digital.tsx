@@ -68,7 +68,6 @@ export function ProductCardDigital({
   const discount = getProductDiscountPercent(discountFields);
   const isRecurring = (p as any).pricing_type === "recurring";
   const hasVideo = useMemo(() => productHasVideos(p as any), [p]);
-  const hasVideo = useMemo(() => productHasVideos(p as any), [p]);
 
   /* ── Affiliate helpers ── */
   const commissionRate = (p as any).affiliate_commission_rate as number | null | undefined;

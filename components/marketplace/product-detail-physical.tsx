@@ -1055,7 +1055,10 @@ export function PhysicalProductDetail({
           compare_at_price: v.compare_at_price ? Number(v.compare_at_price) : null,
           inventory_quantity: v.inventory_quantity ?? 0,
           image_url: v.image_url ?? null,
-          options: v.options ?? null,
+          options:
+            v.options && typeof v.options === "object" && !Array.isArray(v.options)
+              ? v.options
+              : null,
           is_active: Boolean(v.is_active),
           sku: v.sku ?? null,
         })),

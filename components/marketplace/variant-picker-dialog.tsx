@@ -766,6 +766,7 @@ import { X, ShoppingCart, AlertCircle, Ruler, TrendingUp } from "lucide-react";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { cn, isRenderableImageSrc, getEffectiveCompareAtPrice, getProductDiscountPercent, type ProductDiscountFields } from "@/lib/utils";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
+import { sanitizeVariantOptions } from "@/lib/products/variant-option-values";
 
 /* ──────────────────────────────────────────────
    Types
@@ -857,8 +858,9 @@ function isSizeAxis(key: string): boolean {
 function deriveAxes(variants: Variant[]): Map<string, string[]> {
   const axes = new Map<string, string[]>();
   for (const v of variants) {
-    if (!v.options) continue;
-    for (const [key, val] of Object.entries(v.options)) {
+    const options = sanitizeVariantOptions(v.options as Record<string, unknown> | null | undefined);
+    if (!options) continue;
+    for (const [key, val] of Object.entries(options)) {
       if (!axes.has(key)) axes.set(key, []);
       const arr = axes.get(key)!;
       if (!arr.includes(val)) arr.push(val);
@@ -873,8 +875,11 @@ function resolveVariant(
 ): Variant | null {
   return (
     variants.find((v) => {
-      if (!v.options) return false;
-      return Object.entries(selections).every(([k, val]) => v.options?.[k] === val);
+      const options = sanitizeVariantOptions(
+        v.options as Record<string, unknown> | null | undefined,
+      );
+      if (!options) return false;
+      return Object.entries(selections).every(([k, val]) => options[k] === val);
     }) ?? null
   );
 }

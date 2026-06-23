@@ -4,6 +4,11 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata("marketplace");
 
-export default function Page() {
-  return <MarketplacePage />;
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string; page?: string }>;
+}) {
+  const params = await searchParams;
+  return <MarketplacePage searchParams={params} />;
 }

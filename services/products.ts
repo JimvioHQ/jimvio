@@ -325,6 +325,24 @@ export async function getTrendingProducts(limit = 8) {
   return products;
 }
 
+/** Homepage listing — skips video fetch and heavy joins. */
+export async function getHomepageTrendingProducts(limit = 12) {
+  const db = await getDB();
+  const { data } = await db
+    .from("products")
+    .select(`
+      id, name, slug, price, compare_at_price, currency, images,
+      rating, sale_count, product_type, affiliate_enabled,
+      vendors ( id, business_name, business_slug, verification_status )
+    `)
+    .eq("status", "active")
+    .eq("is_active", true)
+    .order("view_count", { ascending: false })
+    .limit(limit);
+
+  return (data ?? []).map((product) => ({ ...product, product_videos: [] }));
+}
+
 export async function countActiveShopifyProducts() {
   const db = await getDB();
   const { count } = await db

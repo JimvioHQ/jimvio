@@ -107,29 +107,31 @@ function HeroLiveTicker({ onlineCount }: { onlineCount: number }) {
   const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
 
   return (
-    <div className="flex h-10 w-full items-center overflow-hidden bg-[#fd5000]">
-      <div className="flex h-full shrink-0 items-center gap-2 bg-[#111] px-4 text-[10px] font-bold uppercase tracking-widest text-white">
-        <span className="size-2 animate-pulse rounded-full bg-white" />
-        Live
-      </div>
-
-      <div className="relative min-w-0 flex-1 overflow-hidden">
-        <div
-          className="flex items-center whitespace-nowrap"
-          style={{ animation: "marquee 36s linear infinite" }}
-        >
-          {items.map((item, i) => (
-            <span key={`${item.text}-${i}`} className="mx-6 inline-flex items-center gap-2 text-[11px] text-white/95">
-              <span className="font-semibold">{item.text}</span>
-              <span className="text-white/70">{item.time}</span>
-            </span>
-          ))}
+    <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
+      <div className="flex h-10 w-full items-center overflow-hidden bg-[#fd5000]">
+        <div className="flex h-full shrink-0 items-center gap-2 bg-[#111] px-4 text-[10px] font-bold uppercase tracking-widest text-white">
+          <span className="size-2 animate-pulse rounded-full bg-white" />
+          Live
         </div>
-      </div>
 
-      <div className="hidden shrink-0 items-center gap-2 px-4 text-[11px] font-semibold text-white sm:flex">
-        <span className="size-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_rgba(110,231,183,0.8)]" />
-        {onlineCount.toLocaleString()} users online
+        <div className="relative min-w-0 flex-1 overflow-hidden">
+          <div
+            className="flex items-center whitespace-nowrap"
+            style={{ animation: "marquee 36s linear infinite" }}
+          >
+            {items.map((item, i) => (
+              <span key={`${item.text}-${i}`} className="mx-6 inline-flex items-center gap-2 text-[11px] text-white/95">
+                <span className="font-semibold">{item.text}</span>
+                <span className="text-white/70">{item.time}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="hidden shrink-0 items-center gap-2 px-4 text-[11px] font-semibold text-white sm:flex">
+          <span className="size-1.5 rounded-full bg-emerald-300 shadow-[0_0_6px_rgba(110,231,183,0.8)]" />
+          {onlineCount.toLocaleString()} users online
+        </div>
       </div>
     </div>
   );
@@ -302,10 +304,14 @@ function HeroAIPanel() {
   );
 }
 
-export function Hero() {
-  const [onlineCount, setOnlineCount] = useState(8447);
+export function Hero({ totalUsers }: { totalUsers?: number }) {
+  const [onlineCount, setOnlineCount] = useState(() =>
+    totalUsers && totalUsers > 0 ? Math.floor(totalUsers * 0.9) : 8447,
+  );
 
   useEffect(() => {
+    if (totalUsers && totalUsers > 0) return;
+
     let cancelled = false;
     fetch("/api/hero-data")
       .then((r) => (r.ok ? r.json() : null))
@@ -318,7 +324,7 @@ export function Hero() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [totalUsers]);
 
   return (
     <div className="w-full max-w-[100dvw] overflow-x-hidden bg-[var(--color-surface)]">

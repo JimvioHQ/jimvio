@@ -335,13 +335,7 @@ export function Sidebar({ type = "physical" }: Props) {
   ];
 
   return (
-    <aside
-      className="flex w-full shrink-0 flex-col gap-0 self-start"
-      style={{
-        position: "sticky",
-        top: "calc(var(--navbar-height, 64px) + 0.75rem)",
-      }}
-    >
+    <aside className="flex w-full shrink-0 flex-col gap-0 self-start">
 
       <div className="flex flex-col gap-3">
 

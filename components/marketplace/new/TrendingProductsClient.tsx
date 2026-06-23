@@ -377,7 +377,7 @@ function ProductCard({
               height={512}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-contain object-center p-2 transition-transform duration-300 ease-out group-hover:scale-[1.06]"
+              className="h-full w-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.06]"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/[.03] transition-colors duration-200 pointer-events-none" />
           </div>
@@ -407,6 +407,13 @@ function ProductCard({
             style={{ background: "rgba(0,0,0,.55)" }}
           >
             Out of stock
+          </span>
+        )}
+
+        {isVerifiedSupplier && (
+          <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-0.5 rounded-md bg-blue-600/95 px-1.5 py-0.5 text-[8px] font-bold text-white shadow-sm backdrop-blur-sm">
+            <ShieldCheck className="size-2.5" />
+            Verified supplier
           </span>
         )}
 
@@ -479,17 +486,6 @@ function ProductCard({
 
 
 
-        <div className="flex items-center justify-between">
-          <span
-            className={`inline-flex items-center gap-1 rounded-full text-[12px] font-semibold ${isVerifiedSupplier
-              ? " text-blue-600"
-              : "bg-zinc-100 text-zinc-700"
-              }`}
-          >
-            <ShieldCheck className="size-3" />
-            {isVerifiedSupplier ? "Verified supplier" : ""}
-          </span>
-        </div>
         <div className="flex items-baseline gap-1.5">
           <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>
             {formatMoney(displayPrice, currency)}

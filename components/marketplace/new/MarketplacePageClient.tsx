@@ -12,13 +12,15 @@ import { useAIStore } from "@/lib/store/use-ai-store";
 import { FlashDealsClient } from "./FlashDealsClient";
 import { TrendingProductsClient } from "./TrendingProductsClient";
 import { FlashDealsCountdown } from "./FlashDealsCountdown";
-import { LiveActivityBar } from "./Liveactivitybar";
+import { MarketplaceEngagementHub } from "./MarketplaceEngagementHub";
 import { HeroBannerView } from "./HeroBannerView";
 import { MarketplaceTrustStrip } from "./MarketplaceTrustStrip";
 import type { HeroProduct } from "@/types";
 import { useMarketplace } from "./marketplace-context";
 import type { DbProduct } from "@/lib/utils";
 import { Sidebar } from "./Sidebar";
+import { MarketplacePagination } from "./MarketplacePagination";
+import { MARKETPLACE_PAGE_SIZE, parseMarketplacePage } from "@/lib/marketplace/constants";
 import Link from "next/link";
 
 type ProductType = "physical" | "digital";
@@ -175,24 +177,58 @@ export function MarketplacePageClient({
     setType(t);
     setCategory("Trending Now");
     clearFilters();
+    setCurrentPage(1);
     const params = new URLSearchParams(searchParams.toString());
     params.set("type", t);
     params.delete("category");
+    params.delete("page");
     router.replace(`/marketplace?${params.toString()}`, { scroll: false });
   }
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(() =>
+    parseMarketplacePage(searchParams.get("page")),
+  );
   const [flashDeals, setFlashDeals] = useState<DbProduct[]>(initialFlashDeals);
   const [trending, setTrending] = useState<DbProduct[]>(initialTrending);
   const [categories, setCategories] = useState<DbCategory[]>(initialCategories);
   const [stats, setStats] = useState<Stats>(initialStats);
   const [loading, setLoading] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(false);
   const [listingCount, setListingCount] = useState(initialListingCount);
 
   const supabaseRef = useRef(supabase);
+  const filtersKey = JSON.stringify(filters);
+  const loadDepsRef = useRef({
+    type,
+    filtersKey,
+    debouncedSearch,
+    currentPage,
+  });
 
-  // Skip the refetch on initial mount — we already have SSR data
+  // Skip the refetch on initial mount — we already have SSR data for page 1
   const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    const page = parseMarketplacePage(searchParams.get("page"));
+    setCurrentPage(page);
+  }, [searchParams]);
+
+  function goToPage(page: number) {
+    const next = Math.max(1, page);
+    setCurrentPage(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next <= 1) params.delete("page");
+    else params.set("page", String(next));
+    router.replace(`/marketplace?${params.toString()}`, { scroll: false });
+    document.getElementById("marketplace-products")?.scrollIntoView({ behavior: "smooth" });
+  }
 
   // Apply ?category=slug from URL (e.g. category cards)
   useEffect(() => {
@@ -216,18 +252,110 @@ export function MarketplacePageClient({
   }, [searchParams, setCategory]);
 
   useEffect(() => {
-    if (isFirstRender.current) {
+    if (isFirstRender.current && currentPage === 1) {
       isFirstRender.current = false;
       return;
     }
+    isFirstRender.current = false;
+
+    const prev = loadDepsRef.current;
+    const filterOrSearchChanged =
+      prev.filtersKey !== filtersKey ||
+      prev.debouncedSearch !== debouncedSearch ||
+      prev.type !== type;
+    const onlyPageChanged =
+      !filterOrSearchChanged &&
+      prev.currentPage !== currentPage;
+    const effectivePage = filterOrSearchChanged ? 1 : currentPage;
+
+    if (filterOrSearchChanged && currentPage !== 1) {
+      setCurrentPage(1);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("page");
+      router.replace(`/marketplace?${params.toString()}`, { scroll: false });
+    }
+
+    loadDepsRef.current = { type, filtersKey, debouncedSearch, currentPage: effectivePage };
 
     async function load() {
-      setLoading(true);
+      if (onlyPageChanged) setProductsLoading(true);
+      else setLoading(true);
 
       const typeFilter =
         type === "digital"
           ? (["digital", "course", "ebook", "software", "template", "coaching"] as const)
           : (["physical"] as const);
+
+      const hasShipping = filters.shippingFrom.length > 0;
+      const hasDelivery = filters.deliveryTimes.length > 0;
+      const hasPriceMax = filters.priceRange[1] < 5000;
+      const hasPriceMin = filters.priceRange[0] > 0;
+      const hasRating = filters.minRating > 0;
+      const hasCategory = filters.category && filters.category !== "Trending Now";
+
+      let categoryId: string | null = null;
+      if (hasCategory) {
+        const { data: catRow } = await supabaseRef.current
+          .from("product_categories")
+          .select("id")
+          .ilike("name", filters.category)
+          .single();
+        categoryId = catRow?.id ?? null;
+      }
+
+      function applyFilters(q: any): any {
+        if (hasShipping) q = q.in("shipping_from", filters.shippingFrom);
+        if (hasDelivery) q = q.in("delivery_time", filters.deliveryTimes);
+        if (hasPriceMax) q = q.lte("price", filters.priceRange[1]);
+        if (hasPriceMin) q = q.gte("price", filters.priceRange[0]);
+        if (hasRating) q = q.gte("rating", filters.minRating);
+        if (categoryId) q = q.eq("category_id", categoryId);
+        if (debouncedSearch) q = q.ilike("name", `%${debouncedSearch}%`);
+        return q;
+      }
+
+      const offset = (effectivePage - 1) * MARKETPLACE_PAGE_SIZE;
+
+      if (onlyPageChanged) {
+        const [{ data: trend }, { count }] = await Promise.all([
+          applyFilters(
+            supabaseRef.current
+              .from("products")
+              .select(`
+              id, name, slug, price, currency, compare_at_price, images, product_type,
+              status, is_flash_deal, discount_label, shipping_from,
+              delivery_time, affiliate_commission_rate, sale_count,
+              rating, review_count, is_free_shipping, vendor_id, category_id,
+              vendors(id, verification_status)
+            `)
+              .eq("status", "active")
+              .eq("is_active", true)
+              .is("deleted_at", null)
+              .in("product_type", [...typeFilter])
+              .order("view_count", { ascending: false })
+              .range(offset, offset + MARKETPLACE_PAGE_SIZE - 1),
+          ),
+          applyFilters(
+            supabaseRef.current
+              .from("products")
+              .select("*", { count: "exact", head: true })
+              .eq("status", "active")
+              .eq("is_active", true)
+              .is("deleted_at", null)
+              .in("product_type", [...typeFilter]),
+          ),
+        ]);
+
+        const trendList = (trend ?? []) as DbProduct[];
+        const videoMap = await fetchProductVideosMap(
+          supabaseRef.current,
+          trendList.map((p) => p.id),
+        );
+        setTrending(attachProductVideos(trendList, videoMap));
+        setListingCount(count ?? 0);
+        setProductsLoading(false);
+        return;
+      }
 
       const { data: catIds } = await supabaseRef.current
         .from("products")
@@ -255,33 +383,6 @@ export function MarketplacePageClient({
       }
       setCategories(nextCategories);
 
-      const hasShipping = filters.shippingFrom.length > 0;
-      const hasDelivery = filters.deliveryTimes.length > 0;
-      const hasPriceMax = filters.priceRange[1] < 5000;
-      const hasPriceMin = filters.priceRange[0] > 0;
-      const hasRating = filters.minRating > 0;
-      const hasCategory = filters.category && filters.category !== "Trending Now";
-
-      let categoryId: string | null = null;
-      if (hasCategory) {
-        const { data: catRow } = await supabaseRef.current
-          .from("product_categories")
-          .select("id")
-          .ilike("name", filters.category)
-          .single();
-        categoryId = catRow?.id ?? null;
-      }
-
-      function applyFilters(q: any): any {
-        if (hasShipping) q = q.in("shipping_from", filters.shippingFrom);
-        if (hasDelivery) q = q.in("delivery_time", filters.deliveryTimes);
-        if (hasPriceMax) q = q.lte("price", filters.priceRange[1]);
-        if (hasPriceMin) q = q.gte("price", filters.priceRange[0]);
-        if (hasRating) q = q.gte("rating", filters.minRating);
-        if (categoryId) q = q.eq("category_id", categoryId);
-        return q;
-      }
-
       const [{ data: deals }, { data: trend }, { count }] = await Promise.all([
         applyFilters(
           supabaseRef.current
@@ -300,7 +401,7 @@ export function MarketplacePageClient({
             .or("is_flash_deal.eq.true,compare_at_price.not.is.null")
             .order("is_flash_deal", { ascending: false })
             .order("view_count", { ascending: false })
-            .limit(12)
+            .limit(12),
         ),
 
         applyFilters(
@@ -318,7 +419,7 @@ export function MarketplacePageClient({
             .is("deleted_at", null)
             .in("product_type", [...typeFilter])
             .order("view_count", { ascending: false })
-            .limit(48)
+            .range(offset, offset + MARKETPLACE_PAGE_SIZE - 1),
         ),
 
         applyFilters(
@@ -328,7 +429,7 @@ export function MarketplacePageClient({
             .eq("status", "active")
             .eq("is_active", true)
             .is("deleted_at", null)
-            .in("product_type", [...typeFilter])
+            .in("product_type", [...typeFilter]),
         ),
       ]);
 
@@ -346,21 +447,28 @@ export function MarketplacePageClient({
     }
 
     load();
-  }, [type, filters]);
+  }, [type, filtersKey, currentPage, debouncedSearch]);
 
-  // ── Client-side search filter ─────────────────────────────────────────────
-  const q = search.trim().toLowerCase();
-  const filteredTrending = q
-    ? trending.filter((p) => p.name.toLowerCase().includes(q))
-    : trending;
-  const filteredDeals = q
-    ? flashDeals.filter((p) => p.name.toLowerCase().includes(q))
+  const totalPages = Math.max(1, Math.ceil(listingCount / MARKETPLACE_PAGE_SIZE));
+
+  useEffect(() => {
+    if (listingCount > 0 && currentPage > totalPages) {
+      goToPage(totalPages);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only clamp when result set shrinks
+  }, [listingCount, totalPages]);
+
+  // Client-side filter for flash deals only (small set)
+  const filteredDeals = debouncedSearch
+    ? flashDeals.filter((p) =>
+        p.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
+      )
     : flashDeals;
 
   return (
-    <div className="grid w-full min-w-0 grid-cols-1 gap-3 overflow-x-hidden lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-x-4 lg:gap-y-3">
-      {/* Sidebar — same row as search on desktop */}
-      <div className="hidden lg:block lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:self-start">
+    <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-x-4 lg:gap-y-3">
+      {/* Sidebar — sticky while scrolling product feed */}
+      <div className="hidden lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:block lg:self-start lg:sticky lg:top-[calc(var(--navbar-height,64px)+0.75rem)] lg:z-20 lg:max-h-[calc(100dvh-var(--navbar-height,64px)-1.5rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:pr-0.5 [scrollbar-width:thin]">
         <Sidebar type={type} />
       </div>
 
@@ -451,6 +559,7 @@ export function MarketplacePageClient({
 
         {/* ── Flash Deals — skeleton only this section while loading ── */}
         <section
+          id="flash-deals-section"
           className="overflow-hidden rounded-2xl"
           style={{
             border: "1px solid var(--color-border)",
@@ -486,8 +595,8 @@ export function MarketplacePageClient({
               <SkeletonDeals />
             ) : filteredDeals.length > 0 ? (
               <FlashDealsClient deals={filteredDeals} />
-            ) : filteredTrending.length > 0 ? (
-              <FlashDealsClient deals={filteredTrending.slice(0, 12)} />
+            ) : trending.length > 0 ? (
+              <FlashDealsClient deals={trending.slice(0, 12)} />
             ) : (
               <p
                 className="py-6 text-center text-xs"
@@ -520,7 +629,7 @@ export function MarketplacePageClient({
         )}
 
         {/* ── Trending Products — skeleton only this section while loading ── */}
-        <section>
+        <section id="marketplace-products">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-black text-[var(--color-text-primary)]">
               {filters.category && filters.category !== "Trending Now"
@@ -545,9 +654,9 @@ export function MarketplacePageClient({
               View all <ArrowRight className="size-3.5" />
             </button>
           </div>
-          {loading ? (
+          {loading || productsLoading ? (
             <SkeletonGrid />
-          ) : filteredTrending.length === 0 ? (
+          ) : trending.length === 0 ? (
             <div
               className="rounded-xl border-dashed px-6 py-12 text-center"
               style={{
@@ -566,11 +675,24 @@ export function MarketplacePageClient({
               </p>
             </div>
           ) : (
-            <TrendingProductsClient products={filteredTrending} type={type} />
+            <>
+              <TrendingProductsClient products={trending} type={type} />
+              <MarketplacePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                total={listingCount}
+                pageSize={MARKETPLACE_PAGE_SIZE}
+                onPageChange={goToPage}
+              />
+            </>
           )}
         </section>
 
-        <LiveActivityBar />
+        <MarketplaceEngagementHub
+          productType={type}
+          listingCount={listingCount}
+          onSearchPick={setSearch}
+        />
       </div>
     </div>
   );

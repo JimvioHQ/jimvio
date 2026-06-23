@@ -4,7 +4,7 @@ import { MarketplacePageClient } from "@/components/marketplace/new/MarketplaceP
 import type { DbProduct } from "@/lib/utils";
 import { fetchHeroProducts } from "@/components/marketplace/new/HeroBanner";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
 
 const PHYSICAL_TYPES = ["physical"] as const;
 
@@ -55,7 +55,7 @@ async function fetchInitialData(
       .is("deleted_at", null)
       .in("product_type", [...PHYSICAL_TYPES])
       .order("view_count", { ascending: false })
-      .limit(48),
+      .limit(MARKETPLACE_PAGE_SIZE),
 
     supabase
       .from("product_categories")
@@ -122,10 +122,10 @@ export async function MarketplacePage({
     ]);
 
   return (
-    <div className="overflow-x-hidden">
+    <div className="min-w-0">
       <MarketplaceProvider>
-        <div className="mx-auto flex w-full max-w-[1500px] min-w-0 gap-4 overflow-x-hidden px-4 py-4">
-          <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 overflow-x-hidden">
+        <div className="mx-auto flex w-full max-w-8xl min-w-0 gap-4 px-4 py-4 sm:px-6">
+          <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3">
             <MarketplacePageClient
               initialListingCount={listingCount}
               initialType={initialType}

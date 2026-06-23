@@ -18,7 +18,7 @@ import {
   getImage,
   getDiscount,
 } from "@/lib/utils";
-import { LiveActivityBar } from "./Liveactivitybar";
+import { MarketplaceEngagementHub } from "./MarketplaceEngagementHub";
 import { fetchProductVideosMap, attachProductVideos } from "@/lib/product-videos";
 export type { DbProduct };
 
@@ -303,7 +303,7 @@ export async function MarketplaceData() {
       <FlashDealsSection deals={flashDeals} />
       <ShopByCategorySection categories={categories} />
       <TrendingProductsSection products={trending} />
-      <LiveActivityBar />
+      <MarketplaceEngagementHub listingCount={trending.length} />
     </>
   );
 }

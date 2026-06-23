@@ -1,27 +1,42 @@
+import { unstable_cache } from "next/cache";
 import { getAdminDB } from "./base";
 
-export async function getPlatformStats() {
+async function fetchPlatformStats() {
   const admin = getAdminDB();
-  const [users, vendors, products, campaigns, communities, earnings] = await Promise.all([
+  const [users, vendors, products, campaigns, communities, earningsRes] = await Promise.all([
     admin.from("profiles").select("id", { count: "exact", head: true }),
     admin.from("vendors").select("id", { count: "exact", head: true }).eq("is_active", true),
     admin.from("products").select("id", { count: "exact", head: true }).eq("status", "active"),
     admin.from("ugc_campaigns").select("id", { count: "exact", head: true }),
     admin.from("communities").select("id", { count: "exact", head: true }),
-    admin.from("influencers").select("total_earnings").eq("is_active", true),
+    admin
+      .from("influencers")
+      .select("total_earnings")
+      .eq("is_active", true)
+      .order("total_earnings", { ascending: false })
+      .limit(2000),
   ]);
 
-  const influencerEarnings = ((earnings.data as any[]) ?? []).reduce((s, i) => s + Number(i.total_earnings || 0), 0);
+  const influencerEarnings = ((earningsRes.data as { total_earnings?: number | string }[]) ?? []).reduce(
+    (sum, row) => sum + Number(row.total_earnings || 0),
+    0,
+  );
 
   return {
-    totalUsers:        users.count       ?? 0,
-    totalVendors:      vendors.count     ?? 0,
-    totalProducts:     products.count    ?? 0,
-    totalCampaigns:    campaigns.count   ?? 0,
-    totalCommunities:  communities.count ?? 0,
-    totalEarnings:     influencerEarnings,
+    totalUsers: users.count ?? 0,
+    totalVendors: vendors.count ?? 0,
+    totalProducts: products.count ?? 0,
+    totalCampaigns: campaigns.count ?? 0,
+    totalCommunities: communities.count ?? 0,
+    totalEarnings: influencerEarnings,
   };
 }
+
+export const getPlatformStats = unstable_cache(
+  fetchPlatformStats,
+  ["platform-stats"],
+  { revalidate: 300 },
+);
 
 export async function getAdminOverviewStats() {
   const admin = getAdminDB();
@@ -81,6 +96,23 @@ export async function getPublicCommunities(limit = 12) {
   
   if (error) {
     console.error("Error fetching public communities:", error);
+    return [];
+  }
+  return data ?? [];
+}
+
+/** Lighter query for homepage cards — skips owner profile join. */
+export async function getHomepageCommunities(limit = 8) {
+  const admin = getAdminDB();
+  const { data, error } = await admin
+    .from("communities")
+    .select("id, name, slug, tagline, member_count, avatar_url, cover_image, category")
+    .eq("is_active", true)
+    .order("member_count", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("Error fetching homepage communities:", error);
     return [];
   }
   return data ?? [];

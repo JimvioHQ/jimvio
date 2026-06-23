@@ -3,6 +3,20 @@
 import React, { useMemo, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
+import {
+    isInvalidOptionLabel,
+    sanitizeOptionValue,
+    sanitizeVariantOptions,
+} from "@/lib/products/variant-option-values";
+
+function sanitizeAxes(axes: Record<string, string>): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const [key, value] of Object.entries(axes)) {
+        const clean = sanitizeOptionValue(value);
+        if (clean) out[key] = clean;
+    }
+    return out;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -74,18 +88,9 @@ function isLightColor(hex: string): boolean {
 // ─── Structured-data extraction ───────────────────────────────────────────────
 
 function extractOptions(
-    raw: Record<string, string> | null | undefined
+    raw: Record<string, unknown> | null | undefined
 ): Record<string, string> | null {
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-    const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(raw)) {
-        if (k === "variant_key") continue;
-        if (typeof v !== "string") continue;
-        const trimmed = v.trim();
-        if (!trimmed || trimmed === "[]" || trimmed === "{}") continue;
-        out[k] = trimmed;
-    }
-    return Object.keys(out).length > 0 ? out : null;
+    return sanitizeVariantOptions(raw);
 }
 
 const KNOWN_COLOR_LABELS = Object.keys(COLOR_MAP).sort((a, b) => b.length - a.length);
@@ -121,7 +126,7 @@ function parseShortVariantLabel(label: string): Record<string, string> {
         if (dashParts.length >= 2) {
             axes.Color = titleCaseWords(dashParts[0]);
             axes.Size = dashParts.slice(1).join("-");
-        } else if (rest.length <= 40) {
+        } else if (rest.length <= 40 && !isInvalidOptionLabel(rest)) {
             axes.Style = titleCaseWords(rest);
         }
     }
@@ -130,7 +135,7 @@ function parseShortVariantLabel(label: string): Record<string, string> {
 }
 
 function tryParseVariantOptions(
-    options: Record<string, string> | null | undefined,
+    options: Record<string, unknown> | null | undefined,
     name: string
 ): Record<string, string> | null {
     const structured = extractOptions(options);
@@ -138,9 +143,10 @@ function tryParseVariantOptions(
 
     const variantKey =
         options && typeof options.variant_key === "string" ? options.variant_key.trim() : "";
-    if (variantKey && variantKey.length <= 80 && variantKey !== name) {
+    if (variantKey && variantKey.length <= 80 && variantKey !== name && !isInvalidOptionLabel(variantKey)) {
         const fromKey = parseShortVariantLabel(variantKey);
-        if (Object.keys(fromKey).length > 0) return fromKey;
+        const cleaned = sanitizeAxes(fromKey);
+        if (Object.keys(cleaned).length > 0) return cleaned;
     }
 
     return null;
@@ -212,8 +218,13 @@ function parseVariants(variants: ProductVariant[]): ParsedVariant[] {
     const active = variants.filter((v) => v.is_active);
 
     const firstPass = active.map((v) => {
-        const structured = tryParseVariantOptions(v.options, v.name);
-        if (structured) return { ...v, axes: structured, axesReliable: true };
+        const structured = tryParseVariantOptions(
+            v.options as Record<string, unknown> | null | undefined,
+            v.name,
+        );
+        if (structured) {
+            return { ...v, axes: sanitizeAxes(structured), axesReliable: true };
+        }
         return { ...v, axes: {}, axesReliable: false };
     });
 
@@ -226,7 +237,7 @@ function parseVariants(variants: ProductVariant[]): ParsedVariant[] {
         if (v.axesReliable) return v;
         const axes = inferred.get(v.id);
         if (axes && Object.keys(axes).length > 0) {
-            return { ...v, axes, axesReliable: true };
+            return { ...v, axes: sanitizeAxes(axes), axesReliable: true };
         }
         return v;
     });
@@ -314,18 +325,27 @@ export function VariantSelector({
         const seen = new Set<string>();
         const keys: string[] = [];
         for (const p of AXIS_PRIORITY) {
-            if (parsed.some((v) => p in v.axes)) { seen.add(p); keys.push(p); }
+            if (parsed.some((v) => p in v.axes && sanitizeOptionValue(v.axes[p]))) {
+                seen.add(p);
+                keys.push(p);
+            }
         }
         for (const v of parsed) {
             for (const k of Object.keys(v.axes)) {
-                if (!seen.has(k)) { seen.add(k); keys.push(k); }
+                if (!seen.has(k) && parsed.some((pv) => sanitizeOptionValue(pv.axes[k]))) {
+                    seen.add(k);
+                    keys.push(k);
+                }
             }
         }
         return keys;
     }, [parsed]);
 
     const selectedVariant = parsed.find((v) => v.id === selectedVariantId) ?? null;
-    const currentSelections = selectedVariant?.axes ?? {};
+    const currentSelections = useMemo(() => {
+        if (!selectedVariant) return {};
+        return sanitizeAxes(selectedVariant.axes);
+    }, [selectedVariant]);
 
     const availabilityMap = useMemo(
         () => buildAvailabilityMap(parsed, currentSelections),
@@ -337,12 +357,17 @@ export function VariantSelector({
         for (const key of axisKeys) {
             const seen = new Set<string>();
             for (const v of parsed) {
-                const val = v.axes[key];
-                if (val && !seen.has(val)) { seen.add(val); (map[key] ??= []).push(val); }
+                const val = sanitizeOptionValue(v.axes[key]);
+                if (val && !seen.has(val)) {
+                    seen.add(val);
+                    (map[key] ??= []).push(val);
+                }
             }
         }
         return map;
     }, [axisKeys, parsed]);
+
+    const allVariantNames = useMemo(() => parsed.map((v) => v.name), [parsed]);
 
     const minPrice = useMemo(() => {
         if (basePrice !== undefined) return basePrice;
@@ -398,7 +423,7 @@ export function VariantSelector({
         []
     );
 
-    if (axisKeys.length === 0) {
+    if (axisKeys.length === 0 || axisKeys.every((key) => (axisValues[key]?.length ?? 0) === 0)) {
         if (parsed.length <= 1) return null;
         return (
             <FlatVariantGroup
@@ -417,7 +442,14 @@ export function VariantSelector({
         <div className="space-y-5">
             {axisKeys.map((key) => {
                 const values = axisValues[key] ?? [];
+                if (values.length === 0) return null;
                 const currentVal = currentSelections[key];
+                const displayVal =
+                    currentVal && !isInvalidOptionLabel(currentVal)
+                        ? currentVal
+                        : selectedVariant
+                            ? deriveShortLabel(selectedVariant.name, allVariantNames)
+                            : null;
                 const isColorAxis = key === "Color";
                 const tabbableIdx = currentVal ? values.indexOf(currentVal) : 0;
 
@@ -428,11 +460,11 @@ export function VariantSelector({
                             <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                                 {key}
                             </span>
-                            {currentVal ? (
+                            {displayVal ? (
                                 <>
                                     <span className="text-muted-foreground/40 text-[10px]" aria-hidden>·</span>
                                     <span className="text-[12px] font-semibold text-foreground">
-                                        {currentVal}
+                                        {displayVal}
                                     </span>
                                     {/* Pill badge reinforcing the selection */}
                                     <span className="inline-flex items-center gap-1 ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-foreground/8 text-foreground/60 border border-border/60">
@@ -465,6 +497,7 @@ export function VariantSelector({
                             )}
                         >
                             {values.map((val, idx) => {
+                                if (isInvalidOptionLabel(val)) return null;
                                 const selected = currentVal === val;
                                 const avail = availabilityMap[key]?.[val] ?? { available: false, inCombo: false };
                                 const valMinPrice = minPriceForAxisValue(key, val);

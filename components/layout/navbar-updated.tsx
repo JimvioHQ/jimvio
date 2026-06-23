@@ -384,7 +384,7 @@ function MarketplaceDropdown({ open, onMouseEnter, onMouseLeave, variants }: {
                 {variants.map((v) => (
                     <DropdownMenuItem key={v.href} asChild className="p-0 focus:bg-transparent">
                         <Link href={v.href}
-                            className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-stone-50 dark:hover:bg-white/5 group cursor-pointer"
+                            className="flex items-center gap-3 p-3 rounded-md transition-all hover:bg-stone-50 dark:hover:bg-white/5 group cursor-pointer"
                             style={{ outline: "none" }}>
                             <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
                                 style={{ background: `${v.color}15`, border: `1px solid ${v.color}25` }}>
@@ -410,7 +410,7 @@ function MarketplaceDropdown({ open, onMouseEnter, onMouseLeave, variants }: {
                 {/* Footer CTA */}
                 <div className="mt-1 pt-2" style={{ borderTop: "1px solid var(--color-border, #e5e5e5)" }}>
                     <Link href="/marketplace"
-                        className="flex items-center justify-between px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all hover:bg-stone-50 dark:hover:bg-white/5 group"
+                        className="flex items-center justify-between px-3 py-2.5 rounded-md text-[12px] font-semibold transition-all hover:bg-stone-50 dark:hover:bg-white/5 group"
                         style={{ color: "var(--color-text-muted, #a3a3a3)" }}>
                         <span>Browse all categories</span>
                         <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform text-[#fd5000]" />
