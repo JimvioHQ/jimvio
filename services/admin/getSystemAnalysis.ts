@@ -1,7 +1,14 @@
 import { getAdminDB } from "@/services/base";
 import { getAdminOverviewStats } from "@/services/platform";
 import { isEmailEnabled } from "@/lib/email/config";
-import { formatAdminMoneyTotals } from "@/lib/admin/format-money";
+import { buildChartSlices, type ChartSlice } from "@/lib/admin/chart-slices";
+import {
+    buildAdminRevenueChart,
+    buildWebhookDailyChart,
+    type WebhookDailyPoint,
+} from "@/lib/admin/revenue-chart-data";
+import { ADMIN_PRIMARY_CURRENCY, formatAdminMoneyTotals } from "@/lib/admin/format-money";
+import type { DashboardChartPoint } from "@/services/admin/getAdminDashboard";
 
 export type IntegrationCheck = {
     id: string;
@@ -59,6 +66,11 @@ export type SystemAnalysisData = {
     }>;
     healthScore: number;
     healthLabel: "healthy" | "degraded" | "critical";
+    revenueChart: DashboardChartPoint[];
+    paymentStatusChart: ChartSlice[];
+    fulfillmentStatusChart: ChartSlice[];
+    orderSourceChart: ChartSlice[];
+    webhookDailyChart: WebhookDailyPoint[];
 };
 
 function envPresent(...keys: string[]): boolean {
@@ -182,7 +194,7 @@ function aggregateWebhookStats(rows: Array<{ status: string; provider: string }>
 
 async function countOrdersByField(
     admin: ReturnType<typeof getAdminDB>,
-    field: "status" | "payment_status",
+    field: "status" | "payment_status" | "integration_source",
     values: string[],
     sinceIso?: string
 ): Promise<CountRow[]> {
@@ -235,6 +247,7 @@ export async function getSystemAnalysisData(): Promise<SystemAnalysisData> {
     const now = Date.now();
     const since30d = new Date(now - 30 * 86400000).toISOString();
     const since7d = new Date(now - 7 * 86400000).toISOString();
+    const since13mo = new Date(now - 395 * 86400000).toISOString();
     const since24h = new Date(now - 86400000).toISOString();
     const stalePaymentCutoff = new Date(now - 24 * 86400000).toISOString();
 
@@ -257,6 +270,9 @@ export async function getSystemAnalysisData(): Promise<SystemAnalysisData> {
         revenue30dRes,
         recentFailedWebhooksRes,
         recentFailedCreditsRes,
+        chartOrdersRes,
+        orderSourceCounts,
+        webhooksDailyRes,
     ] = await Promise.all([
         getAdminOverviewStats(),
         countOrdersByField(
@@ -315,6 +331,18 @@ export async function getSystemAnalysisData(): Promise<SystemAnalysisData> {
             .gt("amount", 0)
             .order("created_at", { ascending: false })
             .limit(8),
+        admin
+            .from("orders")
+            .select("total_amount, currency, created_at")
+            .in("payment_status", ["paid", "completed"])
+            .gte("created_at", since13mo),
+        countOrdersByField(
+            admin,
+            "integration_source",
+            ["vendor", "cj", "shopify", "community"],
+            since30d
+        ),
+        admin.from("webhook_events").select("status, created_at").gte("created_at", since7d),
     ]);
 
     const webhooks24h = aggregateWebhookStats((webhooks24hRes.data ?? []) as Array<{ status: string; provider: string }>);
@@ -385,5 +413,18 @@ export async function getSystemAnalysisData(): Promise<SystemAnalysisData> {
         })),
         healthScore: score,
         healthLabel: label,
+        revenueChart: buildAdminRevenueChart(
+            (chartOrdersRes.data ?? []) as Array<{ total_amount: number; currency?: string | null; created_at: string }>,
+            ADMIN_PRIMARY_CURRENCY
+        ),
+        paymentStatusChart: buildChartSlices(paymentStatusCounts, {
+            paid: "paid",
+            completed: "paid",
+        }),
+        fulfillmentStatusChart: buildChartSlices(orderStatusCounts),
+        orderSourceChart: buildChartSlices(orderSourceCounts),
+        webhookDailyChart: buildWebhookDailyChart(
+            (webhooksDailyRes.data ?? []) as Array<{ status: string; created_at: string }>
+        ),
     };
 }

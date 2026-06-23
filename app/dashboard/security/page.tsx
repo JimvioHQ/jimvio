@@ -11,6 +11,8 @@ export const metadata = {
     "Password, two-factor authentication, and active sessions for your account.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardSecurityPage() {
   const [status, sessions] = await Promise.allSettled([
     check2FAStatus(),

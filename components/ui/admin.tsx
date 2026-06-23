@@ -505,7 +505,7 @@ export function OrderFilterToolbar({
                         onKeyDown={(e) => e.key === "Enter" && onSearchSubmit()}
                         placeholder={searchPlaceholder}
                         className={cn(
-                            "h-11 pl-8 pr-3 w-[220px] rounded-sm text-sm",
+                            "h-11 pl-8 pr-3 w-[220px] rounded-md text-sm",
                             "bg-[var(--color-surface)] border border-[var(--color-border)]",
                             "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
                             "focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
@@ -542,7 +542,7 @@ export function OrderFilterToolbar({
                     type="button"
                     onClick={onSearchSubmit}
                     className={cn(
-                        "h-11 px-4 rounded-sm text-sm font-medium transition-all",
+                        "h-11 px-4 rounded-md text-sm font-medium transition-all",
                         "bg-[var(--color-text-primary)] text-[var(--color-surface)]",
                         "hover:opacity-85 active:opacity-70 active:scale-[0.98]"
                     )}
@@ -555,7 +555,7 @@ export function OrderFilterToolbar({
                         type="button"
                         onClick={onReset}
                         className={cn(
-                            "h-11 px-3 rounded-sm text-sm transition-all",
+                            "h-11 px-3 rounded-md text-sm transition-all",
                             "border border-[var(--color-border)] text-[var(--color-text-muted)]",
                             "hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)]"
                         )}

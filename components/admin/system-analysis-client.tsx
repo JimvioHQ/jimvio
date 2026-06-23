@@ -10,12 +10,14 @@ import {
     ExternalLink,
     Server,
     Webhook,
-    Wallet,
-    Package,
     XCircle,
 } from "lucide-react";
 import { cn, relativeTime } from "@/lib/utils";
 import { formatAdminMoney } from "@/lib/admin/format-money";
+import { AdminDonutChart, DonutLegend } from "@/components/charts/admin-donut-chart";
+import { PaidRevenueChartSection } from "@/components/admin/paid-revenue-chart-section";
+import { WebhookActivityChart } from "@/components/charts/webhook-activity-chart";
+import type { ChartSlice } from "@/lib/admin/chart-slices";
 import type { SystemAnalysisData } from "@/services/admin/getSystemAnalysis";
 
 function HealthBadge({ score, label }: { score: number; label: SystemAnalysisData["healthLabel"] }) {
@@ -78,20 +80,19 @@ function MetricTile({ label, value, sub, alert }: { label: string; value: string
     );
 }
 
-function BarRow({ label, count, max }: { label: string; count: number; max: number }) {
-    const pct = max > 0 ? Math.round((count / max) * 100) : 0;
+function DonutPanel({ title, data }: { title: string; data: ChartSlice[] }) {
+    const total = data.reduce((s, d) => s + d.value, 0);
+
     return (
-        <div className="space-y-1">
-            <div className="flex items-center justify-between gap-2 text-[12px]">
-                <span className="capitalize text-[var(--color-text-secondary)]">{label.replace(/_/g, " ")}</span>
-                <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">{count}</span>
+        <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <div className="mb-1 flex items-start justify-between gap-2">
+                <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)]">{title}</h3>
+                {total > 0 && (
+                    <span className="text-[11px] tabular-nums text-[var(--color-text-muted)]">{total} total</span>
+                )}
             </div>
-            <div className="h-1.5 rounded-full bg-[var(--color-border)]/60 overflow-hidden">
-                <div
-                    className="h-full rounded-full bg-[var(--color-accent)] transition-all"
-                    style={{ width: `${pct}%` }}
-                />
-            </div>
+            <AdminDonutChart data={data} height={168} emptyLabel="No data in period" />
+            <DonutLegend data={data} />
         </div>
     );
 }
@@ -130,9 +131,6 @@ function IntegrationRow({
 }
 
 export function SystemAnalysisClient({ data }: { data: SystemAnalysisData }) {
-    const maxOrderStatus = Math.max(...data.orderStatusCounts.map((r) => r.count), 1);
-    const maxPaymentStatus = Math.max(...data.paymentStatusCounts.map((r) => r.count), 1);
-
     const alerts = [
         data.unresolvedFailedCredits > 0 && {
             title: `${data.unresolvedFailedCredits} unresolved vendor credit failures`,
@@ -206,30 +204,12 @@ export function SystemAnalysisClient({ data }: { data: SystemAnalysisData }) {
                 />
             </div>
 
-            <div className="grid lg:grid-cols-2 gap-4">
-                <SectionCard title="Order pipeline (30d)" icon={<Package className="h-4 w-4" />}>
-                    {data.orderStatusCounts.length === 0 ? (
-                        <p className="text-[13px] text-[var(--color-text-muted)]">No orders in the last 30 days.</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {data.orderStatusCounts.map((row) => (
-                                <BarRow key={row.key} label={row.key} count={row.count} max={maxOrderStatus} />
-                            ))}
-                        </div>
-                    )}
-                </SectionCard>
+            <PaidRevenueChartSection data={data.revenueChart} />
 
-                <SectionCard title="Payment status (30d)" icon={<Wallet className="h-4 w-4" />}>
-                    {data.paymentStatusCounts.length === 0 ? (
-                        <p className="text-[13px] text-[var(--color-text-muted)]">No payment activity in the last 30 days.</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {data.paymentStatusCounts.map((row) => (
-                                <BarRow key={row.key} label={row.key} count={row.count} max={maxPaymentStatus} />
-                            ))}
-                        </div>
-                    )}
-                </SectionCard>
+            <div className="grid lg:grid-cols-3 gap-4">
+                <DonutPanel title="Payment status (30d)" data={data.paymentStatusChart} />
+                <DonutPanel title="Fulfillment pipeline (30d)" data={data.fulfillmentStatusChart} />
+                <DonutPanel title="Order source (30d)" data={data.orderSourceChart} />
             </div>
 
             <div className="grid lg:grid-cols-3 gap-4">
@@ -265,6 +245,10 @@ export function SystemAnalysisClient({ data }: { data: SystemAnalysisData }) {
                             alert={data.webhooks24h.failed > 0}
                         />
                         <MetricTile label="7d failed" value={String(data.webhooks7d.failed)} alert={data.webhooks7d.failed > 5} />
+                    </div>
+                    <div className="mb-4">
+                        <p className="text-[11px] font-medium text-[var(--color-text-muted)] mb-2">Activity (7 days)</p>
+                        <WebhookActivityChart data={data.webhookDailyChart} height={160} />
                     </div>
                     {Object.keys(data.webhooks7d.byProvider).length === 0 ? (
                         <p className="text-[12px] text-[var(--color-text-muted)]">No webhook events in 7 days.</p>

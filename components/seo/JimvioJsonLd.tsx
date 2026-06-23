@@ -1,4 +1,4 @@
-﻿import { Organization, WebSite, WithContext } from "schema-dts";
+﻿import { Organization, WebSite } from "schema-dts";
 import { SITE } from "@/lib/seo";
 
 const orgId = `${SITE.url}/#organization`;
@@ -54,8 +54,8 @@ const website: WebSite = {
   },
 };
 
-const unifiedSchema: WithContext<{ "@graph": (Organization | WebSite)[] }> = {
-  "@context": "https://schema.org",
+const unifiedSchema = {
+  "@context": "https://schema.org" as const,
   "@graph": [organization, website],
 };
 

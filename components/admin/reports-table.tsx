@@ -1,11 +1,11 @@
 "use client";
 
-// components/admin/reports-table.tsx
-
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import { CheckCircle2, Trash2, ChevronDown, ChevronUp, ExternalLink, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Th } from "@/components/ui/admin";
+import { dismissUgcReport, removeUgcSubmission } from "@/lib/actions/admin-moderation";
 
 type UGCReport = {
     id: string;
@@ -126,12 +126,23 @@ function Detail({ label, value }: { label: string; value: React.ReactNode }) {
 // ─── Row ──────────────────────────────────────────────────────────────────────
 
 function ReportRow({ r }: { r: UGCReport }) {
-    const [expanded,  setExpanded ] = useState(false);
-    const [actioning, setActioning] = useState(false);
+    const [expanded, setExpanded] = useState(false);
+    const [pending, start] = useTransition();
 
-    const days     = daysSince(r.created_at);
+    const days = daysSince(r.created_at);
     const reporter = r.profiles_ugc_reports_reporter_idToprofiles;
-    const sub      = r.ugc_submissions;
+    const sub = r.ugc_submissions;
+
+    function run(action: () => Promise<{ success: boolean; error?: string }>, okMsg: string) {
+        start(async () => {
+            const res = await action();
+            if (!res.success) {
+                toast.error(res.error ?? "Action failed.");
+                return;
+            }
+            toast.success(okMsg);
+        });
+    }
 
     return (
         <>
@@ -209,34 +220,33 @@ function ReportRow({ r }: { r: UGCReport }) {
                 <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1">
                         <button
+                            type="button"
                             onClick={() => setExpanded(!expanded)}
-                            className="h-7 w-7 inline-flex items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                         >
                             {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                         </button>
                         <button
-                            disabled={actioning}
-                            onClick={() => setActioning(true) /* dismissReport(r.id) */}
+                            type="button"
+                            disabled={pending}
+                            onClick={() => run(() => dismissUgcReport(r.id), "Report dismissed.")}
                             title="Dismiss report"
                             className={cn(
-                                "h-7 px-2 rounded-lg text-[11.5px] font-medium inline-flex items-center gap-1",
-                                "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200/60",
-                                "dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40 transition-colors",
-                                actioning && "opacity-40 cursor-not-allowed",
+                                "inline-flex h-8 items-center gap-1 rounded-md border border-emerald-200/60 bg-emerald-50 px-2 text-[11.5px] font-medium text-emerald-700 transition-colors hover:bg-emerald-100 dark:border-emerald-800/40 dark:bg-emerald-950/30 dark:text-emerald-400",
+                                pending && "cursor-not-allowed opacity-40",
                             )}
                         >
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             Dismiss
                         </button>
                         <button
-                            disabled={actioning}
-                            onClick={() => setActioning(true) /* removeSubmission(r.submission_id, r.id) */}
+                            type="button"
+                            disabled={pending || !r.submission_id}
+                            onClick={() => run(() => removeUgcSubmission(r.id, r.submission_id), "Submission removed.")}
                             title="Remove submission"
                             className={cn(
-                                "h-7 px-2 rounded-lg text-[11.5px] font-medium inline-flex items-center gap-1",
-                                "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/60",
-                                "dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40 transition-colors whitespace-nowrap",
-                                actioning && "opacity-40 cursor-not-allowed",
+                                "inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-md border border-rose-200/60 bg-rose-50 px-2 text-[11.5px] font-medium text-rose-700 transition-colors hover:bg-rose-100 dark:border-rose-800/40 dark:bg-rose-950/30 dark:text-rose-400",
+                                pending && "cursor-not-allowed opacity-40",
                             )}
                         >
                             <Trash2 className="h-3.5 w-3.5" />

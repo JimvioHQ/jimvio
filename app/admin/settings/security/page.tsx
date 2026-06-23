@@ -8,6 +8,8 @@ export const metadata = {
     title: "Security · Platform settings",
 }
 
+export const dynamic = "force-dynamic"
+
 export default async function SecurityPage() {
     const [status, sessions] = await Promise.allSettled([
         check2FAStatus(),

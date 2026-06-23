@@ -15,7 +15,7 @@ export function Tile({
     tone?: "default" | "warn" | "danger" | "success";
 }) {
     const base =
-        "group p-[14px_16px_16px] rounded-[14px] border border-border/30 " +
+        "group self-start w-full px-3.5 py-2.5 rounded-xl border border-border/30 " +
         "bg-background flex flex-col transition-[border-color,transform] " +
         "duration-150 hover:-translate-y-px";
 
@@ -42,22 +42,22 @@ export function Tile({
 
     return (
         <div className={cn(base, tones[tone])}>
-            <div className="flex items-start justify-between mb-2.5">
-                <p className="text-[11px] font-medium tracking-[0.06em] uppercase text-muted-foreground">
+            <div className="flex items-center justify-between gap-2 mb-1">
+                <p className="text-[10.5px] font-medium tracking-[0.06em] uppercase text-muted-foreground truncate">
                     {label}
                 </p>
-                <Icon className={cn("h-[15px] w-[15px] mt-px shrink-0", iconTones[tone])} />
+                <Icon className={cn("h-3.5 w-3.5 shrink-0", iconTones[tone])} />
             </div>
 
-            <p className="font-mono text-[22px] font-medium tracking-[-0.03em] leading-none text-foreground mb-1">
+            <p className="font-mono text-[17px] sm:text-[18px] font-medium tracking-[-0.03em] leading-tight text-foreground tabular-nums">
                 {value}
             </p>
 
-            {sublabel && (
-                <p className={cn("text-[11.5px] leading-snug", subTones[tone])}>
+            {sublabel ? (
+                <p className={cn("mt-0.5 text-[11px] leading-tight", subTones[tone])}>
                     {sublabel}
                 </p>
-            )}
+            ) : null}
         </div>
     );
 }
