@@ -7,8 +7,9 @@ import { Tile } from "@/components/ui/admin-server";
 import { ProductsTable } from "@/components/admin/products-table";
 import { ProductFilterBar } from "@/components/admin/products/product-filter-bar";
 import { AdminProductsHeaderActions } from "@/components/admin/products/admin-products-header-actions";
+import { AdminExportMenu } from "@/components/admin/admin-export-menu";
 import {
-  Package, Star, CheckCircle2, FileEdit, AlertTriangle, Download,
+  Package, Star, CheckCircle2, FileEdit, AlertTriangle,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -74,6 +75,17 @@ export default async function AdminProductsPage({
   const cjProductCount = cjProductTotal ?? 0;
   const activePct = catalogCount > 0 ? Math.round((totalActive / catalogCount) * 100) : 0;
 
+  const exportQuery = (() => {
+    const u = new URLSearchParams();
+    if (sp.q) u.set("q", sp.q);
+    if (status !== "all") u.set("status", status);
+    if (source !== "all") u.set("source", source);
+    if (sp.featured) u.set("featured", sp.featured);
+    if (sp.sort) u.set("sort", sp.sort);
+    if (sp.order) u.set("order", sp.order);
+    return u.toString();
+  })();
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -82,13 +94,7 @@ export default async function AdminProductsPage({
         subtitle={`${catalogCount.toLocaleString()} in catalog · ${total.toLocaleString()} matching filters`}
         actions={
           <>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-sm text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] transition-colors"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Export
-            </button>
+            <AdminExportMenu resource="products" query={exportQuery} />
             <AdminProductsHeaderActions cjProductCount={cjProductCount} />
             <Link
               href="/admin/products/import/cj"

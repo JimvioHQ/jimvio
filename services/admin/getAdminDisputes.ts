@@ -64,9 +64,11 @@ export async function getAdminDisputes(opts?: {
   status?: AdminDisputeStatus | "all";
   q?: string;
   page?: number;
+  pageSize?: number;
 }): Promise<AdminDisputesResult> {
   const admin = getAdminDB();
   const page = Math.max(1, opts?.page ?? 1);
+  const pageSize = opts?.pageSize ?? PAGE_SIZE;
   const typeFilter = opts?.type ?? "all";
   const statusFilter = opts?.status ?? "all";
   const q = (opts?.q ?? "").trim().toLowerCase();
@@ -130,8 +132,8 @@ export async function getAdminDisputes(opts?: {
   const cjCount = rows.filter((r) => r.dispute_type === "cj").length;
   const refundCount = rows.filter((r) => r.dispute_type === "refund").length;
   const total = rows.length;
-  const start = (page - 1) * PAGE_SIZE;
-  rows = rows.slice(start, start + PAGE_SIZE);
+  const start = (page - 1) * pageSize;
+  rows = rows.slice(start, start + pageSize);
 
   return { rows, total, openCount, cjCount, refundCount };
 }

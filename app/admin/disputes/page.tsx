@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { getAdminDisputes, type AdminDisputeType } from "@/services/admin/getAdminDisputes";
 import { AdminDisputesTable } from "@/components/admin/admin-disputes-table";
 import { AdminDisputesToolbar } from "@/components/admin/admin-disputes-toolbar";
+import { AdminExportMenu } from "@/components/admin/admin-export-menu";
 import { PageHeader, EmptyState, FilterSegmentBar } from "@/components/ui/admin";
 import { Tile } from "@/components/ui/admin-server";
 import { adminTableShell } from "@/lib/admin/ui";
@@ -63,12 +64,21 @@ export default async function AdminDisputesPage({
     return `/admin/disputes${s ? `?${s}` : ""}`;
   };
 
+  const exportQuery = (() => {
+    const u = new URLSearchParams();
+    if (type !== "all") u.set("type", type);
+    if (status !== "all") u.set("status", status);
+    if (params.q) u.set("q", params.q);
+    return u.toString();
+  })();
+
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Moderation"
         title="Disputes"
         subtitle="CJ disputes, refunds, and paid orders cancelled after checkout."
+        actions={<AdminExportMenu resource="disputes" query={exportQuery} />}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

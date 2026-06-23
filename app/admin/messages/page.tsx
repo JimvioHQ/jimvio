@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { MessageSquare, Users, Clock } from "lucide-react";
 import { getAdminMessages } from "@/services/admin/getAdminMessages";
 import { AdminMessagesToolbar } from "@/components/admin/admin-messages-toolbar";
+import { AdminExportMenu } from "@/components/admin/admin-export-menu";
 import { PageHeader, EmptyState, Th } from "@/components/ui/admin";
 import { Tile } from "@/components/ui/admin-server";
 import { relativeTime } from "@/lib/utils";
@@ -43,12 +44,15 @@ export default async function AdminMessagesPage({
     return s ? `?${s}` : "";
   };
 
+  const exportQuery = params.q ? `q=${encodeURIComponent(params.q)}` : "";
+
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Moderation"
         title="Messages"
         subtitle="Read-only overview of buyer–vendor threads. Message bodies stay private to participants."
+        actions={<AdminExportMenu resource="messages" query={exportQuery} />}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

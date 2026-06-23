@@ -8,10 +8,11 @@ import {
 import { formatAdminWalletMoney } from "@/lib/admin/format-money";
 import {
     Store, ArrowUpRight, TrendingUp, DollarSign,
-    Star, Clock, Download,
+    Star, Clock,
 } from "lucide-react";
 import { VendorRow } from "@/components/admin/vendors/vendor-data";
 import { VendorsToolbar } from "@/components/admin/vendors/vendors-toolbar";
+import { AdminExportMenu } from "@/components/admin/admin-export-menu";
 import { PageHeader, EmptyState, Th } from "@/components/ui/admin";
 import { Tile } from "@/components/ui/admin-server";
 
@@ -83,6 +84,14 @@ export default async function AdminVendorsPage({
     const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
     const to = Math.min(page * PAGE_SIZE, total);
 
+    const exportQuery = (() => {
+        const u = new URLSearchParams();
+        if (q) u.set("q", q);
+        if (statusFilter !== "all") u.set("status", statusFilter);
+        if (sortKey !== "created_at") u.set("sort", sortKey);
+        return u.toString();
+    })();
+
     return (
         <div className="space-y-6">
 
@@ -92,10 +101,7 @@ export default async function AdminVendorsPage({
                 subtitle={`${total.toLocaleString()} store${total !== 1 ? "s" : ""} registered`}
                 actions={
                     <>
-                        <button className="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-sm text-[12px] font-medium border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors cursor-pointer">
-                            <Download className="h-3.5 w-3.5" />
-                            Export
-                        </button>
+                        <AdminExportMenu resource="vendors" query={exportQuery} />
                         <Link
                             href="/admin/verifications?tab=vendors"
                             className="h-9 px-4 inline-flex items-center gap-1.5 rounded-sm text-[12px] font-semibold bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity"

@@ -31,13 +31,16 @@ export type AdminMessagesResult = {
 };
 
 const PAGE_SIZE = 25;
+const SEARCH_FETCH_CAP = 5000;
 
 export async function getAdminMessages(opts?: {
   q?: string;
   page?: number;
+  pageSize?: number;
 }): Promise<AdminMessagesResult> {
   const admin = getAdminDB();
   const page = Math.max(1, opts?.page ?? 1);
+  const pageSize = opts?.pageSize ?? PAGE_SIZE;
   const q = (opts?.q ?? "").trim().toLowerCase();
 
   let convQuery = admin
@@ -53,9 +56,9 @@ export async function getAdminMessages(opts?: {
     .order("updated_at", { ascending: false });
 
   if (q) {
-    convQuery = convQuery.limit(500);
+    convQuery = convQuery.limit(SEARCH_FETCH_CAP);
   } else {
-    convQuery = convQuery.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+    convQuery = convQuery.range((page - 1) * pageSize, page * pageSize - 1);
   }
 
   const { data: conversations, count } = await convQuery;
@@ -120,8 +123,8 @@ export async function getAdminMessages(opts?: {
       return hay.includes(q);
     });
     const totalFiltered = rows.length;
-    const start = (page - 1) * PAGE_SIZE;
-    rows = rows.slice(start, start + PAGE_SIZE);
+    const start = (page - 1) * pageSize;
+    rows = rows.slice(start, start + pageSize);
     return {
       rows,
       total: totalFiltered,

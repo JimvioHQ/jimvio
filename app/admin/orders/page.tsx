@@ -7,13 +7,14 @@ import { formatAdminMoney, formatAdminAverageMoney, formatAdminMoneyTotals } fro
 import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 import {
   ShoppingBag, TrendingUp, Package, Truck,
-  CircleDot, AlertTriangle, Download,
+  CircleDot, AlertTriangle,
 } from "lucide-react";
 import {
   StatusPill, PageHeader, EmptyState, RowArrow, Th, RangePicker,
 } from "@/components/ui/admin";
 import { Tile } from "@/components/ui/admin-server";
 import { OrderFilterBar } from "@/components/admin/orders/order-filter-bar";
+import { AdminExportMenu } from "@/components/admin/admin-export-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -125,6 +126,16 @@ export default async function AdminOrdersPage({
 
   const totalPages = count ? Math.ceil(count / pageSize) : 0;
 
+  const exportQuery = (() => {
+    const u = new URLSearchParams();
+    if (range !== "mtd") u.set("range", range);
+    if (payment !== "all") u.set("payment", payment);
+    if (status !== "all") u.set("status", status);
+    if (source !== "all") u.set("source", source);
+    if (search) u.set("q", search);
+    return u.toString();
+  })();
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -134,13 +145,7 @@ export default async function AdminOrdersPage({
         actions={
           <>
             <RangePicker current={range} base="/admin/orders" />
-            <Link
-              href={`/api/admin/orders/export${qs({})}`}
-              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] transition-colors"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Export
-            </Link>
+            <AdminExportMenu resource="orders" query={exportQuery} />
           </>
         }
       />

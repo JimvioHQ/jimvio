@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { ProviderLogo, RangePicker } from "@/components/ui/admin";
 import { TabCountBadge } from "@/components/ui/tab-count-badge";
+import { AdminExportMenu } from "@/components/admin/admin-export-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -226,6 +227,13 @@ export default async function AdminPaymentsPage({
   const pageSize = PAGE_SIZE;
   const startIso = RANGES[range].start().toISOString();
 
+  const exportQuery = (() => {
+    const u = new URLSearchParams();
+    if (range !== "mtd") u.set("range", range);
+    if (tab !== "transactions") u.set("tab", tab);
+    return u.toString();
+  })();
+
   const qs = (over: Record<string, string> = {}) => {
     const u = new URLSearchParams();
     if (range !== "mtd") u.set("range", range);
@@ -390,9 +398,7 @@ const providerHealth = providers
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <RangePicker current={range} base="/admin/payments" />
-          <button className="h-[38px] px-4 rounded-sm text-[12px] font-medium bg-[var(--color-surface)] ring-[0.5px] ring-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] transition-all duration-150 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] whitespace-nowrap">
-            Export
-          </button>
+          <AdminExportMenu resource="payments" query={exportQuery} />
         </div>
       </div>
 

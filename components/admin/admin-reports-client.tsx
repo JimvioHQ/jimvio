@@ -1,43 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { Download, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import type { AdminReportsData } from "@/services/admin/getAdminReports";
 import { ADMIN_RANGES } from "@/lib/admin/ranges";
 import { adminBtnPrimary, adminBtnSecondary } from "@/lib/admin/ui";
 import { cn } from "@/lib/utils";
+import { AdminExportMenu } from "@/components/admin/admin-export-menu";
 
 type Props = {
   data: AdminReportsData;
 };
 
-function downloadCsv(filename: string, rows: string[][]) {
-  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export function AdminReportsClient({ data }: Props) {
   const rangeLabel = ADMIN_RANGES[data.range].label;
-
-  function exportSummary() {
-    downloadCsv(`jimvio-report-${data.range}.csv`, [
-      ["Metric", "Value"],
-      ["Period", rangeLabel],
-      ["Orders", String(data.summary.orderCount)],
-      ["Paid orders", String(data.summary.paidOrderCount)],
-      ["Gross revenue", data.summary.grossRevenueDisplay],
-      ["Refunds", String(data.summary.refundCount)],
-      ["New users", String(data.summary.newUsers)],
-      ["New vendors", String(data.summary.newVendors)],
-      ["Pending UGC reports", String(data.summary.pendingUgcReports)],
-    ]);
-  }
+  const exportQuery = data.range !== "mtd" ? `range=${data.range}` : "";
 
   return (
     <div className="space-y-6">
@@ -62,10 +39,7 @@ export function AdminReportsClient({ data }: Props) {
             ))}
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={exportSummary} className={adminBtnSecondary}>
-            <Download className="h-3.5 w-3.5" />
-            Export CSV
-          </button>
+          <AdminExportMenu resource="reports" query={exportQuery} />
           <Link href="/admin/system-analysis" className={adminBtnSecondary}>
             System analysis
             <ArrowUpRight className="h-3.5 w-3.5" />

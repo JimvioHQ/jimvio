@@ -17,6 +17,7 @@ import {
     type FilterSelectGroup,
 } from "@/components/ui/admin";
 import { Tile } from "@/components/ui/admin-tile";
+import { AdminExportMenu } from "@/components/admin/admin-export-menu";
 import { cn } from "@/lib/utils";
 import type { SelectOption } from "@/components/ui/select-2";
 import { AdminUserRow } from "@/services/admin/getAdminUsers";
@@ -209,6 +210,14 @@ export function AdminUsersClient({
         push("", "", "");
     };
 
+    const exportQuery = (() => {
+        const u = new URLSearchParams();
+        if (search) u.set("q", search);
+        if (role) u.set("role", role);
+        if (status) u.set("status", status);
+        return u.toString();
+    })();
+
     // summary counts from current result set
     const counts = {
         vendors: users.filter((u) => u.roles.includes("vendor")).length,
@@ -224,6 +233,7 @@ export function AdminUsersClient({
                 eyebrow="Platform"
                 title="Users"
                 subtitle={`${total.toLocaleString()} registered user${total !== 1 ? "s" : ""}`}
+                actions={<AdminExportMenu resource="users" query={exportQuery} />}
             />
 
             {/* ── Summary KPIs (same Tile style as admin/orders) ── */}
