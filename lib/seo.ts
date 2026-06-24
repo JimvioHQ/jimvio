@@ -7,13 +7,13 @@ export const SITE = {
   name: "Jimvio",
   url: siteUrl,
   logo: `${siteUrl}/jimvio-logo.svg`,
-  ogImage: `${siteUrl}/jimvio-og.png`,
+  ogImage: `${siteUrl}/icons/icon-512.png`,
   twitter: "@jimvio",
   /** Brand-first title for Google site name & homepage SERP */
   title: "Jimvio",
-  tagline: "Marketplace, affiliates, UGC & communities",
+  tagline: "Global creator commerce platform",
   description:
-    "Jimvio is the creator marketplace to sell products, share affiliate links, take UGC jobs, and run your community — free to start.",
+    "Jimvio is the global creator commerce platform to sell products, run affiliate programs, launch UGC campaigns, and grow your community — free to start.",
   keywords: [
     "Jimvio",
     "Jimvio marketplace",
@@ -27,8 +27,9 @@ export const SITE = {
 
 export const PAGE_SEO = {
   home: {
-    title: SITE.title,
-    description: SITE.description,
+    title: "Jimvio — Global Creator Commerce Platform",
+    description:
+      "Sell products, run affiliate programs, launch UGC campaigns, and grow your creator community on one global commerce platform. Free to start on Jimvio.",
     path: "/",
   },
   marketplace: {
@@ -84,6 +85,76 @@ export const PAGE_SEO = {
     description:
       "We got tired of jumping between apps to sell, promote, and get paid. Jimvio puts the main pieces in one spot.",
     path: "/about",
+  },
+  blog: {
+    title: "Journal",
+    description: "News, guides, and updates from the Jimvio creator commerce platform.",
+    path: "/blog",
+  },
+  contact: {
+    title: "Contact",
+    description: "Get in touch with the Jimvio team for support, partnerships, and press inquiries.",
+    path: "/contact",
+  },
+  pricing: {
+    title: "Pricing",
+    description: "Transparent pricing for selling, affiliates, and UGC on Jimvio. Start free and scale as you grow.",
+    path: "/pricing",
+  },
+  protection: {
+    title: "Buyer protection",
+    description: "How Jimvio protects buyers and sellers with secure checkout, dispute support, and verified vendors.",
+    path: "/protection",
+  },
+  verified: {
+    title: "Verified program",
+    description: "Learn how Jimvio verifies vendors and creators to keep the marketplace trustworthy.",
+    path: "/verified",
+  },
+  careers: {
+    title: "Careers",
+    description: "Join the Jimvio team and help build the global creator commerce platform.",
+    path: "/careers",
+  },
+  terms: {
+    title: "Terms of service",
+    description: "Terms and conditions for using the Jimvio creator commerce platform.",
+    path: "/terms",
+  },
+  privacy: {
+    title: "Privacy policy",
+    description: "How Jimvio collects, uses, and protects your personal data.",
+    path: "/privacy",
+  },
+  cookies: {
+    title: "Cookie policy",
+    description: "How Jimvio uses cookies and similar technologies on the platform.",
+    path: "/cookies",
+  },
+  content: {
+    title: "Content policy",
+    description: "Guidelines for content published on Jimvio marketplaces, communities, and campaigns.",
+    path: "/content",
+  },
+  shorts: {
+    title: "Short videos",
+    description: "Watch shoppable short videos from top creators and discover trending products on Jimvio.",
+    path: "/shorts",
+  },
+  marketplacePhysical: {
+    title: "Physical products",
+    description: "Shop physical products from verified suppliers on Jimvio with shipping options for your region.",
+    path: "/marketplace/physical",
+  },
+  marketplaceDigital: {
+    title: "Digital products",
+    description: "Instant-download templates, courses, software, and digital goods on Jimvio.",
+    path: "/marketplace/digital",
+  },
+  influencersBrowse: {
+    title: "Browse creators",
+    description: "Discover creators, influencers, and vendor storefronts on Jimvio.",
+    path: "/influencers/browse",
   },
 } as const;
 
@@ -206,4 +277,13 @@ export function pageMetadata(
     path: page.path,
     ...overrides,
   });
+}
+
+/** Metadata for pages that must not be indexed (cart, checkout, 404, etc.). */
+export function noIndexMetadata(
+  title: string,
+  description: string,
+  path = "",
+): Metadata {
+  return constructMetadata({ title, description, path, noIndex: true });
 }

@@ -1,12 +1,21 @@
 ﻿import { Suspense } from "react";
 import { LoginForm } from "./login-form";
 import { getMaintenanceModeEnabled } from "@/lib/platform-maintenance";
+import { redirectIfAuthenticated } from "@/lib/auth/redirect-authenticated";
 
 export const metadata = {
   title: "Sign In - Jimvio",
 };
 
-export default async function LoginPage() {
+interface PageProps {
+  searchParams: Promise<{ next?: string; redirect?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const next = params.next ?? params.redirect ?? null;
+  await redirectIfAuthenticated(next);
+
   const maintenanceMode = await getMaintenanceModeEnabled();
 
   return (

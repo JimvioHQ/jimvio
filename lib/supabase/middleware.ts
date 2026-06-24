@@ -8,6 +8,16 @@ import {
   userIsPlatformAdmin,
 } from "@/lib/platform-maintenance";
 import { isAccountAccessBlocked } from "@/lib/users/account-status";
+import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
+
+function isGuestOnlyAuthPath(pathname: string): boolean {
+  if (pathname.startsWith("/login/2fa")) return false;
+  return (
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password"
+  );
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -69,7 +79,7 @@ export async function updateSession(request: NextRequest) {
       }
     }
     
-    if (isProtected || hasSession) {
+    if (isProtected || hasSession || isGuestOnlyAuthPath(pathname)) {
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user && process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -102,6 +112,18 @@ export async function updateSession(request: NextRequest) {
           url.searchParams.set("redirect", request.nextUrl.pathname);
           return NextResponse.redirect(url);
         }
+      }
+
+      if (user && isGuestOnlyAuthPath(pathname)) {
+        const next =
+          request.nextUrl.searchParams.get("next") ??
+          request.nextUrl.searchParams.get("redirect");
+        const destination = await resolvePostLoginPath(user.id, next);
+        const url = request.nextUrl.clone();
+        const dest = new URL(destination, request.nextUrl.origin);
+        url.pathname = dest.pathname;
+        url.search = dest.search;
+        return NextResponse.redirect(url);
       }
 
       if (!user && isProtected) {

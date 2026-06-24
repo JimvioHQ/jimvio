@@ -1,6 +1,14 @@
-﻿import type { Product, WithContext } from "schema-dts";
+﻿import type { Product, Review, WithContext } from "schema-dts";
 import { SITE } from "@/lib/seo";
 import { getImage } from "@/lib/utils";
+
+type ProductReviewInput = {
+  rating?: number | null;
+  title?: string | null;
+  body?: string | null;
+  created_at?: string | null;
+  buyer?: { full_name?: string | null } | null;
+};
 
 type ProductJsonLdInput = {
   name: string;
@@ -15,7 +23,27 @@ type ProductJsonLdInput = {
   average_rating?: number | null;
   review_count?: number | null;
   in_stock?: boolean;
+  reviews?: ProductReviewInput[];
 };
+
+function toReviewSchema(review: ProductReviewInput, productName: string): Review {
+  const authorName = review.buyer?.full_name?.trim() || "Jimvio buyer";
+  return {
+    "@type": "Review",
+    author: { "@type": "Person", name: authorName },
+    datePublished: review.created_at ?? undefined,
+    name: review.title?.trim() || `Review of ${productName}`,
+    reviewBody: review.body?.trim() || undefined,
+    reviewRating: review.rating
+      ? {
+          "@type": "Rating",
+          ratingValue: String(review.rating),
+          bestRating: "5",
+          worstRating: "1",
+        }
+      : undefined,
+  };
+}
 
 export function ProductJsonLd({ product }: { product: ProductJsonLdInput }) {
   const image = getImage(product.images);
@@ -53,6 +81,14 @@ export function ProductJsonLd({ product }: { product: ProductJsonLdInput }) {
             ratingValue: String(product.average_rating),
             reviewCount: String(product.review_count),
           },
+        }
+      : {}),
+    ...(product.reviews?.length
+      ? {
+          review: product.reviews
+            .filter((r) => r.rating && (r.body || r.title))
+            .slice(0, 10)
+            .map((r) => toReviewSchema(r, product.name)),
         }
       : {}),
   };

@@ -294,6 +294,7 @@ import React, {
 } from "react";
 import { Zap, ZoomIn, ChevronLeft, ChevronRight, X, Maximize2, Play } from "lucide-react";
 import { cn, ImageInput, normalizeImages } from "@/lib/utils";
+import { isPlayableVideoUrl, normalizeVideoUrl, resolveVideoPlayback, type VideoPlayback } from "@/lib/product-videos";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -308,18 +309,22 @@ interface ImageGalleryProps {
 }
 
 type GalleryMedia =
-    | { type: "video"; url: string; poster?: string }
+    | { type: "video"; url: string; poster?: string; playback: VideoPlayback }
     | { type: "image"; url: string };
 
 function buildGalleryMedia(images: string[], videos: string[] = []): GalleryMedia[] {
     const poster = images[0];
-    const normalizeUrl = (url: string) => (url.startsWith("//") ? `https:${url}` : url);
     const videoItems: GalleryMedia[] = videos
-        .map((url) => normalizeUrl(url.trim()))
-        .filter((url) => /^https?:\/\//i.test(url))
-        .map((url) => ({ type: "video", url, poster }));
+        .map((url) => normalizeVideoUrl(url.trim()))
+        .filter((url) => isPlayableVideoUrl(url))
+        .map((url) => ({
+            type: "video" as const,
+            url,
+            poster,
+            playback: resolveVideoPlayback(url),
+        }));
     const imageItems: GalleryMedia[] = images.map((url) => ({ type: "image", url }));
-    return [...imageItems, ...videoItems];
+    return [...videoItems, ...imageItems];
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -606,17 +611,21 @@ export function ImageGallery({
     const videoRef = useRef<HTMLVideoElement>(null);
     const mainImgRef = useRef<HTMLImageElement>(null);
 
+    const hasVideos = media.some((m) => m.type === "video");
+    const hasImages = media.some((m) => m.type === "image");
+    const firstVideoIndex = media.findIndex((m) => m.type === "video");
+    const firstImageIndex = media.findIndex((m) => m.type === "image");
+
     const stripRef = useRef<HTMLDivElement>(null);
     const { zoom, onMove, onLeave } = useZoom();
 
-    // Clamp activeIndex + default to first image (not video) when product media changes
+    // Default to first video when available, otherwise first image
     useEffect(() => {
         if (media.length === 0) return;
-        const firstImage = media.findIndex((m) => m.type === "image");
-        setActiveIndex(firstImage >= 0 ? firstImage : 0);
+        setActiveIndex(firstVideoIndex >= 0 ? firstVideoIndex : firstImageIndex >= 0 ? firstImageIndex : 0);
         setImageLoaded(false);
         setMediaError(false);
-    }, [mediaKey, media.length]);
+    }, [mediaKey, media.length, firstVideoIndex, firstImageIndex]);
 
     useEffect(() => {
         if (activeIndex >= media.length && media.length > 0) {
@@ -633,7 +642,7 @@ export function ImageGallery({
 
     useEffect(() => {
         const item = media[activeIndex];
-        if (item?.type !== "video") {
+        if (item?.type !== "video" || item.playback.kind === "youtube-embed") {
             videoRef.current?.pause();
             return;
         }
@@ -672,6 +681,12 @@ export function ImageGallery({
     const activeMedia = media[activeIndex] ?? null;
     const mainImage = activeMedia?.type === "image" ? activeMedia.url : null;
     const mainVideo = activeMedia?.type === "video" ? activeMedia : null;
+    const mainVideoSrc =
+        mainVideo?.playback.kind === "direct" || mainVideo?.playback.kind === "proxy"
+            ? mainVideo.playback.src
+            : null;
+    const mainVideoEmbed =
+        mainVideo?.playback.kind === "youtube-embed" ? mainVideo.playback.src : null;
     const hasMultiple = media.length > 1;
     const showZoom = activeMedia?.type === "image" && !mediaError;
 
@@ -713,6 +728,39 @@ export function ImageGallery({
     return (
         <>
             <div className={cn(isLeftThumbnails ? "flex flex-col md:flex-row gap-4 items-start" : "flex flex-col gap-3", className)}>
+
+                {hasVideos && hasImages && (
+                    <div className="inline-flex self-start rounded-lg border border-[var(--color-border)] overflow-hidden">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (firstVideoIndex >= 0) setActiveIndex(firstVideoIndex);
+                            }}
+                            className={cn(
+                                "h-8 px-3 text-[12px] font-medium transition-colors",
+                                activeMedia?.type === "video"
+                                    ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
+                                    : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]",
+                            )}
+                        >
+                            Video
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (firstImageIndex >= 0) setActiveIndex(firstImageIndex);
+                            }}
+                            className={cn(
+                                "h-8 px-3 text-[12px] font-medium transition-colors border-l border-[var(--color-border)]",
+                                activeMedia?.type === "image"
+                                    ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
+                                    : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]",
+                            )}
+                        >
+                            Photos
+                        </button>
+                    </div>
+                )}
 
                 {/* ── Main image ──────────────────────────────────────────────── */}
                 <div
@@ -772,12 +820,22 @@ export function ImageGallery({
                                         Open video
                                     </a>
                                 </div>
-                            ) : (
+                            ) : mainVideoEmbed ? (
+                                <iframe
+                                    key={mainVideoEmbed}
+                                    src={`${mainVideoEmbed}?autoplay=1&mute=1&loop=1&controls=1&playsinline=1`}
+                                    title={`${productName} video`}
+                                    className="absolute inset-0 z-[1] h-full w-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                    onLoad={() => setImageLoaded(true)}
+                                />
+                            ) : mainVideoSrc ? (
                                 <>
                                     <video
                                         ref={videoRef}
-                                        key={mainVideo.url}
-                                        src={mainVideo.url}
+                                        key={mainVideoSrc}
+                                        src={mainVideoSrc}
                                         poster={mainVideo.poster}
                                         autoPlay
                                         muted
@@ -808,7 +866,7 @@ export function ImageGallery({
                                         </button>
                                     )}
                                 </>
-                            )}
+                            ) : null}
                         </>
                     ) : mainImage ? (
                         <>

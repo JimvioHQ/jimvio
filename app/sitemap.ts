@@ -28,6 +28,11 @@ const STATIC_ROUTES: Array<{
   { path: "/pricing", priority: 0.6, changeFrequency: "monthly" },
   { path: "/protection", priority: 0.5, changeFrequency: "monthly" },
   { path: "/verified", priority: 0.5, changeFrequency: "monthly" },
+  { path: "/terms", priority: 0.4, changeFrequency: "yearly" },
+  { path: "/privacy", priority: 0.4, changeFrequency: "yearly" },
+  { path: "/cookies", priority: 0.3, changeFrequency: "yearly" },
+  { path: "/content", priority: 0.3, changeFrequency: "yearly" },
+  { path: "/careers", priority: 0.5, changeFrequency: "monthly" },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

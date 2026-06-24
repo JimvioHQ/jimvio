@@ -27,3 +27,13 @@ export function resetPdfCursor(doc: PdfDocumentInstance) {
   doc.x = doc.page.margins.left;
   doc.y = doc.page.margins.top;
 }
+
+/** Normalize text for pdfkit + embedded fonts (avoids DataView errors on exotic glyphs). */
+export function sanitizePdfText(text: string): string {
+  return String(text ?? "")
+    .normalize("NFKC")
+    .replace(/\u2212/g, "-")
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\u00a0/g, " ")
+    .replace(/[\u200b-\u200d\ufeff]/g, "");
+}

@@ -21,6 +21,23 @@ const nextConfig: NextConfig = {
     },
   },
 
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "jimvio.com" }],
+        destination: "https://www.jimvio.com/:path*",
+        permanent: true,
+      },
+      { source: "/products", destination: "/marketplace", permanent: true },
+      { source: "/products/:path*", destination: "/marketplace", permanent: true },
+      { source: "/earn", destination: "/affiliates", permanent: true },
+      { source: "/campaigns", destination: "/ugc", permanent: true },
+      { source: "/listings/:path*", destination: "/marketplace/:path*", permanent: true },
+      { source: "/creators/:path*", destination: "/influencers/:path*", permanent: true },
+    ];
+  },
+
   async headers() {
     return [
       {

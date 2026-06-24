@@ -1,9 +1,29 @@
-import React from "react";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getPublishedBlogPostBySlug } from "@/services/db";
+import { constructMetadata, truncateDescription } from "@/lib/seo";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import Link from "next/link";
 import { ArrowLeft, Clock, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { getPublishedBlogPostBySlug } from "@/services/db";
-import { notFound } from "next/navigation";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPublishedBlogPostBySlug(slug);
+  if (!post) return { title: "Post not found" };
+
+  return constructMetadata({
+    title: post.title,
+    description: truncateDescription(post.excerpt || post.title),
+    path: `/blog/${slug}`,
+    type: "article",
+    image: post.image_url ?? undefined,
+  });
+}
 
 function formatPostDate(iso: string) {
   try {
@@ -24,6 +44,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <article className="bg-[var(--color-bg)] min-h-screen pb-24">
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", path: "/" },
+          { name: "Journal", path: "/blog" },
+          { name: post.title, path: `/blog/${slug}` },
+        ]}
+      />
       <div className="relative h-[min(420px,45vh)] w-full overflow-hidden">
         <img src={hero} alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink-darker/90 via-ink-darker/40 to-ink-darker/20" />

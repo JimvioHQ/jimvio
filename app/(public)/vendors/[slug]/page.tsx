@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { 
   Star, 
   MapPin, 
@@ -24,9 +25,33 @@ import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketpla
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { notFound } from "next/navigation";
+import { constructMetadata, truncateDescription } from "@/lib/seo";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const admin = getAdminDB();
+  const { data: vendor } = await admin
+    .from("vendors")
+    .select("business_name, business_description, business_logo, business_banner")
+    .eq("business_slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!vendor) return { title: "Store not found" };
+
+  return constructMetadata({
+    title: vendor.business_name ?? "Vendor store",
+    description: truncateDescription(
+      vendor.business_description ?? `Shop ${vendor.business_name} on Jimvio.`,
+    ),
+    image: vendor.business_banner ?? vendor.business_logo ?? undefined,
+    path: `/vendors/${slug}`,
+  });
 }
 
 export default async function VendorStorePage({ params }: PageProps) {
@@ -57,6 +82,14 @@ export default async function VendorStorePage({ params }: PageProps) {
   const isFollowing = followedVendorIds.includes(vendor.id);
 
   return (
+    <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", path: "/" },
+          { name: "Vendors", path: "/vendors" },
+          { name: vendor.business_name ?? "Store", path: `/vendors/${slug}` },
+        ]}
+      />
     <div className="min-h-screen bg-[var(--color-bg)]">
       {/* Vendor Cover */}
       <div className="h-64 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-hover)] relative">
@@ -278,5 +311,6 @@ export default async function VendorStorePage({ params }: PageProps) {
         </div>
       </div>
     </div>
+    </>
   );
 }

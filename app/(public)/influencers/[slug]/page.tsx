@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { MessageCircle, Video, Package, User } from "lucide-react";
 import { getDB, getVendorClipsWithDetails, getVendorProducts } from "@/services/db";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,9 +9,33 @@ import { FollowButton } from "@/components/marketplace/follow-button";
 import { TikTokFeed } from "@/components/influencer/tiktok-feed";
 import { notFound } from "next/navigation";
 import { LocalizedPrice } from "@/components/currency/localized-price";
+import { constructMetadata, truncateDescription } from "@/lib/seo";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const db = await getDB();
+  const { data: vendor } = await db
+    .from("vendors")
+    .select("business_name, business_description, business_logo, business_banner")
+    .eq("business_slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!vendor) return { title: "Creator not found" };
+
+  return constructMetadata({
+    title: vendor.business_name ?? "Creator profile",
+    description: truncateDescription(
+      vendor.business_description ?? `${vendor.business_name} on Jimvio.`,
+    ),
+    image: vendor.business_banner ?? vendor.business_logo ?? undefined,
+    path: `/influencers/${slug}`,
+  });
 }
 
 export default async function InfluencerProfilePage({ params }: PageProps) {
@@ -27,6 +52,14 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
   const totalLikes = clips.reduce((s, c) => s + Number(c.total_views ?? 0) * 0.12, 0);
 
   return (
+    <>
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", path: "/" },
+          { name: "Creators", path: "/influencers" },
+          { name: vendor.business_name ?? "Creator", path: `/influencers/${slug}` },
+        ]}
+      />
     <div className="min-h-screen bg-[var(--color-bg)]">
       {/* Profile header — TikTok-style */}
       <div className="bg-white dark:bg-surface border-b border-[var(--color-border)]">
@@ -162,5 +195,6 @@ export default async function InfluencerProfilePage({ params }: PageProps) {
         </Tabs>
       </div>
     </div>
+    </>
   );
 }

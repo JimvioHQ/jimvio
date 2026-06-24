@@ -5,6 +5,7 @@ import { getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { DigitalProductDetail } from "@/components/marketplace/product-detail-digital";
 import { PhysicalProductDetail } from "@/components/marketplace/product-detail-physical";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { getImage } from "@/lib/utils";
 
@@ -67,11 +68,23 @@ export default async function ProductDetailPage({ params }: PageProps) {
     average_rating: averageRating,
     review_count: reviewCount,
     in_stock: true,
+    reviews,
   };
+
+  const breadcrumb = (
+    <BreadcrumbJsonLd
+      items={[
+        { name: "Home", path: "/" },
+        { name: "Marketplace", path: "/marketplace" },
+        { name: product.name, path: `/marketplace/${product.slug}` },
+      ]}
+    />
+  );
 
   if (isDigital) {
     return (
       <>
+        {breadcrumb}
         <ProductJsonLd product={jsonLdProduct} />
         <DigitalProductDetail
           product={product}
@@ -84,6 +97,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   return (
     <>
+      {breadcrumb}
       <ProductJsonLd product={jsonLdProduct} />
       <PhysicalProductDetail
         product={product}

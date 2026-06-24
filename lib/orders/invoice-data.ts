@@ -113,7 +113,7 @@ export function buildInvoiceData(order: InvoiceOrder): InvoiceData {
   if (Number(order.discount_amount) > 0) {
     totals.push({
       label: "Discount",
-      value: `−${formatCurrency(Number(order.discount_amount), currency)}`,
+      value: `-${formatCurrency(Number(order.discount_amount), currency)}`,
       accent: true,
     });
   }

@@ -2,10 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { TikTokFeed, FeedClip } from "@/components/influencer/tiktok-feed";
 
-export const metadata: Metadata = {
-  title: "Videos | Jimvio",
-  description: "Watch high-conversion short videos from top creators and shop the buzz.",
-};
+export const dynamic = "force-dynamic";
 
 export const dynamic = "force-dynamic";
 

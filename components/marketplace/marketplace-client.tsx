@@ -22,6 +22,7 @@ import { ProductCardClient } from "@/components/marketplace/product-card-client"
 import { ProductCardDigital } from "@/components/marketplace/product-card-digital";
 import { ProductCardPhysical } from "@/components/marketplace/product-card-physical";
 import { FollowButton } from "@/components/marketplace/follow-button";
+import { MarketplacePagination } from "@/components/marketplace/new/MarketplacePagination";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import {
   Shirt, Home, Sofa, HeartPulse, Apple, Trophy, Puzzle,
@@ -1243,50 +1244,22 @@ export function MarketplaceClient({
             </AnimatePresence>
           </div>
 
-          {totalPages > 1 && mixedFeed.length > 0 && (
-            <nav aria-label="Pagination" className="flex items-center justify-center gap-1.5 pt-6 pb-8">
-              {currentPage > 1 && (
-                <button
-                  onClick={() => handlePageChange(marketplaceHref(paramsRecord, { page: String(currentPage - 1) }, basePath))}
-                  className="h-9 px-4 rounded-xl text-xs font-semibold transition-all"
-                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
-                  aria-label="Previous page"
-                >
-                  Previous
-                </button>
-              )}
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pg = Math.max(1, currentPage - 2) + i;
-                if (pg > totalPages) return null;
-                const isActive = pg === currentPage;
-                return (
-                  <button
-                    key={pg}
-                    onClick={() => !isActive && handlePageChange(marketplaceHref(paramsRecord, { page: String(pg) }, basePath))}
-                    aria-label={`Page ${pg}`}
-                    aria-current={isActive ? "page" : undefined}
-                    disabled={isActive}
-                    className="h-9 min-w-[36px] px-3 rounded-xl text-xs font-semibold transition-all"
-                    style={isActive
-                      ? { background: "var(--color-accent)", color: "#fff", border: "1px solid transparent", boxShadow: "0 4px 12px rgba(253,80,0,0.25)" }
-                      : { background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }
-                    }
-                  >
-                    {pg}
-                  </button>
-                );
-              })}
-              {currentPage < totalPages && (
-                <button
-                  onClick={() => handlePageChange(marketplaceHref(paramsRecord, { page: String(currentPage + 1) }, basePath))}
-                  className="h-9 px-4 rounded-xl text-xs font-semibold transition-all"
-                  style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}
-                  aria-label="Next page"
-                >
-                  Next
-                </button>
-              )}
-            </nav>
+          {mixedFeed.length > 0 && (
+            <MarketplacePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              total={total}
+              pageSize={limit}
+              onPageChange={(page) =>
+                handlePageChange(
+                  marketplaceHref(
+                    paramsRecord,
+                    { page: page <= 1 ? undefined : String(page) },
+                    basePath,
+                  ),
+                )
+              }
+            />
           )}
         </main>
       </div>

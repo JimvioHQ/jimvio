@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { getDB, getAdminDB } from "./base";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
-import { fetchProductVideosMap } from "@/lib/product-videos";
+import { fetchProductVideosMap, isPlayableVideoUrl, productVideoUrl } from "@/lib/product-videos";
 
 import type { Tables } from "@/types/supabase";
 import type { Product, ProductStatus } from "@/types/db";
@@ -136,9 +136,9 @@ async function fetchProductVideosByProductIds(
       id,
       rows.map((r) => ({
         id: (r as { id?: string }).id ?? "",
-        url: r.url ?? r.video_url ?? "",
+        url: productVideoUrl(r),
         sort_order: r.sort_order ?? 0,
-      })).filter((r) => r.url.startsWith("http")),
+      })).filter((r) => isPlayableVideoUrl(r.url)),
     );
   }
   return out;

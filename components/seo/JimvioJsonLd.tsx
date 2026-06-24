@@ -17,7 +17,7 @@ const organization: Organization = {
     width: "512",
     height: "512",
   },
-  image: `${SITE.url}/jimvio-og.png`,
+  image: `${SITE.url}/icons/icon-512.png`,
   description: SITE.description,
   contactPoint: {
     "@type": "ContactPoint",

@@ -6,6 +6,7 @@ import {
     type MembershipPayload,
 } from "@/components/community/community-detail-view";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -153,10 +154,19 @@ export default async function CommunityDetailPage({
     };
 
     return (
-        <CommunityDetailView
-            community={payload}
-            membership={membershipRes.data as MembershipPayload}
-            isLoggedIn={!!user}
-        />
+        <>
+            <BreadcrumbJsonLd
+                items={[
+                    { name: "Home", path: "/" },
+                    { name: "Communities", path: "/communities" },
+                    { name: community.name, path: `/communities/${slug}` },
+                ]}
+            />
+            <CommunityDetailView
+                community={payload}
+                membership={membershipRes.data as MembershipPayload}
+                isLoggedIn={!!user}
+            />
+        </>
     );
 }

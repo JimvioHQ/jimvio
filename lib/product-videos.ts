@@ -20,12 +20,77 @@ export type ProductVideoRef = {
   sort_order?: number | null;
 };
 
+const CJ_VIDEO_HOSTS = [
+  "download-only-api.cjdropshipping.com",
+  "video-cf.cjdropshipping.com",
+  "cf.cjdropshipping.com",
+];
+
+export type VideoPlayback =
+  | { kind: "direct"; src: string }
+  | { kind: "proxy"; src: string }
+  | { kind: "youtube-embed"; src: string };
+
+/** Normalize protocol-relative and trimmed video URLs. */
+export function normalizeVideoUrl(url: string): string {
+  const trimmed = url.trim();
+  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+  return trimmed;
+}
+
+export function isPlayableVideoUrl(url: string): boolean {
+  return /^https?:\/\//i.test(normalizeVideoUrl(url));
+}
+
+export function isCjVideoUrl(url: string): boolean {
+  try {
+    const host = new URL(normalizeVideoUrl(url)).hostname;
+    return CJ_VIDEO_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+  } catch {
+    return false;
+  }
+}
+
+function toYouTubeEmbed(url: string): string {
+  const normalized = normalizeVideoUrl(url);
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.hostname.includes("youtu.be")) {
+      const id = parsed.pathname.replace(/^\//, "").split("/")[0];
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    }
+    const id = parsed.searchParams.get("v");
+    if (id) return `https://www.youtube.com/embed/${id}`;
+    if (parsed.pathname.startsWith("/embed/")) {
+      return `https://www.youtube.com${parsed.pathname}`;
+    }
+  } catch {
+    /* fall through */
+  }
+  return normalized.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/");
+}
+
+/** Resolve how a product video URL should be played in the storefront gallery. */
+export function resolveVideoPlayback(url: string): VideoPlayback {
+  const normalized = normalizeVideoUrl(url);
+  if (/youtube\.com|youtu\.be/i.test(normalized)) {
+    return { kind: "youtube-embed", src: toYouTubeEmbed(normalized) };
+  }
+  if (isCjVideoUrl(normalized)) {
+    return {
+      kind: "proxy",
+      src: `/api/products/video-proxy?url=${encodeURIComponent(normalized)}`,
+    };
+  }
+  return { kind: "direct", src: normalized };
+}
+
 /** Read URL from row whether DB uses legacy `video_url` or migration 063 `url`. */
 export function productVideoUrl(
   row: ProductVideoRef | null | undefined,
 ): string {
   const value = row?.url ?? row?.video_url;
-  return typeof value === "string" ? value : "";
+  return typeof value === "string" ? normalizeVideoUrl(value) : "";
 }
 
 /** Parse deprecated `products.videos` JSONB into URL list. */
@@ -37,12 +102,12 @@ export function normalizeLegacyProductVideosJson(raw: unknown): string[] {
   for (const item of raw) {
     let url = "";
     if (typeof item === "string") {
-      url = item.trim();
+      url = normalizeVideoUrl(item);
     } else if (item && typeof item === "object") {
       const obj = item as Record<string, unknown>;
-      url = String(obj.url ?? "").trim();
+      url = normalizeVideoUrl(String(obj.url ?? ""));
     }
-    if (!url.startsWith("http") || seen.has(url)) continue;
+    if (!isPlayableVideoUrl(url) || seen.has(url)) continue;
     seen.add(url);
     out.push(url);
   }
@@ -57,7 +122,7 @@ export function sortProductVideoRows(
   return [...rows]
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     .map((r) => productVideoUrl(r))
-    .filter((url) => url.startsWith("http"));
+    .filter((url) => isPlayableVideoUrl(url));
 }
 
 /**
@@ -101,22 +166,36 @@ export async function fetchProductVideosMap(
   const map = new Map<string, ProductVideoRef[]>();
   if (productIds.length === 0) return map;
 
-  const { data, error } = await supabase
+  let rows: ProductVideoRef[] = [];
+
+  const primary = await supabase
     .from("product_videos")
     .select("id, url, sort_order, product_id, is_active")
     .in("product_id", productIds)
     .eq("is_active", true)
     .order("sort_order");
 
-  if (error) {
-    console.warn("[fetchProductVideosMap]:", error.message);
-    return map;
+  if (primary.error) {
+    const fallback = await supabase
+      .from("product_videos")
+      .select("id, url, sort_order, product_id")
+      .in("product_id", productIds)
+      .order("sort_order");
+    if (fallback.error) {
+      console.warn("[fetchProductVideosMap]:", fallback.error.message);
+      return map;
+    }
+    rows = (fallback.data ?? []) as ProductVideoRef[];
+  } else {
+    rows = (primary.data ?? []) as ProductVideoRef[];
   }
 
-  for (const row of data ?? []) {
-    const list = map.get(row.product_id) ?? [];
+  for (const row of rows) {
+    const productId = (row as ProductVideoRef & { product_id?: string }).product_id;
+    if (!productId) continue;
+    const list = map.get(productId) ?? [];
     list.push(row);
-    map.set(row.product_id, list);
+    map.set(productId, list);
   }
   return map;
 }

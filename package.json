@@ -9,7 +9,6 @@
     "start": "cross-env NODE_OPTIONS=--use-system-ca next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "postbuild": "next-sitemap",
     "pesapal:verify": "node scripts/pesapal-verify.mjs",
     "pawapay:generate-signing-key": "node scripts/generate-pawapay-signing-key.mjs",
     "icons:generate": "node scripts/generate-round-icons.mjs"
