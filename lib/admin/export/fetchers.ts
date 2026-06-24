@@ -15,6 +15,12 @@ function fmtDate(iso: string | null | undefined) {
   return new Date(iso).toLocaleString();
 }
 
+function fmtAmount(amount: unknown, currency?: string | null) {
+  const n = Number(amount ?? 0);
+  const cur = (currency ?? "RWF").toUpperCase();
+  return `${n.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${cur}`;
+}
+
 function cell(value: unknown) {
   if (value == null) return "";
   return String(value);
@@ -42,6 +48,11 @@ function ordersRangeStart(range: string) {
   };
   const fn = ranges[range];
   return fn ? fn() : ranges.mtd();
+}
+
+function exportRangeLabel(range: string) {
+  const key = resolveAdminRange(range);
+  return ADMIN_RANGES[key].label;
 }
 
 function paymentsRangeStart(range: string) {
@@ -261,7 +272,7 @@ async function fetchPaymentsExport(search: URLSearchParams): Promise<ExportDocum
     const rows = (data ?? []) as any[];
     return {
       title: "Payouts export",
-      subtitle: `${range} · ${rows.length} rows`,
+      subtitle: exportRangeLabel(range),
       filename: `jimvio-payouts-${range}`,
       sheets: [
         {
@@ -304,7 +315,7 @@ async function fetchPaymentsExport(search: URLSearchParams): Promise<ExportDocum
     const rows = (data ?? []) as any[];
     return {
       title: "Payment orders export",
-      subtitle: `${rows.length} orders`,
+      subtitle: exportRangeLabel(range),
       filename: `jimvio-payment-orders-${range}`,
       sheets: [
         {
@@ -344,40 +355,24 @@ async function fetchPaymentsExport(search: URLSearchParams): Promise<ExportDocum
   const rows = (data ?? []) as any[];
   return {
     title: "Transactions export",
-    subtitle: `${rows.length} transactions`,
+    subtitle: exportRangeLabel(range),
     filename: `jimvio-transactions-${range}`,
     sheets: [
       {
         name: "Transactions",
-        columns: [
-          "ID",
-          "Order #",
-          "User",
-          "Provider",
-          "Type",
-          "Amount",
-          "USD",
-          "Currency",
-          "Status",
-          "Provider ref",
-          "Description",
-          "Created",
-        ],
+        columns: ["Order #", "User", "Provider", "Type", "Amount", "Status", "Reference", "Created"],
         rows: rows.map((t) => {
           const profile = Array.isArray(t.profiles) ? t.profiles[0] : t.profiles;
           const order = Array.isArray(t.orders) ? t.orders[0] : t.orders;
+          const ref = t.provider_transaction_id ? String(t.provider_transaction_id) : "";
           return [
-            cell(t.id),
             cell(order?.order_number),
             cell(profile?.full_name ?? profile?.email),
             cell(t.provider),
             cell(t.type),
-            cell(t.amount),
-            cell(t.amount_usd),
-            cell(t.currency),
+            fmtAmount(t.amount, t.currency),
             cell(t.status),
-            cell(t.provider_transaction_id),
-            cell(t.description),
+            ref ? cell(ref) : "—",
             fmtDate(t.created_at),
           ];
         }),
@@ -511,23 +506,52 @@ async function fetchReportsExport(search: URLSearchParams): Promise<ExportDocume
   const rangeLabel = ADMIN_RANGES[range].label;
 
   return {
-    title: "Platform report",
+    title: "Revenue report",
     subtitle: rangeLabel,
-    filename: `jimvio-report-${range}`,
+    filename: `jimvio-revenue-report-${range}`,
     sheets: [
       {
         name: "Summary",
         columns: ["Metric", "Value"],
         rows: [
           ["Period", rangeLabel],
-          ["Orders", String(data.summary.orderCount)],
+          ["Total revenue (gross)", data.summary.grossRevenueDisplay],
+          ["Net revenue", data.summary.netRevenueDisplay],
+          ["Average order value", data.summary.averageOrderValueDisplay],
+          ["Orders completed", String(data.summary.completedOrders)],
           ["Paid orders", String(data.summary.paidOrderCount)],
-          ["Gross revenue", data.summary.grossRevenueDisplay],
+          ["Total orders", String(data.summary.orderCount)],
           ["Refunds", String(data.summary.refundCount)],
           ["New users", String(data.summary.newUsers)],
           ["New vendors", String(data.summary.newVendors)],
           ["Pending UGC reports", String(data.summary.pendingUgcReports)],
         ],
+      },
+      {
+        name: "Daily breakdown",
+        columns: ["Date", "Orders", "Gross revenue", "Discounts", "Refunds", "Net revenue"],
+        rows: data.dailyBreakdown.map((r) => [
+          r.dateLabel,
+          String(r.orders),
+          r.grossDisplay,
+          r.discountsDisplay,
+          r.refundsDisplay,
+          r.netDisplay,
+        ]),
+      },
+      {
+        name: "Revenue trend",
+        columns: ["Period", "Gross revenue", "Net revenue"],
+        rows: data.revenueTrend.map((p) => [
+          p.label,
+          String(p.gross),
+          String(p.net),
+        ]),
+      },
+      {
+        name: "By category",
+        columns: ["Category", "Revenue"],
+        rows: data.revenueByCategory.map((c) => [c.name, c.revenueDisplay]),
       },
       {
         name: "Fulfillment",

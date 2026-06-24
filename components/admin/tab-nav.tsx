@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
     Coins, Truck, ToggleLeft, ShieldCheck, Store, UserRound,
+    SlidersHorizontal, CreditCard, Plug,
 } from "lucide-react"
 
 const TABS = [
@@ -17,8 +18,20 @@ const TABS = [
         description: "Fees, defaults, pricing"
     },
     {
+        href: "/admin/settings/defaults", label: "Defaults", icon: SlidersHorizontal,
+        description: "Locale, tiers, inventory"
+    },
+    {
         href: "/admin/settings/suppliers", label: "Suppliers", icon: Truck,
         description: "Vendor channels"
+    },
+    {
+        href: "/admin/settings/payments", label: "Payments", icon: CreditCard,
+        description: "Checkout providers"
+    },
+    {
+        href: "/admin/settings/integrations", label: "Integrations", icon: Plug,
+        description: "Shopify, CJ links"
     },
     {
         href: "/admin/settings/features", label: "Features", icon: ToggleLeft,

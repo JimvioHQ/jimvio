@@ -40,9 +40,100 @@ export type ContactSettings = {
   social_youtube: string;
   social_instagram: string;
   social_tiktok: string;
+  social_facebook?: string;
+  social_linkedin?: string;
+  social_whatsapp?: string;
   hq_line1: string;
   hq_line2: string;
 };
+
+export type DefaultsSettings = {
+  currency: string;
+  timezone: string;
+  low_stock_threshold: number;
+  allow_backorder: boolean;
+  community_trial_days: number;
+  community_platform_commission_rate: number;
+  affiliate_silver_threshold: number;
+  affiliate_gold_threshold: number;
+  payout_method: string;
+  exchange_rate_provider: string;
+};
+
+export type PlatformSecurityPolicies = {
+  membership_reactivation_window_minutes: number;
+  webhook_max_failure_count: number;
+  digital_access_expiry_days: number | null;
+};
+
+export type PaymentProviderId =
+  | "flutterwave"
+  | "pesapal"
+  | "paypal"
+  | "nowpayments"
+  | "pawapay"
+  | "binancepay";
+
+export type PaymentProvidersSettings = {
+  sandbox_mode: boolean;
+  providers: Record<PaymentProviderId, { enabled: boolean }>;
+};
+
+export const DEFAULT_PAYMENT_PROVIDERS: PaymentProvidersSettings = {
+  sandbox_mode: false,
+  providers: {
+    flutterwave: { enabled: true },
+    pesapal: { enabled: true },
+    paypal: { enabled: true },
+    nowpayments: { enabled: true },
+    pawapay: { enabled: true },
+    binancepay: { enabled: true },
+  },
+};
+
+export const DEFAULT_PLATFORM_DEFAULTS: DefaultsSettings = {
+  currency: "RWF",
+  timezone: "Africa/Kigali",
+  low_stock_threshold: 5,
+  allow_backorder: false,
+  community_trial_days: 0,
+  community_platform_commission_rate: 15,
+  affiliate_silver_threshold: 500_000,
+  affiliate_gold_threshold: 2_000_000,
+  payout_method: "mtn",
+  exchange_rate_provider: "openexchangerates",
+};
+
+export const DEFAULT_PLATFORM_SECURITY: PlatformSecurityPolicies = {
+  membership_reactivation_window_minutes: 10,
+  webhook_max_failure_count: 5,
+  digital_access_expiry_days: null,
+};
+
+export function mergeDefaults(patch: Partial<DefaultsSettings>): DefaultsSettings {
+  return { ...DEFAULT_PLATFORM_DEFAULTS, ...patch };
+}
+
+export function mergePlatformSecurity(patch: Partial<PlatformSecurityPolicies>): PlatformSecurityPolicies {
+  return { ...DEFAULT_PLATFORM_SECURITY, ...patch };
+}
+
+export function mergePaymentProviders(patch: Partial<PaymentProvidersSettings>): PaymentProvidersSettings {
+  const base = DEFAULT_PAYMENT_PROVIDERS;
+  const providers = { ...base.providers };
+  if (patch.providers && typeof patch.providers === "object") {
+    for (const id of Object.keys(providers) as PaymentProviderId[]) {
+      const p = patch.providers[id];
+      if (p && typeof p.enabled === "boolean") {
+        providers[id] = { enabled: p.enabled };
+      }
+    }
+  }
+  return {
+    sandbox_mode: typeof patch.sandbox_mode === "boolean" ? patch.sandbox_mode : base.sandbox_mode,
+    providers,
+  };
+}
 
 export type ResolvedPlatformSettings = {
   fees: FeesSettings;
@@ -101,6 +192,9 @@ export const PLATFORM_SETTINGS_DEFAULTS: ResolvedPlatformSettings = {
     social_youtube: "https://youtube.com/@jimvio?si=V-gMmLi6YUr8xAhv",
     social_instagram: "https://www.instagram.com/jimvio_official?igsh=MWc2Ym5qZmx4MzYzcA==",
     social_tiktok: "https://www.tiktok.com/@jimvio_official?_r=1&_t=ZS-94dJpCa6Mr3",
+    social_facebook: "",
+    social_linkedin: "",
+    social_whatsapp: "",
     hq_line1: "Kigali Heights, 4th Floor",
     hq_line2: "KG 7 Ave, Kigali, Rwanda",
   },

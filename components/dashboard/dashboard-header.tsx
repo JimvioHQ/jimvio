@@ -460,19 +460,24 @@ import {
     ChevronDown,
     Check,
     Settings,
-    LogOut,
     Wallet,
-    UserRound,
     ShoppingBag,
     Megaphone,
     Users,
     Radio,
     X,
-    MoreHorizontal,
+    Menu,
+    Moon,
+    Sun,
+    Monitor,
+    Coins,
+    SlidersHorizontal,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { ProfileImage } from "@/components/ui/profile-image";
 import { createClient } from "@/lib/supabase/client";
+import { subscribePostgresChanges, unsubscribeRealtime } from "@/lib/supabase/realtime-subscribe";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { CurrencySelector } from "@/context/CurrencyContext";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -726,12 +731,55 @@ function CreateMenu() {
     );
 }
 
-// ─── Overflow "more" menu (mobile) ────────────────────────────────────────────
-/**
- * Bundles Language, Currency, and ThemeToggle into a single ⋯ button
- * that is only shown on screens narrower than `sm` (640 px).
- */
-function MobileOverflowMenu() {
+// ─── Mobile preferences menu ──────────────────────────────────────────────────
+
+const LANGUAGES = [
+    { code: "en", label: "English", short: "EN" },
+    { code: "fr", label: "Français", short: "FR", disabled: true },
+] as const;
+
+function PreferencesThemePicker() {
+    const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => setMounted(true), []);
+
+    const active = mounted ? (theme ?? "system") : "system";
+
+    const options = [
+        { key: "light", label: "Light", icon: Sun },
+        { key: "dark", label: "Dark", icon: Moon },
+        { key: "system", label: "Auto", icon: Monitor },
+    ] as const;
+
+    return (
+        <div className="grid grid-cols-3 gap-1.5">
+            {options.map(({ key, label, icon: Icon }) => {
+                const isActive = active === key;
+                return (
+                    <button
+                        key={key}
+                        type="button"
+                        onClick={() => setTheme(key)}
+                        className={cn(
+                            "flex flex-col items-center gap-1 rounded-lg border px-2 py-2 transition-colors",
+                            isActive
+                                ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                                : "border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
+                        )}
+                    >
+                        <Icon className="h-3.5 w-3.5" />
+                        <span className="text-[10px] font-semibold">{label}</span>
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
+function MobilePreferencesMenu() {
+    const [language, setLanguage] = useState<(typeof LANGUAGES)[number]["code"]>("en");
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -740,60 +788,116 @@ function MobileOverflowMenu() {
                         "sm:hidden flex items-center justify-center h-9 w-9",
                         "rounded-[var(--radius-sm)] border border-[var(--color-border)]",
                         "bg-[var(--color-surface)] text-[var(--color-text-muted)]",
-                        "hover:bg-[var(--color-surface-secondary)] transition-colors"
+                        "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+                        "transition-colors",
                     )}
-                    aria-label="More options"
+                    aria-label="Preferences"
                 >
-                    <MoreHorizontal className="h-4 w-4" />
+                    <SlidersHorizontal className="h-4 w-4" />
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 align="end"
                 sideOffset={8}
-                className="w-48 rounded-[var(--radius-md)] p-1.5 border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)]"
+                className="w-[min(calc(100vw-1.5rem),18rem)] rounded-xl p-0 border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-lg)] overflow-hidden"
             >
-                <DropdownMenuLabel className="px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]">
-                    Preferences
-                </DropdownMenuLabel>
+                <div className="px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
+                        Preferences
+                    </p>
+                    <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
+                        Language, theme & currency
+                    </p>
+                </div>
 
-                {/* Language */}
-                <DropdownMenuItem className="rounded-[var(--radius-sm)] focus:bg-[var(--color-surface-secondary)] cursor-pointer">
-                    <div className="flex items-center gap-2.5 px-1 py-1">
-                        <Globe className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
-                        <span className="text-[12px] font-medium text-[var(--color-text-secondary)]">
-                            Language: EN
-                        </span>
+                <div className="p-3 space-y-3">
+                    {/* Language */}
+                    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/30 p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="flex size-7 items-center justify-center rounded-md bg-[var(--color-surface)] border border-[var(--color-border)]">
+                                <Globe className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                            </span>
+                            <div>
+                                <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">Language</p>
+                                <p className="text-[10px] text-[var(--color-text-muted)]">Interface language</p>
+                            </div>
+                        </div>
+                        <div className="space-y-1">
+                            {LANGUAGES.map((lang) => (
+                                <button
+                                    key={lang.code}
+                                    type="button"
+                                    disabled={"disabled" in lang && lang.disabled}
+                                    onClick={() => !("disabled" in lang && lang.disabled) && setLanguage(lang.code)}
+                                    className={cn(
+                                        "w-full flex items-center justify-between rounded-md px-2.5 py-2 text-left transition-colors",
+                                        language === lang.code
+                                            ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                                            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]",
+                                        "disabled" in lang && lang.disabled && "opacity-45 cursor-not-allowed",
+                                    )}
+                                >
+                                    <span className="text-[12px] font-medium">
+                                        {lang.label}{" "}
+                                        <span className="text-[var(--color-text-muted)]">({lang.short})</span>
+                                    </span>
+                                    {language === lang.code && <Check className="h-3.5 w-3.5 shrink-0" />}
+                                    {"disabled" in lang && lang.disabled && (
+                                        <span className="text-[9px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                                            Soon
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </DropdownMenuItem>
 
-                {/* Theme */}
-                <DropdownMenuItem
-                    className="rounded-[var(--radius-sm)] focus:bg-[var(--color-surface-secondary)] cursor-pointer"
-                    onSelect={(e) => e.preventDefault()}
-                >
-                    <div className="flex items-center justify-between w-full px-1 py-1">
-                        <span className="text-[12px] font-medium text-[var(--color-text-secondary)]">
-                            Theme
-                        </span>
-                        <ThemeToggle />
+                    {/* Theme */}
+                    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/30 p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="flex size-7 items-center justify-center rounded-md bg-[var(--color-surface)] border border-[var(--color-border)]">
+                                <Moon className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                            </span>
+                            <div>
+                                <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">Theme</p>
+                                <p className="text-[10px] text-[var(--color-text-muted)]">Appearance</p>
+                            </div>
+                        </div>
+                        <PreferencesThemePicker />
                     </div>
-                </DropdownMenuItem>
 
-                {/* Currency */}
-                <DropdownMenuItem
-                    className="rounded-[var(--radius-sm)] focus:bg-[var(--color-surface-secondary)] cursor-pointer"
-                    onSelect={(e) => e.preventDefault()}
-                >
-                    <div className="flex items-center justify-between w-full px-1 py-1">
+                    {/* Currency */}
+                    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/30 p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="flex size-7 items-center justify-center rounded-md bg-[var(--color-surface)] border border-[var(--color-border)]">
+                                <Coins className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                            </span>
+                            <div>
+                                <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">Currency</p>
+                                <p className="text-[10px] text-[var(--color-text-muted)]">Prices & wallet display</p>
+                            </div>
+                        </div>
                         <CurrencySelector
                             className={cn(
-                                "h-7 rounded-[var(--radius-sm)] text-[11px] font-bold",
-                                "bg-[var(--color-surface-secondary)] border border-[var(--color-border)] px-2",
-                                "text-[var(--color-text-secondary)]"
+                                "w-full h-9 rounded-lg text-[12px] font-semibold",
+                                "bg-[var(--color-surface)] border border-[var(--color-border)] px-3",
+                                "text-[var(--color-text-primary)]",
                             )}
                         />
                     </div>
-                </DropdownMenuItem>
+                </div>
+
+                <div className="px-3 pb-3">
+                    <DropdownMenuItem asChild className="rounded-lg focus:bg-[var(--color-surface-secondary)] cursor-pointer p-0">
+                        <Link
+                            href="/dashboard/settings"
+                            className="flex items-center justify-center gap-2 w-full px-3 py-2.5 text-[12px] font-semibold text-[var(--color-accent)] border border-[var(--color-border)] rounded-lg hover:bg-[var(--color-surface-secondary)]"
+                        >
+                            <Settings className="h-3.5 w-3.5" />
+                            All settings
+                        </Link>
+                    </DropdownMenuItem>
+                </div>
             </DropdownMenuContent>
         </DropdownMenu>
     );
@@ -972,31 +1076,34 @@ export function DashboardHeader({
 
         refreshUnreadCount();
 
-        let channel: ReturnType<typeof supabase.channel> | null = null;
-        (async () => {
+        let channel: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
+        const channelPrefix = "header-notifications";
+
+        async function setupRealtime() {
             const {
                 data: { user: authUser },
             } = await supabase.auth.getUser();
             if (!authUser || cancelled) return;
 
-            channel = supabase
-                .channel(`header-notifications-${authUser.id}`)
-                .on(
-                    "postgres_changes",
-                    {
-                        event: "*",
-                        schema: "public",
-                        table: "notifications",
-                        filter: `user_id=eq.${authUser.id}`,
-                    },
-                    () => refreshUnreadCount(),
-                )
-                .subscribe();
-        })();
+            channel = await subscribePostgresChanges(
+                supabase,
+                `${channelPrefix}-${authUser.id}`,
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "notifications",
+                    filter: `user_id=eq.${authUser.id}`,
+                },
+                () => { void refreshUnreadCount(); },
+                () => cancelled,
+            );
+        }
+
+        void setupRealtime();
 
         return () => {
             cancelled = true;
-            if (channel) supabase.removeChannel(channel);
+            unsubscribeRealtime(supabase, channel, channelPrefix);
         };
     }, [unreadNotificationsProp]);
 
@@ -1014,34 +1121,22 @@ export function DashboardHeader({
                 "bg-[var(--color-surface)] border-b border-[var(--color-border)]"
             )}
         >
-            {/* ── Left: hamburger (mobile) + page label (desktop) ── */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink-0">
+            {/* ── Left: menu (mobile) + dashboard label (desktop) ── */}
+            <div className="flex items-center gap-2 flex-shrink-0">
                 {onMobileMenuOpen && (
                     <button
                         type="button"
                         onClick={onMobileMenuOpen}
-                        aria-label="Open menu"
+                        aria-label="Open navigation menu"
                         className={cn(
                             "lg:hidden flex items-center justify-center h-9 w-9",
                             "rounded-[var(--radius-sm)] border border-[var(--color-border)]",
                             "bg-[var(--color-surface)] text-[var(--color-text-muted)]",
                             "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
-                            "transition-colors"
+                            "transition-colors",
                         )}
                     >
-                        <svg
-                            className="h-4 w-4"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M4 6h16M4 12h16M4 18h16"
-                            />
-                        </svg>
+                        <Menu className="h-4 w-4" />
                     </button>
                 )}
 
@@ -1050,8 +1145,8 @@ export function DashboardHeader({
                 </span>
             </div>
 
-            {/* ── Centre: desktop search (grows), mobile search icon ── */}
-            <div className="flex-1 flex justify-center">
+            {/* ── Centre: search (icon on mobile, bar on desktop) ── */}
+            <div className="flex-1 flex justify-center min-w-0">
                 <div className="w-full max-w-lg">
                     <GlobalSearch
                         mobileOpen={mobileSearchOpen}
@@ -1096,8 +1191,8 @@ export function DashboardHeader({
                     <ThemeToggle />
                 </div>
 
-                {/* ⋯ overflow menu — mobile only (language + currency + theme) */}
-                <MobileOverflowMenu />
+                {/* Preferences — mobile only */}
+                <MobilePreferencesMenu />
 
                 {/* Notifications */}
                 <Link

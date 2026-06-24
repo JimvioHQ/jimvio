@@ -12,17 +12,22 @@ export { buildChartSlices, colorForSlice } from "@/lib/admin/chart-slices";
 function DonutTooltip({
     active,
     payload,
+    formatValue,
 }: {
     active?: boolean;
     payload?: Array<{ name: string; value: number; payload: DonutSlice }>;
+    formatValue?: (value: number) => string;
 }) {
     if (!active || !payload?.length) return null;
     const row = payload[0];
+    const display = formatValue
+        ? formatValue(row.value)
+        : `${row.value.toLocaleString()} orders`;
     return (
         <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-2 shadow-sm">
             <p className="text-[11px] text-[var(--color-text-muted)] capitalize">{row.name}</p>
             <p className="text-[13px] font-semibold tabular-nums text-[var(--color-text-primary)]">
-                {row.value.toLocaleString()} orders
+                {display}
             </p>
         </div>
     );
@@ -32,10 +37,12 @@ export function AdminDonutChart({
     data,
     height = 200,
     emptyLabel = "No data",
+    formatValue,
 }: {
     data: DonutSlice[];
     height?: number;
     emptyLabel?: string;
+    formatValue?: (value: number) => string;
 }) {
     const total = data.reduce((s, d) => s + d.value, 0);
 
@@ -69,7 +76,7 @@ export function AdminDonutChart({
                             <Cell key={entry.name} fill={entry.color} />
                         ))}
                     </Pie>
-                    <Tooltip content={<DonutTooltip />} />
+                    <Tooltip content={<DonutTooltip formatValue={formatValue} />} />
                 </PieChart>
             </ResponsiveContainer>
         </div>

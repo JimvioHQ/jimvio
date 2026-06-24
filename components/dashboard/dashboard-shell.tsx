@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { LayoutDashboard, UserRound, Menu, Wallet, Search, Bell } from "lucide-react";
 import { Sidebar, type DashboardRole } from "@/components/dashboard/sidebar";
 import { createClient } from "@/lib/supabase/client";
+import { subscribePostgresChanges, unsubscribeRealtime } from "@/lib/supabase/realtime-subscribe";
 import { cn } from "@/lib/utils";
 import { ProfileImage } from "@/components/ui/profile-image";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -87,25 +88,33 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       setUnreadMessages(msgCount ?? 0);
     }
 
-    refreshBadges();
+    let channel: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
+    const channelPrefix = "shell-notifications";
 
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    (async () => {
+    async function setupRealtime() {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser || cancelled) return;
-      channel = supabase
-        .channel(`shell-notifications-${authUser.id}`)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${authUser.id}` },
-          () => refreshBadges(),
-        )
-        .subscribe();
-    })();
+
+      channel = await subscribePostgresChanges(
+        supabase,
+        `${channelPrefix}-${authUser.id}`,
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${authUser.id}`,
+        },
+        () => { void refreshBadges(); },
+        () => cancelled,
+      );
+    }
+
+    refreshBadges();
+    void setupRealtime();
 
     return () => {
       cancelled = true;
-      if (channel) supabase.removeChannel(channel);
+      unsubscribeRealtime(supabase, channel, channelPrefix);
     };
   }, [fetchRoles]);
 
@@ -217,7 +226,10 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <DashboardHeader unreadNotifications={unreadNotifications} />
+        <DashboardHeader
+          unreadNotifications={unreadNotifications}
+          onMobileMenuOpen={() => setMobileMenuOpen(true)}
+        />
         <main className="flex-1 overflow-y-auto overflow-x-hidden relative bg-background">
           <div className="px-0 py-3 sm:px-6 sm:py-8 lg:p-10 max-w-[1400px] mx-auto">
             {children}
@@ -227,11 +239,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
         {/* ══════════════════════════════════════
             MOBILE BOTTOM NAV — Frosted Bar
         ══════════════════════════════════════ */}
-        <BottomNav
-          unreadMessages={unreadMessages}
-          hasMoreNotifications={unreadNotifications > 0}
-          onMoreClick={() => setMobileMenuOpen(true)}
-        />
+        <BottomNav unreadMessages={unreadMessages} />
       </div>
     </div>
   );

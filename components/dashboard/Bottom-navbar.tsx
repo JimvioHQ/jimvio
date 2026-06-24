@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { LayoutDashboard, Globe, MessageSquare, MoreHorizontal } from "lucide-react";
+import { LayoutDashboard, Globe, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -187,8 +187,6 @@ function useScrollDirection(threshold = 8) {
 
 export function BottomNav({
     unreadMessages = 0,
-    hasMoreNotifications = false,
-    onMoreClick,
 }: {
     unreadMessages?: number;
     hasMoreNotifications?: boolean;
@@ -216,12 +214,6 @@ export function BottomNav({
             icon: <MessageSquare className="h-5 w-5" />,
             label: "Inbox",
             badge: unreadMessages,
-        },
-        {
-            icon: <MoreHorizontal className="h-5 w-5" />,
-            label: "More",
-            dot: hasMoreNotifications,
-            onClick: onMoreClick,
         },
     ];
 

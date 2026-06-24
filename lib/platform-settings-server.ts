@@ -28,6 +28,24 @@ export async function getDefaultAffiliateCommissionPercent(): Promise<number> {
     : PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent;
 }
 
+export const getPaymentProvidersSettings = cache(async () => {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "payment_providers")
+      .maybeSingle();
+    const { mergePaymentProviders } = await import("@/lib/platform-settings-shared");
+    return mergePaymentProviders(
+      typeof data?.value === "object" && data.value ? (data.value as object) : {}
+    );
+  } catch {
+    const { DEFAULT_PAYMENT_PROVIDERS } = await import("@/lib/platform-settings-shared");
+    return DEFAULT_PAYMENT_PROVIDERS;
+  }
+});
+
 export async function getShopifyPlatformCommissionFallback(db: SupabaseClient): Promise<number> {
   const { data } = await db.from("platform_settings").select("value").eq("key", "fees").maybeSingle();
   const raw = data?.value as Record<string, unknown> | null;

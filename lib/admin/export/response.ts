@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildCsv } from "@/lib/admin/export/csv";
 import { buildExportJson } from "@/lib/admin/export/json";
-import { buildXlsxXml } from "@/lib/admin/export/xlsx";
+import { buildXlsxBuffer } from "@/lib/admin/export/xlsx";
 import { buildAdminExportPdf } from "@/lib/admin/export/table-pdf";
 import type { ExportDocument, ExportFormat } from "@/lib/admin/export/types";
 import { exportFormatMeta } from "@/lib/admin/export/types";
@@ -31,10 +31,12 @@ export async function buildExportResponse(doc: ExportDocument, format: ExportFor
   }
 
   if (format === "xlsx") {
-    return new NextResponse(buildXlsxXml(doc.sheets), {
+    const xlsx = await buildXlsxBuffer(doc);
+    return new NextResponse(new Uint8Array(xlsx), {
       headers: {
-        "Content-Type": "application/vnd.ms-excel",
-        "Content-Disposition": `attachment; filename="${doc.filename}.xls"`,
+        "Content-Type": meta.mime,
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Length": String(xlsx.length),
         "Cache-Control": "private, no-store",
       },
     });

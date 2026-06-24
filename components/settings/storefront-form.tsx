@@ -79,6 +79,7 @@ export function StorefrontForm({ initial }: { initial: Record<string, unknown> }
         initialMarketing.trending_search_keywords.join(", ")
     );
     const [trustBar, setTrustBar] = useState<TrustBarItem[]>(initialMarketing.trust_bar);
+    const [navLinks, setNavLinks] = useState(initialMarketing.nav_links);
     const [dirty, setDirty] = useState(false);
     const [pending, startTransition] = useTransition();
     const [toast, setToast] = useState<ToastMsg | null>(null);
@@ -102,6 +103,7 @@ export function StorefrontForm({ initial }: { initial: Record<string, unknown> }
                     .map((s) => s.trim())
                     .filter(Boolean),
                 trust_bar: trustBar.filter((row) => row.title.trim() || row.desc.trim()),
+                nav_links: navLinks.filter((row) => row.label.trim() && row.href.trim()),
             };
 
             const result = await updatePlatformSettings({
@@ -208,6 +210,15 @@ export function StorefrontForm({ initial }: { initial: Record<string, unknown> }
                                 }}
                             />
                         </Field>
+                        <Field label="Mobile search subtitle">
+                            <TextInput
+                                value={marketing.mobile_search_subtitle ?? ""}
+                                onChange={(v) => {
+                                    setMarketing((p) => ({ ...p, mobile_search_subtitle: v }));
+                                    markDirty();
+                                }}
+                            />
+                        </Field>
                         <Field label="Primary CTA label">
                             <TextInput
                                 value={marketing.primary_cta.label}
@@ -304,6 +315,57 @@ export function StorefrontForm({ initial }: { initial: Record<string, unknown> }
                             Add trust bar item
                         </BrandBtn>
                     </div>
+
+                    <div className="space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[var(--color-text-secondary)]">
+                            Navigation links
+                        </p>
+                        {navLinks.map((row, i) => (
+                            <div key={i} className="flex gap-2 items-start">
+                                <TextInput
+                                    value={row.label}
+                                    onChange={(v) => {
+                                        setNavLinks((links) =>
+                                            links.map((r, j) => (j === i ? { ...r, label: v } : r))
+                                        );
+                                        markDirty();
+                                    }}
+                                    placeholder="Label"
+                                />
+                                <TextInput
+                                    value={row.href}
+                                    onChange={(v) => {
+                                        setNavLinks((links) =>
+                                            links.map((r, j) => (j === i ? { ...r, href: v } : r))
+                                        );
+                                        markDirty();
+                                    }}
+                                    placeholder="/path"
+                                />
+                                <BrandBtn
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        setNavLinks((links) => links.filter((_, j) => j !== i));
+                                        markDirty();
+                                    }}
+                                >
+                                    <X className="size-3.5" />
+                                </BrandBtn>
+                            </div>
+                        ))}
+                        <BrandBtn
+                            variant="secondary"
+                            size="sm"
+                            icon={<Plus className="size-3.5" />}
+                            onClick={() => {
+                                setNavLinks((links) => [...links, { label: "", href: "" }]);
+                                markDirty();
+                            }}
+                        >
+                            Add nav link
+                        </BrandBtn>
+                    </div>
                 </section>
 
                 <section className="space-y-4">
@@ -385,6 +447,36 @@ export function StorefrontForm({ initial }: { initial: Record<string, unknown> }
                                 placeholder="https://"
                             />
                         </Field>
+                        <Field label="Facebook">
+                            <TextInput
+                                value={contact.social_facebook ?? ""}
+                                onChange={(v) => {
+                                    setContact((p) => ({ ...p, social_facebook: v }));
+                                    markDirty();
+                                }}
+                                placeholder="https://"
+                            />
+                        </Field>
+                        <Field label="LinkedIn">
+                            <TextInput
+                                value={contact.social_linkedin ?? ""}
+                                onChange={(v) => {
+                                    setContact((p) => ({ ...p, social_linkedin: v }));
+                                    markDirty();
+                                }}
+                                placeholder="https://"
+                            />
+                        </Field>
+                        <Field label="WhatsApp URL">
+                            <TextInput
+                                value={contact.social_whatsapp ?? ""}
+                                onChange={(v) => {
+                                    setContact((p) => ({ ...p, social_whatsapp: v }));
+                                    markDirty();
+                                }}
+                                placeholder="https://wa.me/..."
+                            />
+                        </Field>
                     </Grid>
                 </section>
 
@@ -402,6 +494,7 @@ export function StorefrontForm({ initial }: { initial: Record<string, unknown> }
                         setAffiliateBullets(initialMarketing.affiliate_value_props.join("\n"));
                         setTrendingKw(initialMarketing.trending_search_keywords.join(", "));
                         setTrustBar(initialMarketing.trust_bar);
+                        setNavLinks(initialMarketing.nav_links);
                         setDirty(false);
                     }}
                 />

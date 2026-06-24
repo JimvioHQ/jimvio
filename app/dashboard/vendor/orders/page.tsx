@@ -17,10 +17,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
+import { subscribePostgresChanges, unsubscribeRealtime } from "@/lib/supabase/realtime-subscribe";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
 import { updateOrderStatus } from "@/lib/actions/marketplace";
 import { toast } from "sonner";
+import { EmptyState } from "@/components/empty-states";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,20 +69,26 @@ export default function VendorOrdersPage() {
   const [filter, setFilter] = useState("All");
 
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+    const channelName = "vendor-orders-realtime";
+    let channel: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
+    const trackedOrderIds: string[] = [];
 
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user || cancelled) return;
 
       const { data: userVendors } = await supabase
         .from("vendors")
         .select("id")
         .eq("user_id", user.id);
 
-      if (!userVendors?.length) { setLoading(false); return; }
+      if (!userVendors?.length) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
 
-      setVendorId(userVendors[0].id);
+      if (!cancelled) setVendorId(userVendors[0].id);
       const vendorIds = (userVendors as { id: string }[]).map(v => v.id);
 
       const { data } = await supabase
@@ -93,6 +101,8 @@ export default function VendorOrdersPage() {
         `)
         .in("vendor_id", vendorIds)
         .order("created_at", { ascending: false });
+
+      if (cancelled) return;
 
       const byOrder = new Map<string, OrderRow>();
       (data ?? []).forEach((item: any) => {
@@ -122,29 +132,35 @@ export default function VendorOrdersPage() {
       setOrders(orderList);
       setLoading(false);
 
-      // Real-time updates
-      if (channel) supabase.removeChannel(channel);
-      const orderIds = orderList.map((o) => o.id);
-      if (orderIds.length > 0) {
-        channel = supabase
-          .channel("vendor-orders-realtime")
-          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" }, (payload: any) => {
-            const updated = payload.new as { id: string; status: string; payment_status: string };
-            if (!orderIds.includes(updated.id)) return;
-            setOrders((prev) =>
-              prev.map((o) =>
-                o.id === updated.id
-                  ? { ...o, status: updated.status, payment_status: updated.payment_status }
-                  : o
-              )
-            );
-          })
-          .subscribe();
-      }
+      trackedOrderIds.length = 0;
+      trackedOrderIds.push(...orderList.map((o) => o.id));
+      if (trackedOrderIds.length === 0) return;
+
+      channel = await subscribePostgresChanges(
+        supabase,
+        channelName,
+        { event: "UPDATE", schema: "public", table: "orders" },
+        (payload) => {
+          const updated = payload?.new as { id: string; status: string; payment_status: string } | undefined;
+          if (!updated?.id || !trackedOrderIds.includes(updated.id)) return;
+          setOrders((prev) =>
+            prev.map((o) =>
+              o.id === updated.id
+                ? { ...o, status: updated.status, payment_status: updated.payment_status }
+                : o,
+            ),
+          );
+        },
+        () => cancelled,
+      );
     }
 
-    load();
-    return () => { if (channel) supabase.removeChannel(channel); };
+    void load();
+
+    return () => {
+      cancelled = true;
+      unsubscribeRealtime(supabase, channel, channelName);
+    };
   }, []);
 
   // ── Aggregates ──────────────────────────────────────────────────────────────
@@ -328,10 +344,23 @@ export default function VendorOrdersPage() {
               <tbody className="divide-y divide-[var(--color-border)]">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-16 text-center">
-                      <p className="text-[13px] text-[var(--color-text-muted)]">
-                        {search ? `No results for "${search}"` : "No orders yet"}
-                      </p>
+                    <td colSpan={6} className="p-0">
+                      <EmptyState
+                        variant="inline"
+                        preset="orders"
+                        presetContext={{
+                          query: search,
+                filtered: orders.length > 0 || filter !== "All" || Boolean(search),
+                          filterLabel: filter !== "All" ? filter : undefined,
+                          onReset:
+                            search || filter !== "All"
+                              ? () => {
+                                  setSearch("");
+                                  setFilter("All");
+                                }
+                              : undefined,
+                        }}
+                      />
                     </td>
                   </tr>
                 ) : (

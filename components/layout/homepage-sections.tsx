@@ -929,6 +929,8 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
     { id: "4", name: "Digital Products", slug: "digital-products", member_count: 6700, tagline: "Courses, tools and templates." },
     { id: "5", name: "Jimvio Community", slug: "jimvio", member_count: 14, tagline: "Connect with sellers and creators worldwide." },
     { id: "6", name: "Brand Growth", slug: "brand-growth", member_count: 4200, tagline: "Launch campaigns and scale your brand." },
+    { id: "7", name: "Creator Studio", slug: "creator-studio", member_count: 3100, tagline: "Tools and tips for content creators." },
+    { id: "8", name: "Global Sellers", slug: "global-sellers", member_count: 9800, tagline: "Ship and sell across borders." },
   ];
 
   const cards = list.map((c) => {
@@ -987,7 +989,7 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
 
         {/* ── Desktop: compact vertical community card ── */}
         <div className="hidden lg:flex lg:flex-col lg:h-full">
-          <div className="relative h-28 w-full shrink-0 overflow-hidden bg-[var(--color-surface-secondary)]">
+          <div className="relative h-24 w-full shrink-0 overflow-hidden bg-[var(--color-surface-secondary)] 2xl:h-28">
             {heroImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -1043,7 +1045,7 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
         </div>
         <HomepageShowcaseLayout
           cardMinWidth={200}
-          desktopCols="lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+          desktopCols="lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8"
         >
           {cards}
         </HomepageShowcaseLayout>

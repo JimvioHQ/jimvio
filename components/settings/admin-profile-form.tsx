@@ -14,9 +14,11 @@ import {
 } from "@/components/admin/form-primitive";
 import { Textarea } from "@/components/ui/textarea";
 import { updateAdminProfile, type AdminProfileData } from "@/lib/actions/admin-profile";
+import { requestEmailChange } from "@/lib/actions/account-settings";
 
 export function AdminProfileForm({ initial }: { initial: AdminProfileData }) {
     const [profile, setProfile] = useState(initial);
+    const [newEmail, setNewEmail] = useState("");
     const [dirty, setDirty] = useState(false);
     const [pending, startTransition] = useTransition();
     const [toast, setToast] = useState<ToastMsg | null>(null);
@@ -48,6 +50,21 @@ export function AdminProfileForm({ initial }: { initial: AdminProfileData }) {
 
             setToast({ msg: "Profile updated", type: "ok" });
             setDirty(false);
+        });
+    }
+
+    function handleEmailChange() {
+        startTransition(async () => {
+            const result = await requestEmailChange(newEmail);
+            if (!result.success) {
+                setToast({ msg: result.error, type: "err" });
+                return;
+            }
+            setToast({
+                msg: result.data?.message ?? "Confirmation email sent",
+                type: "ok",
+            });
+            setNewEmail("");
         });
     }
 
@@ -195,6 +212,31 @@ export function AdminProfileForm({ initial }: { initial: AdminProfileData }) {
                             />
                         </Field>
                     </div>
+                </section>
+
+                <section>
+                    <Divider label="Change email" />
+                    <Grid cols={2}>
+                        <Field label="New email address">
+                            <TextInput
+                                value={newEmail}
+                                onChange={setNewEmail}
+                                placeholder="admin@company.com"
+                                type="email"
+                            />
+                        </Field>
+                        <div className="flex items-end">
+                            <button
+                                type="button"
+                                onClick={handleEmailChange}
+                                disabled={pending || !newEmail.trim()}
+                                className="h-9 px-4 rounded-sm text-[13px] font-semibold text-white"
+                                style={{ background: "var(--color-accent)" }}
+                            >
+                                Send confirmation
+                            </button>
+                        </div>
+                    </Grid>
                 </section>
 
                 <div className="h-20" />

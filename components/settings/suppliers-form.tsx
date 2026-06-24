@@ -116,6 +116,22 @@ export function SuppliersForm({ initial }: { initial: unknown }) {
                                         step={0.5}
                                     />
                                 </Field>
+                                {key === "cj" && (
+                                    <Field label="Catalog sync interval (hours)" hint="How often CJ products refresh">
+                                        <NumInput
+                                            value={settings.cj.sync_interval_hours ?? 6}
+                                            onChange={(v) => {
+                                                setSettings((prev) => ({
+                                                    ...prev,
+                                                    cj: { ...prev.cj, sync_interval_hours: v ?? 6 },
+                                                }));
+                                                setDirty(true);
+                                            }}
+                                            min={1}
+                                            max={168}
+                                        />
+                                    </Field>
+                                )}
                             </div>
                         </Card>
                     ))}

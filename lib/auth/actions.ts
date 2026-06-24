@@ -14,6 +14,7 @@ import {
   MAINTENANCE_LOGIN_ERROR,
 } from "@/lib/platform-maintenance"
 import { isAccountAccessBlocked } from "@/lib/users/account-status"
+import { rethrowIfNextNavigation } from "@/lib/auth/redirect-error"
 
 // ─────────────────────────────────────────────
 // Constants
@@ -250,6 +251,7 @@ export async function signIn(formData: FormData) {
       redirect(`/login/2fa?next=${encodeURIComponent(safe)}`)
     }
   } catch (err) {
+    rethrowIfNextNavigation(err)
     console.error("[auth] signIn error:", err)
     return { error: "Sign in failed. Please try again." }
   }

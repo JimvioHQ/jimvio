@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { ChevronLeft, Pencil, Package, Truck, ChevronRight } from "lucide-react";
@@ -123,6 +123,21 @@ export function CheckoutExperience({
       }
       return defaultPayment(currency);
    });
+   const [enabledPaymentMethods, setEnabledPaymentMethods] = useState<MethodId[] | undefined>();
+
+   useEffect(() => {
+      fetch("/api/platform/payment-providers")
+         .then((r) => r.json())
+         .then((data: { enabled?: MethodId[] }) => {
+            if (Array.isArray(data.enabled) && data.enabled.length > 0) {
+               setEnabledPaymentMethods(data.enabled);
+               setPayment((current) =>
+                  data.enabled!.includes(current) ? current : data.enabled![0]
+               );
+            }
+         })
+         .catch(() => undefined);
+   }, []);
 
    const existingAddr = orders[0]?.shipping_address;
    const nameParts = (profile?.full_name ?? "").split(" ");
@@ -460,6 +475,7 @@ export function CheckoutExperience({
                               orderCurrency={currency}
                               orderTotal={total}
                               showSummary={false}
+                              enabledMethodIds={enabledPaymentMethods}
                            />
                         </div>
                      )}

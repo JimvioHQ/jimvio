@@ -40,7 +40,7 @@ export const EXPORT_FORMATS: Array<{
   {
     id: "xlsx",
     label: "Excel",
-    description: "Microsoft Excel workbook",
+    description: "Styled workbook · DM Sans",
     ext: "xlsx",
     mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   },

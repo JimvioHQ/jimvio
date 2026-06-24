@@ -14,6 +14,11 @@ import {
     type ToastMsg,
     useBeforeUnload,
 } from "@/components/admin/form-primitive";
+import {
+    DEFAULT_PLATFORM_SECURITY,
+    mergePlatformSecurity,
+    type PlatformSecurityPolicies,
+} from "@/lib/platform-settings-shared";
 import { updatePlatformSettings } from "@/lib/actions/security";
 
 type FeaturesSettings = {
@@ -86,8 +91,15 @@ export function FeaturesForm({ initial }: { initial: Record<string, unknown> }) 
             : {}),
     };
 
+    const initialSecurity = mergePlatformSecurity(
+        typeof initial.security === "object" && initial.security
+            ? (initial.security as Partial<PlatformSecurityPolicies>)
+            : {}
+    );
+
     const [features, setFeatures] = useState<FeaturesSettings>(initialFeatures);
     const [fraud, setFraud] = useState<FraudSettings>(initialFraud);
+    const [security, setSecurity] = useState<PlatformSecurityPolicies>(initialSecurity);
     const [dirty, setDirty] = useState(false);
     const [pending, startTransition] = useTransition();
     const [toast, setToast] = useState<ToastMsg | null>(null);
@@ -104,9 +116,14 @@ export function FeaturesForm({ initial }: { initial: Record<string, unknown> }) 
         setDirty(true);
     }
 
+    function setSec<K extends keyof PlatformSecurityPolicies>(key: K, value: PlatformSecurityPolicies[K]) {
+        setSecurity((prev) => ({ ...prev, [key]: value }));
+        setDirty(true);
+    }
+
     function handleSave() {
         startTransition(async () => {
-            const result = await updatePlatformSettings({ features, fraud });
+            const result = await updatePlatformSettings({ features, fraud, security });
             if (!result.success) {
                 setToast({ msg: result.error, type: "err" });
                 return;
@@ -203,6 +220,56 @@ export function FeaturesForm({ initial }: { initial: Record<string, unknown> }) 
                     </Grid>
                 </section>
 
+                <section className="space-y-3">
+                    <Divider label="Platform security policies" />
+                    <Grid cols={2}>
+                        <Field
+                            label="Membership reactivation window (minutes)"
+                            hint="Grace period to rejoin a community after leaving"
+                        >
+                            <NumInput
+                                value={security.membership_reactivation_window_minutes}
+                                onChange={(v) =>
+                                    setSec(
+                                        "membership_reactivation_window_minutes",
+                                        v ?? DEFAULT_PLATFORM_SECURITY.membership_reactivation_window_minutes
+                                    )
+                                }
+                                min={0}
+                                max={1440}
+                            />
+                        </Field>
+                        <Field
+                            label="Webhook max failures"
+                            hint="Auto-disable vendor webhooks after this many failures"
+                        >
+                            <NumInput
+                                value={security.webhook_max_failure_count}
+                                onChange={(v) =>
+                                    setSec(
+                                        "webhook_max_failure_count",
+                                        v ?? DEFAULT_PLATFORM_SECURITY.webhook_max_failure_count
+                                    )
+                                }
+                                min={1}
+                                max={50}
+                            />
+                        </Field>
+                        <Field
+                            label="Digital access expiry (days)"
+                            hint="Leave empty for lifetime access"
+                        >
+                            <NumInput
+                                value={security.digital_access_expiry_days ?? ""}
+                                onChange={(v) => setSec("digital_access_expiry_days", v)}
+                                min={0}
+                                max={3650}
+                                placeholder="Lifetime"
+                            />
+                        </Field>
+                    </Grid>
+                </section>
+
                 <div className="h-20" />
             </div>
 
@@ -213,6 +280,7 @@ export function FeaturesForm({ initial }: { initial: Record<string, unknown> }) 
                     onDiscard={() => {
                         setFeatures(initialFeatures);
                         setFraud(initialFraud);
+                        setSecurity(initialSecurity);
                         setDirty(false);
                     }}
                 />

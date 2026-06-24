@@ -15,15 +15,15 @@ export function Tile({
     tone?: "default" | "warn" | "danger" | "success";
 }) {
     const base =
-        "group self-start w-full px-3.5 py-2.5 rounded-xl border border-border/30 " +
+        "group self-start w-full px-3.5 py-2.5 rounded-md border border-border/30 " +
         "bg-background flex flex-col transition-[border-color,transform] " +
         "duration-150 hover:-translate-y-px";
 
     const tones = {
         default: "hover:border-border/60",
-        warn: "bg-amber-50/10  border-amber-400/30  hover:border-amber-400/60  dark:bg-amber-950/40",
-        danger: "bg-rose-50/10   border-rose-400/30   hover:border-rose-400/60   dark:bg-rose-950/40",
-        success: "bg-green-50/10  border-green-500/30  hover:border-green-500/60  dark:bg-green-950/40",
+        warn: "bg-amber-50/10  border-amber-400/30 hover:border-amber-400/60  dark:bg-amber-950/40",
+        danger: "bg-rose-50/10   border-rose-400/30 hover:border-rose-400/60   dark:bg-rose-950/40",
+        success: "bg-green-50/10  border-green-500/30 hover:border-green-500/60  dark:bg-green-950/40",
     };
 
     const iconTones = {

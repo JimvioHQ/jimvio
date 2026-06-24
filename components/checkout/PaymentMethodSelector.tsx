@@ -666,6 +666,8 @@ interface PaymentMethodSelectorProps {
   showSummary?: boolean;
   onPay?: () => void;
   loading?: boolean;
+  /** When set, only these providers are shown (from Admin → Payments settings). */
+  enabledMethodIds?: MethodId[];
 }
 
 function calcFeeAmount(methodId: MethodId, total: number): number {
@@ -684,8 +686,12 @@ export function PaymentMethodSelector({
   showSummary = true,
   onPay,
   loading = false,
+  enabledMethodIds,
 }: PaymentMethodSelectorProps) {
-  const selectedMethod = METHODS.find((m) => m.id === selected);
+  const visibleMethods = enabledMethodIds?.length
+    ? METHODS.filter((m) => enabledMethodIds.includes(m.id))
+    : METHODS;
+  const selectedMethod = visibleMethods.find((m) => m.id === selected) ?? METHODS.find((m) => m.id === selected);
   const feeAmount = selected ? calcFeeAmount(selected, orderTotal) : 0;
   const grandTotal = orderTotal + feeAmount;
 
@@ -704,7 +710,7 @@ export function PaymentMethodSelector({
 
       {/* ── Method list ───────────────────────────────────────────────── */}
       <div className="space-y-2">
-        {METHODS.map((m) => {
+        {visibleMethods.map((m) => {
           const active = selected === m.id;
           const fee = calcFeeAmount(m.id, orderTotal);
 

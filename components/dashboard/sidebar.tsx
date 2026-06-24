@@ -41,6 +41,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getUserBalance } from "@/lib/actions/wallet";
 import { createClient } from "@/lib/supabase/client";
+import { subscribePostgresChanges, unsubscribeRealtime } from "@/lib/supabase/realtime-subscribe";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -209,6 +210,8 @@ function SidebarContent({
   React.useEffect(() => {
     let cancelled = false;
     const supabase = createClient();
+    let channel: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
+    const channelPrefix = "sidebar-notifications";
 
     async function refreshBadges() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -233,25 +236,31 @@ function SidebarContent({
       setUnreadMessages(msgCount ?? 0);
     }
 
-    refreshBadges();
-
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    (async () => {
+    async function setup() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || cancelled) return;
-      channel = supabase
-        .channel(`sidebar-notifications-${user.id}`)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-          () => refreshBadges(),
-        )
-        .subscribe();
-    })();
+
+      void refreshBadges();
+
+      channel = await subscribePostgresChanges(
+        supabase,
+        `${channelPrefix}-${user.id}`,
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => { void refreshBadges(); },
+        () => cancelled,
+      );
+    }
+
+    void setup();
 
     return () => {
       cancelled = true;
-      if (channel) supabase.removeChannel(channel);
+      unsubscribeRealtime(supabase, channel, channelPrefix);
     };
   }, []);
 

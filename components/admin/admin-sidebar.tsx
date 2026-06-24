@@ -16,6 +16,7 @@ import {
   Landmark,
   SlidersHorizontal,
   Activity,
+  Megaphone,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
@@ -51,6 +52,7 @@ const navSections = [
     items: [
       { label: "Verifications", href: "/admin/verifications", icon: BadgeCheck },
       { label: "Disputes",      href: "/admin/disputes",      icon: Siren },
+      { label: "Campaigns",     href: "/admin/ugc",           icon: Megaphone },
       { label: "Messages",      href: "/admin/messages",      icon: Inbox },
     ],
   },

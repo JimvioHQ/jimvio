@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { appConfirm } from "@/lib/app-dialog";
 import type { Database } from "@/types/supabase";
-import { PageHeader, Th, StatusPill, EmptyState, RowArrow } from "@/components/ui/admin";
+import { PageHeader, Th, StatusPill, RowArrow } from "@/components/ui/admin";
+import { EmptyState } from "@/components/empty-states";
 import { Tile } from "@/components/ui/admin-tile";
 import { DashboardFilterChip } from "@/components/dashboard/dashboard-filter-chip";
 
@@ -493,6 +494,10 @@ export default function ProductsPage() {
           search={search}
           activeFilter={activeFilter}
           hasAnyProducts={products.length > 0}
+          onReset={() => {
+            setSearch("");
+            setActiveFilter("All");
+          }}
         />
       ) : (
         <>
@@ -756,37 +761,25 @@ function MenuButton({
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 function ProductsEmptyState({
-  search, activeFilter, hasAnyProducts,
+  search, activeFilter, hasAnyProducts, onReset,
 }: {
   search: string;
   activeFilter: Filter;
   hasAnyProducts: boolean;
+  onReset: () => void;
 }) {
   const hasFilters = search.length > 0 || activeFilter !== "All";
 
   return (
     <EmptyState
-      icon={<Package className="h-5 w-5 text-[var(--color-text-muted)]" />}
-      title={!hasAnyProducts ? "No products yet" : hasFilters ? "No matches found" : "No products"}
-      message={
-        !hasAnyProducts
-          ? "Add your first product to start selling."
-          : search
-            ? `No products match "${search}"`
-            : `No products in ${activeFilter}`
-      }
-      action={
-        !hasAnyProducts ? (
-          <Link
-            href="/dashboard/products/new"
-            className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium text-white"
-            style={{ background: "var(--color-accent)" }}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add product
-          </Link>
-        ) : undefined
-      }
+      variant="section"
+      preset="products"
+      presetContext={{
+        query: search,
+        filtered: hasAnyProducts && hasFilters,
+        filterLabel: activeFilter !== "All" ? activeFilter : undefined,
+        onReset: hasFilters ? onReset : undefined,
+      }}
     />
   );
 }

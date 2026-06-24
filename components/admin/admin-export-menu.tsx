@@ -57,7 +57,7 @@ export function AdminExportMenu({
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition") ?? "";
       const match = disposition.match(/filename="([^"]+)"/);
-      const filename = match?.[1] ?? `jimvio-${resource}.${format === "xlsx" ? "xls" : format}`;
+      const filename = match?.[1] ?? `jimvio-${resource}.${format}`;
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
