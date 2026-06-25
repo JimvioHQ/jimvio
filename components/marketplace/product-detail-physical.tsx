@@ -37,9 +37,9 @@ import {
 } from "@/lib/cj/shipping-display";
 import {
   sanitizeShippingMethodName,
-  sanitizeShipFromLabel,
   sanitizeSupplierFacingText,
 } from "@/lib/cj/customer-facing";
+import { resolveWarehouseCountryLabel } from "@/lib/shipping/warehouse-country";
 import { useRegionalShipping } from "@/hooks/use-regional-shipping";
 import type { RegionalShippingOption } from "@/lib/shipping/regional-shipping";
 
@@ -331,7 +331,11 @@ function ShippingOptionsTable({ options }: { options: RegionalShippingOption[] }
           </div>
           <div className="text-right">
             <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">{opt.estimated_delivery ?? "—"}</p>
-            {opt.ship_from_name && <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5">From {sanitizeShipFromLabel(opt.ship_from_name)}</p>}
+            {opt.ship_from_country && (
+              <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5">
+                From {resolveWarehouseCountryLabel([opt])}
+              </p>
+            )}
           </div>
           <div className="text-right">
             {opt.is_free_shipping ? <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400">Free</span> : <span className="text-[12px] font-semibold text-[var(--color-text-primary)]">{opt.currency} {opt.shipping_fee.toFixed(2)}</span>}
@@ -343,12 +347,18 @@ function ShippingOptionsTable({ options }: { options: RegionalShippingOption[] }
 }
 
 function ShippingInfoFallback({ display }: { display: ProductShippingDisplay }) {
+  const shipsFrom = display.shipsFrom || "International";
+  const delivery =
+    display.deliveryEstimate && display.deliveryEstimate !== "—"
+      ? display.deliveryEstimate
+      : "10–20 business days";
+
   const rows = [
-    { icon: MapPin, label: "Ships from", value: display.shipsFrom },
+    { icon: MapPin, label: "Ships from", value: shipsFrom },
     ...(display.processingTime
       ? [{ icon: Timer, label: "Processing time", value: display.processingTime }]
       : []),
-    { icon: Truck, label: "Est. delivery", value: display.deliveryEstimate },
+    { icon: Truck, label: "Est. delivery", value: delivery },
     { icon: Package, label: "Shipping cost", value: display.shippingCost },
     {
       icon: Globe,
@@ -532,51 +542,44 @@ function ShippingInfoCard({
 }) {
   const bestOption = shippingOptions.find((o) => o.is_recommended) ?? shippingOptions[0] ?? null;
   const today = new Date();
-  const minDays = display.minDeliveryDays ?? bestOption?.min_delivery_days ?? null;
-  const maxDays = display.maxDeliveryDays ?? bestOption?.max_delivery_days ?? null;
-  const minDate =
-    minDays != null ? new Date(today.getTime() + minDays * 24 * 60 * 60 * 1000) : null;
-  const maxDate =
-    maxDays != null ? new Date(today.getTime() + maxDays * 24 * 60 * 60 * 1000) : null;
+  const minDays = display.minDeliveryDays ?? bestOption?.min_delivery_days ?? 10;
+  const maxDays = display.maxDeliveryDays ?? bestOption?.max_delivery_days ?? 20;
+  const minDate = new Date(today.getTime() + minDays * 24 * 60 * 60 * 1000);
+  const maxDate = new Date(today.getTime() + maxDays * 24 * 60 * 60 * 1000);
   const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const fromCountry = bestOption?.ship_from_country ?? "";
-  const flag = fromCountry ? (COUNTRY_FLAGS[fromCountry] ?? "🌍") : null;
+  const fromCountry = display.warehouseCountryCode ?? bestOption?.ship_from_country ?? "";
+  const flag = fromCountry ? (COUNTRY_FLAGS[fromCountry] ?? "🌍") : "🌍";
   const isFree = isFreeShipping || (bestOption?.is_free_shipping ?? false);
+  const shipsFromText = display.shipsFrom || "International";
+  const deliveryText =
+    display.deliveryEstimate && display.deliveryEstimate !== "—"
+      ? display.deliveryEstimate
+      : `${minDays}–${maxDays} business days`;
 
   const rows: { label: string; value: React.ReactNode }[] = [
     {
       label: "Ships from",
       value: (
         <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-text-primary)]">
-          {display.shipsFrom}
-          {flag ? <span aria-hidden>{flag}</span> : null}
+          {loading ? "Loading…" : shipsFromText}
+          {!loading ? <span aria-hidden>{flag}</span> : null}
         </span>
       ),
     },
-  ];
-
-  if (minDate && maxDate) {
-    rows.push({
+    {
       label: "Estimated Delivery",
       value: (
         <div className="text-right">
           <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-            {fmtDate(minDate)} – {fmtDate(maxDate)}
+            {loading ? "Loading…" : `${fmtDate(minDate)} – ${fmtDate(maxDate)}`}
           </p>
-          <p className="text-[10px] text-[var(--color-text-muted)]">{display.deliveryEstimate}</p>
+          <p className="text-[10px] text-[var(--color-text-muted)]">
+            {loading ? "Updating for your region" : deliveryText}
+          </p>
         </div>
       ),
-    });
-  } else {
-    rows.push({
-      label: "Est. delivery",
-      value: (
-        <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-          {display.deliveryEstimate}
-        </span>
-      ),
-    });
-  }
+    },
+  ];
 
   if (display.processingTime) {
     rows.push({
@@ -1211,6 +1214,8 @@ export function PhysicalProductDetail({
     else { if (vl) variantDimensions.push({ label: "Length", value: `${vl} cm` }); if (vw) variantDimensions.push({ label: "Width", value: `${vw} cm` }); if (vh) variantDimensions.push({ label: "Height", value: `${vh} cm` }); }
     if (vwt) variantDimensions.push({ label: "Variant weight", value: `${vwt} g` });
     const extras = [
+      { label: "Ships from", value: shippingDisplay.shipsFrom },
+      { label: "Est. delivery", value: shippingDisplay.deliveryEstimate },
       { label: "Weight", value: weightDisplay || "—" }, { label: "SKU", value: product.sku || "—" },
       { label: "Brand", value: product.brand ?? cjMeta.brand ?? "—" }, { label: "Material", value: product.material ?? cjMeta.material ?? "—" },
       { label: "Package size", value: cjMeta.package_size ?? "—" }, { label: "Condition", value: product.condition ?? "—" },
@@ -1223,7 +1228,7 @@ export function PhysicalProductDetail({
     if (!existingKeys.has("weight") && weightDisplay) merged.push({ label: "Weight", value: weightDisplay });
     if (!existingKeys.has("sku") && product.sku) merged.push({ label: "SKU", value: product.sku });
     return merged;
-  }, [parsedSpecs, weightDisplay, product.sku, product.brand, product.material, isFreeShipping, cjMeta, selectedVariant]);
+  }, [parsedSpecs, weightDisplay, product.sku, product.brand, product.material, isFreeShipping, cjMeta, selectedVariant, shippingDisplay]);
 
   const liveViewers = useLiveViewers(product.view_count ? Math.min(product.view_count, 12) : 5);
   useRecentlyViewed(product.id, product);

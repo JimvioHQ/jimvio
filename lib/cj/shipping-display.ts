@@ -1,8 +1,9 @@
-import {
-  sanitizeShipFromLabel,
-  sanitizeShippingMethodName,
-} from "@/lib/cj/customer-facing";
+import { sanitizeShippingMethodName } from "@/lib/cj/customer-facing";
 import type { StorefrontShippingMeta } from "@/lib/shipping/regional-shipping";
+import {
+  resolveWarehouseCountryCode,
+  resolveWarehouseCountryLabel,
+} from "@/lib/shipping/warehouse-country";
 
 export type ShippingOptionLike = {
   method_name?: string | null;
@@ -43,17 +44,8 @@ export type ProductShippingDisplay = {
   methodName: string | null;
   minDeliveryDays: number | null;
   maxDeliveryDays: number | null;
+  warehouseCountryCode?: string | null;
 };
-
-function countryLabel(code: string): string {
-  const normalized = code.trim().toUpperCase();
-  if (!normalized || normalized === "*" || normalized === "GLOBAL") return code;
-  try {
-    return new Intl.DisplayNames(["en"], { type: "region" }).of(normalized) ?? code;
-  } catch {
-    return code;
-  }
-}
 
 function formatDayRange(min?: number | null, max?: number | null): string | null {
   if (min != null && max != null && min > 0 && max > 0) {
@@ -85,21 +77,80 @@ function pickBestShippingOption(options: ShippingOptionLike[]): ShippingOptionLi
   );
 }
 
-function resolveShipsFrom(option: ShippingOptionLike | null): string {
-  const code = option?.ship_from_country?.trim();
-  const name = option?.ship_from_name?.trim();
+function pickDisplayOption(
+  regional: ShippingOptionLike[],
+  fallbackPool: ShippingOptionLike[],
+): ShippingOptionLike | null {
+  return pickBestShippingOption(regional) ?? pickBestShippingOption(fallbackPool);
+}
 
-  if (code) {
-    const country = countryLabel(code);
-    if (name && !/^cj\s*warehouse$/i.test(name)) {
-      return `${sanitizeShipFromLabel(name)}, ${country}`;
+function isMissingDisplayValue(value: string | null | undefined): boolean {
+  const text = value?.trim();
+  return !text || text === "—" || text === "-";
+}
+
+function resolveShipsFromDisplay(
+  best: ShippingOptionLike | null,
+  fallbackPool: ShippingOptionLike[],
+  meta: StorefrontShippingMeta,
+): string {
+  const pools = [best, ...fallbackPool].filter(Boolean) as ShippingOptionLike[];
+
+  return resolveWarehouseCountryLabel(pools, {
+    warehouseCountryCode: meta.warehouseCountryCode ?? meta.defaultShipFromCountry,
+  });
+}
+
+export function resolveWarehouseFlagCountry(
+  best: ShippingOptionLike | null,
+  fallbackPool: ShippingOptionLike[],
+  meta: StorefrontShippingMeta,
+): string | null {
+  const pools = [best, ...fallbackPool].filter(Boolean) as ShippingOptionLike[];
+  return resolveWarehouseCountryCode(pools, {
+    warehouseCountryCode: meta.warehouseCountryCode ?? meta.defaultShipFromCountry,
+  });
+}
+
+function defaultDeliveryRange(meta: StorefrontShippingMeta): {
+  min: number;
+  max: number;
+  label: string;
+} {
+  const processing = meta.processingDays && meta.processingDays > 0 ? meta.processingDays : 3;
+  const transit =
+    meta.shippingDays && meta.shippingDays > 0 ? meta.shippingDays : 12;
+
+  const min = processing + Math.max(5, transit - 3);
+  const max = processing + transit + 5;
+  const label = formatDayRange(min, max) ?? `${min}–${max} business days`;
+  return { min, max, label };
+}
+
+function resolveDeliveryDisplay(
+  best: ShippingOptionLike | null,
+  fallbackPool: ShippingOptionLike[],
+  meta: StorefrontShippingMeta,
+): { label: string; minDays: number; maxDays: number } {
+  const pools = [best, ...fallbackPool].filter(Boolean) as ShippingOptionLike[];
+
+  for (const option of pools) {
+    const minDays = option.min_delivery_days ?? null;
+    const maxDays = option.max_delivery_days ?? null;
+    const label =
+      option.estimated_delivery?.trim() ||
+      formatDayRange(minDays, maxDays);
+
+    if (label && !isMissingDisplayValue(label)) {
+      return {
+        label,
+        minDays: minDays ?? defaultDeliveryRange(meta).min,
+        maxDays: maxDays ?? defaultDeliveryRange(meta).max,
+      };
     }
-    return country;
   }
 
-  if (name) return sanitizeShipFromLabel(name);
-
-  return "—";
+  return defaultDeliveryRange(meta);
 }
 
 /** Storefront shipping copy — options + neutral metadata only (no supplier branding). */
@@ -107,16 +158,14 @@ export function resolveStorefrontShippingDisplay(
   options: ShippingOptionLike[],
   meta: StorefrontShippingMeta,
   isFreeShipping: boolean,
+  fallbackOptions: ShippingOptionLike[] = [],
 ): ProductShippingDisplay {
   const best = pickBestShippingOption(options);
+  const fallbackPool = fallbackOptions.length > 0 ? fallbackOptions : options;
+  const displayOption = pickDisplayOption(options, fallbackPool);
 
-  const minDays = best?.min_delivery_days ?? null;
-  const maxDays = best?.max_delivery_days ?? null;
-
-  const deliveryEstimate =
-    best?.estimated_delivery?.trim() ||
-    formatDayRange(minDays, maxDays) ||
-    "—";
+  const shipsFrom = resolveShipsFromDisplay(displayOption, fallbackPool, meta);
+  const delivery = resolveDeliveryDisplay(displayOption, fallbackPool, meta);
 
   const processingTime =
     meta.processingDays != null && meta.processingDays > 0
@@ -133,18 +182,35 @@ export function resolveStorefrontShippingDisplay(
     shippingCost = `${best.currency} ${best.shipping_fee.toFixed(2)}`;
   }
 
-  const rawMethod = best?.method_name ?? best?.carrier ?? null;
+  const rawMethod = best?.method_name ?? best?.carrier ?? displayOption?.method_name ?? displayOption?.carrier ?? null;
 
   return {
-    shipsFrom: sanitizeShipFromLabel(resolveShipsFrom(best)),
+    shipsFrom,
     processingTime,
-    deliveryEstimate,
+    deliveryEstimate: delivery.label,
     shippingCost,
-    hasTracking: Boolean(best?.has_tracking ?? meta.hasTracking),
-    methodName: rawMethod ? sanitizeShippingMethodName(rawMethod) : null,
-    minDeliveryDays: minDays ?? null,
-    maxDeliveryDays: maxDays ?? null,
+    hasTracking: Boolean(best?.has_tracking ?? displayOption?.has_tracking ?? meta.hasTracking),
+    methodName: rawMethod ? sanitizeShippingMethodName(rawMethod) : "Standard Shipping",
+    minDeliveryDays: delivery.minDays,
+    maxDeliveryDays: delivery.maxDays,
+    warehouseCountryCode: resolveWarehouseFlagCountry(displayOption, fallbackPool, meta),
   };
+}
+
+function parsePositiveNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return Math.round(value);
+  }
+  if (value == null || value === "") return null;
+  const parsed = Number(String(value).trim());
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : null;
+}
+
+function resolveShipsFromLegacy(option: ShippingOptionLike | null): string {
+  return resolveWarehouseCountryLabel(
+    option ? [option] : [],
+    {},
+  );
 }
 
 /** Resolve storefront shipping copy from synced CJ freight rows + product metadata. */
@@ -165,7 +231,10 @@ export function resolveProductShippingDisplay(
   const deliveryEstimate =
     best?.estimated_delivery?.trim() ||
     formatDayRange(minDays, maxDays) ||
-    "—";
+    defaultDeliveryRange({
+      processingDays: parsePositiveNumber(meta.cj_delivery_cycle),
+      shippingDays: parsePositiveNumber(meta.cj_shipping_days),
+    }).label;
 
   const processingTime = formatProcessingTime(meta.cj_delivery_cycle);
 
@@ -178,15 +247,27 @@ export function resolveProductShippingDisplay(
   }
 
   const rawMethod = best?.method_name ?? best?.carrier ?? null;
+  const fallbackDelivery = defaultDeliveryRange({
+    processingDays: parsePositiveNumber(meta.cj_delivery_cycle),
+    shippingDays: parsePositiveNumber(meta.cj_shipping_days),
+  });
 
   return {
-    shipsFrom: sanitizeShipFromLabel(resolveShipsFrom(best)),
+    shipsFrom: resolveShipsFromLegacy(best),
     processingTime,
     deliveryEstimate,
     shippingCost,
     hasTracking: Boolean(best?.has_tracking ?? meta.cj_has_tracking),
-    methodName: rawMethod ? sanitizeShippingMethodName(rawMethod) : null,
-    minDeliveryDays: minDays ?? null,
-    maxDeliveryDays: maxDays ?? null,
+    methodName: rawMethod ? sanitizeShippingMethodName(rawMethod) : "Standard Shipping",
+    minDeliveryDays: minDays ?? fallbackDelivery.min,
+    maxDeliveryDays: maxDays ?? fallbackDelivery.max,
+    warehouseCountryCode: resolveWarehouseCountryCode(best ? [best] : [], {
+      warehouseCountryCode:
+        typeof meta.cj_source_from === "string"
+          ? meta.cj_source_from
+          : typeof meta.ships_from === "string"
+            ? meta.ships_from
+            : null,
+    }),
   };
 }

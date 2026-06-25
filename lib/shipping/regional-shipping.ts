@@ -1,4 +1,5 @@
 import { formatCountryCodeList } from "@/lib/geo/buyer-country";
+import { parseWarehouseCountryCode } from "@/lib/shipping/warehouse-country";
 
 export type RegionalShippingOption = {
   id?: string;
@@ -49,6 +50,9 @@ export type StorefrontShippingMeta = {
   shippingDays?: number | null;
   isFreeShipping?: boolean;
   hasTracking?: boolean;
+  /** Warehouse origin country code or label from product metadata. */
+  warehouseCountryCode?: string | null;
+  /** @deprecated Use warehouseCountryCode */
   defaultShipFromCountry?: string | null;
 };
 
@@ -66,17 +70,22 @@ export function storefrontMetaFromProduct(product: {
   source_metadata?: Record<string, unknown> | null;
 }): StorefrontShippingMeta {
   const meta = product.source_metadata ?? {};
+  const warehouseRawCandidates = [
+    typeof meta.cj_source_from === "string" ? meta.cj_source_from.trim() : "",
+    typeof meta.cj_ships_from === "string" ? meta.cj_ships_from.trim() : "",
+    typeof meta.ships_from === "string" ? meta.ships_from.trim() : "",
+  ].filter(Boolean);
+
+  const warehouseRaw =
+    warehouseRawCandidates.find((value) => parseWarehouseCountryCode(value) !== null) ??
+    null;
 
   return {
     processingDays: parsePositiveNumber(meta.cj_delivery_cycle),
     shippingDays: parsePositiveNumber(meta.cj_shipping_days),
     isFreeShipping: Boolean(product.is_free_shipping ?? meta.cj_is_free_shipping),
     hasTracking: Boolean(meta.cj_has_tracking),
-    defaultShipFromCountry:
-      typeof meta.cj_source_from === "string" && meta.cj_source_from.trim()
-        ? meta.cj_source_from.trim().toUpperCase()
-        : typeof meta.ships_from === "string" && meta.ships_from.trim()
-          ? meta.ships_from.trim().toUpperCase()
-          : "CN",
+    warehouseCountryCode: warehouseRaw,
+    defaultShipFromCountry: parseWarehouseCountryCode(warehouseRaw),
   };
 }

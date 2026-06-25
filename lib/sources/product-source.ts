@@ -15,7 +15,7 @@ export function normalizeProductSource(raw: string | null | undefined): ProductS
 export function fulfillmentLabel(source: ProductSource): string {
   switch (source) {
     case "shopify": return "Shopify";
-    case "cj":      return "Jimvio";
+    case "cj":      return "International";
     default:        return "Vendor";
   }
 }

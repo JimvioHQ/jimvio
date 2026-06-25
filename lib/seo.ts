@@ -191,12 +191,15 @@ export function constructMetadata({
   const metaDescription = truncateDescription(description);
 
   const ogType: "website" | "article" = type === "article" ? "article" : "website";
+  const isRootTitle = path === "" && title === SITE.title;
 
   return {
-    title: {
-      default: SITE.title,
-      template: `%s | ${SITE.name}`,
-    },
+    title: isRootTitle
+      ? {
+          default: SITE.title,
+          template: `%s | ${SITE.name}`,
+        }
+      : title,
     applicationName: SITE.name,
     description: metaDescription,
     keywords,

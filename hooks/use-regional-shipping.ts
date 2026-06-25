@@ -117,8 +117,14 @@ export function useRegionalShipping({
     shippingOptions.some((o) => o.is_free_shipping);
 
   const shippingDisplay = useMemo(
-    () => resolveStorefrontShippingDisplay(shippingOptions, storefrontMeta, isFreeShipping),
-    [shippingOptions, storefrontMeta, isFreeShipping],
+    () =>
+      resolveStorefrontShippingDisplay(
+        shippingOptions,
+        storefrontMeta,
+        isFreeShipping,
+        allShippingOptions,
+      ),
+    [shippingOptions, storefrontMeta, isFreeShipping, allShippingOptions],
   );
 
   const shipsToLabels = useMemo(() => {
