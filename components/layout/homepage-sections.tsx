@@ -6,7 +6,7 @@ import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
   ArrowRight, Check, ShieldCheck, Globe, Zap, Sparkles,
   Bot, Wand2, Search, Clapperboard, Share2, Star,
-  ChevronDown, Layers, TrendingUp, Wallet, Target, Award, BarChart3, LineChart,
+  ChevronDown, TrendingUp, Wallet, Target, Award, BarChart3, LineChart,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -16,6 +16,7 @@ import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 import { WorldMap, type WorldMapPin } from "@/components/ui/world-map";
 import { TakeJimvioDevicesSkeleton } from "@/components/layout/take-jimvio-phones-client";
 import { Slider } from "@/components/ui/slider";
+import { CommunityLetterAvatar } from "@/components/community/community-letter-avatar";
 
 const TakeJimvioPhonesClient = dynamic(
   () =>
@@ -901,19 +902,19 @@ type CommunityRow = {
     | null;
 };
 
-const COMMUNITY_ICONS: Record<string, { icon: typeof Users; color: string; bg: string }> = {
-  affiliate: { icon: DollarSign, color: GREEN, bg: "#f0fdf4" },
-  ecommerce: { icon: Store, color: BLUE, bg: "#eff6ff" },
-  ugc: { icon: Clapperboard, color: PURPLE, bg: "#f5f3ff" },
-  digital: { icon: Layers, color: ORANGE, bg: "#fff4ed" },
+const COMMUNITY_PALETTE: Record<string, { color: string; bg: string }> = {
+  affiliate: { color: GREEN, bg: "#f0fdf4" },
+  ecommerce: { color: BLUE, bg: "#eff6ff" },
+  ugc: { color: PURPLE, bg: "#f5f3ff" },
+  digital: { color: ORANGE, bg: "#fff4ed" },
 };
 
-function communityStyle(name: string) {
+function communityPalette(name: string) {
   const n = name.toLowerCase();
-  if (n.includes("affiliate")) return COMMUNITY_ICONS.affiliate;
-  if (n.includes("ecom") || n.includes("seller")) return COMMUNITY_ICONS.ecommerce;
-  if (n.includes("ugc") || n.includes("creator")) return COMMUNITY_ICONS.ugc;
-  return COMMUNITY_ICONS.digital;
+  if (n.includes("affiliate")) return COMMUNITY_PALETTE.affiliate;
+  if (n.includes("ecom") || n.includes("seller")) return COMMUNITY_PALETTE.ecommerce;
+  if (n.includes("ugc") || n.includes("creator")) return COMMUNITY_PALETTE.ugc;
+  return COMMUNITY_PALETTE.digital;
 }
 
 function communityProfileImage(c: CommunityRow): string | null {
@@ -934,8 +935,7 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
   ];
 
   const cards = list.map((c) => {
-    const style = communityStyle(c.name);
-    const Icon = style.icon;
+    const palette = communityPalette(c.name);
     const profileImage = communityProfileImage(c);
     const heroImage = c.cover_image ?? c.avatar_url ?? profileImage;
     const shortName = truncateLabel(c.name, 36);
@@ -964,12 +964,12 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
               loading="lazy"
             />
           ) : (
-            <span
-              className="grid size-12 shrink-0 place-items-center rounded-xl"
-              style={{ background: style.bg, color: style.color }}
-            >
-              <Icon className="size-6" />
-            </span>
+            <CommunityLetterAvatar
+              name={c.name}
+              className="size-12 shrink-0 rounded-xl"
+              textClassName="text-[20px]"
+              style={{ background: palette.bg, color: palette.color }}
+            />
           )}
           <div className="min-w-0 flex-1">
             <h3 className="line-clamp-1 text-[11px] font-bold text-[var(--color-text-primary)]">
@@ -999,12 +999,12 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
                 loading="lazy"
               />
             ) : (
-              <div
-                className="flex size-full items-center justify-center"
-                style={{ background: style.bg, color: style.color }}
-              >
-                <Icon className="size-10" />
-              </div>
+              <CommunityLetterAvatar
+                name={c.name}
+                className="size-full"
+                textClassName="text-[40px] font-black 2xl:text-[48px]"
+                style={{ background: palette.bg, color: palette.color }}
+              />
             )}
             <span
               className="absolute left-2 top-2 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm"

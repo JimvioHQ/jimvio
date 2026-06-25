@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   AI_CACHE_TTL_MS,
@@ -19,12 +18,8 @@ function isUsableApiKey(key?: string): boolean {
   return true;
 }
 
-function isOpenAiQuotaError(message: string): boolean {
-  return /429|quota|billing|insufficient/i.test(message);
-}
-
 function isGeminiKeyError(message: string): boolean {
-  return /api_key_invalid|api key expired|invalid api key|400 bad request/i.test(message);
+  return /api_key_invalid|api key expired|invalid api key|400 bad request|403|permission/i.test(message);
 }
 
 function buildMockResponse(query: string): string {
@@ -152,33 +147,6 @@ function streamText(text: string, mode: "live" | "demo" = "live") {
   });
 }
 
-function streamOpenAi(
-  openaiResponse: AsyncIterable<{ choices: Array<{ delta?: { content?: string | null } }> }>
-) {
-  const encoder = new TextEncoder();
-  let buffer = "";
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      for await (const chunk of openaiResponse) {
-        const content = chunk.choices[0]?.delta?.content ?? "";
-        if (!content) continue;
-        buffer += content;
-        if (buffer.length >= 24) {
-          controller.enqueue(encoder.encode(sseChunk(buffer)));
-          buffer = "";
-        }
-      }
-      if (buffer) controller.enqueue(encoder.encode(sseChunk(buffer)));
-      controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-      controller.close();
-    },
-  });
-  return new Response(stream, {
-    headers: { "Content-Type": "text/event-stream", "X-Jimvio-AI-Mode": "live" },
-  });
-}
-
 async function streamGemini(geminiResult: { stream: AsyncIterable<{ text(): string }> }) {
   const encoder = new TextEncoder();
   let buffer = "";
@@ -209,8 +177,9 @@ async function tryGemini(messages: ChatMessage[]) {
   if (!isUsableApiKey(geminiKey)) return null;
 
   const genAI = new GoogleGenerativeAI(geminiKey!);
+  const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
   const model = genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+    model: modelName,
     systemInstruction: { role: "system", parts: [{ text: JIMVIO_AI_SYSTEM_PROMPT }] },
     generationConfig: {
       maxOutputTokens: 900,
@@ -226,28 +195,6 @@ async function tryGemini(messages: ChatMessage[]) {
 
   const result = await model.startChat({ history }).sendMessageStream(lastMessage);
   return streamGemini(result);
-}
-
-async function tryOpenAi(messages: ChatMessage[]) {
-  const openAIKey = process.env.OPENAI_API_KEY;
-  if (!isUsableApiKey(openAIKey)) return null;
-
-  const openai = new OpenAI({ apiKey: openAIKey });
-  const response = await openai.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    messages: [
-      { role: "system", content: JIMVIO_AI_SYSTEM_PROMPT },
-      ...messages.map((m) => ({
-        role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-        content: m.content,
-      })),
-    ],
-    max_tokens: 900,
-    temperature: 0.6,
-    stream: true,
-  });
-
-  return streamOpenAi(response);
 }
 
 export async function POST(req: NextRequest) {
@@ -266,36 +213,16 @@ export async function POST(req: NextRequest) {
       return streamText(cached.text, cached.mode);
     }
 
-    const failures: string[] = [];
-
     try {
       const geminiRes = await tryGemini(messages);
       if (geminiRes) return geminiRes;
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
-      failures.push(`Gemini: ${msg}`);
       if (isGeminiKeyError(msg)) {
-        console.info("[Jimvio AI] Gemini unavailable. Trying OpenAI…");
+        console.info("[Jimvio AI] Gemini unavailable (invalid or missing key). Using demo mode.");
       } else {
         console.warn("[Jimvio AI] Gemini failed:", msg);
       }
-    }
-
-    try {
-      const openAiRes = await tryOpenAi(messages);
-      if (openAiRes) return openAiRes;
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      failures.push(`OpenAI: ${msg}`);
-      if (isOpenAiQuotaError(msg)) {
-        console.info("[Jimvio AI] OpenAI unavailable (quota/billing). Using demo mode.");
-      } else {
-        console.warn("[Jimvio AI] OpenAI failed:", msg);
-      }
-    }
-
-    if (failures.length) {
-      console.info("[Jimvio AI] Falling back to demo response.", failures.join(" | "));
     }
 
     const demoText = buildMockResponse(lastMessageText);

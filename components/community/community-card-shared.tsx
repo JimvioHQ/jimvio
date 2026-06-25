@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn, formatNumber } from "@/lib/utils";
+import { CommunityLetterAvatar, communityInitial } from "@/components/community/community-letter-avatar";
 
 export type CommunityRow = {
   id: string;
@@ -53,7 +54,7 @@ export function SharedCommunityCard({
   const { formatMoney } = useCurrency();
   const [copied, setCopied] = useState(false);
   const isNew = isNewCommunity(c.created_at);
-  const initial = c.name?.[0]?.toUpperCase() ?? "?";
+  const initial = communityInitial(c.name);
   const avatarSrc = c.avatar_url || c.image_url || null;
   const owner = ownerLabel(c);
   const featured = variant === "featured";
@@ -104,14 +105,11 @@ export function SharedCommunityCard({
               unoptimized
             />
           ) : (
-            <div className="absolute inset-0 flex items-end justify-start overflow-hidden p-4">
-              <span
-                className="select-none text-[88px] font-black leading-none tracking-tighter text-[var(--color-accent)]/10"
-                aria-hidden
-              >
-                {initial}
-              </span>
-            </div>
+            <CommunityLetterAvatar
+              name={c.name}
+              className="absolute inset-0 bg-[var(--color-accent-light)]"
+              textClassName="text-[56px] font-black text-[var(--color-accent)]/90 sm:text-[64px]"
+            />
           )}
 
           <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/25 to-transparent pointer-events-none" />

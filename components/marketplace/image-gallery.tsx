@@ -292,9 +292,10 @@
 import React, {
     useState, useRef, useCallback, useEffect, useMemo, useId,
 } from "react";
-import { Zap, ZoomIn, ChevronLeft, ChevronRight, X, Maximize2, Play } from "lucide-react";
+import { Zap, ZoomIn, ChevronLeft, ChevronRight, X, Maximize2, Play, Film } from "lucide-react";
 import { cn, ImageInput, normalizeImages } from "@/lib/utils";
 import { isPlayableVideoUrl, normalizeVideoUrl, resolveVideoPlayback, type VideoPlayback } from "@/lib/product-videos";
+import { ProductVideoPlayer } from "@/components/marketplace/product-video-player";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -526,13 +527,15 @@ function Thumbnail({
                 "relative flex-shrink-0 w-[64px] h-[64px] rounded-lg overflow-hidden transition-all duration-200 outline-none",
                 "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
             )}
-            style={{
-                border: active
-                    ? "2px solid var(--color-text-primary)"
-                    : "2px solid var(--color-border)",
-                background: "var(--color-surface)",
-                opacity: active ? 1 : 0.55,
-            }}
+                style={{
+                    border: active
+                        ? isVideo
+                            ? "2px solid #fd5000"
+                            : "2px solid var(--color-text-primary)"
+                        : "2px solid var(--color-border)",
+                    background: isVideo ? "#0a0a0c" : "var(--color-surface)",
+                    opacity: active ? 1 : 0.55,
+                }}
         >
             {isVideo ? (
                 <>
@@ -542,8 +545,14 @@ function Thumbnail({
                         className="absolute inset-0 h-full w-full object-cover"
                         draggable={false}
                     />
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/35">
-                        <Play className="h-5 w-5 text-white fill-white" />
+                    <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10" />
+                    <span className="absolute left-1.5 top-1.5 rounded bg-[#fd5000] px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white">
+                        Video
+                    </span>
+                    <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-md ring-2 ring-[#fd5000]/30">
+                            <Play className="ml-0.5 h-3.5 w-3.5 fill-[#fd5000] text-[#fd5000]" />
+                        </span>
                     </span>
                 </>
             ) : (
@@ -730,19 +739,20 @@ export function ImageGallery({
             <div className={cn(isLeftThumbnails ? "flex flex-col md:flex-row gap-4 items-start" : "flex flex-col gap-3", className)}>
 
                 {hasVideos && hasImages && (
-                    <div className="inline-flex self-start rounded-lg border border-[var(--color-border)] overflow-hidden">
+                    <div className="inline-flex self-start overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 shadow-sm">
                         <button
                             type="button"
                             onClick={() => {
                                 if (firstVideoIndex >= 0) setActiveIndex(firstVideoIndex);
                             }}
                             className={cn(
-                                "h-8 px-3 text-[12px] font-medium transition-colors",
+                                "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold transition-all",
                                 activeMedia?.type === "video"
-                                    ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
-                                    : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]",
+                                    ? "bg-[#fd5000] text-white shadow-sm"
+                                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
                             )}
                         >
+                            <Film className="h-3.5 w-3.5" />
                             Video
                         </button>
                         <button
@@ -751,10 +761,10 @@ export function ImageGallery({
                                 if (firstImageIndex >= 0) setActiveIndex(firstImageIndex);
                             }}
                             className={cn(
-                                "h-8 px-3 text-[12px] font-medium transition-colors border-l border-[var(--color-border)]",
+                                "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold transition-all",
                                 activeMedia?.type === "image"
-                                    ? "bg-[var(--color-text-primary)] text-[var(--color-bg)]"
-                                    : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]",
+                                    ? "bg-[var(--color-text-primary)] text-[var(--color-bg)] shadow-sm"
+                                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
                             )}
                         >
                             Photos
@@ -770,12 +780,13 @@ export function ImageGallery({
                     )}
                     style={{
                         aspectRatio: "1 / 1",
-                        background: "var(--color-surface)",
-                        border: "1px solid var(--color-border)",
+                        background: mainVideo ? "#0a0a0c" : "var(--color-surface)",
+                        border: mainVideo ? "1px solid rgba(255,255,255,0.08)" : "1px solid var(--color-border)",
                         borderRadius: "12px",
                         isolation: "isolate",
                         cursor: showZoom ? (zoom.active ? "none" : "crosshair") : "default",
                         touchAction: "manipulation",
+                        boxShadow: mainVideo ? "0 20px 48px rgba(0,0,0,0.28)" : undefined,
                     }}
                     onMouseMove={(e) => { onMove(e); handleMouseEnter(); }}
                     onMouseLeave={onLeave}
@@ -794,79 +805,53 @@ export function ImageGallery({
                     aria-label={mainImage ? "Tap to enlarge product image" : undefined}
                 >
                     {/* Subtle grid texture */}
-                    <div
-                        className="absolute inset-0 opacity-[0.025] pointer-events-none z-0"
-                        style={{
-                            backgroundImage:
-                                "linear-gradient(var(--color-text-primary) 1px, transparent 1px), linear-gradient(90deg, var(--color-text-primary) 1px, transparent 1px)",
-                            backgroundSize: "28px 28px",
-                        }}
-                    />
+                    {!mainVideo && (
+                        <div
+                            className="absolute inset-0 opacity-[0.025] pointer-events-none z-0"
+                            style={{
+                                backgroundImage:
+                                    "linear-gradient(var(--color-text-primary) 1px, transparent 1px), linear-gradient(90deg, var(--color-text-primary) 1px, transparent 1px)",
+                                backgroundSize: "28px 28px",
+                            }}
+                        />
+                    )}
 
                     {mainVideo ? (
                         <>
                             {!imageLoaded && !mediaError && <ImageSkeleton />}
                             {mediaError ? (
-                                <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 px-4 text-center">
-                                    <Play className="h-10 w-10 text-[var(--color-text-muted)]" />
-                                    <p className="text-[12px] text-[var(--color-text-muted)]">Video could not be loaded</p>
+                                <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-3 bg-[#0a0a0c] px-4 text-center">
+                                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
+                                        <Film className="h-6 w-6 text-[#fd5000]" />
+                                    </span>
+                                    <p className="text-[13px] font-medium text-white/80">Video couldn&apos;t load</p>
+                                    <p className="text-[11px] text-white/45">Try again or open the file directly.</p>
                                     <a
                                         href={mainVideo.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-[11px] font-semibold text-[var(--color-accent)]"
+                                        className="mt-1 rounded-full bg-[#fd5000] px-4 py-2 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         Open video
                                     </a>
                                 </div>
-                            ) : mainVideoEmbed ? (
-                                <iframe
-                                    key={mainVideoEmbed}
-                                    src={`${mainVideoEmbed}?autoplay=1&mute=1&loop=1&controls=1&playsinline=1`}
-                                    title={`${productName} video`}
-                                    className="absolute inset-0 z-[1] h-full w-full border-0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                    onLoad={() => setImageLoaded(true)}
+                            ) : (
+                                <ProductVideoPlayer
+                                    src={mainVideoSrc}
+                                    embedSrc={mainVideoEmbed}
+                                    poster={mainVideo.poster}
+                                    productName={productName}
+                                    videoRef={videoRef}
+                                    needsTap={videoNeedsTap}
+                                    onLoaded={() => setImageLoaded(true)}
+                                    onError={() => {
+                                        setMediaError(true);
+                                        setImageLoaded(true);
+                                    }}
+                                    onPlayRequest={playVideo}
                                 />
-                            ) : mainVideoSrc ? (
-                                <>
-                                    <video
-                                        ref={videoRef}
-                                        key={mainVideoSrc}
-                                        src={mainVideoSrc}
-                                        poster={mainVideo.poster}
-                                        autoPlay
-                                        muted
-                                        loop
-                                        playsInline
-                                        controls
-                                        preload="metadata"
-                                        className="absolute inset-0 z-[1] h-full w-full object-contain p-2"
-                                        onLoadedData={() => setImageLoaded(true)}
-                                        onError={() => {
-                                            setMediaError(true);
-                                            setImageLoaded(true);
-                                        }}
-                                    />
-                                    {videoNeedsTap && (
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                playVideo();
-                                            }}
-                                            className="absolute inset-0 z-[2] flex items-center justify-center bg-black/35"
-                                            aria-label="Play product video"
-                                        >
-                                            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg">
-                                                <Play className="h-7 w-7 fill-[var(--color-text-primary)] text-[var(--color-text-primary)]" />
-                                            </span>
-                                        </button>
-                                    )}
-                                </>
-                            ) : null}
+                            )}
                         </>
                     ) : mainImage ? (
                         <>

@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, ShoppingBag, TrendingUp, Users } from "lucide-react";
+import { ArrowRight, ShoppingBag, TrendingUp } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getImage, fmtCount, cn } from "@/lib/utils";
+import { CommunityLetterAvatar } from "@/components/community/community-letter-avatar";
 
 const ORANGE = "#fd5000";
 const GREEN = "#16a34a";
@@ -104,12 +105,12 @@ function BentoTile({
           loading="lazy"
         />
       ) : (
-        <span
-          className="grid size-full min-h-[80px] place-items-center"
+        <CommunityLetterAvatar
+          name={item.title}
+          className="size-full min-h-[80px]"
+          textClassName={isProduct ? "text-4xl sm:text-5xl" : "text-5xl sm:text-6xl font-black"}
           style={{ background: `${item.badgeColor}12`, color: item.badgeColor }}
-        >
-          {isProduct ? <ShoppingBag className="size-8 sm:size-10" /> : <Users className="size-8 sm:size-10" />}
-        </span>
+        />
       )}
 
       {showBadge && (
@@ -294,7 +295,9 @@ export function HeroFeaturedShowcase({
               {featured.kind === "product" ? (
                 <TrendingUp className="size-4" />
               ) : (
-                <Users className="size-4" />
+                <span className="text-[13px] font-black leading-none">
+                  {featured.title.trim().charAt(0).toUpperCase() || "?"}
+                </span>
               )}
             </span>
             <div className="min-w-0 flex-1">

@@ -18,6 +18,7 @@ import {
     syncProductInventoryFromVariants,
 } from "@/lib/cj/sync-inventory";
 import { mergeProductVideoUrls, normalizeCjVideoUrls } from "@/lib/cj/product-videos";
+import { fetchCjProductVideoUrls } from "@/lib/cj/fetch-product-videos";
 import { normalizeCjVid } from "@/lib/cj/variant-vid";
 import { requireAdmin } from "@/lib/auth/api-helpers";
 
@@ -74,7 +75,10 @@ interface CJDetailResponse {
 }
 
 // Update detailToCJProduct to pass real values instead of hardcoded ones
-function detailToCJProduct(d: CJDetailResponse["data"]): CJProduct {
+function detailToCJProduct(
+    d: CJDetailResponse["data"],
+    productVideos: string[] = [],
+): CJProduct {
 
     return {
         pid: d.pid,
@@ -101,6 +105,7 @@ function detailToCJProduct(d: CJDetailResponse["data"]): CJProduct {
         customizationVersion: 0,
         isTestProduct: false,
         productVideos: mergeProductVideoUrls(
+            productVideos,
             normalizeCjVideoUrls(d.productVideo),
             normalizeCjVideoUrls(d.videoList),
         ),
@@ -195,7 +200,18 @@ export async function POST(req: Request): Promise<Response> {
             detail.data.productKeySet ??
             [];
 
-        const cjProduct = detailToCJProduct(detail.data);
+        const { videos: resolvedVideos } = await fetchCjProductVideoUrls(
+            token,
+            pid,
+            {
+                productVideo: detail.data.productVideo,
+                videoList: detail.data.videoList,
+                description: detail.data.description,
+                bigImage: detail.data.bigImage,
+            },
+        );
+
+        const cjProduct = detailToCJProduct(detail.data, resolvedVideos);
 
         const { success, productId, error } = await upsertCJProduct(
             supabase,
@@ -312,6 +328,7 @@ export async function POST(req: Request): Promise<Response> {
             success: true,
             productId,
             variantsImported: detail.data.variants?.length ?? 0,
+            videosImported: resolvedVideos.length,
         });
     } catch (err) {
         const message =

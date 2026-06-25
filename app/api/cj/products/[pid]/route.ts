@@ -1,10 +1,6 @@
 import { getServiceClient, getCJToken, cjFetch } from "@/lib/cj/client";
 import { requireAdmin } from "@/lib/auth/api-helpers";
-import {
-  extractVideosFromHtml,
-  mergeProductVideoUrls,
-  normalizeCjVideoUrls,
-} from "@/lib/cj/product-videos";
+import { fetchCjProductVideoUrls } from "@/lib/cj/fetch-product-videos";
 
 export const runtime = "nodejs";
 
@@ -15,11 +11,6 @@ interface CJDetailData {
   description?: string;
   productVideo?: string[];
   videoList?: string[];
-}
-
-interface CJVideoRow {
-  videoUrl?: string;
-  coverURL?: string;
 }
 
 export async function GET(
@@ -47,32 +38,12 @@ export async function GET(
       return Response.json({ success: false, error: "Product not found on CJ" }, { status: 404 });
     }
 
-    let queryRows: CJVideoRow[] = [];
-    try {
-      const videoRes = await cjFetch<{ data: CJVideoRow[] }>(
-        "/product/queryVideosByProductId",
-        token,
-        { method: "POST", body: JSON.stringify({ productId: pid }) },
-      );
-      queryRows = Array.isArray(videoRes.data) ? videoRes.data : [];
-    } catch {
-      // queryVideosByProductId is best-effort; detail + description may still have URLs
-    }
-
-    const fromDetail = mergeProductVideoUrls(
-      normalizeCjVideoUrls(detail.productVideo),
-      normalizeCjVideoUrls(detail.videoList),
-      extractVideosFromHtml(detail.description ?? ""),
-    );
-    const fromQuery = queryRows
-      .map((row) => row.videoUrl?.trim())
-      .filter((url): url is string => Boolean(url && url.startsWith("http")));
-
-    const videos = mergeProductVideoUrls(fromDetail, fromQuery);
-    const poster =
-      queryRows.find((row) => row.coverURL?.startsWith("http"))?.coverURL
-      ?? detail.bigImage
-      ?? null;
+    const { videos, poster } = await fetchCjProductVideoUrls(token, pid, {
+      productVideo: detail.productVideo,
+      videoList: detail.videoList,
+      description: detail.description,
+      bigImage: detail.bigImage,
+    });
 
     const images = [
       ...(Array.isArray(detail.productImageSet) ? detail.productImageSet : []),

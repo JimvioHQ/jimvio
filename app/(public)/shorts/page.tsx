@@ -4,8 +4,6 @@ import { TikTokFeed, FeedClip } from "@/components/influencer/tiktok-feed";
 
 export const dynamic = "force-dynamic";
 
-export const dynamic = "force-dynamic";
-
 export default async function ShortsFeedPage() {
   const supabase = await createClient();
 

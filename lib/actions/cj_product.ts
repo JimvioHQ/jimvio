@@ -254,10 +254,16 @@ async function persistCJProductVideos(
     cjProduct: CJProduct,
 ): Promise<void> {
     const videoUrls = extractCJProductVideoUrls(cjProduct);
+    if (videoUrls.length === 0) {
+        console.info(`[CJ import] No videos found for product ${productId} (cj_pid=${cjProduct.pid})`);
+        return;
+    }
     const { error } = await syncProductVideos(supabase, productId, videoUrls);
     if (error) {
-        console.warn(`[CJ import] Failed to sync videos for product ${productId}:`, error);
+        console.warn(`[CJ import] Failed to sync ${videoUrls.length} video(s) for product ${productId}:`, error);
+        return;
     }
+    console.info(`[CJ import] Saved ${videoUrls.length} video(s) for product ${productId}`);
 }
 
 /**

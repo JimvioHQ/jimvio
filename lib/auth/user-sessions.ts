@@ -131,17 +131,28 @@ export async function isSessionRevoked(userId: string, meta: SessionMeta): Promi
   return store.revokedIds.includes(id)
 }
 
+type SyncUserSessionOptions = {
+  /** Clear a prior device revoke after the user proves identity (password / 2FA / OAuth). */
+  reactivate?: boolean
+}
+
 /** Register or refresh a device session. Returns null when this device was banned. */
 export async function syncUserSession(
   userId: string,
-  meta: SessionMeta
+  meta: SessionMeta,
+  options?: SyncUserSessionOptions
 ): Promise<Session | null> {
   const now = new Date().toISOString()
   const id = await buildSessionId(userId, meta.userAgent, meta.ip)
   const store = await readSessionStore(userId)
 
-  if (store.revokedIds.includes(id)) {
-    return null
+  let revokedIds = store.revokedIds
+  if (revokedIds.includes(id)) {
+    if (options?.reactivate) {
+      revokedIds = revokedIds.filter((revokedId) => revokedId !== id)
+    } else {
+      return null
+    }
   }
 
   const current: Session = {
@@ -154,11 +165,11 @@ export async function syncUserSession(
   }
 
   const others = store.sessions
-    .filter((s) => s.id !== id && !store.revokedIds.includes(s.id))
+    .filter((s) => s.id !== id && !revokedIds.includes(s.id))
     .map((s) => ({ ...s, current: false }))
 
   await writeSessionStore(userId, {
-    revokedIds: store.revokedIds,
+    revokedIds,
     sessions: [{ ...current, lastActivity: now }, ...others].slice(0, MAX_SESSIONS),
   })
 

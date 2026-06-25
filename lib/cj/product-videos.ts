@@ -8,8 +8,9 @@ export function normalizeCjVideoUrls(raw: unknown): string[] {
     let url = "";
     if (typeof item === "string") {
       url = item.trim();
-    } else if (item && typeof item === "object" && "url" in item) {
-      url = String((item as { url?: unknown }).url ?? "").trim();
+    } else if (item && typeof item === "object") {
+      const obj = item as { url?: unknown; videoUrl?: unknown };
+      url = String(obj.url ?? obj.videoUrl ?? "").trim();
     }
     if (url.startsWith("//")) url = `https:${url}`;
     if (!url.startsWith("http")) continue;

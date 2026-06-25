@@ -150,7 +150,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    await syncUserSession(user.id, extractSessionMeta(request.headers));
+    await syncUserSession(user.id, extractSessionMeta(request.headers), { reactivate: true });
   } catch (err) {
     console.error("[auth/callback] session sync failed:", err);
   }

@@ -113,18 +113,18 @@ export function resolveWarehouseFlagCountry(
 }
 
 function defaultDeliveryRange(meta: StorefrontShippingMeta): {
-  min: number;
-  max: number;
+  minDays: number;
+  maxDays: number;
   label: string;
 } {
   const processing = meta.processingDays && meta.processingDays > 0 ? meta.processingDays : 3;
   const transit =
     meta.shippingDays && meta.shippingDays > 0 ? meta.shippingDays : 12;
 
-  const min = processing + Math.max(5, transit - 3);
-  const max = processing + transit + 5;
-  const label = formatDayRange(min, max) ?? `${min}–${max} business days`;
-  return { min, max, label };
+  const minDays = processing + Math.max(5, transit - 3);
+  const maxDays = processing + transit + 5;
+  const label = formatDayRange(minDays, maxDays) ?? `${minDays}–${maxDays} business days`;
+  return { minDays, maxDays, label };
 }
 
 function resolveDeliveryDisplay(
@@ -144,8 +144,8 @@ function resolveDeliveryDisplay(
     if (label && !isMissingDisplayValue(label)) {
       return {
         label,
-        minDays: minDays ?? defaultDeliveryRange(meta).min,
-        maxDays: maxDays ?? defaultDeliveryRange(meta).max,
+        minDays: minDays ?? defaultDeliveryRange(meta).minDays,
+        maxDays: maxDays ?? defaultDeliveryRange(meta).maxDays,
       };
     }
   }
@@ -259,8 +259,8 @@ export function resolveProductShippingDisplay(
     shippingCost,
     hasTracking: Boolean(best?.has_tracking ?? meta.cj_has_tracking),
     methodName: rawMethod ? sanitizeShippingMethodName(rawMethod) : "Standard Shipping",
-    minDeliveryDays: minDays ?? fallbackDelivery.min,
-    maxDeliveryDays: maxDays ?? fallbackDelivery.max,
+    minDeliveryDays: minDays ?? fallbackDelivery.minDays,
+    maxDeliveryDays: maxDays ?? fallbackDelivery.maxDays,
     warehouseCountryCode: resolveWarehouseCountryCode(best ? [best] : [], {
       warehouseCountryCode:
         typeof meta.cj_source_from === "string"

@@ -227,7 +227,7 @@ export function AISourcingAssistant() {
                   ...m,
                   thinking: false,
                   content: isConfigError
-                    ? "I'm ready to help! Add **OPENAI_API_KEY** or **GOOGLE_GENERATIVE_AI_API_KEY** to your `.env` to enable live AI. Browse marketplace and UGC campaigns to get started."
+                    ? "I'm ready to help! Add **GOOGLE_GENERATIVE_AI_API_KEY** to your `.env` to enable live Jimvio AI (powered by Gemini). Browse marketplace and UGC campaigns to get started."
                     : `Something went wrong: **${errorMsg}**. Please try again.`,
                 }
               : m
@@ -290,7 +290,7 @@ export function AISourcingAssistant() {
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex flex-col bg-[var(--color-bg)]">
-      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[#FFE0D1]/80 bg-[#FFFDFB] px-4 py-3 sm:px-6">
+      <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <span
             className="grid size-9 place-items-center rounded-xl text-white shadow-sm"
@@ -307,7 +307,7 @@ export function AISourcingAssistant() {
                   isDemoMode ? "bg-amber-500" : "bg-emerald-500"
                 )}
               />
-              {isDemoMode ? "Demo mode · renew API keys in .env" : "Online · creator commerce assistant"}
+              {isDemoMode ? "Demo mode · add GOOGLE_GENERATIVE_AI_API_KEY" : "Online · creator commerce assistant"}
             </p>
           </div>
         </div>
@@ -315,7 +315,7 @@ export function AISourcingAssistant() {
           type="button"
           onClick={onClose}
           aria-label="Close assistant"
-          className="grid size-9 place-items-center rounded-lg border border-[#FFE0D1] text-[var(--color-text-muted)] transition-colors hover:bg-[#FF5A1F]/5 hover:text-[var(--color-text-primary)]"
+          className="grid size-9 place-items-center rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
         >
           <X className="size-5" />
         </button>
@@ -323,8 +323,9 @@ export function AISourcingAssistant() {
 
       {isDemoMode && (
         <div className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-2 text-center text-[12px] text-amber-800 dark:text-amber-200 sm:px-6">
-          Live AI is unavailable. Showing guided Jimvio answers until you add a valid API key in{" "}
-          <code className="rounded bg-black/5 px-1 py-0.5 text-[11px]">.env</code>.
+          Live AI is unavailable. Showing guided Jimvio answers until you add{" "}
+          <code className="rounded bg-black/5 px-1 py-0.5 text-[11px] dark:bg-white/10">GOOGLE_GENERATIVE_AI_API_KEY</code>{" "}
+          to your <code className="rounded bg-black/5 px-1 py-0.5 text-[11px] dark:bg-white/10">.env</code>.
         </div>
       )}
 
@@ -350,7 +351,7 @@ export function AISourcingAssistant() {
                     type="button"
                     onClick={() => handleSend(sq.query)}
                     disabled={isSending}
-                    className="flex items-center gap-3 rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] px-4 py-3 text-left transition-colors hover:border-[#FF5A1F]/40 disabled:opacity-50"
+                    className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-left transition-colors hover:border-[#FF5A1F]/40 hover:bg-[var(--color-surface-secondary)] disabled:opacity-50"
                   >
                     <span
                       className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#FF5A1F]/10"
@@ -379,7 +380,7 @@ export function AISourcingAssistant() {
         </div>
       </div>
 
-      <footer className="border-t border-[#FFE0D1]/80 bg-[#FFFDFB] px-4 py-4 sm:px-6">
+      <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4 sm:px-6">
         <div className="mx-auto w-full max-w-[900px]">
           <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {QUICK_ACTIONS.map((action) => (
@@ -388,7 +389,7 @@ export function AISourcingAssistant() {
                 type="button"
                 onClick={() => handleSend(action.query)}
                 disabled={isSending}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[#FFE0D1] bg-white px-3 py-1.5 text-[12px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[#FF5A1F]/40 hover:text-[#FF5A1F] disabled:opacity-50"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1.5 text-[12px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:border-[#FF5A1F]/40 hover:text-[#FF5A1F] disabled:opacity-50"
               >
                 <action.icon className="size-3.5" style={{ color: BRAND_ORANGE }} />
                 {action.label}
@@ -415,7 +416,7 @@ export function AISourcingAssistant() {
                 onChange={(e) => setQuery(e.target.value)}
                 disabled={isSending}
                 placeholder={messages.length === 0 ? "Ask Jimvio AI anything…" : "Ask a follow-up…"}
-                className="h-12 w-full rounded-xl border border-[#FFE0D1] bg-white pl-10 pr-4 text-[14px] text-[var(--color-text-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#FF5A1F]/50 disabled:opacity-60"
+                className="h-12 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] pl-10 pr-4 text-[14px] text-[var(--color-text-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#FF5A1F]/50 focus:ring-2 focus:ring-[#FF5A1F]/15 disabled:opacity-60"
               />
             </div>
             <Button

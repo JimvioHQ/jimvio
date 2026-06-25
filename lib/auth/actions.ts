@@ -99,7 +99,7 @@ async function resolveLandingPath(userId: string, next?: string | null): Promise
 
 async function registerLoginSession(userId: string) {
   try {
-    await syncUserSession(userId, extractSessionMeta(await headers()))
+    await syncUserSession(userId, extractSessionMeta(await headers()), { reactivate: true })
   } catch (err) {
     console.error("[auth] registerLoginSession failed:", err)
   }

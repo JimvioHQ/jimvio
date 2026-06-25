@@ -257,7 +257,7 @@ export async function syncProductVideos(
     url,
     sort_order,
     is_primary: sort_order === 0,
-    platform: "upload" as const,
+    platform: isCjVideoUrl(url) ? ("other" as const) : ("upload" as const),
   }));
 
   const { error: insertError } = await supabase.from("product_videos").insert(rows);
