@@ -539,7 +539,7 @@ function Thumbnail({
                     <img
                         src={src}
                         alt=""
-                        className="w-full h-full object-cover"
+                        className="absolute inset-0 h-full w-full object-cover"
                         draggable={false}
                     />
                     <span className="absolute inset-0 flex items-center justify-center bg-black/35">
@@ -550,7 +550,7 @@ function Thumbnail({
                 <img
                     src={src}
                     alt=""
-                    className="w-full h-full object-contain p-1.5 transition-transform duration-200 hover:scale-105"
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-200 hover:scale-105"
                     draggable={false}
                 />
             )}

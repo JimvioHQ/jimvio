@@ -374,7 +374,6 @@ export default function VendorOrdersPage() {
                         : first.product_name
                       : "—";
                     const isDigital = first?.product_type === "digital";
-                    const isDropship = first?.product_source === "cj";
 
                     return (
                       <tr
@@ -412,11 +411,6 @@ export default function VendorOrdersPage() {
                             {isDigital && (
                               <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20">
                                 Digital
-                              </span>
-                            )}
-                            {isDropship && (
-                              <span className="inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
-                                Dropship
                               </span>
                             )}
                           </div>

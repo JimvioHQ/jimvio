@@ -310,16 +310,16 @@ function drawSheet(
 }
 
 function applyFooters(doc: PdfDocumentInstance, pageWidth: number, left: number) {
-  doc.flushPages();
   const range = doc.bufferedPageRange();
   const total = range.count;
 
-  for (let i = 0; i < total; i++) {
-    doc.switchToPage(range.start + i);
-    drawPageFooter(doc, pageWidth, left, i + 1, total);
+  if (total > 0) {
+    for (let i = 0; i < total; i++) {
+      doc.switchToPage(range.start + i);
+      drawPageFooter(doc, pageWidth, left, i + 1, total);
+    }
+    doc.switchToPage(range.start + total - 1);
   }
-
-  doc.switchToPage(range.start + total - 1);
   resetPdfCursor(doc);
 }
 

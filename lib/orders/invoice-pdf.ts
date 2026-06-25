@@ -174,13 +174,14 @@ export function buildOrderInvoicePdf(data: InvoiceData): Promise<Buffer> {
       totalsY += line.grand ? 22 : 16;
     }
 
-    doc.flushPages();
     const range = doc.bufferedPageRange();
-    for (let i = 0; i < range.count; i++) {
-      doc.switchToPage(range.start + i);
-      drawFooter(doc, pageWidth, left);
+    if (range.count > 0) {
+      for (let i = 0; i < range.count; i++) {
+        doc.switchToPage(range.start + i);
+        drawFooter(doc, pageWidth, left);
+      }
+      doc.switchToPage(range.start + range.count - 1);
     }
-    doc.switchToPage(range.start + range.count - 1);
     resetPdfCursor(doc);
 
     doc.end();

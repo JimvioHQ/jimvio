@@ -38,6 +38,8 @@ export interface CJProduct {
     listedNum: number;
     shippingCountryCodes: string[];
     sourceFrom: string;
+    deliveryCycle?: string | number;
+    verifiedWarehouse?: number;
     customizationVersion: number;
     isTestProduct: boolean;
     productVideos?: string[];
@@ -497,6 +499,12 @@ export async function mapCJProductToJimvio(
             cj_create_time: cjProduct.createTime,
             cj_product_names_raw: names,
             cj_source_from: cjProduct.sourceFrom,
+            ...(cjProduct.deliveryCycle != null && cjProduct.deliveryCycle !== ""
+                ? { cj_delivery_cycle: cjProduct.deliveryCycle }
+                : {}),
+            ...(cjProduct.verifiedWarehouse != null
+                ? { cj_verified_warehouse: cjProduct.verifiedWarehouse }
+                : {}),
             pricing_tier: {
                 markup_percent,
                 commission_percent: affiliate_commission_rate,

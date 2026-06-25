@@ -7,6 +7,16 @@ const CJ_API_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
 const TARGET_COUNTRIES = ["RW", "US", "GB", "DE", "FR", "NG", "KE", "ZA", "AE", "CA", "UG", "TZ"];
 
+function countryLabel(code: string): string {
+  const normalized = code.trim().toUpperCase();
+  if (!normalized) return code;
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(normalized) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 interface CJFreightOption {
     logisticsName: string;
     logisticsCompanyName: string;
@@ -73,13 +83,16 @@ export async function syncProductShipping(
                         source: "cj",
                         source_method_id: option.logisticsName,
                         ship_from_country: option.startCountryCode ?? "CN",
-                        ship_from_name: "CJ Warehouse",
+                        ship_from_name: countryLabel(option.startCountryCode ?? "CN"),
                         ship_to_country: countryCode,
                         method_name: option.logisticsName,
                         carrier: option.logisticsCompanyName ?? null,
                         has_tracking: option.trackingType === 2,
                         min_delivery_days: minDays,
                         max_delivery_days: maxDays,
+                        estimated_delivery: option.logisticsTime
+                          ? `${option.logisticsTime.replace(/-/g, "–")} business days`
+                          : null,
                         shipping_fee: option.freight ?? 0,
                         currency: "USD",
                         is_free_shipping: option.isFreeFreight ?? false,

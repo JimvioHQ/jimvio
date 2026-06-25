@@ -69,11 +69,10 @@ export function resolveEmptyStatePreset(
         return {
           eyebrow: "Catalog",
           title: "No products yet",
-          description: "List something to sell — physical, digital, or dropship from the catalog.",
+          description: "List something to sell — physical, digital, or from our product catalog.",
           illustration: <ProductsShelfIllustration />,
           actions: [
             { label: "Add product", href: "/dashboard/products/new", icon: Plus, variant: "primary" },
-            { label: "Import from CJ", href: "/dashboard/products/import", variant: "ghost" },
           ],
         };
       }

@@ -235,13 +235,13 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             {/* ── Main header (full width, above sidebar) ── */}
             <header className="z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-3 sm:px-6">
                 {/* Mobile hamburger */}
-                <button
-                    onClick={() => setMobileNavOpen((o) => !o)}
-                    aria-label="Open navigation menu"
+                    <button
+                        onClick={() => setMobileNavOpen((o) => !o)}
+                        aria-label="Open navigation menu"
                     className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] lg:hidden"
-                >
+                    >
                     <Menu className="h-5 w-5" />
-                </button>
+                    </button>
 
                 {/* Logo */}
                 <Link href="/c" className="shrink-0" aria-label="Jimvio home">
@@ -253,7 +253,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     {PRIMARY_NAV.map(({ label, href, icon: Icon, dropdown }) => {
                         const active = isNavActive(pathname, href);
                         return (
-                            <Link
+                    <Link
                                 key={href}
                                 href={href}
                                 className={cn(
@@ -266,7 +266,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                                 <Icon className="h-3.5 w-3.5 text-[#fd5000]" />
                                 {label}
                                 {dropdown && <ChevronDown className="h-3 w-3 opacity-50" />}
-                            </Link>
+                    </Link>
                         );
                     })}
                 </nav>
@@ -353,7 +353,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     </Link>
                     )}
                 </div>
-            </header>
+                </header>
 
             {/* ── Body row: sidebar + content ── */}
             <div className="flex min-h-0 flex-1">
@@ -404,21 +404,21 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 ].map(({ label, href, auth, icon: Icon }) => {
                     const navHref = isAuthenticated === false && auth ? buildHubLoginUrl(href) : href;
                     const active = href === "/c" ? pathname === "/c" : pathname.startsWith(href);
-                    return (
-                        <Link
-                            key={href}
+                        return (
+                            <Link
+                                key={href}
                             href={navHref}
-                            aria-label={label}
+                                aria-label={label}
                             className={cn(
                                 "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors",
                                 active ? "text-[#fd5000]" : "text-[var(--color-text-muted)]"
                             )}
                         >
                             <Icon className="h-5 w-5" />
-                            {label}
-                        </Link>
-                    );
-                })}
+                                {label}
+                            </Link>
+                        );
+                    })}
                 <button
                     type="button"
                     aria-label="Open full menu"
@@ -431,7 +431,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     <Menu className="h-5 w-5" />
                     More
                 </button>
-            </nav>
+                </nav>
         </div>
     );
 }

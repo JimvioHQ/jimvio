@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { appConfirm } from "@/lib/app-dialog";
 
 type Props = {
   disabled?: boolean;
@@ -21,13 +22,15 @@ export function RefreshCJStockButton({
 
   async function handleClick() {
     if (refreshing) return;
-    if (
-      !confirm(
-        "Fetch live stock from CJ for all imported products? This may take a few minutes."
-      )
-    ) {
-      return;
-    }
+
+    const confirmed = await appConfirm({
+      title: "Refresh inventory",
+      description:
+        "Fetch live stock levels for all imported catalog products? This may take a few minutes.",
+      confirmLabel: "Refresh stock",
+      cancelLabel: "Cancel",
+    });
+    if (!confirmed) return;
 
     setRefreshing(true);
     setProgress("Starting…");
@@ -75,8 +78,8 @@ export function RefreshCJStockButton({
     refreshing
       ? progress ?? "Refreshing…"
       : variant === "compact"
-        ? "Refresh CJ stock"
-        : "Refresh all CJ stock";
+        ? "Refresh stock"
+        : "Refresh all stock";
 
   return (
     <button

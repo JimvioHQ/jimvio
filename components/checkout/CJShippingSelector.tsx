@@ -9,6 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { CJShippingOption } from "@/types";
 import { CurrencyCode } from "@/lib/currency/config";
+import { sanitizeShippingMethodName } from "@/lib/cj/customer-facing";
 
 interface CJShippingSelectorProps {
   options: CJShippingOption[];
@@ -189,7 +190,7 @@ export function CJShippingSelector({
                     "text-[13px] font-semibold truncate",
                     isSelected ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-primary)]"
                   )}>
-                    {opt.name}
+                    {sanitizeShippingMethodName(opt.name)}
                   </span>
                   {isCheapest && options.length > 1 && (
                     <Badge tone="emerald">Cheapest</Badge>
@@ -198,11 +199,6 @@ export function CJShippingSelector({
                     <Badge tone="blue">Fastest</Badge>
                   )}
                 </div>
-                {opt.channelId && opt.channelId !== opt.name && (
-                  <p className="text-[10.5px] text-[var(--color-text-muted)] mt-0.5 truncate font-mono">
-                    {opt.channelId}
-                  </p>
-                )}
               </div>
 
               {/* Delivery time */}

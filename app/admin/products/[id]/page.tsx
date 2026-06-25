@@ -4,6 +4,8 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getAdminProductDetail } from "@/services/products";
 import { AdminProductDetailActions } from "@/components/admin/products/admin-product-detail-actions";
+import { ProductDescriptionView } from "@/components/marketplace/product-description-view";
+import { resolveVideoPlayback } from "@/lib/product-videos";
 import { StatusPill } from "@/components/ui/admin";
 import { formatAdminMoney } from "@/lib/admin/format-money";
 import { absoluteTime, cn, formatNumber } from "@/lib/utils";
@@ -21,6 +23,7 @@ import {
   Tag,
   Clock,
   AlertCircle,
+  Play,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -39,7 +42,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden",
+        "rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden",
         className
       )}
     >
@@ -104,7 +107,7 @@ export default async function AdminProductDetailPage({
   const detail = await getAdminProductDetail(id);
   if (!detail) notFound();
 
-  const { product, images, cjPid, orderCount, reviewCount, averageRating, recentOrderItems } = detail;
+  const { product, images, videos, cjPid, orderCount, reviewCount, averageRating, recentOrderItems } = detail;
   const vendor = product.vendors;
   const category = product.product_categories;
   const variants = product.product_variants ?? [];
@@ -283,10 +286,7 @@ export default async function AdminProductDetailPage({
 
           {product.description ? (
             <Card title="Description" icon={Globe}>
-              <div
-                className="prose prose-sm max-w-none text-[var(--color-text-secondary)] [&_img]:max-w-full"
-                dangerouslySetInnerHTML={{ __html: String(product.description) }}
-              />
+              <ProductDescriptionView description={String(product.description)} />
             </Card>
           ) : null}
 
@@ -439,9 +439,47 @@ export default async function AdminProductDetailPage({
             )}
           </Card>
 
-          {images.length > 0 && (
+          {(images.length > 0 || videos.length > 0) && (
             <Card title="Gallery" icon={Package}>
               <div className="grid grid-cols-3 gap-2">
+                {videos.map((url) => {
+                  const playback = resolveVideoPlayback(url);
+                  const src =
+                    playback.kind === "youtube-embed"
+                      ? playback.src
+                      : playback.kind === "proxy" || playback.kind === "direct"
+                        ? playback.src
+                        : url;
+                  return (
+                    <div
+                      key={url}
+                      className="relative aspect-square rounded-lg overflow-hidden ring-1 ring-[var(--color-border)] bg-black"
+                    >
+                      {playback.kind === "youtube-embed" ? (
+                        <iframe
+                          src={src}
+                          title="Product video"
+                          className="absolute inset-0 h-full w-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        />
+                      ) : (
+                        <video
+                          src={src}
+                          className="absolute inset-0 h-full w-full object-cover"
+                          muted
+                          playsInline
+                          controls
+                          preload="metadata"
+                          poster={images[0]}
+                        />
+                      )}
+                      <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white">
+                        <Play className="h-2.5 w-2.5 fill-white" />
+                        Video
+                      </span>
+                    </div>
+                  );
+                })}
                 {images.map((url) => (
                   <div
                     key={url}

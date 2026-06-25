@@ -3098,12 +3098,15 @@ export function HomepageRedesign({
 
             <WhatToDoToday />
             <TrustedStrip usersLabel={stats?.users} countriesLabel={stats?.countries} />
-            <PlatformOverviewBar />
-            <ChooseYourJourney />
-            <HowJimvioWorks />
+
+            {/* Live marketplace proof — show real products, campaigns, and communities before the feature map */}
             <TrendingProductsRow products={products} />
             <FeaturedUGCCampaigns campaigns={campaigns} />
             <FeaturedCommunities communities={communities} />
+
+            <PlatformOverviewBar />
+            <ChooseYourJourney />
+            <HowJimvioWorks />
             <OnePlatformOpportunities />
             <GrowthStack />
             <WhyChooseJimvio />

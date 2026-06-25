@@ -138,28 +138,49 @@ function HeroLiveTicker({ onlineCount }: { onlineCount: number }) {
 }
 
 function HeroPartnerStrip() {
+  const marqueeLogos = [...PARTNER_LOGOS, ...PAYMENT_LOGOS.map((logo) => ({ ...logo, alt: logo.id }))];
+  const items = [...marqueeLogos, ...marqueeLogos];
+
   return (
     <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] py-5 sm:py-6">
       <div className="mx-auto max-w-8xl px-4 sm:px-6">
         <p className="mb-4 text-center text-[11px] font-medium text-[var(--color-text-muted)] sm:text-[12px]">
           Trusted by 10,000+ creators and businesses worldwide
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 sm:gap-x-6 sm:gap-y-4">
-          {PARTNER_LOGOS.map((logo) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={logo.alt}
-              src={logo.src}
-              alt={logo.alt}
-              className={`${logo.h} w-auto object-contain opacity-70 dark:opacity-80 dark:brightness-0 dark:invert`}
-            />
-          ))}
-          <div className="flex items-center gap-4">
-            {PAYMENT_LOGOS.map((logo) => (
-              <span key={logo.id} className="inline-flex shrink-0 items-center">
-                {logo.node}
-              </span>
-            ))}
+
+        <div className="relative overflow-hidden">
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-[var(--color-surface)] to-transparent sm:w-16"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-[var(--color-surface)] to-transparent sm:w-16"
+            aria-hidden
+          />
+
+          <div
+            className="flex w-max items-center gap-10 motion-reduce:animate-none sm:gap-14"
+            style={{ animation: "hero-partner-marquee 42s linear infinite" }}
+          >
+            {items.map((logo, i) => {
+              if ("src" in logo) {
+                return (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={`${logo.alt}-${i}`}
+                    src={logo.src}
+                    alt={logo.alt}
+                    className={`${logo.h} w-auto shrink-0 object-contain opacity-70 dark:opacity-80 dark:brightness-0 dark:invert`}
+                  />
+                );
+              }
+
+              return (
+                <span key={`${logo.id}-${i}`} className="inline-flex shrink-0 items-center">
+                  {logo.node}
+                </span>
+              );
+            })}
           </div>
         </div>
       </div>

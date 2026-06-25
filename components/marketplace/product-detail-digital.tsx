@@ -497,6 +497,7 @@ import { ProductActionModule } from "@/components/marketplace/product-action-mod
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
 import { ImageGallery } from "@/components/marketplace/image-gallery";
+import { ProductDescriptionView } from "@/components/marketplace/product-description-view";
 import { resolveProductVideoUrls } from "@/lib/product-videos";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
@@ -1543,8 +1544,8 @@ export function DigitalProductDetail({
                 background: "var(--color-surface)",
               }}
             >
-              <div className="px-2 pt-1 overflow-x-auto border-b border-[var(--color-border)]">
-                <div className="h-11 flex items-center gap-1 w-fit">
+              <div className="px-2 pt-1 overflow-x-auto overflow-y-hidden no-scrollbar border-b border-[var(--color-border)]">
+                <div className="flex h-11 min-w-max items-center gap-1">
                   {[
                     { id: "overview", label: "Overview", badge: null },
                     {
@@ -1605,18 +1606,13 @@ export function DigitalProductDetail({
                       <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">
                         Product Description
                       </h3>
-                      <p className="text-[12.5px] leading-relaxed text-[var(--color-text-secondary)]">
-                        {product.description ||
-                          "A professionally crafted digital asset built for modern workflows. Optimized for speed, flexibility, and long-term maintainability."}
-                      </p>
-                      <ul className="mt-4 space-y-1.5 text-[12.5px] text-[var(--color-text-secondary)]">
-                        {features.slice(0, 6).map((f) => (
-                          <li key={f} className="flex items-start gap-2">
-                            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-none text-emerald-500" />
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
+                      <ProductDescriptionView
+                        description={
+                          product.description ||
+                          "A professionally crafted digital asset built for modern workflows. Optimized for speed, flexibility, and long-term maintainability."
+                        }
+                        featureBullets={features.slice(0, 6)}
+                      />
                     </div>
 
                     <div className="lg:col-span-4">

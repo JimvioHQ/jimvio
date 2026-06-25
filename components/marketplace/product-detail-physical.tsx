@@ -17,6 +17,7 @@ import { ProductActionModule } from "@/components/marketplace/product-action-mod
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
 import { ImageGallery } from "@/components/marketplace/image-gallery";
+import { ProductDescriptionView } from "@/components/marketplace/product-description-view";
 import { resolveProductVideoUrls } from "@/lib/product-videos";
 import {
   VariantSelector,
@@ -31,6 +32,16 @@ import {
 import {
   getCJTitle, cleanCJDescription, parseCJSpecifications, formatCJWeight,
 } from "@/lib/cj/render";
+import {
+  type ProductShippingDisplay,
+} from "@/lib/cj/shipping-display";
+import {
+  sanitizeShippingMethodName,
+  sanitizeShipFromLabel,
+  sanitizeSupplierFacingText,
+} from "@/lib/cj/customer-facing";
+import { useRegionalShipping } from "@/hooks/use-regional-shipping";
+import type { RegionalShippingOption } from "@/lib/shipping/regional-shipping";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,7 +81,7 @@ interface PhysicalProductDetailProps {
   vendor: any;
   relatedProducts: any[];
   frequentlyBoughtTogether?: any[];
-  shippingOptions?: ShippingOption[];
+  allShippingOptions?: RegionalShippingOption[];
   userCountry?: string;
   followedVendorIds: string[];
   recentActivity?: ActivityEvent[];
@@ -296,7 +307,7 @@ function ReviewImages({ images }: { images: string[] }) {
 
 // ─── Shipping Options Table ───────────────────────────────────────────────────
 
-function ShippingOptionsTable({ options }: { options: ShippingOption[] }) {
+function ShippingOptionsTable({ options }: { options: RegionalShippingOption[] }) {
   if (!options.length) return null;
   return (
     <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
@@ -306,21 +317,21 @@ function ShippingOptionsTable({ options }: { options: ShippingOption[] }) {
         ))}
       </div>
       {options.map((opt, i) => (
-        <div key={opt.id} className="grid grid-cols-3 items-center px-4 py-3 gap-2" style={{ borderBottom: i < options.length - 1 ? "1px solid var(--color-border)" : "none", background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)" }}>
+        <div key={opt.id ?? `${opt.method_name}-${i}`} className="grid grid-cols-3 items-center px-4 py-3 gap-2" style={{ borderBottom: i < options.length - 1 ? "1px solid var(--color-border)" : "none", background: i % 2 === 0 ? "var(--color-surface)" : "var(--color-surface-secondary)" }}>
           <div className="flex items-center gap-2 min-w-0">
             <div className="h-7 w-7 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0"><Truck className="h-3.5 w-3.5 text-blue-500" /></div>
             <div className="min-w-0">
-              <p className="text-[12px] font-semibold text-[var(--color-text-primary)] truncate leading-none">{opt.method_name}</p>
+              <p className="text-[12px] font-semibold text-[var(--color-text-primary)] truncate leading-none">{sanitizeShippingMethodName(opt.method_name)}</p>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 {opt.is_recommended && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">BEST</span>}
                 {opt.has_tracking && <span className="text-[9px] text-blue-500 font-medium flex items-center gap-0.5"><Globe className="h-2.5 w-2.5" /> Tracked</span>}
-                {opt.carrier && <span className="text-[9px] text-[var(--color-text-muted)] truncate">{opt.carrier}</span>}
+                {opt.carrier && <span className="text-[9px] text-[var(--color-text-muted)] truncate">{sanitizeSupplierFacingText(opt.carrier)}</span>}
               </div>
             </div>
           </div>
           <div className="text-right">
             <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">{opt.estimated_delivery ?? "—"}</p>
-            {opt.ship_from_name && <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5">From {opt.ship_from_name}</p>}
+            {opt.ship_from_name && <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5">From {sanitizeShipFromLabel(opt.ship_from_name)}</p>}
           </div>
           <div className="text-right">
             {opt.is_free_shipping ? <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400">Free</span> : <span className="text-[12px] font-semibold text-[var(--color-text-primary)]">{opt.currency} {opt.shipping_fee.toFixed(2)}</span>}
@@ -331,13 +342,19 @@ function ShippingOptionsTable({ options }: { options: ShippingOption[] }) {
   );
 }
 
-function ShippingInfoFallback({ isFreeShipping, shipsFrom, deliveryDays, hasTracking }: { isFreeShipping: boolean; shipsFrom: string; deliveryDays: string; hasTracking: boolean }) {
+function ShippingInfoFallback({ display }: { display: ProductShippingDisplay }) {
   const rows = [
-    { icon: MapPin, label: "Ships from", value: shipsFrom },
-    { icon: Timer, label: "Processing time", value: "1–2 business days" },
-    { icon: Truck, label: "Est. delivery", value: deliveryDays },
-    { icon: Package, label: "Shipping cost", value: isFreeShipping ? "Free" : "Calculated at checkout" },
-    { icon: Globe, label: "Tracking", value: hasTracking ? "Full tracking included" : "Limited tracking" },
+    { icon: MapPin, label: "Ships from", value: display.shipsFrom },
+    ...(display.processingTime
+      ? [{ icon: Timer, label: "Processing time", value: display.processingTime }]
+      : []),
+    { icon: Truck, label: "Est. delivery", value: display.deliveryEstimate },
+    { icon: Package, label: "Shipping cost", value: display.shippingCost },
+    {
+      icon: Globe,
+      label: "Tracking",
+      value: display.hasTracking ? "Full tracking included" : "Limited tracking",
+    },
   ];
   return (
     <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
@@ -502,27 +519,28 @@ const COUNTRY_FLAGS: Record<string, string> = {
 
 function ShippingInfoCard({
   shippingOptions,
+  display,
   isFreeShipping,
-  shipsFrom,
-  deliveryDays,
-  hasTracking,
+  regionLabel,
+  loading,
 }: {
-  shippingOptions: ShippingOption[];
+  shippingOptions: RegionalShippingOption[];
+  display: ProductShippingDisplay;
   isFreeShipping: boolean;
-  shipsFrom: string;
-  deliveryDays: string;
-  hasTracking: boolean;
+  regionLabel?: string;
+  loading?: boolean;
 }) {
   const bestOption = shippingOptions.find((o) => o.is_recommended) ?? shippingOptions[0] ?? null;
   const today = new Date();
-  const minDays = bestOption?.min_delivery_days ?? 5;
-  const maxDays = bestOption?.max_delivery_days ?? 10;
-  const minDate = new Date(today.getTime() + minDays * 24 * 60 * 60 * 1000);
-  const maxDate = new Date(today.getTime() + maxDays * 24 * 60 * 60 * 1000);
+  const minDays = display.minDeliveryDays ?? bestOption?.min_delivery_days ?? null;
+  const maxDays = display.maxDeliveryDays ?? bestOption?.max_delivery_days ?? null;
+  const minDate =
+    minDays != null ? new Date(today.getTime() + minDays * 24 * 60 * 60 * 1000) : null;
+  const maxDate =
+    maxDays != null ? new Date(today.getTime() + maxDays * 24 * 60 * 60 * 1000) : null;
   const fmtDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const fromCountry = bestOption?.ship_from_country ?? "DE";
-  const fromName = bestOption?.ship_from_name ?? shipsFrom;
-  const flag = COUNTRY_FLAGS[fromCountry] ?? "🌍";
+  const fromCountry = bestOption?.ship_from_country ?? "";
+  const flag = fromCountry ? (COUNTRY_FLAGS[fromCountry] ?? "🌍") : null;
   const isFree = isFreeShipping || (bestOption?.is_free_shipping ?? false);
 
   const rows: { label: string; value: React.ReactNode }[] = [
@@ -530,30 +548,53 @@ function ShippingInfoCard({
       label: "Ships from",
       value: (
         <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-text-primary)]">
-          {fromName} <span aria-hidden>{flag}</span>
+          {display.shipsFrom}
+          {flag ? <span aria-hidden>{flag}</span> : null}
         </span>
       ),
     },
-    {
+  ];
+
+  if (minDate && maxDate) {
+    rows.push({
       label: "Estimated Delivery",
       value: (
         <div className="text-right">
           <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
             {fmtDate(minDate)} – {fmtDate(maxDate)}
           </p>
-          <p className="text-[10px] text-[var(--color-text-muted)]">{minDays} – {maxDays} business days</p>
+          <p className="text-[10px] text-[var(--color-text-muted)]">{display.deliveryEstimate}</p>
         </div>
       ),
-    },
-    {
+    });
+  } else {
+    rows.push({
+      label: "Est. delivery",
+      value: (
+        <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+          {display.deliveryEstimate}
+        </span>
+      ),
+    });
+  }
+
+  if (display.processingTime) {
+    rows.push({
       label: "Processing Time",
-      value: <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">1 – 2 business days</span>,
-    },
+      value: (
+        <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+          {display.processingTime}
+        </span>
+      ),
+    });
+  }
+
+  rows.push(
     {
       label: "Shipping Method",
       value: (
         <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-          {bestOption?.method_name ?? "Standard Shipping"}
+          {display.methodName ?? sanitizeShippingMethodName(bestOption?.method_name) ?? "Standard Shipping"}
         </span>
       ),
     },
@@ -563,16 +604,21 @@ function ShippingInfoCard({
         <span className="text-[13px] font-bold text-emerald-600 dark:text-emerald-400">$0.00</span>
       ) : (
         <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-          {bestOption ? `${bestOption.currency} ${bestOption.shipping_fee.toFixed(2)}` : "Calculated at checkout"}
+          {display.shippingCost}
         </span>
       ),
     },
-  ];
+  );
 
   return (
     <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
       <div className="px-5 py-3.5 border-b border-[var(--color-border)]">
         <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Shipping Information</p>
+        {regionLabel ? (
+          <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+            {loading ? "Loading rates for your region…" : `Rates for ${regionLabel}`}
+          </p>
+        ) : null}
       </div>
       <div className="divide-y divide-[var(--color-border)]">
         {rows.map(({ label, value }, i) => (
@@ -589,7 +635,7 @@ function ShippingInfoCard({
           </p>
         </div>
       )}
-      {hasTracking && (
+      {display.hasTracking && (
         <div className="mx-4 my-3 p-3 rounded-md" style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.2)" }}>
           <div className="flex items-center gap-2 mb-1">
             <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
@@ -1033,7 +1079,8 @@ export function PhysicalProductDetail({
   vendor,
   relatedProducts,
   frequentlyBoughtTogether = [],
-  shippingOptions = [],
+  allShippingOptions = [],
+  userCountry = "RW",
   followedVendorIds,
   recentActivity,
 }: PhysicalProductDetailProps) {
@@ -1073,6 +1120,23 @@ export function PhysicalProductDetail({
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(defaultVariant);
   const buyBoxRef = useRef<HTMLDivElement>(null);
   const handleVariantSelect = useCallback((v: ProductVariant) => setSelectedVariant(v), []);
+
+  const {
+    buyerCountryLabel,
+    shippingOptions: regionalShippingOptions,
+    shippingDisplay,
+    shipsToLabels,
+    isFreeShipping,
+    loading: shippingLoading,
+  } = useRegionalShipping({
+    productId: product.id,
+    productSource: product.source,
+    isFreeShippingFlag: product.is_free_shipping,
+    sourceMetadata: product.source_metadata ?? null,
+    allShippingOptions,
+    initialCountry: userCountry,
+    selectedVariantId: selectedVariant?.id ?? null,
+  });
 
   const activePrice = selectedVariant ? selectedVariant.price : Number(product.price);
   const activeCompareAtRaw = selectedVariant?.compare_at_price ?? product.compare_at_price ?? null;
@@ -1117,20 +1181,15 @@ export function PhysicalProductDetail({
 
   const { specs: parsedSpecs } = useMemo(() => parseCJSpecifications(product.description), [product.description]);
   const cjMeta = product.source_metadata ?? {};
-  const isFreeShipping = product.is_free_shipping ?? cjMeta.cj_is_free_shipping ?? shippingOptions.some((o) => o.is_free_shipping) ?? false;
-  const shippingCountries: string[] = cjMeta.cj_shipping_countries ?? [];
-  const legacyShipsFrom: string = cjMeta.cj_ships_from ?? cjMeta.ships_from ?? "Germany";
-  const legacyShippingDays: string = cjMeta.cj_shipping_days ? `${cjMeta.cj_shipping_days}–${cjMeta.cj_shipping_days + 5} days` : isFreeShipping ? "5–10 business days" : "7–14 business days";
-  const legacyHasTracking: boolean = cjMeta.cj_has_tracking ?? true;
   const weightDisplay = formatCJWeight(product.weight);
 
-  const sortedShippingOptions = useMemo(() => [...shippingOptions].sort((a, b) => {
+  const sortedShippingOptions = useMemo(() => [...regionalShippingOptions].sort((a, b) => {
     if (a.is_recommended && !b.is_recommended) return -1;
     if (!a.is_recommended && b.is_recommended) return 1;
     if (a.is_free_shipping && !b.is_free_shipping) return -1;
     if (!a.is_free_shipping && b.is_free_shipping) return 1;
-    return a.shipping_fee - b.shipping_fee;
-  }), [shippingOptions]);
+    return (a.shipping_fee ?? 0) - (b.shipping_fee ?? 0);
+  }), [regionalShippingOptions]);
 
   const packageWarnings = useMemo(() => {
     const warnings: string[] = [];
@@ -1166,10 +1225,6 @@ export function PhysicalProductDetail({
     return merged;
   }, [parsedSpecs, weightDisplay, product.sku, product.brand, product.material, isFreeShipping, cjMeta, selectedVariant]);
 
-  const specHalf = Math.ceil(specRows.length / 2);
-  const specsLeft = specRows.slice(0, specHalf);
-  const specsRight = specRows.slice(specHalf);
-
   const liveViewers = useLiveViewers(product.view_count ? Math.min(product.view_count, 12) : 5);
   useRecentlyViewed(product.id, product);
 
@@ -1201,10 +1256,10 @@ export function PhysicalProductDetail({
     <>
       <ShippingInfoCard
         shippingOptions={sortedShippingOptions}
+        display={shippingDisplay}
         isFreeShipping={isFreeShipping}
-        shipsFrom={legacyShipsFrom}
-        deliveryDays={legacyShippingDays}
-        hasTracking={legacyHasTracking}
+        regionLabel={buyerCountryLabel}
+        loading={shippingLoading}
       />
     </>
   );
@@ -1379,8 +1434,8 @@ export function PhysicalProductDetail({
                   background: "var(--color-surface)"
                 }}>
                 {/* Custom Tab Implementation */}
-                <div className="px-2 pt-1 overflow-x-auto border-b border-[var(--color-border)]">
-                  <div className="h-11 flex items-center gap-1 w-fit">
+                <div className="px-2 pt-1 overflow-x-auto overflow-y-hidden no-scrollbar border-b border-[var(--color-border)]">
+                  <div className="flex h-11 min-w-max items-center gap-1">
                     {[
                       { id: "overview", label: "Overview", badge: null },
                       { id: "specs", label: "Specifications", badge: specRows.length > 0 ? specRows.length : null },
@@ -1419,77 +1474,65 @@ export function PhysicalProductDetail({
                 <div className="p-5 lg:p-6">
                   {/* Overview tab */}
                   {activeTab === "overview" && (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 xl:gap-8">
-                      {/* Description (4 cols) */}
-                      <div className="lg:col-span-4">
-                        <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">Product Description</h3>
-                        {safeHtml ? (
-                          <div className="product-description text-[12.5px] leading-relaxed text-[var(--color-text-secondary)]" dangerouslySetInnerHTML={{ __html: safeHtml }} />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8">
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">
+                            Product Description
+                          </h3>
+                          <ProductDescriptionView
+                            description={product.description}
+                            featureBullets={featureBullets}
+                          />
+                        </div>
+
+                        {whatsIncluded.length > 0 && (
+                          <div>
+                            <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">
+                              What&apos;s Included
+                            </h3>
+                            <ul className="space-y-2 text-[12.5px] text-[var(--color-text-secondary)]">
+                              {whatsIncluded.map((item) => (
+                                <li
+                                  key={item}
+                                  className="flex items-center gap-2 rounded-md border border-[var(--color-border)] px-3 py-2"
+                                  style={{ background: "var(--color-surface-secondary)" }}
+                                >
+                                  <Package className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                                  {item}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">
+                          Specifications
+                        </h3>
+                        {specRows.length > 0 ? (
+                          <div className="rounded-lg border border-[var(--color-border)] overflow-hidden">
+                            {specRows.map(({ label, value }, i, arr) => (
+                              <div
+                                key={`${label}-${i}`}
+                                className={cn(
+                                  "flex items-center justify-between gap-3 px-3 py-2.5 text-[12px]",
+                                  i < arr.length - 1 && "border-b border-[var(--color-border)]",
+                                )}
+                              >
+                                <span className="text-[var(--color-text-muted)] shrink-0">{label}</span>
+                                <span className="font-medium text-[var(--color-text-primary)] text-right">
+                                  {value}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         ) : (
-                          <p className="text-[12.5px] leading-relaxed text-[var(--color-text-secondary)]">
-                            {descriptionPreview || "This mini GPS tracker is a versatile and powerful device that allows you to track vehicles, kids, elderly, pets, or valuable assets in real-time."}
+                          <p className="text-[12.5px] text-[var(--color-text-muted)]">
+                            No specifications listed for this product.
                           </p>
                         )}
-                        <ul className="mt-4 space-y-1.5 text-[12.5px] text-[var(--color-text-secondary)]">
-                          {featureBullets.map((f) => (
-                            <li key={f} className="flex items-start gap-2">
-                              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-none text-emerald-500" />
-                              {f}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Specifications (5 cols) */}
-                      <div className="lg:col-span-5">
-                        <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">Specifications</h3>
-                        <div className="grid grid-cols-2 gap-x-4 rounded-lg border border-[var(--color-border)]">
-                          <div>
-                            {specsLeft.map(({ label, value }, i) => (
-                              <div
-                                key={`l-${i}`}
-                                className={cn(
-                                  "flex items-center justify-between gap-3 px-3 py-2 text-[12px]",
-                                  i < specsLeft.length - 1 && "border-b border-[var(--color-border)]",
-                                )}
-                              >
-                                <span className="text-[var(--color-text-muted)]">{label}</span>
-                                <span className="font-medium text-[var(--color-text-primary)] text-right truncate max-w-[60%]">{value}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="border-l border-[var(--color-border)]">
-                            {specsRight.map(({ label, value }, i) => (
-                              <div
-                                key={`r-${i}`}
-                                className={cn(
-                                  "flex items-center justify-between gap-3 px-3 py-2 text-[12px]",
-                                  i < specsRight.length - 1 && "border-b border-[var(--color-border)]",
-                                )}
-                              >
-                                <span className="text-[var(--color-text-muted)]">{label}</span>
-                                <span className="font-medium text-[var(--color-text-primary)] text-right truncate max-w-[60%]">{value}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* What's Included (3 cols) */}
-                      <div className="lg:col-span-3">
-                        <h3 className="text-[14px] font-semibold text-[var(--color-text-primary)] mb-2">What's Included</h3>
-                        <ul className="space-y-2 text-[12.5px] text-[var(--color-text-secondary)]">
-                          {whatsIncluded.map((item) => (
-                            <li
-                              key={item}
-                              className="flex items-center gap-2 rounded-md border border-[var(--color-border)] px-3 py-2"
-                              style={{ background: "var(--color-surface-secondary)" }}
-                            >
-                              <Package className="h-3.5 w-3.5 text-orange-500 shrink-0" />
-                              {item}
-                            </li>
-                          ))}
-                        </ul>
                       </div>
                     </div>
                   )}
@@ -1508,7 +1551,7 @@ export function PhysicalProductDetail({
                           </div>
                         ))}
                       </div>
-                      {shippingCountries.length > 0 && <p className="mt-3 text-[11px] text-[var(--color-text-muted)]">Ships to: {shippingCountries.join(", ")}</p>}
+                      {shipsToLabels.length > 0 && <p className="mt-3 text-[11px] text-[var(--color-text-muted)]">Ships to: {shipsToLabels.join(", ")}</p>}
                     </div>
                   )}
 
@@ -1517,16 +1560,20 @@ export function PhysicalProductDetail({
                     <div className="space-y-5">
                       {sortedShippingOptions.length > 0 ? (
                         <>
-                          <p className="text-[11px] text-[var(--color-text-muted)]">Showing shipping options for your region. Rates and delivery times may vary.</p>
+                          <p className="text-[11px] text-[var(--color-text-muted)]">
+                            {shippingLoading
+                              ? "Loading shipping options for your region…"
+                              : `Showing shipping options for ${buyerCountryLabel}. Rates and delivery times may vary.`}
+                          </p>
                           <ShippingOptionsTable options={sortedShippingOptions} />
                         </>
                       ) : (
-                        <ShippingInfoFallback isFreeShipping={isFreeShipping} shipsFrom={legacyShipsFrom} deliveryDays={legacyShippingDays} hasTracking={legacyHasTracking} />
+                        <ShippingInfoFallback display={shippingDisplay} />
                       )}
-                      {shippingCountries.length > 0 && (
+                      {shipsToLabels.length > 0 && (
                         <div className="rounded-lg p-4" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
                           <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">Ships to</p>
-                          <p className="text-[12px] text-[var(--color-text-primary)] leading-relaxed">{shippingCountries.join(", ")}</p>
+                          <p className="text-[12px] text-[var(--color-text-primary)] leading-relaxed">{shipsToLabels.join(", ")}</p>
                         </div>
                       )}
                       <BuyerProtectionSection />

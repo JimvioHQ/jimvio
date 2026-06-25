@@ -889,7 +889,7 @@ function StepDetails({
                                 value={form.description || ""}
                                 rows={8}
                                 onChange={e => handleChange("description", e.target.value)}
-                                placeholder="Describe your product — plain text or HTML (CJ imports often include images here)"
+                                placeholder="Describe your product — plain text or HTML (imported listings may include images here)"
                             />
                         ) : (
                             <div

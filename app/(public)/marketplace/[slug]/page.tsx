@@ -46,7 +46,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   if (!pageData) notFound();
 
-  const { product, vendor, relatedProducts, shippingOptions, isDigital } = pageData;
+  const { product, vendor, relatedProducts, allShippingOptions, isDigital } = pageData;
 
   const reviews = product.reviews ?? [];
   const reviewCount = reviews.length;
@@ -103,8 +103,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
         product={product}
         vendor={vendor}
         relatedProducts={relatedProducts}
-        shippingOptions={shippingOptions}
-        userCountry={userCountry}
+        allShippingOptions={allShippingOptions}
+        userCountry={pageData.userCountry}
         followedVendorIds={followedVendorIds}
       />
     </>

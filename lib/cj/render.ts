@@ -108,6 +108,8 @@
 
 // lib/cj/render.ts — enhanced with multi-format CJ description parsing
 
+import { sanitizeProductDescriptionHtml, sanitizeSupplierFacingText } from "@/lib/cj/customer-facing";
+
 // ─── Title ────────────────────────────────────────────────────────────────────
 
 export function getCJTitle(p: {
@@ -140,12 +142,27 @@ export function cleanCJDescription(remark: string | null | undefined): string {
 
   let html = remark;
 
-  // Remove images
+  // Remove images (shown in gallery)
   html = html.replace(/<img\b[^>]*\/?>/gi, "");
+
+  // Remove embedded videos (shown in gallery)
+  html = html.replace(/<video\b[^>]*>[\s\S]*?<\/video>/gi, "");
+  html = html.replace(/<video\b[^>]*\/?>/gi, "");
 
   // Remove brand placeholders
   for (const re of BRAND_PLACEHOLDERS) {
     html = html.replace(new RegExp(`(?:the\\s+)?${re.source}`, re.flags), "");
+  }
+
+  // CJ bracket titles → bold (trailing space keeps title separate from following text)
+  html = html.replace(/【([^】]+)】\s*/g, "<strong>$1</strong> ");
+
+  // Plain-text section headers → headings (when not already HTML)
+  if (!/<h[1-6]/i.test(html)) {
+    html = html.replace(
+      /(^|\n|<br\s*\/?>)\s*(Features?|Description|Key Features?|Specifications?)\s*:?\s*(?=\n|<br|$)/gi,
+      "$1<h4>$2</h4>",
+    );
   }
 
   // Strip leading / trailing <br>
@@ -155,10 +172,17 @@ export function cleanCJDescription(remark: string | null | undefined): string {
   // Collapse 3+ consecutive <br>
   html = html.replace(/(?:<br\s*\/?>\s*){3,}/gi, "<br><br>");
 
-  // Normalise whitespace
-  html = html.replace(/\s{2,}/g, " ");
+  // Double newlines → paragraph breaks for plain-text descriptions
+  if (!/<p[\s>]/i.test(html) && !/<div[\s>]/i.test(html)) {
+    html = html
+      .split(/\n{2,}/)
+      .map((block) => block.trim())
+      .filter(Boolean)
+      .map((block) => `<p>${block.replace(/\n/g, "<br>")}</p>`)
+      .join("");
+  }
 
-  return html.trim();
+  return sanitizeProductDescriptionHtml(html.trim());
 }
 
 // ─── Structured description types ────────────────────────────────────────────
@@ -376,6 +400,24 @@ function parsePlainTextSections(plain: string): CJDescriptionSections {
 
 // ─── Public unified parser ────────────────────────────────────────────────────
 
+function sanitizeParsedSections(sections: CJDescriptionSections): CJDescriptionSections {
+  return {
+    specs: sections.specs.map((s) => ({
+      key: sanitizeSupplierFacingText(s.key),
+      value: sanitizeSupplierFacingText(s.value),
+    })),
+    features: sections.features.map((f) => ({
+      title: sanitizeSupplierFacingText(f.title),
+      description: sanitizeSupplierFacingText(f.description),
+    })),
+    commands: sections.commands.map((c) => ({
+      command: sanitizeSupplierFacingText(c.command),
+      description: sanitizeSupplierFacingText(c.description),
+    })),
+    notes: sections.notes.map((n) => sanitizeSupplierFacingText(n)).filter(Boolean),
+  };
+}
+
 /**
  * Parses a CJ product description (HTML or plain text) into structured sections.
  * Handles both the HTML-list format and the asterisk/bracket plain-text format.
@@ -388,12 +430,12 @@ export function parseCJDescriptionSections(
   // Try HTML list format first (original)
   const htmlResult = parseHTMLListSpecs(remark);
   if (htmlResult.specs.length > 0) {
-    return { ...htmlResult, features: [], commands: [] };
+    return sanitizeParsedSections({ ...htmlResult, features: [], commands: [] });
   }
 
   // Fall back to plain-text parser
   const plain = stripTags(remark);
-  return parsePlainTextSections(plain);
+  return sanitizeParsedSections(parsePlainTextSections(plain));
 }
 
 /**

@@ -1,5 +1,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
+import { sanitizeShippingMethodName } from "@/lib/cj/customer-facing";
 import { createClient } from "@/lib/supabase/server";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 import { CJ_CUSTOMER_MESSAGES, logCjInternalError, sanitizeCustomerError } from "@/lib/cj/customer-errors";
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
         const rates = rawRates.map((r: any) => ({
             optionId: r.logisticName ?? r.channelName,
             channelId: r.channelCode ?? r.logisticCode,
-            name: r.logisticName ?? r.channelName,
+            name: sanitizeShippingMethodName(r.logisticName ?? r.channelName),
             arrivalDays: String(r.agingMax ?? r.days ?? r.logisticAging ?? "7-14"),
             priceUSD: Number(r.logisticPrice ?? r.price ?? 0),
             priceLocal: Number(((r.logisticPrice ?? r.price ?? 0) * fxRate).toFixed(2)),

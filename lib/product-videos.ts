@@ -137,13 +137,11 @@ export function resolveProductVideoUrls(product: {
 } | null | undefined): string[] {
   if (!product) return [];
 
-  const fromTable = sortProductVideoRows(product.product_videos);
-  if (fromTable.length > 0) return fromTable;
-
-  const fromLegacy = normalizeLegacyProductVideosJson(product.videos);
-  if (fromLegacy.length > 0) return fromLegacy;
-
-  return getProductVideoUrls(product);
+  return mergeProductVideoUrls(
+    sortProductVideoRows(product.product_videos),
+    normalizeLegacyProductVideosJson(product.videos),
+    getProductVideoUrls(product),
+  );
 }
 
 export function productHasStoredVideos(
@@ -166,28 +164,37 @@ export async function fetchProductVideosMap(
   const map = new Map<string, ProductVideoRef[]>();
   if (productIds.length === 0) return map;
 
+  const isMissingColumn = (message: string) => /does not exist/i.test(message);
+
+  const attempts: Array<{ select: string; activeOnly: boolean }> = [
+    { select: "id, url, sort_order, product_id, is_active", activeOnly: true },
+    { select: "id, url, sort_order, product_id", activeOnly: false },
+    { select: "id, video_url, sort_order, product_id", activeOnly: false },
+  ];
+
   let rows: ProductVideoRef[] = [];
 
-  const primary = await supabase
-    .from("product_videos")
-    .select("id, url, sort_order, product_id, is_active")
-    .in("product_id", productIds)
-    .eq("is_active", true)
-    .order("sort_order");
-
-  if (primary.error) {
-    const fallback = await supabase
+  for (const attempt of attempts) {
+    let query = supabase
       .from("product_videos")
-      .select("id, url, sort_order, product_id")
+      .select(attempt.select)
       .in("product_id", productIds)
       .order("sort_order");
-    if (fallback.error) {
-      console.warn("[fetchProductVideosMap]:", fallback.error.message);
+
+    if (attempt.activeOnly) {
+      query = query.eq("is_active", true);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      if (isMissingColumn(error.message)) continue;
+      console.warn("[fetchProductVideosMap]:", error.message);
       return map;
     }
-    rows = (fallback.data ?? []) as ProductVideoRef[];
-  } else {
-    rows = (primary.data ?? []) as ProductVideoRef[];
+
+    rows = (data ?? []) as ProductVideoRef[];
+    break;
   }
 
   for (const row of rows) {

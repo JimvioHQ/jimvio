@@ -1,7 +1,13 @@
 import { cache } from "react";
+import { headers } from "next/headers";
 import { getDB, getAdminDB } from "./base";
+import { countryFromRequestHeaders } from "@/lib/geo/buyer-country";
+import {
+  filterShippingOptions,
+  type RegionalShippingOption,
+} from "@/lib/shipping/regional-shipping";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
-import { fetchProductVideosMap, isPlayableVideoUrl, productVideoUrl } from "@/lib/product-videos";
+import { fetchProductVideosMap, isPlayableVideoUrl, productVideoUrl, resolveProductVideoUrls } from "@/lib/product-videos";
 
 import type { Tables } from "@/types/supabase";
 import type { Product, ProductStatus } from "@/types/db";
@@ -78,8 +84,12 @@ export interface ProductPageData {
   product: ProductWithRelations;
   vendor: VendorPublic | null;
   relatedProducts: any[];
-  shippingOptions: any[];
+  /** All active shipping rows — client filters by browser country. */
+  allShippingOptions: RegionalShippingOption[];
+  /** Server-side regional hint (IP / profile) for first paint. */
+  shippingOptions: RegionalShippingOption[];
   isDigital: boolean;
+  userCountry: string;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -174,28 +184,28 @@ export function deriveIsDigital(product: { is_digital?: boolean | null; product_
 
 /**
  * Filter shipping options by user country.
- * Precedence: country-specific > global ("*" / "GLOBAL") > all active.
+ * @see lib/shipping/regional-shipping.ts
  */
-export function filterShippingOptions(
-  options: any[],
-  userCountry: string,
-): any[] {
-  const active = options.filter((o) => o.is_active);
-  const countrySpecific = active.filter((o) => o.ship_to_country === userCountry);
-  if (countrySpecific.length > 0) return countrySpecific;
-  const global = active.filter((o) => o.ship_to_country === "*" || o.ship_to_country === "GLOBAL");
-  return global.length > 0 ? global : active;
-}
+export { filterShippingOptions } from "@/lib/shipping/regional-shipping";
 
 /**
  * Resolves the buyer's country once.
- * Precedence: explicit override > signed-in profile.country > fallback.
+ * Precedence: explicit override → IP geo headers → signed-in profile → fallback.
  */
 export async function getUserCountry(
   override?: string,
   fallback: string = "RW",
 ): Promise<string> {
   if (override) return override;
+
+  try {
+    const h = await headers();
+    const fromIp = countryFromRequestHeaders(h);
+    if (fromIp) return fromIp;
+  } catch {
+    // headers() unavailable outside request context
+  }
+
   try {
     const db = await getDB();
     const { data: { user } } = await db.auth.getUser();
@@ -432,11 +442,10 @@ export async function getProductPageData(
   const product = await getProductBySlug(slug);
   if (!product) return null;
 
-  // Filter shipping using the shared utility.
-  const shippingOptions = filterShippingOptions(
-    product.product_shipping_options ?? [],
-    userCountry,
-  );
+  const allShippingOptions = ((product.product_shipping_options ?? []) as RegionalShippingOption[])
+    .filter((o) => o.is_active !== false);
+
+  const shippingOptions = filterShippingOptions(allShippingOptions, userCountry);
 
   // Sort reviews: most helpful first, then most recent; cap at reviewLimit.
   product.reviews = (product.reviews ?? [])
@@ -477,8 +486,10 @@ export async function getProductPageData(
     product,
     vendor: product.vendors ?? null,
     relatedProducts,
+    allShippingOptions,
     shippingOptions,
     isDigital: deriveIsDigital(product),
+    userCountry,
   };
 }
 
@@ -730,6 +741,7 @@ export type AdminProductDetail = {
     product_shipping_options?: Array<Record<string, unknown>>;
   };
   images: string[];
+  videos: string[];
   cjPid: string | null;
   orderCount: number;
   reviewCount: number;
@@ -778,6 +790,7 @@ export async function getAdminProductDetail(id: string): Promise<AdminProductDet
     orderCountRes,
     reviewRes,
     recentItemsRes,
+    videoMap,
   ] = await Promise.all([
     supabase.from("cj_product_map").select("cj_pid").eq("product_id", id).maybeSingle(),
     supabase.from("order_items").select("id", { count: "exact", head: true }).eq("product_id", id),
@@ -790,6 +803,7 @@ export async function getAdminProductDetail(id: string): Promise<AdminProductDet
       .eq("product_id", id)
       .order("created_at", { ascending: false })
       .limit(8),
+    fetchProductVideosMap(supabase, [id]),
   ]);
 
   const ratings = (reviewRes.data ?? [])
@@ -818,8 +832,15 @@ export async function getAdminProductDetail(id: string): Promise<AdminProductDet
   }));
 
   return {
-    product: product as AdminProductDetail["product"],
+    product: {
+      ...(product as AdminProductDetail["product"]),
+      product_videos: videoMap.get(id) ?? [],
+    },
     images: normaliseImages(product.images),
+    videos: resolveProductVideoUrls({
+      ...(product as Record<string, unknown>),
+      product_videos: videoMap.get(id) ?? [],
+    }),
     cjPid: cjMapRes.data?.cj_pid ?? (product.source_metadata as { cj_pid?: string } | null)?.cj_pid ?? null,
     orderCount: orderCountRes.count ?? 0,
     reviewCount: ratings.length,

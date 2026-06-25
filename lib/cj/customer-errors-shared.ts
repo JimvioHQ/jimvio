@@ -22,7 +22,7 @@ const INTERNAL_PATTERNS: RegExp[] = [
     /product_variants/i,
     /freightCalculate/i,
     /developers\.cjdropshipping/i,
-    /QPS limit/i,
+    /dropship(ping|per|ment)?/i,
     /CJ-Access-Token/i,
     /CJ wallet/i,
     /wallet balance/i,

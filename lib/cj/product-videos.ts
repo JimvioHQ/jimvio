@@ -11,6 +11,7 @@ export function normalizeCjVideoUrls(raw: unknown): string[] {
     } else if (item && typeof item === "object" && "url" in item) {
       url = String((item as { url?: unknown }).url ?? "").trim();
     }
+    if (url.startsWith("//")) url = `https:${url}`;
     if (!url.startsWith("http")) continue;
     if (seen.has(url)) continue;
     seen.add(url);
@@ -28,22 +29,36 @@ export function extractVideosFromHtml(html: string): string[] {
   const seen = new Set<string>();
 
   const add = (url: string) => {
-    const trimmed = url.trim();
+    let trimmed = url.trim();
+    if (trimmed.startsWith("//")) trimmed = `https:${trimmed}`;
     if (!trimmed.startsWith("http")) return;
-    if (!/\.mp4|video-cf\.cjdropshipping|m3u8|\/video\//i.test(trimmed)) return;
+    if (
+      !/\.(mp4|webm|mov|m3u8)(\?|$)|video-cf\.cjdropshipping|cjdropshipping\.com\/.*video|\/video\//i.test(
+        trimmed,
+      )
+    ) {
+      return;
+    }
     if (seen.has(trimmed)) return;
     seen.add(trimmed);
     urls.push(trimmed);
   };
 
-  const srcRegex = /src=["']([^"']+)["']/gi;
+  const srcRegex = /(?:src|href|data-src)=["']([^"']+)["']/gi;
   let match: RegExpExecArray | null;
   while ((match = srcRegex.exec(html)) !== null) {
     add(match[1]);
   }
 
-  const bare = html.match(/https?:\/\/[^\s"'<>]+\.mp4[^\s"'<>]*/gi) ?? [];
+  const bare =
+    html.match(/https?:\/\/[^\s"'<>]+\.(?:mp4|webm|mov|m3u8)[^\s"'<>]*/gi) ?? [];
   for (const url of bare) add(url);
+
+  const cjBare =
+    html.match(/https?:\/\/[^\s"'<>]*cjdropshipping[^\s"'<>]*/gi) ?? [];
+  for (const url of cjBare) {
+    if (/video|\.mp4|m3u8/i.test(url)) add(url);
+  }
 
   return urls;
 }
