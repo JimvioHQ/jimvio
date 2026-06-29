@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/client";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { ProviderLogo } from "@/components/ui/admin";
 import { resolveCustomerOrderStatus } from "@/lib/payments/order-payment-utils";
+import { CUSTOMER_ORDER_LIST_SELECT } from "@/lib/orders/customer-order-fields";
 
 const SHELL = "mx-auto w-full max-w-8xl px-4 sm:px-6";
 
@@ -44,23 +45,7 @@ export default function PublicOrdersPage() {
       }
       const { data } = await supabase
         .from("orders")
-        .select(
-          `
-          id,
-          order_number,
-          status,
-          payment_status,
-          total_amount,
-          currency,
-          payment_provider,
-          tracking_number,
-          shipped_at,
-          delivered_at,
-          cj_fulfillment_status,
-          created_at,
-          order_items ( product_name, product_image, quantity )
-        `
-        )
+        .select(CUSTOMER_ORDER_LIST_SELECT)
         .eq("buyer_id", user.id)
         .order("created_at", { ascending: false });
 

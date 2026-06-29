@@ -41,6 +41,11 @@ const INTERNAL_PATTERNS: RegExp[] = [
     /CJ balance insufficient/i,
     /submission FAILED/i,
     /submission skipped/i,
+    /admin portal/i,
+    /retry FAILED/i,
+    /forwarded to/i,
+    /wallet balance/i,
+    /insufficient.*wallet/i,
 ];
 
 export function containsCjInternalDetail(message: string): boolean {

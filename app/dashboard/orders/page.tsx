@@ -484,7 +484,7 @@ export default function BuyerOrdersPage() {
             shipping_address, tracking_number, tracking_status,
             order_items (
                id, product_id, variant_id, product_name, quantity, unit_price, total_price,
-               vendor_id, product_source, product_type, digital_download_url,
+               vendor_id, product_type, digital_download_url,
                vendors ( id, business_name, business_slug )
             )
          `)

@@ -13,6 +13,10 @@
 
 import crypto from "crypto";
 import { validatePayPalWebhook } from "@/lib/paypal";
+import {
+  validateFlutterwaveWebhookRequest,
+  isFlutterwaveSuccessfulStatus,
+} from "@/lib/flutterwave";
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -54,58 +58,99 @@ export type ProviderVerifier = (
 // Flutterwave
 // ---------------------------------------------------------------------------
 
-export const verifyFlutterwave: ProviderVerifier = async (headers, rawBody) => {
-  const signature = headers.get("verif-hash");
-  const secret = (
-    process.env.FLW_WEBHOOK_SECRET || process.env.FLUTTERWAVE_WEBHOOK_HASH || ""
-  )
-    .trim()
-    .replace(/^["']|["']$/g, "");
-
-  if (!secret) {
-    return { ok: false, reason: "FLW_WEBHOOK_SECRET not configured", status: 500 };
+function parseFlutterwavePayload(rawBody: string): {
+  txRef?: string;
+  txId?: string;
+  status?: string;
+  amount?: number;
+  currency?: string;
+} | null {
+  let body: Record<string, unknown>;
+  try {
+    body = JSON.parse(rawBody) as Record<string, unknown>;
+  } catch {
+    return null;
   }
-  if (!signature || signature !== secret) {
+
+  if (body.data && typeof body.data === "object" && !Array.isArray(body.data)) {
+    const d = body.data as Record<string, unknown>;
+    return {
+      txRef: typeof d.tx_ref === "string" ? d.tx_ref : undefined,
+      txId: d.id != null ? String(d.id) : undefined,
+      status: typeof d.status === "string" ? d.status : undefined,
+      amount: d.amount != null ? Number(d.amount) : undefined,
+      currency: typeof d.currency === "string" ? d.currency : undefined,
+    };
+  }
+
+  if (body.event && typeof body.event === "object" && !Array.isArray(body.event)) {
+    const ev = body.event as Record<string, unknown>;
+    const txRef =
+      typeof ev.txRef === "string"
+        ? ev.txRef
+        : typeof ev.tx_ref === "string"
+          ? ev.tx_ref
+          : undefined;
+    return {
+      txRef,
+      txId: ev.id != null ? String(ev.id) : undefined,
+      status: typeof ev.status === "string" ? ev.status : undefined,
+      amount: ev.amount != null ? Number(ev.amount) : undefined,
+      currency: typeof ev.currency === "string" ? ev.currency : undefined,
+    };
+  }
+
+  const txRef =
+    typeof body.tx_ref === "string"
+      ? body.tx_ref
+      : typeof body.txRef === "string"
+        ? body.txRef
+        : undefined;
+
+  if (txRef || body.id != null) {
+    return {
+      txRef,
+      txId: body.id != null ? String(body.id) : undefined,
+      status: typeof body.status === "string" ? body.status : undefined,
+      amount: body.amount != null ? Number(body.amount) : undefined,
+      currency: typeof body.currency === "string" ? body.currency : undefined,
+    };
+  }
+
+  return null;
+}
+
+export const verifyFlutterwave: ProviderVerifier = async (headers, rawBody) => {
+  if (!validateFlutterwaveWebhookRequest(headers, rawBody)) {
     return { ok: false, reason: "Invalid Flutterwave signature", status: 401 };
   }
 
-  let body: {
-    event?: string;
-    data?: {
-      id?: number;
-      tx_ref?: string;
-      status?: string;
-      amount?: number;
-      currency?: string;
-      meta?: Record<string, unknown>;
+  const txData = parseFlutterwavePayload(rawBody);
+  if (!txData?.txRef) {
+    return {
+      ok: true,
+      event: {
+        provider: "flutterwave",
+        providerTransactionId: "unknown",
+        idempotencyKey: `flw-noop-${Date.now()}`,
+        status: "ignored",
+        rawBody,
+      },
     };
-  };
-  try {
-    body = JSON.parse(rawBody);
-  } catch {
-    return { ok: false, reason: "Invalid JSON", status: 400 };
   }
 
-  const txData = body.data;
-  if (!txData?.tx_ref) {
-    return { ok: true, event: { provider: "flutterwave", providerTransactionId: "unknown", idempotencyKey: `flw-noop-${Date.now()}`, status: "ignored", rawBody } };
-  }
-
-  const txId = String(txData.id ?? txData.tx_ref);
+  const txId = txData.txId ?? txData.txRef;
   const rawStatus = (txData.status || "").toLowerCase();
   let status: PaymentEventStatus = "pending";
-  if (rawStatus === "successful") status = "paid";
+  if (isFlutterwaveSuccessfulStatus(rawStatus)) status = "paid";
   else if (rawStatus === "failed") status = "failed";
-
-  // Pull jimvioOrderId from tx_ref (we set tx_ref = orderId at checkout)
-  const jimvioOrderId = txData.tx_ref || null;
 
   return {
     ok: true,
     event: {
       provider: "flutterwave",
       providerTransactionId: txId,
-      jimvioOrderId,
+      jimvioOrderId: null,
       idempotencyKey: `flw-${txId}`,
       status,
       amount: txData.amount ?? null,
@@ -399,8 +444,9 @@ const PROVIDER_VERIFIERS: Record<string, ProviderVerifier> = {
  * Returns the provider key to look up in PROVIDER_VERIFIERS.
  */
 export function detectProvider(headers: Headers): string | null {
-  // Flutterwave: uses verif-hash header
-  if (headers.get("verif-hash")) return "flutterwave";
+  if (headers.get("verif-hash") || headers.get("flutterwave-signature")) {
+    return "flutterwave";
+  }
 
   // PayPal: uses paypal-transmission-id
   if (headers.get("paypal-transmission-id")) return "paypal";

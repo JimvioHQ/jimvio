@@ -14,9 +14,34 @@ function getSecretKey(): string {
 }
 
 function getWebhookSecret(): string {
-  const secret = process.env.FLW_WEBHOOK_SECRET || process.env.FLUTTERWAVE_WEBHOOK_HASH;
+  const secret = getWebhookSecretOrNull();
   if (!secret) throw new Error("FLW_WEBHOOK_SECRET is not configured in .env");
+  return secret;
+}
+
+function getWebhookSecretOrNull(): string | null {
+  const secret = process.env.FLW_WEBHOOK_SECRET || process.env.FLUTTERWAVE_WEBHOOK_HASH;
+  if (!secret) return null;
   return secret.trim().replace(/^["']|["']$/g, "");
+}
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, "utf8");
+  const bBuf = Buffer.from(b, "utf8");
+  if (aBuf.length !== bBuf.length) return false;
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
+
+/** Flutterwave uses different status strings across API versions. */
+export function isFlutterwaveSuccessfulStatus(
+  status: string | null | undefined
+): boolean {
+  const normalized = (status ?? "").toLowerCase();
+  return (
+    normalized === "successful" ||
+    normalized === "succeeded" ||
+    normalized === "completed"
+  );
 }
 
 /* ── Custom error ────────────────────────────────────────────────── */
@@ -352,6 +377,56 @@ function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
 
 /* ── Webhook validation ──────────────────────────────────────────── */
 
+/**
+ * Validate an incoming Flutterwave webhook request.
+ * Supports:
+ * - v4 `flutterwave-signature` (HMAC-SHA256 of raw body, base64 or hex)
+ * - legacy `verif-hash` (direct Secret Hash comparison)
+ */
+export function validateFlutterwaveWebhookRequest(
+  headers: Headers,
+  rawBody: string
+): boolean {
+  const secret = getWebhookSecretOrNull();
+  if (!secret) {
+    console.error("[Flutterwave] Webhook secret not configured");
+    return false;
+  }
+
+  const hmacSignature = headers.get("flutterwave-signature");
+  if (hmacSignature) {
+    const base64 = crypto
+      .createHmac("sha256", secret)
+      .update(rawBody)
+      .digest("base64");
+    const hex = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
+
+    if (
+      timingSafeStringEqual(hmacSignature, base64) ||
+      timingSafeStringEqual(hmacSignature, hex)
+    ) {
+      return true;
+    }
+  }
+
+  const verifHash = headers.get("verif-hash");
+  if (verifHash && timingSafeStringEqual(verifHash, secret)) {
+    return true;
+  }
+
+  if (hmacSignature || verifHash) {
+    console.warn("[Flutterwave] Webhook signature mismatch", {
+      hasHmac: !!hmacSignature,
+      hasVerifHash: !!verifHash,
+    });
+  } else {
+    console.warn("[Flutterwave] Webhook received with no signature headers");
+  }
+
+  return false;
+}
+
+/** @deprecated Prefer validateFlutterwaveWebhookRequest(headers, rawBody). */
 export function validateFlutterwaveWebhook(
   rawBody: string,
   signature: string | null
@@ -361,54 +436,15 @@ export function validateFlutterwaveWebhook(
     return false;
   }
 
-  let secret: string;
-  try {
-    secret = getWebhookSecret();
-  } catch {
-    console.error("[Flutterwave] Webhook secret not configured");
-    return false;
+  const headers = new Headers();
+  headers.set("verif-hash", signature);
+  if (validateFlutterwaveWebhookRequest(headers, rawBody)) {
+    return true;
   }
 
-  // Flutterwave "Secret Hash" method — direct string comparison
-  // per FLW docs for hosted checkout webhooks.
-  //
-  // FIX: crypto.timingSafeEqual() throws a RangeError when the two buffers
-  // have different byte lengths — it does NOT return false.
-  // This was crashing the webhook silently, causing Flutterwave to receive
-  // a 500 instead of a 401, and retry indefinitely.
-  //
-  // Solution: length-check first, then compare.
-  // We still use timingSafeEqual (not ===) to prevent timing attacks.
-  try {
-    const sigBuf = Buffer.from(signature, "utf8");
-    const secretBuf = Buffer.from(secret, "utf8");
-
-    // Different lengths → definitely not equal.
-    // Return false directly — comparing buffers of different lengths
-    // with timingSafeEqual would throw.
-    if (sigBuf.length !== secretBuf.length) {
-      console.warn("[Flutterwave] Webhook signature length mismatch", {
-        signatureLength: sigBuf.length,
-        secretLength: secretBuf.length,
-      });
-      return false;
-    }
-
-    const isValid = crypto.timingSafeEqual(sigBuf, secretBuf);
-
-    if (!isValid) {
-      console.warn("[Flutterwave] Webhook signature mismatch");
-    }
-
-    return isValid;
-  } catch (err) {
-    // Catch any unexpected errors from timingSafeEqual so the webhook
-    // never crashes — always return false instead of throwing.
-    console.error("[Flutterwave] Webhook signature comparison error", {
-      reason: err instanceof Error ? err.message : String(err),
-    });
-    return false;
-  }
+  headers.delete("verif-hash");
+  headers.set("flutterwave-signature", signature);
+  return validateFlutterwaveWebhookRequest(headers, rawBody);
 }
 
 /* ── Refund (optional) ───────────────────────────────────────────── */

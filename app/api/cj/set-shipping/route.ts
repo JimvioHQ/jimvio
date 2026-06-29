@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 import { CJ_CUSTOMER_MESSAGES, logCjInternalError, sanitizeCustomerError } from "@/lib/cj/customer-errors";
-
-const CJ_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
+import {
+    fetchCjCheckoutFreightRates,
+    findMatchingCheckoutShippingRate,
+    type CheckoutShippingSelection,
+    type CjFreightProduct,
+} from "@/lib/cj/checkout-shipping";
 
 // Expected, user-facing errors — logged at debug level, not as errors
 class UserError extends Error {
@@ -21,68 +24,14 @@ interface CartItemInput {
     quantity: number;
 }
 
-interface CJShippingOption {
-    optionId: string;
-    channelId: string;
-    name: string;
-    arrivalDays: string;
-    priceUSD: number;
-    priceLocal: number;
-    localCurrency: string;
-    fxRate: number;
-}
-
-interface CJRateRow {
-    logisticName?: string;
-    logisticAbbreviation?: string;
-    logisticAging?: string;
-    logisticPrice?: number | string;
-    logisticCode?: string;
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function toPriceUSD(v: unknown): number {
-    if (typeof v === "number" && Number.isFinite(v)) return v;
-    if (typeof v === "string") {
-        const n = Number(v.replace(/[^\d.]/g, ""));
-        return Number.isFinite(n) ? n : 0;
-    }
-    return 0;
-}
-
-function formatAging(aging: string | undefined): string | null {
-    if (!aging) return null;
-    return aging.replace(/\s+/g, "").replace(/–|—/g, "-");
-}
-
-async function getExchangeRate(
-    fromCurrency: string,
-    toCurrency: string
-): Promise<number> {
-    if (fromCurrency.toUpperCase() === toCurrency.toUpperCase()) return 1;
-    try {
-        const res = await fetch(
-            `https://api.exchangerate-api.com/v4/latest/${fromCurrency.toUpperCase()}`
-        );
-        if (!res.ok) throw new Error("Exchange rate fetch failed");
-        const data = await res.json();
-        return data.rates?.[toCurrency.toUpperCase()] ?? 1;
-    } catch {
-        return 1;
-    }
-}
-
-// ─── Operation A: fetch shipping rates ────────────────────────────────────────
-
-async function fetchRates(
-    destCountryCode: string,
-    cartItems: CartItemInput[],
-    orderCurrency = "USD"
-): Promise<{ rates: CJShippingOption[]; skipped: string[] }> {
+async function buildProductsFromVariants(
+    cartItems: CartItemInput[]
+): Promise<{ products: CjFreightProduct[]; skipped: string[] }> {
     const supabase = createServiceRoleClient();
 
-    const variantIds = cartItems.map((i) => i.variantId).filter(Boolean);
+    const variantIds = cartItems.map((item) => item.variantId).filter(Boolean);
     if (!variantIds.length) throw new Error("No variant IDs provided");
 
     const { data: variants, error } = await supabase
@@ -94,97 +43,60 @@ async function fetchRates(
     if (!variants?.length) throw new Error("No matching variants found");
 
     const variantMap = new Map(
-        variants.map((v) => [
-            v.id,
+        variants.map((variant) => [
+            variant.id,
             {
                 cj_vid:
-                    ((v.source_metadata as any)?.cj_vid as string | undefined) ??
-                    (v.cj_vid as string | null) ??
+                    ((variant.source_metadata as { cj_vid?: string } | null)?.cj_vid) ??
+                    (variant.cj_vid as string | null) ??
                     null,
-                weight: Number(v.weight ?? 0),
+                weight: Number(variant.weight ?? 0),
             },
         ])
     );
 
     const skipped: string[] = [];
     const products = cartItems
-        .map((item) => {
-            const v = variantMap.get(item.variantId);
-            if (!v?.cj_vid) {
+        .map((item): CjFreightProduct | null => {
+            const variant = variantMap.get(item.variantId);
+            if (!variant?.cj_vid) {
                 skipped.push(item.variantId);
                 return null;
             }
             return {
-                vid: v.cj_vid,
+                vid: variant.cj_vid,
                 quantity: item.quantity,
-                weight: v.weight > 0 ? v.weight : 100,
+                weight: variant.weight > 0 ? variant.weight : 100,
             };
         })
-        .filter((p): p is NonNullable<typeof p> => p !== null);
+        .filter((product): product is CjFreightProduct => product !== null);
 
     if (!products.length) {
         throw new Error("No valid CJ variants found for shipping calculation");
     }
 
-    const token = await getOrRefreshAccessToken();
+    return { products, skipped };
+}
 
-    const res = await fetch(`${CJ_BASE}/logistic/freightCalculate`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "CJ-Access-Token": token,
-        },
-        body: JSON.stringify({
-            startCountryCode: "CN",
-            endCountryCode: destCountryCode,
-            products,
-        }),
-        signal: AbortSignal.timeout(8000),
+// ─── Operation A: fetch shipping rates ────────────────────────────────────────
+
+async function fetchRates(
+    destCountryCode: string,
+    cartItems: CartItemInput[],
+    orderCurrency = "USD"
+): Promise<{ rates: Awaited<ReturnType<typeof fetchCjCheckoutFreightRates>>["rates"]; skipped: string[] }> {
+    const { products, skipped } = await buildProductsFromVariants(cartItems);
+    const { rates } = await fetchCjCheckoutFreightRates({
+        destCountryCode,
+        products,
+        orderCurrency,
     });
-
-    const json = await res.json().catch(() => ({} as any));
-
-    if (!res.ok || json?.result === false) {
-        const msg = json?.message ?? `HTTP ${res.status}`;
-        throw new Error(`CJ shipping API error: ${msg}`);
-    }
-
-    const raw: CJRateRow[] = Array.isArray(json?.data) ? json.data : [];
-    if (process.env.NODE_ENV !== "production") {
-        console.log(
-            "[CJ raw rates]",
-            raw.map((r) => ({
-                name: r.logisticName,
-                aging: r.logisticAging,
-                price: r.logisticPrice,
-            }))
-        );
-    }
-
-    const fxRate = await getExchangeRate("USD", orderCurrency);
-
-    const rates: CJShippingOption[] = raw.map((r, idx) => {
-        const priceUSD = toPriceUSD(r.logisticPrice);
-        return {
-            optionId: `${r.logisticCode ?? r.logisticAbbreviation ?? r.logisticName ?? "opt"}-${idx}`,
-            channelId: r.logisticCode ?? r.logisticAbbreviation ?? r.logisticName ?? "",
-            name: r.logisticName ?? "Standard Shipping",
-            arrivalDays: formatAging(r.logisticAging) ?? "",
-            priceUSD,
-            priceLocal: Number((priceUSD * fxRate).toFixed(2)),
-            localCurrency: orderCurrency.toUpperCase(),
-            fxRate,
-        };
-    });
-
-    rates.sort((a, b) => a.priceUSD - b.priceUSD);
-
     return { rates, skipped };
 }
 
 async function saveSelection(
     orderIds: string[],
-    shippingOption: { optionId?: string; channelId?: string; name: string },
+    shippingOption: CheckoutShippingSelection,
     buyerId: string,
     fallbackCountryCode?: string
 ): Promise<{ priceUSD: number; name: string }> {
@@ -231,15 +143,10 @@ async function saveSelection(
 
     // Re-quote — this is the trusted price (no currency conversion needed here)
     const { rates } = await fetchRates(destCountryCode, cartItems, "USD");
-    const trusted = rates.find(
-        (r) =>
-            r.optionId === shippingOption.optionId ||
-            r.channelId === shippingOption.channelId ||
-            r.name === shippingOption.name
-    );
+    const trusted = findMatchingCheckoutShippingRate(rates, shippingOption);
 
     if (!trusted) {
-        throw new Error(
+        throw new UserError(
             "Selected shipping option no longer available. Please choose again."
         );
     }

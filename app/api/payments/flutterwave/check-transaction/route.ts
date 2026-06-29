@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { verifyFlutterwaveTransaction, FlutterwaveError } from "@/lib/flutterwave";
+import { verifyFlutterwaveTransaction, FlutterwaveError, isFlutterwaveSuccessfulStatus } from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 
 const supabase = createClient(
@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
 
         console.log("[Manual check] Flutterwave status:", verified.status, "for order:", order.id);
 
-        if (verified.status !== "successful") {
+        if (!isFlutterwaveSuccessfulStatus(verified.status)) {
             return NextResponse.json({
                 alreadyPaid: false,
                 paymentStatus: order.payment_status,

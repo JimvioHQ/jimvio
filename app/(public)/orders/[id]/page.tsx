@@ -23,6 +23,10 @@ import {
   resolveCustomerOrderStatus,
 } from "@/lib/payments/order-payment-utils";
 import { sanitizeOrderTimelineNote } from "@/lib/cj/customer-errors-shared";
+import {
+  CUSTOMER_ORDER_DETAIL_SELECT,
+  sanitizeCustomerOrderMetadata,
+} from "@/lib/orders/customer-order-fields";
 
 /* ─── Types ─────────────────────────────────────────────────────── */
 
@@ -93,6 +97,7 @@ type Order = {
   tracking_number: string | null;
   tracking_status: string | null;
   cj_fulfillment_status?: string | null;
+  metadata?: Record<string, unknown> | null;
   buyer?: { full_name: string | null; email: string | null } | null;
   order_items: OrderItem[];
   transactions: Transaction[];
@@ -1272,20 +1277,7 @@ export default function PublicOrderDetailPage() {
 
         const { data: orderData, error } = await supabase
           .from("orders")
-          .select(`
-            *,
-            buyer:profiles!buyer_id ( full_name, email ),
-            order_items (
-              id, product_id, product_name, product_image, quantity,
-              unit_price, total_price, product_type, digital_download_url,
-              vendor_id,
-              vendors ( id, business_name, business_slug, business_logo )
-            ),
-            transactions (
-              id, provider, provider_transaction_id,
-              status, amount, amount_usd, created_at
-            )
-          `)
+          .select(CUSTOMER_ORDER_DETAIL_SELECT)
           .eq("id", id)
           .eq("buyer_id", user.id)
           .single();
@@ -1318,6 +1310,7 @@ export default function PublicOrderDetailPage() {
 
         setOrder({
           ...(orderData as Order),
+          metadata: sanitizeCustomerOrderMetadata(orderData.metadata),
           order_status_history: historyData ?? [],
         });
       } catch (err: any) {

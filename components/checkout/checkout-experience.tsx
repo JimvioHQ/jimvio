@@ -227,14 +227,13 @@ export function CheckoutExperience({
 
             // Build the CJ payload with proper vids and weights
             const products = cjItems.map((item) => ({
-               variantId: getCJVid(item),
+               cjVid: getCJVid(item) ?? undefined,
                quantity: item.quantity,
-
-               weight: getCJWeight(item),
+               weight: getCJWeight(item) ?? undefined,
             }));
             console.log(products);
 
-            const missing = products.filter((p) => !p.variantId);
+            const missing = products.filter((p) => !p.cjVid);
             if (missing.length > 0) {
                throw new Error(
                   "Some items are missing variant information. Please remove them from your cart and add them again."

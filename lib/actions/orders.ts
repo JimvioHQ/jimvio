@@ -168,8 +168,8 @@ export async function retryCJOrderAction(formData: FormData) {
       order_id: orderId,
       previous_status: null,
       new_status: "processing",
-      notes: `CJ retry requested from admin portal`,
-      metadata: { triggered_by: "admin_retry" },
+      notes: "Fulfillment retry requested.",
+      metadata: { triggered_by: "admin_retry", supplier: "cj" },
     });
   } catch (err) {
     const admin = getAdminDB();
@@ -178,8 +178,8 @@ export async function retryCJOrderAction(formData: FormData) {
       order_id: orderId,
       previous_status: null,
       new_status: "processing",
-      notes: `CJ retry FAILED: ${message}`,
-      metadata: { cj_error: message, triggered_by: "admin_retry" },
+      notes: "Fulfillment could not be completed yet. Our team is retrying.",
+      metadata: { supplier_error: message, triggered_by: "admin_retry", supplier: "cj" },
     });
     throw err;
   } finally {

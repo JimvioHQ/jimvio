@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutExperience } from "@/components/checkout/checkout-experience";
 import { syncOrderWithCart } from "@/lib/actions/checkout";
+import { sanitizeCustomerOrderMetadata } from "@/lib/orders/customer-order-fields";
 
 export const dynamic = "force-dynamic";
 
@@ -21,13 +22,8 @@ type OrderItemRow = {
   pricing_type: string | null;
   billing_period: string | null;
   product_source: string;
-  source_metadata: Record<string, unknown>;
   cj_vid: string | null;
-  cj_pid: string | null;
   variant_weight: number | null;
-  variant_length: number | null;
-  variant_width: number | null;
-  variant_height: number | null;
 };
 
 type OrderRow = {
@@ -38,11 +34,8 @@ type OrderRow = {
   subtotal: number;
   shipping_amount: number | null;
   currency: string | null;
-  integration_source: string | null;
   metadata: unknown;
   shipping_address: unknown;
-  cj_shipping_method: string | null;
-  cj_supplier_cost: number | null;
   vendors: { id: string; business_name: string; business_slug: string } | null;
   order_items: OrderItemRow[];
 };
@@ -79,13 +72,8 @@ function flattenOrderItems(rawItems: any[]): OrderItemRow[] {
       pricing_type: item.pricing_type ?? null,
       billing_period: item.billing_period ?? null,
       product_source: item.product_source ?? "vendor",
-      source_metadata: item.source_metadata ?? {},
       cj_vid: variant?.cj_vid ?? null,
-      cj_pid: variant?.cj_pid ?? null,
       variant_weight: variant?.weight ?? null,
-      variant_length: variant?.length ?? null,
-      variant_width: variant?.width ?? null,
-      variant_height: variant?.height ?? null,
     };
   });
 }
@@ -99,11 +87,8 @@ function normaliseOrder(raw: any): OrderRow {
     subtotal: raw.subtotal,
     shipping_amount: raw.shipping_amount ?? null,
     currency: raw.currency ?? null,
-    integration_source: raw.integration_source ?? null,
-    metadata: raw.metadata ?? null,
+    metadata: sanitizeCustomerOrderMetadata(raw.metadata),
     shipping_address: raw.shipping_address ?? null,
-    cj_shipping_method: raw.cj_shipping_method ?? null,
-    cj_supplier_cost: raw.cj_supplier_cost ?? null,
     vendors: Array.isArray(raw.vendors) ? raw.vendors[0] ?? null : raw.vendors,
     order_items: flattenOrderItems(raw.order_items ?? []),
   };
@@ -113,14 +98,13 @@ const ORDER_SELECT = `
   id, status, payment_status,
   total_amount, subtotal, shipping_amount, currency,
   integration_source, metadata, shipping_address,
-  cj_shipping_method, cj_supplier_cost,
   vendors (id, business_name, business_slug),
   order_items (
     id, product_id, variant_id, product_name, product_image,
     quantity, unit_price, total_price,
     product_type, pricing_type, billing_period,
-    product_source, source_metadata,
-    product_variants (cj_vid, cj_pid, weight, length, width, height)
+    product_source,
+    product_variants (cj_vid, weight, length, width, height)
   )
 ` as const;
 
@@ -176,9 +160,8 @@ export default async function CheckoutPage(props: {
     );
   }
 
+  const isCommunity = rawOrder.integration_source === "community";
   const order = normaliseOrder(rawOrder);
-
-  // Mixed digital + physical safeguard
   const types = new Set(order.order_items.map((i) => i.product_type));
   if (types.has("digital") && types.has("physical")) {
     redirectWithError(
@@ -197,8 +180,6 @@ export default async function CheckoutPage(props: {
     .select("full_name, email, phone")
     .eq("id", user.id)
     .single();
-
-  const isCommunity = order.integration_source === "community";
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">

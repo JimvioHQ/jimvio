@@ -3,6 +3,11 @@
 import { Check, Package, CreditCard, Settings, Truck, Home, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { sanitizeTrackingStatus } from "@/lib/cj/customer-facing";
+import {
+  getCustomerStatusRank,
+  isCustomerStatusAtLeast,
+} from "@/lib/payments/order-payment-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,9 +34,13 @@ function formatDate(dateStr?: string | null) {
 }
 
 function buildSteps(order: TrackingOrder) {
-  const isProcessing = ["processing", "confirmed", "shipped", "delivered"].includes(order.status);
-  const isShipped = Boolean(order.shipped_at) || ["shipped", "delivered"].includes(order.status);
-  const isDelivered = Boolean(order.delivered_at) || order.status === "delivered";
+  const rank = getCustomerStatusRank(order.status);
+  const isPaid = Boolean(order.paid_at) || rank >= 1;
+  const isProcessing = isCustomerStatusAtLeast(order.status, "processing");
+  const isShipped =
+    isCustomerStatusAtLeast(order.status, "shipped") || Boolean(order.shipped_at);
+  const isDelivered =
+    isCustomerStatusAtLeast(order.status, "delivered") || Boolean(order.delivered_at);
 
   return [
     {
@@ -40,7 +49,7 @@ function buildSteps(order: TrackingOrder) {
       sublabel: "We've received your order",
       icon: Package,
       done: true,
-      active: !order.paid_at,
+      active: !isPaid,
       date: order.created_at,
     },
     {
@@ -48,8 +57,8 @@ function buildSteps(order: TrackingOrder) {
       label: "Payment Confirmed",
       sublabel: "Payment successfully processed",
       icon: CreditCard,
-      done: Boolean(order.paid_at),
-      active: Boolean(order.paid_at) && !isProcessing,
+      done: isPaid,
+      active: isPaid && rank === 1,
       date: order.paid_at,
     },
     {
@@ -249,6 +258,7 @@ function PreparingNotice() {
 export function TrackingCard({ order }: { order: TrackingOrder }) {
   const steps = buildSteps(order);
   const hasTracking = Boolean(order.tracking_number);
+  const trackingStatus = sanitizeTrackingStatus(order.tracking_status);
 
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[var(--shadow-sm)] sticky">
@@ -266,7 +276,7 @@ export function TrackingCard({ order }: { order: TrackingOrder }) {
       {hasTracking ? (
         <TrackingBanner
           trackingNumber={order.tracking_number!}
-          trackingStatus={order.tracking_status}
+          trackingStatus={trackingStatus}
         />
       ) : (
         <PreparingNotice />

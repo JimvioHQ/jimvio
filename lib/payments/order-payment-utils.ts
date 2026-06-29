@@ -27,8 +27,10 @@ export function displayFulfillmentStatus(
   paymentStatus: string | null | undefined
 ): string {
   const status = (orderStatus ?? "pending").toLowerCase();
-  if (isOrderPaymentComplete(paymentStatus) && status === "pending") {
-    return "confirmed";
+  if (isOrderPaymentComplete(paymentStatus)) {
+    if (status === "pending") return "confirmed";
+    // Paid orders move into fulfillment — show processing once payment clears.
+    if (status === "confirmed") return "processing";
   }
   return orderStatus ?? "pending";
 }
@@ -41,6 +43,24 @@ const CUSTOMER_STATUS_RANK: Record<string, number> = {
   delivered: 4,
   completed: 4,
 };
+
+/** Normalize status keys used by customer steppers and tracking panels. */
+export function normalizeCustomerStepStatus(status: string | null | undefined): string {
+  const key = (status ?? "pending").toLowerCase();
+  if (key === "completed") return "delivered";
+  return key;
+}
+
+export function getCustomerStatusRank(status: string | null | undefined): number {
+  return CUSTOMER_STATUS_RANK[normalizeCustomerStepStatus(status)] ?? 0;
+}
+
+export function isCustomerStatusAtLeast(
+  current: string | null | undefined,
+  target: string
+): boolean {
+  return getCustomerStatusRank(current) >= getCustomerStatusRank(target);
+}
 
 /** Map CJ fulfillment status strings to customer-facing order status. */
 export function mapCjFulfillmentToOrderStatus(

@@ -42,7 +42,7 @@ import {
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { finalizeCommunityPayment } from "@/lib/payments/community-payment-finalizer";
 import { verifyPesapalTransaction } from "@/lib/pesapal";
-import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
+import { verifyFlutterwaveTransaction, isFlutterwaveSuccessfulStatus } from "@/lib/flutterwave";
 
 export const dynamic = "force-dynamic";
 
@@ -186,7 +186,7 @@ async function secondaryVerify(event: PaymentEvent): Promise<boolean> {
   if (event.provider === "flutterwave" && event.providerTransactionId) {
     try {
       const tx = await verifyFlutterwaveTransaction(event.providerTransactionId);
-      return tx.status === "successful";
+      return isFlutterwaveSuccessfulStatus(tx.status);
     } catch {
       return true; // Don't block on network errors
     }
@@ -215,6 +215,36 @@ async function resolveOrderId(
   db: ReturnType<typeof getDb>,
   event: PaymentEvent
 ): Promise<string | null> {
+  if (event.provider === "flutterwave") {
+    try {
+      const body = JSON.parse(event.rawBody) as Record<string, unknown>;
+      const txRef =
+        (typeof (body.data as Record<string, unknown> | undefined)?.tx_ref === "string"
+          ? ((body.data as Record<string, unknown>).tx_ref as string)
+          : undefined) ??
+        (typeof (body.event as Record<string, unknown> | undefined)?.txRef === "string"
+          ? ((body.event as Record<string, unknown>).txRef as string)
+          : undefined) ??
+        (typeof (body.event as Record<string, unknown> | undefined)?.tx_ref === "string"
+          ? ((body.event as Record<string, unknown>).tx_ref as string)
+          : undefined) ??
+        (typeof body.tx_ref === "string" ? body.tx_ref : undefined) ??
+        (typeof body.txRef === "string" ? body.txRef : undefined);
+
+      if (txRef) {
+        const { data } = await db
+          .from("transactions")
+          .select("order_id")
+          .eq("provider", "flutterwave")
+          .eq("provider_transaction_id", txRef)
+          .maybeSingle();
+        if (data?.order_id) return data.order_id;
+      }
+    } catch {
+      // Fall through to generic resolution.
+    }
+  }
+
   if (event.jimvioOrderId) {
     // Validate it exists in DB
     const { data } = await db

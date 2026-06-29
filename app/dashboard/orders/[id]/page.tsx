@@ -23,8 +23,13 @@ import {
   isOrderPaymentComplete,
   orderNeedsPayment,
   resolveCustomerOrderStatus,
+  normalizeCustomerStepStatus,
 } from "@/lib/payments/order-payment-utils";
 import { sanitizeOrderTimelineNote } from "@/lib/cj/customer-errors-shared";
+import {
+  CUSTOMER_ORDER_DETAIL_WITH_ITEMS_SELECT,
+  sanitizeCustomerOrderMetadata,
+} from "@/lib/orders/customer-order-fields";
 import {
   getDownloadUrl,
   triggerDownload
@@ -153,12 +158,9 @@ function StatusStepper({ status, isDigital }: { status: string; isDigital: boole
 
   const STEPS = isDigital ? DIGITAL_STEPS : PHYSICAL_STEPS;
   const ORDER = STEPS.map(s => s.key);
-  let currentIdx = ORDER.indexOf(status);
-  if (currentIdx === -1) {
-    if (["paid"].includes(status)) currentIdx = isDigital ? 1 : 1;
-    else if (["processing", "shipped"].includes(status)) currentIdx = STEPS.length - 2;
-    else currentIdx = 0;
-  }
+  const normalizedStatus = normalizeCustomerStepStatus(status);
+  let currentIdx = ORDER.indexOf(normalizedStatus);
+  if (currentIdx === -1) currentIdx = 0;
 
   return (
     <div className="flex items-center w-full">
@@ -612,21 +614,17 @@ export default function OrderDetailPage() {
     async function fetchOrder(userId: string) {
       const { data, error } = await supabase
         .from("orders")
-        .select(`
-          *,
-          order_items (
-            id, product_id, product_name, product_image, quantity, unit_price, total_price,
-            vendor_id, product_type, variant_id, digital_download_url, download_count, access_granted_at,
-            vendors ( id, business_name, business_slug, business_logo )
-          )
-        `)
+        .select(CUSTOMER_ORDER_DETAIL_WITH_ITEMS_SELECT)
         .eq("id", id)
         .eq("buyer_id", userId)
         .maybeSingle();
 
       if (cancelled) return;
       if (error || !data) { setOrder(null); setLoading(false); return; }
-      setOrder(data);
+      setOrder({
+        ...data,
+        metadata: sanitizeCustomerOrderMetadata(data.metadata),
+      });
 
       const productIds = (data.order_items ?? [])
         .filter((i: any) => i.product_id)

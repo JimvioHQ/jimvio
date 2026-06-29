@@ -77,6 +77,13 @@ export function sanitizeShipFromLabel(raw: string | null | undefined): string {
   return label;
 }
 
+/** Neutral tracking / carrier status shown on buyer order pages. */
+export function sanitizeTrackingStatus(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null;
+  const cleaned = sanitizeSupplierFacingText(raw);
+  return cleaned || null;
+}
+
 /** Generic sanitizer for short labels (carriers, badges, etc.). */
 export function sanitizeSupplierFacingText(raw: string | null | undefined): string {
   if (!raw?.trim()) return "";

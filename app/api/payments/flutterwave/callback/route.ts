@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
+import { verifyFlutterwaveTransaction, isFlutterwaveSuccessfulStatus } from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import {
     isOrderPaymentComplete,
@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
         const txData = await verifyFlutterwaveTransaction(transactionId);
         console.log(txData);
 
-        if (txData.status.toLowerCase() !== "successful") {
+        if (!isFlutterwaveSuccessfulStatus(txData.status)) {
             await supabase
                 .from("transactions")
                 .update({ status: "failed", updated_at: new Date().toISOString() })

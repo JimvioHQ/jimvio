@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import crypto from "crypto";
-import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
+import {
+  verifyFlutterwaveTransaction,
+  validateFlutterwaveWebhookRequest,
+  isFlutterwaveSuccessfulStatus,
+} from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import {
   isOrderPaymentComplete,
@@ -25,43 +28,6 @@ function getSupabase(): SupabaseClient {
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-}
-
-function validateFlutterwaveWebhook(
-  rawBody: string,
-  headers: Headers
-): boolean {
-  const secret = process.env.FLW_WEBHOOK_SECRET;
-  if (!secret) {
-    console.error("[webhook] FLW_WEBHOOK_SECRET is not set");
-    return false;
-  }
-
-  // v4: HMAC-SHA256 via flutterwave-signature header
-  const hmacSignature = headers.get("flutterwave-signature");
-  if (hmacSignature) {
-    const computed = crypto
-      .createHmac("sha256", secret)
-      .update(rawBody)
-      .digest("base64");
-    try {
-      return crypto.timingSafeEqual(
-        Buffer.from(computed),
-        Buffer.from(hmacSignature)
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  
-  const verifHash = headers.get("verif-hash");
-  if (verifHash) {
-    return verifHash === secret;
-  }
-
-  console.warn("[webhook] No signature header found");
-  return false;
 }
 
 interface NormalisedPayload {
@@ -235,12 +201,14 @@ export async function POST(req: NextRequest) {
     bodyLength: rawBody.length,
     hasSignatureV4: !!req.headers.get("flutterwave-signature"),
     hasSignatureLegacy: !!req.headers.get("verif-hash"),
-    secretPresent: !!process.env.FLW_WEBHOOK_SECRET, // FIX #1: was FLUTTERWAVE_WEBHOOK_SECRET
+    secretPresent: !!(
+      process.env.FLW_WEBHOOK_SECRET || process.env.FLUTTERWAVE_WEBHOOK_HASH
+    ),
     contentType: req.headers.get("content-type"),
   });
 
   // 3. Signature validation
-  if (!validateFlutterwaveWebhook(rawBody, req.headers)) {
+  if (!validateFlutterwaveWebhookRequest(req.headers, rawBody)) {
     console.warn("[Flutterwave webhook] ✗ Signature validation failed");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -338,7 +306,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 6. Ignore non-successful events
-  if (status !== "successful") {
+  if (!isFlutterwaveSuccessfulStatus(status)) {
     console.info("[Flutterwave webhook] Non-successful status — ignoring", { status });
     return NextResponse.json({ received: true });
   }
@@ -371,7 +339,7 @@ export async function POST(req: NextRequest) {
       const verified = await verifyFlutterwaveTransaction(txId, { signal: controller.signal });
       clearTimeout(timeout);
 
-      if (verified.status !== "successful") {
+      if (!isFlutterwaveSuccessfulStatus(verified.status)) {
         console.warn("[Flutterwave webhook] ✗ Secondary verify failed", { txId });
         if (eventId) await markWebhookFailed(supabase, eventId, "Secondary verification failed");
         return NextResponse.json({ received: true });
