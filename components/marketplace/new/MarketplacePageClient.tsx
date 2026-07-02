@@ -22,6 +22,12 @@ import { isRenderableUrl } from "@/lib/utils";
 import { Sidebar } from "./Sidebar";
 import { MarketplacePagination } from "./MarketplacePagination";
 import { MARKETPLACE_PAGE_SIZE, parseMarketplacePage } from "@/lib/marketplace/constants";
+import {
+  getMarketplaceTypeFilter,
+  type MarketplacePageBundle,
+  type MarketplaceProductType,
+} from "@/lib/marketplace/fetch-page-data";
+import { DEFAULT_FILTERS } from "@/lib/utils";
 import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
 import { getCategoryImageFallbacks } from "@/lib/marketplace/category-images";
 import {
@@ -32,7 +38,48 @@ import {
 import { MarketplaceSearchPopover } from "./MarketplaceSearchPopover";
 import Link from "next/link";
 
-type ProductType = "physical" | "digital";
+type ProductType = MarketplaceProductType;
+
+function parseUrlType(raw: string | null, fallback: ProductType): ProductType {
+  if (raw === "digital") return "digital";
+  if (raw === "physical") return "physical";
+  return fallback;
+}
+
+function isDefaultBrowseState(
+  filters: typeof DEFAULT_FILTERS & { shippingFrom: string[] },
+  debouncedSearch: string,
+  page: number,
+) {
+  return (
+    !debouncedSearch &&
+    page === 1 &&
+    filters.category === DEFAULT_FILTERS.category &&
+    filters.shippingFrom.length === 0 &&
+    filters.deliveryTimes.length === 0 &&
+    filters.priceRange[0] === DEFAULT_FILTERS.priceRange[0] &&
+    filters.priceRange[1] === DEFAULT_FILTERS.priceRange[1] &&
+    filters.minRating === DEFAULT_FILTERS.minRating
+  );
+}
+
+function applyBundleToState(
+  bundle: MarketplacePageBundle,
+  productType: ProductType,
+  setters: {
+    setFlashDeals: (v: DbProduct[]) => void;
+    setTrending: (v: DbProduct[]) => void;
+    setCategories: (v: DbCategory[]) => void;
+    setCategoriesType: (v: ProductType) => void;
+    setListingCount: (v: number) => void;
+  },
+) {
+  setters.setFlashDeals(bundle.flashDeals);
+  setters.setTrending(bundle.trending);
+  setters.setCategories(bundle.categories);
+  setters.setCategoriesType(productType);
+  setters.setListingCount(bundle.listingCount);
+}
 
 type DbCategory = {
   id: string;
@@ -50,11 +97,8 @@ type Stats = {
 };
 
 type Props = {
-  initialType: "physical" | "digital";
-  initialListingCount: number;
-  initialFlashDeals: DbProduct[];
-  initialTrending: DbProduct[];
-  initialCategories: DbCategory[];
+  initialType: ProductType;
+  initialBundles: Record<ProductType, MarketplacePageBundle>;
   initialStats: Stats;
   heroPhysical: HeroProduct[] | null;
   heroDigital: HeroProduct[] | null;
@@ -147,15 +191,13 @@ function SkeletonGrid() {
 
 export function MarketplacePageClient({
   initialType,
-  initialListingCount,
-  initialFlashDeals,
-  initialTrending,
-  initialCategories,
+  initialBundles,
   initialStats,
   heroPhysical,
   heroDigital,
 }: Props) {
   const supabase = createClient();
+  const startingBundle = initialBundles[initialType];
 
   const { filters, setCategory, clearFilters } = useMarketplace();
   const openAssistant = useAIStore((s) => s.openAssistant);
@@ -163,23 +205,41 @@ export function MarketplacePageClient({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const urlType = searchParams.get("type") as ProductType | null;
-  const [type, setType] = useState<ProductType>(
-    urlType === "digital" ? "digital" : urlType === "physical" ? "physical" : initialType
-  );
+  const urlType = parseUrlType(searchParams.get("type"), initialType);
+  const [type, setType] = useState<ProductType>(urlType);
 
   useEffect(() => {
-    const next = searchParams.get("type");
-    if (next === "digital" || next === "physical") {
-      setType(next);
-    }
-  }, [searchParams]);
+    setType(urlType);
+  }, [urlType]);
+
+  const cacheRef = useRef<Record<ProductType, MarketplacePageBundle>>(initialBundles);
+  const loadGenRef = useRef(0);
+  const skipInitialFetchRef = useRef(true);
+
+  function applyCachedType(t: ProductType) {
+    const cached = cacheRef.current[t];
+    if (!cached) return false;
+    applyBundleToState(cached, t, {
+      setFlashDeals,
+      setTrending,
+      setCategories,
+      setCategoriesType,
+      setListingCount,
+    });
+    return true;
+  }
 
   function handleTypeChange(t: ProductType) {
     setType(t);
     setCategory("Trending Now");
     clearFilters();
     setCurrentPage(1);
+    setSearch("");
+    setDebouncedSearch("");
+    applyCachedType(t);
+    setLoading(false);
+    setProductsLoading(false);
+
     const params = new URLSearchParams(searchParams.toString());
     params.set("type", t);
     params.delete("category");
@@ -192,14 +252,14 @@ export function MarketplacePageClient({
   const [currentPage, setCurrentPage] = useState(() =>
     parseMarketplacePage(searchParams.get("page")),
   );
-  const [flashDeals, setFlashDeals] = useState<DbProduct[]>(initialFlashDeals);
-  const [trending, setTrending] = useState<DbProduct[]>(initialTrending);
-  const [categories, setCategories] = useState<DbCategory[]>(initialCategories);
+  const [flashDeals, setFlashDeals] = useState<DbProduct[]>(startingBundle.flashDeals);
+  const [trending, setTrending] = useState<DbProduct[]>(startingBundle.trending);
+  const [categories, setCategories] = useState<DbCategory[]>(startingBundle.categories);
   const [categoriesType, setCategoriesType] = useState<ProductType>(initialType);
   const [stats, setStats] = useState<Stats>(initialStats);
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
-  const [listingCount, setListingCount] = useState(initialListingCount);
+  const [listingCount, setListingCount] = useState(startingBundle.listingCount);
   const [isMobile, setIsMobile] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchExactMatch, setSearchExactMatch] = useState(true);
@@ -207,14 +267,11 @@ export function MarketplacePageClient({
   const supabaseRef = useRef(supabase);
   const filtersKey = JSON.stringify(filters);
   const loadDepsRef = useRef({
-    type,
+    type: urlType,
     filtersKey,
-    debouncedSearch,
-    currentPage,
+    debouncedSearch: "",
+    currentPage: parseMarketplacePage(searchParams.get("page")),
   });
-
-  // Skip the refetch on initial mount — we already have SSR data for page 1
-  const isFirstRender = useRef(true);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -271,22 +328,28 @@ export function MarketplacePageClient({
   }, [searchParams, setCategory]);
 
   useEffect(() => {
-    if (isFirstRender.current && currentPage === 1) {
-      isFirstRender.current = false;
+    if (skipInitialFetchRef.current) {
+      skipInitialFetchRef.current = false;
+      loadDepsRef.current = { type, filtersKey, debouncedSearch, currentPage };
+      if (urlType !== initialType) {
+        applyCachedType(urlType);
+      }
       return;
     }
-    isFirstRender.current = false;
 
     const prev = loadDepsRef.current;
     const filterOrSearchChanged =
       prev.filtersKey !== filtersKey ||
-      prev.type !== type;
+      prev.debouncedSearch !== debouncedSearch;
+    const typeChanged = prev.type !== type;
     const onlyPageChanged =
       !filterOrSearchChanged &&
+      !typeChanged &&
       prev.currentPage !== currentPage;
-    const effectivePage = filterOrSearchChanged ? 1 : currentPage;
 
-    if (filterOrSearchChanged && currentPage !== 1) {
+    const effectivePage = filterOrSearchChanged || typeChanged ? 1 : currentPage;
+
+    if ((filterOrSearchChanged || typeChanged) && currentPage !== 1) {
       setCurrentPage(1);
       const params = new URLSearchParams(searchParams.toString());
       params.delete("page");
@@ -295,14 +358,23 @@ export function MarketplacePageClient({
 
     loadDepsRef.current = { type, filtersKey, debouncedSearch, currentPage: effectivePage };
 
-    async function load() {
-      if (onlyPageChanged) setProductsLoading(true);
-      else setLoading(true);
+    const defaultBrowse = isDefaultBrowseState(filters, debouncedSearch, effectivePage);
 
-      const typeFilter =
-        type === "digital"
-          ? (["digital", "course", "ebook", "software", "template", "coaching"] as const)
-          : (["physical"] as const);
+    if (typeChanged && defaultBrowse && !debouncedSearch && cacheRef.current[type]) {
+      applyCachedType(type);
+      setLoading(false);
+      setProductsLoading(false);
+      return;
+    }
+
+    const loadGeneration = ++loadGenRef.current;
+    const typeFilter = getMarketplaceTypeFilter(type);
+
+    async function load() {
+      const showSectionSkeleton =
+        !defaultBrowse || !cacheRef.current[type]?.trending?.length;
+      if (onlyPageChanged) setProductsLoading(true);
+      else if (showSectionSkeleton) setLoading(true);
 
       const hasShipping = filters.shippingFrom.length > 0;
       const hasDelivery = filters.deliveryTimes.length > 0;
@@ -318,6 +390,7 @@ export function MarketplacePageClient({
           .select("id")
           .ilike("name", filters.category)
           .single();
+        if (loadGeneration !== loadGenRef.current) return;
         categoryId = catRow?.id ?? null;
       }
 
@@ -364,12 +437,17 @@ export function MarketplacePageClient({
           ),
         ]);
 
+        if (loadGeneration !== loadGenRef.current) return;
+
         const trendList = (trend ?? []) as DbProduct[];
         const videoMap = await fetchProductVideosMap(
           supabaseRef.current,
           trendList.map((p) => p.id),
         );
-        setTrending(attachProductVideos(trendList, videoMap));
+        if (loadGeneration !== loadGenRef.current) return;
+
+        const nextTrending = attachProductVideos(trendList, videoMap);
+        setTrending(nextTrending);
         setListingCount(count ?? 0);
         setProductsLoading(false);
         return;
@@ -380,19 +458,77 @@ export function MarketplacePageClient({
         return;
       }
 
-      const { data: catIds } = await supabaseRef.current
-        .from("products")
-        .select("category_id")
-        .eq("status", "active")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .in("product_type", [...typeFilter])
-        .not("category_id", "is", null);
+      const [{ data: catIds }, { data: deals }, { data: trend }, { count }] =
+        await Promise.all([
+          supabaseRef.current
+            .from("products")
+            .select("category_id")
+            .eq("status", "active")
+            .eq("is_active", true)
+            .is("deleted_at", null)
+            .in("product_type", [...typeFilter])
+            .not("category_id", "is", null),
 
-      const ids = [...new Set((catIds ?? []).map((r: { category_id: string | null }) => r.category_id).filter(Boolean))];
+          applyFilters(
+            supabaseRef.current
+              .from("products")
+              .select(`
+              id, name, slug, price, currency, compare_at_price, images, product_type,
+              status, is_flash_deal, discount_label, shipping_from,
+              delivery_time, affiliate_commission_rate, sold_count,
+              claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
+              vendors(id, verification_status)
+            `)
+              .eq("status", "active")
+              .eq("is_active", true)
+              .is("deleted_at", null)
+              .in("product_type", [...typeFilter])
+              .or("is_flash_deal.eq.true,compare_at_price.not.is.null")
+              .order("is_flash_deal", { ascending: false })
+              .order("view_count", { ascending: false })
+              .limit(12),
+          ),
+
+          applyFilters(
+            supabaseRef.current
+              .from("products")
+              .select(`
+              id, name, slug, price, currency, compare_at_price, images, product_type,
+              status, is_flash_deal, discount_label, shipping_from,
+              delivery_time, affiliate_commission_rate, sale_count,
+              rating, review_count, is_free_shipping, vendor_id, category_id,
+              vendors(id, verification_status)
+            `)
+              .eq("status", "active")
+              .eq("is_active", true)
+              .is("deleted_at", null)
+              .in("product_type", [...typeFilter])
+              .order("view_count", { ascending: false })
+              .range(offset, offset + MARKETPLACE_PAGE_SIZE - 1),
+          ),
+
+          applyFilters(
+            supabaseRef.current
+              .from("products")
+              .select("*", { count: "exact", head: true })
+              .eq("status", "active")
+              .eq("is_active", true)
+              .is("deleted_at", null)
+              .in("product_type", [...typeFilter]),
+          ),
+        ]);
+
+      if (loadGeneration !== loadGenRef.current) return;
+
+      const ids = [
+        ...new Set(
+          (catIds ?? [])
+            .map((r: { category_id: string | null }) => r.category_id)
+            .filter(Boolean),
+        ),
+      ] as string[];
 
       let nextCategories: DbCategory[] = [];
-      // Type-specific categories only — no unfiltered backfill
       if (ids.length > 0) {
         const { data: catRows } = await supabaseRef.current
           .from("product_categories")
@@ -403,60 +539,9 @@ export function MarketplacePageClient({
           .in("id", ids)
           .order("product_count", { ascending: false })
           .limit(40);
+        if (loadGeneration !== loadGenRef.current) return;
         nextCategories = (catRows ?? []) as DbCategory[];
       }
-      setCategories(nextCategories);
-      setCategoriesType(type);
-
-      const [{ data: deals }, { data: trend }, { count }] = await Promise.all([
-        applyFilters(
-          supabaseRef.current
-            .from("products")
-            .select(`
-              id, name, slug, price, currency, compare_at_price, images, product_type,
-              status, is_flash_deal, discount_label, shipping_from,
-              delivery_time, affiliate_commission_rate, sold_count,
-              claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
-              vendors(id, verification_status)
-            `)
-            .eq("status", "active")
-            .eq("is_active", true)
-            .is("deleted_at", null)
-            .in("product_type", [...typeFilter])
-            .or("is_flash_deal.eq.true,compare_at_price.not.is.null")
-            .order("is_flash_deal", { ascending: false })
-            .order("view_count", { ascending: false })
-            .limit(12),
-        ),
-
-        applyFilters(
-          supabaseRef.current
-            .from("products")
-            .select(`
-              id, name, slug, price, currency, compare_at_price, images, product_type,
-              status, is_flash_deal, discount_label, shipping_from,
-              delivery_time, affiliate_commission_rate, sale_count,
-              rating, review_count, is_free_shipping, vendor_id, category_id,
-              vendors(id, verification_status)
-            `)
-            .eq("status", "active")
-            .eq("is_active", true)
-            .is("deleted_at", null)
-            .in("product_type", [...typeFilter])
-            .order("view_count", { ascending: false })
-            .range(offset, offset + MARKETPLACE_PAGE_SIZE - 1),
-        ),
-
-        applyFilters(
-          supabaseRef.current
-            .from("products")
-            .select("*", { count: "exact", head: true })
-            .eq("status", "active")
-            .eq("is_active", true)
-            .is("deleted_at", null)
-            .in("product_type", [...typeFilter]),
-        ),
-      ]);
 
       const dealList = (deals ?? []) as DbProduct[];
       const trendList = (trend ?? []) as DbProduct[];
@@ -465,24 +550,47 @@ export function MarketplacePageClient({
         [...dealList, ...trendList].map((p) => p.id),
       );
 
-      setFlashDeals(attachProductVideos(dealList, videoMap));
+      if (loadGeneration !== loadGenRef.current) return;
+
+      const nextDeals = attachProductVideos(dealList, videoMap);
+      const nextTrending = attachProductVideos(trendList, videoMap);
+      const nextCount = count ?? 0;
+
+      setFlashDeals(nextDeals);
       if (!skipTrending) {
-        setTrending(attachProductVideos(trendList, videoMap));
-        setListingCount(count ?? 0);
+        setTrending(nextTrending);
+        setListingCount(nextCount);
       }
+      setCategories(nextCategories);
+      setCategoriesType(type);
+
+      if (defaultBrowse && !debouncedSearch) {
+        cacheRef.current[type] = {
+          flashDeals: nextDeals,
+          trending: nextTrending,
+          categories: nextCategories,
+          listingCount: nextCount,
+        };
+      }
+
       setLoading(false);
+      setProductsLoading(false);
     }
 
     load();
-  }, [type, filtersKey, currentPage, debouncedSearch]);
+  }, [type, filtersKey, currentPage, debouncedSearch, filters, router, searchParams, urlType, initialType]);
 
   useEffect(() => {
     if (!debouncedSearch) {
       setSearchExactMatch(true);
+      if (isDefaultBrowseState(filters, "", currentPage) && cacheRef.current[type]) {
+        applyCachedType(type);
+      }
       return;
     }
 
     let cancelled = false;
+    const searchGeneration = ++loadGenRef.current;
     setProductsLoading(true);
 
     (async () => {
@@ -491,7 +599,7 @@ export function MarketplacePageClient({
           `/api/marketplace/search?q=${encodeURIComponent(debouncedSearch)}&type=${type}&limit=40`,
         );
         const data = await res.json();
-        if (cancelled) return;
+        if (cancelled || searchGeneration !== loadGenRef.current) return;
 
         const primary = (data.exactMatch ? data.results : data.similar) ?? [];
         const related = data.exactMatch ? [] : (data.recommended ?? []);
@@ -510,9 +618,9 @@ export function MarketplacePageClient({
         setSearchExactMatch(Boolean(data.exactMatch));
         setListingCount(combined.length);
       } catch {
-        if (!cancelled) setTrending([]);
+        if (!cancelled && searchGeneration === loadGenRef.current) setTrending([]);
       } finally {
-        if (!cancelled) setProductsLoading(false);
+        if (!cancelled && searchGeneration === loadGenRef.current) setProductsLoading(false);
       }
     })();
 
@@ -755,7 +863,7 @@ export function MarketplacePageClient({
             </div>
           </div>
           <div className="p-2">
-            {loading ? (
+            {loading && filteredDeals.length === 0 ? (
               <SkeletonDeals />
             ) : filteredDeals.length > 0 ? (
               <FlashDealsClient deals={filteredDeals} />
@@ -836,7 +944,7 @@ export function MarketplacePageClient({
               No exact matches found — showing similar products
             </p>
           )}
-          {loading || productsLoading ? (
+          {(loading || productsLoading) && trending.length === 0 ? (
             <SkeletonGrid />
           ) : trending.length === 0 ? (
             <div
@@ -860,7 +968,7 @@ export function MarketplacePageClient({
             </div>
           ) : (
             <>
-              <TrendingProductsClient products={trending} type={type} />
+              <TrendingProductsClient key={type} products={trending} type={type} />
               {!debouncedSearch && (
                 <MarketplacePagination
                   currentPage={currentPage}

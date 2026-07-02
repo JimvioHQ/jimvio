@@ -10,7 +10,7 @@ import React, {
 } from "react";
 import Image from "next/image";
 import { Play } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, isRenderableImageSrc } from "@/lib/utils";
 import {
   productHasVideos,
   resolveProductVideoUrls,
@@ -18,6 +18,10 @@ import {
   type VideoPlayback,
 } from "@/lib/product-videos";
 import { VideoCommerceEngine } from "@/lib/marketplace/video-commerce-engine";
+import {
+  ImagePreviewEngine,
+  preloadPreviewImages,
+} from "@/lib/marketplace/image-preview-engine";
 
 export type ProductVideoSource = {
   product_videos?: Array<{ url?: string | null; video_url?: string | null; sort_order?: number | null; thumbnail_url?: string | null }> | null;
@@ -32,6 +36,8 @@ export interface ProductCardVideoMediaProps {
   product: ProductVideoSource;
   alt: string;
   imageSrc?: string | null;
+  /** Up to 3 renderable image URLs for smart preview (non-video products only) */
+  previewImages?: string[];
   className?: string;
   imageClassName?: string;
   /** Image fit — video always uses cover per commerce spec */
@@ -52,12 +58,15 @@ export interface ProductCardVideoMediaProps {
 
 const VISIBILITY_THRESHOLD = 0.2;
 const VISIBILITY_THRESHOLDS = [0, 0.1, 0.2, 0.35, 0.5, 0.75, 1];
+const CROSSFADE_MS = 300;
+const TOUCH_HOLD_MS = 180;
 
 export function ProductCardVideoMedia({
   productId,
   product,
   alt,
   imageSrc,
+  previewImages,
   className,
   imageClassName,
   imageFit = "cover",
@@ -74,22 +83,101 @@ export function ProductCardVideoMedia({
 }: ProductCardVideoMediaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const slideTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const touchHoldRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isActive, setIsActive] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasFrame, setHasFrame] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [previewActive, setPreviewActive] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   const hasVideo = useMemo(() => productHasVideos(product), [product]);
+  const slideshowImages = useMemo(() => {
+    if (hasVideo) return [] as string[];
+    const fromProp = (previewImages ?? []).filter(isRenderableImageSrc).slice(0, 3);
+    if (fromProp.length > 0) return fromProp;
+    if (imageSrc && isRenderableImageSrc(imageSrc)) return [imageSrc];
+    return [] as string[];
+  }, [hasVideo, previewImages, imageSrc]);
+  const enableImagePreview = !hasVideo && slideshowImages.length > 1 && !reducedMotion;
   const videoUrl = useMemo(() => resolveProductVideoUrls(product)[0] ?? null, [product]);
   const playback: VideoPlayback | null = useMemo(
     () => (videoUrl ? resolveVideoPlayback(videoUrl) : null),
     [videoUrl],
   );
 
-  const posterSrc = imageSrc ?? null;
+  const posterSrc = slideshowImages[0] ?? imageSrc ?? null;
   const isYoutube = playback?.kind === "youtube-embed";
   const showVideoLayer = isActive && hasFrame;
+
+  const clearSlideTimer = useCallback(() => {
+    if (slideTimerRef.current) {
+      clearInterval(slideTimerRef.current);
+      slideTimerRef.current = null;
+    }
+  }, []);
+
+  const handlePreviewStart = useCallback(() => {
+    setSlideIndex(0);
+    setPreviewActive(true);
+    preloadPreviewImages(slideshowImages.slice(1));
+    clearSlideTimer();
+    slideTimerRef.current = setInterval(() => {
+      setSlideIndex((i) => (i + 1) % slideshowImages.length);
+    }, ImagePreviewEngine.slideIntervalMs);
+  }, [slideshowImages, clearSlideTimer]);
+
+  const handlePreviewStop = useCallback(() => {
+    clearSlideTimer();
+    setPreviewActive(false);
+    setSlideIndex(0);
+  }, [clearSlideTimer]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hoverMq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncDesktop = () => setIsDesktop(hoverMq.matches);
+    const syncMotion = () => setReducedMotion(motionMq.matches);
+    syncDesktop();
+    syncMotion();
+    hoverMq.addEventListener("change", syncDesktop);
+    motionMq.addEventListener("change", syncMotion);
+    return () => {
+      hoverMq.removeEventListener("change", syncDesktop);
+      motionMq.removeEventListener("change", syncMotion);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!enableImagePreview) return;
+    const engine = ImagePreviewEngine.getInstance();
+    engine.register(productId, {
+      onStart: handlePreviewStart,
+      onStop: handlePreviewStop,
+    });
+    return () => {
+      engine.unregister(productId);
+      clearSlideTimer();
+    };
+  }, [
+    productId,
+    enableImagePreview,
+    handlePreviewStart,
+    handlePreviewStop,
+    clearSlideTimer,
+  ]);
+
+  useEffect(() => {
+    if (!enableImagePreview || !isDesktop) return;
+    const engine = ImagePreviewEngine.getInstance();
+    if (hovered) engine.requestStart(productId);
+    else engine.requestStop(productId);
+  }, [hovered, enableImagePreview, isDesktop, productId]);
 
   const handleActivate = useCallback(() => {
     setIsActive(true);
@@ -191,14 +279,29 @@ export function ProductCardVideoMedia({
   }, [isActive, playback, isYoutube]);
 
   const handleTouchStart = useCallback(() => {
-    if (!hasVideo) return;
-    VideoCommerceEngine.getInstance().setTouched(productId, true);
-  }, [hasVideo, productId]);
+    if (hasVideo) {
+      VideoCommerceEngine.getInstance().setTouched(productId, true);
+      return;
+    }
+    if (!enableImagePreview || isDesktop) return;
+    if (touchHoldRef.current) clearTimeout(touchHoldRef.current);
+    touchHoldRef.current = setTimeout(() => {
+      ImagePreviewEngine.getInstance().requestStart(productId);
+    }, TOUCH_HOLD_MS);
+  }, [hasVideo, enableImagePreview, isDesktop, productId]);
 
   const handleTouchEnd = useCallback(() => {
-    if (!hasVideo) return;
-    VideoCommerceEngine.getInstance().setTouched(productId, false);
-  }, [hasVideo, productId]);
+    if (touchHoldRef.current) {
+      clearTimeout(touchHoldRef.current);
+      touchHoldRef.current = null;
+    }
+    if (hasVideo) {
+      VideoCommerceEngine.getInstance().setTouched(productId, false);
+      return;
+    }
+    if (!enableImagePreview || isDesktop) return;
+    ImagePreviewEngine.getInstance().requestStop(productId);
+  }, [hasVideo, enableImagePreview, isDesktop, productId]);
 
   return (
     <div
@@ -214,8 +317,80 @@ export function ProductCardVideoMedia({
       )}
       style={{ transform: "translateZ(0)", willChange: isActive ? "opacity" : "auto" }}
     >
-      {/* Poster / fallback image — stays visible until first video frame */}
-      {posterSrc && !imageError ? (
+      {/* Poster / smart image preview / fallback */}
+      {enableImagePreview && !imageError ? (
+        slideshowImages.map((src, i) => {
+          const visibleIndex = previewActive ? slideIndex : 0;
+          const isVisibleLayer = i === visibleIndex;
+          const fitClass =
+            imageFit === "contain" ? "object-contain object-center" : "object-cover object-center";
+          const opacityClass = isVisibleLayer ? "opacity-100" : "opacity-0";
+          const sharedClass = cn(
+            fitClass,
+            "transition-opacity ease-out",
+            opacityClass,
+            grayscale && "grayscale",
+            imageClassName,
+          );
+          const transitionStyle = {
+            transitionDuration: `${CROSSFADE_MS}ms`,
+            transform: "translateZ(0)",
+          };
+
+          if (useNextImage && layout === "fill") {
+            return (
+              <Image
+                key={`${src}-${i}`}
+                src={src}
+                alt={i === 0 ? alt : ""}
+                aria-hidden={i !== 0}
+                fill
+                sizes={sizes}
+                priority={priority && i === 0}
+                className={cn("absolute inset-0", sharedClass)}
+                style={transitionStyle}
+                onError={i === 0 ? onImageError : undefined}
+              />
+            );
+          }
+
+          if (layout === "fit") {
+            return (
+              <div
+                key={`${src}-${i}`}
+                className="absolute inset-0 flex items-center justify-center"
+                style={transitionStyle}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={i === 0 ? alt : ""}
+                  aria-hidden={i !== 0}
+                  loading={i === 0 ? "lazy" : "eager"}
+                  decoding="async"
+                  className={cn("max-h-full max-w-full", sharedClass)}
+                  onError={i === 0 ? onImageError : undefined}
+                />
+              </div>
+            );
+          }
+
+          return (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={`${src}-${i}`}
+              src={src}
+              alt={i === 0 ? alt : ""}
+              aria-hidden={i !== 0}
+              loading={i === 0 ? "lazy" : "eager"}
+              decoding="async"
+              className={cn("absolute inset-0 h-full w-full", sharedClass)}
+              style={transitionStyle}
+              onError={i === 0 ? onImageError : undefined}
+            />
+          );
+        })
+      ) : posterSrc && !imageError ? (
         useNextImage ? (
           <Image
             src={posterSrc}

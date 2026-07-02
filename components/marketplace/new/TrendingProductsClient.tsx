@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Flame, Sparkles,
   TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star,
@@ -8,7 +8,8 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
-import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel } from "@/lib/utils";
+import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel, normalizeImages, isRenderableImageSrc } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { addToCart } from "@/lib/actions/marketplace";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
@@ -251,6 +252,14 @@ function ProductCard({
   const displayPrice = activeVariant?.price ?? p.price;
   const compareAtPrice = activeVariant?.compare_at_price ?? p.compare_at_price;
   const displayImage = activeVariant?.image_url ?? getImage(p.images);
+  const previewImages = useMemo(() => {
+    const base = normalizeImages(p.images).filter(isRenderableImageSrc).slice(0, 3);
+    const variantUrl = activeVariant?.image_url;
+    if (variantUrl && isRenderableImageSrc(variantUrl)) {
+      return [variantUrl, ...base.filter((u) => u !== variantUrl)].slice(0, 3);
+    }
+    return base;
+  }, [p.images, activeVariant?.image_url]);
   const discountFields = {
     price: displayPrice,
     compare_at_price: compareAtPrice,
@@ -345,11 +354,16 @@ function ProductCard({
               product={p}
               alt={p.name}
               imageSrc={displayImage}
+              previewImages={previewImages}
               hovered={hovered}
               useNextImage={false}
               layout="fit"
               imageFit="contain"
-              imageClassName="max-h-full max-w-full transition-transform duration-300 ease-out group-hover:scale-[1.02]"
+              imageClassName={cn(
+                "max-h-full max-w-full",
+                previewImages.length <= 1 &&
+                  "transition-transform duration-300 ease-out group-hover:scale-[1.02]",
+              )}
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/[.03] transition-colors duration-200 pointer-events-none" />
           </div>

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   MessageCircle, ShoppingBag, Check, X, Minus,
   PercentSquare, AlertTriangle,
@@ -52,7 +51,10 @@ export function ProductCardPhysical({
   /* ── Derived values ── */
   const images = p.images ?? [];
   const imgSrc = images[0] ?? null;
-  const hoverImg = images[1] ?? null;
+  const previewImages = useMemo(
+    () => images.filter((src) => typeof src === "string" && src.length > 0).slice(0, 3),
+    [images],
+  );
   const hasVideo = useMemo(() => productHasVideos(p as any), [p]);
   const price = Number(p.price ?? 0);
   const discountFields = {
@@ -239,12 +241,13 @@ export function ProductCardPhysical({
             product={p}
             alt={p.name}
             imageSrc={imgSrc}
+            previewImages={previewImages}
             imageError={imageError}
             onImageError={() => setImageError(true)}
             hovered={hovered}
             grayscale={outOfStock}
             imageClassName={cn(
-              hoverImg && !hasVideo ? "group-hover:opacity-0" : "group-hover:scale-[1.03]",
+              previewImages.length <= 1 && "group-hover:scale-[1.03]",
             )}
             fallback={
               <div
@@ -263,17 +266,6 @@ export function ProductCardPhysical({
               </div>
             }
           />
-
-          {hoverImg && !hasVideo && imgSrc && !imageError && (
-            <Image
-              src={hoverImg}
-              alt=""
-              aria-hidden
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-            />
-          )}
 
           {/* Bottom fade */}
           <div

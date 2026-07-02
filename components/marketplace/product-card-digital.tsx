@@ -50,6 +50,10 @@ export function ProductCardDigital({
   /* ── Derived values ── */
   const images = p.images ?? [];
   const imgSrc = images[0] ?? null;
+  const previewImages = useMemo(
+    () => images.filter((src) => typeof src === "string" && src.length > 0).slice(0, 3),
+    [images],
+  );
   const price = Number(p.price ?? 0);
   const discountFields = {
     price,
@@ -178,10 +182,13 @@ export function ProductCardDigital({
             product={p}
             alt={p.name}
             imageSrc={imgSrc}
+            previewImages={previewImages}
             imageError={imageError}
             onImageError={() => setImageError(true)}
             hovered={hovered}
-            imageClassName="group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+            imageClassName={cn(
+              previewImages.length <= 1 && "group-hover:scale-[1.03] transition-transform duration-700 ease-out",
+            )}
             fallback={
               <div
                 className="absolute inset-0 flex items-center justify-center"

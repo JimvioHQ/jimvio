@@ -276,12 +276,13 @@ export function ProductCardClient({
             product={p}
             alt={p.name}
             imageSrc={imgSrc}
+            previewImages={images.slice(0, 3)}
             imageError={imageError}
             onImageError={() => setImageError(true)}
             hovered={hovered}
             imageClassName={cn(
               "transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
-              hovered && !hasVideo ? "scale-[1.07]" : "scale-100",
+              hovered && !hasVideo && images.length <= 1 ? "scale-[1.07]" : "scale-100",
             )}
             fallback={
               <div
