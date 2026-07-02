@@ -507,6 +507,7 @@ import {
   FaqSection,
   CommunityAccessCard,
   RelatedProducts,
+  ProductTitleBadges,
 } from "@/components/marketplace/product-detail-shared";
 import type { Tables } from "@/types/supabase";
 import type { ProductWithRelations, VendorPublic } from "@/services/products";
@@ -805,7 +806,6 @@ function VendorSectionCard({
   const positiveRate = 99;
   const responseTime = vendor.response_time ?? "5 min";
   const fulfilledOrders = vendor.total_sales ?? 0;
-  const isVerified = vendor.verification_status === "verified" || true;
 
   const ordersLabel =
     fulfilledOrders >= 1000
@@ -846,8 +846,8 @@ function VendorSectionCard({
               >
                 {vendor.business_name ?? "Independent Creator"}
               </Link>
-              {isVerified && (
-                <BadgeCheck className="h-4 w-4 text-sky-500 shrink-0" aria-label="Verified" />
+              {vendor.verification_status === "verified" && (
+                <BadgeCheck className="h-4 w-4 text-sky-500 shrink-0" aria-label="Verified supplier" />
               )}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-text-muted)] flex-wrap mt-0.5">
@@ -1391,6 +1391,12 @@ export function DigitalProductDetail({
                   <h1 className="text-[20px] lg:text-[22px] font-bold leading-snug text-[var(--color-text-primary)] tracking-tight">
                     {product.name}
                   </h1>
+
+                  <ProductTitleBadges
+                    vendor={vendor}
+                    product={product}
+                    variant="digital"
+                  />
 
                   {/* Rating row */}
                   <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-text-muted)] mt-1">

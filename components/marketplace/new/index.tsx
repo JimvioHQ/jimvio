@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 import {
   Zap, DollarSign, Star, ShieldCheck, BadgeDollarSign,
   CircleCheck, Truck, Users, Sparkles, TrendingUp,
@@ -203,9 +204,12 @@ function FlashDealsSection({ deals }: { deals: DbProduct[] }) {
         </div>
         <div className="flex items-center gap-4">
           <FlashDealsCountdown />
-          <button type="button" className="flex items-center gap-1 text-xs font-semibold text-white/90 hover:text-white">
+          <Link
+            href="/marketplace/flash-deals"
+            className="flex items-center gap-1 text-xs font-semibold text-white/90 transition-colors hover:text-white"
+          >
             View All Deals <ChevronRight className="size-3.5" />
-          </button>
+          </Link>
         </div>
       </div>
       <div className="p-3">

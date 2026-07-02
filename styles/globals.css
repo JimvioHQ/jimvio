@@ -490,6 +490,27 @@
     }
   }
 
+  @keyframes marketplaceSearchPlaceholderIn {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 100%, 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes marketplaceShimmer {
+    0% {
+      transform: translateX(-120%);
+    }
+    100% {
+      transform: translateX(120%);
+    }
+  }
+
   @keyframes fadeInDown {
     from {
       opacity: 0;
@@ -519,6 +540,32 @@
 
     100% {
       transform: translateX(-50%);
+    }
+  }
+
+  @keyframes flash-deals-marquee {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+
+    100% {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  .flash-deals-marquee {
+    animation: flash-deals-marquee 150s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  .flash-deals-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flash-deals-marquee {
+      animation: none;
     }
   }
 

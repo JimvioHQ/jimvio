@@ -27,6 +27,83 @@ export interface SharedVendor {
     product_count?: number;
 }
 
+// ─── Product title badges (PDP only) ─────────────────────────────────────────
+
+const TITLE_CHIP =
+  "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-transform duration-300 ease-out hover:scale-[1.02]";
+
+export function ProductTitleBadges({
+  vendor,
+  product,
+  isFreeShipping = false,
+  variant = "physical",
+}: {
+  vendor?: { verification_status?: string | null } | null;
+  product: {
+    sale_count?: number | null;
+    sold_count?: number | null;
+    view_count?: number | null;
+    delivery_time?: string | null;
+  };
+  isFreeShipping?: boolean;
+  variant?: "physical" | "digital";
+}) {
+  const sales = product.sale_count ?? product.sold_count ?? 0;
+  const isVerifiedSupplier = vendor?.verification_status === "verified";
+  const isBestseller = sales >= 100;
+  const isTrending = (product.view_count ?? 0) >= 500 || sales >= 50;
+  const showFastShipping = variant === "physical";
+
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      {isVerifiedSupplier && (
+        <span
+          className={cn(
+            TITLE_CHIP,
+            "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
+          )}
+        >
+          <BadgeCheck className="h-3 w-3" />
+          Verified Supplier
+        </span>
+      )}
+      {isBestseller && (
+        <span
+          className={cn(
+            TITLE_CHIP,
+            "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+          )}
+        >
+          <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+          Bestseller
+        </span>
+      )}
+      {isTrending && (
+        <span
+          className={cn(
+            TITLE_CHIP,
+            "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
+          )}
+        >
+          <TrendingUp className="h-3 w-3" />
+          Trending
+        </span>
+      )}
+      {showFastShipping && (
+        <span
+          className={cn(
+            TITLE_CHIP,
+            "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+          )}
+        >
+          <Zap className="h-3 w-3" />
+          {isFreeShipping ? "Free Shipping" : "Fast Shipping"}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ─── Breadcrumb ───────────────────────────────────────────────────────────────
 
 export function ProductBreadcrumb({ productName }: { productName: string }) {

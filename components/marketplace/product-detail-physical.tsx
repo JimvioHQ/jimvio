@@ -28,6 +28,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import {
   ProductBreadcrumb, SaveShareBar,
   AffiliateBanner, FaqSection, CommunityAccessCard, RelatedProducts,
+  ProductTitleBadges,
 } from "@/components/marketplace/product-detail-shared";
 import {
   getCJTitle, cleanCJDescription, parseCJSpecifications, formatCJWeight,
@@ -851,7 +852,6 @@ function LiveActivityFeedSidebar({ liveViewers, recentActivity }: { liveViewers:
 
 function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followedVendorIds: string[] }) {
   const followerCount = vendor.follower_count ?? null;
-  const isVerified = vendor.verification_status === "verified";
 
   const followersLabel =
     followerCount && followerCount > 0
@@ -862,8 +862,8 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
     {
       icon: BadgeCheck,
       label: "Verified Supplier",
-      iconClass: isVerified ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
-      bgClass: isVerified ? "bg-[var(--color-accent-light)]" : "bg-[var(--color-surface-secondary)]",
+      iconClass: vendor.verification_status === "verified" ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
+      bgClass: vendor.verification_status === "verified" ? "bg-[var(--color-accent-light)]" : "bg-[var(--color-surface-secondary)]",
     },
     {
       icon: Lock,
@@ -899,7 +899,9 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
               <Link href={`/vendors/${vendor.business_slug}`} className="text-[14px] font-semibold text-[var(--color-text-primary)] hover:underline underline-offset-2 truncate">
                 {vendor.business_name ?? "Official Store"}
               </Link>
-              {isVerified && <BadgeCheck className="h-4 w-4 text-[var(--color-accent)] shrink-0" aria-label="Verified supplier" />}
+              {vendor.verification_status === "verified" && (
+                <BadgeCheck className="h-4 w-4 text-[var(--color-accent)] shrink-0" aria-label="Verified supplier" />
+              )}
             </div>
             <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{followersLabel}</p>
           </div>
@@ -934,36 +936,6 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
 }
 
 // ─── Gallery Badge Pills ──────────────────────────────────────────────────────
-
-function GalleryBadgePills({ product, isFreeShipping }: { product: any; isFreeShipping: boolean }) {
-  const isBestseller = (product.sale_count ?? 0) >= 100 || true;
-  const isTrending = (product.view_count ?? 0) >= 500 || (product.sale_count ?? 0) >= 50 || true;
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {isBestseller && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
-          <Star className="h-3 w-3 fill-amber-500 text-amber-500" /> Bestseller
-        </span>
-      )}
-      {isTrending && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-semibold text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">
-          <TrendingUp className="h-3 w-3" /> Trending
-        </span>
-      )}
-      <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-semibold text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
-        <Zap className="h-3 w-3" /> Fast Shipping
-      </span>
-      {isFreeShipping && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-          <CheckCircle2 className="h-3 w-3" /> Free Shipping
-        </span>
-      )}
-      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-        <ShieldCheck className="h-3 w-3" /> Verified Supplier
-      </span>
-    </div>
-  );
-}
 
 // ─── Other helpers ────────────────────────────────────────────────────────────
 
@@ -1292,7 +1264,6 @@ export function PhysicalProductDetail({
 
               {/* Sub-col 1: Gallery (3 of 12) */}
               <section className="lg:col-span-7 space-y-3">
-                <GalleryBadgePills product={product} isFreeShipping={isFreeShipping} />
                 <ImageGallery
                   images={activeImages}
                   videos={productVideos}
@@ -1314,6 +1285,13 @@ export function PhysicalProductDetail({
                   <h1 className="text-[20px] lg:text-[22px] font-bold leading-snug text-[var(--color-text-primary)] tracking-tight">
                     {title}
                   </h1>
+
+                  <ProductTitleBadges
+                    vendor={vendor}
+                    product={product}
+                    isFreeShipping={isFreeShipping}
+                    variant="physical"
+                  />
 
                   <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-text-muted)] mt-1">
 

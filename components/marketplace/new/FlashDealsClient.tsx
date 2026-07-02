@@ -1,35 +1,80 @@
 "use client";
 
-import { ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
-import { type DbProduct, getImage, getDiscount, fmtCount, getEffectiveCompareAtPrice } from "@/lib/utils";
+import { type DbProduct, getImage, getDiscount, getEffectiveCompareAtPrice } from "@/lib/utils";
 
 type FlashDealProduct = DbProduct & {
   currency?: string | null;
-  vendors?: { id: string; verification_status?: string | null } | null;
 };
 
+const GAP_PX = 8; // gap-2
+
+function getColumnCount(width: number) {
+  if (width >= 1280) return 6;
+  if (width >= 1024) return 5;
+  if (width >= 768) return 4;
+  if (width >= 640) return 3;
+  return 2;
+}
+
 export function FlashDealsClient({ deals }: { deals: FlashDealProduct[] }) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [cardWidth, setCardWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const cols = getColumnCount(el.clientWidth);
+      const width = (el.clientWidth - GAP_PX * (cols - 1)) / cols;
+      setCardWidth(width > 0 ? width : null);
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const loopDeals = useMemo(() => {
+    if (deals.length === 0) return [];
+    return [...deals, ...deals];
+  }, [deals]);
+
+  if (deals.length === 0) return null;
+
   return (
-    <div className="grid w-full max-w-full grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-      {deals.map((d) => (
-        <FlashDealCard key={d.id} d={d} />
-      ))}
+    <div ref={viewportRef} className="w-full overflow-hidden">
+      <div
+        className="flash-deals-marquee flex w-max gap-2"
+        style={{ visibility: cardWidth == null ? "hidden" : "visible" }}
+      >
+        {loopDeals.map((d, i) => (
+          <div
+            key={`${d.id}-${i}`}
+            className="shrink-0"
+            style={cardWidth != null ? { width: cardWidth } : undefined}
+          >
+            <FlashDealCard d={d} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function FlashDealCard({ d }: { d: FlashDealProduct }) {
+export function FlashDealCard({ d }: { d: FlashDealProduct }) {
   const { formatMoney } = useCurrency();
   const discount = getDiscount(d);
   const compareAtPrice = getEffectiveCompareAtPrice(d);
-  const isVerifiedSupplier = d.vendors?.verification_status === "verified";
 
   return (
     <Link
       href={`/marketplace/${d.slug}`}
-      className="group relative flex w-full min-w-0 flex-col rounded-xl border border-border bg-card p-2 transition-shadow hover:shadow-[var(--shadow-card)] sm:p-2.5"
+      className="group relative flex w-full min-w-0 flex-col rounded-xl border border-border bg-card p-2 transition-[transform,box-shadow] duration-300 ease-out hover:scale-[1.03] hover:shadow-[var(--shadow-card)] sm:p-2.5"
     >
       {discount && (
         <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
@@ -44,14 +89,8 @@ function FlashDealCard({ d }: { d: FlashDealProduct }) {
           height={512}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover object-center transition-transform group-hover:scale-105"
+          className="h-full w-full object-cover object-center"
         />
-        {isVerifiedSupplier && (
-          <span className="absolute bottom-1.5 left-1.5 z-10 inline-flex items-center gap-0.5 rounded-md bg-blue-600/95 px-1.5 py-0.5 text-[8px] font-bold text-white shadow-sm backdrop-blur-sm">
-            <ShieldCheck className="size-2.5" />
-            Verified supplier
-          </span>
-        )}
       </div>
       <h4 className="mt-2 truncate text-xs font-bold">{d.name}</h4>
       <div className="mt-1 flex items-baseline gap-1.5">
@@ -61,9 +100,6 @@ function FlashDealCard({ d }: { d: FlashDealProduct }) {
             {formatMoney(compareAtPrice, d.currency)}
           </span>
         )}
-      </div>
-      <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-        <span>{(d.sold_count ?? d.sale_count ?? 0) > 0 ? `${fmtCount(d.sold_count ?? d.sale_count)} sold` : "New Product"}</span>
       </div>
     </Link>
   );

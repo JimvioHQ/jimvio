@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
-  Heart, ShieldCheck, Flame, Sparkles,
+  Heart, Flame, Sparkles,
   TrendingUp, Warehouse, MapPin, ShoppingCart, Eye, ChevronDown, Star,
 } from "lucide-react";
 import Link from "next/link";
@@ -108,7 +108,7 @@ export function TrendingProductsClient({
 
   return (
     <div className="w-full max-w-full min-w-0 space-y-5 overflow-hidden">
-      <div className="relative flex w-full max-w-full flex-wrap items-center gap-0.5 overflow-hidden border-b border-[var(--color-border)]">
+      <div className="relative flex w-full max-w-full flex-nowrap items-center justify-between gap-1 overflow-hidden border-b border-[var(--color-border)] sm:flex-wrap sm:justify-start sm:gap-0.5">
         <div
           className="absolute bottom-0 h-[2px] bg-[var(--color-accent)] transition-all duration-300 ease-out rounded-full"
           style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
@@ -121,13 +121,12 @@ export function TrendingProductsClient({
               ref={(el) => { tabRefs.current[i] = el; }}
               type="button"
               onClick={() => setActiveTab(i)}
-              className="relative flex items-center gap-1.5 px-3.5 py-2.5 text-[11px] font-semibold tracking-wide transition-colors duration-150 whitespace-nowrap"
+              className="relative flex h-[30px] min-w-0 flex-1 items-center justify-center gap-0.5 rounded-full px-2 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors duration-150 sm:h-auto sm:flex-none sm:justify-start sm:gap-1.5 sm:rounded-none sm:px-3.5 sm:py-2.5 sm:text-[11px] sm:tracking-wide"
               style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }}
             >
               <t.icon
+                className="size-[10px] shrink-0 sm:size-3"
                 style={{
-                  width: 12,
-                  height: 12,
                   transform: active ? "scale(1.15)" : "scale(1)",
                   transition: "transform 150ms",
                 }}
@@ -291,7 +290,6 @@ function ProductCard({
   const discount = getProductDiscountLabel(discountFields);
   const effectiveCompareAt = getEffectiveCompareAtPrice(discountFields);
   const currency = (activeVariant as any)?.currency ?? p.currency ?? "USD";
-  const isVerifiedSupplier = p.vendors?.verification_status === "verified";
 
   const outOfStock =
     activeVariant != null &&
@@ -357,7 +355,7 @@ function ProductCard({
 
   return (
     <div
-      className="group relative flex flex-col rounded-md overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,.10)]"
+      className="group relative flex flex-col rounded-md overflow-hidden transition-all duration-300 ease-out hover:shadow-[0_8px_24px_rgba(0,0,0,.10)] active:scale-[0.99]"
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
     >
       {/* ── Image ── */}
@@ -367,7 +365,7 @@ function ProductCard({
           className="block"
         >
           <div
-            className="relative flex aspect-square w-full items-center justify-center overflow-hidden"
+            className="relative flex aspect-square w-full items-center justify-center overflow-hidden p-2.5 sm:p-3"
             style={{ background: "var(--color-surface-secondary)" }}
           >
             <img
@@ -377,7 +375,7 @@ function ProductCard({
               height={512}
               loading="lazy"
               decoding="async"
-              className="h-full w-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.06]"
+              className="max-h-full max-w-full object-contain object-center transition-transform duration-300 ease-out group-hover:scale-[1.02]"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/[.03] transition-colors duration-200 pointer-events-none" />
           </div>
@@ -407,13 +405,6 @@ function ProductCard({
             style={{ background: "rgba(0,0,0,.55)" }}
           >
             Out of stock
-          </span>
-        )}
-
-        {isVerifiedSupplier && (
-          <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-0.5 rounded-md bg-blue-600/95 px-1.5 py-0.5 text-[8px] font-bold text-white shadow-sm backdrop-blur-sm">
-            <ShieldCheck className="size-2.5" />
-            Verified supplier
           </span>
         )}
 

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Search, Zap, ChevronRight, ArrowRight,
+  Zap, ChevronRight, ArrowRight,
   Sparkles, Camera,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -18,9 +18,16 @@ import { MarketplaceTrustStrip } from "./MarketplaceTrustStrip";
 import type { HeroProduct } from "@/types";
 import { useMarketplace } from "./marketplace-context";
 import type { DbProduct } from "@/lib/utils";
+import { isRenderableUrl } from "@/lib/utils";
 import { Sidebar } from "./Sidebar";
 import { MarketplacePagination } from "./MarketplacePagination";
 import { MARKETPLACE_PAGE_SIZE, parseMarketplacePage } from "@/lib/marketplace/constants";
+import { dedupeCategories } from "@/lib/marketplace/category-dedup";
+import {
+  MarketplaceSearchBar,
+  MarketplaceSearchIcon,
+  marketplaceSearchBarClassName,
+} from "./MarketplaceSearchBar";
 import Link from "next/link";
 
 type ProductType = "physical" | "digital";
@@ -84,25 +91,40 @@ function getCategoryImageSrc(name: string): string {
 function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
   const [imgErr, setImgErr] = useState(false);
 
-  const imgSrc = c.image_url && !imgErr ? c.image_url : getCategoryImageSrc(c.name);
+  const uploadedSrc =
+    c.image_url && isRenderableUrl(c.image_url) ? c.image_url.trim() : null;
+  const imgSrc = uploadedSrc ?? getCategoryImageSrc(c.name);
+  const showImg = !imgErr;
 
   return (
     <Link
       href={`/marketplace?type=${type}&category=${c.slug}`}
-      className="group relative flex w-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-center shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+      className="group relative flex h-[118px] w-full flex-col overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] text-center shadow-sm transition-shadow duration-200 ease-out hover:shadow-lg md:h-auto md:rounded-xl"
     >
-      <div className="aspect-[4/3] w-full overflow-hidden bg-[var(--color-surface-secondary)]">
-        <img
-          src={imgSrc}
-          alt={c.name}
-          loading="lazy"
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-          onError={() => setImgErr(true)}
-        />
+      <div className="relative h-[86px] w-full overflow-hidden bg-[var(--color-surface-secondary)] md:h-auto md:aspect-[4/3]">
+        {showImg ? (
+          <img
+            src={imgSrc}
+            alt={c.name}
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-200 ease-out group-hover:scale-[1.03]"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ background: c.tint_color ?? "var(--color-surface-secondary)" }}
+          >
+            <span className="select-none text-3xl font-black uppercase text-[var(--color-text-primary)]/20">
+              {c.name.charAt(0)}
+            </span>
+          </div>
+        )}
       </div>
 
-      <div className="w-full bg-[var(--color-surface)] px-2 py-2">
-        <div className="line-clamp-2 text-[12px] font-bold leading-tight text-[var(--color-text-primary)]">
+      <div className="w-full bg-[var(--color-surface)] px-2 py-1.5 md:py-2">
+        <div className="line-clamp-2 text-[11px] font-bold leading-tight text-[var(--color-text-primary)] md:text-[12px]">
           {c.name}
         </div>
       </div>
@@ -197,6 +219,8 @@ export function MarketplacePageClient({
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
   const [listingCount, setListingCount] = useState(initialListingCount);
+  const [isMobile, setIsMobile] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const supabaseRef = useRef(supabase);
   const filtersKey = JSON.stringify(filters);
@@ -214,6 +238,19 @@ export function MarketplacePageClient({
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => clearTimeout(t);
   }, [search]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(Boolean(mq.matches));
+    update();
+    if (typeof mq.addEventListener === "function") mq.addEventListener("change", update);
+    else mq.addListener(update);
+    return () => {
+      if (typeof mq.removeEventListener === "function") mq.removeEventListener("change", update);
+      else mq.removeListener(update);
+    };
+  }, []);
 
   useEffect(() => {
     const page = parseMarketplacePage(searchParams.get("page"));
@@ -378,7 +415,19 @@ export function MarketplacePageClient({
           .is("parent_id", null)
           .in("id", ids)
           .order("product_count", { ascending: false })
-          .limit(7);
+          .limit(40);
+        nextCategories = (catRows ?? []) as DbCategory[];
+      }
+      // Always keep Shop by Category filled (even when duplicates are removed)
+      if (nextCategories.length < 12) {
+        const { data: catRows } = await supabaseRef.current
+          .from("product_categories")
+          .select("id, name, slug, product_count, image_url, tint_color")
+          .eq("is_active", true)
+          .eq("visible", true)
+          .is("parent_id", null)
+          .order("product_count", { ascending: false })
+          .limit(60);
         nextCategories = (catRows ?? []) as DbCategory[];
       }
       setCategories(nextCategories);
@@ -465,6 +514,76 @@ export function MarketplacePageClient({
       )
     : flashDeals;
 
+  const displayCategories = useMemo(() => {
+    const unique = dedupeCategories(categories);
+    const target = isMobile ? 6 : 7;
+    return unique.slice(0, target);
+  }, [categories, isMobile]);
+
+  const POPULAR_SEARCHES = useMemo(
+    () => ["Wireless Earbuds", "Gaming Headset", "Smart Watch", "Portable Speaker"],
+    [],
+  );
+
+  const RECENT_KEY = "marketplace_recent_searches_v1";
+  const recentSearches = useMemo(() => {
+    if (typeof window === "undefined") return [] as string[];
+    try {
+      const raw = window.localStorage.getItem(RECENT_KEY);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter((x) => typeof x === "string").slice(0, 8);
+    } catch {
+      return [];
+    }
+  }, [searchFocused]);
+
+  function pushRecent(term: string) {
+    if (typeof window === "undefined") return;
+    const t = term.trim();
+    if (!t) return;
+    try {
+      const raw = window.localStorage.getItem(RECENT_KEY);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      const list = Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+      const next = [t, ...list.filter((x) => String(x).toLowerCase() !== t.toLowerCase())].slice(0, 12);
+      window.localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  }
+
+  const q = search.trim();
+  const qLower = q.toLowerCase();
+  const matchedProducts = useMemo(() => {
+    if (!q) return [] as DbProduct[];
+    return trending.filter((p) => p.name.toLowerCase().includes(qLower)).slice(0, 6);
+  }, [q, qLower, trending]);
+
+  const matchedCategories = useMemo(() => {
+    if (!q) return [] as DbCategory[];
+    const uniq = new Map<string, DbCategory>();
+    for (const c of categories) {
+      const key = c.slug?.toLowerCase().trim() || c.name?.toLowerCase().trim() || c.id;
+      if (!key || uniq.has(key)) continue;
+      if (!c.name?.toLowerCase().includes(qLower) && !c.slug?.toLowerCase().includes(qLower)) continue;
+      uniq.set(key, c);
+      if (uniq.size >= 6) break;
+    }
+    return [...uniq.values()];
+  }, [q, qLower, categories]);
+
+  const trendingCategorySuggestions = useMemo(() => {
+    return categories
+      .slice()
+      .sort((a, b) => Number(b.product_count ?? 0) - Number(a.product_count ?? 0))
+      .map((c) => c.name)
+      .filter(Boolean)
+      .slice(0, 5);
+  }, [categories]);
+
+  const showSearchPopover = searchFocused && (q.length > 0 || recentSearches.length > 0);
+
   return (
     <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-x-4 lg:gap-y-3">
       {/* Sidebar — sticky while scrolling product feed */}
@@ -474,19 +593,19 @@ export function MarketplacePageClient({
 
       {/* Search — aligns top with Categories */}
       <div className="min-w-0 lg:col-start-2 lg:row-start-1">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 shadow-sm sm:gap-3 sm:px-4">
-            <Search className="size-4 shrink-0 text-[var(--color-text-muted)]" />
-            <input
-              type="text"
+        <div className="flex flex-col gap-2 relative">
+          <div className={marketplaceSearchBarClassName(searchFocused)}>
+            <MarketplaceSearchIcon active={q.length > 0} />
+            <MarketplaceSearchBar
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={
-                type === "digital"
-                  ? "Search for digital products, tools, software & more..."
-                  : "Search for physical products & gear..."
-              }
-              className="min-w-0 flex-1 bg-transparent text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
+              onChange={setSearch}
+              type={type}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 120)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") pushRecent(search);
+                if (e.key === "Escape") (e.target as HTMLInputElement)?.blur();
+              }}
             />
 
             <button
@@ -529,6 +648,174 @@ export function MarketplacePageClient({
               {listingCount} listings
             </span>
           </div>
+
+          {showSearchPopover && (
+            <div
+              className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg"
+              style={{
+                transform: "translate3d(0,0,0)",
+                willChange: "transform, opacity",
+                animation: "fadeInUp 160ms ease-out",
+              }}
+            >
+              <div className="p-2 sm:p-3">
+                {q.length === 0 ? (
+                  <div className="space-y-3">
+                    {recentSearches.length > 0 && (
+                      <div>
+                        <div className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
+                          Recent
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {recentSearches.slice(0, 8).map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => {
+                                setSearch(t);
+                                pushRecent(t);
+                              }}
+                              className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-primary)] transition-transform duration-150 hover:scale-[1.02]"
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div>
+                      <div className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
+                        Popular searches
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {POPULAR_SEARCHES.map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setSearch(t);
+                              pushRecent(t);
+                            }}
+                            className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-primary)] transition-transform duration-150 hover:scale-[1.02]"
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="mb-1.5 flex items-center gap-2 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
+                        <span
+                          className="relative inline-flex items-center overflow-hidden rounded-full px-2 py-0.5 text-[9px] font-black text-white"
+                          style={{
+                            background:
+                              "linear-gradient(90deg, rgba(253,80,0,1) 0%, rgba(255,140,0,1) 100%)",
+                          }}
+                        >
+                          Trending
+                          <span
+                            className="pointer-events-none absolute inset-0"
+                            style={{
+                              background:
+                                "linear-gradient(110deg, transparent 0%, rgba(255,255,255,.35) 45%, transparent 70%)",
+                              transform: "translateX(-120%)",
+                              animation: "marketplaceShimmer 1.8s linear infinite",
+                            }}
+                          />
+                        </span>
+                        Categories
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {trendingCategorySuggestions.map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setSearch(t);
+                              pushRecent(t);
+                            }}
+                            className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-primary)] transition-transform duration-150 hover:scale-[1.02]"
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {matchedProducts.length > 0 && (
+                      <div style={{ animation: "fadeInUp 160ms ease-out" }}>
+                        <div className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
+                          Instant results
+                        </div>
+                        <div className="space-y-1">
+                          {matchedProducts.map((p) => (
+                            <Link
+                              key={p.id}
+                              href={`/marketplace/${p.slug}`}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => pushRecent(search)}
+                              className="flex items-center justify-between rounded-lg px-2 py-2 transition-transform duration-150 hover:scale-[1.02] hover:bg-[var(--color-surface-secondary)]"
+                            >
+                              <span className="truncate text-[12px] font-semibold text-[var(--color-text-primary)]">
+                                {p.name}
+                              </span>
+                              <span className="ml-3 shrink-0 text-[11px] font-bold text-[var(--color-accent)]">
+                                View
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {matchedCategories.length > 0 && (
+                      <div style={{ animation: "fadeInUp 160ms ease-out" }}>
+                        <div className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
+                          Categories
+                        </div>
+                        <div className="space-y-1">
+                          {matchedCategories.map((c) => (
+                            <Link
+                              key={c.id}
+                              href={`/marketplace?type=${type}&category=${c.slug}`}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => pushRecent(search)}
+                              className="flex items-center justify-between rounded-lg px-2 py-2 transition-transform duration-150 hover:scale-[1.02] hover:bg-[var(--color-surface-secondary)]"
+                            >
+                              <span className="truncate text-[12px] font-semibold text-[var(--color-text-primary)]">
+                                {c.name}
+                              </span>
+                              <span className="ml-3 shrink-0 text-[11px] font-bold text-[var(--color-text-muted)]">
+                                Explore
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {matchedProducts.length === 0 && matchedCategories.length === 0 && (
+                      <div className="rounded-lg bg-[var(--color-surface-secondary)] px-3 py-3">
+                        <div className="text-[12px] font-semibold text-[var(--color-text-primary)]">
+                          No quick matches yet
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
+                          Try searching popular items like “Wireless Earbuds” or “Smart Watch”.
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-center gap-2 sm:hidden">
             {(["physical", "digital"] as ProductType[]).map((t) => (
@@ -582,12 +869,12 @@ export function MarketplacePageClient({
             </div>
             <div className="flex items-center gap-4">
               <FlashDealsCountdown />
-              <button
-                type="button"
-                className="flex items-center gap-1 text-xs font-semibold text-white/90 hover:text-white"
+              <Link
+                href="/marketplace/flash-deals"
+                className="flex items-center gap-1 text-xs font-semibold text-white/90 transition-colors hover:text-white"
               >
                 View All Deals <ChevronRight className="size-3.5" />
-              </button>
+              </Link>
             </div>
           </div>
           <div className="p-2">
@@ -620,8 +907,8 @@ export function MarketplacePageClient({
                 Explore top categories
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2 lg:grid-cols-4 xl:grid-cols-7">
-              {categories.map((c) => (
+            <div className="grid grid-cols-3 gap-2 md:grid-cols-3 md:gap-2 lg:grid-cols-4 xl:grid-cols-7">
+              {displayCategories.map((c) => (
                 <CategoryCard key={c.id} c={c} type={type} />
               ))}
             </div>

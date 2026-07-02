@@ -64,7 +64,7 @@ async function fetchInitialData(
       .eq("visible", true)
       .is("parent_id", null)
       .order("sort_order")
-      .limit(7),
+      .limit(30),
 
     supabase
       .from("orders")
