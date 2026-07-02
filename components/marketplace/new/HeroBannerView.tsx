@@ -258,6 +258,29 @@ function getProductImage(product: BannerHeroProduct): string | null {
   return null;
 }
 
+type ProductReview = { rating?: number | null };
+
+function readOptionalReviews(product: BannerHeroProduct): ProductReview[] | null {
+  if (!("reviews" in product)) return null;
+  const reviews = (product as BannerHeroProduct & { reviews?: unknown }).reviews;
+  if (!Array.isArray(reviews)) return null;
+  return reviews.filter(
+    (item): item is ProductReview => typeof item === "object" && item !== null,
+  );
+}
+
+function getBannerReviewStats(product: BannerHeroProduct) {
+  const reviews = readOptionalReviews(product);
+  const count = reviews !== null ? reviews.length : (product.review_count ?? 0);
+  const hasReviews = count > 0;
+  const rating =
+    reviews !== null && reviews.length > 0
+      ? reviews.reduce((sum, review) => sum + (Number(review.rating ?? 0) || 0), 0) /
+        reviews.length
+      : (product.rating ?? 0);
+  return { count, hasReviews, rating };
+}
+
 type BannerHeroProduct = HeroProduct & {
   currency?: string | null;
 };
@@ -592,18 +615,11 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
   const earn = product.affiliate_commission_rate
     ? formatMoney(product.price * (product.affiliate_commission_rate / 100), currency)
     : null;
-  const bannerReviewCount = Array.isArray((product as { reviews?: unknown[] }).reviews)
-    ? (product as { reviews: unknown[] }).reviews.length
-    : (product.review_count ?? 0);
-  const bannerHasReviews = bannerReviewCount > 0;
-  const bannerRating = bannerHasReviews
-    ? Array.isArray((product as { reviews?: { rating?: number }[] }).reviews)
-      ? ((product as { reviews: { rating?: number }[] }).reviews).reduce(
-          (s, r) => s + (Number(r.rating ?? 0) || 0),
-          0,
-        ) / Math.max(1, bannerReviewCount)
-      : (product.rating ?? 0)
-    : (product.rating ?? 0);
+  const {
+    count: bannerReviewCount,
+    hasReviews: bannerHasReviews,
+    rating: bannerRating,
+  } = getBannerReviewStats(product);
 
   return (
     <section
