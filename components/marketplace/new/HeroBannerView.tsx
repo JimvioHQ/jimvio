@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  DollarSign, Flame, Zap, Star,
+  Flame, Zap, Star,
   Crown, ShoppingCart, Eye, Award, TrendingUp,
   type LucideIcon,
 } from "lucide-react";
@@ -457,7 +457,6 @@ type HeroBannerContentProps = {
   price: string;
   oldPrice: string | null;
   discount: string;
-  earn: string | null;
   bannerHasReviews: boolean;
   bannerRating: number;
   bannerReviewCount: number;
@@ -473,7 +472,6 @@ function HeroBannerContent({
   price,
   oldPrice,
   discount,
-  earn,
   bannerHasReviews,
   bannerRating,
   bannerReviewCount,
@@ -483,7 +481,7 @@ function HeroBannerContent({
   const secondaryBadges = getSecondaryHeroBadges(product);
 
   return (
-    <>
+    <div className="flex h-full w-full min-w-0 flex-col justify-between">
       {/* Badges */}
       <div className="flex flex-wrap items-center gap-1.5">
         <HeroPillBadge
@@ -496,10 +494,10 @@ function HeroBannerContent({
         ))}
       </div>
 
-      {/* Product info */}
+      {/* Product info + CTAs */}
       <div className="flex min-w-0 flex-col gap-1 sm:gap-1.5">
         <h2
-          className="line-clamp-2 text-[12px] font-bold leading-snug sm:text-xl sm:font-black lg:text-2xl"
+          className="line-clamp-2 min-h-[33px] max-h-[33px] w-full min-w-0 overflow-hidden text-ellipsis break-words text-[12px] font-bold leading-snug sm:min-h-[55px] sm:max-h-[55px] sm:text-xl sm:font-black lg:min-h-[66px] lg:max-h-[66px] lg:text-2xl"
           style={{ color: theme.headline, letterSpacing: "-0.02em" }}
         >
           {rawName}
@@ -561,20 +559,7 @@ function HeroBannerContent({
           )}
         </div>
 
-        {earn && (
-          <div className="flex items-center gap-1 text-[10px] sm:text-[11px]">
-            <DollarSign className="size-2.5 sm:size-3" style={{ color: theme.price }} />
-            <span style={{ color: theme.sub }}>Affiliates earn</span>
-            <span className="font-bold" style={{ color: theme.price }}>
-              {earn}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* CTAs */}
-      <div className="flex flex-col gap-1.5 sm:gap-2">
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+        <div className="mt-1.5 flex flex-wrap gap-1.5 sm:mt-2 sm:gap-2">
           <Link href={`/marketplace/${product.slug}`}>
             <button
               type="button"
@@ -599,7 +584,7 @@ function HeroBannerContent({
           </Link>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -639,9 +624,6 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
   const price = formatMoney(product.price, currency);
   const compareAt = getEffectiveCompareAtPrice(product);
   const oldPrice = compareAt ? formatMoney(compareAt, currency) : null;
-  const earn = product.affiliate_commission_rate
-    ? formatMoney(product.price * (product.affiliate_commission_rate / 100), currency)
-    : null;
   const {
     count: bannerReviewCount,
     hasReviews: bannerHasReviews,
@@ -663,7 +645,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
       {/* ── Mobile flex hero (left content + right image) ── */}
       <div className="relative flex h-full flex-row sm:hidden">
         <div
-          className="relative z-10 flex w-[55%] min-w-0 flex-col justify-between p-3 pr-2"
+          className="relative z-10 flex h-full w-[55%] min-w-0 flex-col p-3 pr-2"
           style={{ background: theme.mobileTextOverlay }}
         >
           <HeroBannerContent
@@ -675,7 +657,6 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
             price={price}
             oldPrice={oldPrice}
             discount={discount}
-            earn={earn}
             bannerHasReviews={bannerHasReviews}
             bannerRating={bannerRating}
             bannerReviewCount={bannerReviewCount}
@@ -741,7 +722,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
       </div>
 
       {/* ── Desktop content panel ── */}
-      <div className="absolute inset-0 z-10 hidden flex-col justify-between p-3 pr-[4.75rem] sm:flex sm:max-w-[46%] sm:p-6 sm:pr-6 lg:max-w-[44%] lg:p-7">
+      <div className="absolute inset-0 z-10 hidden flex-col p-3 pr-[4.75rem] sm:flex sm:max-w-[46%] sm:p-6 sm:pr-6 lg:max-w-[44%] lg:p-7">
         <HeroBannerContent
           theme={theme}
           typeKey={typeKey}
@@ -751,7 +732,6 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
           price={price}
           oldPrice={oldPrice}
           discount={discount}
-          earn={earn}
           bannerHasReviews={bannerHasReviews}
           bannerRating={bannerRating}
           bannerReviewCount={bannerReviewCount}
