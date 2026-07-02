@@ -1,169 +1,123 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   AlertCircle,
   ArrowLeft,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Copy,
   ClipboardPaste,
   ExternalLink,
   FileEdit,
-  Filter,
   Loader2,
-  Package,
-  Play,
-  RotateCcw,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
-  SlidersHorizontal,
-  Truck,
-  X,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { SelectInput } from "@/components/admin/form-primitive";
+import { publishAdminProduct } from "@/lib/actions/admin-products";
 import { RefreshCJStockButton } from "@/components/admin/cj/refresh-cj-stock-button";
+import { FilterSidebar } from "@/components/admin/cj/import-intelligence/filter-sidebar";
+import { VirtualizedProductGrid } from "@/components/admin/cj/import-intelligence/virtualized-product-grid";
+import { SmartSearchBar } from "@/components/admin/cj/import-intelligence/smart-search-bar";
+import { BulkActionsBar } from "@/components/admin/cj/import-intelligence/bulk-actions-bar";
+import { PreviewDrawer } from "@/components/admin/cj/import-intelligence/preview-drawer";
+import { ImportSettingsPanel } from "@/components/admin/cj/import-intelligence/import-settings-panel";
+import { QuickFiltersRow } from "@/components/admin/cj/import-intelligence/quick-filters-row";
+import { SavedPresetsBar } from "@/components/admin/cj/import-intelligence/saved-presets-bar";
+import { SessionAnalytics } from "@/components/admin/cj/import-intelligence/session-analytics";
+import { SortSelector } from "@/components/admin/cj/import-intelligence/sort-selector";
+import { ImportQueueMonitor } from "@/components/admin/cj/import-intelligence/import-queue-monitor";
+import {
+  PublishSafetyDialog,
+  PublishSummaryModal,
+} from "@/components/admin/cj/import-intelligence/publish-summary-modal";
+import {
+  fetchCJProducts,
+  fetchCJCategories,
+  fetchImportedMap,
+  invalidateCJCache,
+} from "@/lib/cj/import-intelligence/api";
+import {
+  activeQuickFilterKeys,
+  applyIntelligenceFilters,
+  computeFilterCounts,
+  DEFAULT_CJ_FILTERS,
+  DEFAULT_INTELLIGENCE_FILTERS,
+  enrichProduct,
+  enrichProductBatch,
+  getQuickFilterCountPool,
+  intelligenceFilterCount,
+  toggleQuickFilter,
+  trendingToApiFilters,
+  type QuickFilterKey,
+} from "@/lib/cj/import-intelligence/filters";
+import {
+  DEFAULT_IMPORT_SETTINGS,
+  loadImportSettings,
+  saveImportSettings,
+} from "@/lib/cj/import-intelligence/import-settings";
+import {
+  loadActivePresetIds,
+  togglePreset,
+} from "@/lib/cj/import-intelligence/presets";
+import {
+  checkPublishEligibility,
+  createQueueState,
+  shouldPublishProduct,
+  type ImportQueueState,
+  type PublishSummary,
+} from "@/lib/cj/import-intelligence/publish-rules";
+import {
+  computeSessionAnalytics,
+  sortProducts,
+  type SortOption,
+} from "@/lib/cj/import-intelligence/sorting";
+import {
+  filterBySmartSearch,
+  getSearchSuggestions,
+  loadRecentSearches,
+  saveRecentSearch,
+} from "@/lib/cj/import-intelligence/search";
+import { mergeIntelligenceIntoProducts } from "@/lib/cj/import-intelligence/enrichment-merge";
+import { useLazyCjEnrichment } from "@/lib/cj/import-intelligence/use-lazy-cj-enrichment";
+import type {
+  CJApiFilters,
+  EnrichedProduct,
+  ImportLogEntry,
+  ImportedMap,
+  ImportMode,
+  ImportSettings,
+  IntelligenceFilters,
+} from "@/lib/cj/import-intelligence/types";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+const PAGE_SIZE = 48;
+const SCHEDULED_KEY = "jimvio:cj-scheduled-publishes";
 
-interface CJProduct {
-  pid: string;
-  productNameEn: string;
-  productSku: string;
-  bigImage: string;
-  sellPrice: string;
-  nowPrice: string;
-  discountPrice: string;
-  categoryName?: string;
-  threeCategoryName?: string;
-  addMarkStatus: number;
-  isFreeShipping?: boolean;
-  listedNum: number;
-  warehouseInventoryNum?: number;
-  verifiedWarehouse?: number;
-  deliveryCycle?: string;
-  countryCode?: string;
-  isVideo?: number;
-  videoList?: string[];
-  productWeight?: number;
+function useIsLgScreen(): boolean {
+  const [isLg, setIsLg] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsLg(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return isLg;
 }
 
-interface CJCategory {
-  categoryId: string;
-  categoryName: string;
+function saveScheduledPublish(productId: string, name: string, at: string, tz?: string) {
+  try {
+    const raw = localStorage.getItem(SCHEDULED_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    list.push({ productId, name, at, tz });
+    localStorage.setItem(SCHEDULED_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
 }
-
-interface Filters {
-  keyWord: string;
-  categoryId: string;
-  minPrice: string;
-  maxPrice: string;
-  isFreeShipping: string;
-  verifiedWarehouse: string;
-  countryCode: string;
-  deliveryTime: string;
-  productFlag: string;
-  hasVideo: string;
-  sort: string;
-  orderBy: string;
-}
-
-type ImportLogEntry = {
-  pid: string;
-  name: string;
-  productId?: string;
-  at: string;
-  ok: boolean;
-  message?: string;
-};
-
-const DEFAULT_FILTERS: Filters = {
-  keyWord: "",
-  categoryId: "",
-  minPrice: "",
-  maxPrice: "",
-  isFreeShipping: "",
-  verifiedWarehouse: "",
-  countryCode: "",
-  deliveryTime: "",
-  productFlag: "",
-  hasVideo: "",
-  sort: "desc",
-  orderBy: "createAt",
-};
-
-const WAREHOUSE_LABELS: Record<string, string> = {
-  CN: "China",
-  US: "United States",
-  GB: "United Kingdom",
-  DE: "Germany",
-  FR: "France",
-  AU: "Australia",
-};
-
-const ALL = "all";
-
-const cardCls = "rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)]";
-
-// ─── API ─────────────────────────────────────────────────────────────────────
-
-async function fetchCJProducts(filters: Filters, page: number, pageSize: number) {
-  const params = new URLSearchParams();
-  params.set("pageNum", String(page));
-  params.set("pageSize", String(pageSize));
-  if (filters.keyWord) params.set("productNameEn", filters.keyWord);
-  if (filters.categoryId) params.set("categoryId", filters.categoryId);
-  if (filters.minPrice) params.set("minPrice", filters.minPrice);
-  if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
-  if (filters.isFreeShipping) params.set("isFreeShipping", filters.isFreeShipping);
-  if (filters.verifiedWarehouse) params.set("verifiedWarehouse", filters.verifiedWarehouse);
-  if (filters.productFlag !== "") params.set("searchType", filters.productFlag);
-  if (filters.hasVideo === "1") params.set("hasVideo", "1");
-  if (filters.countryCode) params.set("countryCode", filters.countryCode);
-  if (filters.deliveryTime) params.set("deliveryTime", filters.deliveryTime);
-  if (filters.sort) params.set("sort", filters.sort);
-  if (filters.orderBy) params.set("orderBy", filters.orderBy);
-
-  const res = await fetch(`/api/cj/products?${params.toString()}`);
-  if (!res.ok) throw new Error(`Catalog request failed (${res.status})`);
-  const json = await res.json();
-  if (!json.success) throw new Error(json.error || "Could not load CJ catalog");
-  return { products: json.products as CJProduct[], total: json.total as number };
-}
-
-async function fetchCJCategories(): Promise<CJCategory[]> {
-  const res = await fetch("/api/cj/categories");
-  if (!res.ok) return [];
-  const json = await res.json();
-  return json.categories || [];
-}
-
-function productHasVideo(p: CJProduct) {
-  return p.isVideo === 1 || (p.videoList?.length ?? 0) > 0;
-}
-
-function cjVideoPreviewSrc(url: string) {
-  return `/api/cj/video-proxy?url=${encodeURIComponent(url)}`;
-}
-
-function productPrice(p: CJProduct) {
-  return parseFloat(p.discountPrice || p.nowPrice || p.sellPrice || "0");
-}
-
-function copyText(text: string) {
-  navigator.clipboard.writeText(text).then(
-    () => toast.success("Copied"),
-    () => toast.error("Copy failed")
-  );
-}
-
-// ─── Main ────────────────────────────────────────────────────────────────────
 
 export default function CJImportBrowser({
   cjDraftCount = 0,
@@ -172,176 +126,435 @@ export default function CJImportBrowser({
   cjDraftCount?: number;
   cjTotalCount?: number;
 }) {
-  const router = useRouter();
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
-  const [draft, setDraft] = useState(DEFAULT_FILTERS);
-  const [products, setProducts] = useState<CJProduct[]>([]);
-  const [pagination, setPagination] = useState({ page: 1, pageSize: 24, total: 0 });
+  const [cjFilters] = useState<CJApiFilters>(DEFAULT_CJ_FILTERS);
+  const [intelFilters, setIntelFilters] = useState<IntelligenceFilters>(
+    DEFAULT_INTELLIGENCE_FILTERS
+  );
+  const [activePresetIds, setActivePresetIds] = useState<string[]>([]);
+  const [sortOption, setSortOption] = useState<SortOption>("default");
+  const [importMode, setImportMode] = useState<ImportMode>("draft");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [localSearch, setLocalSearch] = useState("");
+  const [products, setProducts] = useState<EnrichedProduct[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
-  const [categories, setCategories] = useState<CJCategory[]>([]);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [importedMap, setImportedMap] = useState<Record<string, string>>({});
+  const [hasSearched, setHasSearched] = useState(false);
+  const [importedMap, setImportedMap] = useState<ImportedMap>({});
+  const [skuIndex, setSkuIndex] = useState<Record<string, string>>({});
   const [importingPid, setImportingPid] = useState<string | null>(null);
   const [selectedPids, setSelectedPids] = useState<Set<string>>(new Set());
   const [bulkImporting, setBulkImporting] = useState(false);
-  const [directPid, setDirectPid] = useState("");
-  const [hideImported, setHideImported] = useState(false);
-  const [preview, setPreview] = useState<CJProduct | null>(null);
+  const [preview, setPreview] = useState<EnrichedProduct | null>(null);
   const [importLog, setImportLog] = useState<ImportLogEntry[]>([]);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [draftReviewQuery, setDraftReviewQuery] = useState("");
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [importSettings, setImportSettings] = useState<ImportSettings>(
+    DEFAULT_IMPORT_SETTINGS
+  );
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [directPid, setDirectPid] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [importQueue, setImportQueue] = useState<ImportQueueState | null>(null);
+  const [publishSummary, setPublishSummary] = useState<PublishSummary | null>(null);
+  const [safetyDialog, setSafetyDialog] = useState<{
+    open: boolean;
+    qualified: EnrichedProduct[];
+    unqualified: EnrichedProduct[];
+    mode: ImportMode;
+  } | null>(null);
+  const [sessionPublished, setSessionPublished] = useState(0);
+  const isLgScreen = useIsLgScreen();
+
+  const {
+    enrichmentMap,
+    version: enrichmentVersion,
+    pendingCount: enrichmentPending,
+    scheduleVisible,
+    enrichedCount,
+  } = useLazyCjEnrichment(hasSearched);
 
   useEffect(() => {
-    fetchCJCategories().then(setCategories);
+    setImportSettings(loadImportSettings());
+    setRecentSearches(loadRecentSearches());
+    setActivePresetIds(loadActivePresetIds());
+    fetchImportedMap()
+      .then((map) => setImportedMap(map))
+      .catch(() => {});
     fetch("/api/admin/cj/imported")
       .then((r) => r.json())
       .then((data) => {
-        if (data?.map && typeof data.map === "object") setImportedMap(data.map);
+        if (data?.map) {
+          const map: ImportedMap = {};
+          for (const [pid, val] of Object.entries(data.map)) {
+            if (typeof val === "string") map[pid] = { productId: val };
+            else map[pid] = val as ImportedMap[string];
+          }
+          setImportedMap(map);
+        }
+        if (data?.skuIndex) setSkuIndex(data.skuIndex);
       })
-      .catch(() => { });
+      .catch(() => {});
+    fetchCJCategories().catch(() => {});
   }, []);
 
-  const importedCount = Object.keys(importedMap).length;
-  const sessionOk = importLog.filter((e) => e.ok).length;
+  const handleImportSettingsChange = (s: ImportSettings) => {
+    setImportSettings(s);
+    saveImportSettings(s);
+    setImportMode(s.defaultImportMode);
+  };
 
-  const load = useCallback(
-    async (f: Filters, page: number, pageSize = pagination.pageSize) => {
-      setLoading(true);
-      setError("");
-      setHasSearched(true);
+  const sessionImports = importLog.filter((e) => e.ok).length;
+  const activeFilterCount = intelligenceFilterCount(intelFilters);
+  const quickFilterActive = useMemo(
+    () => activeQuickFilterKeys(intelFilters),
+    [intelFilters]
+  );
+
+  const enrichedCatalog = useMemo(
+    () => mergeIntelligenceIntoProducts(products, enrichmentMap, importedMap),
+    [products, enrichmentMap, importedMap, enrichmentVersion]
+  );
+
+  const countPool = useMemo(
+    () =>
+      getQuickFilterCountPool(
+        enrichedCatalog,
+        intelFilters,
+        localSearch,
+        importedMap
+      ),
+    [enrichedCatalog, intelFilters, localSearch, importedMap]
+  );
+
+  const filterCounts = useMemo(
+    () => computeFilterCounts(countPool, intelFilters),
+    [countPool, intelFilters]
+  );
+
+  const sessionStats = useMemo(
+    () =>
+      computeSessionAnalytics(products, sessionImports, sessionPublished),
+    [products, sessionImports, sessionPublished]
+  );
+
+  const loadPage = useCallback(
+    async (pageNum: number, append = false) => {
+      const apiFilters = trendingToApiFilters(intelFilters, {
+        ...cjFilters,
+        keyWord: searchQuery,
+      });
+
+      if (append) setLoadingMore(true);
+      else {
+        setLoading(true);
+        setError("");
+        setHasSearched(true);
+      }
+
       try {
-        const { products: rows, total } = await fetchCJProducts(f, page, pageSize);
-        setProducts(rows);
-        setPagination((prev) => ({ ...prev, page, pageSize, total }));
-        setSelectedPids(new Set());
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        const { products: rows, total: t } = await fetchCJProducts(
+          apiFilters,
+          pageNum,
+          PAGE_SIZE
+        );
+
+        const enriched = enrichProductBatch(
+          rows.map((p) => ({
+            ...p,
+            variantCount:
+              p.variantCount ??
+              (p.productType && p.productType !== "ORDINARY" ? 2 : 1),
+          })),
+          importedMap
+        );
+
+        setProducts((prev) => (append ? [...prev, ...enriched] : enriched));
+        setTotal(t);
+        setPage(pageNum);
+        if (!append) setSelectedPids(new Set());
       } catch (e) {
         setError((e as Error).message);
-        setProducts([]);
+        if (!append) setProducts([]);
       } finally {
         setLoading(false);
+        setLoadingMore(false);
       }
     },
-    [pagination.pageSize]
+    [cjFilters, intelFilters, searchQuery, importedMap]
   );
 
-  function goToDraftReview(query = draftReviewQuery) {
-    const q = query.trim();
-    const params = new URLSearchParams({ status: "draft", source: "cj" });
-    if (q) params.set("q", q);
-    router.push(`/admin/products?${params.toString()}`);
-  }
+  const runSearch = useCallback(() => {
+    if (searchQuery.trim()) {
+      saveRecentSearch(searchQuery);
+      setRecentSearches(loadRecentSearches());
+    }
+    invalidateCJCache();
+    loadPage(1, false);
+  }, [searchQuery, loadPage]);
 
-  const applySearch = () => {
-    setFilters(draft);
-    load(draft, 1);
-  };
+  const loadMore = useCallback(() => {
+    if (loading || loadingMore) return;
+    if (page * PAGE_SIZE < total) loadPage(page + 1, true);
+  }, [loading, loadingMore, page, total, loadPage]);
 
-  const resetFilters = () => {
-    setDraft(DEFAULT_FILTERS);
-    setFilters(DEFAULT_FILTERS);
-    load(DEFAULT_FILTERS, 1);
-  };
+  const hasMore = page * PAGE_SIZE < total;
 
-  const visibleProducts = useMemo(
-    () => (hideImported ? products.filter((p) => !importedMap[p.pid]) : products),
-    [products, hideImported, importedMap]
+  const suggestions = useMemo(
+    () => getSearchSuggestions(products, searchQuery),
+    [products, searchQuery]
   );
 
-  const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.pageSize));
+  const visibleProducts = useMemo(() => {
+    let result = applyIntelligenceFilters(enrichedCatalog, intelFilters);
+    if (localSearch.trim()) {
+      result = filterBySmartSearch(result, localSearch).map((p) =>
+        enrichProduct(p, importedMap)
+      );
+    }
+    return sortProducts(result, sortOption);
+  }, [enrichedCatalog, intelFilters, localSearch, importedMap, sortOption]);
 
-  async function runImport(pid: string, name: string, resync = false) {
-    setImportingPid(pid);
-    try {
-      const res = await fetch("/api/cj/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pid }),
-      });
-      const json = await res.json();
-      if (!json.success) throw new Error(json.error);
+  const handleVisiblePidsChange = useCallback(
+    (pids: string[]) => {
+      scheduleVisible(pids);
+    },
+    [scheduleVisible]
+  );
 
-      if (json.productId) {
-        setImportedMap((prev) => ({ ...prev, [pid]: json.productId }));
+  const tryPublish = useCallback(
+    async (
+      product: EnrichedProduct,
+      productId: string,
+      mode: ImportMode
+    ): Promise<{ published: boolean; drafted: boolean; reasons: string[] }> => {
+      const decision = shouldPublishProduct(
+        product,
+        mode,
+        importSettings.autoPublishRules
+      );
+
+      if (importSettings.publishVisibility === "hidden") {
+        return { published: false, drafted: true, reasons: ["Hidden visibility"] };
       }
 
-      setImportLog((prev) => [
-        {
-          pid,
-          name,
-          productId: json.productId,
-          at: new Date().toISOString(),
-          ok: true,
-        },
-        ...prev.slice(0, 19),
-      ]);
+      if (importSettings.publishVisibility === "scheduled") {
+        if (importSettings.scheduledAt) {
+          saveScheduledPublish(
+            productId,
+            product.productNameEn,
+            importSettings.scheduledAt,
+            importSettings.scheduledTimezone
+          );
+          toast.info(`Scheduled: ${product.productNameEn}`);
+        }
+        return { published: false, drafted: true, reasons: ["Scheduled for later"] };
+      }
 
-      toast.success(resync ? "Re-synced from CJ" : "Imported as draft", {
-        action: json.productId
-          ? { label: "Open", onClick: () => { window.location.href = `/admin/products/${json.productId}`; } }
-          : undefined,
-      });
-    } catch (e) {
-      const message = (e as Error).message;
-      setImportLog((prev) => [
-        { pid, name, at: new Date().toISOString(), ok: false, message },
-        ...prev.slice(0, 19),
-      ]);
-      toast.error(message);
-    } finally {
-      setImportingPid(null);
-    }
-  }
+      if (decision.action !== "publish") {
+        return { published: false, drafted: true, reasons: decision.reasons };
+      }
 
-  async function importDirectPid() {
-    const pid = directPid.trim();
-    if (!pid) {
-      toast.error("Enter a CJ product ID");
-      return;
-    }
-    await runImport(pid, `PID ${pid}`);
-    setDirectPid("");
-  }
+      const pub = await publishAdminProduct(productId);
+      if (!pub.success) {
+        return {
+          published: false,
+          drafted: true,
+          reasons: [pub.error ?? "Publish failed"],
+        };
+      }
+      return { published: true, drafted: false, reasons: [] };
+    },
+    [importSettings]
+  );
 
-  async function importSelected() {
-    const pids = Array.from(selectedPids).filter((pid) => !importedMap[pid]);
-    if (pids.length === 0) {
-      toast.error("No new products selected");
-      return;
-    }
-    setBulkImporting(true);
-    let ok = 0;
-    let failed = 0;
-    for (const pid of pids) {
-      const product = products.find((p) => p.pid === pid);
+  const importOne = useCallback(
+    async (
+      product: EnrichedProduct,
+      mode: ImportMode = "draft",
+      resync = false
+    ) => {
+      setImportingPid(product.pid);
       try {
         const res = await fetch("/api/cj/import", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pid }),
+          body: JSON.stringify({ pid: product.pid }),
         });
         const json = await res.json();
         if (!json.success) throw new Error(json.error);
-        if (json.productId) setImportedMap((prev) => ({ ...prev, [pid]: json.productId }));
+
+        let published = false;
+        if (json.productId && mode !== "draft" && !resync) {
+          const outcome = await tryPublish(product, json.productId, mode);
+          published = outcome.published;
+        }
+
+        if (json.productId) {
+          setImportedMap((prev) => ({
+            ...prev,
+            [product.pid]: {
+              productId: json.productId,
+              name: product.productNameEn,
+            },
+          }));
+          setProducts((prev) =>
+            prev.map((p) =>
+              p.pid === product.pid
+                ? enrichProduct(p, {
+                    ...importedMap,
+                    [product.pid]: {
+                      productId: json.productId,
+                      name: product.productNameEn,
+                    },
+                  })
+                : p
+            )
+          );
+        }
+
+        if (published) setSessionPublished((n) => n + 1);
+
         setImportLog((prev) => [
-          { pid, name: product?.productNameEn ?? pid, productId: json.productId, at: new Date().toISOString(), ok: true },
-          ...prev.slice(0, 19),
+          {
+            pid: product.pid,
+            name: product.productNameEn,
+            productId: json.productId,
+            at: new Date().toISOString(),
+            ok: true,
+            published,
+          },
+          ...prev.slice(0, 49),
         ]);
-        ok += 1;
+
+        toast.success(
+          resync
+            ? "Re-synced from CJ"
+            : published
+              ? "Imported & published"
+              : "Imported as draft",
+          {
+            action: json.productId
+              ? {
+                  label: "Open",
+                  onClick: () => {
+                    window.location.href = `/admin/products/${json.productId}`;
+                  },
+                }
+              : undefined,
+          }
+        );
+        return { ok: true, published, productId: json.productId as string };
       } catch (e) {
-        failed += 1;
+        const message = (e as Error).message;
         setImportLog((prev) => [
-          { pid, name: product?.productNameEn ?? pid, at: new Date().toISOString(), ok: false, message: (e as Error).message },
-          ...prev.slice(0, 19),
+          {
+            pid: product.pid,
+            name: product.productNameEn,
+            at: new Date().toISOString(),
+            ok: false,
+            message,
+          },
+          ...prev.slice(0, 49),
         ]);
+        toast.error(message);
+        return { ok: false, published: false };
+      } finally {
+        setImportingPid(null);
+      }
+    },
+    [importedMap, tryPublish]
+  );
+
+  const runBulkImport = useCallback(
+    async (items: EnrichedProduct[], mode: ImportMode) => {
+      if (items.length === 0) return;
+
+      setBulkImporting(true);
+      const queue = createQueueState(items.length);
+      setImportQueue(queue);
+
+      const summary: PublishSummary = {
+        published: 0,
+        drafted: 0,
+        skipped: 0,
+        skipReasons: {},
+      };
+      const skipReasonsList: Array<{ reasons: string[] }> = [];
+
+      for (const product of items) {
+        setImportQueue((q) =>
+          q ? { ...q, currentName: product.productNameEn } : q
+        );
+
+        const result = await importOne(product, mode);
+        queue.completed += 1;
+
+        if (result.ok) {
+          queue.succeeded += 1;
+          if (result.published) {
+            queue.published += 1;
+            summary.published += 1;
+          } else {
+            queue.drafted += 1;
+            summary.drafted += 1;
+          }
+        } else {
+          queue.failed += 1;
+          summary.skipped += 1;
+          skipReasonsList.push({ reasons: ["Import failed"] });
+        }
+
+        setImportQueue({ ...queue });
+      }
+
+      for (const item of skipReasonsList) {
+        for (const r of item.reasons) {
+          summary.skipReasons[r] = (summary.skipReasons[r] ?? 0) + 1;
+        }
+      }
+
+      setImportQueue((q) => (q ? { ...q, active: false, currentName: undefined } : q));
+      setBulkImporting(false);
+      setSelectedPids(new Set());
+      setPublishSummary(summary);
+
+      if (summary.published) toast.success(`Published ${summary.published} products`);
+      if (summary.drafted) toast.info(`${summary.drafted} saved as drafts`);
+    },
+    [importOne]
+  );
+
+  function startBulkImport(mode: ImportMode) {
+    const items = visibleProducts.filter(
+      (p) => selectedPids.has(p.pid) && !p.intelligence.isImported
+    );
+    if (items.length === 0) {
+      toast.error("No new products selected");
+      return;
+    }
+
+    if (mode === "publish" || mode === "auto") {
+      const qualified = items.filter((p) => checkPublishEligibility(p).eligible);
+      const unqualified = items.filter((p) => !checkPublishEligibility(p).eligible);
+      if (unqualified.length > 0) {
+        setSafetyDialog({ open: true, qualified, unqualified, mode });
+        return;
       }
     }
-    setBulkImporting(false);
-    setSelectedPids(new Set());
-    if (ok) toast.success(`Imported ${ok} draft${ok === 1 ? "" : "s"}`);
-    if (failed) toast.error(`${failed} failed`);
+
+    void runBulkImport(items, mode);
+  }
+
+  function handleQuickFilterToggle(key: QuickFilterKey) {
+    setIntelFilters((f) => toggleQuickFilter(key, f));
+  }
+
+  function handlePresetToggle(id: string) {
+    const { activeIds, filters } = togglePreset(id, activePresetIds);
+    setActivePresetIds(activeIds);
+    setIntelFilters(filters);
   }
 
   function toggleSelect(pid: string) {
@@ -354,456 +567,317 @@ export default function CJImportBrowser({
   }
 
   function selectAllVisible() {
-    const importable = visibleProducts.filter((p) => !importedMap[p.pid]).map((p) => p.pid);
-    if (importable.length === 0) return;
-    setSelectedPids(new Set(importable));
+    setSelectedPids(
+      new Set(
+        visibleProducts
+          .filter((p) => !p.intelligence.isImported)
+          .map((p) => p.pid)
+      )
+    );
+  }
+
+  function getDuplicateInfo(product: EnrichedProduct) {
+    const byPid = Boolean(importedMap[product.pid]);
+    const bySku = Boolean(
+      product.productSku &&
+        skuIndex[product.productSku.toLowerCase()] &&
+        skuIndex[product.productSku.toLowerCase()] !== product.pid
+    );
+    return {
+      byPid,
+      bySku,
+      byName: false,
+      existingProductId: importedMap[product.pid]?.productId,
+      existingName: importedMap[product.pid]?.name,
+    };
   }
 
   return (
-    <div className="space-y-5 pb-10">
-      {/* Header */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <Link
-            href="/admin/products"
-            className="inline-flex items-center gap-1.5 text-[12.5px] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] mb-3 transition-colors"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Products
-          </Link>
-          <h1 className="text-xl font-bold tracking-tight text-[var(--color-text-primary)]">
-            Import from CJ
-          </h1>
-          <p className="mt-1 text-[13px] text-[var(--color-text-muted)] max-w-xl">
-            Search the CJ catalog, import products as drafts, then review and publish from your product list.
-          </p>
+    <div className="space-y-3 pb-10">
+      {/* Header + session analytics */}
+      <div className="relative overflow-hidden rounded-sm border border-[var(--color-border)] bg-gradient-to-br from-[#111827] via-[#1a2332] to-[#111827] p-4 text-white">
+        <div className="relative flex flex-col gap-3">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+            <div>
+              <Link
+                href="/admin/products"
+                className="inline-flex items-center gap-1.5 text-[11px] text-white/60 hover:text-white mb-2"
+              >
+                <ArrowLeft className="h-3 w-3" />
+                Products
+              </Link>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-[#FF5A1F]" />
+                <h1 className="text-lg font-bold tracking-tight">
+                  Import Intelligence Command Center
+                </h1>
+              </div>
+              <p className="text-[12px] text-white/65 mt-1 max-w-lg">
+                Profit, shipping, supplier trust & publish readiness — in 3 seconds per product.
+              </p>
+            </div>
+          </div>
+          <SessionAnalytics
+            todaysImports={sessionStats.todaysImports}
+            publishedProducts={sessionStats.publishedProducts}
+            draftProducts={sessionStats.draftProducts}
+            averageMargin={sessionStats.averageMargin}
+            averageShippingDays={sessionStats.averageShippingDays}
+            averageProfit={sessionStats.averageProfit}
+          />
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <StatChip label="CJ in catalog" value={String(cjTotalCount)} />
-          <StatChip label="Drafts" value={String(cjDraftCount)} href="/admin/products?status=draft&source=cj" />
-          <StatChip label="Mapped" value={String(importedCount)} />
-          {sessionOk > 0 && <StatChip label="This session" value={`+${sessionOk}`} accent />}
-        </div>
-      </div>
-
-      {/* Workflow note */}
-      <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 px-4 py-3 text-[13px] text-[var(--color-text-secondary)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <p>
-          Imports land as <strong className="font-medium text-[var(--color-text-primary)]">drafts</strong> with variants, shipping, and product videos when CJ provides them.
-          Open each draft to check pricing, then publish when ready.
-        </p>
-        <RefreshCJStockButton disabled={cjTotalCount === 0} />
       </div>
 
       {/* Toolbar */}
-      <div className={cn(cardCls, "p-4 space-y-3")}>
+      <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)]/85 backdrop-blur-xl p-3 space-y-2">
         <div className="flex flex-col lg:flex-row gap-2">
           <div className="flex-1">
-            <Input
-              ref={searchRef}
-              inputSize="sm"
-              value={draft.keyWord}
-              onChange={(e) => setDraft((d) => ({ ...d, keyWord: e.target.value }))}
-              onKeyDown={(e) => e.key === "Enter" && applySearch()}
-              placeholder="Search by product name…"
-              icon={<Search className="h-4 w-4 shrink-0 opacity-60" strokeWidth={2} />}
-              iconRight={
-                draft.keyWord ? (
-                  <button
-                    type="button"
-                    onClick={() => setDraft((d) => ({ ...d, keyWord: "" }))}
-                    className="flex h-5 w-5 items-center justify-center rounded-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors"
-                    aria-label="Clear search"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                ) : (
-                  <kbd className="hidden h-5 items-center rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-1.5 text-[10.5px] font-mono font-medium text-[var(--color-text-muted)] sm:inline-flex pointer-events-none">
-                    ↵
-                  </kbd>
-                )
-              }
-              className="h-9 rounded-sm"
+            <SmartSearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onSearch={runSearch}
+              suggestions={suggestions}
+              recentSearches={recentSearches}
+              loading={loading}
             />
           </div>
           <div className="flex gap-2 shrink-0">
             <button
               type="button"
-              onClick={applySearch}
+              onClick={runSearch}
               disabled={loading}
-              className="h-9 px-4 rounded-sm bg-[var(--color-accent)] text-white text-[13px] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2"
+              className="h-9 px-3 rounded-sm bg-[#FF5A1F] text-white text-[12px] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-1.5"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              Search catalog
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+              Search
             </button>
             <button
               type="button"
-              onClick={() => setFiltersOpen((o) => !o)}
+              onClick={() => setSidebarOpen((o) => !o)}
+              className="h-9 px-2.5 rounded-sm border border-[var(--color-border)] text-[12px] lg:hidden inline-flex items-center gap-1"
+            >
+              {sidebarOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen((o) => !o)}
               className={cn(
-                "h-9 px-3 rounded-sm border text-[13px] font-medium inline-flex items-center gap-2 transition-colors",
-                filtersOpen
-                  ? "border-[var(--color-accent)]/40 bg-[var(--color-accent-light)] text-[var(--color-accent)]"
-                  : "border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
+                "h-9 px-2.5 rounded-sm border text-[12px]",
+                settingsOpen
+                  ? "border-[#FF5A1F]/40 bg-[#FF5A1F]/10 text-[#FF5A1F]"
+                  : "border-[var(--color-border)]"
               )}
             >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
+              Settings
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-[var(--color-border)]">
-          <div className="space-y-2">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
-              Catalog
-            </p>
-            <div className="inline-flex items-stretch overflow-hidden rounded-sm ring-1 ring-[var(--color-border)] bg-[var(--color-surface)]">
-              {[
-                { value: "", label: "All products" },
-                { value: "1", label: "With video" },
-              ].map((opt, i) => {
-                const active = draft.hasVideo === opt.value;
-                return (
-                  <button
-                    key={opt.value || "all"}
-                    type="button"
-                    onClick={() => {
-                      const next = { ...draft, hasVideo: opt.value };
-                      setDraft(next);
-                      setFilters(next);
-                      load(next, 1);
-                    }}
-                    className={cn(
-                      "h-8 px-3.5 text-[12px] font-medium transition-colors",
-                      i > 0 && "border-l border-[var(--color-border)]",
-                      active
-                        ? "bg-[var(--color-text-primary)] text-[var(--color-surface)]"
-                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        {hasSearched && products.length > 0 && (
+          <Input
+            inputSize="sm"
+            value={localSearch}
+            onChange={(e) => setLocalSearch(e.target.value)}
+            placeholder="Fuzzy filter loaded results…"
+            className="h-8 text-[11px]"
+          />
+        )}
 
-          <label className="inline-flex items-center gap-2 h-8 px-3 rounded-sm border border-[var(--color-border)] text-[12px] cursor-pointer shrink-0">
-            <input
-              type="checkbox"
-              checked={hideImported}
-              onChange={(e) => setHideImported(e.target.checked)}
-              className="rounded-sm border-[var(--color-border)]"
-            />
-            Hide already imported
-          </label>
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-3 border-t border-[var(--color-border)]">
-          <div className="flex-1 min-w-[200px]">
-            <Input
-              inputSize="sm"
-              value={directPid}
-              onChange={(e) => setDirectPid(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && importDirectPid()}
-              placeholder="Paste CJ product ID (PID)…"
-              icon={<ClipboardPaste className="h-4 w-4 shrink-0 opacity-60" strokeWidth={2} />}
-              iconRight={
-                directPid.trim() ? (
-                  <button
-                    type="button"
-                    onClick={() => setDirectPid("")}
-                    className="flex h-5 w-5 items-center justify-center rounded-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors"
-                    aria-label="Clear PID"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                ) : (
-                  <kbd className="hidden h-5 items-center rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-1.5 text-[10.5px] font-mono font-medium text-[var(--color-text-muted)] sm:inline-flex pointer-events-none">
-                    ↵
-                  </kbd>
-                )
+        <div className="flex gap-2 pt-1 border-t border-[var(--color-border)]">
+          <Input
+            inputSize="sm"
+            value={directPid}
+            onChange={(e) => setDirectPid(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && directPid.trim()) {
+                const pid = directPid.trim();
+                void (async () => {
+                  setImportingPid(pid);
+                  try {
+                    const res = await fetch("/api/cj/import", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ pid }),
+                    });
+                    const json = await res.json();
+                    if (!json.success) throw new Error(json.error);
+                    toast.success("Imported as draft");
+                    if (json.productId) {
+                      setImportedMap((prev) => ({
+                        ...prev,
+                        [pid]: { productId: json.productId },
+                      }));
+                    }
+                  } catch (err) {
+                    toast.error((err as Error).message);
+                  } finally {
+                    setImportingPid(null);
+                  }
+                })();
+                setDirectPid("");
               }
-              className="h-9 rounded-sm"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={importDirectPid}
-            disabled={!directPid.trim() || importingPid === directPid.trim()}
-            className="h-8 px-3 rounded-sm border border-[var(--color-border)] text-[12.5px] font-medium hover:bg-[var(--color-surface-secondary)] disabled:opacity-50"
-          >
-            Import by PID
-          </button>
+            }}
+            placeholder="Paste CJ PID…"
+            icon={<ClipboardPaste className="h-3.5 w-3.5 opacity-60" />}
+            className="h-8 flex-1"
+          />
+          <RefreshCJStockButton disabled={cjTotalCount === 0} />
         </div>
 
-        {filtersOpen && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-[var(--color-border)]">
-            <Field label="Category">
-              <SelectInput
-                searchable
-                value={draft.categoryId || ALL}
-                onChange={(v) => setDraft((d) => ({ ...d, categoryId: v === ALL ? "" : v }))}
-                options={[
-                  { value: ALL, label: "All" },
-                  ...categories.map((c) => ({ value: c.categoryId, label: c.categoryName })),
-                ]}
-              />
-            </Field>
-            <Field label="Price min (USD)">
-              <Input
-                type="number"
-                min={0}
-                inputSize="sm"
-                value={draft.minPrice}
-                onChange={(e) => setDraft((d) => ({ ...d, minPrice: e.target.value }))}
-                className="h-9 tabular-nums"
-              />
-            </Field>
-            <Field label="Price max (USD)">
-              <Input
-                type="number"
-                min={0}
-                inputSize="sm"
-                value={draft.maxPrice}
-                onChange={(e) => setDraft((d) => ({ ...d, maxPrice: e.target.value }))}
-                className="h-9 tabular-nums"
-              />
-            </Field>
-            <Field label="Ships from">
-              <SelectInput
-                value={draft.countryCode || ALL}
-                onChange={(v) => setDraft((d) => ({ ...d, countryCode: v === ALL ? "" : v }))}
-                options={[
-                  { value: ALL, label: "Any" },
-                  ...Object.entries(WAREHOUSE_LABELS).map(([code, label]) => ({ value: code, label })),
-                ]}
-              />
-            </Field>
-            <Field label="Shipping">
-              <SelectInput
-                value={draft.isFreeShipping || ALL}
-                onChange={(v) => setDraft((d) => ({ ...d, isFreeShipping: v === ALL ? "" : v }))}
-                options={[
-                  { value: ALL, label: "Any" },
-                  { value: "1", label: "Free only" },
-                  { value: "0", label: "Paid only" },
-                ]}
-              />
-            </Field>
-            <Field label="Supplier">
-              <SelectInput
-                value={draft.verifiedWarehouse || ALL}
-                onChange={(v) => setDraft((d) => ({ ...d, verifiedWarehouse: v === ALL ? "" : v }))}
-                options={[
-                  { value: ALL, label: "Any" },
-                  { value: "1", label: "Verified" },
-                  { value: "2", label: "Unverified" },
-                ]}
-              />
-            </Field>
-            <Field label="Catalog type">
-              <SelectInput
-                value={draft.hasVideo || ALL}
-                onChange={(v) => setDraft((d) => ({ ...d, hasVideo: v === ALL ? "" : v }))}
-                options={[
-                  { value: ALL, label: "All products" },
-                  { value: "1", label: "With product video" },
-                ]}
-              />
-            </Field>
-            <Field label="Sort by">
-              <SelectInput
-                value={draft.orderBy}
-                onChange={(v) => setDraft((d) => ({ ...d, orderBy: v }))}
-                options={[
-                  { value: "createAt", label: "Date listed" },
-                  { value: "listedNum", label: "Store listings" },
-                ]}
-              />
-            </Field>
-            <Field label="Order">
-              <SelectInput
-                value={draft.sort}
-                onChange={(v) => setDraft((d) => ({ ...d, sort: v }))}
-                options={[
-                  { value: "desc", label: "Newest first" },
-                  { value: "asc", label: "Oldest first" },
-                ]}
-              />
-            </Field>
-            <div className="sm:col-span-2 lg:col-span-4 flex gap-2">
-              <button type="button" onClick={applySearch} className="h-8 px-3 rounded-md bg-[var(--color-text-primary)] text-[var(--color-surface)] text-[12.5px] font-medium">
-                Apply filters
-              </button>
-              <button type="button" onClick={resetFilters} className="h-8 px-3 rounded-md border border-[var(--color-border)] text-[12.5px] font-medium">
-                Reset
-              </button>
-            </div>
-          </div>
+        {settingsOpen && (
+          <ImportSettingsPanel
+            settings={importSettings}
+            onChange={handleImportSettingsChange}
+            compact
+          />
         )}
       </div>
 
-      {/* Results bar */}
+      {importQueue?.active && <ImportQueueMonitor queue={importQueue} />}
+
       {hasSearched && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
-          <div className="space-y-1">
-            <p className="text-[13px] text-[var(--color-text-muted)]">
-              {loading ? "Loading…" : (
-                <>
-                  <span className="font-semibold text-[var(--color-text-primary)] tabular-nums">
-                    {pagination.total.toLocaleString()}
-                  </span>{" "}
-                  results · page {pagination.page} of {totalPages}
-                </>
-              )}
-            </p>
-            {!loading && (
-              <p className="text-[11px] text-[var(--color-text-muted)]">
-                {filters.hasVideo === "1" ? "Showing CJ products with video only" : "All CJ catalog products"}
-                {hideImported && visibleProducts.length !== products.length && (
-                  <> · {visibleProducts.length} not yet imported on this page</>
-                )}
-                {!loading && products.length > 0 && (
-                  <> · {products.filter(productHasVideo).length} with video on this page</>
-                )}
-              </p>
-            )}
+        <>
+          <QuickFiltersRow
+            counts={filterCounts}
+            activeKeys={quickFilterActive}
+            onToggle={handleQuickFilterToggle}
+            hasCatalogResults={hasSearched && !loading}
+            visibleCount={visibleProducts.length}
+            isEnriching={enrichmentPending > 0}
+            enrichedCount={enrichedCount}
+          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <SavedPresetsBar
+              activePresetIds={activePresetIds}
+              onTogglePreset={handlePresetToggle}
+            />
+            <SortSelector value={sortOption} onChange={setSortOption} />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={selectAllVisible} className="h-8 px-3 rounded-sm border border-[var(--color-border)] text-[12px] font-medium hover:bg-[var(--color-surface-secondary)]">
-              Select page
-            </button>
-            {selectedPids.size > 0 && (
-              <button
-                type="button"
-                onClick={importSelected}
-                disabled={bulkImporting}
-                className="h-8 px-3 rounded-md bg-[var(--color-accent)] text-white text-[12.5px] font-semibold inline-flex items-center gap-1.5 disabled:opacity-60"
-              >
-                {bulkImporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Package className="h-3.5 w-3.5" />}
-                Import {selectedPids.size}
-              </button>
-            )}
-            <div className="w-[118px]">
-              <SelectInput
-                value={String(pagination.pageSize)}
-                onChange={(v) => {
-                  const size = Number(v);
-                  setPagination((p) => ({ ...p, pageSize: size }));
-                  load(filters, 1, size);
-                }}
-                options={[12, 24, 48].map((n) => ({ value: String(n), label: `${n} / page` }))}
-              />
-            </div>
-          </div>
-        </div>
+          <BulkActionsBar
+            selectedCount={selectedPids.size}
+            totalVisible={
+              visibleProducts.filter((p) => !p.intelligence.isImported).length
+            }
+            bulkImporting={bulkImporting}
+            importMode={importMode}
+            onImportModeChange={(m) => {
+              setImportMode(m);
+              setImportSettings((s) => {
+                const next = { ...s, defaultImportMode: m };
+                saveImportSettings(next);
+                return next;
+              });
+            }}
+            onSelectAll={selectAllVisible}
+            onImportDraft={() => startBulkImport("draft")}
+            onImportAndPublish={() => startBulkImport(importMode === "draft" ? "publish" : importMode)}
+            onSyncSelected={async () => {
+              const pids = Array.from(selectedPids).filter((pid) => importedMap[pid]);
+              for (const pid of pids) {
+                const p = products.find((x) => x.pid === pid);
+                if (p) await importOne(p, "draft", true);
+              }
+            }}
+          />
+        </>
       )}
 
       {error && (
-        <div className="flex items-start gap-3 p-4 rounded-sm border border-rose-200 bg-rose-50 text-rose-800">
-          <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[13px] font-semibold">Could not load catalog</p>
-            <p className="text-[12px] mt-0.5 opacity-90">{error}</p>
-          </div>
+        <div className="flex items-start gap-2 p-3 rounded-sm border border-rose-200 bg-rose-50 text-rose-800 text-[12px]">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
         </div>
       )}
 
-      {/* Empty / initial */}
-      {!hasSearched && !loading && (
-        <div className={cn(cardCls, "border-dashed py-16 px-6 text-center")}>
-          <div className="mx-auto w-12 h-12 rounded-sm bg-[var(--color-surface-secondary)] flex items-center justify-center mb-4">
-            <Filter className="h-5 w-5 text-[var(--color-text-muted)]" />
-          </div>
-          <h3 className="text-[15px] font-semibold text-[var(--color-text-primary)]">Search the CJ catalog</h3>
-          <p className="mt-2 text-[13px] text-[var(--color-text-muted)] max-w-md mx-auto">
-            Enter a product name or open filters, then run a search. You can also import directly if you have a CJ PID.
-          </p>
-          <button
-            type="button"
-            onClick={() => { searchRef.current?.focus(); applySearch(); }}
-            className="mt-5 h-9 px-4 rounded-md bg-[var(--color-accent)] text-white text-[13px] font-semibold"
-          >
-            Search all products
-          </button>
-        </div>
-      )}
+      {!hasSearched && !loading ? (
+        <EmptyState onSearch={runSearch} />
+      ) : (
+        <div className="flex gap-3">
+          {sidebarOpen && isLgScreen && (
+            <div className="shrink-0 w-[240px]">
+              <FilterSidebar
+                filters={intelFilters}
+                onChange={setIntelFilters}
+                activeCount={activeFilterCount}
+              />
+            </div>
+          )}
 
-      {loading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden animate-pulse">
-              <div className="aspect-[4/5] bg-[var(--color-surface-secondary)]" />
-              <div className="p-3 space-y-2">
-                <div className="h-3 bg-[var(--color-surface-secondary)] rounded-sm w-full" />
-                <div className="h-3 bg-[var(--color-surface-secondary)] rounded-sm w-2/3" />
+          {sidebarOpen && !isLgScreen && (
+            <div
+              className="fixed inset-0 z-30 bg-black/40"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <div
+                className="absolute left-0 top-0 h-full w-[260px] p-3"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <FilterSidebar
+                  filters={intelFilters}
+                  onChange={setIntelFilters}
+                  activeCount={activeFilterCount}
+                />
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      {!loading && hasSearched && visibleProducts.length === 0 && !error && (
-        <div className={cn(cardCls, "py-12 text-center text-[13px] text-[var(--color-text-muted)]")}>
-          No products match. Try different filters or turn off “Hide imported”.
-        </div>
-      )}
-
-      {!loading && visibleProducts.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-          {visibleProducts.map((product) => (
-            <ProductCard
-              key={product.pid}
-              product={product}
-              imported={Boolean(importedMap[product.pid])}
-              importedProductId={importedMap[product.pid]}
-              importing={importingPid === product.pid}
-              selected={selectedPids.has(product.pid)}
-              onToggleSelect={() => toggleSelect(product.pid)}
-              onPreview={() => setPreview(product)}
-              onImport={() => runImport(product.pid, product.productNameEn)}
-              onResync={() => runImport(product.pid, product.productNameEn, true)}
+          <div className="flex-1 min-w-0">
+            {hasSearched && !loading && (
+              <p className="text-[11px] text-[var(--color-text-muted)] mb-2 tabular-nums">
+                <strong className="text-[var(--color-text-primary)]">
+                  {visibleProducts.length.toLocaleString()}
+                </strong>{" "}
+                shown · {total.toLocaleString()} in catalog
+                {activeFilterCount > 0 && (
+                  <span className="ml-2 text-[#FF5A1F]">
+                    {activeFilterCount} filters
+                  </span>
+                )}
+              </p>
+            )}
+            <VirtualizedProductGrid
+              products={visibleProducts}
+              loading={loading}
+              loadingMore={loadingMore}
+              importingPid={importingPid}
+              selectedPids={selectedPids}
+              importMode={importMode}
+              onToggleSelect={toggleSelect}
+              onPreview={setPreview}
+              onImport={(p) => void importOne(p, "draft")}
+              onImportAndPublish={(p) => void importOne(p, importMode === "draft" ? "publish" : importMode)}
+              onResync={(p) => void importOne(p, "draft", true)}
+              onLoadMore={loadMore}
+              hasMore={hasMore}
+              onVisiblePidsChange={handleVisiblePidsChange}
             />
-          ))}
+          </div>
         </div>
       )}
 
-      {!loading && totalPages > 1 && hasSearched && (
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <PageBtn disabled={pagination.page <= 1} onClick={() => load(filters, pagination.page - 1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </PageBtn>
-          <span className="text-[13px] text-[var(--color-text-muted)] tabular-nums px-2">
-            {pagination.page} / {totalPages}
-          </span>
-          <PageBtn disabled={pagination.page >= totalPages} onClick={() => load(filters, pagination.page + 1)}>
-            <ChevronRight className="h-4 w-4" />
-          </PageBtn>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {importLog.length > 0 && (
-          <div className={cn("lg:col-span-2 overflow-hidden", cardCls)}>
-            <div className="px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
-              <h2 className="text-[13px] font-semibold text-[var(--color-text-primary)]">Session import log</h2>
+          <div className="lg:col-span-2 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+            <div className="px-3 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
+              <h2 className="text-[12px] font-semibold">Session Log</h2>
             </div>
-            <ul className="divide-y divide-[var(--color-border)] max-h-64 overflow-y-auto">
-              {importLog.map((entry, i) => (
-                <li key={`${entry.pid}-${entry.at}-${i}`} className="px-4 py-2.5 flex items-center justify-between gap-3 text-[12.5px]">
-                  <div className="min-w-0">
-                    <p className={cn("font-medium truncate", entry.ok ? "text-[var(--color-text-primary)]" : "text-rose-600")}>
-                      {entry.ok ? "Imported" : "Failed"} · {entry.name}
-                    </p>
-                    <p className="text-[11px] text-[var(--color-text-muted)] font-mono truncate">{entry.pid}</p>
-                    {!entry.ok && entry.message && (
-                      <p className="text-[11px] text-rose-600 mt-0.5">{entry.message}</p>
-                    )}
+            <ul className="divide-y divide-[var(--color-border)] max-h-40 overflow-y-auto">
+              {importLog.slice(0, 15).map((entry, i) => (
+                <li
+                  key={`${entry.pid}-${entry.at}-${i}`}
+                  className="px-3 py-1.5 flex items-center justify-between gap-2 text-[11px]"
+                >
+                  <div className="min-w-0 truncate">
+                    <span className={entry.ok ? "" : "text-rose-600"}>
+                      {entry.ok ? (entry.published ? "↑" : "✓") : "✗"}{" "}
+                      {entry.name}
+                    </span>
                   </div>
                   {entry.productId && (
-                    <Link href={`/admin/products/${entry.productId}`} className="shrink-0 text-[12px] font-medium text-[var(--color-accent)] hover:underline">
+                    <Link
+                      href={`/admin/products/${entry.productId}`}
+                      className="text-[#FF5A1F] shrink-0 hover:underline"
+                    >
                       Open
                     </Link>
                   )}
@@ -812,570 +886,90 @@ export default function CJImportBrowser({
             </ul>
           </div>
         )}
-
-        <div className={cn(cardCls, "p-4 space-y-3")}>
-          <h2 className="text-[13px] font-semibold text-[var(--color-text-primary)]">After import</h2>
-          <ol className="text-[12.5px] text-[var(--color-text-muted)] space-y-2 list-decimal list-inside">
-            <li>Product saved as a draft with variants</li>
-            <li>Review pricing and images in admin</li>
-            <li>Publish when ready for the storefront</li>
-          </ol>
-          <Input
-            inputSize="sm"
-            value={draftReviewQuery}
-            onChange={(e) => setDraftReviewQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && goToDraftReview()}
-            placeholder="Search CJ drafts to review…"
-            icon={<FileEdit className="h-3.5 w-3.5" />}
-            iconRight={
-              <button
-                type="button"
-                onClick={() => goToDraftReview()}
-                className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline"
-              >
-                Open
-              </button>
-            }
-            className="h-9"
-          />
+        <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-3 space-y-2">
+          <h2 className="text-[12px] font-semibold">Catalog</h2>
+          <p className="text-[11px] text-[var(--color-text-muted)]">
+            {cjTotalCount} CJ products · {cjDraftCount} drafts pending
+          </p>
           <Link
             href="/admin/products?status=draft&source=cj"
-            className="inline-flex items-center gap-2 h-9 px-3 rounded-md border border-[var(--color-border)] text-[13px] font-medium hover:bg-[var(--color-surface-secondary)]"
+            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-sm border border-[var(--color-border)] text-[11px] font-medium hover:bg-[var(--color-surface-secondary)]"
           >
-            <ExternalLink className="h-3.5 w-3.5" />
-            All CJ drafts
+            <FileEdit className="h-3 w-3" />
+            Review Drafts
+            <ExternalLink className="h-3 w-3 opacity-50" />
           </Link>
         </div>
       </div>
 
       {preview && (
-        <PreviewPanel
+        <PreviewDrawer
           product={preview}
-          imported={Boolean(importedMap[preview.pid])}
-          importedProductId={importedMap[preview.pid]}
           importing={importingPid === preview.pid}
+          importSettings={importSettings}
+          onImportSettingsChange={handleImportSettingsChange}
+          duplicateInfo={getDuplicateInfo(preview)}
           onClose={() => setPreview(null)}
-          onImport={() => runImport(preview.pid, preview.productNameEn)}
-          onResync={() => runImport(preview.pid, preview.productNameEn, true)}
+          onImport={() => void importOne(preview, "draft")}
+          onImportAndPublish={() =>
+            void importOne(
+              preview,
+              importMode === "draft" ? "publish" : importMode
+            )
+          }
+          onResync={() => void importOne(preview, "draft", true)}
+        />
+      )}
+
+      {publishSummary && (
+        <PublishSummaryModal
+          summary={publishSummary}
+          onClose={() => setPublishSummary(null)}
+        />
+      )}
+
+      {safetyDialog?.open && (
+        <PublishSafetyDialog
+          open
+          qualifiedCount={safetyDialog.qualified.length}
+          unqualifiedCount={safetyDialog.unqualified.length}
+          onPublishQualified={() => {
+            const { qualified, unqualified, mode } = safetyDialog;
+            setSafetyDialog(null);
+            void (async () => {
+              await runBulkImport(qualified, mode);
+              if (unqualified.length > 0) {
+                await runBulkImport(unqualified, "draft");
+              }
+            })();
+          }}
+          onDraftUnqualified={() => {
+            const all = [...safetyDialog.qualified, ...safetyDialog.unqualified];
+            setSafetyDialog(null);
+            void runBulkImport(all, "draft");
+          }}
+          onCancel={() => setSafetyDialog(null)}
         />
       )}
     </div>
   );
 }
 
-// ─── Subcomponents ───────────────────────────────────────────────────────────
-
-function StatChip({
-  label,
-  value,
-  href,
-  accent,
-}: {
-  label: string;
-  value: string;
-  href?: string;
-  accent?: boolean;
-}) {
-  const inner = (
-    <div
-      className={cn(
-        "rounded-sm border px-3 py-2 min-w-[100px]",
-        accent
-          ? "border-[var(--color-accent)]/30 bg-[var(--color-accent-light)]"
-          : "border-[var(--color-border)] bg-[var(--color-surface)]"
-      )}
-    >
-      <p className="text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">{label}</p>
-      <p className="text-lg font-semibold tabular-nums text-[var(--color-text-primary)]">{value}</p>
-    </div>
-  );
-  if (href) return <Link href={href} className="hover:opacity-90 transition-opacity">{inner}</Link>;
-  return inner;
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function EmptyState({ onSearch }: { onSearch: () => void }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-[11px] font-medium text-[var(--color-text-muted)]">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function PageBtn({
-  children,
-  disabled,
-  onClick,
-}: {
-  children: React.ReactNode;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className="h-9 w-9 rounded-md border border-[var(--color-border)] inline-flex items-center justify-center disabled:opacity-40 hover:bg-[var(--color-surface-secondary)]"
-    >
-      {children}
-    </button>
-  );
-}
-
-function ProductCard({
-  product,
-  imported,
-  importedProductId,
-  importing,
-  selected,
-  onToggleSelect,
-  onPreview,
-  onImport,
-  onResync,
-}: {
-  product: CJProduct;
-  imported: boolean;
-  importedProductId?: string;
-  importing: boolean;
-  selected: boolean;
-  onToggleSelect: () => void;
-  onPreview: () => void;
-  onImport: () => void;
-  onResync: () => void;
-}) {
-  const [imgErr, setImgErr] = useState(false);
-  const price = productPrice(product);
-  const stock = product.warehouseInventoryNum;
-  const hasVideo = productHasVideo(product);
-
-  return (
-    <article
-      className={cn(
-        "group flex flex-col overflow-hidden rounded-sm border bg-[var(--color-surface)] transition-all",
-        selected ? "border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/25 shadow-sm" : "border-[var(--color-border)] hover:border-[var(--color-border-strong)]",
-        imported && "bg-emerald-50/20 dark:bg-emerald-950/10",
-      )}
-    >
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={onPreview}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onPreview();
-          }
-        }}
-        className="relative aspect-[4/5] w-full cursor-pointer overflow-hidden bg-[var(--color-surface-secondary)]"
+    <div className="rounded-sm border border-dashed border-[var(--color-border)] py-16 px-6 text-center">
+      <Sparkles className="h-8 w-8 text-[#FF5A1F] mx-auto mb-3" />
+      <h3 className="text-[15px] font-bold">Global Sourcing Command Center</h3>
+      <p className="mt-1 text-[12px] text-[var(--color-text-muted)] max-w-sm mx-auto">
+        Search CJ to evaluate profit, shipping, and publish readiness instantly.
+      </p>
+      <button
+        type="button"
+        onClick={onSearch}
+        className="mt-4 h-9 px-4 rounded-sm bg-[#FF5A1F] text-white text-[12px] font-semibold"
       >
-        {product.bigImage && !imgErr ? (
-          <Image
-            src={product.bigImage}
-            alt={product.productNameEn}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-            onError={() => setImgErr(true)}
-            unoptimized
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Package className="h-8 w-8 text-[var(--color-text-muted)]/40" />
-          </div>
-        )}
-
-        <div className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-2 p-2">
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
-            disabled={imported}
-            className={cn(
-              "h-6 w-6 shrink-0 rounded-sm border flex items-center justify-center backdrop-blur-sm",
-              selected
-                ? "bg-[var(--color-accent)] border-[var(--color-accent)] text-white"
-                : "bg-black/35 border-white/30 text-white",
-              imported && "opacity-40 cursor-not-allowed",
-            )}
-            aria-label={selected ? "Deselect" : "Select"}
-          >
-            {selected && <Check className="h-3 w-3" strokeWidth={3} />}
-          </button>
-
-          {imported && (
-            <span className="rounded-sm bg-emerald-600/90 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
-              Imported
-            </span>
-          )}
-        </div>
-
-        {hasVideo && (
-          <span className="absolute bottom-2 left-2 z-10 inline-flex items-center gap-1 rounded-sm bg-black/60 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
-            <Play className="h-3 w-3 fill-white" />
-            Video
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        <button type="button" onClick={onPreview} className="text-left">
-          <p className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-2 leading-snug group-hover:text-[var(--color-accent)]">
-            {product.productNameEn}
-          </p>
-        </button>
-
-        <p className="text-[10.5px] font-mono text-[var(--color-text-muted)] truncate">{product.productSku}</p>
-
-        <div className="flex flex-wrap items-center gap-1.5 text-[10.5px]">
-          <span className="rounded-sm bg-[var(--color-surface-secondary)] px-1.5 py-0.5 font-semibold tabular-nums text-[var(--color-text-primary)]">
-            ${price.toFixed(2)}
-          </span>
-          {stock != null && (
-            <span className="rounded-sm bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[var(--color-text-muted)] tabular-nums">
-              Stock {stock.toLocaleString()}
-            </span>
-          )}
-          {(product.isFreeShipping || product.addMarkStatus === 1) && (
-            <span className="inline-flex items-center gap-0.5 rounded-sm bg-emerald-50 px-1.5 py-0.5 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
-              <Truck className="h-3 w-3" /> Free
-            </span>
-          )}
-        </div>
-
-        {(product.threeCategoryName || product.countryCode) && (
-          <p className="text-[10px] text-[var(--color-text-muted)] line-clamp-1">
-            {[product.threeCategoryName, product.countryCode ? (WAREHOUSE_LABELS[product.countryCode] ?? product.countryCode) : null]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-        )}
-
-        <div className="mt-auto pt-1 flex gap-2">
-          {imported && importedProductId ? (
-            <>
-              <Link
-                href={`/admin/products/${importedProductId}`}
-                className="flex-1 h-8 rounded-sm text-[11px] font-semibold bg-emerald-600 text-white inline-flex items-center justify-center hover:bg-emerald-700"
-              >
-                Open draft
-              </Link>
-              <button
-                type="button"
-                onClick={onResync}
-                disabled={importing}
-                title="Re-sync from CJ"
-                className="h-8 w-8 shrink-0 rounded-sm border border-[var(--color-border)] inline-flex items-center justify-center hover:bg-[var(--color-surface-secondary)]"
-              >
-                {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={onImport}
-              disabled={importing}
-              className="w-full h-8 rounded-sm bg-[var(--color-text-primary)] text-[var(--color-surface)] text-[11px] font-semibold hover:bg-[var(--color-accent)] disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
-            >
-              {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-              {importing ? "Importing…" : hasVideo ? "Import with video" : "Import draft"}
-            </button>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function PreviewPanel({
-  product,
-  imported,
-  importedProductId,
-  importing,
-  onClose,
-  onImport,
-  onResync,
-}: {
-  product: CJProduct;
-  imported: boolean;
-  importedProductId?: string;
-  importing: boolean;
-  onClose: () => void;
-  onImport: () => void;
-  onResync: () => void;
-}) {
-  const price = productPrice(product);
-  const listHasVideo = productHasVideo(product);
-  const [mediaView, setMediaView] = useState<"video" | "image">("video");
-  const [videoUrls, setVideoUrls] = useState<string[]>([]);
-  const [poster, setPoster] = useState<string | null>(null);
-  const [mediaLoading, setMediaLoading] = useState(false);
-  const [mediaError, setMediaError] = useState("");
-  const [activeVideoIndex, setActiveVideoIndex] = useState(0);
-  const [videoPlayError, setVideoPlayError] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  const activeVideo = videoUrls[activeVideoIndex] ?? null;
-  const resolvedHasVideo = videoUrls.length > 0;
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  useEffect(() => {
-    let cancelled = false;
-    setMediaLoading(true);
-    setMediaError("");
-    setVideoUrls([]);
-    setActiveVideoIndex(0);
-    setVideoPlayError(false);
-    setMediaView(listHasVideo ? "video" : "image");
-
-    fetch(`/api/cj/products/${encodeURIComponent(product.pid)}`)
-      .then((res) => res.json())
-      .then((json) => {
-        if (cancelled) return;
-        if (!json.success) throw new Error(json.error || "Could not load preview media");
-        const urls = Array.isArray(json.videos) ? json.videos.filter((u: unknown) => typeof u === "string") : [];
-        setVideoUrls(urls);
-        setPoster(typeof json.poster === "string" ? json.poster : product.bigImage ?? null);
-        setMediaView(urls.length > 0 ? "video" : "image");
-      })
-      .catch((e) => {
-        if (!cancelled) setMediaError((e as Error).message);
-      })
-      .finally(() => {
-        if (!cancelled) setMediaLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [product.pid, product.bigImage, listHasVideo]);
-
-  useEffect(() => {
-    setVideoPlayError(false);
-    if (mediaView === "video" && videoRef.current) {
-      videoRef.current.load();
-      void videoRef.current.play().catch(() => setVideoPlayError(true));
-    }
-  }, [activeVideo, mediaView]);
-
-  return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/40" onClick={onClose} aria-hidden />
-      <aside className="fixed top-0 right-0 z-50 h-full w-full max-w-md bg-[var(--color-surface)] border-l border-[var(--color-border)] shadow-xl flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
-          <h2 className="text-[14px] font-semibold text-[var(--color-text-primary)]">Product preview</h2>
-          <button type="button" onClick={onClose} className="h-8 w-8 rounded-md hover:bg-[var(--color-surface-secondary)] inline-flex items-center justify-center">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="space-y-2">
-            {(resolvedHasVideo || listHasVideo) && (
-              <div className="inline-flex items-stretch overflow-hidden rounded-sm ring-1 ring-[var(--color-border)]">
-                {resolvedHasVideo && (
-                  <button
-                    type="button"
-                    onClick={() => setMediaView("video")}
-                    className={cn(
-                      "h-8 px-3 text-[12px] font-medium transition-colors",
-                      mediaView === "video"
-                        ? "bg-[var(--color-text-primary)] text-[var(--color-surface)]"
-                        : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]",
-                    )}
-                  >
-                    Video{videoUrls.length > 1 ? ` (${videoUrls.length})` : ""}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setMediaView("image")}
-                  className={cn(
-                    "h-8 px-3 text-[12px] font-medium transition-colors",
-                    resolvedHasVideo && "border-l border-[var(--color-border)]",
-                    mediaView === "image"
-                      ? "bg-[var(--color-text-primary)] text-[var(--color-surface)]"
-                      : "bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]",
-                  )}
-                >
-                  Image
-                </button>
-              </div>
-            )}
-
-            <div className="relative aspect-square rounded-sm overflow-hidden bg-black ring-1 ring-[var(--color-border)]">
-              {mediaLoading ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[var(--color-surface-secondary)]">
-                  <Loader2 className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
-                  <p className="text-[11px] text-[var(--color-text-muted)]">Loading video from CJ…</p>
-                </div>
-              ) : mediaView === "video" && activeVideo && !videoPlayError ? (
-                <video
-                  ref={videoRef}
-                  key={activeVideo}
-                  src={cjVideoPreviewSrc(activeVideo)}
-                  poster={poster ?? product.bigImage ?? undefined}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  controls
-                  className="absolute inset-0 h-full w-full object-contain"
-                  onError={() => setVideoPlayError(true)}
-                />
-              ) : product.bigImage ? (
-                <Image src={product.bigImage} alt={product.productNameEn} fill className="object-contain p-2" unoptimized />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-surface-secondary)]">
-                  <Package className="h-10 w-10 text-[var(--color-text-muted)]/40" />
-                </div>
-              )}
-
-              {mediaView === "video" && activeVideo && videoPlayError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[var(--color-surface-secondary)] p-4 text-center">
-                  <Play className="h-8 w-8 text-[var(--color-text-muted)]" />
-                  <p className="text-[12px] text-[var(--color-text-secondary)]">
-                    Video couldn&apos;t play in the browser preview.
-                  </p>
-                  <a
-                    href={activeVideo}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[12px] font-medium text-[var(--color-accent)] hover:underline"
-                  >
-                    Open video in new tab
-                  </a>
-                </div>
-              )}
-
-              {resolvedHasVideo && mediaView === "video" && !mediaLoading && (
-                <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-sm bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-                  <Play className="h-3.5 w-3.5 fill-white" />
-                  CJ product video
-                </span>
-              )}
-            </div>
-
-            {videoUrls.length > 1 && mediaView === "video" && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {videoUrls.map((url, i) => (
-                  <button
-                    key={url}
-                    type="button"
-                    onClick={() => setActiveVideoIndex(i)}
-                    className={cn(
-                      "shrink-0 h-8 px-2.5 rounded-sm text-[11px] font-medium border transition-colors",
-                      i === activeVideoIndex
-                        ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
-                        : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]",
-                    )}
-                  >
-                    Video {i + 1}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {mediaError && (
-              <p className="text-[11px] text-rose-600">{mediaError}</p>
-            )}
-          </div>
-
-          <div>
-            <h3 className="text-[15px] font-semibold text-[var(--color-text-primary)] leading-snug">{product.productNameEn}</h3>
-            <p className="mt-2 text-2xl font-bold tabular-nums">${price.toFixed(2)} <span className="text-[13px] font-normal text-[var(--color-text-muted)]">USD cost</span></p>
-            {(resolvedHasVideo || listHasVideo) && (
-              <p className="mt-2 text-[12px] text-[var(--color-text-secondary)]">
-                {resolvedHasVideo
-                  ? `${videoUrls.length} video${videoUrls.length === 1 ? "" : "s"} will be saved to product_videos on import.`
-                  : "CJ lists a video for this product — URLs load on import."}
-              </p>
-            )}
-          </div>
-
-          <dl className="space-y-2 text-[13px]">
-            <PreviewRow label="PID" value={product.pid} mono copyable />
-            <PreviewRow label="SKU" value={product.productSku} mono copyable />
-            <PreviewRow label="Category" value={product.threeCategoryName || product.categoryName || "—"} />
-            <PreviewRow
-              label="Product video"
-              value={
-                mediaLoading
-                  ? "Loading…"
-                  : resolvedHasVideo
-                    ? `Yes (${videoUrls.length} playable)`
-                    : listHasVideo
-                      ? "Listed on CJ (preview pending)"
-                      : "No"
-              }
-            />
-            <PreviewRow label="Stock" value={product.warehouseInventoryNum != null ? String(product.warehouseInventoryNum) : "—"} />
-            <PreviewRow label="Listed on stores" value={product.listedNum ? String(product.listedNum) : "—"} />
-            <PreviewRow label="Warehouse" value={product.countryCode ? (WAREHOUSE_LABELS[product.countryCode] ?? product.countryCode) : "—"} />
-            <PreviewRow label="Dispatch" value={product.deliveryCycle ? `${product.deliveryCycle} days` : "—"} />
-            <PreviewRow label="Free shipping" value={product.isFreeShipping || product.addMarkStatus === 1 ? "Yes" : "No"} />
-            <PreviewRow label="Verified supplier" value={product.verifiedWarehouse === 1 ? "Yes" : "No"} />
-          </dl>
-        </div>
-
-        <div className="p-4 border-t border-[var(--color-border)] space-y-2 bg-[var(--color-surface-secondary)]/30">
-          {imported && importedProductId ? (
-            <>
-              <Link
-                href={`/admin/products/${importedProductId}`}
-                className="flex h-10 items-center justify-center rounded-md bg-emerald-600 text-white text-[13px] font-semibold"
-              >
-                Open in admin
-              </Link>
-              <button
-                type="button"
-                onClick={onResync}
-                disabled={importing}
-                className="w-full h-10 rounded-md border border-[var(--color-border)] text-[13px] font-medium inline-flex items-center justify-center gap-2"
-              >
-                {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
-                Re-sync from CJ
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={onImport}
-              disabled={importing}
-              className="w-full h-10 rounded-md bg-[var(--color-accent)] text-white text-[13px] font-semibold disabled:opacity-60"
-            >
-              {importing ? "Importing…" : (resolvedHasVideo || listHasVideo) ? "Import draft + video" : "Import as draft"}
-            </button>
-          )}
-        </div>
-      </aside>
-    </>
-  );
-}
-
-function PreviewRow({
-  label,
-  value,
-  mono,
-  copyable,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  copyable?: boolean;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3 py-1.5 border-b border-[var(--color-border)]/50 last:border-0">
-      <dt className="text-[var(--color-text-muted)] shrink-0">{label}</dt>
-      <dd className={cn("text-right flex items-center gap-1 min-w-0", mono && "font-mono text-[12px]")}>
-        <span className="truncate">{value}</span>
-        {copyable && (
-          <button type="button" onClick={() => copyText(value)} className="shrink-0 p-1 rounded-md hover:bg-[var(--color-surface-secondary)]" title="Copy">
-            <Copy className="h-3 w-3 text-[var(--color-text-muted)]" />
-          </button>
-        )}
-      </dd>
+        Search Catalog
+      </button>
     </div>
   );
 }

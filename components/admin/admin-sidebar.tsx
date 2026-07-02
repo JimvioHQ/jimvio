@@ -20,6 +20,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
+  Sparkles,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,7 @@ const navSections = [
       { label: "Users",     href: "/admin/users",    icon: UsersRound },
       { label: "Vendors",   href: "/admin/vendors",  icon: Store },
       { label: "Products",  href: "/admin/products", icon: Boxes },
+      { label: "Import Intel", href: "/admin/products/import/cj", icon: Sparkles },
       { label: "Orders",    href: "/admin/orders",   icon: ClipboardList },
     ],
   },

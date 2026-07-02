@@ -2,8 +2,8 @@ import CJImportBrowser from "@/components/admin/cj/cj-import-browser";
 import { getAdminDB } from "@/services/db";
 
 export const metadata = {
-  title: "Import from CJ · Admin",
-  description: "Browse and import products from CJ Dropshipping into Jimvio.",
+  title: "Import Intelligence · CJ · Admin",
+  description: "World-class product sourcing dashboard with profit intelligence, health scores, and smart filters.",
 };
 
 export const dynamic = "force-dynamic";
