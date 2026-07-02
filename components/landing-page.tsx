@@ -469,7 +469,7 @@
 // const COMMITMENTS = [
 //     "Make earning online transparent, accessible, and rewarding for every creator and seller on the planet.",
 //     "Build features guided by one question: Does this help our creators earn more?",
-//     "Provide global payouts to 50+ countries — including mobile money for Africa and Southeast Asia.",
+//     "Provide global payouts to 195 countries — including mobile money for Africa and Southeast Asia.",
 //     "Offer zero setup fees, no credit card required, and no hidden subscription costs.",
 //     "Verify vendors and creators so trust is built into every layer of the platform.",
 // ];
@@ -974,6 +974,12 @@ import {
 } from "lucide-react";
 import { HeroBlobBackground } from "./ui/HeroBlobBackground";
 import { CtaSection } from "./sections/CtaSection";
+import {
+  PLATFORM_STAT_KEYS,
+  PLATFORM_STAT_META,
+  PLATFORM_STATS,
+} from "@/lib/platform-stats";
+import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1020,14 +1026,10 @@ type ListVariant = "dash" | "check" | "cross";
 // All values sourced from: Jimvio_Complete_Official_Documentation.pdf · May 2026
 // Section references noted inline.
 
-// § About (PDF p.2) — used in hero stats bar on all pages
-// FIX: was "10k" in STATS and "10,000+" in IMPACT_STATS — normalized to one source of truth.
-const PLATFORM_STATS = [
-    { value: "10,000+", label: "Active Creators" },
-    { value: "$1M+", label: "Paid to Creators" },
-    { value: "50+", label: "Countries Served" },
-    { value: "99.9%", label: "Platform Uptime" },
-];
+const IMPACT_STATS = PLATFORM_STAT_KEYS.map((key) => ({
+  key,
+  label: PLATFORM_STAT_META[key].label,
+}));
 
 // § About (PDF p.3) — core platform features table
 const FEATURES: FeatureItem[] = [
@@ -1065,7 +1067,7 @@ const FEATURES: FeatureItem[] = [
         icon: <Banknote size={20} strokeWidth={1.6} />,
         title: "Secure Global Payouts",
         description:
-            "Withdraw via Stripe, PayPal, bank transfer, or mobile money. Built for Africa, Southeast Asia, and beyond — 50+ countries.",
+            "Withdraw via Stripe, PayPal, bank transfer, or mobile money. Built for Africa, Southeast Asia, and beyond — 195 countries.",
     },
 ];
 
@@ -1127,8 +1129,7 @@ const WHY_ITEMS: WhyItem[] = [
     },
 ];
 
-// § About page — impact stats & commitments
-const IMPACT_STATS = PLATFORM_STATS; // single source of truth
+// § About page — commitments
 
 const COMMITMENTS = [
     // PDF p.2 mission statement
@@ -1136,7 +1137,7 @@ const COMMITMENTS = [
     // PDF p.2 core question
     "Build features guided by one question: Does this help our creators earn more?",
     // PDF p.2-3
-    "Provide global payouts to 50+ countries — including mobile money for Africa and Southeast Asia.",
+    "Provide global payouts to 195 countries — including mobile money for Africa and Southeast Asia.",
     // PDF p.3
     "Offer zero setup fees, no credit card required, and no hidden subscription costs.",
     // PDF p.2-3
@@ -1655,7 +1656,7 @@ function AboutPage() {
                     <div className="flex items-center justify-center gap-2 flex-wrap">
                         {[
                             { label: "Founded 2023" },
-                            { label: "50+ countries served" },
+                            { label: `${PLATFORM_STATS.countries} countries served` },
                             { label: "Free to start" },
                         ].map((pill) => (
                             <div
@@ -1673,9 +1674,9 @@ function AboutPage() {
             {/* ── Impact Stats — single source: PLATFORM_STATS ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 border-y border-[var(--color-border)] divide-x divide-[var(--color-border)]">
                 {IMPACT_STATS.map((s) => (
-                    <div key={s.label} className="bg-[var(--color-surface)] py-8 px-6 text-center">
-                        <div className="text-4xl font-black tracking-tight text-[var(--color-accent)] leading-none mb-1.5">
-                            {s.value}
+                    <div key={s.key} className="bg-[var(--color-surface)] py-8 px-6 text-center">
+                        <div className="text-4xl font-black tracking-tight text-[var(--color-accent)] leading-none mb-1.5 tabular-nums">
+                            <AnimatedPlatformStatValue statKey={s.key} />
                         </div>
                         <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-text-muted)]">
                             {s.label}

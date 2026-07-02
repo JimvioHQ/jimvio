@@ -6,6 +6,7 @@ import {
     BarChart2,
     Banknote,
 } from "lucide-react";
+import { PLATFORM_STATS } from "@/lib/platform-stats";
 import type {
     FeatureItem,
     StepItem,
@@ -64,7 +65,7 @@ export const FEATURES: FeatureItem[] = [
         icon: <Banknote size={22} strokeWidth={1.6} />,
         title: "Secure Global Payouts",
         description:
-            "Withdraw via Stripe, PayPal, bank transfer, or mobile money. Built for Africa, Southeast Asia, and beyond. 50+ countries.",
+            "Withdraw via Stripe, PayPal, bank transfer, or mobile money. Built for Africa, Southeast Asia, and beyond — 195 countries.",
     },
 ];
 

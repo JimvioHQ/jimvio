@@ -13,6 +13,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { ReferralTracker } from "@/components/affiliate/referral-tracker";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
+import { PlatformStatsProvider } from "@/components/platform/platform-stats-provider";
 
 export const metadata: Metadata = constructMetadata();
 
@@ -64,7 +65,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             shadow="0 0 10px #fd5000,0 0 5px #fd5000"
           />
           <ReferralTracker />
-          <CurrencyProvider>{children}</CurrencyProvider>
+          <PlatformStatsProvider>
+            <CurrencyProvider>{children}</CurrencyProvider>
+          </PlatformStatsProvider>
           <Toaster
             richColors
             position="top-right"

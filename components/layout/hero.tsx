@@ -1,47 +1,67 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
+  BookOpen,
   CheckCircle,
   Globe,
   Headphones,
   Lock,
+  Megaphone,
+  Package,
+  Percent,
+  Radio,
+  Search,
   ShieldCheck,
   Sparkles,
+  Store,
+  TrendingUp,
+  Users,
+  Video,
   Zap,
 } from "lucide-react";
 import { TICKER_ITEMS } from "@/data/dashboard";
 import { ApplePayLogo, MastercardLogo, VisaLogo } from "@/components/ui/payment-logos";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { JimvioAIMascot } from "@/components/ui/jimvio-ai-mascot";
+import { useIsMobile, usePrefersReducedMotion } from "@/hooks/use-is-mobile";
+import { PlatformStatsRotatingBadge, usePlatformStats } from "@/components/platform/platform-stats-provider";
+import {
+  formatPlatformStat,
+  getPlatformStatsLaunchSnapshot,
+} from "@/lib/platform-stats";
 
 const ORANGE = "#fd5000";
 const HERO_PHRASES = [
   "Earn Commissions",
-  "Join UGC Campaigns",
+  "Create Campaigns",
   "Build Communities",
   "Sell Products",
-  "Create Campaigns",
-  "Buy Products",
-  "Work With Brands",
+  "Grow Audience",
+  "Launch Brands",
+  "Create UGC",
   "Host Live Events",
-  "Sell Courses",
+  "Monetize Knowledge",
+  "Earn Globally",
 ] as const;
 
 const LONGEST_HERO_PHRASE = HERO_PHRASES.reduce((a, b) =>
   a.length >= b.length ? a : b,
 );
 
+const PHRASE_EASE = [0.22, 1, 0.36, 1] as const;
+
 function HeroRotatingPhrase() {
   const [index, setIndex] = useState(0);
+  const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
     const timer = setInterval(
       () => setIndex((current) => (current + 1) % HERO_PHRASES.length),
-      2800,
+      2500,
     );
     return () => clearInterval(timer);
   }, []);
@@ -59,10 +79,22 @@ function HeroRotatingPhrase() {
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
             key={HERO_PHRASES[index]}
-            initial={{ y: 14, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -14, opacity: 0 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            initial={
+              reduced
+                ? { opacity: 0 }
+                : { y: 18, opacity: 0, filter: "blur(10px)" }
+            }
+            animate={
+              reduced
+                ? { opacity: 1 }
+                : { y: 0, opacity: 1, filter: "blur(0px)" }
+            }
+            exit={
+              reduced
+                ? { opacity: 0 }
+                : { y: -18, opacity: 0, filter: "blur(10px)" }
+            }
+            transition={{ duration: 0.48, ease: PHRASE_EASE }}
             className="block w-full min-w-0 max-w-full break-words leading-[1.12] [overflow-wrap:anywhere] md:whitespace-nowrap"
             style={{ color: ORANGE }}
           >
@@ -97,21 +129,33 @@ const PAYMENT_LOGOS = [
   { id: "apple-pay", node: <ApplePayLogo /> },
 ] as const;
 
-function parseActiveCount(raw: string | undefined): number {
-  if (!raw) return 8447;
-  const n = parseInt(raw.replace(/[^0-9]/g, ""), 10);
-  return Number.isFinite(n) && n > 0 ? n : 8447;
-}
-
 function HeroLiveTicker({ onlineCount }: { onlineCount: number }) {
+  const reduced = usePrefersReducedMotion();
   const items = [...TICKER_ITEMS, ...TICKER_ITEMS];
 
   return (
     <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
       <div className="flex h-10 w-full items-center overflow-hidden bg-[#fd5000]">
-        <div className="flex h-full shrink-0 items-center gap-2 bg-[#111] px-4 text-[10px] font-bold uppercase tracking-widest text-white">
-          <span className="size-2 animate-pulse rounded-full bg-white" />
-          Live
+        <div className="flex h-full shrink-0 items-center pl-2 sm:pl-3">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-[#E53935] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_10px_rgba(229,57,53,0.38)]">
+            <motion.span
+              className="size-[7px] shrink-0 rounded-full bg-[#22C55E]"
+              animate={
+                reduced
+                  ? undefined
+                  : {
+                      scale: [1, 1.18, 1],
+                      boxShadow: [
+                        "0 0 0 0 rgba(34,197,94,0.4)",
+                        "0 0 6px 2px rgba(34,197,94,0.65)",
+                        "0 0 0 0 rgba(34,197,94,0.4)",
+                      ],
+                    }
+              }
+              transition={reduced ? undefined : { duration: 1.75, repeat: Infinity, ease: "easeInOut" }}
+            />
+            Live
+          </div>
         </div>
 
         <div className="relative min-w-0 flex-1 overflow-hidden">
@@ -145,7 +189,7 @@ function HeroPartnerStrip() {
     <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] py-5 sm:py-6">
       <div className="mx-auto max-w-8xl px-4 sm:px-6">
         <p className="mb-4 text-center text-[11px] font-medium text-[var(--color-text-muted)] sm:text-[12px]">
-          Trusted by 10,000+ creators and businesses worldwide
+          Trusted by {formatPlatformStat("users", getPlatformStatsLaunchSnapshot().users)} creators and businesses worldwide
         </p>
 
         <div className="relative overflow-hidden">
@@ -191,197 +235,752 @@ function HeroPartnerStrip() {
 const HERO_AI_FEATURES = [
   {
     label: "Find Profitable Products",
+    mobileLabel: "Find Profitable\nProducts",
     query: "What are the most profitable products to promote on Jimvio right now?",
+    icon: Search,
   },
   {
     label: "Top Commissions",
+    mobileLabel: "Top\nCommissions",
     query: "Which affiliate products have the highest commission rates today?",
+    icon: Percent,
   },
   {
     label: "Launch & Sell Products",
+    mobileLabel: "Launch & Sell\nProducts",
     query: "How do I launch and sell products on Jimvio as a new vendor?",
+    icon: Store,
   },
   {
     label: "Paid Creator Opportunities",
+    mobileLabel: "Paid Creator\nOpportunities",
     query: "What UGC campaigns are paying creators the most right now?",
+    icon: Video,
   },
   {
     label: "High-Converting Campaigns",
+    mobileLabel: "High-Converting\nCampaigns",
     query: "Show me high-converting campaigns I can join as a creator.",
+    icon: Megaphone,
   },
   {
     label: "Trending Winning Products",
+    mobileLabel: "Trending Winning\nProducts",
     query: "What trending products are winning sales this week on Jimvio?",
+    icon: TrendingUp,
   },
   {
     label: "Host Live Events",
+    mobileLabel: "Host Live\nEvents",
     query: "How can I host live events and monetize my audience on Jimvio?",
+    icon: Radio,
   },
   {
     label: "Monetize Knowledge",
+    mobileLabel: "Monetize\nKnowledge",
     query: "How do I sell courses and monetize my knowledge on Jimvio?",
+    icon: BookOpen,
   },
 ] as const;
 
-function HeroAIFeatureRows({ onSelect }: { onSelect: (query: string) => void }) {
-  const topRow = HERO_AI_FEATURES.slice(0, 4);
-  const bottomRow = HERO_AI_FEATURES.slice(4);
+const AI_STAGGER = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.1, delayChildren: 0.04 },
+  },
+} as const;
+
+const AI_FADE_UP = {
+  hidden: { opacity: 0, y: 18 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.52, ease: PHRASE_EASE },
+  },
+} as const;
+
+const AI_ROBOT_ENTER = {
+  hidden: { opacity: 0, y: 28, scale: 0.96 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.78, ease: PHRASE_EASE, delay: 0.42 },
+  },
+} as const;
+
+const AI_DESCRIPTION =
+  "Jimvio AI helps you earn, sell, create, grow, and manage everything on Jimvio — from affiliate commissions and UGC campaigns to products, communities, live events, and courses.";
+
+const AMBIENT_PARTICLES = [
+  { left: "8%", top: "14%", size: 3, duration: 11, delay: 0 },
+  { left: "22%", top: "62%", size: 2, duration: 9, delay: 1.4 },
+  { left: "48%", top: "8%", size: 2.5, duration: 10.5, delay: 0.7 },
+  { left: "72%", top: "28%", size: 2, duration: 8.5, delay: 2.1 },
+  { left: "90%", top: "54%", size: 3, duration: 12, delay: 1.1 },
+  { left: "58%", top: "78%", size: 2, duration: 9.5, delay: 0.3 },
+] as const;
+
+function HeroAIAmbientLayer({ reduced }: { reduced: boolean }) {
+  if (reduced) return null;
 
   return (
-    <div className="relative mt-3 lg:mt-4">
-      <div
-        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--color-surface)] to-transparent"
+    <>
+      <motion.div
+        className="pointer-events-none absolute -left-8 top-1/4 h-40 w-40 rounded-full bg-[#fd5000]/10 blur-3xl"
+        animate={{ x: [0, 18, -12, 0], y: [0, -14, 8, 0], opacity: [0.35, 0.6, 0.4, 0.35] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
         aria-hidden
       />
-      <div
-        className="-mx-1 overflow-x-auto px-1 pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [overscroll-behavior-x:contain] [&::-webkit-scrollbar]:hidden"
-      >
-        <div className="flex w-max flex-col gap-2.5 sm:gap-3">
-          {[topRow, bottomRow].map((row, rowIndex) => (
-            <div key={rowIndex} className="flex gap-2.5 sm:gap-3">
-              {row.map(({ label, query }) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => onSelect(query)}
-                  className="group shrink-0 rounded-sm px-2 py-1 text-left transition-all duration-200 hover:bg-[#fd5000]/10 active:scale-[0.98]"
-                >
-                  <span className="text-[12px] font-semibold leading-snug text-[var(--color-text-primary)] transition-colors duration-200 group-hover:text-[#fd5000] group-hover:underline group-hover:decoration-[#fd5000]/40 group-hover:underline-offset-2 sm:text-[13px]">
-                    {label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
+      <motion.div
+        className="pointer-events-none absolute right-0 top-1/3 h-48 w-48 rounded-full bg-[#ff8c42]/12 blur-3xl"
+        animate={{ x: [0, -16, 10, 0], y: [0, 12, -8, 0], opacity: [0.3, 0.55, 0.38, 0.3] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        aria-hidden
+      />
+      {AMBIENT_PARTICLES.map((p, i) => (
+        <motion.span
+          key={i}
+          className="pointer-events-none absolute rounded-full bg-[#fd5000]/50"
+          style={{ left: p.left, top: p.top, width: p.size, height: p.size }}
+          animate={{ y: [0, -10, 0], opacity: [0.15, 0.4, 0.15] }}
+          transition={{
+            duration: p.duration,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: p.delay,
+          }}
+          aria-hidden
+        />
+      ))}
+    </>
+  );
+}
+
+function HeroAISparkles({ reduced }: { reduced: boolean }) {
+  const [sparkles, setSparkles] = useState<{ id: number; left: number; top: number }[]>([]);
+
+  useEffect(() => {
+    if (reduced) return;
+
+    let id = 0;
+    const interval = setInterval(() => {
+      const next = {
+        id: id++,
+        left: 10 + Math.random() * 80,
+        top: 8 + Math.random() * 75,
+      };
+      setSparkles((prev) => [...prev.slice(-4), next]);
+      setTimeout(() => {
+        setSparkles((prev) => prev.filter((s) => s.id !== next.id));
+      }, 900);
+    }, 1800);
+
+    return () => clearInterval(interval);
+  }, [reduced]);
+
+  if (reduced) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[2] overflow-hidden" aria-hidden>
+      <AnimatePresence>
+        {sparkles.map((s) => (
+          <motion.span
+            key={s.id}
+            className="absolute text-[#fd5000]"
+            style={{ left: `${s.left}%`, top: `${s.top}%` }}
+            initial={{ opacity: 0, scale: 0.3, rotate: 0 }}
+            animate={{ opacity: [0, 1, 0], scale: [0.3, 1.15, 0.4], rotate: 45 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.85, ease: "easeOut" }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0L14.09 9.91L24 12L14.09 14.09L12 24L9.91 14.09L0 12L9.91 9.91L12 0Z" />
+            </svg>
+          </motion.span>
+        ))}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function HeroAIDescriptionTypewriter() {
+  const reduced = usePrefersReducedMotion();
+  const [displayed, setDisplayed] = useState(reduced ? AI_DESCRIPTION : "");
+
+  useEffect(() => {
+    if (reduced) {
+      setDisplayed(AI_DESCRIPTION);
+      return;
+    }
+
+    let charIndex = 0;
+    let cancelled = false;
+    let timeout: ReturnType<typeof setTimeout>;
+
+    const schedule = (delay: number, fn: () => void) => {
+      timeout = setTimeout(() => {
+        if (!cancelled) fn();
+      }, delay);
+    };
+
+    const typeNext = () => {
+      if (charIndex <= AI_DESCRIPTION.length) {
+        setDisplayed(AI_DESCRIPTION.slice(0, charIndex));
+        if (charIndex < AI_DESCRIPTION.length) {
+          const ch = AI_DESCRIPTION.charAt(charIndex);
+          const delay = ch === " " || ch === "," ? 36 : ch === "—" ? 48 : 26;
+          charIndex += 1;
+          schedule(delay, typeNext);
+        } else {
+          schedule(6000, () => {
+            charIndex = 0;
+            setDisplayed("");
+            schedule(320, typeNext);
+          });
+        }
+      }
+    };
+
+    schedule(500, typeNext);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [reduced]);
+
+  const textClass =
+    "m-0 w-full break-words text-[14px] font-medium leading-[1.6] tracking-[0.01em] text-[#4B5563] [overflow-wrap:break-word] lg:text-[16px] lg:leading-[1.8]";
+
+  return (
+    <div className="relative w-full min-w-0 max-w-[90vw] lg:w-[280px] lg:max-w-[280px]">
+      <p aria-hidden className={`invisible ${textClass}`}>
+        {AI_DESCRIPTION}
+      </p>
+      <p className={`absolute inset-0 ${textClass}`}>{displayed}</p>
+    </div>
+  );
+}
+
+function HeroAILogo() {
+  const reduced = usePrefersReducedMotion();
+
+  return (
+    <div className="relative inline-flex flex-row items-center gap-3 sm:gap-4">
+      <motion.span
+        className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl text-white shadow-[0_6px_20px_rgba(253,80,0,0.24)] sm:size-11"
+        style={{
+          background: "linear-gradient(135deg, #fd5000 0%, #ff8c42 35%, #ff5e8a 65%, #c850c0 85%, #fd5000 100%)",
+          backgroundSize: "220% 220%",
+        }}
+        animate={
+          reduced
+            ? undefined
+            : { backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }
+        }
+        transition={reduced ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <motion.span
+          className="pointer-events-none absolute inset-0 rounded-xl bg-[#fd5000]/45 blur-lg"
+          animate={reduced ? undefined : { opacity: [0.2, 0.55, 0.2] }}
+          transition={reduced ? undefined : { duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+          aria-hidden
+        />
+        <Sparkles className="relative z-10 size-4 sm:size-5" strokeWidth={2.1} />
+      </motion.span>
+
+      <h2
+        className="relative m-0 whitespace-nowrap text-[18px] font-black leading-none tracking-[-0.03em] text-[var(--color-text-primary)] sm:text-[28px] lg:text-[30px]"
+      >
+        Jimvio <span className="text-[#fd5000]">AI</span>
+        {!reduced && (
+          <motion.span
+            className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/55 to-transparent"
+            animate={{ x: ["-150%", "350%"] }}
+            transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut", repeatDelay: 3 }}
+            aria-hidden
+          />
+        )}
+      </h2>
+    </div>
+  );
+}
+
+const HERO_AI_CTA_SPARKLES = [
+  { left: "7%", top: "20%", size: 2.5, delay: 0 },
+  { left: "91%", top: "24%", size: 2, delay: 0.7 },
+  { left: "93%", top: "66%", size: 2.5, delay: 1.5 },
+  { left: "5%", top: "70%", size: 2, delay: 2.2 },
+] as const;
+
+function HeroAICTAButton({ onClick }: { onClick: () => void }) {
+  const reduced = usePrefersReducedMotion();
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      initial="rest"
+      animate="rest"
+      whileHover={reduced ? undefined : "hover"}
+      whileTap={reduced ? undefined : "tap"}
+      variants={{
+        rest: { scale: 1 },
+        hover: { scale: 1.03 },
+        tap: { scale: 0.98 },
+      }}
+      transition={{ type: "spring", stiffness: 460, damping: 30 }}
+      className="relative inline-flex h-[56px] w-full min-w-[min(100%,360px)] max-w-[400px] items-center justify-center gap-2.5 overflow-visible rounded-full px-7 text-[14px] font-bold text-white sm:text-[15px]"
+    >
+      {/* Ambient glow — soft pulse + hover boost */}
+      <motion.span
+        className="pointer-events-none absolute -inset-2 rounded-full bg-[#FF5A1F]/25 blur-[18px]"
+        animate={reduced ? undefined : { opacity: [0.26, 0.4, 0.26] }}
+        transition={reduced ? undefined : { duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        aria-hidden
+      />
+      <motion.span
+        className="pointer-events-none absolute -inset-2 rounded-full bg-[#FF7A1F]/30 blur-[20px]"
+        variants={{
+          rest: { opacity: 0 },
+          hover: { opacity: 0.38 },
+          tap: { opacity: 0.32 },
+        }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        aria-hidden
+      />
+
+      {/* Button surface */}
+      <span className="absolute inset-0 overflow-hidden rounded-full shadow-[0_10px_32px_rgba(255,90,31,0.28)]">
+        <span
+          className="absolute inset-0"
+          style={{
+            background: "linear-gradient(180deg, #FF8C42 0%, #FF7A1F 48%, #FF5A1F 100%)",
+          }}
+          aria-hidden
+        />
+
+        {/* Glass layer + top inner highlight */}
+        <span
+          className="pointer-events-none absolute inset-0 rounded-full"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.07) 36%, transparent 58%)",
+            boxShadow:
+              "inset 0 1px 0 rgba(255,255,255,0.48), inset 0 -1px 0 rgba(0,0,0,0.05)",
+          }}
+          aria-hidden
+        />
+
+        {/* Shimmer sweep — left → right every 4s */}
+        {!reduced ? (
+          <motion.span
+            className="pointer-events-none absolute inset-y-0 w-[42%]"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%)",
+            }}
+            animate={{ x: ["-130%", "280%"] }}
+            transition={{
+              duration: 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+              repeatDelay: 0.4,
+            }}
+            aria-hidden
+          />
+        ) : null}
+      </span>
+
+      {/* Floating edge sparkles */}
+      {!reduced
+        ? HERO_AI_CTA_SPARKLES.map((sparkle, i) => (
+            <motion.span
+              key={i}
+              className="pointer-events-none absolute rounded-full bg-white/75"
+              style={{
+                left: sparkle.left,
+                top: sparkle.top,
+                width: sparkle.size,
+                height: sparkle.size,
+              }}
+              animate={{
+                opacity: [0.15, 0.7, 0.15],
+                y: [0, -2.5, 0],
+                scale: [0.9, 1.08, 0.9],
+              }}
+              transition={{
+                duration: 3.4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: sparkle.delay,
+              }}
+              aria-hidden
+            />
+          ))
+        : null}
+
+      <Sparkles className="relative z-10 size-4" strokeWidth={2.1} />
+      <span className="relative z-10 tracking-[-0.01em]">Ask Jimvio AI Anything</span>
+      <motion.span
+        className="relative z-10 flex items-center"
+        variants={{
+          rest: { x: 0 },
+          hover: { x: 4 },
+          tap: { x: 2 },
+        }}
+        transition={{ type: "spring", stiffness: 420, damping: 26 }}
+      >
+        <ArrowRight className="size-4" />
+      </motion.span>
+    </motion.button>
+  );
+}
+
+function HeroAIFeatureCard({
+  label,
+  mobileLabel,
+  query,
+  icon: Icon,
+  onSelect,
+  index,
+}: {
+  label: string;
+  mobileLabel: string;
+  query: string;
+  icon: React.ElementType;
+  onSelect: (query: string) => void;
+  index: number;
+}) {
+  const reduced = usePrefersReducedMotion();
+  const { isMobile } = useIsMobile("sm");
+
+  return (
+    <motion.button
+      type="button"
+      onClick={() => onSelect(query)}
+      className="group relative flex h-[50px] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-[#e8e8ec] bg-white px-0.5 py-1 text-center shadow-[0_1px_4px_rgba(15,23,42,0.04)] transition-[border-color,box-shadow] duration-[250ms] sm:h-[48px] sm:flex-row sm:gap-2.5 sm:rounded-lg sm:px-3.5 sm:py-1.5 sm:text-left sm:shadow-[0_2px_8px_rgba(15,23,42,0.05)] sm:hover:border-[#fd5000]/35 sm:hover:shadow-[0_8px_24px_rgba(253,80,0,0.12)]"
+      whileHover={isMobile || reduced ? undefined : { y: -6 }}
+      transition={{ type: "spring", stiffness: 420, damping: 28 }}
+    >
+      <span
+        className="pointer-events-none absolute inset-0 hidden rounded-xl opacity-0 transition-opacity duration-[250ms] group-hover:opacity-100 sm:block sm:rounded-lg"
+        style={{
+          background: "radial-gradient(ellipse at 30% 50%, rgba(253,80,0,0.06) 0%, transparent 70%)",
+          boxShadow: "inset 0 0 0 1px rgba(253,80,0,0.14)",
+        }}
+        aria-hidden
+      />
+      <motion.span
+        className="relative z-10 grid size-4 shrink-0 place-items-center rounded-md bg-[#fd5000]/[0.07] text-[#fd5000] ring-1 ring-[#fd5000]/10 sm:size-7"
+        animate={reduced || isMobile ? undefined : { scale: [1, 1.05, 1] }}
+        transition={
+          reduced || isMobile
+            ? undefined
+            : { duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: index * 0.18 }
+        }
+      >
+        <Icon
+          className="size-2.5 transition-transform duration-[250ms] sm:size-3 sm:group-hover:scale-110"
+          strokeWidth={2.1}
+        />
+      </motion.span>
+      <span className="relative z-10 flex h-[20px] w-full min-w-0 items-center justify-center overflow-hidden text-center text-[9px] font-medium leading-[1.05] tracking-[-0.01em] text-[var(--color-text-primary)] whitespace-pre-line line-clamp-2 sm:hidden">
+        {mobileLabel}
+      </span>
+      <span className="relative z-10 hidden min-w-0 flex-1 text-left text-[11px] font-medium leading-[1.1] tracking-[-0.01em] text-[var(--color-text-primary)] [overflow-wrap:normal] [word-break:normal] line-clamp-2 hyphens-none sm:block">
+        {label}
+      </span>
+    </motion.button>
   );
 }
 
 function HeroAIPanel() {
   const openAssistant = useAIStore((s) => s.openAssistant);
-  const [prompt, setPrompt] = useState("");
+  const reduced = usePrefersReducedMotion();
 
   const ask = (query?: string) => {
-    const text = (query ?? prompt).trim();
+    const text = (query ?? "").trim();
     openAssistant(text);
-    setPrompt("");
   };
 
+  const topRow = HERO_AI_FEATURES.slice(0, 4);
+  const bottomRow = HERO_AI_FEATURES.slice(4);
+
   return (
-    <div className="mx-auto w-full min-w-0 max-w-full lg:max-w-none">
-      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 sm:rounded-lg sm:p-5">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#fd5000] to-[#ff8c42] text-white">
-              <Sparkles className="size-4" strokeWidth={2.25} />
-            </span>
-            <h2 className="text-[17px] font-black tracking-tight text-[#fd5000] sm:text-[22px]">
-              Jimvio AI
-            </h2>
+    <motion.div
+      className="relative flex w-full min-w-0 max-w-full items-center py-1 sm:py-4 lg:py-6"
+      variants={AI_STAGGER}
+      initial={reduced ? "show" : "hidden"}
+      animate="show"
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-3xl"
+        style={{
+          background:
+            "radial-gradient(ellipse 58% 52% at 78% 36%, rgba(253,80,0,0.07) 0%, transparent 72%)",
+        }}
+      />
+
+      <HeroAIAmbientLayer reduced={reduced} />
+      <HeroAISparkles reduced={reduced} />
+
+      <div className="relative z-10 w-full min-w-0">
+        <div className="relative w-full min-w-0">
+          <div className="relative w-full min-w-0 lg:pr-[46%] xl:pr-[44%]">
+            <motion.div variants={AI_FADE_UP} className="mb-3 -translate-y-[140px] sm:mb-7 sm:translate-y-14">
+              <HeroAILogo />
+            </motion.div>
+
+            <motion.div variants={AI_FADE_UP}>
+              <HeroAIDescriptionTypewriter />
+            </motion.div>
+
+            <motion.div variants={AI_FADE_UP} className="mt-4 flex justify-center sm:mt-8 lg:justify-start">
+              <HeroAICTAButton onClick={() => ask()} />
+            </motion.div>
           </div>
-          <JimvioAIMascot
-            size="sm"
-            showRings={false}
-            motionless
-            className="hidden shrink-0 lg:block"
-          />
+
+          <motion.div variants={AI_FADE_UP} className="relative z-10 mt-4 w-full min-w-0 sm:mt-8">
+            <div className="grid w-full min-w-0 grid-cols-4 grid-rows-2 gap-1.5 sm:hidden">
+              {HERO_AI_FEATURES.map((feature, index) => (
+                <HeroAIFeatureCard
+                  key={feature.label}
+                  index={index}
+                  label={feature.label}
+                  mobileLabel={feature.mobileLabel}
+                  query={feature.query}
+                  icon={feature.icon}
+                  onSelect={ask}
+                />
+              ))}
+            </div>
+
+            <div className="hidden w-full min-w-0 flex-col gap-2 sm:flex">
+              {[topRow, bottomRow].map((row, rowIndex) => (
+                <div
+                  key={rowIndex}
+                  className="grid w-full min-w-0 grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-2.5"
+                >
+                  {row.map((feature, colIndex) => (
+                    <HeroAIFeatureCard
+                      key={feature.label}
+                      index={rowIndex * 4 + colIndex}
+                      label={feature.label}
+                      mobileLabel={feature.mobileLabel}
+                      query={feature.query}
+                      icon={feature.icon}
+                      onSelect={ask}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </motion.div>
         </div>
 
-        <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row sm:items-stretch">
-          <div className="relative min-w-0 flex-1">
-            <Sparkles className="pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-[#fd5000]" />
-            <input
-              type="text"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") ask();
-              }}
-              placeholder="Ask about products, campaigns…"
-              aria-label="Ask Jimvio AI"
-              className="h-11 w-full min-w-0 rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] py-0 pl-10 pr-4 text-[13px] text-[var(--color-text-primary)] shadow-sm outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#fd5000]/50 focus:ring-2 focus:ring-[#fd5000]/15 sm:h-12 sm:text-[14px]"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => ask()}
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-sm px-5 text-[13px] font-bold text-white transition-opacity hover:opacity-90 sm:h-12 sm:px-6 sm:text-[14px]"
-            style={{ background: ORANGE }}
-          >
-            Ask AI
-            <ArrowRight className="size-4" />
-          </button>
-        </div>
-
-        <p className="mt-2.5 text-[12px] leading-relaxed text-[var(--color-text-muted)] sm:mt-3 sm:text-[13px]">
-          Earn, sell, create, and grow — affiliates, UGC campaigns, products, communities, live events, and courses.
-        </p>
+        <motion.div
+          variants={AI_ROBOT_ENTER}
+          className="pointer-events-none relative z-[3] mx-auto mt-6 hidden w-full max-w-[320px] justify-center sm:flex sm:mt-10 lg:hidden"
+        >
+          <JimvioAIMascot size="hero" showRings className="h-64 w-64 sm:h-72 sm:w-72" />
+        </motion.div>
       </div>
 
-      <HeroAIFeatureRows onSelect={(query) => ask(query)} />
+      <div
+        className="pointer-events-none absolute left-[62%] top-[10%] z-[2] hidden w-[min(82%,538px)] lg:block xl:left-[64%] xl:top-[12%] xl:w-[min(82%,605px)]"
+        style={{ transform: "translate(-50%, calc(-50% + 50px))" }}
+      >
+        <motion.div
+          className="pointer-events-none absolute left-1/2 top-[52%] h-[55%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#fd5000]/14 blur-3xl will-change-transform"
+          animate={reduced ? undefined : { opacity: [0.35, 0.6, 0.35], scale: [0.95, 1.05, 0.95] }}
+          transition={reduced ? undefined : { duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+          aria-hidden
+        />
+      </div>
+
+      <div
+        className="pointer-events-none absolute left-[62%] top-[10%] z-[3] hidden w-[min(82%,538px)] lg:block xl:left-[64%] xl:top-[12%] xl:w-[min(82%,605px)]"
+        style={{ transform: "translate(-50%, calc(-50% + 50px))" }}
+      >
+        <motion.div variants={AI_ROBOT_ENTER} initial={reduced ? "show" : "hidden"} animate="show">
+          <JimvioAIMascot size="hero" showRings className="w-full" />
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+}
+
+
+const HERO_BG_PARTICLES = [
+  { left: "62%", top: "18%", size: 2.5, duration: 30, delay: 0, driftX: 8, driftY: -14 },
+  { left: "74%", top: "42%", size: 2, duration: 34, delay: 1.4, driftX: -6, driftY: -12 },
+  { left: "86%", top: "24%", size: 2, duration: 32, delay: 0.8, driftX: 7, driftY: -16 },
+  { left: "70%", top: "64%", size: 1.5, duration: 36, delay: 2.2, driftX: -5, driftY: -10 },
+  { left: "92%", top: "58%", size: 2, duration: 38, delay: 1.6, driftX: -4, driftY: -11 },
+] as const;
+
+const HERO_NOISE_TEXTURE = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
+
+function HeroPremiumBackground({ reduced }: { reduced: boolean }) {
+  const auroraTransition = useMemo(
+    () => ({ duration: 32, repeat: Infinity, ease: "easeInOut" as const }),
+    [],
+  );
+
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 bg-[#FCFCFC]" />
+      <div className="absolute inset-0 bg-white/80" />
+
+      <div className="absolute -right-[12%] top-[6%] h-[min(480px,58vw)] w-[min(480px,58vw)] rounded-full bg-[rgba(255,90,31,0.04)] blur-[120px]" />
+      <div className="absolute right-[2%] top-[22%] h-[min(340px,42vw)] w-[min(340px,42vw)] rounded-full bg-[rgba(255,120,80,0.03)] blur-[100px]" />
+
+      <motion.div
+        className="absolute -right-[14%] top-[12%] h-[min(520px,62vw)] w-[min(520px,62vw)] rounded-full opacity-40 blur-[140px]"
+        style={{ background: "rgba(255,90,31,0.04)" }}
+        animate={reduced ? undefined : { x: [0, -18, 12, 0], y: [0, -12, 10, 0] }}
+        transition={auroraTransition}
+      />
+      <motion.div
+        className="absolute right-[0%] top-[24%] h-[min(420px,50vw)] w-[min(420px,50vw)] rounded-full opacity-35 blur-[130px]"
+        style={{ background: "rgba(255,120,80,0.03)" }}
+        animate={reduced ? undefined : { x: [0, -14, 10, 0], y: [0, 10, -8, 0] }}
+        transition={{ ...auroraTransition, duration: 38 }}
+      />
+
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 88% 34%, rgba(255,90,31,0.04) 0%, transparent 46%)",
+        }}
+      />
+
+      <motion.div
+        className="absolute right-[2%] top-[10%] hidden h-[min(500px,58vw)] w-[min(500px,58vw)] rounded-full lg:block"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(255,90,31,0.04) 0%, rgba(255,120,80,0.03) 42%, transparent 74%)",
+          filter: "blur(90px)",
+        }}
+        animate={reduced ? undefined : { opacity: [0.45, 0.62, 0.45], scale: [0.99, 1.01, 0.99] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      <div className="absolute inset-0">
+        {HERO_BG_PARTICLES.map((particle, index) => (
+          <motion.span
+            key={index}
+            className="absolute rounded-full bg-[#fd5000]/15"
+            style={{
+              left: particle.left,
+              top: particle.top,
+              width: particle.size,
+              height: particle.size,
+            }}
+            animate={
+              reduced
+                ? undefined
+                : {
+                    x: [0, particle.driftX, 0],
+                    y: [0, particle.driftY, 0],
+                    opacity: [0.08, 0.2, 0.08],
+                  }
+            }
+            transition={
+              reduced
+                ? undefined
+                : {
+                    duration: particle.duration,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: particle.delay,
+                  }
+            }
+          />
+        ))}
+        {!reduced &&
+          [
+            { left: "68%", top: "28%", delay: 0 },
+            { left: "82%", top: "52%", delay: 5.1 },
+          ].map((sparkle, index) => (
+            <motion.span
+              key={`sparkle-${index}`}
+              className="absolute text-[#fd5000]/12"
+              style={{ left: sparkle.left, top: sparkle.top }}
+              animate={{ opacity: [0.06, 0.18, 0.06], scale: [0.9, 1.02, 0.9] }}
+              transition={{
+                duration: 10 + index,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: sparkle.delay,
+              }}
+            >
+              <Sparkles className="size-2.5" strokeWidth={2} />
+            </motion.span>
+          ))}
+      </div>
+
+      <div
+        className="absolute inset-0 opacity-[0.012] mix-blend-soft-light"
+        style={{ backgroundImage: HERO_NOISE_TEXTURE }}
+      />
+
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, transparent 68%, rgba(15,23,42,0.01) 100%)",
+        }}
+      />
     </div>
   );
 }
 
-export function Hero({ totalUsers }: { totalUsers?: number }) {
-  const [onlineCount, setOnlineCount] = useState(() =>
-    totalUsers && totalUsers > 0 ? Math.floor(totalUsers * 0.9) : 8447,
-  );
-
-  useEffect(() => {
-    if (totalUsers && totalUsers > 0) return;
-
-    let cancelled = false;
-    fetch("/api/hero-data")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (cancelled || !d) return;
-        const users = parseActiveCount(d.stats?.totalUsers);
-        setOnlineCount(Math.floor(users * 0.9));
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [totalUsers]);
+export function Hero() {
+  const reduced = usePrefersReducedMotion();
+  const { stats } = usePlatformStats();
+  const onlineCount = Math.floor(stats.users * 0.9);
 
   return (
     <div className="w-full max-w-[100dvw] overflow-x-hidden bg-[var(--color-surface)]">
-      <section className="relative w-full overflow-x-hidden pt-4 pb-5 sm:pt-6 sm:pb-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(253,80,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(253,80,0,0.04) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-            maskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
-            WebkitMaskImage: "linear-gradient(to bottom, black 50%, transparent 100%)",
-          }}
-        />
+      <section className="relative w-full overflow-visible bg-white pt-4 pb-5 sm:pt-6 sm:pb-8">
+        <HeroPremiumBackground reduced={reduced} />
 
         <div className="relative z-10 mx-auto w-full min-w-0 max-w-8xl px-4 sm:px-6">
-          <div className="grid w-full min-w-0 grid-cols-1 items-start gap-4 sm:gap-6 lg:grid-cols-2 lg:items-center lg:gap-10">
+          <div className="grid w-full min-w-0 grid-cols-1 items-center gap-4 sm:gap-10 lg:grid-cols-2 lg:gap-12 xl:gap-14">
             <div className="w-full min-w-0 text-center lg:text-left">
-              <h1
-                className="mx-auto flex w-full min-w-0 max-w-full flex-col space-y-2 overflow-hidden break-words font-black tracking-tight text-[var(--color-text-primary)] [overflow-wrap:anywhere] sm:space-y-3 lg:mx-0"
-                style={{
-                  fontSize: "clamp(2rem, 7vw, 4rem)",
-                  letterSpacing: "-0.03em",
-                  lineHeight: 1.12,
-                }}
-              >
-                <span>The platform to</span>
-                <HeroRotatingPhrase />
-                <span>Anywhere.</span>
-              </h1>
+              <div className="flex justify-center lg:justify-start">
+                <PlatformStatsRotatingBadge className="mb-3 sm:mb-4" />
+              </div>
 
-              <p className="mx-auto mt-3 w-full min-w-0 max-w-[520px] break-words text-[14px] leading-relaxed text-[var(--color-text-muted)] [overflow-wrap:anywhere] sm:mt-4 sm:text-base lg:mx-0">
-                Sell products. Promote offers. Create content. Build your community. Grow your audience — all in one
-                place.
-              </p>
+              <div className="relative mx-auto w-full min-w-0 max-w-[520px] lg:mx-0 lg:max-w-none">
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -left-[10%] -right-[6%] -top-[16%] -bottom-[10%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.5)_0%,rgba(255,255,255,0)_70%)] blur-3xl"
+                />
+                <div className="relative">
+                  <h1
+                    className="mx-auto flex w-full min-w-0 max-w-full flex-col space-y-2 overflow-hidden break-words font-black tracking-tight text-[var(--color-text-primary)] [overflow-wrap:anywhere] sm:space-y-3 lg:mx-0"
+                    style={{
+                      fontSize: "clamp(2rem, 7vw, 4rem)",
+                      letterSpacing: "-0.03em",
+                      lineHeight: 1.12,
+                    }}
+                  >
+                    <span>The platform to</span>
+                    <HeroRotatingPhrase />
+                    <span>Anywhere.</span>
+                  </h1>
+
+                  <p className="mx-auto mt-3 w-full min-w-0 max-w-[520px] break-words text-[14px] leading-relaxed text-[var(--color-text-muted)] [overflow-wrap:anywhere] sm:mt-4 sm:text-base lg:mx-0">
+                    Sell products. Promote offers. Create content. Build your community. Grow your audience — all in one
+                    place.
+                  </p>
+                </div>
+              </div>
 
               <div className="mt-5 flex w-full min-w-0 flex-col items-stretch gap-3 sm:mt-6 sm:flex-row sm:items-center sm:justify-center lg:justify-start">
                 <Link
@@ -401,16 +1000,19 @@ export function Hero({ totalUsers }: { totalUsers?: number }) {
                 </Link>
               </div>
 
-              <div className="mt-5 grid w-full min-w-0 grid-cols-2 gap-x-3 gap-y-2 sm:mt-6 lg:flex lg:flex-nowrap lg:items-center lg:justify-start lg:gap-x-3">
+              <div className="mt-5 grid w-full min-w-0 grid-cols-3 grid-rows-[28px_28px] gap-x-[10px] gap-y-2 sm:mt-6 sm:grid-cols-2 sm:grid-rows-none sm:gap-x-3 sm:gap-y-2 lg:flex lg:flex-nowrap lg:items-center lg:justify-start lg:gap-x-3">
                 {TRUST_BADGES.map(({ icon: Icon, label, color }) => (
-                  <div key={label} className="flex min-w-0 items-center gap-1.5">
+                  <div
+                    key={label}
+                    className="box-border flex h-full w-full min-w-0 items-center justify-center gap-1 px-1 sm:h-auto sm:w-auto sm:justify-start sm:gap-1.5 sm:px-0"
+                  >
                     <span
-                      className="grid size-6 shrink-0 place-items-center rounded-md"
+                      className="inline-flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-md sm:grid sm:size-6"
                       style={{ background: `${color}18`, color }}
                     >
-                      <Icon className="size-3" strokeWidth={2.4} />
+                      <Icon className="size-3 shrink-0" strokeWidth={2.4} />
                     </span>
-                    <span className="min-w-0 truncate text-[10px] font-medium text-[var(--color-text-muted)] sm:text-[12px] lg:whitespace-nowrap">
+                    <span className="flex h-full min-w-0 flex-1 items-center whitespace-nowrap text-[10px] font-medium leading-none text-[var(--color-text-muted)] sm:block sm:h-auto sm:truncate sm:text-[12px] sm:leading-normal lg:whitespace-nowrap">
                       {label}
                     </span>
                   </div>

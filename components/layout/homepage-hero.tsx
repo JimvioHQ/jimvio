@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { HeroSearch } from "@/components/marketplace/hero-search";
 import { HeroRightPanel } from "./hero-right-panel";
+import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
+import { formatPlatformStat, PLATFORM_STATS } from "@/lib/platform-stats";
 import { HeroStoryCard } from "@/components/marketplace/hero-story-card";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -144,7 +146,7 @@ function StartEarnDialog({
           </div>
 
           <p className="text-[11px] text-[var(--color-text-muted)] text-center mt-5 pt-4 border-t border-[var(--color-border)]">
-            Join {platformStats?.totalUsers?.toLocaleString() || "10,000+"} active members worldwide.
+            Join <AnimatedPlatformStatValue statKey="users" /> active members worldwide.
           </p>
         </div>
       </DialogContent>
@@ -490,10 +492,10 @@ export function HomepageHero({
                   className="flex gap-2"
                 >
                   {[
-                    { icon: Globe, value: "50+", label: "Countries", color: "#3b82f6" },
-                    { icon: Users, value: "10K+", label: "Creators", color: "#f97316" },
+                    { icon: Globe, statKey: "countries" as const, label: "Countries", color: "#3b82f6" },
+                    { icon: Users, statKey: "users" as const, label: "Users", color: "#f97316" },
                     { icon: Zap, value: "$1M+", label: "Paid out", color: "#22c55e" },
-                  ].map(({ icon: Icon, value, label, color }) => (
+                  ].map(({ icon: Icon, statKey, value, label, color }) => (
                     <div
                       key={label}
                       className="flex-1 flex items-center gap-1.5 px-2.5 py-2 rounded-lg"
@@ -504,7 +506,9 @@ export function HomepageHero({
                     >
                       <Icon className="h-3 w-3 flex-shrink-0" style={{ color }} />
                       <div>
-                        <div className="text-[11px] font-black leading-none" style={{ color: "var(--color-text-primary)" }}>{value}</div>
+                        <div className="text-[11px] font-black leading-none tabular-nums" style={{ color: "var(--color-text-primary)" }}>
+                          {statKey ? <AnimatedPlatformStatValue statKey={statKey} /> : value}
+                        </div>
                         <div className="text-[8px] text-[var(--color-text-muted)] uppercase tracking-wide">{label}</div>
                       </div>
                     </div>

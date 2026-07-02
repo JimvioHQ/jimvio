@@ -8,6 +8,7 @@ import {
     ArrowRight, Pencil, Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
 import type { CartOrder, CartItem } from "@/types";
 import { FieldInput } from "../ui/field-input";
 import { CurrencyCode } from "@/lib/currency/config";
@@ -292,7 +293,7 @@ export function OrderSummaryCard({
                     ))}
                 </div>
                 <p className="text-[11px] text-[var(--color-text-muted)] flex-1">
-                    Trusted by 10,000+ happy customers
+                    Trusted by <AnimatedPlatformStatValue statKey="users" /> happy customers
                 </p>
                 <div className="flex items-center gap-1">
                     <div className="flex">

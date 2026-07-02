@@ -8,7 +8,8 @@ import {
   getTopCreators,
   getHomepageCommunities,
 } from "@/services/db";
-import { formatPublicCount, formatPublicMoneyUsd } from "@/lib/social-proof-display";
+import { formatPublicMoneyUsd } from "@/lib/social-proof-display";
+import { PLATFORM_STATS, formatPlatformStat } from "@/lib/platform-stats";
 import {
   getResolvedPlatformSettings,
   PLATFORM_SETTINGS_DEFAULTS,
@@ -63,23 +64,20 @@ async function HomepageContent() {
       products={trendingProducts as never}
       creators={topCreators as never}
       platform={{
-        totalUsers: platformStats.totalUsers,
-        totalProducts: platformStats.totalProducts,
+        totalUsers: PLATFORM_STATS.users,
+        totalProducts: PLATFORM_STATS.products,
         totalEarnings: platformStats.totalEarnings,
-        totalVendors: platformStats.totalVendors,
+        totalVendors: PLATFORM_STATS.businesses,
         totalCommunities: platformStats.totalCommunities,
       }}
       stats={{
-        users: formatPublicCount(platformStats.totalUsers),
+        users: formatPlatformStat("users", PLATFORM_STATS.users),
         earned: formatPublicMoneyUsd(platformStats.totalEarnings),
         secure:
           platformSettings?.social_proof?.success_rate_display
           ?? PLATFORM_SETTINGS_DEFAULTS.social_proof.success_rate_display,
-        countries:
-          platformSettings?.social_proof?.countries_display
-          ?? PLATFORM_SETTINGS_DEFAULTS.social_proof.countries_display,
+        countries: String(PLATFORM_STATS.countries),
       }}
-      totalUsers={platformStats.totalUsers}
     />
   );
 }

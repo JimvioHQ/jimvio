@@ -3,6 +3,13 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
+  PLATFORM_STATS,
+  formatPlatformStat,
+} from "@/lib/platform-stats";
+import {
+  AnimatedPlatformStatValue,
+} from "@/components/platform/platform-stats-provider";
+import {
   LayoutDashboard,
   Megaphone,
   LogOut,
@@ -140,7 +147,7 @@ function TrustBadges() {
     <div className="flex flex-col gap-2">
       {[
         { icon: CheckCircle2, text: "Free to join — no card needed", color: "#22c55e" },
-        { icon: Globe, text: "50+ countries supported", color: "#3b82f6" },
+        { icon: Globe, text: `${PLATFORM_STATS.countries} countries supported`, color: "#3b82f6" },
         { icon: Star, text: "Verified vendors & creators", color: "#f59e0b" },
       ].map(({ icon: Icon, text, color }) => (
         <div key={text} className="flex items-center gap-2">
@@ -307,14 +314,14 @@ function GuestView() {
             <span className="text-orange-400">from day one.</span>
           </h3>
           <p className="text-[10px] text-white/50 leading-relaxed mb-4">
-            Join 10,000+ creators earning through affiliate commissions, UGC campaigns & marketplace sales.
+            Join <AnimatedPlatformStatValue statKey="users" /> creators earning through affiliate commissions, UGC campaigns & marketplace sales.
           </p>
 
           {/* Stats mini-grid */}
           <div className="grid grid-cols-3 gap-1.5 mb-4">
             {[
               { value: "$1M+", label: "Paid out" },
-              { value: "50+", label: "Countries" },
+              { value: formatPlatformStat("countries", PLATFORM_STATS.countries), label: "Countries" },
               { value: "30%", label: "Max comm." },
             ].map(({ value, label }) => (
               <div

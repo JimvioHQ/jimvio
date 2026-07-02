@@ -17,6 +17,11 @@ import { WorldMap, type WorldMapPin } from "@/components/ui/world-map";
 import { TakeJimvioDevicesSkeleton } from "@/components/layout/take-jimvio-phones-client";
 import { Slider } from "@/components/ui/slider";
 import { CommunityLetterAvatar } from "@/components/community/community-letter-avatar";
+import {
+  AnimatedPlatformStatValue,
+  PlatformStatsRotatingBadge,
+} from "@/components/platform/platform-stats-provider";
+import { PLATFORM_STATS } from "@/lib/platform-stats";
 
 const TakeJimvioPhonesClient = dynamic(
   () =>
@@ -171,13 +176,7 @@ function flagSrc(code: string, size: 20 | 40 | 80 = 40) {
   return `https://flagcdn.com/w${size}/${code}.png`;
 }
 
-export function TrustedStrip({ usersLabel, countriesLabel = "50+" }: { usersLabel?: string; countriesLabel?: string }) {
-  if (!usersLabel) return null;
-
-  const moreLabel = countriesLabel.endsWith("+")
-    ? `+${countriesLabel.slice(0, -1)}`
-    : countriesLabel;
-
+export function TrustedStrip() {
   return (
     <div className="border-y border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
       <div className={`${shell} flex flex-wrap items-center justify-center gap-4 py-4 sm:gap-6`}>
@@ -186,10 +185,7 @@ export function TrustedStrip({ usersLabel, countriesLabel = "50+" }: { usersLabe
             <img key={i} src={src} alt="" className="size-8 rounded-full border-2 border-[var(--color-surface)] object-cover sm:size-9" />
           ))}
         </div>
-        <p className="text-center text-sm text-[var(--color-text-secondary)]">
-          Used by <b className="text-[var(--color-text-primary)]">{usersLabel} people</b> across{" "}
-          <b className="text-[var(--color-text-primary)]">{countriesLabel} countries</b>
-        </p>
+        <PlatformStatsRotatingBadge showLiveDot={false} className="shadow-none" />
         <div className="flex items-center gap-1">
           {FEATURED_COUNTRIES.map((c) => (
             <img
@@ -206,7 +202,7 @@ export function TrustedStrip({ usersLabel, countriesLabel = "50+" }: { usersLabe
             />
           ))}
           <span className="ml-1 rounded-full bg-neutral-900 px-2 py-0.5 text-[10px] font-bold text-white dark:bg-neutral-700">
-            {moreLabel}
+            +{PLATFORM_STATS.countries - FEATURED_COUNTRIES.length}
           </span>
         </div>
       </div>
@@ -1134,7 +1130,7 @@ export function GrowthStack() {
 const WHY = [
   { icon: ShieldCheck, title: "Checked vendors", desc: "We review suppliers before they list." },
   { icon: Wallet, title: "Wallet payouts", desc: "Earnings land in your Jimvio balance." },
-  { icon: Globe, title: "Works across borders", desc: "Buyers and sellers in 50+ countries." },
+  { icon: Globe, title: "Works across borders", desc: `Buyers and sellers in ${PLATFORM_STATS.countries} countries.` },
   { icon: Sparkles, title: "One login", desc: "Store, affiliates, UGC, and groups together." },
   { icon: Clapperboard, title: "Creator listings", desc: "Brands can find people to work with." },
   { icon: TrendingUp, title: "Campaign stats", desc: "See views, clicks, and what's paying off." },
@@ -1179,14 +1175,6 @@ const GLOBAL_MAP_PINS: WorldMapPin[] = [
   { lat: 35.68, lng: 139.69, color: BLUE },
 ];
 
-function formatNetworkCount(n: number): string {
-  if (!n || n < 1) return "—";
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (n >= 10_000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
-  if (n >= 1_000) return `${Math.round(n / 1000)}K`;
-  return String(n);
-}
-
 function formatPlatformPlus(n: number, prefix = ""): string {
   if (!n || n < 1) return "—";
   if (n >= 1_000_000) return `${prefix}${(n / 1_000_000).toFixed(2).replace(/\.00$/, "")}M+`;
@@ -1197,24 +1185,22 @@ function formatPlatformPlus(n: number, prefix = ""): string {
 
 export function GlobalNetworkStats({
   platform,
-  countriesLabel = "50+",
 }: {
   platform?: { totalUsers: number; totalProducts: number; totalEarnings: number; totalVendors: number };
-  countriesLabel?: string;
 }) {
   const networkRows = [
-    { icon: Globe, value: countriesLabel, label: "Countries", tint: "#dcfce7", color: GREEN },
-    { icon: Users, value: formatNetworkCount(platform?.totalUsers ?? 0), label: "Users", tint: "#dcfce7", color: GREEN },
-    { icon: Store, value: formatNetworkCount(platform?.totalVendors ?? 0), label: "Businesses", tint: "#dbeafe", color: BLUE },
-    { icon: Package, value: formatNetworkCount(platform?.totalProducts ?? 0), label: "Products", tint: "#dbeafe", color: BLUE },
+    { icon: Globe, statKey: "countries" as const, label: "Countries", tint: "#dcfce7", color: GREEN },
+    { icon: Users, statKey: "users" as const, label: "Users", tint: "#dcfce7", color: GREEN },
+    { icon: Store, statKey: "businesses" as const, label: "Businesses", tint: "#dbeafe", color: BLUE },
+    { icon: Package, statKey: "products" as const, label: "Products", tint: "#dbeafe", color: BLUE },
   ];
 
   const platformStats = [
-    { value: formatPlatformPlus(platform?.totalEarnings ?? 0, "$"), label: "Paid out", accent: ORANGE, bg: "#ffedd5" },
-    { value: formatPlatformPlus(platform?.totalUsers ?? 0), label: "Users", accent: PURPLE, bg: "#f3e8ff" },
-    { value: formatPlatformPlus(platform?.totalProducts ?? 0), label: "Products", accent: GREEN, bg: "#dcfce7" },
-    { value: formatPlatformPlus(platform?.totalVendors ?? 0), label: "Businesses", accent: BLUE, bg: "#dbeafe" },
-    { value: countriesLabel.endsWith("+") ? countriesLabel : `${countriesLabel}+`, label: "Countries", accent: ORANGE, bg: "#ffedd5" },
+    { value: formatPlatformPlus(platform?.totalEarnings ?? 0, "$"), label: "Paid out", accent: ORANGE },
+    { statKey: "users" as const, label: "Users", accent: PURPLE },
+    { statKey: "products" as const, label: "Products", accent: GREEN },
+    { statKey: "businesses" as const, label: "Businesses", accent: BLUE },
+    { statKey: "countries" as const, label: "Countries", accent: ORANGE },
   ];
 
   return (
@@ -1224,7 +1210,7 @@ export function GlobalNetworkStats({
           {/* Left card — Global Network */}
           <div className={`min-w-0 flex-1 p-6 sm:p-7 ${cardBase}`}>
             <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[22px]">Global Network</h2>
-            <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">{countriesLabel} Countries Connected</p>
+            <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">{PLATFORM_STATS.countries} Countries Connected</p>
 
             <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
               <div className="w-full shrink-0 sm:w-[190px]">
@@ -1239,7 +1225,7 @@ export function GlobalNetworkStats({
                       </span>
                       <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
                         <span className="text-[17px] font-black leading-none text-[var(--color-text-primary)] sm:text-[20px]">
-                          {row.value}
+                          <AnimatedPlatformStatValue statKey={row.statKey} />
                         </span>
                         <span className="text-[11px] font-medium text-[var(--color-text-muted)] sm:text-[12px]">
                           {row.label}
@@ -1267,8 +1253,15 @@ export function GlobalNetworkStats({
                   className="flex min-w-[68px] flex-1 flex-col items-center justify-center rounded-lg px-2 py-2.5 text-center"
                   style={{ background: `${stat.accent}18` }}
                 >
-                  <div className="text-[12px] font-black leading-tight sm:text-[13px]" style={{ color: stat.accent }}>
-                    {stat.value}
+                  <div className="text-[12px] font-black leading-tight tabular-nums sm:text-[13px]" style={{ color: stat.accent }}>
+                    {"value" in stat ? (
+                      stat.value
+                    ) : (
+                      <>
+                        <AnimatedPlatformStatValue statKey={stat.statKey} />
+                        {stat.statKey === "countries" ? "" : "+"}
+                      </>
+                    )}
                   </div>
                   <div className="mt-0.5 text-[9px] font-medium text-[var(--color-text-muted)]">{stat.label}</div>
                 </div>
@@ -1667,7 +1660,7 @@ const FAQS: { topic: Exclude<FaqTopic, "all">; q: string; a: string }[] = [
   {
     topic: "sell",
     q: "Can I open a store here?",
-    a: "Yes. List physical or digital products, set your prices, and ship to buyers in 50+ countries from your vendor dashboard.",
+    a: `Yes. List physical or digital products, set your prices, and ship to buyers in ${PLATFORM_STATS.countries} countries from your vendor dashboard.`,
   },
   {
     topic: "ugc",

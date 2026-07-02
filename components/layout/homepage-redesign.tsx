@@ -383,7 +383,7 @@
 //             icon: ShoppingBag,
 //             title: "Marketplace",
 //             tagline: "Buy & Sell Globally",
-//             desc: "Thousands of verified products from trusted vendors. Shop or list your own — reach customers across 50+ countries.",
+//             desc: `Thousands of verified products from trusted vendors. Shop or list your own — reach customers across ${PLATFORM_STATS.countries} countries.`,
 //             href: "/marketplace",
 //             cta: "Explore products",
 //             accent: "#fd5000",
@@ -1624,6 +1624,7 @@ import {
 } from "lucide-react";
 
 import { Hero } from "./hero";
+import { PLATFORM_STATS, formatPlatformStat } from "@/lib/platform-stats";
 import { SharedCampaignCard, SharedCampaignRow } from "../ugc/campaign-card-shared";
 import { formatPlatformCount } from "@/lib/platform-settings-shared";
 import { createClient } from "@/lib/supabase/client";
@@ -1738,8 +1739,8 @@ function Ticker() {
         "✦ Join Communities",
         "✦ Free to Start",
         "✦ Instant Payouts",
-        "✦ 50+ Countries",
-        "✦ 10,000+ Creators",
+        "✦ 195 Countries",
+        `✦ ${formatPlatformStat("users", PLATFORM_STATS.users)} Users`,
     ];
     const doubled = [...items, ...items];
 
@@ -1882,7 +1883,7 @@ export function CorePillars() {
             icon: ShoppingBag,
             title: "Marketplace",
             tagline: "Buy & Sell Globally",
-            desc: "Thousands of verified products from trusted vendors. Shop or list your own — reach customers across 50+ countries.",
+            desc: `Thousands of verified products from trusted vendors. Shop or list your own — reach customers across ${PLATFORM_STATS.countries} countries.`,
             href: "/marketplace",
             cta: "Explore products",
             features: ["Verified vendors", "Secure checkout", "Global shipping"],
@@ -3094,10 +3095,10 @@ export function HomepageRedesign({
     return (
         <div className="min-h-screen w-full max-w-[100dvw] overflow-x-hidden" style={{ background: "var(--color-bg)" }}>
             {/* Hero */}
-            <Hero totalUsers={totalUsers} />
+            <Hero />
 
             <WhatToDoToday />
-            <TrustedStrip usersLabel={stats?.users} countriesLabel={stats?.countries} />
+            <TrustedStrip />
 
             {/* Live marketplace proof — show real products, campaigns, and communities before the feature map */}
             <TrendingProductsRow products={products} />
@@ -3110,7 +3111,7 @@ export function HomepageRedesign({
             <OnePlatformOpportunities />
             <GrowthStack />
             <WhyChooseJimvio />
-            <GlobalNetworkStats platform={platform} countriesLabel={stats?.countries} />
+            <GlobalNetworkStats platform={platform} />
             <TopCreatorsEarnings creators={creators} />
             <First30Minutes />
             <FAQSection />

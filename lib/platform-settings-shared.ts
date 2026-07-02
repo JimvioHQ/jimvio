@@ -152,7 +152,7 @@ export const PLATFORM_SETTINGS_DEFAULTS: ResolvedPlatformSettings = {
   },
   social_proof: {
     success_rate_display: "99.2%",
-    countries_display: "50+",
+    countries_display: "195",
     fallback_verified_vendors: "",
     fallback_total_products: "",
   },

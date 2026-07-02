@@ -1,4 +1,8 @@
 import { Eyebrow, SectionHeading } from "@/components/ui";
+import {
+  formatPlatformStat,
+  getPlatformStatsLaunchSnapshot,
+} from "@/lib/platform-stats";
 function CtaBlobBackground() {
     return (
         <svg
@@ -121,7 +125,7 @@ export function CtaSection() {
                 </SectionHeading>
 
                 <p className="text-sm font-light text-[var(--color-text-secondary)] mb-10">
-                    Join 10,000+ creators already building sustainable income on Jimvio.
+                    Join {formatPlatformStat("users", getPlatformStatsLaunchSnapshot().users)} creators already building sustainable income on Jimvio.
                 </p>
 
                 <button className="btn-premium gradient-brand text-white shadow-[var(--shadow-md)] hover:shadow-[var(--shadow-lg)] hover:-translate-y-0.5">

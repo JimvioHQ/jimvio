@@ -1,7 +1,7 @@
-
 "use client";
 
 import { Headphones } from "lucide-react";
+import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
 
 export function CheckoutFooter() {
     return (
@@ -15,7 +15,7 @@ export function CheckoutFooter() {
                         </svg>
                     </div>
                     <p className="text-[12px] font-medium truncate">
-                        Trusted by 10,000+ customers worldwide
+                        Trusted by <AnimatedPlatformStatValue statKey="users" /> customers worldwide
                     </p>
                     <div className="hidden sm:flex items-center gap-1.5 shrink-0">
                         <div className="flex">
