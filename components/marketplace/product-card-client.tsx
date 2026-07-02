@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   MessageCircle,
   ShoppingCart,
@@ -25,6 +24,8 @@ import { LocalizedPrice } from "@/components/currency/localized-price";
 import { toast } from "sonner";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { VariantPickerDialog } from "./variant-picker-dialog";
+import { ProductCardVideoMedia } from "./product-card-video-media";
+import { productHasVideos } from "@/lib/product-videos";
 
 /* ─────────────────────────── types ─────────────────────────── */
 interface Product {
@@ -64,25 +65,21 @@ interface Product {
 
 export interface ProductCardClientProps {
   p: Product;
-  inWishlist?: boolean;
-  onToggleWishlist?: (e: React.MouseEvent) => void;
   detailBasePath?: string;
   initialInCart?: boolean;
   compact?: boolean;
   onAddToCart?: () => void;
-  onClick?: () => void; // ✅ added
+  onClick?: () => void;
 }
 
 /* ─────────────────────────── component ─────────────────────── */
 export function ProductCardClient({
   p,
-  inWishlist = false,
-  onToggleWishlist,
   detailBasePath = "/marketplace",
   initialInCart,
   compact = false,
   onAddToCart,
-  onClick, // ✅ added
+  onClick,
 }: ProductCardClientProps) {
   const [loading, setLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
@@ -115,7 +112,6 @@ export function ProductCardClient({
   const isDigital =
     p.product_type === "digital" ||
     (p.product_type === undefined && p.is_digital === true);
-  const showWishlist = !!onToggleWishlist;
   const commissionRate = p.affiliate_commission_rate;
 
   useEffect(() => {
@@ -210,12 +206,6 @@ export function ProductCardClient({
     await doAddToCart(vendorId, null);
   };
 
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onToggleWishlist?.(e);
-  };
-
   const handleChat = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -249,6 +239,8 @@ export function ProductCardClient({
     return h;
   }, [p.name]);
 
+  const hasVideo = useMemo(() => productHasVideos(p), [p]);
+
   return (
     <>
       <div
@@ -279,37 +271,37 @@ export function ProductCardClient({
             compact ? "aspect-[4/3]" : "aspect-[1/1]"
           )}
         >
-          {imgSrc && !imageError ? (
-            <Image
-              src={imgSrc}
-              alt={p.name}
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className={cn(
-                "object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                hovered ? "scale-[1.07]" : "scale-100"
-              )}
-              priority={false}
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              style={{
-                background: `linear-gradient(135deg, hsl(${hue},35%,90%) 0%, hsl(${hue},45%,82%) 100%)`,
-              }}
-            >
-              <span
-                className="text-6xl font-black uppercase select-none transition-transform duration-700"
+          <ProductCardVideoMedia
+            productId={p.id}
+            product={p}
+            alt={p.name}
+            imageSrc={imgSrc}
+            imageError={imageError}
+            onImageError={() => setImageError(true)}
+            hovered={hovered}
+            imageClassName={cn(
+              "transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
+              hovered && !hasVideo ? "scale-[1.07]" : "scale-100",
+            )}
+            fallback={
+              <div
+                className="absolute inset-0 flex items-center justify-center"
                 style={{
-                  color: `hsl(${hue},50%,55%)`,
-                  transform: hovered ? "scale(1.15)" : "scale(1)",
+                  background: `linear-gradient(135deg, hsl(${hue},35%,90%) 0%, hsl(${hue},45%,82%) 100%)`,
                 }}
               >
-                {p.name.charAt(0)}
-              </span>
-            </div>
-          )}
+                <span
+                  className="text-6xl font-black uppercase select-none transition-transform duration-700"
+                  style={{
+                    color: `hsl(${hue},50%,55%)`,
+                    transform: hovered ? "scale(1.15)" : "scale(1)",
+                  }}
+                >
+                  {p.name.charAt(0)}
+                </span>
+              </div>
+            }
+          />
 
           <div
             className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent transition-opacity duration-400"
@@ -325,32 +317,6 @@ export function ProductCardClient({
                 −{discount}%
               </span>
             </div>
-          )}
-
-          {showWishlist && (
-            <button
-              type="button"
-              onClick={handleWishlist}
-              aria-label="Toggle wishlist"
-              className={cn(
-                "absolute top-3 right-3 z-20",
-                "h-8 w-8 rounded-full flex items-center justify-center",
-                "backdrop-blur-md border transition-all duration-300",
-                inWishlist
-                  ? "bg-red-500 border-red-400 text-white scale-110"
-                  : "bg-white/20 border-white/30 text-white hover:bg-white/40"
-              )}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                className="h-4 w-4"
-                fill={inWishlist ? "currentColor" : "none"}
-                stroke="currentColor"
-                strokeWidth={2.2}
-              >
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-            </button>
           )}
 
           <div

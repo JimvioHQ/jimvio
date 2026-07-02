@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   MessageCircle,
   Zap,
@@ -11,11 +10,10 @@ import {
   ArrowRight,
   Repeat,
   Minus,
-  Heart,
   PercentSquare,
-  Play,
 } from "lucide-react";
 import { productHasVideos } from "@/lib/product-videos";
+import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
 import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
@@ -31,8 +29,6 @@ import type { ProductCardClientProps } from "./product-card-client";
 export interface ProductCardDigitalProps extends ProductCardClientProps {
   onAddToCart?: () => void;
   onClick?: () => void;
-  inWishlist?: boolean;
-  onWishlistToggle?: () => void;
 }
 
 export function ProductCardDigital({
@@ -42,14 +38,12 @@ export function ProductCardDigital({
   compact = false,
   onAddToCart,
   onClick,
-  inWishlist = false,
-  onWishlistToggle,
 }: ProductCardDigitalProps) {
   const [loading, setLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
   const [imageError, setImageError] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
-  const [wishlistActive, setWishlistActive] = useState(inWishlist);
+  const [hovered, setHovered] = useState(false);
 
   const { incrementCartCount, setCartCount } = useCartStore();
 
@@ -79,9 +73,6 @@ export function ProductCardDigital({
 
   /* Deterministic gradient seed for placeholder art */
   const seed = (p.name?.charCodeAt(0) ?? 65) % 360;
-
-  /* Sync external wishlist state */
-  useEffect(() => { setWishlistActive(inWishlist); }, [inWishlist]);
 
   /* Sync initialInCart changes */
   useEffect(() => {
@@ -131,14 +122,6 @@ export function ProductCardDigital({
     }
   };
 
-  /* ── Wishlist toggle ── */
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setWishlistActive(prev => !prev);
-    onWishlistToggle?.();
-  };
-
   /* ── Chat ── */
   const handleChat = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -167,6 +150,8 @@ export function ProductCardDigital({
     <>
       <article
         onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         className={cn(
           "group relative flex flex-col h-full",
           "bg-[var(--color-surface)]",
@@ -188,45 +173,38 @@ export function ProductCardDigital({
             compact ? "aspect-[1.2/1]" : "aspect-[4/3]"
           )}
         >
-          {imgSrc && !imageError ? (
-            <Image
-              src={imgSrc}
-              alt={p.name}
-              fill
-              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              style={{
-                background: `linear-gradient(135deg, hsl(${seed} 60% 96%), hsl(${(seed + 30) % 360} 50% 92%))`,
-              }}
-              aria-hidden
-            >
-              <span
-                className="text-7xl font-light tracking-tighter select-none"
-                style={{ color: `hsl(${seed} 30% 55%)` }}
+          <ProductCardVideoMedia
+            productId={p.id}
+            product={p}
+            alt={p.name}
+            imageSrc={imgSrc}
+            imageError={imageError}
+            onImageError={() => setImageError(true)}
+            hovered={hovered}
+            imageClassName="group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+            fallback={
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                style={{
+                  background: `linear-gradient(135deg, hsl(${seed} 60% 96%), hsl(${(seed + 30) % 360} 50% 92%))`,
+                }}
+                aria-hidden
               >
-                {p.name.charAt(0)}
-              </span>
-            </div>
-          )}
+                <span
+                  className="text-7xl font-light tracking-tighter select-none"
+                  style={{ color: `hsl(${seed} 30% 55%)` }}
+                >
+                  {p.name.charAt(0)}
+                </span>
+              </div>
+            }
+          />
 
           <div
             className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
             aria-hidden
           />
 
-          {hasVideo && imgSrc && (
-            <span className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm">
-              <Play className="h-2.5 w-2.5 fill-white" aria-hidden />
-              Video
-            </span>
-          )}
-
-          {/* Top-left: type + recurring badge */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-[var(--color-text-primary)]">
               <Zap className="h-3 w-3 text-orange-500" aria-hidden />
@@ -240,40 +218,22 @@ export function ProductCardDigital({
             )}
           </div>
 
-          {/* Top-right: wishlist + in-cart check */}
-          <div className="absolute top-3 right-3 flex items-center gap-1.5">
-            {onWishlistToggle && (
-              <button
-                type="button"
-                onClick={handleWishlist}
-                aria-label={wishlistActive ? "Remove from wishlist" : "Save to wishlist"}
-                aria-pressed={wishlistActive}
-                className={cn(
-                  "flex items-center justify-center h-6 w-6 rounded-full transition-all",
-                  "opacity-0 group-hover:opacity-100",
-                  wishlistActive && "opacity-100",
-                  wishlistActive
-                    ? "bg-rose-500 text-white shadow-sm"
-                    : "bg-[var(--color-surface)]/90 backdrop-blur-sm text-[var(--color-text-muted)] hover:text-rose-500"
-                )}
-              >
-                <Heart className={cn("h-3 w-3 transition-all", wishlistActive && "fill-current")} aria-hidden />
-              </button>
-            )}
-
-            {inCart && !isRecurring && (
+          {inCart && !isRecurring && (
+            <div className="absolute top-3 right-3 flex items-center gap-1.5">
               <span
                 className="h-6 w-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-sm"
                 aria-label="In library"
               >
                 <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Bottom-left: sale discount */}
           {onSale && (
-            <span className="absolute flex items-center gap-1 bottom-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600">
+            <span className={cn(
+              "absolute flex items-center gap-1 bottom-3 left-3 px-2 py-0.5 rounded-full bg-[var(--color-surface)]/95 backdrop-blur-sm text-[10px] font-medium tracking-wide text-rose-600",
+            )}>
               <Minus size={12} aria-hidden />
               {discount}%
             </span>

@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Package, Zap, ShieldCheck, Sparkles, TrendingUp,
   Clock, Star, ShoppingBag, X, LockKeyhole as Lock, MapPin,
-  Award, SlidersHorizontal, ChevronDown, Heart, ShoppingCart,
+  Award, SlidersHorizontal, ChevronDown, ShoppingCart,
   CheckCircle2, AlertCircle, Eye, PercentSquare, Filter,
   SlidersVertical, Bookmark, Tag, ArrowUpRight,
 } from "lucide-react";
@@ -71,28 +71,6 @@ function getCategoryIcon(slug: string, name: string): LucideIcon {
 }
 const DIGITAL_SLUG_PATTERNS = ["ebook", "course", "software", "template", "digital", "asset"];
 
-function useWishlist() {
-  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("mkt_wishlist");
-      if (stored) setWishlist(new Set(JSON.parse(stored)));
-    } catch { }
-  }, []);
-
-  const toggle = useCallback((id: string) => {
-    setWishlist(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      try { localStorage.setItem("mkt_wishlist", JSON.stringify([...next])); } catch { }
-      return next;
-    });
-  }, []);
-
-  return { wishlist, toggle };
-}
-
 /* ─── Mini-cart count badge ─── */
 function MiniCartBadge({ count, onClick }: { count: number; onClick: () => void }) {
   if (count === 0) return null;
@@ -142,27 +120,6 @@ function SkeletonGrid({ count = 8 }: { count?: number }) {
 }
 
 
-
-/* ─── Wishlist button ─── */
-function WishlistButton({
-  productId, inWishlist, onToggle,
-}: { productId: string; inWishlist: boolean; onToggle: () => void }) {
-  return (
-    <button
-      onClick={e => { e.preventDefault(); e.stopPropagation(); onToggle(); }}
-      aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
-      aria-pressed={inWishlist}
-      className="flex items-center justify-center h-8 w-8 rounded-lg transition-all"
-      style={{
-        background: inWishlist ? "rgba(244,63,94,0.1)" : "var(--color-surface-secondary)",
-        border: "1px solid var(--color-border)",
-        color: inWishlist ? "#f43f5e" : "var(--color-text-muted)",
-      }}
-    >
-      <Heart className={cn("h-3.5 w-3.5 transition-all", inWishlist && "fill-current")} />
-    </button>
-  );
-}
 
 /* ─── Filter drawer (mobile) ─── */
 interface FilterDrawerProps {
@@ -790,7 +747,6 @@ export function MarketplaceClient({
   marketplaceStats, basePath = "/marketplace", uiVariant = "all",
 }: MarketplaceClientProps & { basePath?: string }) {
   const router = useRouter();
-  const { wishlist, toggle: toggleWishlist } = useWishlist();
 
   const [priceRange, setPriceRange] = useState<[number, number]>([
     Number(params.minPrice ?? 0),
@@ -809,14 +765,6 @@ export function MarketplaceClient({
     setLocalCartIds(prev => new Set([...prev, product.id]));
     toast.success(`"${product.name}" added to cart`);
   }, []);
-
-  const handleWishlist = useCallback((product: Product) => {
-    const wasIn = wishlist.has(product.id);
-    toggleWishlist(product.id);
-    wasIn
-      ? toast.success("Removed from wishlist")
-      : toast.success(`Saved to wishlist`);
-  }, [wishlist, toggleWishlist]);
 
   const [recentlyViewed, setRecentlyViewed] = useState<{ id: string; name: string; slug: string; image?: string }[]>(() => {
     if (typeof window === "undefined") return [];
@@ -1170,9 +1118,6 @@ export function MarketplaceClient({
                                           onAddToCart={() => addToCart(item.data)}
                                           onClick={() => trackView(item.data)}
                                         />
-                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                          <WishlistButton productId={item.data.id} inWishlist={wishlist.has(item.data.id)} onToggle={() => handleWishlist(item.data)} />
-                                        </div>
                                       </div>
                                     </motion.div>
                                   ))}
@@ -1202,9 +1147,6 @@ export function MarketplaceClient({
                                           onAddToCart={() => addToCart(item.data)}
                                           onClick={() => trackView(item.data)}
                                         />
-                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                          <WishlistButton productId={item.data.id} inWishlist={wishlist.has(item.data.id)} onToggle={() => handleWishlist(item.data)} />
-                                        </div>
                                       </div>
                                     </motion.div>
                                   ))}
@@ -1227,9 +1169,6 @@ export function MarketplaceClient({
                                 ? <ProductCardPhysical p={item.data} detailBasePath="/marketplace" initialInCart={localCartIds.has(item.data.id)} onAddToCart={() => addToCart(item.data)} onClick={() => trackView(item.data)} />
                                 : <ProductCardClient p={item.data} detailBasePath="/marketplace" initialInCart={localCartIds.has(item.data.id)} onAddToCart={() => addToCart(item.data)} onClick={() => trackView(item.data)} />
                             }
-                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                              <WishlistButton productId={item.data.id} inWishlist={wishlist.has(item.data.id)} onToggle={() => handleWishlist(item.data)} />
-                            </div>
                           </div>
                         </motion.div>
                       ))}

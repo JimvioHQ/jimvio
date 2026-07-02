@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
-  Heart, Flame, Sparkles,
+  Flame, Sparkles,
   TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
 import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel } from "@/lib/utils";
-import { addToCart, toggleWishlist, getWishlistProductIds } from "@/lib/actions/marketplace";
+import { addToCart } from "@/lib/actions/marketplace";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
+import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
 import type { Tables } from "@/types/supabase";
 
 export type DbVariant = Tables<"product_variants">;
@@ -22,6 +23,10 @@ type Product = DbProduct & {
   product_variants?: DbVariant[];
   currency?: string | null;
   vendors?: { id: string; verification_status?: string | null } | null;
+  product_videos?: Array<{ url?: string | null; video_url?: string | null; sort_order?: number | null }>;
+  videos?: unknown;
+  source?: string | null;
+  source_metadata?: unknown;
 };
 
 const PHYSICAL_TABS = [
@@ -67,16 +72,8 @@ export function TrendingProductsClient({
 }) {
   const TABS = type === "digital" ? DIGITAL_TABS : PHYSICAL_TABS;
   const [activeTab, setActiveTab] = useState(0);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [wishlistLoaded, setWishlistLoaded] = useState(false);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  useEffect(() => {
-    getWishlistProductIds()
-      .then((ids) => { setFavorites(new Set(ids)); setWishlistLoaded(true); })
-      .catch(() => setWishlistLoaded(true));
-  }, []);
 
   useEffect(() => { setActiveTab(0); }, [type]);
 
@@ -86,24 +83,6 @@ export function TrendingProductsClient({
   }, [activeTab]);
 
   const filtered = products.filter(TABS[activeTab].filter);
-
-  const toggleFav = useCallback(async (productId: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      next.has(productId) ? next.delete(productId) : next.add(productId);
-      return next;
-    });
-    try {
-      await toggleWishlist(productId);
-    } catch {
-      // Revert optimistic update silently
-      setFavorites((prev) => {
-        const next = new Set(prev);
-        next.has(productId) ? next.delete(productId) : next.add(productId);
-        return next;
-      });
-    }
-  }, []);
 
   return (
     <div className="w-full max-w-full min-w-0 space-y-5 overflow-hidden">
@@ -155,9 +134,6 @@ export function TrendingProductsClient({
             <ProductCard
               key={p.id}
               p={p}
-              isFav={favorites.has(p.id)}
-              wishlistLoaded={wishlistLoaded}
-              onToggleFav={() => toggleFav(p.id)}
             />
           ))}
         </div>
@@ -196,14 +172,8 @@ function cssColor(raw: string): string {
 
 function ProductCard({
   p,
-  isFav,
-  wishlistLoaded,
-  onToggleFav,
 }: {
   p: Product;
-  isFav: boolean;
-  wishlistLoaded: boolean;
-  onToggleFav: () => void;
 }) {
   const trackInventory = Boolean(p.track_inventory);
   const variants: DbVariant[] = filterStorefrontVariants(
@@ -256,6 +226,7 @@ function ProductCard({
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
+  const [hovered, setHovered] = useState(false);
   const { formatMoney } = useCurrency();
 
   let activeVariant = variants.find((v) => {
@@ -356,6 +327,8 @@ function ProductCard({
     <div
       className="group relative flex flex-col rounded-md overflow-hidden transition-all duration-300 ease-out hover:shadow-[0_8px_24px_rgba(0,0,0,.10)] active:scale-[0.99]"
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* ── Image ── */}
       <div className="relative overflow-hidden">
@@ -367,14 +340,16 @@ function ProductCard({
             className="relative flex aspect-square w-full items-center justify-center overflow-hidden p-2.5 sm:p-3"
             style={{ background: "var(--color-surface-secondary)" }}
           >
-            <img
-              src={displayImage}
+            <ProductCardVideoMedia
+              productId={p.id}
+              product={p}
               alt={p.name}
-              width={512}
-              height={512}
-              loading="lazy"
-              decoding="async"
-              className="max-h-full max-w-full object-contain object-center transition-transform duration-300 ease-out group-hover:scale-[1.02]"
+              imageSrc={displayImage}
+              hovered={hovered}
+              useNextImage={false}
+              layout="fit"
+              imageFit="contain"
+              imageClassName="max-h-full max-w-full transition-transform duration-300 ease-out group-hover:scale-[1.02]"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/[.03] transition-colors duration-200 pointer-events-none" />
           </div>
@@ -406,25 +381,6 @@ function ProductCard({
             Out of stock
           </span>
         )}
-
-        <button
-          type="button"
-          onClick={(e) => { e.preventDefault(); onToggleFav(); }}
-          disabled={!wishlistLoaded}
-          className="absolute right-2 top-2 z-10 grid size-7 place-items-center rounded-full shadow-sm transition-all duration-150 hover:scale-110 active:scale-95 disabled:opacity-50"
-          style={{
-            background: isFav ? "var(--color-accent)" : "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-          }}
-          aria-label={isFav ? "Remove from wishlist" : "Add to wishlist"}
-          aria-pressed={isFav}
-        >
-          <Heart
-            className="size-3.5 transition-colors duration-150"
-            style={{ color: isFav ? "#fff" : "var(--color-text-muted)" }}
-            fill={isFav ? "#fff" : "none"}
-          />
-        </button>
 
         <div
           className="absolute inset-x-0 bottom-0 z-10 flex translate-y-full gap-1 p-1.5 transition-transform duration-200 ease-out group-hover:translate-y-0"

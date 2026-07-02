@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, Star, Zap, ShoppingCart } from "lucide-react";
+import { Star, Zap, ShoppingCart } from "lucide-react";
 import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { Product } from "@/types/db";
@@ -44,7 +44,6 @@ function GlassBadge({
 }
 
 export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
-  const [wishlisted, setWishlisted] = useState(false);
   const [imageError, setImageError] = useState(false);
   const discountFields = {
     price: product.price,
@@ -137,13 +136,6 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
             >
               Add to cart
             </button>
-            <button
-              type="button"
-              onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
-              className="h-8 w-full rounded-sm bg-surface dark:bg-surface/70 border border-border flex items-center justify-center hover:border-red-200 dark:hover:border-red-800 transition-all"
-            >
-              <Heart className={cn("h-3.5 w-3.5 transition-colors", wishlisted ? "fill-red-500 text-red-500" : "text-stone-400")} />
-            </button>
           </div>
         </div>
       </Link>
@@ -204,15 +196,6 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
               </GlassBadge>
             )}
           </div>
-
-          {/* Wishlist button */}
-          <button
-            type="button"
-            className="absolute top-2.5 right-2.5 z-20 h-8 w-8 rounded-sm bg-surface dark:bg-surface/80 border border-border shadow-none flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
-            onClick={(e) => { e.preventDefault(); setWishlisted(!wishlisted); }}
-          >
-            <Heart className={cn("h-3.5 w-3.5 transition-colors", wishlisted ? "fill-red-500 text-red-500" : "text-stone-500 dark:text-text-muted")} />
-          </button>
 
           {/* Hover CTA */}
           <div className="absolute bottom-3 left-3 right-3 z-20 translate-y-[140%] group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]">

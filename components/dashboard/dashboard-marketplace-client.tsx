@@ -29,8 +29,6 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { FollowButton } from "@/components/marketplace/follow-button";
-import { toggleWishlist, getWishlistProductIds } from "@/lib/actions/marketplace";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { CartAside } from "@/components/dashboard/cart-aside";
@@ -105,15 +103,12 @@ export function DashboardMarketplaceClient({
   const cartSet = useMemo(() => new Set(cartProductIds), [cartProductIds]);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
-  const [savingId, setSavingId] = useState<string | null>(null);
   const { cartCount, refreshCounts, setCartCount } = useCartStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(params.q ?? "");
 
   useEffect(() => {
-    getWishlistProductIds().then((ids) => setWishlistIds(new Set(ids)));
     if (cartCount === 0 && cartProductIds.length > 0) {
       setCartCount(cartProductIds.length);
     }
@@ -143,24 +138,6 @@ export function DashboardMarketplaceClient({
     });
     if (!("page" in updates)) next.delete("page");
     router.push(`/dashboard/marketplace?${next.toString()}`);
-  };
-
-  const handleSave = async (e: React.MouseEvent, productId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (savingId) return;
-    setSavingId(productId);
-    const res = await toggleWishlist(productId);
-    setSavingId(null);
-    if (res.success) {
-      setWishlistIds((prev) => {
-        const next = new Set(prev);
-        if (res.inWishlist) next.add(productId);
-        else next.delete(productId);
-        return next;
-      });
-      toast.success(res.inWishlist ? "Saved to list" : "Removed from list");
-    } else toast.error(res.error);
   };
 
   const totalPages = Math.ceil(total / limit);
@@ -397,8 +374,6 @@ export function DashboardMarketplaceClient({
                          <ProductCardClient
                            p={p}
                            initialInCart={cartSet.has(p.id)}
-                           inWishlist={wishlistIds.has(p.id)}
-                           onToggleWishlist={savingId ? undefined : (e) => handleSave(e, p.id)}
                            onAddToCart={() => setCartOpen(true)}
                          />
                        </motion.div>

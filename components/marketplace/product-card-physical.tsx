@@ -5,9 +5,10 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   MessageCircle, ShoppingBag, Check, X, Minus,
-  Heart, PercentSquare, AlertTriangle, Play,
+  PercentSquare, AlertTriangle,
 } from "lucide-react";
 import { productHasVideos } from "@/lib/product-videos";
+import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
 import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
@@ -26,8 +27,6 @@ import type { ProductCardClientProps } from "./product-card-client";
 export interface ProductCardPhysicalProps extends ProductCardClientProps {
   onAddToCart?: () => void;
   onClick?: () => void;
-  inWishlist?: boolean;
-  onWishlistToggle?: () => void;
 }
 
 export function ProductCardPhysical({
@@ -37,20 +36,18 @@ export function ProductCardPhysical({
   compact = false,
   onAddToCart,
   onClick,
-  inWishlist = false,
-  onWishlistToggle,
 }: ProductCardPhysicalProps) {
   const [loading, setLoading] = useState(false);
   const [inCart, setInCart] = useState(initialInCart ?? false);
   const [imageError, setImageError] = useState(false);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
-  const [wishlistActive, setWishlistActive] = useState(inWishlist);
 
   const { incrementCartCount, setCartCount } = useCartStore();
 
   const [variants, setVariants] = useState<any[] | null>(null);
   const [variantPickerOpen, setVariantPickerOpen] = useState(false);
   const [loadingVariantId, setLoadingVariantId] = useState<string | null>(null);
+  const [hovered, setHovered] = useState(false);
 
   /* ── Derived values ── */
   const images = p.images ?? [];
@@ -89,9 +86,6 @@ export function ProductCardPhysical({
 
   /* Gradient seed for placeholder art */
   const seed = (p.name?.charCodeAt(0) ?? 65) % 360;
-
-  /* Sync external wishlist prop */
-  useEffect(() => { setWishlistActive(inWishlist); }, [inWishlist]);
 
   /* Sync initialInCart / lazy-check */
   useEffect(() => {
@@ -188,14 +182,6 @@ export function ProductCardPhysical({
     await doAddToCart(vendorId, null);
   };
 
-  /* ── Wishlist toggle ── */
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setWishlistActive(prev => !prev);
-    onWishlistToggle?.();
-  };
-
   /* ── Chat ── */
   const handleChat = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -224,6 +210,8 @@ export function ProductCardPhysical({
     <>
       <article
         onClick={onClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         className={cn(
           "group relative flex flex-col h-full",
           "bg-[var(--color-surface)]",
@@ -246,46 +234,45 @@ export function ProductCardPhysical({
             compact ? "aspect-square" : "aspect-[4/5]"
           )}
         >
-          {imgSrc && !imageError ? (
-            <>
-              <Image
-                src={imgSrc}
-                alt={p.name}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                className={cn(
-                  "object-cover transition-opacity duration-500",
-                  hoverImg ? "group-hover:opacity-0" : "group-hover:scale-[1.03]",
-                  outOfStock && "grayscale"
-                )}
-                onError={() => setImageError(true)}
-              />
-              {hoverImg && (
-                <Image
-                  src={hoverImg}
-                  alt=""
-                  aria-hidden
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-                />
-              )}
-            </>
-          ) : (
-            <div
-              className="absolute inset-0 flex items-center justify-center"
-              style={{
-                background: `linear-gradient(135deg, hsl(${seed} 60% 96%), hsl(${(seed + 30) % 360} 50% 92%))`,
-              }}
-              aria-hidden
-            >
-              <span
-                className="text-7xl font-light tracking-tighter select-none"
-                style={{ color: `hsl(${seed} 30% 55%)` }}
+          <ProductCardVideoMedia
+            productId={p.id}
+            product={p}
+            alt={p.name}
+            imageSrc={imgSrc}
+            imageError={imageError}
+            onImageError={() => setImageError(true)}
+            hovered={hovered}
+            grayscale={outOfStock}
+            imageClassName={cn(
+              hoverImg && !hasVideo ? "group-hover:opacity-0" : "group-hover:scale-[1.03]",
+            )}
+            fallback={
+              <div
+                className="absolute inset-0 flex items-center justify-center"
+                style={{
+                  background: `linear-gradient(135deg, hsl(${seed} 60% 96%), hsl(${(seed + 30) % 360} 50% 92%))`,
+                }}
+                aria-hidden
               >
-                {p.name.charAt(0)}
-              </span>
-            </div>
+                <span
+                  className="text-7xl font-light tracking-tighter select-none"
+                  style={{ color: `hsl(${seed} 30% 55%)` }}
+                >
+                  {p.name.charAt(0)}
+                </span>
+              </div>
+            }
+          />
+
+          {hoverImg && !hasVideo && imgSrc && !imageError && (
+            <Image
+              src={hoverImg}
+              alt=""
+              aria-hidden
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+            />
           )}
 
           {/* Bottom fade */}
@@ -301,54 +288,16 @@ export function ProductCardPhysical({
             </span>
           )}
 
-          {hasVideo && imgSrc && (
-            <span className="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur-sm text-[10px] font-semibold text-white">
-              <Play className="h-2.5 w-2.5 fill-white" aria-hidden />
-              Video
-            </span>
-          )}
-
-          {hasVideo && imgSrc && (
-            <span
-              className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-              aria-hidden
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 backdrop-blur-sm">
-                <Play className="h-4 w-4 text-white fill-white" />
-              </span>
-            </span>
-          )}
-
-          {/* Top-right: wishlist + in-cart check */}
-          <div className="absolute top-3 right-3 flex items-center gap-1.5">
-            {onWishlistToggle && (
-              <button
-                type="button"
-                onClick={handleWishlist}
-                aria-label={wishlistActive ? "Remove from wishlist" : "Save to wishlist"}
-                aria-pressed={wishlistActive}
-                className={cn(
-                  "flex items-center justify-center h-6 w-6 rounded-full transition-all",
-                  "opacity-0 group-hover:opacity-100",
-                  wishlistActive && "opacity-100",
-                  wishlistActive
-                    ? "bg-rose-500 text-white shadow-sm"
-                    : "bg-[var(--color-surface)]/90 backdrop-blur-sm text-[var(--color-text-muted)] hover:text-rose-500"
-                )}
-              >
-                <Heart className={cn("h-3 w-3 transition-all", wishlistActive && "fill-current")} aria-hidden />
-              </button>
-            )}
-
-            {inCart && (
+          {inCart && (
+            <div className="absolute top-3 right-3 flex items-center gap-1.5">
               <span
                 className="h-6 w-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-sm"
                 aria-label="In cart"
               >
                 <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Out-of-stock overlay label */}
           {outOfStock && (
