@@ -74,7 +74,7 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
   return (
     <Link
       href={`/marketplace/${d.slug}`}
-      className="group relative flex w-full min-w-0 flex-col rounded-xl border border-border bg-card p-2 transition-[transform,box-shadow] duration-300 ease-out hover:scale-[1.03] hover:shadow-[var(--shadow-card)] sm:p-2.5"
+      className="product-tap-nav group relative flex w-full min-w-0 flex-col rounded-xl border border-border bg-card p-2 transition-[transform,box-shadow] duration-150 ease-out hover:shadow-[var(--shadow-card)] sm:p-2.5"
     >
       {discount && (
         <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-1 py-0.5 text-[8px] font-bold leading-none text-primary-foreground md:text-[9px]">
@@ -92,7 +92,11 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
           className="h-full w-full object-cover object-center"
         />
       </div>
-      <h4 className="mt-0.5 truncate text-xs font-bold leading-tight">{d.name}</h4>
+      <h4
+        className="mt-0.5 line-clamp-2 overflow-hidden text-ellipsis break-words text-[12px] font-semibold leading-[1.3] min-h-[31.2px] max-h-[31.2px] md:text-[13px] md:leading-[1.35] md:min-h-[35.1px] md:max-h-[35.1px]"
+      >
+        {d.name}
+      </h4>
       <div className="mt-0.5 flex items-baseline gap-0.5 leading-none">
         <span
           className="text-[10px] font-bold leading-none md:text-[12px]"

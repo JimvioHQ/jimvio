@@ -581,6 +581,58 @@
     }
   }
 
+  @keyframes hero-product-float {
+    0%,
+    100% {
+      transform: translate3d(0, -4px, 0);
+    }
+
+    50% {
+      transform: translate3d(0, 4px, 0);
+    }
+  }
+
+  .hero-product-float {
+    animation: hero-product-float 7s ease-in-out infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-product-float {
+      animation: none;
+    }
+  }
+
+  /* Whole-card product navigation feedback */
+  .product-tap-nav {
+    cursor: pointer;
+    transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+    will-change: transform;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .product-tap-nav:hover {
+      transform: translate3d(0, -2px, 0);
+    }
+  }
+
+  @media (hover: none) {
+    .product-tap-nav:active {
+      transform: scale(0.99);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .product-tap-nav,
+    .product-tap-nav:hover,
+    .product-tap-nav:active {
+      transform: none;
+      transition: none;
+    }
+  }
+
   @keyframes scaleIn {
     from {
       opacity: 0;

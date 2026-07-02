@@ -245,17 +245,16 @@ export function ProductCardClient({
     <>
       <div
         ref={cardRef}
-        onClick={onClick} // ✅ added
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         className={cn(
-          "group relative flex flex-col h-full",
+          "product-tap-nav group relative flex flex-col h-full",
           "rounded-[18px] overflow-hidden",
           "bg-white dark:bg-[#121212]",
-          "border transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "border transition-[transform,box-shadow] duration-150 ease-out",
           inCart
             ? "border-[#fd5000]/40 shadow-[0_0_0_1.5px_#fd5000,0_12px_40px_rgba(253,80,0,0.12)]"
-            : "border-stone-200/80 dark:border-white/[0.07] shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.12)] hover:-translate-y-[3px]"
+            : "border-stone-200/80 dark:border-white/[0.07] shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.12)]"
         )}
         style={
           cartFlash
@@ -263,11 +262,17 @@ export function ProductCardClient({
             : undefined
         }
       >
-        {/* ── Image area ── */}
         <Link
           href={`${detailBasePath}/${p.slug}`}
+          className="absolute inset-0 z-[1] rounded-[inherit]"
+          aria-label={`View ${p.name}`}
+          onClick={() => onClick?.()}
+        />
+
+        {/* ── Image area ── */}
+        <div
           className={cn(
-            "relative block w-full overflow-hidden flex-shrink-0",
+            "pointer-events-none relative z-[2] block w-full overflow-hidden flex-shrink-0",
             compact ? "aspect-[4/3]" : "aspect-[1/1]"
           )}
         >
@@ -322,7 +327,7 @@ export function ProductCardClient({
 
           <div
             className={cn(
-              "absolute left-3 right-3 bottom-3 z-20 flex gap-2",
+              "pointer-events-auto absolute left-3 right-3 bottom-3 z-20 flex gap-2",
               "transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]",
               hovered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
             )}
@@ -398,27 +403,25 @@ export function ProductCardClient({
               </span>
             </div>
           )}
-        </Link>
+        </div>
 
         {/* ─────────── Info area ─────────── */}
-        <div className="flex flex-col flex-1 px-3.5 pt-3 pb-3.5 gap-1">
+        <div className="pointer-events-none relative z-[2] flex flex-col flex-1 px-3.5 pt-3 pb-3.5 gap-1">
           {p.vendors?.business_name && (
             <p className="text-[10px] font-medium tracking-wide text-stone-400 dark:text-stone-500 uppercase truncate">
               {p.vendors.business_name}
             </p>
           )}
 
-          <Link href={`${detailBasePath}/${p.slug}`} className="min-w-0 block">
-            <h3
-              className={cn(
-                "font-semibold leading-[1.35] text-[#0f0f0f] dark:text-[#ebebeb]",
-                "transition-colors duration-200 group-hover:text-[#fd5000]",
-                compact ? "text-[12px] line-clamp-1" : "text-[14px] line-clamp-2"
-              )}
-            >
-              {p.name}
-            </h3>
-          </Link>
+          <h3
+            className={cn(
+              "font-semibold leading-[1.35] text-[#0f0f0f] dark:text-[#ebebeb]",
+              "transition-colors duration-200 group-hover:text-[#fd5000]",
+              compact ? "text-[12px] line-clamp-1" : "text-[14px] line-clamp-2"
+            )}
+          >
+            {p.name}
+          </h3>
 
           <div className={cn("flex items-baseline leading-none", isDigital ? "mt-1.5 gap-2" : "mt-0.5 gap-1")}>
             <LocalizedPrice
@@ -472,7 +475,7 @@ export function ProductCardClient({
             onClick={handleCartToggle}
             disabled={loading}
             className={cn(
-              "sm:hidden mt-2 w-full rounded-[10px] font-bold text-white",
+              "pointer-events-auto sm:hidden mt-2 w-full rounded-[10px] font-bold text-white",
               "transition-all duration-200 active:scale-[0.97] disabled:opacity-60",
               compact ? "h-8 text-[11px]" : "h-9 text-[12px]",
               inCart

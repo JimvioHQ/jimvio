@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type KeyboardEvent, type MouseEvent } from "react";
 import {
   Flame, Zap, Star,
   Crown, ShoppingCart, Eye, Award, TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getProductDiscountLabel, getEffectiveCompareAtPrice } from "@/lib/utils";
 import { HeroBannerClient } from "./HeroBannerClient";
@@ -38,7 +39,7 @@ const THEMES: Record<"physical" | "digital", Theme> = {
     badge: JIMVIO_ORANGE.gradient,
     badgeText: "FLASH SALE",
     headline: "#ffffff",
-    sub: "rgba(255,255,255,0.72)",
+    sub: "rgba(255,255,255,0.70)",
     price: "#fd8c00",
     strikeout: "rgba(255,255,255,0.42)",
     discountPill: "var(--color-accent)",
@@ -56,7 +57,7 @@ const THEMES: Record<"physical" | "digital", Theme> = {
     badge: JIMVIO_ORANGE.gradient,
     badgeText: "DIGITAL BEST DEALS",
     headline: "#ffffff",
-    sub: "rgba(255,255,255,0.72)",
+    sub: "rgba(255,255,255,0.70)",
     price: JIMVIO_ORANGE.light,
     strikeout: "rgba(255,255,255,0.42)",
     discountPill: JIMVIO_ORANGE.gradient,
@@ -377,7 +378,7 @@ function FeaturedProductStage({
       {/* Layer 3 — sharp foreground product */}
       {image ? (
         mobile ? (
-          <div className="absolute inset-y-0 right-0 z-[15] flex h-full min-h-full w-full items-center justify-center">
+          <div className="hero-product-float absolute inset-y-0 right-0 z-[15] flex h-full min-h-full w-full items-center justify-center">
             <img
               key={`${stageKey}-fg`}
               src={image}
@@ -396,17 +397,19 @@ function FeaturedProductStage({
             />
           </div>
         ) : (
-          <img
-            key={`${stageKey}-fg`}
-            src={image}
-            alt={alt}
-            loading="lazy"
-            decoding="async"
-            className="absolute inset-0 z-10 m-auto h-[90%] w-[90%] object-contain object-center transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.02]"
-            style={{
-              filter: "drop-shadow(0 14px 32px rgba(0,0,0,0.42))",
-            }}
-          />
+          <div className="hero-product-float absolute inset-0 z-10 flex items-center justify-center">
+            <img
+              key={`${stageKey}-fg`}
+              src={image}
+              alt={alt}
+              loading="lazy"
+              decoding="async"
+              className="h-[90%] w-[90%] object-contain object-center transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.02]"
+              style={{
+                filter: "drop-shadow(0 14px 32px rgba(0,0,0,0.42))",
+              }}
+            />
+          </div>
         )
       ) : (
         <div className={`flex h-full w-full items-center justify-center opacity-20 ${mobile ? "relative z-[15]" : "relative z-10"}`}>
@@ -436,13 +439,13 @@ function HeroPillBadge({
 }) {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold text-white sm:gap-1.5 sm:px-3 sm:py-1 sm:text-[11px]"
+      className="inline-flex h-5 items-center gap-1 rounded-full px-2.5 text-[9px] font-bold leading-none text-white sm:h-6 sm:gap-1.5 sm:px-3 sm:text-[11px]"
       style={{
         background: JIMVIO_ORANGE.gradient,
         boxShadow: glow ? JIMVIO_ORANGE.glow : "0 2px 10px rgba(255, 90, 31, 0.28)",
       }}
     >
-      <Icon className="size-2.5 sm:size-3" />
+      <Icon className="size-2.5 shrink-0 sm:size-3" />
       {label}
     </span>
   );
@@ -481,7 +484,7 @@ function HeroBannerContent({
   const secondaryBadges = getSecondaryHeroBadges(product);
 
   return (
-    <div className="flex h-full w-full min-w-0 flex-col justify-between">
+    <div className="flex h-full w-full min-w-0 flex-col justify-center gap-3 sm:gap-4">
       {/* Badges */}
       <div className="flex flex-wrap items-center gap-1.5">
         <HeroPillBadge
@@ -494,95 +497,105 @@ function HeroBannerContent({
         ))}
       </div>
 
-      {/* Product info + CTAs */}
-      <div className="flex min-w-0 flex-col gap-1 sm:gap-1.5">
-        <h2
-          className="line-clamp-2 min-h-[33px] max-h-[33px] w-full min-w-0 overflow-hidden text-ellipsis break-words text-[12px] font-bold leading-snug sm:min-h-[55px] sm:max-h-[55px] sm:text-xl sm:font-black lg:min-h-[66px] lg:max-h-[66px] lg:text-2xl"
-          style={{ color: theme.headline, letterSpacing: "-0.02em" }}
+      <h2
+        className="line-clamp-2 min-h-[34px] max-h-[34px] w-full min-w-0 overflow-hidden text-ellipsis break-words text-[13px] font-extrabold leading-[1.3] sm:min-h-[54px] sm:max-h-[54px] sm:text-xl sm:leading-[1.35] lg:min-h-[65px] lg:max-h-[65px] lg:text-2xl"
+        style={{ color: theme.headline, letterSpacing: "-0.025em" }}
+      >
+        {rawName}
+      </h2>
+
+      {displayDesc && (
+        <p
+          className={
+            isMobile
+              ? "line-clamp-1 overflow-hidden text-ellipsis text-[10px] leading-tight"
+              : "line-clamp-1 overflow-hidden text-ellipsis text-[11px] leading-tight sm:block"
+          }
+          style={{ color: theme.sub }}
         >
-          {rawName}
-        </h2>
+          {displayDesc}
+        </p>
+      )}
 
-        {displayDesc && (
-          <p
-            className={
-              isMobile
-                ? "line-clamp-1 text-[10px]"
-                : "hidden truncate text-[11px] sm:block"
-            }
-            style={{ color: theme.sub }}
-          >
-            {displayDesc}
-          </p>
-        )}
-
-        {bannerHasReviews && bannerRating > 0 && (
-          <div className="hidden items-center gap-0.5 sm:flex">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star
-                key={i}
-                className="size-3"
-                style={{
-                  color: i < Math.round(bannerRating) ? theme.price : "rgba(255,255,255,0.18)",
-                  fill: i < Math.round(bannerRating) ? theme.price : "none",
-                }}
-              />
-            ))}
-            <span className="ml-0.5 text-[11px]" style={{ color: theme.sub }}>
-              ({bannerReviewCount.toLocaleString()})
-            </span>
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2">
-          <span
-            className="text-[17px] font-black leading-none sm:text-2xl"
-            style={{ color: theme.price }}
-          >
-            {price}
-          </span>
-          {oldPrice && (
-            <span
-              className="text-[11px] line-through sm:text-sm"
-              style={{ color: theme.strikeout }}
-            >
-              {oldPrice}
-            </span>
-          )}
-          {discount && (
-            <span
-              className="rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white sm:px-2 sm:text-[11px]"
-              style={{ background: theme.discountPill }}
-            >
-              {discount}
-            </span>
-          )}
-        </div>
-
-        <div className="mt-1.5 flex flex-wrap gap-1.5 sm:mt-2 sm:gap-2">
-          <Link href={`/marketplace/${product.slug}`}>
-            <button
-              type="button"
-              className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold text-white transition-all duration-300 ease-out hover:scale-[1.02] sm:gap-1.5 sm:rounded-xl sm:px-4 sm:py-2 sm:text-xs"
-              style={{ background: theme.ctaPrimary, boxShadow: `0 4px 16px ${theme.ctaGlow}` }}
-            >
-              <ShoppingCart className="size-2.5 sm:size-3.5" />
-              {typeKey === "digital" ? "Explore" : "Shop Now"}
-            </button>
-          </Link>
-          <Link href={`/marketplace/${product.slug}`} className="hidden sm:inline-flex">
-            <button
-              type="button"
-              className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-white/20"
+      {bannerHasReviews && bannerRating > 0 && (
+        <div className="hidden items-center gap-0.5 sm:flex">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Star
+              key={i}
+              className="size-3"
               style={{
-                background: "rgba(255,255,255,0.10)",
-                border: "1px solid rgba(255,255,255,0.15)",
+                color: i < Math.round(bannerRating) ? theme.price : "rgba(255,255,255,0.18)",
+                fill: i < Math.round(bannerRating) ? theme.price : "none",
               }}
-            >
-              <Eye className="size-3.5" /> Quick View
-            </button>
-          </Link>
+            />
+          ))}
+          <span className="ml-0.5 text-[11px]" style={{ color: theme.sub }}>
+            ({bannerReviewCount.toLocaleString()})
+          </span>
         </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <span
+          className="text-[17px] font-black leading-none tracking-tight sm:text-2xl"
+          style={{ color: theme.price }}
+        >
+          {price}
+        </span>
+        {oldPrice && (
+          <span
+            className="text-[11px] leading-none line-through sm:text-sm"
+            style={{ color: theme.strikeout }}
+          >
+            {oldPrice}
+          </span>
+        )}
+        {discount && (
+          <span
+            className="inline-flex h-5 items-center rounded-full px-1.5 text-[10px] font-bold leading-none text-white sm:h-[22px] sm:px-2 sm:text-[11px]"
+            style={{ background: theme.discountPill }}
+          >
+            {discount}
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+        <Link
+          href={`/marketplace/${product.slug}`}
+          data-hero-action
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 sm:gap-1.5 sm:rounded-xl sm:px-4 sm:py-2 sm:text-xs"
+            style={{
+              background: JIMVIO_ORANGE.gradient135,
+              boxShadow: `0 4px 18px ${theme.ctaGlow}, 0 2px 8px rgba(253,80,0,0.35)`,
+            }}
+          >
+            <ShoppingCart className="size-2.5 sm:size-3.5" />
+            {typeKey === "digital" ? "Explore" : "Shop Now"}
+          </button>
+        </Link>
+        <Link
+          href={`/marketplace/${product.slug}`}
+          data-hero-action
+          className="hidden sm:inline-flex"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold text-white transition-all duration-300 ease-out hover:-translate-y-0.5 hover:bg-white/14"
+            style={{
+              background: "rgba(255,255,255,0.08)",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(255,255,255,0.20)",
+            }}
+          >
+            <Eye className="size-3.5" /> Quick View
+          </button>
+        </Link>
       </div>
     </div>
   );
@@ -629,15 +642,30 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
     hasReviews: bannerHasReviews,
     rating: bannerRating,
   } = getBannerReviewStats(product);
+  const router = useRouter();
+  const productHref = `/marketplace/${product.slug}`;
+
+  function handleHeroNavigate(e: MouseEvent | KeyboardEvent) {
+    if ("key" in e && e.key !== "Enter" && e.key !== " ") return;
+    if ("key" in e) e.preventDefault();
+    const target = e.target as HTMLElement;
+    if (target.closest("[data-hero-action]")) return;
+    router.push(productHref);
+  }
 
   return (
     <section
-      className="group relative h-[210px] overflow-hidden rounded-2xl transition-all duration-300 ease-out sm:h-[280px] sm:rounded-3xl lg:h-[320px] hover:shadow-[0_20px_50px_rgba(37,99,235,0.18),0_8px_24px_rgba(0,0,0,0.25)]"
+      className="product-tap-nav group relative h-[210px] overflow-hidden rounded-2xl transition-[transform,box-shadow] duration-150 ease-out sm:h-[280px] sm:rounded-3xl lg:h-[320px] sm:hover:shadow-[0_20px_50px_rgba(37,99,235,0.18),0_8px_24px_rgba(0,0,0,0.25)]"
       style={{
         background: theme.bg,
         border: "1px solid rgba(255,255,255,0.08)",
         boxShadow: "0 8px 32px rgba(0,0,0,0.22), 0 0 0 1px rgba(59,130,246,0.06)",
       }}
+      role="link"
+      tabIndex={0}
+      aria-label={`View ${rawName}`}
+      onClick={handleHeroNavigate}
+      onKeyDown={handleHeroNavigate}
     >
       {/* Ambient theme glow */}
       <div className="pointer-events-none absolute inset-0" style={{ background: theme.glow }} />
@@ -645,7 +673,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
       {/* ── Mobile flex hero (left content + right image) ── */}
       <div className="relative flex h-full flex-row sm:hidden">
         <div
-          className="relative z-10 flex h-full w-[55%] min-w-0 flex-col p-3 pr-2"
+          className="relative z-10 flex h-full w-[55%] min-w-0 flex-col justify-center p-3 pr-2"
           style={{ background: theme.mobileTextOverlay }}
         >
           <HeroBannerContent
@@ -700,18 +728,18 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
           className="absolute top-2.5 right-2.5 z-20 grid size-14 place-items-center rounded-full text-center text-white sm:top-4 sm:right-4 sm:size-[76px]"
           style={{
             background: theme.discountCircle,
-            boxShadow: theme.circleGlow,
+            boxShadow: `${theme.circleGlow}, 0 0 0 3px rgba(255,140,0,0.12), 0 0 36px rgba(253,80,0,0.30)`,
           }}
         >
           <div className="sm:hidden">
-            <div className="text-[8px] font-semibold opacity-85">Up to</div>
-            <div className="text-sm font-black leading-none">{discountNum}%</div>
-            <div className="text-[8px] font-semibold opacity-85">OFF</div>
+            <div className="text-[8px] font-bold uppercase tracking-wide opacity-90">Up to</div>
+            <div className="text-sm font-black leading-none tracking-tight">{discountNum}%</div>
+            <div className="text-[8px] font-bold uppercase tracking-wide opacity-90">OFF</div>
           </div>
           <div className="hidden sm:block">
-            <div className="text-[9px] font-semibold opacity-85">Up to</div>
-            <div className="text-lg font-black leading-none">{discountNum}%</div>
-            <div className="text-[9px] font-semibold opacity-85">OFF</div>
+            <div className="text-[9px] font-bold uppercase tracking-wide opacity-90">Up to</div>
+            <div className="text-lg font-black leading-none tracking-tight">{discountNum}%</div>
+            <div className="text-[9px] font-bold uppercase tracking-wide opacity-90">OFF</div>
           </div>
         </div>
       )}
@@ -722,7 +750,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
       </div>
 
       {/* ── Desktop content panel ── */}
-      <div className="absolute inset-0 z-10 hidden flex-col p-3 pr-[4.75rem] sm:flex sm:max-w-[46%] sm:p-6 sm:pr-6 lg:max-w-[44%] lg:p-7">
+      <div className="absolute inset-0 z-10 hidden flex-col justify-center p-3 pr-[4.75rem] sm:flex sm:max-w-[46%] sm:p-6 sm:pr-6 lg:max-w-[44%] lg:p-7">
         <HeroBannerContent
           theme={theme}
           typeKey={typeKey}

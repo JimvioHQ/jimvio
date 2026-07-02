@@ -281,6 +281,7 @@ function ProductCard({
 
   async function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault();
+    e.stopPropagation();
     if (adding) return;
 
     if (!vendorId) {
@@ -334,40 +335,41 @@ function ProductCard({
 
   return (
     <div
-      className="group relative flex flex-col rounded-md overflow-hidden transition-all duration-300 ease-out hover:shadow-[0_8px_24px_rgba(0,0,0,.10)] active:scale-[0.99]"
+      className="product-tap-nav group relative flex flex-col rounded-md overflow-hidden transition-[transform,box-shadow] duration-150 ease-out hover:shadow-[0_8px_24px_rgba(0,0,0,.10)]"
       style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      <Link
+        href={`/marketplace/${p.slug}${activeVariant ? `?variant=${activeVariant.id}` : ""}`}
+        className="absolute inset-0 z-[1] rounded-[inherit]"
+        aria-label={`View ${p.name}`}
+      />
+
       {/* ── Image ── */}
-      <div className="relative overflow-hidden">
-        <Link
-          href={`/marketplace/${p.slug}${activeVariant ? `?variant=${activeVariant.id}` : ""}`}
-          className="block"
+      <div className="relative z-[2] overflow-hidden pointer-events-none">
+        <div
+          className="relative flex aspect-square w-full items-center justify-center overflow-hidden p-2.5 sm:p-3"
+          style={{ background: "var(--color-surface-secondary)" }}
         >
-          <div
-            className="relative flex aspect-square w-full items-center justify-center overflow-hidden p-2.5 sm:p-3"
-            style={{ background: "var(--color-surface-secondary)" }}
-          >
-            <ProductCardVideoMedia
-              productId={p.id}
-              product={p}
-              alt={p.name}
-              imageSrc={displayImage}
-              previewImages={previewImages}
-              hovered={hovered}
-              useNextImage={false}
-              layout="fit"
-              imageFit="contain"
-              imageClassName={cn(
-                "max-h-full max-w-full",
-                previewImages.length <= 1 &&
-                  "transition-transform duration-300 ease-out group-hover:scale-[1.02]",
-              )}
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/[.03] transition-colors duration-200 pointer-events-none" />
-          </div>
-        </Link>
+          <ProductCardVideoMedia
+            productId={p.id}
+            product={p}
+            alt={p.name}
+            imageSrc={displayImage}
+            previewImages={previewImages}
+            hovered={hovered}
+            useNextImage={false}
+            layout="fit"
+            imageFit="contain"
+            imageClassName={cn(
+              "max-h-full max-w-full",
+              previewImages.length <= 1 &&
+                "transition-transform duration-300 ease-out group-hover:scale-[1.02]",
+            )}
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/[.03] transition-colors duration-200 pointer-events-none" />
+        </div>
 
         {discount && (
           <span
@@ -397,7 +399,7 @@ function ProductCard({
         )}
 
         <div
-          className="absolute inset-x-0 bottom-0 z-10 flex translate-y-full gap-1 p-1.5 transition-transform duration-200 ease-out group-hover:translate-y-0"
+          className="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex translate-y-full gap-1 p-1.5 transition-transform duration-200 ease-out group-hover:translate-y-0"
           style={{ background: "linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%)" }}
         >
           <button
@@ -424,9 +426,10 @@ function ProductCard({
           </button>
           <Link
             href={`/marketplace/${p.slug}`}
-            className="grid size-7 shrink-0 place-items-center rounded-lg text-white transition-colors hover:bg-white/20"
+            className="pointer-events-auto relative z-10 grid size-7 shrink-0 place-items-center rounded-lg text-white transition-colors hover:bg-white/20"
             style={{ background: "rgba(255,255,255,.15)" }}
             aria-label="Quick view"
+            onClick={(e) => e.stopPropagation()}
           >
             <Eye className="size-3.5" />
           </Link>
@@ -434,15 +437,13 @@ function ProductCard({
       </div>
 
       {/* ── Info ── */}
-      <div className="flex flex-col gap-1 p-2.5 pt-2">
-        <Link href={`/marketplace/${p.slug}`}>
-          <h4
-            className="line-clamp-2 text-[11px] font-semibold leading-snug hover:underline underline-offset-2"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            {p.name}
-          </h4>
-        </Link>
+      <div className="pointer-events-none relative z-[2] flex flex-col gap-1 p-2.5 pt-2">
+        <h4
+          className="line-clamp-2 text-[11px] font-semibold leading-snug"
+          style={{ color: "var(--color-text-primary)" }}
+        >
+          {p.name}
+        </h4>
 
 
 
@@ -458,7 +459,7 @@ function ProductCard({
         </div>
 
         {hasColors && (
-          <div className="mt-1 flex items-center gap-1 flex-wrap">
+          <div className="pointer-events-auto mt-1 flex items-center gap-1 flex-wrap">
             {visibleColors.map((v) => {
               const raw = getColorValue(getOptions(v))!;
               const isSelected = selectedColor === raw;
@@ -467,7 +468,10 @@ function ProductCard({
                   key={v.id}
                   type="button"
                   title={raw}
-                  onClick={() => setSelectedColor(raw)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedColor(raw);
+                  }}
                   className="rounded-full transition-all duration-150 hover:scale-110"
                   style={{
                     width: 14,
@@ -495,10 +499,13 @@ function ProductCard({
         )}
 
         {hasSizes && (
-          <div className="relative mt-1" ref={sizeRef}>
+          <div className="pointer-events-auto relative mt-1" ref={sizeRef}>
             <button
               type="button"
-              onClick={() => setShowSizes((s) => !s)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSizes((s) => !s);
+              }}
               className="flex w-full items-center justify-between rounded-md px-2 py-1 text-[10px] font-semibold transition-colors"
               style={{
                 background: "var(--color-surface-secondary)",
@@ -535,7 +542,11 @@ function ProductCard({
                     <button
                       key={size}
                       type="button"
-                      onClick={() => { setSelectedSize(size); setShowSizes(false); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSize(size);
+                        setShowSizes(false);
+                      }}
                       className="flex w-full items-center justify-between px-2.5 py-1.5 text-[10px] font-semibold transition-colors"
                       style={{
                         color: selectedSize === size

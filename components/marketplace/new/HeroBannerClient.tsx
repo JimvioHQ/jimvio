@@ -48,14 +48,16 @@ function Digit({ val }: { val: string }) {
 
   return (
     <div
-      className="relative grid place-items-center rounded-md tabular-nums text-white"
+      className="relative grid place-items-center rounded-lg tabular-nums text-white"
       style={{
-        width:      32,
-        height:     36,
-        background: "rgba(0,0,0,0.45)",
-        border:     "1px solid rgba(255,255,255,0.08)",
-        fontSize:   15,
+        width:      34,
+        height:     38,
+        background: "linear-gradient(180deg, rgba(20,20,20,0.92) 0%, rgba(0,0,0,0.78) 100%)",
+        border:     "1px solid rgba(255,255,255,0.18)",
+        boxShadow:  "inset 0 1px 0 rgba(255,255,255,0.14), 0 3px 10px rgba(0,0,0,0.45)",
+        fontSize:   16,
         fontWeight: 900,
+        letterSpacing: "-0.02em",
         transition: flipping ? "none" : undefined,
         transform:  flipping ? "scaleY(0.85)" : "scaleY(1)",
         opacity:    flipping ? 0.6 : 1,
@@ -67,7 +69,7 @@ function Digit({ val }: { val: string }) {
         style={{
           top:        "50%",
           height:     1,
-          background: "rgba(255,255,255,0.06)",
+          background: "rgba(255,255,255,0.10)",
         }}
       />
       {val}
@@ -89,21 +91,22 @@ export function HeroBannerClient({ claimedPct }: Props) {
     <div
       className="flex flex-col gap-2 rounded-2xl p-3"
       style={{
-        background:    "rgba(0,0,0,0.38)",
-        backdropFilter: "blur(12px)",
-        border:        "1px solid rgba(255,255,255,0.10)",
-        minWidth:      130,
+        background:     "rgba(0,0,0,0.58)",
+        backdropFilter: "blur(14px)",
+        border:         "1px solid rgba(255,255,255,0.16)",
+        boxShadow:      "0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06)",
+        minWidth:       136,
       }}
     >
       {/* Header */}
       <div className="flex items-center gap-1.5">
         <span
           className="size-1.5 animate-pulse rounded-full"
-          style={{ background: "var(--color-accent)" }}
+          style={{ background: "var(--color-accent)", boxShadow: "0 0 6px rgba(253,80,0,0.65)" }}
         />
         <span
           className="text-[9px] font-bold uppercase tracking-widest"
-          style={{ color: "rgba(255,255,255,0.55)" }}
+          style={{ color: "rgba(255,255,255,0.72)" }}
         >
           Deal ends in
         </span>
@@ -115,8 +118,8 @@ export function HeroBannerClient({ claimedPct }: Props) {
           <div key={label} className="flex items-end gap-1">
             {i > 0 && (
               <span
-                className="mb-2.5 text-xs font-black leading-none"
-                style={{ color: "rgba(255,255,255,0.30)" }}
+                className="mb-2.5 text-sm font-black leading-none"
+                style={{ color: "rgba(255,255,255,0.45)" }}
               >
                 :
               </span>
@@ -125,7 +128,7 @@ export function HeroBannerClient({ claimedPct }: Props) {
               <Digit val={val} />
               <span
                 className="text-[7px] font-bold uppercase tracking-widest"
-                style={{ color: "rgba(255,255,255,0.35)" }}
+                style={{ color: "rgba(255,255,255,0.50)" }}
               >
                 {label}
               </span>
