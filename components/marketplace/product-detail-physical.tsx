@@ -1264,6 +1264,12 @@ export function PhysicalProductDetail({
 
               {/* Sub-col 1: Gallery (3 of 12) */}
               <section className="lg:col-span-7 space-y-3">
+                <ProductTitleBadges
+                  vendor={vendor}
+                  product={product}
+                  isFreeShipping={isFreeShipping}
+                  variant="physical"
+                />
                 <ImageGallery
                   images={activeImages}
                   videos={productVideos}
@@ -1285,13 +1291,6 @@ export function PhysicalProductDetail({
                   <h1 className="text-[20px] lg:text-[22px] font-bold leading-snug text-[var(--color-text-primary)] tracking-tight">
                     {title}
                   </h1>
-
-                  <ProductTitleBadges
-                    vendor={vendor}
-                    product={product}
-                    isFreeShipping={isFreeShipping}
-                    variant="physical"
-                  />
 
                   <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-text-muted)] mt-1">
 

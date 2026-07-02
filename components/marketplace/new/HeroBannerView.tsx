@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react";
 import {
   DollarSign, Flame, Zap, Star,
-  Crown, ShoppingCart, Eye,
+  Crown, ShoppingCart, Eye, Award, TrendingUp,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getProductDiscountLabel, getEffectiveCompareAtPrice } from "@/lib/utils";
 import { HeroBannerClient } from "./HeroBannerClient";
 import type { HeroProduct } from "@/types";
+import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +35,7 @@ type Theme = {
 
 const THEMES: Record<"physical" | "digital", Theme> = {
   physical: {
-    badge: "var(--color-accent)",
+    badge: JIMVIO_ORANGE.gradient,
     badgeText: "FLASH SALE",
     headline: "#ffffff",
     sub: "rgba(255,255,255,0.72)",
@@ -51,22 +53,22 @@ const THEMES: Record<"physical" | "digital", Theme> = {
       "linear-gradient(to right, rgba(13,5,0,0.94) 0%, rgba(13,5,0,0.82) 42%, rgba(13,5,0,0.35) 58%, transparent 72%)",
   },
   digital: {
-    badge: "linear-gradient(90deg, #7c3aed, #a855f7)",
+    badge: JIMVIO_ORANGE.gradient,
     badgeText: "DIGITAL BEST DEALS",
     headline: "#ffffff",
-    sub: "rgba(255,255,255,0.68)",
-    price: "#c084fc",
-    strikeout: "rgba(255,255,255,0.38)",
-    discountPill: "linear-gradient(90deg, #7c3aed, #a855f7)",
-    ctaPrimary: "linear-gradient(90deg, #7c3aed, #a855f7)",
-    ctaGlow: "rgba(139,92,246,0.55)",
-    bg: "linear-gradient(135deg, #050010 0%, #0d0025 45%, #1a0045 100%)",
-    glow: "radial-gradient(ellipse at 68% 50%, rgba(139,92,246,0.26) 0%, transparent 62%)",
-    discountCircle: "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
-    circleGlow: "0 6px 28px rgba(139,92,246,0.55)",
-    imageFade: "linear-gradient(to right, rgba(5,0,16,0.55) 0%, rgba(5,0,16,0.22) 20%, transparent 45%)",
+    sub: "rgba(255,255,255,0.72)",
+    price: JIMVIO_ORANGE.light,
+    strikeout: "rgba(255,255,255,0.42)",
+    discountPill: JIMVIO_ORANGE.gradient,
+    ctaPrimary: JIMVIO_ORANGE.gradient,
+    ctaGlow: JIMVIO_ORANGE.glowSoft,
+    bg: "linear-gradient(135deg, #0d0500 0%, #1a0800 45%, #2d1000 100%)",
+    glow: "radial-gradient(ellipse at 68% 50%, rgba(255,90,31,0.22) 0%, transparent 62%)",
+    discountCircle: JIMVIO_ORANGE.gradient135,
+    circleGlow: JIMVIO_ORANGE.glow,
+    imageFade: "linear-gradient(to right, rgba(13,5,0,0.55) 0%, rgba(13,5,0,0.25) 20%, transparent 45%)",
     mobileTextOverlay:
-      "linear-gradient(to right, rgba(5,0,16,0.94) 0%, rgba(5,0,16,0.82) 42%, rgba(5,0,16,0.35) 58%, transparent 72%)",
+      "linear-gradient(to right, rgba(13,5,0,0.94) 0%, rgba(13,5,0,0.82) 42%, rgba(13,5,0,0.35) 58%, transparent 72%)",
   },
 };
 
@@ -415,6 +417,37 @@ function FeaturedProductStage({
   );
 }
 
+function getSecondaryHeroBadges(product: BannerHeroProduct): { label: string; icon: LucideIcon }[] {
+  const badges: { label: string; icon: LucideIcon }[] = [];
+  if (product.is_featured) badges.push({ label: "Featured", icon: Crown });
+  if (product.is_flash_deal) badges.push({ label: "Trending", icon: TrendingUp });
+  if ((product.sale_count ?? 0) >= 25) badges.push({ label: "Best Seller", icon: Award });
+  return badges;
+}
+
+function HeroPillBadge({
+  label,
+  icon: Icon,
+  glow = false,
+}: {
+  label: string;
+  icon: LucideIcon;
+  glow?: boolean;
+}) {
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold text-white sm:gap-1.5 sm:px-3 sm:py-1 sm:text-[11px]"
+      style={{
+        background: JIMVIO_ORANGE.gradient,
+        boxShadow: glow ? JIMVIO_ORANGE.glow : "0 2px 10px rgba(255, 90, 31, 0.28)",
+      }}
+    >
+      <Icon className="size-2.5 sm:size-3" />
+      {label}
+    </span>
+  );
+}
+
 type HeroBannerContentProps = {
   theme: Theme;
   typeKey: "physical" | "digital";
@@ -447,26 +480,20 @@ function HeroBannerContent({
   variant,
 }: HeroBannerContentProps) {
   const isMobile = variant === "mobile";
+  const secondaryBadges = getSecondaryHeroBadges(product);
 
   return (
     <>
       {/* Badges */}
-      <div className="flex items-center gap-1.5">
-        <span
-          className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold text-white sm:gap-1.5 sm:px-3 sm:py-1 sm:text-[11px]"
-          style={{ background: theme.badge }}
-        >
-          {typeKey === "digital" ? <Zap className="size-2.5 sm:size-3" /> : <Flame className="size-2.5 sm:size-3" />}
-          {theme.badgeText}
-        </span>
-        {product.is_featured && (
-          <span
-            className="hidden items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white sm:inline-flex"
-            style={{ background: "linear-gradient(90deg,#f59e0b,#f97316)" }}
-          >
-            <Crown className="size-3" /> Featured
-          </span>
-        )}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <HeroPillBadge
+          label={theme.badgeText}
+          icon={typeKey === "digital" ? Zap : Flame}
+          glow
+        />
+        {secondaryBadges.map(({ label, icon }) => (
+          <HeroPillBadge key={label} label={label} icon={icon} />
+        ))}
       </div>
 
       {/* Product info */}

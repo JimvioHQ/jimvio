@@ -22,12 +22,14 @@ import { isRenderableUrl } from "@/lib/utils";
 import { Sidebar } from "./Sidebar";
 import { MarketplacePagination } from "./MarketplacePagination";
 import { MARKETPLACE_PAGE_SIZE, parseMarketplacePage } from "@/lib/marketplace/constants";
-import { dedupeCategories } from "@/lib/marketplace/category-dedup";
+import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
+import { getCategoryImageFallbacks } from "@/lib/marketplace/category-images";
 import {
   MarketplaceSearchBar,
   MarketplaceSearchIcon,
   marketplaceSearchBarClassName,
 } from "./MarketplaceSearchBar";
+import { MarketplaceSearchPopover } from "./MarketplaceSearchPopover";
 import Link from "next/link";
 
 type ProductType = "physical" | "digital";
@@ -58,73 +60,51 @@ type Props = {
   heroDigital: HeroProduct[] | null;
 };
 
-// ─── Category image map — local assets from category.zip ─────────────────────
-const CATEGORY_IMAGE_BASE = "/images/categories/";
-
-const CATEGORY_IMAGE_MAP: { keywords: string[]; file: string }[] = [
-  { keywords: ["auto", "car", "vehicle", "motorcycle", "bike", "motor"], file: "Automobiles & Motorcycles.png" },
-  { keywords: ["bag", "shoe", "sneaker", "backpack", "purse", "footwear", "boot", "sandal", "luggage"], file: "Bags & Shoes.png" },
-  { keywords: ["computer", "office", "laptop", "pc", "printer", "stationery", "monitor", "keyboard", "mouse", "desk"], file: "Computer & Office.png" },
-  { keywords: ["electron", "gadget", "tv", "television", "camera", "audio", "speaker", "smart", "wearable", "drone"], file: "Consumer Electronics.png" },
-  { keywords: ["health", "beauty", "hair", "makeup", "cosmetic", "wellness", "skincare", "perfume", "fragrance", "nail"], file: "Health, Beauty & Hair.png" },
-  { keywords: ["home improvement", "tool", "hardware", "diy", "repair", "drill", "saw", "plumbing", "electrical"], file: "Home Improvement.png" },
-  { keywords: ["home", "garden", "furniture", "kitchen", "living", "household", "plant", "sofa", "cookware", "bedding", "decor", "lamp", "curtain"], file: "Home, Garden & Furniture.png" },
-  { keywords: ["jewel", "watch", "ring", "earring", "necklace", "bracelet", "accessory", "pendant", "gemstone"], file: "Jewelry & Watches.png" },
-  { keywords: ["men", "shirt", "jacket", "trouser", "pant", "coat", "outerwear", "suit", "hoodie", "sweatshirt"], file: "Men's Clothing.png" },
-  { keywords: ["pet", "dog", "cat", "animal", "aquarium", "bird", "hamster"], file: "Pet Supplies.png" },
-  { keywords: ["phone", "smartphone", "mobile", "tablet", "iphone", "android", "charger", "case", "screen protector"], file: "Phones & Accessories.png" },
-  { keywords: ["sport", "fitness", "gym", "outdoor", "camping", "basketball", "soccer", "cycling", "running", "yoga", "hiking"], file: "Sports & Outdoors.png" },
-  { keywords: ["toy", "kids", "children", "baby", "infant", "game", "puzzle", "doll", "lego"], file: "Toys, Kids & Babies.png" },
-  { keywords: ["women", "dress", "tops", "blouse", "skirt", "fashion", "cloth", "wear", "leggings", "lingerie"], file: "Women's Clothing.png" },
-];
-
-function getCategoryImageSrc(name: string): string {
-  const n = name.toLowerCase();
-  const match = CATEGORY_IMAGE_MAP.find(({ keywords }) =>
-    keywords.some((kw) => n.includes(kw))
-  );
-  return `${CATEGORY_IMAGE_BASE}${match ? match.file : "Consumer Electronics.png"}`;
-}
-
 // ─── CategoryCard ─────────────────────────────────────────────────────────────
 
 function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
-  const [imgErr, setImgErr] = useState(false);
+  const fallbacks = useMemo(() => {
+    if (type === "digital") {
+      const url = c.image_url && isRenderableUrl(c.image_url) ? c.image_url.trim() : "";
+      return url ? [url] : [];
+    }
+    const mapped = getCategoryImageFallbacks(c.name, c.slug);
+    if (c.image_url && isRenderableUrl(c.image_url)) {
+      const primary = c.image_url.trim();
+      return [primary, ...mapped.filter((u) => u !== primary)];
+    }
+    return mapped;
+  }, [c.image_url, c.name, c.slug, type]);
+  const [fallbackIdx, setFallbackIdx] = useState(0);
+  const imgSrc = fallbacks[fallbackIdx] ?? fallbacks[0];
 
-  const uploadedSrc =
-    c.image_url && isRenderableUrl(c.image_url) ? c.image_url.trim() : null;
-  const imgSrc = uploadedSrc ?? getCategoryImageSrc(c.name);
-  const showImg = !imgErr;
+  useEffect(() => {
+    setFallbackIdx(0);
+  }, [c.id, c.image_url, c.name, c.slug]);
+
+  if (!imgSrc) return null;
 
   return (
     <Link
       href={`/marketplace?type=${type}&category=${c.slug}`}
-      className="group relative flex h-[118px] w-full flex-col overflow-hidden rounded-[14px] border border-[var(--color-border)] bg-[var(--color-surface)] text-center shadow-sm transition-shadow duration-200 ease-out hover:shadow-lg md:h-auto md:rounded-xl"
+      className="group relative mx-auto flex w-[84%] max-w-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)]/50 bg-[var(--color-surface)] text-center shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all duration-[250ms] ease-out hover:scale-[1.03] hover:border-[var(--color-border)] hover:shadow-[0_14px_36px_rgba(0,0,0,0.14)] md:w-full md:rounded-[18px] md:shadow-[0_2px_10px_rgba(0,0,0,0.06)]"
     >
-      <div className="relative h-[86px] w-full overflow-hidden bg-[var(--color-surface-secondary)] md:h-auto md:aspect-[4/3]">
-        {showImg ? (
-          <img
-            src={imgSrc}
-            alt={c.name}
-            loading="lazy"
-            decoding="async"
-            className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-200 ease-out group-hover:scale-[1.03]"
-            onError={() => setImgErr(true)}
-          />
-        ) : (
-          <div
-            className="absolute inset-0 flex items-center justify-center"
-            style={{ background: c.tint_color ?? "var(--color-surface-secondary)" }}
-          >
-            <span className="select-none text-3xl font-black uppercase text-[var(--color-text-primary)]/20">
-              {c.name.charAt(0)}
-            </span>
-          </div>
-        )}
+      <div className="relative aspect-[5/3] w-full overflow-hidden md:aspect-[4/3]">
+        <img
+          src={imgSrc}
+          alt={c.name}
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-[250ms] ease-out group-hover:scale-[1.04]"
+          onError={() => {
+            setFallbackIdx((i) => (i + 1 < fallbacks.length ? i + 1 : i));
+          }}
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent opacity-60 transition-opacity duration-[250ms] group-hover:opacity-80" />
       </div>
 
-      <div className="w-full bg-[var(--color-surface)] px-2 py-1.5 md:py-2">
-        <div className="line-clamp-2 text-[11px] font-bold leading-tight text-[var(--color-text-primary)] md:text-[12px]">
+      <div className="w-full bg-[var(--color-surface)] px-2 py-1.5 md:px-3 md:py-3">
+        <div className="line-clamp-2 text-center text-[10px] font-bold leading-tight text-[var(--color-text-primary)] md:text-[12px] md:leading-snug">
           {c.name}
         </div>
       </div>
@@ -215,12 +195,14 @@ export function MarketplacePageClient({
   const [flashDeals, setFlashDeals] = useState<DbProduct[]>(initialFlashDeals);
   const [trending, setTrending] = useState<DbProduct[]>(initialTrending);
   const [categories, setCategories] = useState<DbCategory[]>(initialCategories);
+  const [categoriesType, setCategoriesType] = useState<ProductType>(initialType);
   const [stats, setStats] = useState<Stats>(initialStats);
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
   const [listingCount, setListingCount] = useState(initialListingCount);
   const [isMobile, setIsMobile] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchExactMatch, setSearchExactMatch] = useState(true);
 
   const supabaseRef = useRef(supabase);
   const filtersKey = JSON.stringify(filters);
@@ -235,7 +217,7 @@ export function MarketplacePageClient({
   const isFirstRender = useRef(true);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
     return () => clearTimeout(t);
   }, [search]);
 
@@ -298,7 +280,6 @@ export function MarketplacePageClient({
     const prev = loadDepsRef.current;
     const filterOrSearchChanged =
       prev.filtersKey !== filtersKey ||
-      prev.debouncedSearch !== debouncedSearch ||
       prev.type !== type;
     const onlyPageChanged =
       !filterOrSearchChanged &&
@@ -347,13 +328,13 @@ export function MarketplacePageClient({
         if (hasPriceMin) q = q.gte("price", filters.priceRange[0]);
         if (hasRating) q = q.gte("rating", filters.minRating);
         if (categoryId) q = q.eq("category_id", categoryId);
-        if (debouncedSearch) q = q.ilike("name", `%${debouncedSearch}%`);
         return q;
       }
 
       const offset = (effectivePage - 1) * MARKETPLACE_PAGE_SIZE;
+      const skipTrending = Boolean(debouncedSearch);
 
-      if (onlyPageChanged) {
+      if (onlyPageChanged && !skipTrending) {
         const [{ data: trend }, { count }] = await Promise.all([
           applyFilters(
             supabaseRef.current
@@ -394,6 +375,11 @@ export function MarketplacePageClient({
         return;
       }
 
+      if (onlyPageChanged && skipTrending) {
+        setProductsLoading(false);
+        return;
+      }
+
       const { data: catIds } = await supabaseRef.current
         .from("products")
         .select("category_id")
@@ -406,6 +392,7 @@ export function MarketplacePageClient({
       const ids = [...new Set((catIds ?? []).map((r: { category_id: string | null }) => r.category_id).filter(Boolean))];
 
       let nextCategories: DbCategory[] = [];
+      // Type-specific categories only — no unfiltered backfill
       if (ids.length > 0) {
         const { data: catRows } = await supabaseRef.current
           .from("product_categories")
@@ -418,19 +405,8 @@ export function MarketplacePageClient({
           .limit(40);
         nextCategories = (catRows ?? []) as DbCategory[];
       }
-      // Always keep Shop by Category filled (even when duplicates are removed)
-      if (nextCategories.length < 12) {
-        const { data: catRows } = await supabaseRef.current
-          .from("product_categories")
-          .select("id, name, slug, product_count, image_url, tint_color")
-          .eq("is_active", true)
-          .eq("visible", true)
-          .is("parent_id", null)
-          .order("product_count", { ascending: false })
-          .limit(60);
-        nextCategories = (catRows ?? []) as DbCategory[];
-      }
       setCategories(nextCategories);
+      setCategoriesType(type);
 
       const [{ data: deals }, { data: trend }, { count }] = await Promise.all([
         applyFilters(
@@ -490,13 +466,60 @@ export function MarketplacePageClient({
       );
 
       setFlashDeals(attachProductVideos(dealList, videoMap));
-      setTrending(attachProductVideos(trendList, videoMap));
-      setListingCount(count ?? 0);
+      if (!skipTrending) {
+        setTrending(attachProductVideos(trendList, videoMap));
+        setListingCount(count ?? 0);
+      }
       setLoading(false);
     }
 
     load();
   }, [type, filtersKey, currentPage, debouncedSearch]);
+
+  useEffect(() => {
+    if (!debouncedSearch) {
+      setSearchExactMatch(true);
+      return;
+    }
+
+    let cancelled = false;
+    setProductsLoading(true);
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/marketplace/search?q=${encodeURIComponent(debouncedSearch)}&type=${type}&limit=40`,
+        );
+        const data = await res.json();
+        if (cancelled) return;
+
+        const primary = (data.exactMatch ? data.results : data.similar) ?? [];
+        const related = data.exactMatch ? [] : (data.recommended ?? []);
+        const seen = new Set<string>();
+        const combined = [...primary, ...related].filter((p: DbProduct) => {
+          if (seen.has(p.id)) return false;
+          seen.add(p.id);
+          return true;
+        });
+
+        const videoMap = await fetchProductVideosMap(
+          supabaseRef.current,
+          combined.map((p: DbProduct) => p.id),
+        );
+        setTrending(attachProductVideos(combined, videoMap));
+        setSearchExactMatch(Boolean(data.exactMatch));
+        setListingCount(combined.length);
+      } catch {
+        if (!cancelled) setTrending([]);
+      } finally {
+        if (!cancelled) setProductsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedSearch, type]);
 
   const totalPages = Math.max(1, Math.ceil(listingCount / MARKETPLACE_PAGE_SIZE));
 
@@ -507,18 +530,18 @@ export function MarketplacePageClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only clamp when result set shrinks
   }, [listingCount, totalPages]);
 
-  // Client-side filter for flash deals only (small set)
-  const filteredDeals = debouncedSearch
-    ? flashDeals.filter((p) =>
-        p.name.toLowerCase().includes(debouncedSearch.toLowerCase()),
-      )
-    : flashDeals;
+  // Flash deals stay unfiltered during search (section unchanged)
+  const filteredDeals = flashDeals;
+
+  const shopCategories = useMemo(
+    () => resolveShopCategories(type, categoriesType === type ? categories : []),
+    [categories, type, categoriesType],
+  );
 
   const displayCategories = useMemo(() => {
-    const unique = dedupeCategories(categories);
     const target = isMobile ? 6 : 7;
-    return unique.slice(0, target);
-  }, [categories, isMobile]);
+    return shopCategories.slice(0, target);
+  }, [shopCategories, isMobile]);
 
   const POPULAR_SEARCHES = useMemo(
     () => ["Wireless Earbuds", "Gaming Headset", "Smart Watch", "Portable Speaker"],
@@ -553,34 +576,35 @@ export function MarketplacePageClient({
     }
   }
 
-  const q = search.trim();
-  const qLower = q.toLowerCase();
-  const matchedProducts = useMemo(() => {
-    if (!q) return [] as DbProduct[];
-    return trending.filter((p) => p.name.toLowerCase().includes(qLower)).slice(0, 6);
-  }, [q, qLower, trending]);
+  function applySearch(term: string) {
+    const t = term.trim();
+    if (!t) return;
+    pushRecent(t);
+    setSearch(t);
+    setDebouncedSearch(t);
+    setSearchFocused(false);
+  }
 
-  const matchedCategories = useMemo(() => {
-    if (!q) return [] as DbCategory[];
-    const uniq = new Map<string, DbCategory>();
-    for (const c of categories) {
-      const key = c.slug?.toLowerCase().trim() || c.name?.toLowerCase().trim() || c.id;
-      if (!key || uniq.has(key)) continue;
-      if (!c.name?.toLowerCase().includes(qLower) && !c.slug?.toLowerCase().includes(qLower)) continue;
-      uniq.set(key, c);
-      if (uniq.size >= 6) break;
-    }
-    return [...uniq.values()];
-  }, [q, qLower, categories]);
+  function clearSearch() {
+    setSearch("");
+    setDebouncedSearch("");
+    setSearchFocused(false);
+  }
+
+  function submitSearch(term?: string) {
+    applySearch(term ?? search);
+  }
+
+  const q = search.trim();
 
   const trendingCategorySuggestions = useMemo(() => {
-    return categories
+    return shopCategories
       .slice()
       .sort((a, b) => Number(b.product_count ?? 0) - Number(a.product_count ?? 0))
       .map((c) => c.name)
       .filter(Boolean)
       .slice(0, 5);
-  }, [categories]);
+  }, [shopCategories]);
 
   const showSearchPopover = searchFocused && (q.length > 0 || recentSearches.length > 0);
 
@@ -595,15 +619,25 @@ export function MarketplacePageClient({
       <div className="min-w-0 lg:col-start-2 lg:row-start-1">
         <div className="flex flex-col gap-2 relative">
           <div className={marketplaceSearchBarClassName(searchFocused)}>
-            <MarketplaceSearchIcon active={q.length > 0} />
+            <button
+              type="button"
+              aria-label="Search marketplace"
+              onClick={() => submitSearch()}
+              className="grid size-7 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)]"
+            >
+              <MarketplaceSearchIcon active={q.length > 0} />
+            </button>
             <MarketplaceSearchBar
               value={search}
-              onChange={setSearch}
+              onChange={(v) => {
+                setSearch(v);
+                if (!v.trim()) setDebouncedSearch("");
+              }}
               type={type}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setTimeout(() => setSearchFocused(false), 120)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") pushRecent(search);
+                if (e.key === "Enter") submitSearch();
                 if (e.key === "Escape") (e.target as HTMLInputElement)?.blur();
               }}
             />
@@ -649,173 +683,16 @@ export function MarketplacePageClient({
             </span>
           </div>
 
-          {showSearchPopover && (
-            <div
-              className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg"
-              style={{
-                transform: "translate3d(0,0,0)",
-                willChange: "transform, opacity",
-                animation: "fadeInUp 160ms ease-out",
-              }}
-            >
-              <div className="p-2 sm:p-3">
-                {q.length === 0 ? (
-                  <div className="space-y-3">
-                    {recentSearches.length > 0 && (
-                      <div>
-                        <div className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
-                          Recent
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {recentSearches.slice(0, 8).map((t) => (
-                            <button
-                              key={t}
-                              type="button"
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => {
-                                setSearch(t);
-                                pushRecent(t);
-                              }}
-                              className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-primary)] transition-transform duration-150 hover:scale-[1.02]"
-                            >
-                              {t}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <div className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
-                        Popular searches
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {POPULAR_SEARCHES.map((t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => {
-                              setSearch(t);
-                              pushRecent(t);
-                            }}
-                            className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-primary)] transition-transform duration-150 hover:scale-[1.02]"
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="mb-1.5 flex items-center gap-2 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
-                        <span
-                          className="relative inline-flex items-center overflow-hidden rounded-full px-2 py-0.5 text-[9px] font-black text-white"
-                          style={{
-                            background:
-                              "linear-gradient(90deg, rgba(253,80,0,1) 0%, rgba(255,140,0,1) 100%)",
-                          }}
-                        >
-                          Trending
-                          <span
-                            className="pointer-events-none absolute inset-0"
-                            style={{
-                              background:
-                                "linear-gradient(110deg, transparent 0%, rgba(255,255,255,.35) 45%, transparent 70%)",
-                              transform: "translateX(-120%)",
-                              animation: "marketplaceShimmer 1.8s linear infinite",
-                            }}
-                          />
-                        </span>
-                        Categories
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {trendingCategorySuggestions.map((t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => {
-                              setSearch(t);
-                              pushRecent(t);
-                            }}
-                            className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-primary)] transition-transform duration-150 hover:scale-[1.02]"
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {matchedProducts.length > 0 && (
-                      <div style={{ animation: "fadeInUp 160ms ease-out" }}>
-                        <div className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
-                          Instant results
-                        </div>
-                        <div className="space-y-1">
-                          {matchedProducts.map((p) => (
-                            <Link
-                              key={p.id}
-                              href={`/marketplace/${p.slug}`}
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => pushRecent(search)}
-                              className="flex items-center justify-between rounded-lg px-2 py-2 transition-transform duration-150 hover:scale-[1.02] hover:bg-[var(--color-surface-secondary)]"
-                            >
-                              <span className="truncate text-[12px] font-semibold text-[var(--color-text-primary)]">
-                                {p.name}
-                              </span>
-                              <span className="ml-3 shrink-0 text-[11px] font-bold text-[var(--color-accent)]">
-                                View
-                              </span>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {matchedCategories.length > 0 && (
-                      <div style={{ animation: "fadeInUp 160ms ease-out" }}>
-                        <div className="mb-1.5 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
-                          Categories
-                        </div>
-                        <div className="space-y-1">
-                          {matchedCategories.map((c) => (
-                            <Link
-                              key={c.id}
-                              href={`/marketplace?type=${type}&category=${c.slug}`}
-                              onMouseDown={(e) => e.preventDefault()}
-                              onClick={() => pushRecent(search)}
-                              className="flex items-center justify-between rounded-lg px-2 py-2 transition-transform duration-150 hover:scale-[1.02] hover:bg-[var(--color-surface-secondary)]"
-                            >
-                              <span className="truncate text-[12px] font-semibold text-[var(--color-text-primary)]">
-                                {c.name}
-                              </span>
-                              <span className="ml-3 shrink-0 text-[11px] font-bold text-[var(--color-text-muted)]">
-                                Explore
-                              </span>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {matchedProducts.length === 0 && matchedCategories.length === 0 && (
-                      <div className="rounded-lg bg-[var(--color-surface-secondary)] px-3 py-3">
-                        <div className="text-[12px] font-semibold text-[var(--color-text-primary)]">
-                          No quick matches yet
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
-                          Try searching popular items like “Wireless Earbuds” or “Smart Watch”.
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          <MarketplaceSearchPopover
+            query={search}
+            type={type}
+            open={showSearchPopover}
+            recentSearches={recentSearches}
+            popularSearches={POPULAR_SEARCHES}
+            trendingCategories={trendingCategorySuggestions}
+            onPick={(term) => applySearch(term)}
+            onSubmit={submitSearch}
+          />
 
           <div className="flex items-center justify-center gap-2 sm:hidden">
             {(["physical", "digital"] as ProductType[]).map((t) => (
@@ -896,9 +773,9 @@ export function MarketplacePageClient({
         </section>
 
         {/* ── Shop by Category — always rendered ── */}
-        {categories.length > 0 && (
+        {displayCategories.length > 0 && (
           <section>
-            <div className="mb-2 flex items-center gap-2">
+            <div className="mb-3 flex items-center gap-2">
               <h2 className="text-lg font-black text-[var(--color-text-primary)]">Shop by Category</h2>
               <button
                 className="text-xs font-semibold"
@@ -907,7 +784,7 @@ export function MarketplacePageClient({
                 Explore top categories
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-2 md:grid-cols-3 md:gap-2 lg:grid-cols-4 xl:grid-cols-7">
+            <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3.5 lg:grid-cols-4 xl:grid-cols-7">
               {displayCategories.map((c) => (
                 <CategoryCard key={c.id} c={c} type={type} />
               ))}
@@ -919,11 +796,22 @@ export function MarketplacePageClient({
         <section id="marketplace-products">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-black text-[var(--color-text-primary)]">
-              {filters.category && filters.category !== "Trending Now"
-                ? filters.category
-                : `Trending ${type === "digital" ? "Digital " : ""}Products`}
+              {debouncedSearch
+                ? `Results for: ${debouncedSearch}`
+                : filters.category && filters.category !== "Trending Now"
+                  ? filters.category
+                  : `Trending ${type === "digital" ? "Digital " : ""}Products`}
             </h2>
-            {filters.category && filters.category !== "Trending Now" && (
+            {debouncedSearch ? (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+                style={{ background: "var(--color-accent)" }}
+              >
+                ✕ Clear search
+              </button>
+            ) : filters.category && filters.category !== "Trending Now" ? (
               <button
                 type="button"
                 onClick={() => setCategory("Trending Now")}
@@ -932,15 +820,22 @@ export function MarketplacePageClient({
               >
                 ✕ Clear
               </button>
+            ) : null}
+            {!debouncedSearch && (
+              <button
+                type="button"
+                className="ml-auto flex items-center gap-1 text-xs font-semibold"
+                style={{ color: "var(--color-accent)" }}
+              >
+                View all <ArrowRight className="size-3.5" />
+              </button>
             )}
-            <button
-              type="button"
-              className="ml-auto flex items-center gap-1 text-xs font-semibold"
-              style={{ color: "var(--color-accent)" }}
-            >
-              View all <ArrowRight className="size-3.5" />
-            </button>
           </div>
+          {debouncedSearch && !searchExactMatch && !productsLoading && (
+            <p className="mb-2 text-xs text-[var(--color-text-muted)]">
+              No exact matches found — showing similar products
+            </p>
+          )}
           {loading || productsLoading ? (
             <SkeletonGrid />
           ) : trending.length === 0 ? (
@@ -958,19 +853,23 @@ export function MarketplacePageClient({
                 No products match your filters
               </p>
               <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
-                Try adjusting or clearing your filters
+                {debouncedSearch
+                  ? "Try a different keyword or clear search to browse all products"
+                  : "Try adjusting or clearing your filters"}
               </p>
             </div>
           ) : (
             <>
               <TrendingProductsClient products={trending} type={type} />
-              <MarketplacePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                total={listingCount}
-                pageSize={MARKETPLACE_PAGE_SIZE}
-                onPageChange={goToPage}
-              />
+              {!debouncedSearch && (
+                <MarketplacePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  total={listingCount}
+                  pageSize={MARKETPLACE_PAGE_SIZE}
+                  onPageChange={goToPage}
+                />
+              )}
             </>
           )}
         </section>

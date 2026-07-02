@@ -507,7 +507,6 @@ import {
   FaqSection,
   CommunityAccessCard,
   RelatedProducts,
-  ProductTitleBadges,
 } from "@/components/marketplace/product-detail-shared";
 import type { Tables } from "@/types/supabase";
 import type { ProductWithRelations, VendorPublic } from "@/services/products";
@@ -1391,51 +1390,6 @@ export function DigitalProductDetail({
                   <h1 className="text-[20px] lg:text-[22px] font-bold leading-snug text-[var(--color-text-primary)] tracking-tight">
                     {product.name}
                   </h1>
-
-                  <ProductTitleBadges
-                    vendor={vendor}
-                    product={product}
-                    variant="digital"
-                  />
-
-                  {/* Rating row */}
-                  <div className="flex flex-wrap items-center gap-2 text-[12px] text-[var(--color-text-muted)] mt-1">
-                    <span className="font-bold text-[var(--color-text-primary)]">
-                      {rating.toFixed(1)}
-                    </span>
-                    <span className="inline-flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <Star
-                          key={i}
-                          className={cn(
-                            "h-3.5 w-3.5",
-                            i <= Math.round(rating)
-                              ? "fill-amber-400 text-amber-400"
-                              : "fill-gray-200 text-gray-200",
-                          )}
-                        />
-                      ))}
-                    </span>
-                    <span>({reviewCount || 128} reviews)</span>
-                    <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
-                    <span className="tabular-nums">
-                      {saleCount >= 1000
-                        ? `${(saleCount / 1000).toFixed(1)}K`
-                        : saleCount.toLocaleString()}{" "}
-                      downloads
-                    </span>
-                    <span aria-hidden className="text-[var(--color-border-strong)]">·</span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="relative flex h-2 w-2 shrink-0">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                      </span>
-                      <strong className="text-[var(--color-text-primary)]">
-                        {liveViewers}
-                      </strong>{" "}
-                      viewing
-                    </span>
-                  </div>
 
                   {/* Price */}
                   <div className="mt-3">

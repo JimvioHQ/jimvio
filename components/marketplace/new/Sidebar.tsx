@@ -12,6 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import CustomSelect from "@/components/ui/select-2";
 import { useMarketplace } from "./marketplace-context";
 import type { DeliveryTime } from "@/lib/utils";
+import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -349,7 +350,7 @@ export function Sidebar({ type = "physical" }: Props) {
               Categories
               <span
                 className="ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white"
-                style={{ background: type === "digital" ? "#7c3aed" : "var(--color-accent)" }}
+                style={{ background: "var(--color-accent)" }}
               >
                 {type === "digital" ? "Digital" : "Physical"}
               </span>
@@ -505,15 +506,19 @@ export function Sidebar({ type = "physical" }: Props) {
         <div
           className="rounded-md p-3"
           style={{
-            background: type === "digital"
-              ? "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)"
-              : "linear-gradient(135deg, var(--color-accent) 0%, #ff8c00 100%)",
+            background: JIMVIO_ORANGE.gradient135,
+            boxShadow: type === "digital" ? JIMVIO_ORANGE.glow : undefined,
           }}
         >
           <div className="mb-1 flex items-center gap-1.5">
             <Sparkles className="size-3.5 text-white" />
             <span className="text-xs font-black text-white">AI Shopping Assistant</span>
-            <span className="rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-bold text-white">Beta</span>
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[8px] font-bold text-white"
+              style={{ background: "rgba(255,255,255,0.25)" }}
+            >
+              Beta
+            </span>
           </div>
           <p className="mb-2.5 text-[10px] leading-relaxed text-white/75">
             {type === "digital"

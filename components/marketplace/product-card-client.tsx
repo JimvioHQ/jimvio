@@ -453,21 +453,28 @@ export function ProductCardClient({
             </h3>
           </Link>
 
-          <div className="flex items-baseline gap-2 mt-1.5">
+          <div className={cn("flex items-baseline leading-none", isDigital ? "mt-1.5 gap-2" : "mt-0.5 gap-1")}>
             <LocalizedPrice
               amount={price}
               currency={p.currency}
               period={p.pricing_type === "recurring" ? p.billing_period : null}
               className={cn(
-                "font-black tracking-tight text-[#0f0f0f] dark:text-white",
-                compact ? "text-[17px]" : "text-[20px]"
+                isDigital
+                  ? "font-black tracking-tight text-[#0f0f0f] dark:text-white"
+                  : "font-bold tabular-nums tracking-tight text-[#FF5A1F] text-[12px] md:text-[14px]",
+                isDigital && (compact ? "text-[17px]" : "text-[20px]"),
               )}
             />
             {discount > 0 && compareAtPrice != null && (
               <LocalizedPrice
                 amount={compareAtPrice}
                 currency={p.currency}
-                className="text-[12px] font-semibold text-stone-400 dark:text-stone-500 line-through"
+                className={cn(
+                  "line-through",
+                  isDigital
+                    ? "text-[12px] font-semibold text-stone-400 dark:text-stone-500"
+                    : "text-[8px] font-medium text-[#9CA3AF] md:text-[9px]",
+                )}
               />
             )}
           </div>

@@ -410,17 +410,17 @@ export function ProductCardPhysical({
           </Link>
 
           {/* Price */}
-          <div className="flex items-baseline gap-2 mt-auto pt-1">
+          <div className="mt-auto flex items-baseline gap-1 pt-0.5">
             <LocalizedPrice
               amount={price}
               currency={p.currency}
-              className="text-[17px] font-semibold tabular-nums tracking-tight text-[var(--color-text-primary)]"
+              className="text-[12px] font-bold tabular-nums leading-none tracking-tight text-[#FF5A1F] md:text-[14px]"
             />
             {onSale && compareAtPrice != null && (
               <LocalizedPrice
                 amount={compareAtPrice}
                 currency={p.currency}
-                className="text-[12px] tabular-nums text-[var(--color-text-muted)] line-through decoration-1"
+                className="text-[8px] font-medium tabular-nums leading-none text-[#9CA3AF] line-through md:text-[9px]"
               />
             )}
           </div>

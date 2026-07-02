@@ -77,7 +77,7 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
       className="group relative flex w-full min-w-0 flex-col rounded-xl border border-border bg-card p-2 transition-[transform,box-shadow] duration-300 ease-out hover:scale-[1.03] hover:shadow-[var(--shadow-card)] sm:p-2.5"
     >
       {discount && (
-        <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+        <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-1 py-0.5 text-[8px] font-bold leading-none text-primary-foreground md:text-[9px]">
           {discount}
         </span>
       )}
@@ -92,11 +92,19 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
           className="h-full w-full object-cover object-center"
         />
       </div>
-      <h4 className="mt-2 truncate text-xs font-bold">{d.name}</h4>
-      <div className="mt-1 flex items-baseline gap-1.5">
-        <span className="text-sm font-black text-primary">{formatMoney(d.price, d.currency)}</span>
+      <h4 className="mt-0.5 truncate text-xs font-bold leading-tight">{d.name}</h4>
+      <div className="mt-0.5 flex items-baseline gap-0.5 leading-none">
+        <span
+          className="text-[10px] font-bold leading-none md:text-[12px]"
+          style={{ color: "#FF5A1F" }}
+        >
+          {formatMoney(d.price, d.currency)}
+        </span>
         {compareAtPrice && (
-          <span className="text-[11px] text-muted-foreground line-through">
+          <span
+            className="text-[8px] font-medium leading-none line-through opacity-70 md:text-[9px]"
+            style={{ color: "#9CA3AF" }}
+          >
             {formatMoney(compareAtPrice, d.currency)}
           </span>
         )}

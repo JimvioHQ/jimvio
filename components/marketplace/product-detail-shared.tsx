@@ -32,6 +32,9 @@ export interface SharedVendor {
 const TITLE_CHIP =
   "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-transform duration-300 ease-out hover:scale-[1.02]";
 
+const PHYSICAL_TITLE_CHIP =
+  "inline-flex h-[26px] items-center gap-1 rounded-full px-2.5 text-[10px] font-semibold leading-none md:text-[11px]";
+
 export function ProductTitleBadges({
   vendor,
   product,
@@ -53,6 +56,59 @@ export function ProductTitleBadges({
   const isBestseller = sales >= 100;
   const isTrending = (product.view_count ?? 0) >= 500 || sales >= 50;
   const showFastShipping = variant === "physical";
+
+  if (variant === "physical") {
+    return (
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        {isBestseller && (
+          <span
+            className={cn(
+              PHYSICAL_TITLE_CHIP,
+              "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
+            )}
+          >
+            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+            Bestseller
+          </span>
+        )}
+        {isTrending && (
+          <span
+            className={cn(
+              PHYSICAL_TITLE_CHIP,
+              "bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300",
+            )}
+          >
+            <TrendingUp className="h-3 w-3" />
+            Trending
+          </span>
+        )}
+        {showFastShipping && (
+          <span
+            className={cn(
+              PHYSICAL_TITLE_CHIP,
+              isFreeShipping
+                ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300"
+                : "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300",
+            )}
+          >
+            <Zap className="h-3 w-3" />
+            {isFreeShipping ? "Free Shipping" : "Fast Shipping"}
+          </span>
+        )}
+        {isVerifiedSupplier && (
+          <span
+            className={cn(
+              PHYSICAL_TITLE_CHIP,
+              "bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300",
+            )}
+          >
+            <BadgeCheck className="h-3 w-3" />
+            Verified Supplier
+          </span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">

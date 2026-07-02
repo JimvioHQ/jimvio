@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
   Heart, Flame, Sparkles,
-  TrendingUp, Warehouse, MapPin, ShoppingCart, Eye, ChevronDown, Star,
+  TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -29,7 +29,6 @@ const PHYSICAL_TABS = [
   { label: "New Arrivals", icon: Sparkles, filter: (_p: Product) => true },
   { label: "Best Selling", icon: TrendingUp, filter: (p: Product) => (p.sale_count ?? 0) > 0 },
   { label: "Free Shipping", icon: Warehouse, filter: (p: Product) => p.is_free_shipping === true },
-  { label: "Local Stock", icon: MapPin, filter: (p: Product) => p.shipping_from != null },
 ];
 
 const DIGITAL_TABS = [
