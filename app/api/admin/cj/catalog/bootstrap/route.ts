@@ -1,3 +1,5 @@
+import { requireAdmin } from "@/lib/auth/api-helpers";
+import { bootstrapCatalog } from "@/lib/cj/premium-intelligence/bootstrap";
 import { invalidateCatalogCache } from "@/lib/cj/premium-intelligence/catalog-cache";
 
 export const runtime = "nodejs";

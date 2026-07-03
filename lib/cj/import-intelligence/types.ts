@@ -98,7 +98,7 @@ export interface ProductIntelligence {
   catalogTier: CatalogTier;
   catalogBadges: CatalogBadge[];
   qualityScores: QualityScoreBreakdown;
-  enrichmentStatus?: "pending" | "processing" | "complete" | "failed";
+  enrichmentStatus?: "pending" | "processing" | "complete" | "failed" | "dead_letter";
   confidenceScore?: number;
 }
 
