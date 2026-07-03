@@ -7,6 +7,18 @@
       "schedule": "0 0 * * *"
     },
     {
+      "path": "/api/cron/cj-catalog-sync",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/cj-enrichment",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/cj-intelligence-daily",
+      "schedule": "0 4 * * *"
+    },
+    {
       "path": "/api/ugc/views/sync",
       "schedule": "0 3 * * *"
     },

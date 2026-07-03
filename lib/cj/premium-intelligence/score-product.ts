@@ -1,0 +1,222 @@
+import { getServiceClient, getCJToken, cjFetch } from "@/lib/cj/client";
+import { enrichProduct } from "../import-intelligence/filters";
+import { calculateOpportunityScore } from "../import-intelligence/opportunity-score";
+import {
+  classifyCatalogTier,
+  computeCatalogBadges,
+  computeConfidenceScore,
+  computeQualityScores,
+} from "../import-intelligence/quality-engine";
+import type { EnrichedProduct } from "../import-intelligence/types";
+import {
+  ensureIntelligenceRows,
+  enqueueEnrichment,
+  finishSyncRun,
+  makePendingIntelligence,
+  startSyncRun,
+  upsertRawProducts,
+} from "./catalog-repository";
+import { listV2RowToRaw, rawRowToCJProduct } from "./map-to-cj-product";
+import type { SyncListResult } from "./types";
+
+const PAGE_SIZE = 100;
+const MAX_PAGES = 120;
+
+interface ListV2Response {
+  data: {
+    totalRecords: number;
+    content: Array<{ productList: Array<Record<string, unknown>> }>;
+  };
+}
+
+export async function syncCjListCatalog(options?: {
+  maxPages?: number;
+}): Promise<SyncListResult> {
+  const runId = await startSyncRun("list_sync");
+  const supabase = getServiceClient();
+  const token = await getCJToken(supabase);
+
+  let fetched = 0;
+  let saved = 0;
+  let enqueued = 0;
+  let errors = 0;
+  const maxPages = options?.maxPages ?? MAX_PAGES;
+
+  try {
+    for (let page = 1; page <= maxPages; page++) {
+      const params = new URLSearchParams({
+        page: String(page),
+        size: String(PAGE_SIZE),
+        features: "enable_category,enable_video",
+      });
+
+      const json = await cjFetch<ListV2Response>(
+        `/product/listV2?${params.toString()}`,
+        token
+      );
+
+      const records = json.data?.content?.[0]?.productList ?? [];
+      if (records.length === 0) break;
+
+      fetched += records.length;
+      const rawRows = records.map(listV2RowToRaw).filter((r) => r.pid);
+
+      try {
+        const n = await upsertRawProducts(rawRows);
+        saved += n;
+        const pids = rawRows.map((r) => r.pid);
+        await ensureIntelligenceRows(pids);
+        enqueued += await enqueueEnrichment(pids, 0);
+      } catch {
+        errors += records.length;
+      }
+
+      const total = json.data?.totalRecords ?? 0;
+      if (fetched >= total || records.length < PAGE_SIZE) break;
+
+      await sleep(300);
+    }
+
+    if (fetched > 0 && saved === 0) {
+      throw new Error(
+        "Could not save catalog rows. Apply database/migrations/065_cj_premium_intelligence.sql and reload Supabase schema cache (Settings → API)."
+      );
+    }
+
+    await finishSyncRun(runId, {
+      status: errors > 0 ? "partial" : "success",
+      total_fetched: fetched,
+      total_saved: saved,
+      total_errors: errors,
+      metadata: { enqueued },
+    });
+  } catch (err) {
+    await finishSyncRun(runId, {
+      status: "failed",
+      total_fetched: fetched,
+      total_saved: saved,
+      total_errors: errors + 1,
+      error_message: err instanceof Error ? err.message : "sync failed",
+    });
+    throw err;
+  }
+
+  return { fetched, saved, enqueued, errors };
+}
+
+export function scoreEnrichedProduct(
+  product: EnrichedProduct,
+  enrichmentStatus: "pending" | "processing" | "complete" | "failed"
+): {
+  qualityScores: ReturnType<typeof computeQualityScores>;
+  catalogTier: ReturnType<typeof classifyCatalogTier>;
+  badges: ReturnType<typeof computeCatalogBadges>;
+  confidenceScore: number;
+  opportunityScore: number;
+  trending: boolean;
+} {
+  const opportunity = calculateOpportunityScore(product);
+  product.intelligence.opportunityScore = opportunity.score;
+  product.intelligence.opportunityLevel = opportunity.level;
+  product.intelligence.opportunityReasons = opportunity.reasons;
+
+  const ctx = { enrichmentStatus };
+  const qualityScores = computeQualityScores(product, opportunity.score, ctx);
+  product.intelligence.qualityScores = qualityScores;
+  product.intelligence.healthScore = qualityScores.healthScore;
+  product.intelligence.enrichmentStatus = enrichmentStatus;
+  product.intelligence.confidenceScore = computeConfidenceScore(
+    product,
+    enrichmentStatus === "complete"
+  );
+
+  const catalogTier = classifyCatalogTier(product, qualityScores, ctx);
+  product.intelligence.catalogTier = catalogTier;
+  product.intelligence.catalogBadges = computeCatalogBadges(product);
+
+  return {
+    qualityScores,
+    catalogTier,
+    badges: product.intelligence.catalogBadges,
+    confidenceScore: product.intelligence.confidenceScore ?? 50,
+    opportunityScore: opportunity.score,
+    trending: product.intelligence.trending,
+  };
+}
+
+/** Fast path for catalog API — uses DB scores when complete, skips re-scoring pending rows. */
+export function buildLiteEnrichedFromRaw(
+  raw: Parameters<typeof rawRowToCJProduct>[0],
+  intel: Parameters<typeof rawRowToCJProduct>[1],
+  importedMap: Record<string, { productId: string }> = {}
+): EnrichedProduct {
+  const intelRow =
+    intel && intel.enrichment_status !== undefined
+      ? intel
+      : makePendingIntelligence(raw.pid);
+
+  const cj = rawRowToCJProduct(raw, intelRow);
+  const enriched = enrichProduct(cj, importedMap);
+  const status = intelRow.enrichment_status;
+
+  enriched.intelligence.catalogTier = intelRow.catalog_tier;
+  enriched.intelligence.enrichmentStatus = status;
+  enriched.intelligence.healthScore = intelRow.health_score;
+  enriched.intelligence.confidenceScore = intelRow.confidence_score;
+  enriched.intelligence.trending = intelRow.trending;
+  enriched.intelligence.opportunityScore = intelRow.opportunity_score;
+
+  if (status === "complete") {
+    enriched.intelligence.qualityScores =
+      intelRow.quality_scores as unknown as EnrichedProduct["intelligence"]["qualityScores"];
+    enriched.intelligence.catalogBadges =
+      (intelRow.badges as EnrichedProduct["intelligence"]["catalogBadges"]) ?? [];
+    if (intelRow.margin_percent != null) {
+      enriched.intelligence.profit.marginPercent = intelRow.margin_percent;
+    }
+    return enriched;
+  }
+
+  return enriched;
+}
+
+export function buildEnrichedFromRaw(
+  raw: Parameters<typeof rawRowToCJProduct>[0],
+  intel: Parameters<typeof rawRowToCJProduct>[1],
+  importedMap: Record<string, { productId: string }> = {}
+): EnrichedProduct {
+  const cj = rawRowToCJProduct(raw, intel);
+  const enriched = enrichProduct(cj, importedMap);
+  const status = intel?.enrichment_status ?? "pending";
+
+  const intelRow =
+    intel && intel.enrichment_status !== undefined
+      ? intel
+      : makePendingIntelligence(raw.pid);
+
+  if (status === "complete" && intelRow.enrichment_status === "complete") {
+    enriched.intelligence.catalogTier = intelRow.catalog_tier;
+    enriched.intelligence.healthScore = intelRow.health_score;
+    enriched.intelligence.qualityScores =
+      intelRow.quality_scores as unknown as EnrichedProduct["intelligence"]["qualityScores"];
+    enriched.intelligence.catalogBadges =
+      (intelRow.badges as EnrichedProduct["intelligence"]["catalogBadges"]) ?? [];
+    enriched.intelligence.enrichmentStatus = "complete";
+    enriched.intelligence.confidenceScore = intelRow.confidence_score;
+    enriched.intelligence.trending = intelRow.trending;
+    enriched.intelligence.opportunityScore = intelRow.opportunity_score;
+    if (intelRow.margin_percent != null) {
+      enriched.intelligence.profit.marginPercent = intelRow.margin_percent;
+    }
+    return enriched;
+  }
+
+  enriched.intelligence.catalogTier = intelRow.catalog_tier;
+  enriched.intelligence.enrichmentStatus = intelRow.enrichment_status;
+  scoreEnrichedProduct(enriched, status === "dead_letter" ? "failed" : status);
+  return enriched;
+}
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}

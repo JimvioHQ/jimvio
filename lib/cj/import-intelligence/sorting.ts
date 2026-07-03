@@ -14,7 +14,7 @@ export type SortOption =
   | "lowest-risk";
 
 export const SORT_OPTIONS: Array<{ value: SortOption; label: string }> = [
-  { value: "default", label: "Default" },
+  { value: "default", label: "Jimvio Curated" },
   { value: "highest-opportunity", label: "Highest Opportunity" },
   { value: "highest-profit", label: "Highest Profit" },
   { value: "fastest-shipping", label: "Fastest Shipping" },

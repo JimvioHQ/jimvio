@@ -102,6 +102,15 @@ export function mapDetailToIntelligence(
     raw.supplierVerified === true ||
     raw.verifiedSupplier === 1;
 
+  const imageSet = Array.isArray(raw.productImageSet) ? raw.productImageSet : [];
+  const images = [
+    ...imageSet,
+    ...(str(raw.bigImage) ? [str(raw.bigImage)!] : []),
+  ].filter((url) => typeof url === "string" && url.startsWith("http"));
+  const uniqueImages = [...new Set(images)];
+  const description = str(raw.description) ?? "";
+  const plainDescription = description.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
   return {
     pid: detail.pid,
     rating: partial.rating,
@@ -124,6 +133,8 @@ export function mapDetailToIntelligence(
     listedNum: detail.listedNum,
     variantCount: partial.variantCount,
     isFreeShipping: detail.isFreeShipping,
+    imageCount: uniqueImages.length > 0 ? uniqueImages.length : undefined,
+    descriptionLength: plainDescription.length > 0 ? plainDescription.length : undefined,
     enrichedAt: Date.now(),
   };
 }

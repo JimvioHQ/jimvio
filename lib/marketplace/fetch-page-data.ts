@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DbProduct } from "@/lib/utils";
 import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos";
+import {
+  filterProductsForCustomers,
+  getCustomerVisibleCjPids,
+} from "@/lib/cj/premium-intelligence/marketplace-filter";
 import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
 
 export type MarketplaceProductType = "physical" | "digital";
@@ -97,6 +101,8 @@ export async function fetchMarketplacePageBundle(
   const pageSize = options?.pageSize ?? MARKETPLACE_PAGE_SIZE;
   const offset = (page - 1) * pageSize;
 
+  const visibleCjPids = await getCustomerVisibleCjPids();
+
   const [{ data: deals }, { data: trend }, { count }, categories] =
     await Promise.all([
       supabase
@@ -132,8 +138,14 @@ export async function fetchMarketplacePageBundle(
       fetchCategoriesForType(supabase, typeFilter),
     ]);
 
-  const dealList = (deals ?? []) as DbProduct[];
-  const trendList = (trend ?? []) as DbProduct[];
+  const dealList = filterProductsForCustomers(
+    (deals ?? []) as DbProduct[],
+    visibleCjPids
+  ) as DbProduct[];
+  const trendList = filterProductsForCustomers(
+    (trend ?? []) as DbProduct[],
+    visibleCjPids
+  ) as DbProduct[];
   const videoMap = await fetchProductVideosMap(
     supabase,
     [...dealList, ...trendList].map((p) => p.id),

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
   Check,
-  Flame,
   Loader2,
   Package,
   Rocket,
@@ -15,17 +14,18 @@ import type { EnrichedProduct } from "@/lib/cj/import-intelligence/types";
 import {
   deliveryDays,
   getHealthLabel,
-  productHasVideo,
   WAREHOUSE_LABELS,
 } from "@/lib/cj/import-intelligence/product-utils";
 import { HealthScoreCircle } from "./health-score-circle";
+import { CatalogBadgesRow } from "./catalog-badges-row";
+import { CATALOG_TIER_STYLES } from "@/lib/cj/import-intelligence/quality-engine";
 import { cn } from "@/lib/utils";
 
 export const CARD_WIDTH = 210;
 export const CARD_HEIGHT = 320;
 export const GRID_GAP = 12;
 
-export function IntelligenceProductCard({
+export const IntelligenceProductCard = memo(function IntelligenceProductCard({
   product,
   importing,
   selected,
@@ -45,7 +45,6 @@ export function IntelligenceProductCard({
   const [imgErr, setImgErr] = useState(false);
   const { intelligence: intel } = product;
   const enriched = product.intelligenceEnriched === true;
-  const videoReady = productHasVideo(product);
   const days = deliveryDays(product);
   const warehouse = product.countryCode
     ? WAREHOUSE_LABELS[product.countryCode] ?? product.countryCode
@@ -54,7 +53,11 @@ export function IntelligenceProductCard({
     product.verifiedWarehouse === 1 || product.supplierVerified === true;
   const { profit } = intel;
   const healthLabel = getHealthLabel(intel.healthScore);
-  const isTrending = intel.opportunityScore >= 70;
+  const tierStyle = CATALOG_TIER_STYLES[intel.catalogTier];
+  const showTierBadge =
+    intel.catalogTier === "ELITE" ||
+    intel.catalogTier === "PREMIUM" ||
+    intel.catalogTier === "PENDING";
   const reviewCount =
     enriched && product.reviewCount != null && product.reviewCount > 0
       ? product.reviewCount
@@ -129,15 +132,20 @@ export function IntelligenceProductCard({
           <HealthScoreCircle score={intel.healthScore} label={healthLabel} size={30} />
         </div>
 
-        <div className="absolute bottom-2 left-2 right-2 z-10 flex flex-wrap gap-1">
-          {isTrending && (
-            <Badge icon={<Flame className="h-2 w-2" />} className="bg-[#FF5A1F]/90">
-              Trending
-            </Badge>
+        <div className="absolute bottom-2 left-2 right-2 z-10 space-y-1">
+          {showTierBadge && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-[6px] px-1.5 py-0.5 text-[7.5px] font-bold uppercase tracking-wide text-white backdrop-blur-sm"
+              style={{ background: tierStyle.bg, color: tierStyle.color }}
+            >
+              <span>{tierStyle.emoji}</span>
+              {tierStyle.label}
+            </span>
           )}
-          {videoReady && <Badge className="bg-[#111827]/80">Video</Badge>}
-          <Badge className="bg-[#111827]/80">{warehouse}</Badge>
-          {showVerified && <Badge className="bg-emerald-600/90">Verified</Badge>}
+          <CatalogBadgesRow badges={intel.catalogBadges} max={3} />
+          <span className="inline-flex items-center rounded-[6px] bg-[#111827]/80 px-1.5 py-0.5 text-[7.5px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
+            {warehouse}
+          </span>
         </div>
       </div>
 
@@ -214,29 +222,7 @@ export function IntelligenceProductCard({
       </div>
     </article>
   );
-}
-
-function Badge({
-  children,
-  className,
-  icon,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-0.5 rounded-[6px] px-1.5 py-0.5 text-[7.5px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm",
-        className
-      )}
-    >
-      {icon}
-      {children}
-    </span>
-  );
-}
+});
 
 function Metric({
   label,

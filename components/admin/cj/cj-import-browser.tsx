@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -33,6 +33,8 @@ import { QuickFiltersRow } from "@/components/admin/cj/import-intelligence/quick
 import { SavedPresetsBar } from "@/components/admin/cj/import-intelligence/saved-presets-bar";
 import { SessionAnalytics } from "@/components/admin/cj/import-intelligence/session-analytics";
 import { SortSelector } from "@/components/admin/cj/import-intelligence/sort-selector";
+import { PremiumCatalogBar } from "@/components/admin/cj/import-intelligence/premium-catalog-bar";
+import { IntelligenceMonitor } from "@/components/admin/cj/import-intelligence/intelligence-monitor";
 import { ImportQueueMonitor } from "@/components/admin/cj/import-intelligence/import-queue-monitor";
 import {
   PublishSafetyDialog,
@@ -40,10 +42,13 @@ import {
 } from "@/components/admin/cj/import-intelligence/publish-summary-modal";
 import {
   fetchCJProducts,
+  fetchCatalogIntelligenceBatch,
   fetchCJCategories,
   fetchImportedMap,
   invalidateCJCache,
+  triggerCatalogSync,
 } from "@/lib/cj/import-intelligence/api";
+import { useDebouncedValue } from "@/lib/cj/import-intelligence/use-debounced";
 import {
   activeQuickFilterKeys,
   applyIntelligenceFilters,
@@ -80,6 +85,10 @@ import {
   type SortOption,
 } from "@/lib/cj/import-intelligence/sorting";
 import {
+  countCatalogTiers,
+  sortPremiumCatalog,
+} from "@/lib/cj/import-intelligence/quality-engine";
+import {
   filterBySmartSearch,
   getSearchSuggestions,
   loadRecentSearches,
@@ -91,6 +100,7 @@ import { useLazyCjEnrichment } from "@/lib/cj/import-intelligence/use-lazy-cj-en
 import { StickyBulkPublishBar } from "@/components/admin/cj/import-intelligence/sticky-bulk-publish-bar";
 import type {
   CJApiFilters,
+  CatalogTier,
   EnrichedProduct,
   ImportLogEntry,
   ImportedMap,
@@ -101,6 +111,18 @@ import type {
 
 const PAGE_SIZE = 48;
 const SCHEDULED_KEY = "jimvio:cj-scheduled-publishes";
+
+function dedupeProducts(
+  prev: EnrichedProduct[],
+  next: EnrichedProduct[],
+  append: boolean
+): EnrichedProduct[] {
+  const map = new Map<string, EnrichedProduct>();
+  for (const p of append ? [...prev, ...next] : next) {
+    map.set(p.pid, p);
+  }
+  return [...map.values()];
+}
 
 function useIsLgScreen(): boolean {
   const [isLg, setIsLg] = useState(false);
@@ -137,13 +159,22 @@ export default function CJImportBrowser({
     DEFAULT_INTELLIGENCE_FILTERS
   );
   const [activePresetIds, setActivePresetIds] = useState<string[]>([]);
+  const [visibleTiers, setVisibleTiers] = useState<Set<CatalogTier>>(
+    () => new Set<CatalogTier>(["ELITE", "PREMIUM", "PENDING", "STANDARD"])
+  );
+  const [showAllTiers, setShowAllTiers] = useState(false);
+  const [catalogSyncing, setCatalogSyncing] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [dbTierCounts, setDbTierCounts] = useState<ReturnType<typeof countCatalogTiers> | null>(null);
   const [sortOption, setSortOption] = useState<SortOption>("default");
   const [importMode, setImportMode] = useState<ImportMode>("publish");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const [localSearch, setLocalSearch] = useState("");
   const [products, setProducts] = useState<EnrichedProduct[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
@@ -174,6 +205,10 @@ export default function CJImportBrowser({
   const [sessionPublished, setSessionPublished] = useState(0);
   const [vendorConfigured, setVendorConfigured] = useState<boolean | null>(null);
   const [vendorSetupMessage, setVendorSetupMessage] = useState("");
+  const [vendorInstructions, setVendorInstructions] = useState<{
+    optionA?: { title: string; steps: string[] };
+    optionB?: { title: string; sql: string };
+  } | null>(null);
   const isLgScreen = useIsLgScreen();
 
   const {
@@ -212,11 +247,57 @@ export default function CJImportBrowser({
       .then((data) => {
         setVendorConfigured(Boolean(data?.vendorConfigured));
         if (data?.message) setVendorSetupMessage(data.message);
+        if (data?.instructions) setVendorInstructions(data.instructions);
       })
       .catch(() => {
         setVendorConfigured(false);
         setVendorSetupMessage("Could not verify CJ vendor configuration.");
       });
+
+    void (async () => {
+      try {
+        setCatalogSyncing(true);
+        setError("");
+        setHasSearched(true);
+
+        let result = await fetchCJProducts(DEFAULT_CJ_FILTERS, 1, PAGE_SIZE, {
+          tiers: ["ELITE", "PREMIUM", "PENDING", "STANDARD"],
+        });
+
+        if (result.needsSync || (result.products as unknown as EnrichedProduct[]).length === 0) {
+          await fetch("/api/admin/cj/catalog/bootstrap", { method: "POST" });
+          invalidateCJCache();
+          result = await fetchCJProducts(DEFAULT_CJ_FILTERS, 1, PAGE_SIZE, {
+            tiers: ["ELITE", "PREMIUM", "PENDING", "STANDARD"],
+          });
+        }
+
+        const enriched = (result.products as unknown as EnrichedProduct[]).map(
+          (p) => (p.intelligence ? p : enrichProduct(p, {}))
+        );
+        setProducts(enriched);
+        setTotal(result.total);
+        setNextCursor(result.nextCursor ?? null);
+        if (result.tierCounts) {
+          const tc = result.tierCounts;
+          setDbTierCounts({
+            elite: tc.ELITE ?? 0,
+            premium: tc.PREMIUM ?? 0,
+            standard: tc.STANDARD ?? 0,
+            pending: tc.PENDING ?? 0,
+            hidden: tc.HIDDEN ?? 0,
+            curated: (tc.ELITE ?? 0) + (tc.PREMIUM ?? 0),
+            total: result.total,
+          });
+        }
+        if (result.lastSyncAt) setLastSyncAt(result.lastSyncAt);
+        setPage(1);
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setCatalogSyncing(false);
+      }
+    })();
   }, []);
 
   const handleImportSettingsChange = (s: ImportSettings) => {
@@ -265,16 +346,35 @@ export default function CJImportBrowser({
     return Math.round(sum / products.length);
   }, [products]);
 
+  const effectiveVisibleTiers = useMemo(() => {
+    if (showAllTiers) {
+      return new Set<CatalogTier>([
+        "ELITE",
+        "PREMIUM",
+        "STANDARD",
+        "PENDING",
+        "HIDDEN",
+      ]);
+    }
+    return visibleTiers;
+  }, [showAllTiers, visibleTiers]);
+
+  const tierList = useMemo(
+    () => Array.from(effectiveVisibleTiers),
+    [effectiveVisibleTiers]
+  );
+
   const loadPage = useCallback(
     async (
       pageNum: number,
       append = false,
-      filtersOverride?: IntelligenceFilters
+      filtersOverride?: IntelligenceFilters,
+      opts?: { cursor?: string | null; search?: string }
     ) => {
       const activeIntel = filtersOverride ?? intelFilters;
       const apiFilters = trendingToApiFilters(activeIntel, {
         ...cjFilters,
-        keyWord: searchQuery,
+        keyWord: opts?.search ?? debouncedSearch,
       });
 
       if (append) setLoadingMore(true);
@@ -285,24 +385,57 @@ export default function CJImportBrowser({
       }
 
       try {
-        const { products: rows, total: t } = await fetchCJProducts(
+        const result = await fetchCJProducts(
           apiFilters,
           pageNum,
-          PAGE_SIZE
+          PAGE_SIZE,
+          {
+            tiers: tierList,
+            cursor: append ? (opts?.cursor ?? nextCursor) : null,
+          }
         );
 
-        const enriched = enrichProductBatch(
-          rows.map((p) => ({
+        if (result.tierCounts) {
+          const tc = result.tierCounts;
+          setDbTierCounts({
+            elite: tc.ELITE ?? 0,
+            premium: tc.PREMIUM ?? 0,
+            standard: tc.STANDARD ?? 0,
+            pending: tc.PENDING ?? 0,
+            hidden: tc.HIDDEN ?? 0,
+            curated: (tc.ELITE ?? 0) + (tc.PREMIUM ?? 0),
+            total: result.total,
+          });
+        }
+
+        if (result.needsSync && pageNum === 1 && !append) {
+          setCatalogSyncing(true);
+          try {
+            await triggerCatalogSync();
+            invalidateCJCache();
+          } finally {
+            setCatalogSyncing(false);
+          }
+        }
+
+        const rows = result.products as unknown as EnrichedProduct[];
+        const enriched = rows.map((p) => {
+          if (!p.intelligence) return enrichProduct(p, importedMap);
+          const imported = importedMap[p.pid];
+          return {
             ...p,
-            variantCount:
-              p.variantCount ??
-              (p.productType && p.productType !== "ORDINARY" ? 2 : 1),
-          })),
-          importedMap
-        );
+            intelligence: {
+              ...p.intelligence,
+              isImported: Boolean(imported),
+              importedProductId: imported?.productId,
+            },
+          };
+        });
 
-        setProducts((prev) => (append ? [...prev, ...enriched] : enriched));
-        setTotal(t);
+        setProducts((prev) => dedupeProducts(prev, enriched, append));
+        setTotal(result.total);
+        setNextCursor(result.nextCursor ?? null);
+        if (result.lastSyncAt) setLastSyncAt(result.lastSyncAt);
         setPage(pageNum);
       } catch (e) {
         setError((e as Error).message);
@@ -312,8 +445,32 @@ export default function CJImportBrowser({
         setLoadingMore(false);
       }
     },
-    [cjFilters, intelFilters, searchQuery, importedMap]
+    [cjFilters, intelFilters, debouncedSearch, importedMap, tierList, nextCursor]
   );
+
+  const skipTierReload = useRef(true);
+  useEffect(() => {
+    if (!hasSearched) return;
+    if (skipTierReload.current) {
+      skipTierReload.current = false;
+      return;
+    }
+    invalidateCJCache();
+    setNextCursor(null);
+    void loadPage(1, false);
+  }, [tierList.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const skipSearchReload = useRef(true);
+  useEffect(() => {
+    if (!hasSearched) return;
+    if (skipSearchReload.current) {
+      skipSearchReload.current = false;
+      return;
+    }
+    invalidateCJCache();
+    setNextCursor(null);
+    void loadPage(1, false);
+  }, [debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const runSearch = useCallback(() => {
     if (searchQuery.trim()) {
@@ -322,30 +479,57 @@ export default function CJImportBrowser({
     }
     invalidateCJCache();
     setSelectedPids(new Set());
-    loadPage(1, false);
+    setNextCursor(null);
+    loadPage(1, false, undefined, { search: searchQuery });
   }, [searchQuery, loadPage]);
 
   const loadMore = useCallback(() => {
     if (loading || loadingMore) return;
-    if (page * PAGE_SIZE < total) loadPage(page + 1, true);
-  }, [loading, loadingMore, page, total, loadPage]);
+    if (nextCursor) {
+      loadPage(page + 1, true, undefined, { cursor: nextCursor });
+    } else if (page * PAGE_SIZE < total) {
+      loadPage(page + 1, true);
+    }
+  }, [loading, loadingMore, page, total, loadPage, nextCursor]);
 
-  const hasMore = page * PAGE_SIZE < total;
+  const hasMore = Boolean(nextCursor) || page * PAGE_SIZE < total;
 
   const suggestions = useMemo(
     () => getSearchSuggestions(products, searchQuery),
     [products, searchQuery]
   );
 
+  const catalogTierCounts = useMemo(
+    () => dbTierCounts ?? countCatalogTiers(enrichedCatalog),
+    [dbTierCounts, enrichedCatalog]
+  );
+
   const visibleProducts = useMemo(() => {
+    const hasClientFilters =
+      activeFilterCount > 0 || localSearch.trim().length > 0 || sortOption !== "default";
+
+    if (!hasClientFilters) {
+      return enrichedCatalog;
+    }
+
     let result = applyIntelligenceFilters(enrichedCatalog, intelFilters);
     if (localSearch.trim()) {
       result = filterBySmartSearch(result, localSearch).map((p) =>
         enrichProduct(p, importedMap)
       );
     }
+    if (sortOption === "default") {
+      return sortPremiumCatalog(result);
+    }
     return sortProducts(result, sortOption);
-  }, [enrichedCatalog, intelFilters, localSearch, importedMap, sortOption]);
+  }, [
+    enrichedCatalog,
+    intelFilters,
+    localSearch,
+    importedMap,
+    sortOption,
+    activeFilterCount,
+  ]);
 
   useEffect(() => {
     if (!hasSearched || products.length === 0) return;
@@ -373,6 +557,29 @@ export default function CJImportBrowser({
   const handleVisiblePidsChange = useCallback(
     (pids: string[]) => {
       scheduleVisible(pids);
+      void fetchCatalogIntelligenceBatch(pids).then((items) => {
+        if (Object.keys(items).length === 0) return;
+        setProducts((prev) =>
+          prev.map((p) => {
+            const row = items[p.pid] as Record<string, unknown> | undefined;
+            if (!row) return p;
+            return {
+              ...p,
+              intelligence: {
+                ...p.intelligence,
+                catalogTier: (row.catalog_tier as CatalogTier) ?? p.intelligence.catalogTier,
+                healthScore: Number(row.health_score ?? p.intelligence.healthScore),
+                catalogBadges:
+                  (row.badges as EnrichedProduct["intelligence"]["catalogBadges"]) ??
+                  p.intelligence.catalogBadges,
+                enrichmentStatus:
+                  (row.enrichment_status as EnrichedProduct["intelligence"]["enrichmentStatus"]) ??
+                  p.intelligence.enrichmentStatus,
+              },
+            };
+          })
+        );
+      });
     },
     [scheduleVisible]
   );
@@ -699,7 +906,7 @@ export default function CJImportBrowser({
                 Import Intelligence
               </h1>
               <p className="truncate text-[10px] text-[#9CA3AF]">
-                CJ catalog · {cjTotalCount.toLocaleString()} products
+                Jimvio Premium Catalog · {cjTotalCount.toLocaleString()} CJ products
               </p>
             </div>
           </div>
@@ -737,6 +944,8 @@ export default function CJImportBrowser({
           averageRoi={averageRoi}
           averageMargin={sessionStats.averageMargin}
         />
+
+        <IntelligenceMonitor />
 
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
@@ -832,6 +1041,27 @@ export default function CJImportBrowser({
         )}
 
         {hasSearched && (
+          <PremiumCatalogBar
+            counts={catalogTierCounts}
+            visibleTiers={effectiveVisibleTiers}
+            onToggleTier={(tier) => {
+              setShowAllTiers(false);
+              setVisibleTiers((prev) => {
+                const next = new Set(prev);
+                if (next.has(tier)) next.delete(tier);
+                else next.add(tier);
+                return next;
+              });
+            }}
+            showAllTiers={showAllTiers}
+            onShowAllTiersChange={setShowAllTiers}
+            visibleCount={visibleProducts.length}
+            syncing={catalogSyncing}
+            lastSyncAt={lastSyncAt}
+          />
+        )}
+
+        {hasSearched && (
           <QuickFiltersRow
             counts={filterCounts}
             activeKeys={quickFilterActive}
@@ -858,8 +1088,14 @@ export default function CJImportBrowser({
           <p className="font-semibold">CJ vendor not configured</p>
           <p className="mt-1 text-amber-800">
             {vendorSetupMessage ||
-              "Set CJ_VENDOR_ID or platform_settings.cj_vendor_id before publishing."}
+              "Catalog sync works without a vendor id. Publishing requires CJ_VENDOR_ID or platform_settings.cj_vendor_id."}
           </p>
+          {vendorInstructions?.optionA && (
+            <p className="mt-2 text-[11px] text-amber-800">
+              <strong>{vendorInstructions.optionA.title}:</strong>{" "}
+              {vendorInstructions.optionA.steps.join(" → ")}
+            </p>
+          )}
           <Link
             href="/admin/settings"
             className="mt-2 inline-flex text-[11px] font-semibold text-[#FF5A1F] hover:underline"

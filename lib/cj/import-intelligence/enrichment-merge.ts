@@ -28,6 +28,8 @@ export function patchProductWithIntelligence(
       intel.videoUrls.length > 0 ? intel.videoUrls : product.videoList,
     videoUrl: intel.videoUrls[0] ?? product.videoUrl,
     videoCount: intel.videoCount > 0 ? intel.videoCount : product.videoCount,
+    imageCount: intel.imageCount ?? product.imageCount,
+    descriptionLength: intel.descriptionLength ?? product.descriptionLength,
     intelligenceEnriched: true,
   };
 }
@@ -79,6 +81,8 @@ export function mergeIntelligenceIntoProducts(
       warehouseName: p.warehouseName,
       supplierVerified: p.supplierVerified,
       intelligenceEnriched: p.intelligenceEnriched,
+      imageCount: p.imageCount,
+      descriptionLength: p.descriptionLength,
     })),
     importedMap
   );

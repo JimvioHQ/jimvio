@@ -1,5 +1,40 @@
 /** Shared types for CJ Product Import Intelligence */
 
+export type CatalogTier = "ELITE" | "PREMIUM" | "STANDARD" | "PENDING" | "HIDDEN";
+
+export type CatalogBadgeId =
+  | "video"
+  | "trending"
+  | "verified"
+  | "elite"
+  | "premium"
+  | "fast-shipping"
+  | "high-profit"
+  | "in-stock"
+  | "us-warehouse"
+  | "eu-warehouse"
+  | "uk-warehouse";
+
+export interface CatalogBadge {
+  id: CatalogBadgeId;
+  emoji: string;
+  label: string;
+}
+
+export interface QualityScoreBreakdown {
+  videoScore: number;
+  supplierScore: number;
+  shippingScore: number;
+  profitScore: number;
+  trendScore: number;
+  stockScore: number;
+  reviewScore: number;
+  imageQualityScore: number;
+  descriptionQualityScore: number;
+  opportunityScore: number;
+  healthScore: number;
+}
+
 export interface CJProduct {
   pid: string;
   productNameEn: string;
@@ -34,6 +69,10 @@ export interface CJProduct {
   supplierVerified?: boolean;
   /** Set when detail API intelligence has been merged */
   intelligenceEnriched?: boolean;
+  /** From lazy enrichment — product image count */
+  imageCount?: number;
+  /** From lazy enrichment — description character length */
+  descriptionLength?: number;
 }
 
 export interface EnrichedProduct extends CJProduct {
@@ -55,6 +94,12 @@ export interface ProductIntelligence {
   opportunityLevel: OpportunityLevel;
   opportunityReasons: string[];
   aiRecommendation?: string;
+  /** Jimvio Premium Catalog tier */
+  catalogTier: CatalogTier;
+  catalogBadges: CatalogBadge[];
+  qualityScores: QualityScoreBreakdown;
+  enrichmentStatus?: "pending" | "processing" | "complete" | "failed";
+  confidenceScore?: number;
 }
 
 export type OpportunityLevel =

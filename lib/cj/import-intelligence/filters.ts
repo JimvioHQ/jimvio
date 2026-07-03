@@ -6,7 +6,6 @@ import type {
   IntelligenceFilters,
 } from "./types";
 import {
-  calculateHealthScore,
   calculateProfitMetrics,
   calculateSupplierScore,
   calculateTrendScore,
@@ -17,6 +16,12 @@ import {
   isStockStable,
 } from "./product-utils";
 import { calculateOpportunityScore } from "./opportunity-score";
+import {
+  classifyCatalogTier,
+  computeCatalogBadges,
+  computeConfidenceScore,
+  computeQualityScores,
+} from "./quality-engine";
 import {
   buildTrendingContext,
   isTrendingProduct,
@@ -96,15 +101,15 @@ export function enrichProduct(
   trendingCtx?: ReturnType<typeof buildTrendingContext>
 ): EnrichedProduct {
   const imported = importedMap[p.pid];
-  const healthScore = calculateHealthScore(p);
   const profit = calculateProfitMetrics(p);
   const supplierScore = calculateSupplierScore(p);
+  const placeholderScores = computeQualityScores(p);
 
   const base: EnrichedProduct = {
     ...p,
     intelligence: {
-      healthScore,
-      healthLabel: getHealthLabel(healthScore),
+      healthScore: placeholderScores.healthScore,
+      healthLabel: getHealthLabel(placeholderScores.healthScore),
       profit,
       isImported: Boolean(imported),
       importedProductId: imported?.productId,
@@ -116,6 +121,10 @@ export function enrichProduct(
       opportunityScore: 0,
       opportunityLevel: "skip",
       opportunityReasons: [],
+      catalogTier: "PENDING",
+      catalogBadges: [],
+      qualityScores: placeholderScores,
+      enrichmentStatus: p.intelligenceEnriched ? "complete" : "pending",
     },
   };
 
@@ -132,6 +141,22 @@ export function enrichProduct(
   base.intelligence.opportunityLevel = opportunity.level;
   base.intelligence.opportunityReasons = opportunity.reasons;
   base.intelligence.aiRecommendation = opportunity.aiRecommendation;
+
+  const qualityScores = computeQualityScores(base, opportunity.score, {
+    enrichmentStatus: p.intelligenceEnriched ? "complete" : "pending",
+  });
+  base.intelligence.qualityScores = qualityScores;
+  base.intelligence.healthScore = qualityScores.healthScore;
+  base.intelligence.healthLabel = getHealthLabel(qualityScores.healthScore);
+  base.intelligence.enrichmentStatus = p.intelligenceEnriched ? "complete" : "pending";
+  base.intelligence.confidenceScore = computeConfidenceScore(
+    base,
+    p.intelligenceEnriched === true
+  );
+  base.intelligence.catalogTier = classifyCatalogTier(base, qualityScores, {
+    enrichmentStatus: p.intelligenceEnriched ? "complete" : "pending",
+  });
+  base.intelligence.catalogBadges = computeCatalogBadges(base);
 
   return base;
 }
@@ -155,6 +180,10 @@ export function enrichProductBatch(
       opportunityScore: 0,
       opportunityLevel: "skip" as const,
       opportunityReasons: [],
+      catalogTier: "PENDING" as const,
+      catalogBadges: [],
+      qualityScores: computeQualityScores(p, 0, { enrichmentStatus: "pending" }),
+      enrichmentStatus: "pending" as const,
     },
   }));
   const trendingCtx = buildTrendingContext(stubPool);

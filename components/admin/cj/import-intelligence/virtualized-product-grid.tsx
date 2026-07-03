@@ -172,9 +172,9 @@ export function VirtualizedProductGrid({
                   gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
                 }}
               >
-                {rowProducts.map((product) => (
+                {rowProducts.map((product, colIdx) => (
                   <IntelligenceProductCard
-                    key={product.pid}
+                    key={`${product.pid}-${virtualRow.index}-${colIdx}`}
                     product={product}
                     importing={importingPid === product.pid}
                     selected={selectedPids.has(product.pid)}

@@ -19,6 +19,8 @@ export interface CJIntelligencePayload {
   listedNum?: number;
   variantCount?: number;
   isFreeShipping?: boolean;
+  imageCount?: number;
+  descriptionLength?: number;
   enrichedAt: number;
 }
 
