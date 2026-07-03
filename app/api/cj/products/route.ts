@@ -20,6 +20,8 @@ interface ListV2Product {
     addMarkStatus?: number;
     isVideo?: number;
     videoList?: string[];
+    videoUrl?: string;
+    videoCount?: number;
     productType?: string;
     createAt?: number;
     warehouseInventoryNum?: number;
@@ -136,6 +138,8 @@ function mapProduct(p: ListV2Product) {
         productType: p.productType ?? "",
         isVideo: p.isVideo,
         videoList: Array.isArray(p.videoList) ? p.videoList : [],
+        videoUrl: typeof p.videoUrl === "string" ? p.videoUrl : undefined,
+        videoCount: typeof p.videoCount === "number" ? p.videoCount : undefined,
         createAt: p.createAt,
     };
 }

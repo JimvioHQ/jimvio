@@ -23,7 +23,7 @@ export function SortSelector({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as SortOption)}
-        className="h-7 px-2 text-[11px] rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] font-medium"
+        className="h-7 rounded-[10px] border border-[#E5E7EB] bg-white px-2 text-[11px] font-medium text-[#374151]"
       >
         {SORT_OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>

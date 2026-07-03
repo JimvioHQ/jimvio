@@ -69,10 +69,7 @@ export function isTrendingProduct(
 }
 
 export function hasCatalogVideo(p: CJProduct): boolean {
-  if (productHasVideo(p)) return true;
-  if (typeof p.videoUrl === "string" && p.videoUrl.trim().length > 0) return true;
-  if ((p.videoCount ?? 0) > 0) return true;
-  return false;
+  return productHasVideo(p);
 }
 
 export function isHighProfit(

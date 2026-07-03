@@ -6,7 +6,6 @@ import {
   AlertCircle,
   ArrowLeft,
   ClipboardPaste,
-  ExternalLink,
   FileEdit,
   Loader2,
   PanelLeftClose,
@@ -19,7 +18,12 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { publishAdminProduct } from "@/lib/actions/admin-products";
 import { RefreshCJStockButton } from "@/components/admin/cj/refresh-cj-stock-button";
-import { FilterSidebar } from "@/components/admin/cj/import-intelligence/filter-sidebar";
+import {
+  FilterSidebar,
+  loadFilterSidebarCollapsed,
+  saveFilterSidebarCollapsed,
+  type IntelligenceFilterChangeHandler,
+} from "@/components/admin/cj/import-intelligence/filter-sidebar";
 import { VirtualizedProductGrid } from "@/components/admin/cj/import-intelligence/virtualized-product-grid";
 import { SmartSearchBar } from "@/components/admin/cj/import-intelligence/smart-search-bar";
 import { BulkActionsBar } from "@/components/admin/cj/import-intelligence/bulk-actions-bar";
@@ -82,7 +86,9 @@ import {
   saveRecentSearch,
 } from "@/lib/cj/import-intelligence/search";
 import { mergeIntelligenceIntoProducts } from "@/lib/cj/import-intelligence/enrichment-merge";
+import { logFilterDebug } from "@/lib/cj/import-intelligence/filter-debug";
 import { useLazyCjEnrichment } from "@/lib/cj/import-intelligence/use-lazy-cj-enrichment";
+import { StickyBulkPublishBar } from "@/components/admin/cj/import-intelligence/sticky-bulk-publish-bar";
 import type {
   CJApiFilters,
   EnrichedProduct,
@@ -132,7 +138,7 @@ export default function CJImportBrowser({
   );
   const [activePresetIds, setActivePresetIds] = useState<string[]>([]);
   const [sortOption, setSortOption] = useState<SortOption>("default");
-  const [importMode, setImportMode] = useState<ImportMode>("draft");
+  const [importMode, setImportMode] = useState<ImportMode>("publish");
   const [searchQuery, setSearchQuery] = useState("");
   const [localSearch, setLocalSearch] = useState("");
   const [products, setProducts] = useState<EnrichedProduct[]>([]);
@@ -155,6 +161,7 @@ export default function CJImportBrowser({
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [directPid, setDirectPid] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [filterCollapsed, setFilterCollapsed] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [importQueue, setImportQueue] = useState<ImportQueueState | null>(null);
   const [publishSummary, setPublishSummary] = useState<PublishSummary | null>(null);
@@ -165,6 +172,8 @@ export default function CJImportBrowser({
     mode: ImportMode;
   } | null>(null);
   const [sessionPublished, setSessionPublished] = useState(0);
+  const [vendorConfigured, setVendorConfigured] = useState<boolean | null>(null);
+  const [vendorSetupMessage, setVendorSetupMessage] = useState("");
   const isLgScreen = useIsLgScreen();
 
   const {
@@ -179,6 +188,7 @@ export default function CJImportBrowser({
     setImportSettings(loadImportSettings());
     setRecentSearches(loadRecentSearches());
     setActivePresetIds(loadActivePresetIds());
+    setFilterCollapsed(loadFilterSidebarCollapsed());
     fetchImportedMap()
       .then((map) => setImportedMap(map))
       .catch(() => {});
@@ -197,6 +207,16 @@ export default function CJImportBrowser({
       })
       .catch(() => {});
     fetchCJCategories().catch(() => {});
+    fetch("/api/admin/cj/setup-status")
+      .then((r) => r.json())
+      .then((data) => {
+        setVendorConfigured(Boolean(data?.vendorConfigured));
+        if (data?.message) setVendorSetupMessage(data.message);
+      })
+      .catch(() => {
+        setVendorConfigured(false);
+        setVendorSetupMessage("Could not verify CJ vendor configuration.");
+      });
   }, []);
 
   const handleImportSettingsChange = (s: ImportSettings) => {
@@ -239,9 +259,20 @@ export default function CJImportBrowser({
     [products, sessionImports, sessionPublished]
   );
 
+  const averageRoi = useMemo(() => {
+    if (products.length === 0) return 0;
+    const sum = products.reduce((acc, p) => acc + p.intelligence.profit.roi, 0);
+    return Math.round(sum / products.length);
+  }, [products]);
+
   const loadPage = useCallback(
-    async (pageNum: number, append = false) => {
-      const apiFilters = trendingToApiFilters(intelFilters, {
+    async (
+      pageNum: number,
+      append = false,
+      filtersOverride?: IntelligenceFilters
+    ) => {
+      const activeIntel = filtersOverride ?? intelFilters;
+      const apiFilters = trendingToApiFilters(activeIntel, {
         ...cjFilters,
         keyWord: searchQuery,
       });
@@ -273,7 +304,6 @@ export default function CJImportBrowser({
         setProducts((prev) => (append ? [...prev, ...enriched] : enriched));
         setTotal(t);
         setPage(pageNum);
-        if (!append) setSelectedPids(new Set());
       } catch (e) {
         setError((e as Error).message);
         if (!append) setProducts([]);
@@ -291,6 +321,7 @@ export default function CJImportBrowser({
       setRecentSearches(loadRecentSearches());
     }
     invalidateCJCache();
+    setSelectedPids(new Set());
     loadPage(1, false);
   }, [searchQuery, loadPage]);
 
@@ -316,6 +347,29 @@ export default function CJImportBrowser({
     return sortProducts(result, sortOption);
   }, [enrichedCatalog, intelFilters, localSearch, importedMap, sortOption]);
 
+  useEffect(() => {
+    if (!hasSearched || products.length === 0) return;
+    if (visibleProducts.length === 0) {
+      logFilterDebug("no-visible-products", intelFilters, {
+        loaded: products.length,
+        visible: 0,
+        poolSize: countPool.length,
+      });
+    }
+  }, [
+    hasSearched,
+    products.length,
+    visibleProducts.length,
+    intelFilters,
+    countPool.length,
+  ]);
+
+  const getSelectedProducts = useCallback(() => {
+    return enrichedCatalog.filter(
+      (p) => selectedPids.has(p.pid) && !p.intelligence.isImported
+    );
+  }, [enrichedCatalog, selectedPids]);
+
   const handleVisiblePidsChange = useCallback(
     (pids: string[]) => {
       scheduleVisible(pids);
@@ -329,6 +383,18 @@ export default function CJImportBrowser({
       productId: string,
       mode: ImportMode
     ): Promise<{ published: boolean; drafted: boolean; reasons: string[] }> => {
+      if (mode === "publish") {
+        const pub = await publishAdminProduct(productId);
+        if (!pub.success) {
+          return {
+            published: false,
+            drafted: true,
+            reasons: [pub.error ?? "Publish failed"],
+          };
+        }
+        return { published: true, drafted: false, reasons: [] };
+      }
+
       const decision = shouldPublishProduct(
         product,
         mode,
@@ -432,8 +498,10 @@ export default function CJImportBrowser({
           resync
             ? "Re-synced from CJ"
             : published
-              ? "Imported & published"
-              : "Imported as draft",
+              ? "Published to marketplace"
+              : mode === "publish"
+                ? "Imported — publish pending"
+                : "Imported as draft",
           {
             action: json.productId
               ? {
@@ -527,9 +595,7 @@ export default function CJImportBrowser({
   );
 
   function startBulkImport(mode: ImportMode) {
-    const items = visibleProducts.filter(
-      (p) => selectedPids.has(p.pid) && !p.intelligence.isImported
-    );
+    const items = getSelectedProducts();
     if (items.length === 0) {
       toast.error("No new products selected");
       return;
@@ -547,14 +613,30 @@ export default function CJImportBrowser({
     void runBulkImport(items, mode);
   }
 
+  const handleIntelFiltersChange: IntelligenceFilterChangeHandler = useCallback(
+    (next) => {
+      setIntelFilters((prev) => {
+        const resolved = typeof next === "function" ? next(prev) : next;
+        const videoChanged = resolved.hasVideo !== prev.hasVideo;
+        if (hasSearched && videoChanged) {
+          invalidateCJCache();
+          setSelectedPids(new Set());
+          void loadPage(1, false, resolved);
+        }
+        return resolved;
+      });
+    },
+    [hasSearched, loadPage]
+  );
+
   function handleQuickFilterToggle(key: QuickFilterKey) {
-    setIntelFilters((f) => toggleQuickFilter(key, f));
+    handleIntelFiltersChange(toggleQuickFilter(key, intelFilters));
   }
 
   function handlePresetToggle(id: string) {
     const { activeIds, filters } = togglePreset(id, activePresetIds);
     setActivePresetIds(activeIds);
-    setIntelFilters(filters);
+    handleIntelFiltersChange(filters);
   }
 
   function toggleSelect(pid: string) {
@@ -564,6 +646,14 @@ export default function CJImportBrowser({
       else next.add(pid);
       return next;
     });
+  }
+
+  function clearSelection() {
+    setSelectedPids(new Set());
+  }
+
+  function publishSelected() {
+    startBulkImport("publish");
   }
 
   function selectAllVisible() {
@@ -593,45 +683,63 @@ export default function CJImportBrowser({
   }
 
   return (
-    <div className="space-y-3 pb-10">
-      {/* Header + session analytics */}
-      <div className="relative overflow-hidden rounded-sm border border-[var(--color-border)] bg-gradient-to-br from-[#111827] via-[#1a2332] to-[#111827] p-4 text-white">
-        <div className="relative flex flex-col gap-3">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
-            <div>
-              <Link
-                href="/admin/products"
-                className="inline-flex items-center gap-1.5 text-[11px] text-white/60 hover:text-white mb-2"
-              >
-                <ArrowLeft className="h-3 w-3" />
-                Products
-              </Link>
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-[#FF5A1F]" />
-                <h1 className="text-lg font-bold tracking-tight">
-                  Import Intelligence Command Center
-                </h1>
-              </div>
-              <p className="text-[12px] text-white/65 mt-1 max-w-lg">
-                Profit, shipping, supplier trust & publish readiness — in 3 seconds per product.
+    <div className="flex w-full min-w-0 flex-col">
+      <div className="sticky top-0 z-30 space-y-2 border-b border-[#E5E7EB] bg-[#FAFAFA]/95 pb-2 backdrop-blur-xl">
+        <div className="flex h-[56px] max-h-[72px] items-center justify-between gap-3 pt-1">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Link
+              href="/admin/products"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border border-[#E5E7EB] bg-white text-[#6B7280] hover:text-[#111827]"
+              title="Back to products"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+            </Link>
+            <div className="min-w-0">
+              <h1 className="truncate text-[15px] font-bold tracking-tight text-[#111827]">
+                Import Intelligence
+              </h1>
+              <p className="truncate text-[10px] text-[#9CA3AF]">
+                CJ catalog · {cjTotalCount.toLocaleString()} products
               </p>
             </div>
           </div>
-          <SessionAnalytics
-            todaysImports={sessionStats.todaysImports}
-            publishedProducts={sessionStats.publishedProducts}
-            draftProducts={sessionStats.draftProducts}
-            averageMargin={sessionStats.averageMargin}
-            averageShippingDays={sessionStats.averageShippingDays}
-            averageProfit={sessionStats.averageProfit}
-          />
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Link
+              href="/admin/products?status=draft&source=cj"
+              className="inline-flex h-8 items-center gap-1 rounded-[10px] border border-[#E5E7EB] bg-white px-2 text-[10px] font-medium text-[#374151] hover:bg-[#F9FAFB]"
+            >
+              <FileEdit className="h-3 w-3" />
+              <span className="hidden sm:inline">Drafts</span>
+              <span className="tabular-nums">({cjDraftCount})</span>
+            </Link>
+            <RefreshCJStockButton disabled={cjTotalCount === 0} />
+            <button
+              type="button"
+              onClick={() => setSettingsOpen((o) => !o)}
+              className={cn(
+                "inline-flex h-8 items-center rounded-[10px] border px-2.5 text-[10px] font-medium",
+                settingsOpen
+                  ? "border-[#FF5A1F]/40 bg-[#FF5A1F]/10 text-[#FF5A1F]"
+                  : "border-[#E5E7EB] bg-white text-[#374151]"
+              )}
+            >
+              Settings
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Toolbar */}
-      <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)]/85 backdrop-blur-xl p-3 space-y-2">
-        <div className="flex flex-col lg:flex-row gap-2">
-          <div className="flex-1">
+        <SessionAnalytics
+          publishedProducts={sessionStats.publishedProducts}
+          catalogSize={total || cjTotalCount}
+          highProfitCount={filterCounts.highProfit}
+          trendingCount={filterCounts.trending}
+          videoCount={filterCounts.hasVideo}
+          averageRoi={averageRoi}
+          averageMargin={sessionStats.averageMargin}
+        />
+
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
             <SmartSearchBar
               value={searchQuery}
               onChange={setSearchQuery}
@@ -641,102 +749,89 @@ export default function CJImportBrowser({
               loading={loading}
             />
           </div>
-          <div className="flex gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={runSearch}
-              disabled={loading}
-              className="h-9 px-3 rounded-sm bg-[#FF5A1F] text-white text-[12px] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-1.5"
-            >
-              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-              Search
-            </button>
-            <button
-              type="button"
-              onClick={() => setSidebarOpen((o) => !o)}
-              className="h-9 px-2.5 rounded-sm border border-[var(--color-border)] text-[12px] lg:hidden inline-flex items-center gap-1"
-            >
-              {sidebarOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSettingsOpen((o) => !o)}
-              className={cn(
-                "h-9 px-2.5 rounded-sm border text-[12px]",
-                settingsOpen
-                  ? "border-[#FF5A1F]/40 bg-[#FF5A1F]/10 text-[#FF5A1F]"
-                  : "border-[var(--color-border)]"
-              )}
-            >
-              Settings
-            </button>
-          </div>
-        </div>
-
-        {hasSearched && products.length > 0 && (
-          <Input
-            inputSize="sm"
-            value={localSearch}
-            onChange={(e) => setLocalSearch(e.target.value)}
-            placeholder="Fuzzy filter loaded results…"
-            className="h-8 text-[11px]"
-          />
-        )}
-
-        <div className="flex gap-2 pt-1 border-t border-[var(--color-border)]">
-          <Input
-            inputSize="sm"
-            value={directPid}
-            onChange={(e) => setDirectPid(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && directPid.trim()) {
-                const pid = directPid.trim();
-                void (async () => {
-                  setImportingPid(pid);
-                  try {
-                    const res = await fetch("/api/cj/import", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ pid }),
-                    });
-                    const json = await res.json();
-                    if (!json.success) throw new Error(json.error);
-                    toast.success("Imported as draft");
-                    if (json.productId) {
-                      setImportedMap((prev) => ({
-                        ...prev,
-                        [pid]: { productId: json.productId },
-                      }));
-                    }
-                  } catch (err) {
-                    toast.error((err as Error).message);
-                  } finally {
-                    setImportingPid(null);
-                  }
-                })();
-                setDirectPid("");
-              }
-            }}
-            placeholder="Paste CJ PID…"
-            icon={<ClipboardPaste className="h-3.5 w-3.5 opacity-60" />}
-            className="h-8 flex-1"
-          />
-          <RefreshCJStockButton disabled={cjTotalCount === 0} />
+          <button
+            type="button"
+            onClick={runSearch}
+            disabled={loading}
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[12px] bg-[#FF5A1F] px-3.5 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
+          >
+            {loading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Search className="h-3.5 w-3.5" />
+            )}
+            Search
+          </button>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((o) => !o)}
+            className="inline-flex h-9 shrink-0 items-center rounded-[12px] border border-[#E5E7EB] bg-white px-2.5 lg:hidden"
+          >
+            {sidebarOpen ? (
+              <PanelLeftClose className="h-3.5 w-3.5 text-[#374151]" />
+            ) : (
+              <PanelLeftOpen className="h-3.5 w-3.5 text-[#374151]" />
+            )}
+          </button>
         </div>
 
         {settingsOpen && (
-          <ImportSettingsPanel
-            settings={importSettings}
-            onChange={handleImportSettingsChange}
-            compact
-          />
+          <div className="space-y-2 rounded-[12px] border border-[#E5E7EB] bg-white p-2.5">
+            {hasSearched && products.length > 0 && (
+              <Input
+                inputSize="sm"
+                value={localSearch}
+                onChange={(e) => setLocalSearch(e.target.value)}
+                placeholder="Filter loaded results…"
+                className="h-8 rounded-[10px] border-[#E5E7EB] text-[11px]"
+              />
+            )}
+            <Input
+              inputSize="sm"
+              value={directPid}
+              onChange={(e) => setDirectPid(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && directPid.trim()) {
+                  const pid = directPid.trim();
+                  void (async () => {
+                    setImportingPid(pid);
+                    try {
+                      const res = await fetch("/api/cj/import", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ pid }),
+                      });
+                      const json = await res.json();
+                      if (!json.success) throw new Error(json.error);
+                      toast.success("Imported as draft");
+                      if (json.productId) {
+                        setImportedMap((prev) => ({
+                          ...prev,
+                          [pid]: { productId: json.productId },
+                        }));
+                      }
+                    } catch (err) {
+                      toast.error((err as Error).message);
+                    } finally {
+                      setImportingPid(null);
+                    }
+                  })();
+                  setDirectPid("");
+                }
+              }}
+              placeholder="Paste CJ PID…"
+              icon={<ClipboardPaste className="h-3.5 w-3.5 opacity-50" />}
+              className="h-8 rounded-[10px] border-[#E5E7EB]"
+            />
+            <ImportSettingsPanel
+              settings={importSettings}
+              onChange={handleImportSettingsChange}
+              compact
+            />
+          </div>
         )}
-      </div>
 
-      {importQueue?.active && <ImportQueueMonitor queue={importQueue} />}
-
-      {hasSearched && (
-        <>
+        {hasSearched && (
           <QuickFiltersRow
             counts={filterCounts}
             activeKeys={quickFilterActive}
@@ -746,137 +841,175 @@ export default function CJImportBrowser({
             isEnriching={enrichmentPending > 0}
             enrichedCount={enrichedCount}
           />
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <SavedPresetsBar
-              activePresetIds={activePresetIds}
-              onTogglePreset={handlePresetToggle}
-            />
-            <SortSelector value={sortOption} onChange={setSortOption} />
-          </div>
-          <BulkActionsBar
-            selectedCount={selectedPids.size}
-            totalVisible={
-              visibleProducts.filter((p) => !p.intelligence.isImported).length
-            }
-            bulkImporting={bulkImporting}
-            importMode={importMode}
-            onImportModeChange={(m) => {
-              setImportMode(m);
-              setImportSettings((s) => {
-                const next = { ...s, defaultImportMode: m };
-                saveImportSettings(next);
-                return next;
-              });
-            }}
-            onSelectAll={selectAllVisible}
-            onImportDraft={() => startBulkImport("draft")}
-            onImportAndPublish={() => startBulkImport(importMode === "draft" ? "publish" : importMode)}
-            onSyncSelected={async () => {
-              const pids = Array.from(selectedPids).filter((pid) => importedMap[pid]);
-              for (const pid of pids) {
-                const p = products.find((x) => x.pid === pid);
-                if (p) await importOne(p, "draft", true);
-              }
-            }}
-          />
-        </>
-      )}
+        )}
+      </div>
+
+      {importQueue?.active && <ImportQueueMonitor queue={importQueue} />}
 
       {error && (
-        <div className="flex items-start gap-2 p-3 rounded-sm border border-rose-200 bg-rose-50 text-rose-800 text-[12px]">
+        <div className="mt-3 flex items-start gap-2 rounded-[14px] border border-rose-200 bg-rose-50 p-3 text-[12px] text-rose-800">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       )}
 
-      {!hasSearched && !loading ? (
-        <EmptyState onSearch={runSearch} />
-      ) : (
-        <div className="flex gap-3">
-          {sidebarOpen && isLgScreen && (
-            <div className="shrink-0 w-[240px]">
-              <FilterSidebar
-                filters={intelFilters}
-                onChange={setIntelFilters}
-                activeCount={activeFilterCount}
-              />
-            </div>
-          )}
-
-          {sidebarOpen && !isLgScreen && (
-            <div
-              className="fixed inset-0 z-30 bg-black/40"
-              onClick={() => setSidebarOpen(false)}
-            >
-              <div
-                className="absolute left-0 top-0 h-full w-[260px] p-3"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <FilterSidebar
-                  filters={intelFilters}
-                  onChange={setIntelFilters}
-                  activeCount={activeFilterCount}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex-1 min-w-0">
-            {hasSearched && !loading && (
-              <p className="text-[11px] text-[var(--color-text-muted)] mb-2 tabular-nums">
-                <strong className="text-[var(--color-text-primary)]">
-                  {visibleProducts.length.toLocaleString()}
-                </strong>{" "}
-                shown · {total.toLocaleString()} in catalog
-                {activeFilterCount > 0 && (
-                  <span className="ml-2 text-[#FF5A1F]">
-                    {activeFilterCount} filters
-                  </span>
-                )}
-              </p>
-            )}
-            <VirtualizedProductGrid
-              products={visibleProducts}
-              loading={loading}
-              loadingMore={loadingMore}
-              importingPid={importingPid}
-              selectedPids={selectedPids}
-              importMode={importMode}
-              onToggleSelect={toggleSelect}
-              onPreview={setPreview}
-              onImport={(p) => void importOne(p, "draft")}
-              onImportAndPublish={(p) => void importOne(p, importMode === "draft" ? "publish" : importMode)}
-              onResync={(p) => void importOne(p, "draft", true)}
-              onLoadMore={loadMore}
-              hasMore={hasMore}
-              onVisiblePidsChange={handleVisiblePidsChange}
-            />
-          </div>
+      {vendorConfigured === false && (
+        <div className="mt-2 rounded-[12px] border border-amber-200 bg-amber-50 p-3 text-[12px] text-amber-900">
+          <p className="font-semibold">CJ vendor not configured</p>
+          <p className="mt-1 text-amber-800">
+            {vendorSetupMessage ||
+              "Set CJ_VENDOR_ID or platform_settings.cj_vendor_id before publishing."}
+          </p>
+          <Link
+            href="/admin/settings"
+            className="mt-2 inline-flex text-[11px] font-semibold text-[#FF5A1F] hover:underline"
+          >
+            Open platform settings →
+          </Link>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        {importLog.length > 0 && (
-          <div className="lg:col-span-2 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
-            <div className="px-3 py-2 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50">
-              <h2 className="text-[12px] font-semibold">Session Log</h2>
+      <div className="w-full min-w-0 pt-2">
+        {!hasSearched && !loading ? (
+          <EmptyState onSearch={runSearch} />
+        ) : (
+          <div className="flex w-full min-w-0 items-start gap-3">
+            {isLgScreen && (
+              <FilterSidebar
+                filters={intelFilters}
+                onChange={handleIntelFiltersChange}
+                activeCount={activeFilterCount}
+                collapsed={filterCollapsed}
+                onCollapsedChange={(v) => {
+                  setFilterCollapsed(v);
+                  saveFilterSidebarCollapsed(v);
+                }}
+              />
+            )}
+
+            {sidebarOpen && !isLgScreen && (
+              <div
+                className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+                onClick={() => setSidebarOpen(false)}
+              >
+                <div
+                  className="absolute left-0 top-0 h-full p-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <FilterSidebar
+                    filters={intelFilters}
+                    onChange={handleIntelFiltersChange}
+                    activeCount={activeFilterCount}
+                    collapsed={false}
+                    onCollapsedChange={() => {}}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              {hasSearched && (
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[11px] tabular-nums text-[#9CA3AF]">
+                    <strong className="font-semibold text-[#111827]">
+                      {visibleProducts.length.toLocaleString()}
+                    </strong>{" "}
+                    shown · {total.toLocaleString()} catalog
+                    {activeFilterCount > 0 && (
+                      <span className="ml-1.5 text-[#FF5A1F]">
+                        · {activeFilterCount} filters
+                      </span>
+                    )}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <SavedPresetsBar
+                      activePresetIds={activePresetIds}
+                      onTogglePreset={handlePresetToggle}
+                    />
+                    <SortSelector value={sortOption} onChange={setSortOption} />
+                  </div>
+                </div>
+              )}
+
+              {hasSearched && (
+                <BulkActionsBar
+                  selectedCount={selectedPids.size}
+                  totalVisible={
+                    visibleProducts.filter((p) => !p.intelligence.isImported)
+                      .length
+                  }
+                  bulkImporting={bulkImporting}
+                  importMode={importMode}
+                  onImportModeChange={(m) => {
+                    setImportMode(m);
+                    setImportSettings((s) => {
+                      const next = { ...s, defaultImportMode: m };
+                      saveImportSettings(next);
+                      return next;
+                    });
+                  }}
+                  onSelectAll={selectAllVisible}
+                  onImportDraft={() => startBulkImport("draft")}
+                  onImportAndPublish={() =>
+                    startBulkImport(
+                      importMode === "draft" ? "publish" : importMode
+                    )
+                  }
+                  onSyncSelected={async () => {
+                    const pids = Array.from(selectedPids).filter(
+                      (pid) => importedMap[pid]
+                    );
+                    for (const pid of pids) {
+                      const p = products.find((x) => x.pid === pid);
+                      if (p) await importOne(p, "draft", true);
+                    }
+                  }}
+                  className="mb-2"
+                />
+              )}
+
+              <VirtualizedProductGrid
+                products={visibleProducts}
+                loading={loading}
+                loadingMore={loadingMore}
+                importingPid={importingPid}
+                selectedPids={selectedPids}
+                onToggleSelect={toggleSelect}
+                onPreview={setPreview}
+                onPublish={(p) => void importOne(p, "publish")}
+                onResync={(p) => void importOne(p, "draft", true)}
+                onLoadMore={loadMore}
+                hasMore={hasMore}
+                onVisiblePidsChange={handleVisiblePidsChange}
+              />
             </div>
-            <ul className="divide-y divide-[var(--color-border)] max-h-40 overflow-y-auto">
+          </div>
+        )}
+
+        {importLog.length > 0 && (
+          <details className="mt-3 rounded-[12px] border border-[#E5E7EB] bg-white">
+            <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-[#111827]">
+              Session log ({importLog.length})
+            </summary>
+            <ul className="max-h-32 divide-y divide-[#F3F4F6] overflow-y-auto">
               {importLog.slice(0, 15).map((entry, i) => (
                 <li
                   key={`${entry.pid}-${entry.at}-${i}`}
-                  className="px-3 py-1.5 flex items-center justify-between gap-2 text-[11px]"
+                  className="flex items-center justify-between gap-2 px-3 py-1.5 text-[11px]"
                 >
-                  <div className="min-w-0 truncate">
-                    <span className={entry.ok ? "" : "text-rose-600"}>
-                      {entry.ok ? (entry.published ? "↑" : "✓") : "✗"}{" "}
-                      {entry.name}
-                    </span>
-                  </div>
+                  <span
+                    className={cn(
+                      "min-w-0 truncate",
+                      !entry.ok && "text-rose-600"
+                    )}
+                  >
+                    {entry.ok ? (entry.published ? "↑" : "✓") : "✗"}{" "}
+                    {entry.name}
+                  </span>
                   {entry.productId && (
                     <Link
                       href={`/admin/products/${entry.productId}`}
-                      className="text-[#FF5A1F] shrink-0 hover:underline"
+                      className="shrink-0 text-[#FF5A1F] hover:underline"
                     >
                       Open
                     </Link>
@@ -884,22 +1017,8 @@ export default function CJImportBrowser({
                 </li>
               ))}
             </ul>
-          </div>
+          </details>
         )}
-        <div className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-3 space-y-2">
-          <h2 className="text-[12px] font-semibold">Catalog</h2>
-          <p className="text-[11px] text-[var(--color-text-muted)]">
-            {cjTotalCount} CJ products · {cjDraftCount} drafts pending
-          </p>
-          <Link
-            href="/admin/products?status=draft&source=cj"
-            className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-sm border border-[var(--color-border)] text-[11px] font-medium hover:bg-[var(--color-surface-secondary)]"
-          >
-            <FileEdit className="h-3 w-3" />
-            Review Drafts
-            <ExternalLink className="h-3 w-3 opacity-50" />
-          </Link>
-        </div>
       </div>
 
       {preview && (
@@ -951,22 +1070,33 @@ export default function CJImportBrowser({
           onCancel={() => setSafetyDialog(null)}
         />
       )}
+
+      <StickyBulkPublishBar
+        selectedCount={selectedPids.size}
+        publishing={bulkImporting}
+        onPublish={publishSelected}
+        onClear={clearSelection}
+      />
     </div>
   );
 }
 
 function EmptyState({ onSearch }: { onSearch: () => void }) {
   return (
-    <div className="rounded-sm border border-dashed border-[var(--color-border)] py-16 px-6 text-center">
-      <Sparkles className="h-8 w-8 text-[#FF5A1F] mx-auto mb-3" />
-      <h3 className="text-[15px] font-bold">Global Sourcing Command Center</h3>
-      <p className="mt-1 text-[12px] text-[var(--color-text-muted)] max-w-sm mx-auto">
-        Search CJ to evaluate profit, shipping, and publish readiness instantly.
+    <div className="rounded-[14px] border border-dashed border-[#E5E7EB] bg-white py-20 px-6 text-center shadow-[0_1px_3px_rgba(17,24,39,0.04)]">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#FF5A1F]/10">
+        <Sparkles className="h-6 w-6 text-[#FF5A1F]" />
+      </div>
+      <h3 className="text-[16px] font-bold text-[#111827]">
+        Global Sourcing Intelligence
+      </h3>
+      <p className="mx-auto mt-1 max-w-sm text-[13px] text-[#9CA3AF]">
+        Search the CJ catalog to evaluate profit, shipping, and publish readiness instantly.
       </p>
       <button
         type="button"
         onClick={onSearch}
-        className="mt-4 h-9 px-4 rounded-sm bg-[#FF5A1F] text-white text-[12px] font-semibold"
+        className="mt-5 inline-flex h-10 items-center rounded-[14px] bg-[#FF5A1F] px-5 text-[13px] font-semibold text-white shadow-sm hover:opacity-90"
       >
         Search Catalog
       </button>

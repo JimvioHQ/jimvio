@@ -67,10 +67,10 @@ function PresetChip({
       type="button"
       onClick={onClick}
       className={cn(
-        "h-6 px-2 rounded-sm text-[10.5px] font-medium border transition-all duration-200",
+        "h-7 rounded-full border px-2.5 text-[10.5px] font-medium transition-all",
         active
-          ? "bg-[#FF5A1F]/15 border-[#FF5A1F]/50 text-[#FF5A1F] ring-1 ring-[#FF5A1F]/20"
-          : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[#FF5A1F]/30"
+          ? "border-[#FF5A1F] bg-[#FF5A1F]/10 text-[#FF5A1F]"
+          : "border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#FF5A1F]/30"
       )}
     >
       {preset.emoji} {preset.label}

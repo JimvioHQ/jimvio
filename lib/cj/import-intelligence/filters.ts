@@ -27,6 +27,9 @@ import {
   type QuickFilterOptions,
 } from "./quick-filter-intelligence";
 import { filterBySmartSearch } from "./search";
+import { productHasVideo } from "./product-utils";
+
+const DEFAULT_MAX_DELIVERY_DAYS = 30;
 
 export {
   activeQuickFilterKeys,
@@ -215,8 +218,14 @@ export function applyIntelligenceFilters(
       return false;
     if (filters.ukWarehouse && p.countryCode?.toUpperCase() !== "GB") return false;
     if (filters.shipsWorldwide && p.countryCode && p.countryCode !== "CN") return false;
-    if (days !== null && days > filters.maxDeliveryDays) return false;
 
+    const deliveryCapActive =
+      filters.fastShipping ||
+      filters.maxDeliveryDays < DEFAULT_MAX_DELIVERY_DAYS;
+    if (deliveryCapActive && days !== null && days > filters.maxDeliveryDays)
+      return false;
+
+    if (filters.hasVideo && !productHasVideo(p)) return false;
     if (filters.hasVariants && !intel.hasVariants) return false;
     if (filters.hasDescription && !p.threeCategoryName) return false;
     if (filters.hasSpecifications && !p.categoryName) return false;
@@ -300,6 +309,9 @@ export function trendingToApiFilters(
   }
   if (intel.trending) {
     next.productFlag = "1";
+  }
+  if (intel.hasVideo) {
+    next.hasVideo = "1";
   }
   return next;
 }

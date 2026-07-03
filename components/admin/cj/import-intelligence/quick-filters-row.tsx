@@ -29,18 +29,9 @@ export function QuickFiltersRow({
 }) {
   if (!hasCatalogResults) return null;
 
-  const activeWithZero = QUICK_FILTERS.filter(
-    (f) => activeKeys.has(f.key) && counts[f.key] === 0
-  );
-
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <div
-        className={cn(
-          "flex flex-wrap gap-1.5 p-2 rounded-sm border border-[var(--color-border)]",
-          "bg-[var(--color-surface)]/80 backdrop-blur-xl"
-        )}
-      >
+    <div className={cn("flex items-center gap-2", className)}>
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto scrollbar-none pb-0.5">
         {QUICK_FILTERS.map(({ key, label, emoji }) => {
           const active = activeKeys.has(key);
           const count = counts[key];
@@ -52,27 +43,20 @@ export function QuickFiltersRow({
               type="button"
               onClick={() => onToggle(key)}
               disabled={disabled}
-              title={
-                count === 0
-                  ? `No products in current results match "${label}"`
-                  : `${count} of ${counts.poolSize} in catalog results`
-              }
               className={cn(
-                "inline-flex items-center gap-1 h-7 px-2.5 rounded-sm text-[11px] font-medium",
-                "transition-all duration-200 border",
-                disabled && "opacity-50 cursor-not-allowed",
+                "inline-flex h-7 shrink-0 items-center gap-1 rounded-full border px-2.5 text-[11px] font-medium transition-all",
+                disabled && "cursor-not-allowed opacity-40",
                 active
-                  ? "bg-[#FF5A1F] border-[#FF5A1F] text-white shadow-sm shadow-[#FF5A1F]/25 scale-[1.02]"
-                  : "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[#FF5A1F]/40 hover:text-[#FF5A1F]"
+                  ? "border-[#FF5A1F] bg-[#FF5A1F] text-white"
+                  : "border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#FF5A1F]/40"
               )}
             >
               <span>{emoji}</span>
               <span>{label}</span>
               <span
                 className={cn(
-                  "tabular-nums text-[10px] font-semibold px-1 py-0.5 rounded-sm min-w-[24px] text-center",
-                  active ? "bg-white/20" : "bg-[var(--color-surface-secondary)]",
-                  count === 0 && !active && "text-[var(--color-text-muted)]"
+                  "min-w-[16px] rounded-full px-1 text-center text-[9px] font-bold tabular-nums",
+                  active ? "bg-white/20" : "bg-[#F3F4F6]"
                 )}
               >
                 <AnimatedCounter value={count} />
@@ -80,38 +64,12 @@ export function QuickFiltersRow({
             </button>
           );
         })}
-        <span className="self-center text-[10px] text-[var(--color-text-muted)] tabular-nums ml-1">
-          from {counts.poolSize} loaded
-        </span>
-        {isEnriching && (
-          <span className="self-center text-[10px] text-[#FF5A1F]/80 tabular-nums animate-pulse">
-            enriching…
-          </span>
-        )}
-        {!isEnriching && enrichedCount > 0 && (
-          <span className="self-center text-[10px] text-emerald-600/80 tabular-nums">
-            {enrichedCount} intel
-          </span>
-        )}
       </div>
-
-      {counts.poolSize === 0 && (
-        <p className="text-[11px] text-[var(--color-text-muted)] px-1">
-          No products in current catalog results.
-        </p>
-      )}
-
-      {activeWithZero.length > 0 && counts.poolSize > 0 && (
-        <p className="text-[11px] text-amber-700 dark:text-amber-400 px-1">
-          No products match: {activeWithZero.map((f) => f.label).join(", ")}.
-        </p>
-      )}
-
-      {visibleCount === 0 && counts.poolSize > 0 && activeKeys.size > 0 && (
-        <p className="text-[11px] text-[var(--color-text-muted)] px-1">
-          No products match this filter.
-        </p>
-      )}
+      <span className="hidden shrink-0 text-[10px] tabular-nums text-[#9CA3AF] sm:inline">
+        {visibleCount.toLocaleString()} shown
+        {isEnriching && " · enriching…"}
+        {!isEnriching && enrichedCount > 0 && ` · ${enrichedCount} intel`}
+      </span>
     </div>
   );
 }

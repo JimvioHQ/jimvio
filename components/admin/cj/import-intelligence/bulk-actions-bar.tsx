@@ -36,15 +36,14 @@ export function BulkActionsBar({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2 px-3 py-2 rounded-sm border border-[var(--color-border)]",
-        "bg-[var(--color-surface)]/85 backdrop-blur-xl",
+        "flex flex-wrap items-center gap-2 rounded-[14px] border border-[#E5E7EB] bg-white/90 px-3 py-2 shadow-[0_1px_3px_rgba(17,24,39,0.04)] backdrop-blur-xl",
         className
       )}
     >
       <button
         type="button"
         onClick={onSelectAll}
-        className="h-7 px-2.5 rounded-sm border border-[var(--color-border)] text-[11px] font-medium hover:bg-[var(--color-surface-secondary)] inline-flex items-center gap-1"
+        className="inline-flex h-7 items-center gap-1.5 rounded-[10px] border border-[#E5E7EB] px-2.5 text-[11px] font-medium text-[#374151] hover:bg-[#F9FAFB]"
       >
         <CheckSquare className="h-3.5 w-3.5" />
         All ({totalVisible})
@@ -52,56 +51,40 @@ export function BulkActionsBar({
 
       {selectedCount > 0 && (
         <>
-          <span className="text-[10px] text-[var(--color-text-muted)] tabular-nums font-medium">
+          <span className="text-[10px] font-medium tabular-nums text-[#9CA3AF]">
             {selectedCount} selected
           </span>
-          <div className="h-4 w-px bg-[var(--color-border)]" />
+          <div className="h-4 w-px bg-[#E5E7EB]" />
 
-          <div className="inline-flex items-center gap-2 text-[10px]">
-            <span className="text-[var(--color-text-muted)] font-medium">Mode</span>
-            <label className="inline-flex items-center gap-1 cursor-pointer">
-              <input
-                type="radio"
-                name="importMode"
-                checked={importMode === "draft"}
-                onChange={() => onImportModeChange("draft")}
-                className="accent-[#FF5A1F]"
-              />
-              Draft
-            </label>
-            <label className="inline-flex items-center gap-1 cursor-pointer">
-              <input
-                type="radio"
-                name="importMode"
-                checked={importMode === "publish"}
-                onChange={() => onImportModeChange("publish")}
-                className="accent-[#FF5A1F]"
-              />
-              Publish
-            </label>
-            <label className="inline-flex items-center gap-1 cursor-pointer">
-              <input
-                type="radio"
-                name="importMode"
-                checked={importMode === "auto"}
-                onChange={() => onImportModeChange("auto")}
-                className="accent-[#FF5A1F]"
-              />
-              Auto
-            </label>
+          <div className="inline-flex items-center gap-1 rounded-[10px] bg-[#F9FAFB] p-0.5 text-[10px]">
+            {(["draft", "publish", "auto"] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => onImportModeChange(mode)}
+                className={cn(
+                  "rounded-[8px] px-2 py-1 font-medium capitalize transition-colors",
+                  importMode === mode
+                    ? "bg-white text-[#111827] shadow-sm"
+                    : "text-[#6B7280] hover:text-[#111827]"
+                )}
+              >
+                {mode}
+              </button>
+            ))}
           </div>
 
-          <div className="h-4 w-px bg-[var(--color-border)]" />
+          <div className="h-4 w-px bg-[#E5E7EB]" />
 
           <BulkBtn
             icon={<Package className="h-3.5 w-3.5" />}
-            label="Import Draft"
+            label="Import"
             onClick={onImportDraft}
             loading={bulkImporting}
           />
           <BulkBtn
             icon={<Rocket className="h-3.5 w-3.5" />}
-            label="Import & Publish"
+            label="Publish"
             onClick={onImportAndPublish}
             loading={bulkImporting}
             primary
@@ -139,10 +122,10 @@ function BulkBtn({
       onClick={onClick}
       disabled={loading}
       className={cn(
-        "h-7 px-2.5 rounded-sm text-[10.5px] font-semibold inline-flex items-center gap-1 disabled:opacity-60",
+        "inline-flex h-7 items-center gap-1.5 rounded-[10px] px-2.5 text-[10.5px] font-semibold disabled:opacity-60",
         primary
-          ? "bg-[#FF5A1F] text-white hover:opacity-90"
-          : "border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]"
+          ? "bg-[#FF5A1F] text-white shadow-sm hover:opacity-90"
+          : "border border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]"
       )}
     >
       {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : icon}

@@ -5,42 +5,41 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Check,
-  Eye,
+  Flame,
   Loader2,
   Package,
+  Rocket,
   ShieldCheck,
 } from "lucide-react";
-import type { EnrichedProduct, ImportMode } from "@/lib/cj/import-intelligence/types";
+import type { EnrichedProduct } from "@/lib/cj/import-intelligence/types";
 import {
   deliveryDays,
+  getHealthLabel,
   productHasVideo,
   WAREHOUSE_LABELS,
 } from "@/lib/cj/import-intelligence/product-utils";
-import { OpportunityScoreBadge } from "./opportunity-score-badge";
+import { HealthScoreCircle } from "./health-score-circle";
 import { cn } from "@/lib/utils";
 
 export const CARD_WIDTH = 210;
-export const CARD_HEIGHT = 290;
+export const CARD_HEIGHT = 320;
+export const GRID_GAP = 12;
 
 export function IntelligenceProductCard({
   product,
   importing,
   selected,
-  importMode = "draft",
   onToggleSelect,
   onPreview,
-  onImport,
-  onImportAndPublish,
+  onPublish,
   onResync,
 }: {
   product: EnrichedProduct;
   importing: boolean;
   selected: boolean;
-  importMode?: ImportMode;
   onToggleSelect: () => void;
   onPreview: () => void;
-  onImport: () => void;
-  onImportAndPublish?: () => void;
+  onPublish: () => void;
   onResync: () => void;
 }) {
   const [imgErr, setImgErr] = useState(false);
@@ -54,28 +53,27 @@ export function IntelligenceProductCard({
   const showVerified =
     product.verifiedWarehouse === 1 || product.supplierVerified === true;
   const { profit } = intel;
-  const reviewLabel =
+  const healthLabel = getHealthLabel(intel.healthScore);
+  const isTrending = intel.opportunityScore >= 70;
+  const reviewCount =
     enriched && product.reviewCount != null && product.reviewCount > 0
-      ? "Reviews"
-      : "Orders";
-  const reviewValue =
-    enriched && product.reviewCount != null && product.reviewCount > 0
-      ? String(product.reviewCount)
-      : String(product.listedNum);
+      ? product.reviewCount
+      : product.listedNum;
 
   return (
     <article
+      data-cj-pid={product.pid}
       className={cn(
-        "group flex flex-col overflow-hidden rounded-sm border transition-all duration-200",
-        "bg-[var(--color-surface)]/95 backdrop-blur-sm",
+        "group flex h-[320px] w-full max-w-[210px] flex-col overflow-hidden rounded-[14px] border bg-white mx-auto",
+        "shadow-[0_1px_3px_rgba(17,24,39,0.06)] transition-all duration-200",
+        "hover:border-[#FF5A1F]/35 hover:shadow-[0_8px_28px_rgba(17,24,39,0.1)]",
         selected
-          ? "border-[#FF5A1F] ring-1 ring-[#FF5A1F]/25"
-          : "border-[var(--color-border)] hover:border-[#FF5A1F]/35",
-        intel.isImported && "bg-emerald-50/20 dark:bg-emerald-950/10"
+          ? "border-[#FF5A1F]/50 ring-2 ring-[#FF5A1F]/12"
+          : "border-[#E5E7EB]",
+        intel.isImported && "from-emerald-50/50 to-white bg-gradient-to-b"
       )}
-      style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
     >
-      {/* Image — 50% */}
+      {/* Image — top 60% */}
       <div
         role="button"
         tabIndex={0}
@@ -86,25 +84,28 @@ export function IntelligenceProductCard({
             onPreview();
           }
         }}
-        className="relative h-[145px] w-full cursor-pointer overflow-hidden bg-[#111827]/5 shrink-0"
+        className="relative h-[192px] w-full shrink-0 cursor-pointer overflow-hidden bg-[#F9FAFB]"
       >
         {product.bigImage && !imgErr ? (
           <Image
             src={product.bigImage}
             alt={product.productNameEn}
             fill
-            className="object-cover group-hover:scale-[1.02] transition-transform duration-200"
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             onError={() => setImgErr(true)}
             unoptimized
             loading="lazy"
+            sizes="210px"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Package className="h-6 w-6 text-[var(--color-text-muted)]/25" />
+            <Package className="h-8 w-8 text-[#D1D5DB]" />
           </div>
         )}
 
-        <div className="absolute top-1 left-1 right-1 flex items-start justify-between gap-0.5 z-10">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/5" />
+
+        <div className="absolute top-2 left-2 z-10">
           <button
             type="button"
             onClick={(e) => {
@@ -113,157 +114,101 @@ export function IntelligenceProductCard({
             }}
             disabled={intel.isImported}
             className={cn(
-              "h-4 w-4 rounded-sm border flex items-center justify-center",
+              "flex h-[18px] w-[18px] items-center justify-center rounded-[5px] border backdrop-blur-md",
               selected
-                ? "bg-[#FF5A1F] border-[#FF5A1F] text-white"
-                : "bg-black/45 border-white/25 text-white",
+                ? "border-[#FF5A1F] bg-[#FF5A1F] text-white"
+                : "border-white/50 bg-black/40 text-white",
               intel.isImported && "opacity-40"
             )}
           >
-            {selected && <Check className="h-2 w-2" strokeWidth={3} />}
+            {selected && <Check className="h-2.5 w-2.5" strokeWidth={3} />}
           </button>
-          <div className="h-6 w-[42px] flex justify-end shrink-0">
-            <OpportunityScoreBadge
-              score={intel.opportunityScore}
-              level={intel.opportunityLevel}
-            />
-          </div>
         </div>
 
-        <div className="absolute bottom-1 left-1 right-1 flex flex-wrap gap-0.5 z-10 min-h-[14px]">
-          <span
-            className={cn(
-              "px-1 py-0.5 rounded-sm bg-[#FF5A1F]/90 text-[7.5px] font-bold text-white tracking-wide transition-opacity duration-500",
-              videoReady ? "opacity-100" : "opacity-0"
-            )}
-          >
-            ▶ VIDEO READY
-          </span>
-          <span className="px-1 py-0.5 rounded-sm bg-black/55 text-[7.5px] font-semibold text-white">
-            {warehouse}
-          </span>
-          <span
-            className={cn(
-              "px-1 py-0.5 rounded-sm bg-emerald-600/85 text-[7.5px] font-semibold text-white transition-opacity duration-500",
-              showVerified ? "opacity-100" : "opacity-0"
-            )}
-          >
-            ✓ Supplier
-          </span>
-          {intel.isImported && (
-            <span className="px-1 py-0.5 rounded-sm bg-emerald-600/90 text-[7.5px] font-semibold text-white">
-              Imported
-            </span>
+        <div className="absolute top-2 right-2 z-10">
+          <HealthScoreCircle score={intel.healthScore} label={healthLabel} size={30} />
+        </div>
+
+        <div className="absolute bottom-2 left-2 right-2 z-10 flex flex-wrap gap-1">
+          {isTrending && (
+            <Badge icon={<Flame className="h-2 w-2" />} className="bg-[#FF5A1F]/90">
+              Trending
+            </Badge>
           )}
+          {videoReady && <Badge className="bg-[#111827]/80">Video</Badge>}
+          <Badge className="bg-[#111827]/80">{warehouse}</Badge>
+          {showVerified && <Badge className="bg-emerald-600/90">Verified</Badge>}
         </div>
       </div>
 
-      {/* Info — 50% */}
-      <div className="flex flex-1 flex-col p-1.5 min-h-0 gap-1">
-        <button type="button" onClick={onPreview} className="text-left shrink-0">
-          <p className="text-[10px] font-semibold text-[var(--color-text-primary)] line-clamp-2 leading-[1.25] group-hover:text-[#FF5A1F]">
+      {/* Info — bottom 40% */}
+      <div className="flex min-h-0 flex-1 flex-col px-2.5 pt-2 pb-2.5">
+        <button type="button" onClick={onPreview} className="text-left">
+          <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-[#111827] group-hover:text-[#FF5A1F]">
             {product.productNameEn}
           </p>
         </button>
 
-        <div className="flex items-center gap-0.5 shrink-0">
-          <span className="text-[8.5px] text-[var(--color-text-muted)] truncate flex-1">
+        <div className="mt-0.5 flex items-center gap-1">
+          <span className="truncate text-[9.5px] text-[#9CA3AF]">
             {product.supplierName ?? "CJ"}
           </span>
           {showVerified && (
-            <ShieldCheck className="h-2.5 w-2.5 text-emerald-500 shrink-0 transition-opacity duration-500" />
+            <ShieldCheck className="h-3 w-3 shrink-0 text-emerald-500" />
           )}
-          {enriched && product.rating != null && product.rating > 0 && (
-            <span className="text-[8px] font-semibold text-amber-600 tabular-nums transition-opacity duration-500">
-              ★{product.rating.toFixed(1)}
-            </span>
-          )}
-          <span
-            className={cn(
-              "text-[8px] font-bold text-[#FF5A1F] tabular-nums transition-all duration-500",
-              enriched && "scale-105"
-            )}
-          >
-            {intel.supplierScore}
-          </span>
         </div>
 
-        {/* Dense metrics grid */}
-        <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[8.5px] shrink-0 rounded-sm bg-[var(--color-surface-secondary)]/60 p-1">
-          <Metric label="CJ" value={`$${profit.cjCost.toFixed(2)}`} />
-          <Metric label="Ship" value={`$${profit.shippingCost.toFixed(2)}`} />
-          <Metric label="Sell" value={`$${profit.suggestedSelling.toFixed(2)}`} highlight />
+        <div className="mt-1.5 grid flex-1 grid-cols-3 gap-x-2 gap-y-1 text-[9.5px]">
           <Metric
             label="Profit"
-            value={`$${profit.estimatedProfit.toFixed(2)}`}
+            value={`$${profit.estimatedProfit.toFixed(0)}`}
             accent={profit.estimatedProfit > 0}
           />
+          <Metric label="ROI" value={`${profit.roi}%`} accent={profit.roi >= 50} />
+          <Metric label="Ship" value={days !== null ? `${days}d` : "—"} />
+          <Metric label="Orders" value={String(product.listedNum)} />
+          <Metric label="Reviews" value={String(reviewCount)} />
           <Metric
             label="Margin"
             value={`${profit.marginPercent}%`}
             accent={profit.marginPercent >= 40}
           />
-          <Metric label="Del" value={days !== null ? `${days}d` : "—"} pulse={enriched} />
-          <Metric label={reviewLabel} value={reviewValue} pulse={enriched} />
-          <Metric
-            label="Stock"
-            value={
-              product.warehouseInventoryNum != null
-                ? String(product.warehouseInventoryNum)
-                : "—"
-            }
-            pulse={enriched}
-          />
         </div>
 
-        {/* Actions */}
-        <div className="mt-auto flex gap-1 shrink-0 pt-0.5">
-          <button
-            type="button"
-            onClick={onPreview}
-            className="h-6 w-6 rounded-sm border border-[var(--color-border)] inline-flex items-center justify-center hover:bg-[var(--color-surface-secondary)]"
-            title="Preview"
-          >
-            <Eye className="h-3 w-3" />
-          </button>
+        <div className="mt-auto pt-2">
           {intel.isImported && intel.importedProductId ? (
-            <>
+            <div className="flex gap-1.5">
               <Link
                 href={`/admin/products/${intel.importedProductId}`}
-                className="flex-1 h-6 rounded-sm text-[9px] font-semibold bg-emerald-600 text-white inline-flex items-center justify-center"
+                className="inline-flex h-[30px] flex-1 items-center justify-center rounded-[10px] bg-emerald-600 text-[10px] font-semibold text-white"
               >
-                Open
+                Open Product
               </Link>
               <button
                 type="button"
                 onClick={onResync}
                 disabled={importing}
-                className="h-6 w-6 rounded-sm border border-[var(--color-border)] text-[10px]"
+                className="inline-flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-[10px] border border-[#E5E7EB] text-[11px]"
               >
-                {importing ? <Loader2 className="h-3 w-3 animate-spin mx-auto" /> : "↻"}
+                {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "↻"}
               </button>
-            </>
+            </div>
           ) : (
-            <>
-              <button
-                type="button"
-                onClick={onImport}
-                disabled={importing}
-                className="flex-1 h-6 rounded-sm bg-[#111827] text-white text-[9px] font-semibold hover:opacity-90 disabled:opacity-60"
-              >
-                {importing ? "…" : "Draft"}
-              </button>
-              {onImportAndPublish && (
-                <button
-                  type="button"
-                  onClick={onImportAndPublish}
-                  disabled={importing}
-                  className="flex-1 h-6 rounded-sm bg-[#FF5A1F] text-white text-[9px] font-semibold hover:opacity-90 disabled:opacity-60"
-                >
-                  {importing ? "…" : importMode === "auto" ? "Auto" : "Publish"}
-                </button>
+            <button
+              type="button"
+              onClick={onPublish}
+              disabled={importing}
+              className="inline-flex h-[30px] w-full items-center justify-center gap-1.5 rounded-[10px] bg-[#FF5A1F] text-[10.5px] font-semibold text-white shadow-sm hover:opacity-90 disabled:opacity-60"
+            >
+              {importing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <>
+                  <Rocket className="h-3.5 w-3.5" />
+                  Publish
+                </>
               )}
-            </>
+            </button>
           )}
         </div>
       </div>
@@ -271,32 +216,48 @@ export function IntelligenceProductCard({
   );
 }
 
+function Badge({
+  children,
+  className,
+  icon,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-[6px] px-1.5 py-0.5 text-[7.5px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm",
+        className
+      )}
+    >
+      {icon}
+      {children}
+    </span>
+  );
+}
+
 function Metric({
   label,
   value,
-  highlight,
   accent,
-  pulse,
 }: {
   label: string;
   value: string;
-  highlight?: boolean;
   accent?: boolean;
-  pulse?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-0.5 min-w-0">
-      <span className="text-[var(--color-text-muted)] truncate">{label}</span>
-      <span
+    <div className="min-w-0">
+      <p className="truncate text-[8.5px] text-[#9CA3AF]">{label}</p>
+      <p
         className={cn(
-          "tabular-nums font-semibold shrink-0 transition-colors duration-500",
-          accent && "text-emerald-600",
-          highlight && !accent && "text-[var(--color-text-primary)]",
-          pulse && "text-[var(--color-text-primary)]"
+          "truncate font-semibold tabular-nums",
+          accent ? "text-emerald-600" : "text-[#111827]"
         )}
       >
         {value}
-      </span>
+      </p>
     </div>
   );
 }

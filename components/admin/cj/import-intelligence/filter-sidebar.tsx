@@ -2,8 +2,17 @@
 
 import type { IntelligenceFilters } from "@/lib/cj/import-intelligence/types";
 import { cn } from "@/lib/utils";
-import { RotateCcw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+  ChevronRight,
+  Filter,
+  RotateCcw,
+  TrendingUp,
+  Truck,
+  Shield,
+  Sparkles,
+  Package,
+} from "lucide-react";
+import { useCallback } from "react";
 import { DEFAULT_INTELLIGENCE_FILTERS } from "@/lib/cj/import-intelligence/filters";
 import { DebouncedFilterSlider } from "./debounced-filter-slider";
 
@@ -13,44 +22,95 @@ export type IntelligenceFilterChangeHandler = (
     | ((prev: IntelligenceFilters) => IntelligenceFilters)
 ) => void;
 
-function FilterSection({
-  title,
-  children,
+const FILTER_SIDEBAR_KEY = "jimvio:cj-filter-panel-collapsed";
+
+export function loadFilterSidebarCollapsed(): boolean {
+  try {
+    return localStorage.getItem(FILTER_SIDEBAR_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function saveFilterSidebarCollapsed(collapsed: boolean) {
+  try {
+    localStorage.setItem(FILTER_SIDEBAR_KEY, String(collapsed));
+  } catch {
+    // ignore
+  }
+}
+
+function PremiumSwitch({
+  checked,
+  onChange,
+  label,
+  compact,
 }: {
-  title: string;
-  children: React.ReactNode;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  compact?: boolean;
 }) {
   return (
-    <div className="space-y-2">
-      <h4 className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#FF5A1F]">
-        {title}
-      </h4>
-      <div className="space-y-1.5">{children}</div>
-    </div>
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "flex w-full items-center justify-between gap-2 rounded-[10px] px-2 py-1.5 text-left transition-colors",
+        checked ? "bg-[#FF5A1F]/[0.07]" : "hover:bg-[#F9FAFB]",
+        compact && "justify-center px-1"
+      )}
+      title={label}
+    >
+      {!compact && (
+        <span
+          className={cn(
+            "text-[11px] font-medium leading-tight",
+            checked ? "text-[#111827]" : "text-[#6B7280]"
+          )}
+        >
+          {label}
+        </span>
+      )}
+      <span
+        className={cn(
+          "relative inline-flex h-[18px] w-[30px] shrink-0 rounded-full transition-colors",
+          checked ? "bg-[#FF5A1F]" : "bg-[#E5E7EB]"
+        )}
+      >
+        <span
+          className={cn(
+            "absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-transform",
+            checked ? "translate-x-[14px]" : "translate-x-[2px]"
+          )}
+        />
+      </span>
+    </button>
   );
 }
 
-function Toggle({
-  label,
-  checked,
-  onChange,
+function FilterSection({
+  title,
+  icon: Icon,
+  children,
+  collapsed,
 }: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
+  title: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+  collapsed?: boolean;
 }) {
+  if (collapsed) return null;
   return (
-    <label className="flex items-center gap-2 cursor-pointer group">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="rounded-sm border-[var(--color-border)] text-[#FF5A1F] focus:ring-[#FF5A1F]/30 h-3.5 w-3.5"
-      />
-      <span className="text-[11.5px] text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-colors">
-        {label}
-      </span>
-    </label>
+    <div className="space-y-1.5">
+      <h4 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
+        {Icon && <Icon className="h-3 w-3" />}
+        {title}
+      </h4>
+      <div className="space-y-0.5">{children}</div>
+    </div>
   );
 }
 
@@ -61,7 +121,6 @@ function NumberInput({
   min = 0,
   max = 999,
   step = 1,
-  suffix,
 }: {
   label: string;
   value: number;
@@ -69,23 +128,19 @@ function NumberInput({
   min?: number;
   max?: number;
   step?: number;
-  suffix?: string;
 }) {
   return (
-    <label className="block space-y-1">
-      <span className="text-[10.5px] text-[var(--color-text-muted)]">{label}</span>
-      <div className="flex items-center gap-1">
-        <input
-          type="number"
-          min={min}
-          max={max}
-          step={step}
-          value={value || ""}
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-          className="w-full h-7 px-2 text-[11px] rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] tabular-nums"
-        />
-        {suffix && <span className="text-[10px] text-[var(--color-text-muted)] shrink-0">{suffix}</span>}
-      </div>
+    <label className="block space-y-1 px-2">
+      <span className="text-[10px] font-medium text-[#9CA3AF]">{label}</span>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        value={value || ""}
+        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        className="h-7 w-full rounded-[10px] border border-[#E5E7EB] bg-white px-2 text-[11px] tabular-nums text-[#111827] focus:border-[#FF5A1F]/40 focus:outline-none focus:ring-2 focus:ring-[#FF5A1F]/10"
+      />
     </label>
   );
 }
@@ -94,11 +149,15 @@ export function FilterSidebar({
   filters,
   onChange,
   activeCount,
+  collapsed,
+  onCollapsedChange,
   className,
 }: {
   filters: IntelligenceFilters;
   onChange: IntelligenceFilterChangeHandler;
   activeCount: number;
+  collapsed: boolean;
+  onCollapsedChange: (v: boolean) => void;
   className?: string;
 }) {
   const patch = useCallback(
@@ -111,145 +170,153 @@ export function FilterSidebar({
     [onChange]
   );
 
-  const commitMinProfitPercent = useCallback(
-    (v: number) => patch("minProfitPercent", v),
-    [patch]
-  );
-  const commitMinProfitAmount = useCallback(
-    (v: number) => patch("minProfitAmount", v),
-    [patch]
-  );
-  const commitMinRoi = useCallback(
-    (v: number) => patch("minRoi", v),
-    [patch]
-  );
-  const commitMaxDeliveryDays = useCallback(
-    (v: number) => patch("maxDeliveryDays", v),
-    [patch]
-  );
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    onCollapsedChange(next);
+    saveFilterSidebarCollapsed(next);
+  };
 
   const handleReset = useCallback(() => {
     onChange(DEFAULT_INTELLIGENCE_FILTERS);
   }, [onChange]);
 
-  const formatProfitPercent = useCallback((v: number) => `${v}%`, []);
-  const formatProfitAmount = useCallback(
-    (v: number) => `$${v.toFixed(v % 1 === 0 ? 0 : 1)}`,
-    []
-  );
-  const formatRoi = useCallback((v: number) => `${v}%`, []);
-  const formatDeliveryDays = useCallback((v: number) => `${v} days`, []);
-
   return (
     <aside
       className={cn(
-        "sticky top-4 h-[calc(100vh-6rem)] overflow-y-auto rounded-sm border border-[var(--color-border)]",
-        "bg-[var(--color-surface)]/75 backdrop-blur-xl shadow-sm",
-        "p-4 space-y-5 scrollbar-thin",
+        "sticky top-2 z-20 flex shrink-0 flex-col overflow-hidden",
+        "rounded-[14px] border border-[#E5E7EB] bg-white",
+        "shadow-[0_2px_12px_rgba(17,24,39,0.06)]",
+        "transition-[width,min-width] duration-300 ease-in-out",
+        collapsed ? "w-[56px] min-w-[56px]" : "w-[220px] min-w-[220px]",
         className
       )}
     >
-      <div className="flex items-center justify-between gap-2 pb-2 border-b border-[var(--color-border)]">
-        <div>
-          <h3 className="text-[13px] font-bold text-[#111827] dark:text-white">
-            Intelligence Filters
-          </h3>
-          {activeCount > 0 && (
-            <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
-              {activeCount} active
-            </p>
+      <div
+        className={cn(
+          "flex items-center border-b border-[#F3F4F6]",
+          collapsed ? "flex-col gap-2 px-1.5 py-2" : "justify-between gap-1 px-2.5 py-2"
+        )}
+      >
+        {!collapsed ? (
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Filter className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" />
+              <h3 className="text-[12px] font-semibold text-[#111827]">Filters</h3>
+            </div>
+            {activeCount > 0 && (
+              <p className="mt-0.5 text-[10px] text-[#9CA3AF]">{activeCount} active</p>
+            )}
+          </div>
+        ) : (
+          <Filter className="h-4 w-4 text-[#FF5A1F]" />
+        )}
+        <div className={cn("flex items-center gap-0.5", collapsed && "flex-col")}>
+          {!collapsed && activeCount > 0 && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="flex h-7 w-7 items-center justify-center rounded-[10px] text-[#6B7280] hover:bg-[#F3F4F6]"
+              title="Reset filters"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
           )}
-        </div>
-        {activeCount > 0 && (
           <button
             type="button"
-            onClick={handleReset}
-            className="h-7 px-2 rounded-sm text-[10px] font-medium border border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] inline-flex items-center gap-1"
+            onClick={toggleCollapsed}
+            className={cn(
+              "rounded-[10px] text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827]",
+              collapsed
+                ? "flex h-8 w-8 items-center justify-center"
+                : "px-2 py-1 text-[10px] font-medium whitespace-nowrap"
+            )}
+            aria-label={collapsed ? "Show filters" : "Hide filters"}
           >
-            <RotateCcw className="h-3 w-3" />
-            Reset
+            {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : "Hide Filters"}
           </button>
-        )}
+        </div>
       </div>
 
-      <FilterSection title="Trending">
-        <Toggle label="Trending Products" checked={filters.trending} onChange={(v) => patch("trending", v)} />
-        <Toggle label="Best Selling" checked={filters.bestSelling} onChange={(v) => patch("bestSelling", v)} />
-        <Toggle label="Most Favorited" checked={filters.mostFavorited} onChange={(v) => patch("mostFavorited", v)} />
-        <Toggle label="New Arrivals" checked={filters.newArrivals} onChange={(v) => patch("newArrivals", v)} />
-      </FilterSection>
+      {collapsed ? (
+        activeCount > 0 && (
+          <div className="flex justify-center py-2">
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FF5A1F] px-1 text-[9px] font-bold text-white">
+              {activeCount}
+            </span>
+          </div>
+        )
+      ) : (
+        <div className="max-h-[calc(100vh-14rem)] flex-1 overflow-y-auto overflow-x-hidden px-1.5 py-2 scrollbar-thin space-y-3">
+        <FilterSection title="Trending" icon={TrendingUp} collapsed={collapsed}>
+          <PremiumSwitch label="Trending" checked={filters.trending} onChange={(v) => patch("trending", v)} />
+          <PremiumSwitch label="Best Selling" checked={filters.bestSelling} onChange={(v) => patch("bestSelling", v)} />
+          <PremiumSwitch label="Most Favorited" checked={filters.mostFavorited} onChange={(v) => patch("mostFavorited", v)} />
+          <PremiumSwitch label="New Arrivals" checked={filters.newArrivals} onChange={(v) => patch("newArrivals", v)} />
+        </FilterSection>
 
-      <FilterSection title="Profitability">
-        <Toggle label="High Profit Margin (40%+)" checked={filters.highProfitMargin} onChange={(v) => patch("highProfitMargin", v)} />
-        <DebouncedFilterSlider
-          label="Minimum Profit %"
-          value={filters.minProfitPercent}
-          onCommit={commitMinProfitPercent}
-          min={0}
-          max={80}
-          step={1}
-          formatValue={formatProfitPercent}
-        />
-        <DebouncedFilterSlider
-          label="Minimum Profit $"
-          value={filters.minProfitAmount}
-          onCommit={commitMinProfitAmount}
-          min={0}
-          max={50}
-          step={0.5}
-          formatValue={formatProfitAmount}
-        />
-        <DebouncedFilterSlider
-          label="Minimum ROI"
-          value={filters.minRoi}
-          onCommit={commitMinRoi}
-          min={0}
-          max={200}
-          step={5}
-          formatValue={formatRoi}
-        />
-      </FilterSection>
+        <FilterSection title="Profit" icon={Sparkles} collapsed={collapsed}>
+          <PremiumSwitch label="High Margin 40%+" checked={filters.highProfitMargin} onChange={(v) => patch("highProfitMargin", v)} />
+          <DebouncedFilterSlider
+            label="Min Profit %"
+            value={filters.minProfitPercent}
+            onCommit={(v) => patch("minProfitPercent", v)}
+            min={0}
+            max={80}
+            step={1}
+            formatValue={(v) => `${v}%`}
+          />
+          <DebouncedFilterSlider
+            label="Min Profit $"
+            value={filters.minProfitAmount}
+            onCommit={(v) => patch("minProfitAmount", v)}
+            min={0}
+            max={50}
+            step={0.5}
+            formatValue={(v) => `$${v.toFixed(v % 1 === 0 ? 0 : 1)}`}
+          />
+          <DebouncedFilterSlider
+            label="Min ROI"
+            value={filters.minRoi}
+            onCommit={(v) => patch("minRoi", v)}
+            min={0}
+            max={200}
+            step={5}
+            formatValue={(v) => `${v}%`}
+          />
+        </FilterSection>
 
-      <FilterSection title="Shipping">
-        <Toggle label="Fast Shipping (≤7 days)" checked={filters.fastShipping} onChange={(v) => patch("fastShipping", v)} />
-        <Toggle label="Free Shipping" checked={filters.freeShipping} onChange={(v) => patch("freeShipping", v)} />
-        <Toggle label="US Warehouse" checked={filters.usWarehouse} onChange={(v) => patch("usWarehouse", v)} />
-        <Toggle label="EU Warehouse" checked={filters.euWarehouse} onChange={(v) => patch("euWarehouse", v)} />
-        <Toggle label="UK Warehouse" checked={filters.ukWarehouse} onChange={(v) => patch("ukWarehouse", v)} />
-        <Toggle label="Ships Worldwide" checked={filters.shipsWorldwide} onChange={(v) => patch("shipsWorldwide", v)} />
-        <DebouncedFilterSlider
-          label="Max delivery"
-          value={filters.maxDeliveryDays}
-          onCommit={commitMaxDeliveryDays}
-          min={3}
-          max={30}
-          step={1}
-          formatValue={formatDeliveryDays}
-        />
-      </FilterSection>
+        <FilterSection title="Shipping" icon={Truck} collapsed={collapsed}>
+          <PremiumSwitch label="Fast ≤7d" checked={filters.fastShipping} onChange={(v) => patch("fastShipping", v)} />
+          <PremiumSwitch label="Free Shipping" checked={filters.freeShipping} onChange={(v) => patch("freeShipping", v)} />
+          <PremiumSwitch label="US Warehouse" checked={filters.usWarehouse} onChange={(v) => patch("usWarehouse", v)} />
+          <PremiumSwitch label="EU Warehouse" checked={filters.euWarehouse} onChange={(v) => patch("euWarehouse", v)} />
+          <PremiumSwitch label="UK Warehouse" checked={filters.ukWarehouse} onChange={(v) => patch("ukWarehouse", v)} />
+          <DebouncedFilterSlider
+            label="Max delivery"
+            value={filters.maxDeliveryDays}
+            onCommit={(v) => patch("maxDeliveryDays", v)}
+            min={3}
+            max={30}
+            step={1}
+            formatValue={(v) => `${v}d`}
+          />
+        </FilterSection>
 
-      <FilterSection title="Product Quality">
-        <Toggle label="Has Video" checked={filters.hasVideo} onChange={(v) => patch("hasVideo", v)} />
-        <Toggle label="Has Variants" checked={filters.hasVariants} onChange={(v) => patch("hasVariants", v)} />
-        <Toggle label="Has Description" checked={filters.hasDescription} onChange={(v) => patch("hasDescription", v)} />
-        <Toggle label="Has Specifications" checked={filters.hasSpecifications} onChange={(v) => patch("hasSpecifications", v)} />
-        <Toggle label="High Quality Images" checked={filters.highQualityImages} onChange={(v) => patch("highQualityImages", v)} />
-        <NumberInput label="Rating 4.5+" value={filters.minRating} onChange={(v) => patch("minRating", v)} max={5} step={0.5} />
-        <NumberInput label="Min Review Count" value={filters.minReviewCount} onChange={(v) => patch("minReviewCount", v)} />
-      </FilterSection>
+        <FilterSection title="Quality" icon={Package} collapsed={collapsed}>
+          <PremiumSwitch label="Has Video" checked={filters.hasVideo} onChange={(v) => patch("hasVideo", v)} />
+          <PremiumSwitch label="Has Variants" checked={filters.hasVariants} onChange={(v) => patch("hasVariants", v)} />
+          <PremiumSwitch label="HQ Images" checked={filters.highQualityImages} onChange={(v) => patch("highQualityImages", v)} />
+          <NumberInput label="Rating 4.5+" value={filters.minRating} onChange={(v) => patch("minRating", v)} max={5} step={0.5} />
+        </FilterSection>
 
-      <FilterSection title="Supplier Quality">
-        <Toggle label="Verified Supplier" checked={filters.verifiedSupplier} onChange={(v) => patch("verifiedSupplier", v)} />
-        <Toggle label="Top Supplier (75+)" checked={filters.topSupplier} onChange={(v) => patch("topSupplier", v)} />
-        <Toggle label="Fast Response Supplier" checked={filters.fastResponseSupplier} onChange={(v) => patch("fastResponseSupplier", v)} />
-        <Toggle label="High Order Supplier" checked={filters.highOrderSupplier} onChange={(v) => patch("highOrderSupplier", v)} />
-        <Toggle label="Low Refund Supplier" checked={filters.lowRefundSupplier} onChange={(v) => patch("lowRefundSupplier", v)} />
-      </FilterSection>
-
-      <FilterSection title="Health & Status">
-        <NumberInput label="Min Health Score" value={filters.minHealthScore} onChange={(v) => patch("minHealthScore", v)} max={100} />
-        <Toggle label="Hide Already Imported" checked={filters.hideImported} onChange={(v) => patch("hideImported", v)} />
-      </FilterSection>
+        <FilterSection title="Supplier" icon={Shield} collapsed={collapsed}>
+          <PremiumSwitch label="Verified" checked={filters.verifiedSupplier} onChange={(v) => patch("verifiedSupplier", v)} />
+          <PremiumSwitch label="Top 75+" checked={filters.topSupplier} onChange={(v) => patch("topSupplier", v)} />
+          <PremiumSwitch label="Hide Imported" checked={filters.hideImported} onChange={(v) => patch("hideImported", v)} />
+          <NumberInput label="Min Health" value={filters.minHealthScore} onChange={(v) => patch("minHealthScore", v)} max={100} />
+        </FilterSection>
+        </div>
+      )}
     </aside>
   );
 }

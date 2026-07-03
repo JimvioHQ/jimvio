@@ -1,4 +1,5 @@
 import type { CJProduct, HealthLabel } from "./types";
+import { normalizeCjVideoUrls } from "@/lib/cj/product-videos";
 
 const PRICING_TIERS = [
   { maxCostUsd: 10, markupPercent: 90 },
@@ -77,7 +78,7 @@ export function calculateHealthScore(p: CJProduct): number {
 
   scores.push(p.bigImage?.startsWith("http") ? 85 : 20);
 
-  const hasVideo = p.isVideo === 1 || (p.videoList?.length ?? 0) > 0;
+  const hasVideo = productHasVideo(p);
   scores.push(hasVideo ? 100 : 30);
 
   const descScore = p.threeCategoryName ? 70 : 40;
@@ -125,7 +126,12 @@ export function getMarketFit(p: CJProduct) {
 }
 
 export function productHasVideo(p: CJProduct): boolean {
-  return p.isVideo === 1 || (p.videoList?.length ?? 0) > 0;
+  if (Number(p.isVideo) === 1) return true;
+  if ((p.videoCount ?? 0) > 0) return true;
+  const fromUrl = normalizeCjVideoUrls(p.videoUrl);
+  if (fromUrl.length > 0) return true;
+  if (normalizeCjVideoUrls(p.videoList).length > 0) return true;
+  return false;
 }
 
 export function getOrderVolume(p: CJProduct): number {

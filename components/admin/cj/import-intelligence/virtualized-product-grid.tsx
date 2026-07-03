@@ -1,28 +1,25 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import type { EnrichedProduct, ImportMode } from "@/lib/cj/import-intelligence/types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
+import type { EnrichedProduct } from "@/lib/cj/import-intelligence/types";
 import {
   CARD_HEIGHT,
-  CARD_WIDTH,
+  GRID_GAP,
   IntelligenceProductCard,
 } from "./intelligence-product-card";
+import { useColumnCount } from "./use-column-count";
 import { cn } from "@/lib/utils";
-
-const GAP = 8;
 
 function ProductCardSkeleton() {
   return (
-    <div
-      className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden animate-pulse"
-      style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
-    >
-      <div className="h-[145px] bg-[var(--color-surface-secondary)]" />
-      <div className="p-1.5 space-y-1">
-        <div className="h-2.5 bg-[var(--color-surface-secondary)] rounded-sm w-full" />
-        <div className="h-8 bg-[var(--color-surface-secondary)] rounded-sm" />
-        <div className="h-6 bg-[var(--color-surface-secondary)] rounded-sm" />
+    <div className="mx-auto h-[320px] w-full max-w-[210px] animate-pulse overflow-hidden rounded-[14px] border border-[#E5E7EB] bg-white">
+      <div className="h-[192px] bg-[#F3F4F6]" />
+      <div className="space-y-2 p-2.5">
+        <div className="h-3 rounded bg-[#F3F4F6]" />
+        <div className="h-3 w-2/3 rounded bg-[#F3F4F6]" />
+        <div className="h-12 rounded bg-[#F3F4F6]" />
+        <div className="h-[30px] rounded-[10px] bg-[#F3F4F6]" />
       </div>
     </div>
   );
@@ -34,11 +31,9 @@ export function VirtualizedProductGrid({
   loadingMore,
   importingPid,
   selectedPids,
-  importMode = "draft",
   onToggleSelect,
   onPreview,
-  onImport,
-  onImportAndPublish,
+  onPublish,
   onResync,
   onLoadMore,
   hasMore,
@@ -50,49 +45,48 @@ export function VirtualizedProductGrid({
   loadingMore?: boolean;
   importingPid: string | null;
   selectedPids: Set<string>;
-  importMode?: ImportMode;
   onToggleSelect: (pid: string) => void;
   onPreview: (p: EnrichedProduct) => void;
-  onImport: (p: EnrichedProduct) => void;
-  onImportAndPublish?: (p: EnrichedProduct) => void;
+  onPublish: (p: EnrichedProduct) => void;
   onResync: (p: EnrichedProduct) => void;
   onLoadMore?: () => void;
   hasMore?: boolean;
   onVisiblePidsChange?: (pids: string[]) => void;
   className?: string;
 }) {
-  const parentRef = useRef<HTMLDivElement>(null);
+  const columnCount = useColumnCount();
+  const anchorRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(1200);
+  const [scrollMargin, setScrollMargin] = useState(0);
   const onVisibleRef = useRef(onVisiblePidsChange);
   onVisibleRef.current = onVisiblePidsChange;
   const productsRef = useRef(products);
   productsRef.current = products;
 
-  useEffect(() => {
-    const el = parentRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width;
-      if (w) setContainerWidth(w);
-    });
-    ro.observe(el);
-    setContainerWidth(el.clientWidth);
-    return () => ro.disconnect();
+  const rowCount = Math.ceil(products.length / columnCount);
+  const rowHeight = CARD_HEIGHT + GRID_GAP;
+
+  const updateScrollMargin = useCallback(() => {
+    if (!anchorRef.current) return;
+    const rect = anchorRef.current.getBoundingClientRect();
+    setScrollMargin(rect.top + window.scrollY);
   }, []);
 
-  const columnCount = useMemo(
-    () => Math.max(1, Math.floor((containerWidth + GAP) / (CARD_WIDTH + GAP))),
-    [containerWidth]
-  );
+  useEffect(() => {
+    updateScrollMargin();
+    window.addEventListener("resize", updateScrollMargin);
+    window.addEventListener("scroll", updateScrollMargin, { passive: true });
+    return () => {
+      window.removeEventListener("resize", updateScrollMargin);
+      window.removeEventListener("scroll", updateScrollMargin);
+    };
+  }, [updateScrollMargin, products.length, columnCount]);
 
-  const rowCount = Math.ceil(products.length / columnCount);
-
-  const rowVirtualizer = useVirtualizer({
+  const rowVirtualizer = useWindowVirtualizer({
     count: rowCount,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => CARD_HEIGHT + GAP,
-    overscan: 4,
+    estimateSize: () => rowHeight,
+    overscan: 3,
+    scrollMargin,
     onChange: (instance) => {
       const cb = onVisibleRef.current;
       const list = productsRef.current;
@@ -103,23 +97,10 @@ export function VirtualizedProductGrid({
       const lastRow = items[items.length - 1].index;
       const visibleStart = firstRow * columnCount;
       const visibleEnd = Math.min(list.length, (lastRow + 1) * columnCount);
-      const prefetchEnd = Math.min(list.length, visibleEnd + 10);
+      const prefetchEnd = Math.min(list.length, visibleEnd + 12);
       cb(list.slice(visibleStart, prefetchEnd).map((p) => p.pid));
     },
   });
-
-  useEffect(() => {
-    const cb = onVisibleRef.current;
-    if (!cb || products.length === 0) return;
-    const items = rowVirtualizer.getVirtualItems();
-    if (items.length === 0) return;
-    const firstRow = items[0].index;
-    const lastRow = items[items.length - 1].index;
-    const visibleStart = firstRow * columnCount;
-    const visibleEnd = Math.min(products.length, (lastRow + 1) * columnCount);
-    const prefetchEnd = Math.min(products.length, visibleEnd + 10);
-    cb(products.slice(visibleStart, prefetchEnd).map((p) => p.pid));
-  }, [products, columnCount, rowVirtualizer]);
 
   useEffect(() => {
     if (!onLoadMore || !hasMore || loading || loadingMore) return;
@@ -129,25 +110,19 @@ export function VirtualizedProductGrid({
       (entries) => {
         if (entries[0]?.isIntersecting) onLoadMore();
       },
-      { root: parentRef.current, rootMargin: "500px" }
+      { root: null, rootMargin: "1000px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [onLoadMore, hasMore, loading, loadingMore, products.length]);
 
-  const handleResize = useCallback(() => {
-    rowVirtualizer.measure();
-  }, [rowVirtualizer]);
-
-  useEffect(() => {
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [handleResize]);
-
   if (loading && products.length === 0) {
     return (
-      <div className={cn("flex flex-wrap gap-2", className)}>
-        {Array.from({ length: 18 }).map((_, i) => (
+      <div
+        className={cn("grid w-full gap-3", className)}
+        style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))` }}
+      >
+        {Array.from({ length: columnCount * 2 }).map((_, i) => (
           <ProductCardSkeleton key={i} />
         ))}
       </div>
@@ -156,18 +131,17 @@ export function VirtualizedProductGrid({
 
   if (!loading && products.length === 0) {
     return (
-      <div className="py-12 text-center text-[12px] text-[var(--color-text-muted)] rounded-sm border border-dashed border-[var(--color-border)]">
-        No products match. Adjust quick filters or presets.
+      <div className="w-full rounded-[14px] border border-dashed border-[#E5E7EB] bg-white py-16 text-center">
+        <p className="text-[13px] font-medium text-[#111827]">No products match</p>
+        <p className="mt-1 text-[12px] text-[#9CA3AF]">
+          Adjust filters or try a different search.
+        </p>
       </div>
     );
   }
 
   return (
-    <div
-      ref={parentRef}
-      className={cn("overflow-y-auto", className)}
-      style={{ height: "calc(100vh - 340px)", minHeight: 360 }}
-    >
+    <div ref={anchorRef} className={cn("relative w-full min-w-0", className)}>
       <div
         style={{
           height: `${rowVirtualizer.getTotalSize()}px`,
@@ -181,31 +155,32 @@ export function VirtualizedProductGrid({
           return (
             <div
               key={virtualRow.key}
+              data-index={virtualRow.index}
+              ref={rowVirtualizer.measureElement}
               style={{
                 position: "absolute",
                 top: 0,
                 left: 0,
                 width: "100%",
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
+                transform: `translateY(${virtualRow.start - scrollMargin}px)`,
               }}
             >
-              <div className="flex flex-wrap gap-2">
+              <div
+                className="grid w-full"
+                style={{
+                  gap: GRID_GAP,
+                  gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+                }}
+              >
                 {rowProducts.map((product) => (
                   <IntelligenceProductCard
                     key={product.pid}
                     product={product}
                     importing={importingPid === product.pid}
                     selected={selectedPids.has(product.pid)}
-                    importMode={importMode}
                     onToggleSelect={() => onToggleSelect(product.pid)}
                     onPreview={() => onPreview(product)}
-                    onImport={() => onImport(product)}
-                    onImportAndPublish={
-                      onImportAndPublish
-                        ? () => onImportAndPublish(product)
-                        : undefined
-                    }
+                    onPublish={() => onPublish(product)}
                     onResync={() => onResync(product)}
                   />
                 ))}
@@ -215,9 +190,15 @@ export function VirtualizedProductGrid({
         })}
       </div>
 
-      <div ref={sentinelRef} className="h-6 flex items-center justify-center">
+      <div
+        ref={sentinelRef}
+        className="flex min-h-10 items-center justify-center py-3"
+      >
         {loadingMore && (
-          <div className="h-4 w-4 rounded-full border-2 border-[#FF5A1F] border-t-transparent animate-spin" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#FF5A1F] border-t-transparent" />
+        )}
+        {!hasMore && products.length > 0 && !loadingMore && (
+          <p className="text-[11px] text-[#9CA3AF]">End of catalog</p>
         )}
       </div>
     </div>
