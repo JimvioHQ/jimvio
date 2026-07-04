@@ -45,7 +45,7 @@ export function FeedPageContent() {
           <div className="min-w-0 space-y-4 pb-20 lg:col-span-8 xl:col-span-9 2xl:col-span-7">
             <FeedStatsRow />
             <StoriesRail />
-            <PostComposer userName="John" />
+            <PostComposer />
             <FeedTabs />
             <FeedPostCard />
           </div>

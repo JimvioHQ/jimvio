@@ -11,12 +11,9 @@ import {
   SquareArrowUpRight,
   Video,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-type PostComposerProps = {
-  userName?: string;
-  avatarUrl?: string | null;
-};
+import { useFeedUser } from "@/lib/feed/use-feed-user";
+import { buildHubLoginUrl } from "@/lib/community/hub-auth";
+import { cn, getInitials } from "@/lib/utils";
 
 type ActionChip = {
   icon: React.ComponentType<{ className?: string }>;
@@ -63,27 +60,44 @@ function ActionChipButton({ chip }: { chip: ActionChip }) {
   );
 }
 
-export function PostComposer({ userName = "John", avatarUrl }: PostComposerProps) {
-  const avatarSrc =
-    avatarUrl ?? `https://picsum.photos/seed/john-composer/80/80`;
+export function PostComposer() {
+  const { user, isLoading, isAuthenticated } = useFeedUser();
+  const displayName = user?.displayName ?? "there";
+  const avatarLabel = user?.fullName ?? user?.username ?? "You";
 
   return (
     <div className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm">
-      {/* Input row */}
       <div className="flex items-center gap-3">
-        <img
-          src={avatarSrc}
-          alt={userName}
-          className="h-9 w-9 shrink-0 rounded-full object-cover"
-        />
-        <input
-          type="text"
-          placeholder={`What's on your mind, ${userName}?`}
-          className="min-w-0 flex-1 rounded-md bg-gray-100 px-4 py-2.5 text-sm text-gray-900 outline-none placeholder:text-gray-500 focus:bg-gray-50 focus:ring-2 focus:ring-orange-100"
-        />
+        {isLoading ? (
+          <span className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-gray-200" />
+        ) : user?.avatarUrl ? (
+          <img
+            src={user.avatarUrl}
+            alt={avatarLabel}
+            className="h-9 w-9 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-400 text-sm font-semibold text-white">
+            {getInitials(isAuthenticated ? avatarLabel : "?")}
+          </span>
+        )}
+
+        {isAuthenticated ? (
+          <input
+            type="text"
+            placeholder={`What's on your mind, ${displayName}?`}
+            className="min-w-0 flex-1 rounded-md bg-gray-100 px-4 py-2.5 text-sm text-gray-900 outline-none placeholder:text-gray-500 focus:bg-gray-50 focus:ring-2 focus:ring-orange-100"
+          />
+        ) : (
+          <Link
+            href={buildHubLoginUrl("/c")}
+            className="min-w-0 flex-1 rounded-md bg-gray-100 px-4 py-2.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
+          >
+            Sign in to share what&apos;s on your mind…
+          </Link>
+        )}
       </div>
 
-      {/* Action chips */}
       <div className="mt-3 flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
         {ACTION_CHIPS.map((chip) => (
           <ActionChipButton key={chip.label} chip={chip} />
