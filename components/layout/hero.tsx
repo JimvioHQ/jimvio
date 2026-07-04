@@ -659,7 +659,7 @@ function HeroAIFeatureCard({
     <motion.button
       type="button"
       onClick={() => onSelect(query)}
-      className="group relative flex h-[50px] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-[#e8e8ec] bg-white px-0.5 py-1 text-center shadow-[0_1px_4px_rgba(15,23,42,0.04)] transition-[border-color,box-shadow] duration-[250ms] sm:h-[48px] sm:flex-row sm:gap-2.5 sm:rounded-lg sm:px-3.5 sm:py-1.5 sm:text-left sm:shadow-[0_2px_8px_rgba(15,23,42,0.05)] sm:hover:border-[#fd5000]/35 sm:hover:shadow-[0_8px_24px_rgba(253,80,0,0.12)]"
+      className="group relative flex h-[50px] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-0.5 py-1 text-center shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] duration-[250ms] sm:h-[48px] sm:flex-row sm:gap-2.5 sm:rounded-lg sm:px-3.5 sm:py-1.5 sm:text-left sm:hover:border-[#fd5000]/35 sm:hover:shadow-[0_8px_24px_rgba(253,80,0,0.12)]"
       whileHover={isMobile || reduced ? undefined : { y: -6 }}
       transition={{ type: "spring", stiffness: 420, damping: 28 }}
     >
@@ -831,8 +831,8 @@ function HeroPremiumBackground({ reduced }: { reduced: boolean }) {
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[#FCFCFC]" />
-      <div className="absolute inset-0 bg-white/80" />
+      <div className="absolute inset-0 bg-[var(--color-bg)]" />
+      <div className="absolute inset-0 bg-[var(--color-surface)]/80" />
 
       <div className="absolute -right-[12%] top-[6%] h-[min(480px,58vw)] w-[min(480px,58vw)] rounded-full bg-[rgba(255,90,31,0.04)] blur-[120px]" />
       <div className="absolute right-[2%] top-[22%] h-[min(340px,42vw)] w-[min(340px,42vw)] rounded-full bg-[rgba(255,120,80,0.03)] blur-[100px]" />
@@ -946,7 +946,7 @@ export function Hero() {
 
   return (
     <div className="w-full max-w-[100dvw] overflow-x-hidden bg-[var(--color-surface)]">
-      <section className="relative w-full overflow-visible bg-white pt-4 pb-5 sm:pt-6 sm:pb-8">
+      <section className="relative w-full overflow-visible bg-[var(--color-surface)] pt-4 pb-5 sm:pt-6 sm:pb-8">
         <HeroPremiumBackground reduced={reduced} />
 
         <div className="relative z-10 mx-auto w-full min-w-0 max-w-8xl px-4 sm:px-6">
@@ -956,30 +956,24 @@ export function Hero() {
                 <PlatformStatsRotatingBadge className="mb-3 sm:mb-4" />
               </div>
 
-              <div className="relative mx-auto w-full min-w-0 max-w-[520px] lg:mx-0 lg:max-w-none">
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute -left-[10%] -right-[6%] -top-[16%] -bottom-[10%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.5)_0%,rgba(255,255,255,0)_70%)] blur-3xl"
-                />
-                <div className="relative">
-                  <h1
-                    className="mx-auto flex w-full min-w-0 max-w-full flex-col space-y-2 overflow-hidden break-words font-black tracking-tight text-[var(--color-text-primary)] [overflow-wrap:anywhere] sm:space-y-3 lg:mx-0"
-                    style={{
-                      fontSize: "clamp(2rem, 7vw, 4rem)",
-                      letterSpacing: "-0.03em",
-                      lineHeight: 1.12,
-                    }}
-                  >
-                    <span>The platform to</span>
-                    <HeroRotatingPhrase />
-                    <span>Anywhere.</span>
-                  </h1>
+              <div className="mx-auto w-full min-w-0 max-w-[520px] lg:mx-0 lg:max-w-none">
+                <h1
+                  className="mx-auto flex w-full min-w-0 max-w-full flex-col space-y-2 overflow-hidden break-words font-black tracking-tight text-[var(--color-text-primary)] [overflow-wrap:anywhere] sm:space-y-3 lg:mx-0"
+                  style={{
+                    fontSize: "clamp(2rem, 7vw, 4rem)",
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.12,
+                  }}
+                >
+                  <span>The platform to</span>
+                  <HeroRotatingPhrase />
+                  <span>Anywhere.</span>
+                </h1>
 
-                  <p className="mx-auto mt-3 w-full min-w-0 max-w-[520px] break-words text-[14px] leading-relaxed text-[var(--color-text-muted)] [overflow-wrap:anywhere] sm:mt-4 sm:text-base lg:mx-0">
-                    Sell products. Promote offers. Create content. Build your community. Grow your audience — all in one
-                    place.
-                  </p>
-                </div>
+                <p className="mx-auto mt-3 w-full min-w-0 max-w-[520px] break-words text-[14px] leading-relaxed text-[var(--color-text-muted)] [overflow-wrap:anywhere] sm:mt-4 sm:text-base lg:mx-0">
+                  Sell products. Promote offers. Create content. Build your community. Grow your audience — all in one
+                  place.
+                </p>
               </div>
 
               <div className="mt-5 flex w-full min-w-0 flex-col items-stretch gap-3 sm:mt-6 sm:flex-row sm:items-center sm:justify-center lg:justify-start">

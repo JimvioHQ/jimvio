@@ -1,0 +1,309 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  BarChart3,
+  Bookmark,
+  ChevronDown,
+  ChevronUp,
+  Compass,
+  Crown,
+  GraduationCap,
+  Home,
+  Layers,
+  MessageSquare,
+  Radio,
+  Target,
+  User,
+  Wallet,
+  Calendar,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { cn, getInitials } from "@/lib/utils";
+
+export type SidebarItem =
+  | "feed"
+  | "explore"
+  | "live"
+  | "spaces"
+  | "messages"
+  | "missions"
+  | "courses"
+  | "events"
+  | "wallet"
+  | "analytics"
+  | "bookmarks"
+  | "profile";
+
+type NavItem = {
+  id: SidebarItem;
+  label: string;
+  href: string;
+  icon: typeof Home;
+  badge?: { type: "count" | "new" | "live"; value?: string | number };
+};
+
+const NAV_ITEMS: NavItem[] = [
+  { id: "feed", label: "Feed", href: "/c", icon: Home },
+  { id: "explore", label: "Explore", href: "/communities", icon: Compass },
+  { id: "live", label: "Live", href: "/c/live", icon: Radio, badge: { type: "live" } },
+  { id: "spaces", label: "Spaces", href: "/c/spaces", icon: Layers },
+  { id: "messages", label: "Messages", href: "/c/messages", icon: MessageSquare, badge: { type: "count", value: 4 } },
+  { id: "missions", label: "Missions", href: "/c/missions", icon: Target, badge: { type: "new" } },
+  { id: "courses", label: "Courses", href: "/c/courses", icon: GraduationCap },
+  { id: "events", label: "Events", href: "/c/events", icon: Calendar },
+  { id: "wallet", label: "Wallet", href: "/c/wallet", icon: Wallet },
+  { id: "analytics", label: "Analytics", href: "/c/analytics", icon: BarChart3 },
+  { id: "bookmarks", label: "Bookmarks", href: "/c/bookmarks", icon: Bookmark },
+  { id: "profile", label: "My Profile", href: "/c/profile", icon: User },
+];
+
+type CommunityRow = { id: string; name: string; slug: string; unread?: boolean };
+
+type PrimarySidebarProps = {
+  activeItem?: SidebarItem;
+  user?: {
+    name: string;
+    avatarUrl?: string | null;
+    level: number;
+    role: string;
+    verified?: boolean;
+    xp: number;
+    xpGoal: number;
+  };
+  className?: string;
+};
+
+export function resolveSidebarActiveItem(pathname: string): SidebarItem {
+  if (pathname === "/c" || pathname === "/c/") return "feed";
+  if (pathname.startsWith("/c/live")) return "live";
+  if (pathname.startsWith("/c/messages")) return "messages";
+  if (pathname.startsWith("/c/spaces")) return "spaces";
+  if (pathname.startsWith("/c/missions")) return "missions";
+  if (pathname.startsWith("/c/courses")) return "courses";
+  if (pathname.startsWith("/c/events")) return "events";
+  if (pathname.startsWith("/c/wallet")) return "wallet";
+  if (pathname.startsWith("/c/analytics")) return "analytics";
+  if (pathname.startsWith("/c/bookmarks")) return "bookmarks";
+  if (pathname.startsWith("/c/profile")) return "profile";
+  if (pathname.startsWith("/communities")) return "explore";
+  if (/^\/c\/[^/]+/.test(pathname)) return "feed";
+  return "feed";
+}
+
+function NavBadge({ badge }: { badge: NonNullable<NavItem["badge"]> }) {
+  if (badge.type === "count") {
+    return (
+      <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+        {badge.value}
+      </span>
+    );
+  }
+  if (badge.type === "new") {
+    return (
+      <span className="ml-auto rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+        New
+      </span>
+    );
+  }
+  return (
+    <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-white">
+      Live
+    </span>
+  );
+}
+
+export function PrimarySidebar({ activeItem, user: userProp, className }: PrimarySidebarProps) {
+  const pathname = usePathname();
+  const resolvedActive = activeItem ?? resolveSidebarActiveItem(pathname);
+  const [communitiesOpen, setCommunitiesOpen] = useState(true);
+  const [communities, setCommunities] = useState<CommunityRow[]>([]);
+  const [user, setUser] = useState(userProp);
+
+  useEffect(() => {
+    if (userProp) setUser(userProp);
+  }, [userProp]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      const supabase = createClient();
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser || cancelled) return;
+
+      if (!userProp) {
+        const [profRes, pointsRes] = await Promise.all([
+          supabase.from("profiles").select("full_name, username, avatar_url").eq("id", authUser.id).maybeSingle(),
+          supabase.from("member_points").select("total_points, level").eq("user_id", authUser.id).maybeSingle(),
+        ]);
+        if (!cancelled && profRes.data) {
+          const level = pointsRes.data?.level ?? 1;
+          const xp = pointsRes.data?.total_points ?? 0;
+          setUser({
+            name: profRes.data.full_name ?? profRes.data.username ?? "Member",
+            avatarUrl: profRes.data.avatar_url,
+            level,
+            role: "Creator",
+            verified: true,
+            xp: xp % 1000,
+            xpGoal: 1000,
+          });
+        }
+      }
+
+      const { data } = await supabase
+        .from("community_memberships")
+        .select("communities!inner(id, name, slug, avatar_url, is_active)")
+        .eq("user_id", authUser.id)
+        .eq("status", "active")
+        .eq("communities.is_active", true)
+        .limit(20);
+
+      if (cancelled) return;
+      setCommunities(
+        (data ?? [])
+          .map((row: { communities: CommunityRow | null }) => row.communities)
+          .filter(Boolean) as CommunityRow[]
+      );
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [userProp]);
+
+  const profile = user ?? {
+    name: "John Doe",
+    level: 42,
+    role: "Creator",
+    verified: true,
+    xp: 4250,
+    xpGoal: 6000,
+  };
+
+  const xpPct = Math.round((profile.xp / profile.xpGoal) * 100);
+  const xpRemaining = profile.xpGoal - profile.xp;
+
+  return (
+    <aside className={cn("flex h-full w-[240px] shrink-0 flex-col border-r border-gray-200 bg-white", className)}>
+      <div className="flex-1 overflow-y-auto">
+        <div className="border-b border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            {profile.avatarUrl ? (
+              <img src={profile.avatarUrl} alt={profile.name} className="h-10 w-10 rounded-full object-cover" />
+            ) : (
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-400 text-sm font-semibold text-white">
+                {getInitials(profile.name)}
+              </span>
+            )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                <p className="truncate text-sm font-semibold text-gray-900">{profile.name}</p>
+                {profile.verified && (
+                  <svg className="h-3.5 w-3.5 shrink-0 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                Level {profile.level} {profile.role}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="space-y-0.5 p-3">
+          {NAV_ITEMS.map((item) => {
+            const active = item.id === resolvedActive;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.id}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+                  active ? "bg-orange-50 font-medium text-orange-500" : "text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                <Icon className={cn("h-4 w-4 shrink-0", active ? "text-orange-500" : "text-gray-500")} />
+                <span className="truncate">{item.label}</span>
+                {item.badge && <NavBadge badge={item.badge} />}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="px-3 pb-3">
+          <button
+            type="button"
+            onClick={() => setCommunitiesOpen((o) => !o)}
+            className="mb-2 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wide text-gray-400"
+          >
+            My Communities
+            {communitiesOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+          {communitiesOpen && (
+            <div className="space-y-0.5">
+              {(communities.length ? communities : [
+                { id: "1", name: "FX PROVIDER", slug: "fx-provider", unread: true },
+                { id: "2", name: "TradeHub", slug: "tradehub", unread: false },
+              ]).map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/c/${c.slug}`}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-[10px] font-semibold text-gray-600">
+                    {c.name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="truncate">{c.name}</span>
+                  {c.unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-orange-500" />}
+                </Link>
+              ))}
+              <Link
+                href="/communities"
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-gray-500 hover:text-gray-700"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-400">
+                  +
+                </span>
+                Discover communities
+              </Link>
+            </div>
+          )}
+        </div>
+
+        <div className="mx-3 mb-3 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 p-4 text-white">
+          <div className="mb-2 flex items-center gap-2">
+            <Crown className="h-4 w-4" />
+            <span className="text-sm font-semibold">Go Premium</span>
+          </div>
+          <ul className="mb-3 space-y-1 text-xs text-orange-100">
+            <li>• Unlimited live sessions</li>
+            <li>• Advanced analytics</li>
+            <li>• Priority support</li>
+          </ul>
+          <button
+            type="button"
+            className="w-full rounded-lg bg-white py-2 text-xs font-semibold text-orange-600 transition-colors hover:bg-orange-50"
+          >
+            Upgrade Now
+          </button>
+        </div>
+      </div>
+
+      <div className="shrink-0 border-t border-gray-200 p-4">
+        <div className="mb-1.5 flex items-center justify-between text-xs">
+          <span className="text-gray-500">XP Progress</span>
+          <span className="font-medium text-gray-900">
+            {profile.xp.toLocaleString()} / {profile.xpGoal.toLocaleString()}
+          </span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+          <div className="h-full rounded-full bg-orange-500 transition-all" style={{ width: `${xpPct}%` }} />
+        </div>
+        <p className="mt-1.5 text-[11px] text-gray-400">Next reward in {xpRemaining.toLocaleString()} XP</p>
+      </div>
+    </aside>
+  );
+}

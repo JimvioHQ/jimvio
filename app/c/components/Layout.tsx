@@ -14,7 +14,6 @@ import {
     Bell,
     ShoppingCart,
     Sparkles,
-    Plus,
     Menu,
     Globe,
     Radio,
@@ -23,7 +22,8 @@ import {
     Target,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import HubSidebar from "./sidebar";
+import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
+import { CreateMenuDropdown } from "@/components/feed/CreateQuickLaunch";
 import JimvioLogo from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { CurrencySelector } from "@/context/CurrencyContext";
@@ -208,7 +208,6 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     }, [refreshCounts]);
 
     const profileHref = profile?.username ? `/c/profile/${profile.username}` : "/c/profile";
-    const createHref = isAuthenticated === false ? buildHubLoginUrl("/c/live") : "/c/live";
     const loginHref = buildHubLoginUrl(pathname);
 
     return (
@@ -285,13 +284,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     </div>
 
                     {/* Create */}
-                    <Link
-                        href={createHref}
-                        className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#fd5000] px-4 text-[13px] font-bold text-white shadow-sm transition-colors hover:bg-[#e04800]"
-                    >
-                        <Plus className="h-4 w-4" />
-                        <span className="hidden sm:inline">Create</span>
-                    </Link>
+                    <CreateMenuDropdown variant="compact" />
 
                     {/* AI */}
                     <button
@@ -358,7 +351,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             {/* ── Body row: sidebar + content ── */}
             <div className="flex min-h-0 flex-1">
                 <Suspense fallback={null}>
-                    <HubSidebar
+                    <HubPrimarySidebar
                         collapsed={collapsed}
                         onToggleCollapse={() => setCollapsed((c) => !c)}
                         username={profile?.username ?? ""}
@@ -378,7 +371,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 )}
 
                 {/* Page content */}
-                <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden", isLiveStudio && "bg-[#f4f4f5]")}>
+                <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isLiveStudio && "bg-[#f4f4f5]")}>
                     {/* Mobile page title bar */}
                     {!isLiveStudio && (
                     <div className="flex h-11 items-center border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-4 lg:hidden">

@@ -50,6 +50,7 @@ export default async function CommunitySlugLayout({
       membership={payload.membership as any}
       overview={payload.overview}
       basePath={`/c/${slug}`}
+      hideSidebar
     >
       {children}
     </WorkspaceLayout>

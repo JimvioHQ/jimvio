@@ -1,5 +1,5 @@
-import { HubFeedPage } from "@/components/community/hub/hub-feed-page";
+import { FeedPageContent } from "@/components/feed/FeedPageContent";
 
 export default function FeedPage() {
-  return <HubFeedPage />;
+  return <FeedPageContent />;
 }
