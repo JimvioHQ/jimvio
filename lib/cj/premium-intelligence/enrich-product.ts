@@ -1,6 +1,7 @@
 import { getServiceClient, getCJToken, cjFetch } from "@/lib/cj/client";
 import { fetchCjProductVideoUrls } from "@/lib/cj/fetch-product-videos";
 import { mapDetailToIntelligence } from "../import-intelligence/intelligence-mapper";
+import { attachAutoPublish, evaluateAutoPublish, toAutoPublishDbPayload } from "../import-intelligence/auto-publish-engine";
 import { patchProductWithIntelligence } from "../import-intelligence/enrichment-merge";
 import type { EnrichedProduct } from "../import-intelligence/types";
 import {
@@ -11,6 +12,7 @@ import {
 } from "./catalog-repository";
 import { rawRowToCJProduct } from "./map-to-cj-product";
 import { scoreEnrichedProduct } from "./score-product";
+import { resolveDeliveryDaysFromFreight } from "./resolve-delivery-days";
 
 const RETRY_DELAYS_MS = [5_000, 30_000, 120_000, 600_000, 1_800_000];
 
@@ -46,6 +48,11 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
     });
 
     const intelPayload = mapDetailToIntelligence(detail as never, videos);
+
+    const freightDays = await resolveDeliveryDaysFromFreight(supabase, pid, detail);
+    if (freightDays !== null && !intelPayload.deliveryCycle) {
+      intelPayload.deliveryCycle = String(freightDays);
+    }
     const base = rawRowToCJProduct(raw);
     const stub: EnrichedProduct = {
       ...base,
@@ -74,6 +81,7 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
 
     const patched = patchProductWithIntelligence(stub, intelPayload) as EnrichedProduct;
     const scored = scoreEnrichedProduct(patched, "complete");
+    const withAutoPublish = attachAutoPublish(patched);
 
     const description = String(detail.description ?? "").replace(/<[^>]+>/g, " ").trim();
     const imageSet = Array.isArray(detail.productImageSet) ? detail.productImageSet : [];
@@ -109,9 +117,17 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
       badges: scored.badges,
       scored_at: new Date().toISOString(),
       last_error: null,
+      ...toAutoPublishDbPayload(evaluateAutoPublish(withAutoPublish)),
     });
 
     await markQueueJob(pid, { status: "complete", last_error: null });
+
+    const autoPublishResult = evaluateAutoPublish(withAutoPublish);
+    if (autoPublishResult.ready) {
+      const { triggerAutoPublishEvaluation } = await import("./auto-publish-trigger");
+      await triggerAutoPublishEvaluation(pid, "enrichment_complete");
+    }
+
     return true;
   } catch (err) {
     const message = err instanceof Error ? err.message : "enrichment failed";

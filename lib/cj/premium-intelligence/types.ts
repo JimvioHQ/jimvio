@@ -64,6 +64,12 @@ export interface CjProductIntelligenceRow {
   trending: boolean;
   badges: Array<{ id: string; emoji: string; label: string }>;
   scored_at: string | null;
+  auto_publish_ready: boolean;
+  auto_publish_score: number;
+  auto_publish_status: string;
+  auto_publish_failures: string[];
+  pending_enrichment_reasons: string[];
+  last_auto_publish_check: string | null;
   created_at: string;
   updated_at: string;
 }

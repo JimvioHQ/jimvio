@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 function ProductCardSkeleton() {
   return (
-    <div className="mx-auto h-[320px] w-full max-w-[210px] animate-pulse overflow-hidden rounded-[14px] border border-[#E5E7EB] bg-white">
+    <div className="mx-auto h-[368px] w-full max-w-[210px] animate-pulse overflow-hidden rounded-[14px] border border-[#E5E7EB] bg-white">
       <div className="h-[192px] bg-[#F3F4F6]" />
       <div className="space-y-2 p-2.5">
         <div className="h-3 rounded bg-[#F3F4F6]" />

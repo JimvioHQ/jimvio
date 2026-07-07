@@ -5,6 +5,7 @@ import { finishSyncRun, startSyncRun } from "./catalog-repository";
 import { rawRowToCJProduct } from "./map-to-cj-product";
 import { scoreEnrichedProduct } from "./score-product";
 import { enrichProduct } from "../import-intelligence/filters";
+import { attachAutoPublish, evaluateAutoPublish, toAutoPublishDbPayload } from "../import-intelligence/auto-publish-engine";
 import type { EnrichedProduct } from "../import-intelligence/types";
 
 /** 6-hour refresh: stock, shipping, price from list sync + re-enqueue stale */
@@ -69,6 +70,7 @@ export async function runDailyScoreRecalc(): Promise<{ rescored: number }> {
     const enriched = enrichProduct(cj, {});
     enriched.intelligence.trending = row.trending;
     const scored = scoreEnrichedProduct(enriched, "complete");
+    const withAutoPublish = attachAutoPublish(enriched);
 
     await db
       .from("cj_product_intelligence")
@@ -81,6 +83,7 @@ export async function runDailyScoreRecalc(): Promise<{ rescored: number }> {
         opportunity_score: scored.opportunityScore,
         trending: scored.trending,
         scored_at: new Date().toISOString(),
+        ...toAutoPublishDbPayload(evaluateAutoPublish(withAutoPublish)),
       })
       .eq("pid", row.pid);
 

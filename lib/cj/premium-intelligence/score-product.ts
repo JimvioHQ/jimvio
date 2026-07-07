@@ -1,5 +1,6 @@
 import { getServiceClient, getCJToken, cjFetch } from "@/lib/cj/client";
 import { enrichProduct } from "../import-intelligence/filters";
+import { attachAutoPublish, evaluateAutoPublish } from "../import-intelligence/auto-publish-engine";
 import { calculateOpportunityScore } from "../import-intelligence/opportunity-score";
 import {
   classifyCatalogTier,
@@ -174,7 +175,20 @@ export function buildLiteEnrichedFromRaw(
     if (intelRow.margin_percent != null) {
       enriched.intelligence.profit.marginPercent = intelRow.margin_percent;
     }
-    return enriched;
+    if (intelRow.last_auto_publish_check) {
+      const live = evaluateAutoPublish(enriched);
+      enriched.intelligence.autoPublish = {
+        ready: intelRow.auto_publish_ready,
+        score: intelRow.auto_publish_score,
+        status: (intelRow.auto_publish_status as typeof live.status) ?? live.status,
+        failures: intelRow.auto_publish_failures ?? [],
+        pendingEnrichment: intelRow.pending_enrichment_reasons ?? [],
+        checks: live.checks,
+        decision: live.decision,
+        lastCheck: intelRow.last_auto_publish_check,
+      };
+    }
+    return attachAutoPublish(enriched);
   }
 
   return enriched;
@@ -208,13 +222,13 @@ export function buildEnrichedFromRaw(
     if (intelRow.margin_percent != null) {
       enriched.intelligence.profit.marginPercent = intelRow.margin_percent;
     }
-    return enriched;
+    return attachAutoPublish(enriched);
   }
 
   enriched.intelligence.catalogTier = intelRow.catalog_tier;
   enriched.intelligence.enrichmentStatus = intelRow.enrichment_status;
   scoreEnrichedProduct(enriched, status === "dead_letter" ? "failed" : status);
-  return enriched;
+  return attachAutoPublish(enriched);
 }
 
 function sleep(ms: number) {

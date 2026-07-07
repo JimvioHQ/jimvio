@@ -46,6 +46,12 @@ export function makePendingIntelligence(pid: string): CjProductIntelligenceRow {
     trending: false,
     badges: [],
     scored_at: null,
+    auto_publish_ready: false,
+    auto_publish_score: 0,
+    auto_publish_status: "REQUIREMENTS_MISSING",
+    auto_publish_failures: [],
+    pending_enrichment_reasons: [],
+    last_auto_publish_check: null,
     created_at: now,
     updated_at: now,
   };

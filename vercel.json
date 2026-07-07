@@ -19,6 +19,34 @@
       "schedule": "0 4 * * *"
     },
     {
+      "path": "/api/cron/cj-auto-publish",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/cj-auto-publish-worker",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/cj-stock-health",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/cj-supplier-health",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/cj-catalog-cleanup",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/marketplace-intelligence-trending",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/marketplace-intelligence-daily",
+      "schedule": "0 6 * * *"
+    },
+    {
       "path": "/api/ugc/views/sync",
       "schedule": "0 3 * * *"
     },

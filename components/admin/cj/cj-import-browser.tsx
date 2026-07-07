@@ -75,7 +75,6 @@ import {
 import {
   checkPublishEligibility,
   createQueueState,
-  shouldPublishProduct,
   type ImportQueueState,
   type PublishSummary,
 } from "@/lib/cj/import-intelligence/publish-rules";
@@ -98,6 +97,11 @@ import { mergeIntelligenceIntoProducts } from "@/lib/cj/import-intelligence/enri
 import { logFilterDebug } from "@/lib/cj/import-intelligence/filter-debug";
 import { useLazyCjEnrichment } from "@/lib/cj/import-intelligence/use-lazy-cj-enrichment";
 import { StickyBulkPublishBar } from "@/components/admin/cj/import-intelligence/sticky-bulk-publish-bar";
+import { BulkAutoPublishBar } from "@/components/admin/cj/import-intelligence/bulk-auto-publish-bar";
+import { AutoPublishAnalyticsDashboard } from "@/components/admin/cj/import-intelligence/auto-publish-analytics-dashboard";
+import { CatalogHealthV3Panel } from "@/components/admin/cj/import-intelligence/catalog-health-v3-panel";
+import { evaluateAutoPublish } from "@/lib/cj/import-intelligence/auto-publish-engine";
+import { useAutoPublishSync } from "@/lib/cj/import-intelligence/use-auto-publish-sync";
 import type {
   CJApiFilters,
   CatalogTier,
@@ -316,6 +320,16 @@ export default function CJImportBrowser({
   const enrichedCatalog = useMemo(
     () => mergeIntelligenceIntoProducts(products, enrichmentMap, importedMap),
     [products, enrichmentMap, importedMap, enrichmentVersion]
+  );
+
+  useAutoPublishSync(enrichedCatalog, hasSearched);
+
+  const autoPublishReadyCount = useMemo(
+    () =>
+      enrichedCatalog.filter(
+        (p) => (p.intelligence.autoPublish ?? evaluateAutoPublish(p)).ready
+      ).length,
+    [enrichedCatalog]
   );
 
   const countPool = useMemo(
@@ -602,11 +616,8 @@ export default function CJImportBrowser({
         return { published: true, drafted: false, reasons: [] };
       }
 
-      const decision = shouldPublishProduct(
-        product,
-        mode,
-        importSettings.autoPublishRules
-      );
+      // Auto mode — Jimvio Auto Publish Engine v2 decision layer
+      const autoResult = evaluateAutoPublish(product);
 
       if (importSettings.publishVisibility === "hidden") {
         return { published: false, drafted: true, reasons: ["Hidden visibility"] };
@@ -625,8 +636,16 @@ export default function CJImportBrowser({
         return { published: false, drafted: true, reasons: ["Scheduled for later"] };
       }
 
-      if (decision.action !== "publish") {
-        return { published: false, drafted: true, reasons: decision.reasons };
+      if (autoResult.status === "PENDING_ENRICHMENT") {
+        return {
+          published: false,
+          drafted: false,
+          reasons: autoResult.pendingEnrichment,
+        };
+      }
+
+      if (!autoResult.ready) {
+        return { published: false, drafted: true, reasons: autoResult.failures };
       }
 
       const pub = await publishAdminProduct(productId);
@@ -800,6 +819,75 @@ export default function CJImportBrowser({
     },
     [importOne]
   );
+
+  const runBulkAutoPublish = useCallback(async () => {
+    const ready = enrichedCatalog.filter((p) => {
+      const auto = p.intelligence.autoPublish ?? evaluateAutoPublish(p);
+      return auto.ready && !p.intelligence.isImported;
+    });
+
+    if (ready.length === 0) {
+      toast.error("No auto-publish-ready products in catalog");
+      return;
+    }
+
+    setBulkImporting(true);
+    const queue = createQueueState(ready.length);
+    setImportQueue(queue);
+
+    const summary: PublishSummary = {
+      published: 0,
+      drafted: 0,
+      skipped: 0,
+      skipReasons: {},
+    };
+
+    for (const product of ready) {
+      setImportQueue((q) =>
+        q ? { ...q, currentName: product.productNameEn } : q
+      );
+
+      const auto = evaluateAutoPublish(product);
+      queue.completed += 1;
+
+      if (!auto.ready) {
+        queue.skipped += 1;
+        summary.skipped += 1;
+        for (const r of auto.failures) {
+          summary.skipReasons[r] = (summary.skipReasons[r] ?? 0) + 1;
+        }
+        setImportQueue({ ...queue });
+        continue;
+      }
+
+      const result = await importOne(product, "auto");
+      if (result.ok) {
+        queue.succeeded += 1;
+        if (result.published) {
+          queue.published += 1;
+          summary.published += 1;
+        } else {
+          queue.drafted += 1;
+          summary.drafted += 1;
+        }
+      } else {
+        queue.failed += 1;
+        summary.skipped += 1;
+        summary.skipReasons["Import failed"] =
+          (summary.skipReasons["Import failed"] ?? 0) + 1;
+      }
+
+      setImportQueue({ ...queue });
+    }
+
+    setImportQueue((q) => (q ? { ...q, active: false, currentName: undefined } : q));
+    setBulkImporting(false);
+    setPublishSummary(summary);
+
+    toast.success(
+      `Auto Publish: ${summary.published} published, ${summary.skipped} skipped`
+    );
+  }, [enrichedCatalog, importOne]);
 
   function startBulkImport(mode: ImportMode) {
     const items = getSelectedProducts();
@@ -1071,6 +1159,22 @@ export default function CJImportBrowser({
             isEnriching={enrichmentPending > 0}
             enrichedCount={enrichedCount}
           />
+        )}
+
+        {hasSearched && autoPublishReadyCount > 0 && (
+          <BulkAutoPublishBar
+            readyCount={autoPublishReadyCount}
+            publishing={bulkImporting}
+            onAutoPublish={() => void runBulkAutoPublish()}
+            className="mt-2"
+          />
+        )}
+
+        {hasSearched && (
+          <>
+            <AutoPublishAnalyticsDashboard className="mt-3" />
+            <CatalogHealthV3Panel className="mt-2" />
+          </>
         )}
       </div>
 

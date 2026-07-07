@@ -3,7 +3,7 @@ import type { DbProduct } from "@/lib/utils";
 import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos";
 import {
   filterProductsForCustomers,
-  getCustomerVisibleCjPids,
+  getMarketplaceVisibilitySets,
 } from "@/lib/cj/premium-intelligence/marketplace-filter";
 import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
 
@@ -51,6 +51,7 @@ const PRODUCT_SELECT = `
   status, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, view_count, sale_count,
   sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
+  source, source_metadata, published_by_admin_override, auto_unpublished,
   vendors(id, verification_status)
 `;
 
@@ -101,7 +102,7 @@ export async function fetchMarketplacePageBundle(
   const pageSize = options?.pageSize ?? MARKETPLACE_PAGE_SIZE;
   const offset = (page - 1) * pageSize;
 
-  const visibleCjPids = await getCustomerVisibleCjPids();
+  const visibilitySets = await getMarketplaceVisibilitySets();
 
   const [{ data: deals }, { data: trend }, { count }, categories] =
     await Promise.all([
@@ -140,11 +141,11 @@ export async function fetchMarketplacePageBundle(
 
   const dealList = filterProductsForCustomers(
     (deals ?? []) as DbProduct[],
-    visibleCjPids
+    visibilitySets
   ) as DbProduct[];
   const trendList = filterProductsForCustomers(
     (trend ?? []) as DbProduct[],
-    visibleCjPids
+    visibilitySets
   ) as DbProduct[];
   const videoMap = await fetchProductVideosMap(
     supabase,

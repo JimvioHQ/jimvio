@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import {
   ChevronRight,
   Filter,
+  Rocket,
   RotateCcw,
   TrendingUp,
   Truck,
@@ -314,6 +315,69 @@ export function FilterSidebar({
           <PremiumSwitch label="Top 75+" checked={filters.topSupplier} onChange={(v) => patch("topSupplier", v)} />
           <PremiumSwitch label="Hide Imported" checked={filters.hideImported} onChange={(v) => patch("hideImported", v)} />
           <NumberInput label="Min Health" value={filters.minHealthScore} onChange={(v) => patch("minHealthScore", v)} max={100} />
+        </FilterSection>
+
+        <FilterSection title="Auto Publish" icon={Rocket} collapsed={collapsed}>
+          <PremiumSwitch
+            label="Ready"
+            checked={filters.autoPublishReady}
+            onChange={(v) => patch("autoPublishReady", v)}
+          />
+          <PremiumSwitch
+            label="Pending Enrichment"
+            checked={filters.autoPublishPending}
+            onChange={(v) => patch("autoPublishPending", v)}
+          />
+          <PremiumSwitch
+            label="Requirements Missing"
+            checked={filters.autoPublishRequirementsMissing}
+            onChange={(v) => patch("autoPublishRequirementsMissing", v)}
+          />
+          <PremiumSwitch
+            label="Admin Override"
+            checked={filters.autoPublishAdminOverride}
+            onChange={(v) => patch("autoPublishAdminOverride", v)}
+          />
+          <PremiumSwitch
+            label="Missing Video"
+            checked={filters.missingVideo}
+            onChange={(v) => patch("missingVideo", v)}
+          />
+          <PremiumSwitch
+            label="Missing Supplier"
+            checked={filters.missingSupplier}
+            onChange={(v) => patch("missingSupplier", v)}
+          />
+          <PremiumSwitch
+            label="Missing Shipping"
+            checked={filters.missingShipping}
+            onChange={(v) => patch("missingShipping", v)}
+          />
+          <PremiumSwitch
+            label="Missing Images"
+            checked={filters.missingImages}
+            onChange={(v) => patch("missingImages", v)}
+          />
+          <PremiumSwitch
+            label="Missing Description"
+            checked={filters.missingDescription}
+            onChange={(v) => patch("missingDescription", v)}
+          />
+          <PremiumSwitch
+            label="Missing Variants"
+            checked={filters.missingVariants}
+            onChange={(v) => patch("missingVariants", v)}
+          />
+          <PremiumSwitch
+            label="Missing Stock"
+            checked={filters.missingStock}
+            onChange={(v) => patch("missingStock", v)}
+          />
+          <PremiumSwitch
+            label="Trending Missing"
+            checked={filters.missingTrending}
+            onChange={(v) => patch("missingTrending", v)}
+          />
         </FilterSection>
         </div>
       )}
