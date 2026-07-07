@@ -238,9 +238,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { User, Mail, Phone, MapPin, Building2, AlertCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { cn, getInputValidationClasses } from "@/lib/utils";
+import { User, Mail, Phone, MapPin, Building2 } from "lucide-react";
 import CustomSelect from "../ui/select-2";
 import { FieldInput } from "../ui/field-input";
 import { Field, FieldError, FieldLabel } from "../ui/field";
@@ -331,7 +329,7 @@ export default function ShippingForm({ values, onChange, hideAddress = false, sh
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 min-w-0 w-full max-lg:space-y-5">
       {/* Name */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="First name" icon={<User />} required error={err("firstName")}>

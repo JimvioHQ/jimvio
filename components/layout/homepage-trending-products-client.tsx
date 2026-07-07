@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 const PAGE_SIZE = 12;
 /** ~25px/s at 60fps — premium, non-distracting marquee speed */
 const SCROLL_SPEED = 0.42;
+const INTERACTION_RESUME_MS = 3500;
 
 const PRODUCT_SELECT = `
   id, name, slug, price, currency, compare_at_price, images, product_type,
@@ -79,13 +80,18 @@ export function HomepageTrendingProductsClient({
   const [total, setTotal] = useState(initialTotal);
   const [paused, setPaused] = useState(false);
 
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const offsetRef = useRef(0);
   const singleWidthRef = useRef(0);
   const pausedRef = useRef(false);
   const loadingRef = useRef(false);
   const productsRef = useRef(initialProducts);
   const totalRef = useRef(initialTotal);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDraggingRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragScrollLeftRef = useRef(0);
+  const programmaticScrollRef = useRef(false);
 
   const pairs = useMemo(() => pairProducts(products), [products]);
   const loopPairs = useMemo(() => [...pairs, ...pairs], [pairs]);
@@ -102,6 +108,20 @@ export function HomepageTrendingProductsClient({
   useEffect(() => {
     pausedRef.current = paused || reducedMotion;
   }, [paused, reducedMotion]);
+
+  const scheduleResume = useCallback(() => {
+    setPaused(true);
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = setTimeout(() => {
+      setPaused(false);
+    }, INTERACTION_RESUME_MS);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    };
+  }, []);
 
   const loadMore = useCallback(async () => {
     const offset = productsRef.current.length;
@@ -139,52 +159,125 @@ export function HomepageTrendingProductsClient({
     }
   }, []);
 
-  useEffect(() => {
+  const measureLoopWidth = useCallback(() => {
     const track = trackRef.current;
     if (!track) return;
+    singleWidthRef.current = track.scrollWidth / (autoScroll ? 2 : 1);
+  }, [autoScroll]);
 
-    const measure = () => {
-      singleWidthRef.current = track.scrollWidth / (autoScroll ? 2 : 1);
-    };
-
-    measure();
-    const ro = new ResizeObserver(measure);
+  useEffect(() => {
+    measureLoopWidth();
+    const track = trackRef.current;
+    if (!track) return;
+    const ro = new ResizeObserver(measureLoopWidth);
     ro.observe(track);
     return () => ro.disconnect();
-  }, [autoScroll, loopPairs.length, pairs.length]);
+  }, [autoScroll, loopPairs.length, pairs.length, measureLoopWidth]);
+
+  const wrapScrollPosition = useCallback(() => {
+    const scroller = scrollerRef.current;
+    const loopWidth = singleWidthRef.current;
+    if (!scroller || loopWidth <= 0) return;
+
+    if (scroller.scrollLeft >= loopWidth) {
+      programmaticScrollRef.current = true;
+      scroller.scrollLeft -= loopWidth;
+      programmaticScrollRef.current = false;
+
+      const offset = productsRef.current.length;
+      if (!loadingRef.current && offset < totalRef.current) {
+        void loadMore();
+      }
+    } else if (scroller.scrollLeft < 0) {
+      programmaticScrollRef.current = true;
+      scroller.scrollLeft += loopWidth;
+      programmaticScrollRef.current = false;
+    }
+  }, [loadMore]);
 
   useEffect(() => {
     if (!autoScroll) return;
 
-    const track = trackRef.current;
-    if (!track || pairs.length < 2) return;
+    const scroller = scrollerRef.current;
+    if (!scroller || pairs.length < 2) return;
 
     let raf = 0;
 
     const tick = () => {
       if (!pausedRef.current && singleWidthRef.current > 0) {
-        offsetRef.current += SCROLL_SPEED;
-
-        if (offsetRef.current >= singleWidthRef.current) {
-          offsetRef.current -= singleWidthRef.current;
-          const offset = productsRef.current.length;
-          if (!loadingRef.current && offset < totalRef.current) {
-            void loadMore();
-          }
-        }
-
-        track.style.transform = `translate3d(-${offsetRef.current}px, 0, 0)`;
+        programmaticScrollRef.current = true;
+        scroller.scrollLeft += SCROLL_SPEED;
+        programmaticScrollRef.current = false;
+        wrapScrollPosition();
       }
-
       raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [autoScroll, loadMore, pairs.length]);
+  }, [autoScroll, pairs.length, wrapScrollPosition]);
 
-  const pause = useCallback(() => setPaused(true), []);
-  const resume = useCallback(() => setPaused(false), []);
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      e.preventDefault();
+      scroller.scrollLeft += e.deltaY;
+      wrapScrollPosition();
+      scheduleResume();
+    };
+
+    const onScroll = () => {
+      if (programmaticScrollRef.current || isDraggingRef.current) return;
+      wrapScrollPosition();
+      scheduleResume();
+    };
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      isDraggingRef.current = true;
+      dragStartXRef.current = e.clientX;
+      dragScrollLeftRef.current = scroller.scrollLeft;
+      scroller.setPointerCapture(e.pointerId);
+      scheduleResume();
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      const delta = e.clientX - dragStartXRef.current;
+      scroller.scrollLeft = dragScrollLeftRef.current - delta;
+      wrapScrollPosition();
+    };
+
+    const endDrag = (e: PointerEvent) => {
+      if (!isDraggingRef.current) return;
+      isDraggingRef.current = false;
+      if (scroller.hasPointerCapture(e.pointerId)) {
+        scroller.releasePointerCapture(e.pointerId);
+      }
+      scheduleResume();
+    };
+
+    scroller.addEventListener("wheel", onWheel, { passive: false });
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    scroller.addEventListener("pointerdown", onPointerDown);
+    scroller.addEventListener("pointermove", onPointerMove);
+    scroller.addEventListener("pointerup", endDrag);
+    scroller.addEventListener("pointercancel", endDrag);
+    scroller.addEventListener("touchstart", scheduleResume, { passive: true });
+
+    return () => {
+      scroller.removeEventListener("wheel", onWheel);
+      scroller.removeEventListener("scroll", onScroll);
+      scroller.removeEventListener("pointerdown", onPointerDown);
+      scroller.removeEventListener("pointermove", onPointerMove);
+      scroller.removeEventListener("pointerup", endDrag);
+      scroller.removeEventListener("pointercancel", endDrag);
+      scroller.removeEventListener("touchstart", scheduleResume);
+    };
+  }, [autoScroll, scheduleResume, wrapScrollPosition]);
 
   if (!products.length) return null;
 
@@ -194,16 +287,8 @@ export function HomepageTrendingProductsClient({
     <div
       className={cn(
         "relative h-[570px] sm:h-[610px] -mx-4 sm:-mx-6",
-        autoScroll
-          ? "overflow-hidden"
-          : "overflow-x-auto overflow-y-hidden px-4 pb-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[var(--color-border)] sm:px-6",
+        autoScroll ? "overflow-hidden" : "px-4 sm:px-6",
       )}
-      onMouseEnter={autoScroll ? pause : undefined}
-      onMouseLeave={autoScroll ? resume : undefined}
-      onPointerDown={autoScroll ? pause : undefined}
-      onPointerUp={autoScroll ? resume : undefined}
-      onPointerCancel={autoScroll ? resume : undefined}
-      onTouchEnd={autoScroll ? resume : undefined}
       role="region"
       aria-label="Trending products — two-row horizontal browse"
     >
@@ -221,21 +306,30 @@ export function HomepageTrendingProductsClient({
       )}
 
       <div
-        ref={trackRef}
+        ref={scrollerRef}
         className={cn(
-          "flex w-max gap-3.5",
-          autoScroll && "will-change-transform",
-          !autoScroll && "px-4 sm:px-6",
+          "h-full overscroll-x-contain",
+          autoScroll
+            ? "overflow-x-auto overflow-y-hidden cursor-grab active:cursor-grabbing [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            : "overflow-x-auto overflow-y-hidden pb-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[var(--color-border)]",
         )}
-        style={autoScroll ? { transform: "translate3d(0, 0, 0)" } : undefined}
+        style={autoScroll ? { WebkitOverflowScrolling: "touch", touchAction: "pan-x" } : undefined}
       >
-        {columns.map((col, index) => (
-          <TrendingColumn
-            key={autoScroll ? `${col.key}-${index}` : col.key}
-            top={col.top}
-            bottom={col.bottom}
-          />
-        ))}
+        <div
+          ref={trackRef}
+          className={cn(
+            "flex w-max gap-3.5 px-4 sm:px-6",
+            autoScroll && "will-change-scroll",
+          )}
+        >
+          {columns.map((col, index) => (
+            <TrendingColumn
+              key={autoScroll ? `${col.key}-${index}` : col.key}
+              top={col.top}
+              bottom={col.bottom}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-provider";
 import type { CartOrder, CartItem } from "@/types";
 import { FieldInput } from "../ui/field-input";
-import { CurrencyCode } from "@/lib/currency/config";
 
 interface OrderSummaryCardProps {
     orders: CartOrder[];
@@ -40,7 +39,7 @@ interface OrderSummaryCardProps {
 }
 
 export function OrderSummaryCard({
-    orders, items, subtotal, discount, shipping, total, currency, formatMoney,
+    orders: _orders, items, subtotal, discount, shipping, total, currency, formatMoney,
     isAllDigital, features,
     promoCode, onPromoChange, onPromoApply, promoApplying,
     onEditOrder, onPay, paySubmitting, payDisabled,
@@ -58,7 +57,7 @@ export function OrderSummaryCard({
     const heroItem = items[0];
 
     return (
-        <div className="space-y-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="space-y-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] max-lg:shadow-[0_4px_20px_rgba(0,0,0,0.06)] max-lg:p-5">
 
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -82,7 +81,7 @@ export function OrderSummaryCard({
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                     Total due
                 </p>
-                <p className="mt-1 text-[30px] font-extrabold leading-none tracking-[-0.03em] text-[var(--color-accent)] tabular-nums">
+                <p className="mt-1 text-[30px] font-extrabold leading-none tracking-[-0.03em] text-[var(--color-accent)] tabular-nums max-lg:text-[32px]">
                     {formatMoney(total, currency)}
                 </p>
             </div>
@@ -258,13 +257,13 @@ export function OrderSummaryCard({
                 </div>
             </div>
 
-            {/* CTA */}
+            {/* CTA — desktop; mobile uses checkout sticky bar */}
             <button
                 type="button"
                 onClick={onPay}
                 disabled={paySubmitting || payDisabled}
                 className={cn(
-                    "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-bold text-white",
+                    "hidden h-12 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-bold text-white lg:flex",
                     "bg-[var(--color-accent)] shadow-[0_4px_14px_rgba(253,80,0,0.22)]",
                     "transition-[transform,background-color,box-shadow,opacity] duration-200",
                     "hover:scale-[1.01] hover:bg-[var(--color-accent)]/90",
@@ -284,7 +283,7 @@ export function OrderSummaryCard({
             </button>
 
             <p className="text-[11px] text-[var(--color-text-muted)] text-center">
-                You won't be charged until payment is confirmed.
+                You won&apos;t be charged until payment is confirmed.
             </p>
 
             {/* Social proof */}

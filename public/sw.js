@@ -8,7 +8,8 @@ const PRECACHE_URLS = [
   OFFLINE_URL,
   "/icons/icon-192.png",
   "/icons/icon-512.png",
-  "/jimvio-logo.png",
+  "/icons/apple-touch-icon.png",
+  "/favicon.ico",
 ];
 
 self.addEventListener("install", (event) => {

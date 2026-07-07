@@ -222,8 +222,6 @@ export function CheckoutExperience({
          setCjError("");
          try {
             const cjItems = getCJCartItems(orders);
-            console.log(cjItems);
-
 
             // Build the CJ payload with proper vids and weights
             const products = cjItems.map((item) => ({
@@ -231,7 +229,6 @@ export function CheckoutExperience({
                quantity: item.quantity,
                weight: getCJWeight(item) ?? undefined,
             }));
-            console.log(products);
 
             const missing = products.filter((p) => !p.cjVid);
             if (missing.length > 0) {
@@ -263,7 +260,13 @@ export function CheckoutExperience({
                );
             }
 
-            const opts: CJShippingOption[] = (json.rates ?? []).map((r: any) => ({
+            const opts: CJShippingOption[] = (json.rates ?? []).map((r: {
+               optionId: string;
+               channelId?: string;
+               name: string;
+               arrivalDays?: string;
+               priceUSD?: number;
+            }) => ({
                optionId: r.optionId,
                channelId: r.channelId,
                name: r.name,
@@ -361,24 +364,6 @@ export function CheckoutExperience({
       }
    }
 
-   // ── Empty cart guard ──────────────────────────────────────────────────────
-   if (!orders.length) {
-      return (
-         <div className="min-h-[60vh] flex items-center justify-center p-12">
-            <div className="text-center max-w-sm">
-               <Package className="h-12 w-12 text-[var(--color-text-muted)]/30 mx-auto mb-4" />
-               <h2 className="text-lg font-semibold mb-2">Your cart is empty</h2>
-               <Link href="/marketplace" className="inline-flex items-center gap-1.5 h-11 px-5 rounded-xl bg-orange-500 text-white font-semibold">
-                  Browse marketplace
-               </Link>
-            </div>
-         </div>
-      );
-   }
-
-   const payDisabled =
-      isCJOrder && (shippingCost === null || !cjSelected);
-
    const checkoutSteps = useMemo(() => {
       if (isAllDigital || isCommunity) {
          return [{ id: "payment" as const, label: "Payment" }];
@@ -398,10 +383,28 @@ export function CheckoutExperience({
 
    const activeStepIndex = checkoutSteps.findIndex((s) => s.id === stage);
 
+   // ── Empty cart guard ──────────────────────────────────────────────────────
+   if (!orders.length) {
+      return (
+         <div className="min-h-[60vh] flex items-center justify-center p-12">
+            <div className="text-center max-w-sm">
+               <Package className="h-12 w-12 text-[var(--color-text-muted)]/30 mx-auto mb-4" />
+               <h2 className="text-lg font-semibold mb-2">Your cart is empty</h2>
+               <Link href="/marketplace" className="inline-flex items-center gap-1.5 h-11 px-5 rounded-xl bg-orange-500 text-white font-semibold">
+                  Browse marketplace
+               </Link>
+            </div>
+         </div>
+      );
+   }
+
+   const payDisabled =
+      isCJOrder && (shippingCost === null || !cjSelected);
+
    return (
-      <div className="flex min-h-screen flex-col bg-[var(--color-bg)]">
-         <div className="flex-1 pb-20">
-            <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+      <div className="flex min-h-screen flex-col overflow-x-hidden bg-[var(--color-bg)]">
+         <div className="flex-1 pb-28 max-lg:pb-32 lg:pb-20">
+            <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10 max-lg:px-4 max-lg:py-5">
 
                <Link
                   href="/cart"
@@ -456,12 +459,12 @@ export function CheckoutExperience({
                            animate={{ opacity: 1, y: 0 }}
                            exit={{ opacity: 0, y: -6 }}
                            transition={{ duration: 0.28, ease: "easeOut" }}
-                           className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-7"
+                           className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] max-lg:p-5 max-lg:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:p-7"
                         >
-                           <h1 className="mb-1 text-[20px] font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
+                           <h1 className="mb-1 text-[20px] font-bold tracking-[-0.02em] text-[var(--color-text-primary)] max-lg:text-[22px]">
                               Where should we ship?
                            </h1>
-                           <p className="mb-6 text-[13px] text-[var(--color-text-muted)]">
+                           <p className="mb-6 text-[13px] text-[var(--color-text-muted)] max-lg:mb-5 max-lg:text-[14px]">
                               We&apos;ll send tracking information to your email.
                            </p>
                            <ShippingForm
@@ -475,7 +478,7 @@ export function CheckoutExperience({
                               onClick={advanceFromShipping}
                               disabled={cjLoading}
                               className={cn(
-                                 "mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-bold text-white",
+                                 "mt-6 hidden h-11 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-bold text-white lg:flex",
                                  "bg-[var(--color-accent)] transition-[transform,background-color,opacity] duration-200",
                                  "hover:bg-[var(--color-accent)]/90 hover:scale-[1.01] active:scale-[0.99]",
                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
@@ -504,12 +507,12 @@ export function CheckoutExperience({
                            animate={{ opacity: 1, y: 0 }}
                            exit={{ opacity: 0, y: -6 }}
                            transition={{ duration: 0.28, ease: "easeOut" }}
-                           className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-7"
+                           className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] max-lg:border-0 max-lg:bg-transparent max-lg:p-0 max-lg:shadow-none sm:p-7 lg:border lg:bg-[var(--color-surface)] lg:p-5 lg:shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
                         >
-                           <h1 className="mb-1 text-[20px] font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
+                           <h1 className="mb-1 text-[20px] font-bold tracking-[-0.02em] text-[var(--color-text-primary)] max-lg:px-1 max-lg:text-[22px]">
                               Choose delivery method
                            </h1>
-                           <p className="mb-5 text-[13px] text-[var(--color-text-muted)]">
+                           <p className="mb-5 text-[13px] text-[var(--color-text-muted)] max-lg:mb-4 max-lg:px-1 max-lg:text-[14px]">
                               Shipping to <strong className="text-[var(--color-text-primary)]">{shipping.country}</strong>
                            </p>
 
@@ -526,7 +529,7 @@ export function CheckoutExperience({
                               onClick={() => setStage("payment")}
                               disabled={!cjSelected}
                               className={cn(
-                                 "mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-bold text-white",
+                                 "mt-6 hidden h-11 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-bold text-white lg:flex",
                                  "bg-[var(--color-accent)] transition-[transform,background-color] duration-200",
                                  "hover:bg-[var(--color-accent)]/90 hover:scale-[1.01] active:scale-[0.99]",
                                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
@@ -546,7 +549,7 @@ export function CheckoutExperience({
                            animate={{ opacity: 1, y: 0 }}
                            exit={{ opacity: 0, y: -6 }}
                            transition={{ duration: 0.28, ease: "easeOut" }}
-                           className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-7"
+                           className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] max-lg:p-5 max-lg:shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:p-7"
                         >
                            <PaymentMethodSelector
                               selected={payment}
@@ -584,6 +587,73 @@ export function CheckoutExperience({
                   </aside>
                </div>
             </div>
+         </div>
+
+         {/* Mobile sticky stage CTA */}
+         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 px-4 py-3 shadow-[0_-8px_28px_rgba(0,0,0,0.1)] backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden">
+            {stage === "shipping" && (
+               <button
+                  type="button"
+                  onClick={advanceFromShipping}
+                  disabled={cjLoading}
+                  className={cn(
+                     "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white",
+                     "bg-[var(--color-accent)] shadow-[0_4px_18px_rgba(253,80,0,0.28)]",
+                     "transition-[transform,opacity] duration-200 active:scale-[0.98]",
+                     "disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none",
+                  )}
+               >
+                  {cjLoading ? (
+                     <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading shipping rates…
+                     </>
+                  ) : (
+                     <>
+                        Continue
+                        <ChevronRight className="h-4 w-4" />
+                     </>
+                  )}
+               </button>
+            )}
+            {stage === "delivery" && (
+               <button
+                  type="button"
+                  onClick={() => setStage("payment")}
+                  disabled={!cjSelected}
+                  className={cn(
+                     "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white",
+                     "bg-[var(--color-accent)] shadow-[0_4px_18px_rgba(253,80,0,0.28)]",
+                     "transition-[transform,opacity] duration-200 active:scale-[0.98]",
+                     "disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none",
+                  )}
+               >
+                  Continue to payment
+                  <ChevronRight className="h-4 w-4" />
+               </button>
+            )}
+            {stage === "payment" && (
+               <button
+                  type="button"
+                  onClick={handlePay}
+                  disabled={submitting || payDisabled}
+                  className={cn(
+                     "flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white",
+                     "bg-[var(--color-accent)] shadow-[0_4px_18px_rgba(253,80,0,0.28)]",
+                     "transition-[transform,opacity] duration-200 active:scale-[0.98]",
+                     "disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none",
+                  )}
+               >
+                  {submitting ? (
+                     <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                     <>
+                        Complete Secure Payment
+                        <ChevronRight className="h-4 w-4" />
+                     </>
+                  )}
+               </button>
+            )}
          </div>
 
          <CheckoutFooter />

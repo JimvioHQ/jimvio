@@ -18,7 +18,6 @@ import {
   ChevronRight,
   Lock,
   Package,
-  CreditCard,
   Globe,
   Shield,
   Gift,
@@ -32,7 +31,7 @@ import {
   updateCartItemVariant,
 } from "@/lib/actions/marketplace";
 import { isPendingVariantSelection } from "@/lib/cart/pending-variant";
-import { VariantPickerDialog } from "@/components/marketplace/variant-picker-dialog";
+import { VariantPickerDialog, type Variant } from "@/components/marketplace/variant-picker-dialog";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
   formatAggregatedCartTotalInDisplayCurrency,
@@ -351,7 +350,7 @@ export function CartClient({ initialItems }: CartClientProps) {
   const [discountExpanded, setDiscountExpanded] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
   const [variantPickerItem, setVariantPickerItem] = useState<CartItem | null>(null);
-  const [pickerVariants, setPickerVariants] = useState<any[]>([]);
+  const [pickerVariants, setPickerVariants] = useState<Variant[]>([]);
   const [loadingVariantId, setLoadingVariantId] = useState<string | null>(null);
   const [openingVariantPicker, setOpeningVariantPicker] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -469,7 +468,7 @@ export function CartClient({ initialItems }: CartClientProps) {
     setVariantPickerItem(item);
     try {
       const res = await getProductVariants(item.product_id);
-      setPickerVariants(res.variants ?? []);
+      setPickerVariants((res.variants ?? []) as Variant[]);
     } catch (err) {
       console.error(err);
       setVariantPickerItem(null);
@@ -594,19 +593,19 @@ export function CartClient({ initialItems }: CartClientProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="pb-24"
+      className="pb-28 max-lg:pb-32 lg:pb-24"
     >
       {/* ── Page header ── */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-accent-light)]">
+      <div className="mb-5 flex items-center justify-between max-lg:mb-4">
+        <div className="flex items-center gap-3 max-lg:gap-3.5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-accent-light)] shadow-[0_2px_8px_rgba(253,80,0,0.08)] max-lg:h-12 max-lg:w-12 lg:h-12 lg:w-12">
             <ShoppingCart className="h-5 w-5 text-[var(--color-accent)]" strokeWidth={1.8} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold leading-tight tracking-[-0.02em] text-[var(--color-text-primary)]">
+            <h1 className="text-xl font-bold leading-tight tracking-[-0.02em] text-[var(--color-text-primary)] max-lg:text-2xl lg:text-2xl">
               Shopping Cart
             </h1>
-            <p className="text-sm text-[var(--color-text-muted)]">
+            <p className="text-[13px] text-[var(--color-text-muted)] max-lg:text-sm">
               {totalUnits} {totalUnits === 1 ? "item" : "items"} · Ready for checkout
             </p>
           </div>
@@ -632,8 +631,8 @@ export function CartClient({ initialItems }: CartClientProps) {
         <div className="space-y-4">
 
           {/* Table header */}
-          <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="hidden items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3 md:grid md:grid-cols-[auto_1fr_140px_90px_110px_90px_80px]">
+          <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] max-lg:border-0 max-lg:bg-transparent max-lg:shadow-none max-lg:overflow-visible">
+            <div className="hidden items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3 lg:grid lg:grid-cols-[auto_1fr_140px_90px_110px_90px_80px]">
               <div className="w-5" />
               <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                 Products
@@ -677,7 +676,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                     transition={{ duration: 0.18 }}
                   >
                     {/* Supplier row */}
-                    <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3">
+                    <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3 max-lg:mb-2 max-lg:rounded-xl max-lg:border max-lg:px-3.5 max-lg:py-2.5 max-lg:shadow-[0_1px_4px_rgba(0,0,0,0.04)]">
                       <Package className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
                       <Link
                         href={`/vendors/${vendor?.business_slug ?? "#"}`}
@@ -733,7 +732,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                             )}
                           >
                             {/* Desktop row */}
-                            <div className="hidden md:grid grid-cols-[auto_1fr_140px_90px_110px_90px_80px] gap-2 items-center px-4 py-4">
+                            <div className="hidden lg:grid grid-cols-[auto_1fr_140px_90px_110px_90px_80px] gap-2 items-center px-4 py-4">
                               {/* Checkbox */}
                               <OrangeCheckbox
                                 checked={isSelected}
@@ -869,91 +868,104 @@ export function CartClient({ initialItems }: CartClientProps) {
                               </div>
                             </div>
 
-                            {/* Mobile row */}
-                            <div className="flex gap-3 px-4 py-4 md:hidden">
-                              <div className="flex flex-col items-center gap-2 pt-1">
-                                <OrangeCheckbox
-                                  checked={isSelected}
-                                  onChange={() => toggleSelect(item.id)}
-                                />
-                              </div>
-                              <Link
-                                href={slug ? `/marketplace/${slug}` : "#"}
-                                className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+                            {/* Mobile premium card */}
+                            <div className="px-2 py-2 lg:hidden">
+                              <div
+                                className={cn(
+                                  "rounded-2xl border bg-[var(--color-surface)] p-4",
+                                  "shadow-[0_2px_16px_rgba(0,0,0,0.06)] transition-[border-color,box-shadow] duration-200",
+                                  isSelected
+                                    ? "border-[var(--color-accent)]/35 ring-1 ring-[var(--color-accent)]/15"
+                                    : "border-[var(--color-border)]",
+                                )}
                               >
-                                {image && !imageErrors[item.id] ? (
-                                  <Image
-                                    src={image}
-                                    alt={name}
-                                    fill
-                                    sizes="72px"
-                                    className="object-cover [image-rendering:auto]"
-                                    onError={() =>
-                                      setImageErrors((p) => ({
-                                        ...p,
-                                        [item.id]: true,
-                                      }))
-                                    }
-                                  />
-                                ) : (
-                                  <div className="flex h-full w-full items-center justify-center">
-                                    <ShoppingCart className="h-5 w-5 text-[var(--color-border)]" strokeWidth={1.5} />
+                                <div className="flex gap-3.5">
+                                  <div className="flex shrink-0 flex-col items-center gap-2 pt-1">
+                                    <OrangeCheckbox
+                                      checked={isSelected}
+                                      onChange={() => toggleSelect(item.id)}
+                                    />
                                   </div>
-                                )}
-                              </Link>
-                              <div className="min-w-0 flex-1">
-                                <Link
-                                  href={slug ? `/marketplace/${slug}` : "#"}
-                                  className="line-clamp-2 text-sm font-semibold text-[var(--color-text-primary)] hover:text-[var(--color-accent)]"
-                                >
-                                  {name}
-                                </Link>
-                                {variantLabel && !needsOptions && (
-                                  <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{variantLabel}</p>
-                                )}
-                                {needsOptions && (
-                                  <div className="mt-2 space-y-2">
-                                    <p className="text-[11px] leading-snug text-amber-700">
-                                      Please choose your product options before checkout.
-                                    </p>
-                                    <button
-                                      type="button"
-                                      onClick={() => openVariantPicker(item)}
-                                      disabled={openingVariantPicker && variantPickerItem?.id === item.id}
-                                      className="inline-flex items-center justify-center rounded-full border border-[var(--color-accent)]/30 bg-[var(--color-accent-light)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] transition-[transform,background-color] duration-200 hover:scale-[1.02] hover:bg-[var(--color-accent)]/10 disabled:opacity-60"
+                                  <Link
+                                    href={slug ? `/marketplace/${slug}` : "#"}
+                                    className="relative h-[88px] w-[88px] shrink-0 overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
+                                  >
+                                    {image && !imageErrors[item.id] ? (
+                                      <Image
+                                        src={image}
+                                        alt={name}
+                                        fill
+                                        sizes="88px"
+                                        loading="lazy"
+                                        className="object-cover [image-rendering:auto]"
+                                        onError={() =>
+                                          setImageErrors((p) => ({
+                                            ...p,
+                                            [item.id]: true,
+                                          }))
+                                        }
+                                      />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center">
+                                        <ShoppingCart className="h-6 w-6 text-[var(--color-border)]" strokeWidth={1.5} />
+                                      </div>
+                                    )}
+                                  </Link>
+                                  <div className="min-w-0 flex-1">
+                                    <Link
+                                      href={slug ? `/marketplace/${slug}` : "#"}
+                                      className="line-clamp-2 text-[15px] font-semibold leading-snug tracking-[-0.01em] text-[var(--color-text-primary)] hover:text-[var(--color-accent)]"
                                     >
-                                      {openingVariantPicker && variantPickerItem?.id === item.id
-                                        ? "Loading…"
-                                        : "Choose Options"}
-                                    </button>
+                                      {name}
+                                    </Link>
+                                    {variantLabel && !needsOptions && (
+                                      <p className="mt-1 inline-flex max-w-full truncate rounded-md bg-[var(--color-surface-secondary)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-text-muted)]">
+                                        {variantLabel}
+                                      </p>
+                                    )}
+                                    {needsOptions && (
+                                      <div className="mt-2 space-y-2">
+                                        <p className="text-[11px] leading-snug text-amber-700">
+                                          Please choose your product options before checkout.
+                                        </p>
+                                        <button
+                                          type="button"
+                                          onClick={() => openVariantPicker(item)}
+                                          disabled={openingVariantPicker && variantPickerItem?.id === item.id}
+                                          className="inline-flex min-h-[36px] items-center justify-center rounded-full border border-[var(--color-accent)]/30 bg-[var(--color-accent-light)] px-3.5 py-2 text-xs font-semibold text-[var(--color-accent)] transition-[transform,background-color] duration-200 active:scale-[0.98] disabled:opacity-60"
+                                        >
+                                          {openingVariantPicker && variantPickerItem?.id === item.id
+                                            ? "Loading…"
+                                            : "Choose Options"}
+                                        </button>
+                                      </div>
+                                    )}
+                                    <p className="mt-1.5 text-[12px] text-[var(--color-text-muted)]">
+                                      {formatMoney(item.unit_price_at_add, currency)} each
+                                    </p>
                                   </div>
-                                )}
-                                <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-                                  {formatMoney(item.unit_price_at_add, currency)} each
-                                </p>
-                                <div className="mt-2.5 flex items-center justify-between gap-2">
+                                </div>
+                                <div className="mt-4 flex items-center justify-between gap-3 border-t border-[var(--color-border)] pt-3.5">
                                   <QtyInput
                                     value={item.quantity}
                                     loading={isLoading}
-                                    onChange={(q) =>
-                                      handleUpdateQuantity(item.id, q)
-                                    }
+                                    onChange={(q) => handleUpdateQuantity(item.id, q)}
                                   />
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">
+                                  <div className="flex items-center gap-2.5">
+                                    <span className="text-[16px] font-bold tabular-nums tracking-[-0.02em] text-[var(--color-text-primary)]">
                                       {formatMoney(lineTotal, currency)}
                                     </span>
                                     <button
                                       type="button"
                                       onClick={() => handleRemove(item.id)}
                                       disabled={isRemoving}
-                                      className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] transition-[transform,background-color,color,border-color] duration-200 active:scale-95 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
                                       aria-label="Remove item"
                                     >
                                       {isRemoving ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        <Loader2 className="h-4 w-4 animate-spin" />
                                       ) : (
-                                        <Trash2 className="h-3.5 w-3.5" />
+                                        <Trash2 className="h-4 w-4" />
                                       )}
                                     </button>
                                   </div>
@@ -969,8 +981,8 @@ export function CartClient({ initialItems }: CartClientProps) {
               })}
             </AnimatePresence>
             )}
-            <div className="my-3 rounded-none border-t border-[var(--color-border)] bg-[var(--color-surface)]">
-              <div className="grid grid-cols-2 divide-x divide-y divide-[var(--color-border)] sm:grid-cols-4 sm:divide-y-0">
+            <div className="my-3 rounded-none border-t border-[var(--color-border)] bg-[var(--color-surface)] max-lg:mx-0 max-lg:rounded-2xl max-lg:border max-lg:shadow-[0_2px_12px_rgba(0,0,0,0.05)]">
+              <div className="grid grid-cols-2 divide-x divide-y divide-[var(--color-border)] max-lg:gap-0 sm:grid-cols-4 sm:divide-y-0">
                 {[
                   {
                     icon: <Shield className="h-5 w-5 text-[var(--color-accent)]" />,
@@ -1021,7 +1033,7 @@ export function CartClient({ initialItems }: CartClientProps) {
 
         {/* ── Right: Order summary sidebar ── */}
         <aside className="space-y-3 lg:sticky lg:top-[calc(var(--navbar-height,64px)+16px)]">
-          <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] max-lg:rounded-2xl max-lg:shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
             <div className="border-b border-[var(--color-border)] px-4 py-4">
               <h2 className="text-base font-bold tracking-[-0.01em] text-[var(--color-text-primary)]">
                 Order Summary
@@ -1196,9 +1208,10 @@ export function CartClient({ initialItems }: CartClientProps) {
       </div>
 
       {/* ── Sticky bottom bar ── */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md">
-        <div className="mx-auto flex max-w-8xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
-          {/* Select all */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 shadow-[0_-8px_28px_rgba(0,0,0,0.1)] backdrop-blur-md pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:shadow-[0_-8px_24px_rgba(0,0,0,0.08)]">
+        <div className="mx-auto flex max-w-8xl flex-col gap-3 px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:px-6 max-lg:gap-3.5 max-lg:py-3.5">
+          {/* Select all + count row */}
+          <div className="flex w-full min-w-0 items-center justify-between gap-3 sm:w-auto sm:flex-1">
           <OrangeCheckbox
             checked={allSelected}
             onChange={toggleSelectAll}
@@ -1206,18 +1219,20 @@ export function CartClient({ initialItems }: CartClientProps) {
           />
 
           {/* Selected count */}
-          <span className="text-sm text-[var(--color-text-muted)]">
+          <span className="text-sm text-[var(--color-text-muted)] shrink-0">
             Selected:{" "}
             <span className="font-semibold text-[var(--color-accent)]">
               {selectedIds.size}{" "}
               {selectedIds.size === 1 ? "item" : "items"}
             </span>
           </span>
+          </div>
 
-          <div className="flex-1" />
+          <div className="hidden flex-1 sm:block" />
 
-          {/* Subtotal */}
-          <div className="text-sm">
+          {/* Subtotal + actions */}
+          <div className="flex w-full min-w-0 items-center justify-between gap-3 sm:w-auto">
+          <div className="text-sm shrink-0">
             <span className="mr-1 text-[var(--color-text-muted)]">Subtotal:</span>
             <span className="text-base font-bold tabular-nums text-[var(--color-text-primary)]">
               {totalsLabel}
@@ -1225,7 +1240,7 @@ export function CartClient({ initialItems }: CartClientProps) {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <button
               type="button"
               onClick={handleRemoveSelected}
@@ -1251,7 +1266,8 @@ export function CartClient({ initialItems }: CartClientProps) {
               onClick={handleProceedToCheckout}
               disabled={proceedingCheckout || selectedIds.size === 0 || hasPendingVariants}
               className={cn(
-                "h-10 rounded-xl bg-[var(--color-accent)] px-5 text-sm font-semibold text-white",
+                "h-11 flex-1 rounded-xl bg-[var(--color-accent)] px-5 text-sm font-semibold text-white sm:h-10 sm:flex-none",
+                "max-lg:h-14 max-lg:flex-1 max-lg:rounded-2xl max-lg:text-[15px] max-lg:font-bold max-lg:shadow-[0_4px_18px_rgba(253,80,0,0.28)]",
                 "hover:bg-[var(--color-accent)]/90 transition-[transform,opacity] duration-200",
                 "hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:hover:scale-100",
               )}
@@ -1265,6 +1281,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                 </span>
               )}
             </Button>
+          </div>
           </div>
         </div>
       </div>

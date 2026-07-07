@@ -390,15 +390,19 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </div>
           </motion.div>
 
-          {/* main bar */}
-          <div className="flex items-center max-w-8xl mx-auto h-14 md:h-[62px] px-4 sm:px-8">
+          {/* main bar — 3-column grid prevents nav/search overlap */}
+          <div className="grid w-full min-w-0 max-w-8xl mx-auto h-14 md:h-[62px] px-4 sm:px-8 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 sm:gap-x-3">
             {/* Logo */}
-            <div className="shrink-0 transition-transform active:scale-95">
-              <JimvioLogo href="/" size={isMobile ? "md" : "xl"} className="text-[36px] tracking-[0.03em]" />
+            <div className="flex shrink-0 items-center self-center">
+              <JimvioLogo
+                href="/"
+                size={isMobile ? "md" : "lg"}
+                presentation="header"
+              />
             </div>
 
-            {/* Desktop nav */}
-            <nav className="hidden min-[1150px]:flex items-center gap-2 ml-6 lg:ml-9 xl:ml-11">
+            {/* Desktop nav — flex-1 center column, clips before overlapping search */}
+            <nav className="hidden min-[1240px]:flex items-center justify-start gap-1 xl:gap-1.5 min-w-0 overflow-hidden px-1">
 
               {navLinks.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -415,7 +419,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         <DropdownMenuTrigger asChild>
                           <ConsoleButton
                             active={active}
-                            className="h-9 gap-1.5 px-3 py-0 text-[13px] font-semibold tracking-[0.01em]"
+                            className="h-9 gap-1.5 px-2.5 xl:px-3 py-0 text-[12px] xl:text-[13px] font-semibold tracking-[0.01em] shrink-0"
                             onMouseEnter={onMarketplaceEnter}
                             onMouseLeave={onMarketplaceLeave}
                           >
@@ -486,7 +490,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       key={item.href}
                       href={item.href}
                       active={active}
-                      className="h-9 gap-1.5 px-3 py-0 text-[13px] font-semibold tracking-[0.01em]"
+                      className="h-9 gap-1.5 px-2.5 xl:px-3 py-0 text-[12px] xl:text-[13px] font-semibold tracking-[0.01em] shrink-0"
                     >
                       <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
                       <span>{item.label}</span>
@@ -496,11 +500,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
               })}
             </nav>
 
-            {/* Right side */}
-            <div className="flex flex-1 items-center justify-end gap-2 min-w-0 ml-3 lg:ml-4">
+            {/* Right side — fixed-width cluster, never overlaps nav */}
+            <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 min-w-0">
 
               {/* Desktop search + Ask AI */}
-              <div className="hidden min-[1100px]:flex items-center gap-2 shrink-0">
+              <div className="hidden min-[1240px]:flex items-center gap-2 shrink-0">
                 <NavbarSearch
                   searchQ={searchQ}
                   setSearchQ={setSearchQ}
@@ -512,7 +516,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
                 <ConsoleButton
                   orange
-                  className="hidden min-[1200px]:inline-flex h-9 shrink-0 gap-1.5 px-3.5 py-0 text-[11px] uppercase tracking-widest"
+                  className="hidden min-[1320px]:inline-flex h-9 shrink-0 gap-1.5 px-3.5 py-0 text-[11px] uppercase tracking-widest"
                   onClick={() => openAssistant()}
                 >
                   <Sparkles className="h-3.5 w-3.5 fill-white stroke-none" />

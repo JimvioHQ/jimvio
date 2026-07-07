@@ -389,7 +389,7 @@
 "use client";
 
 import React from "react";
-import { Lock, ShieldCheck, CreditCard, Smartphone, Bitcoin, Wallet, Globe } from "lucide-react";
+import { Lock, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Logo pills ───────────────────────────────────────────────────────────────
@@ -498,8 +498,8 @@ function MoMo() {
 // Crypto coin icons — colored circles matching the screenshot
 function BTCIcon() {
   return (
-    <span style={{ display: "inline-flex", width: 28, height: 28, borderRadius: "50%", background: "#F7931A", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+    <span style={{ display: "inline-flex", width: 22, height: 22, borderRadius: "50%", background: "#F7931A", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
         <path d="M23.638 14.904c-1.602 6.43-8.113 10.34-14.542 8.736C2.67 22.05-1.244 15.525.362 9.105 1.962 2.67 8.475-1.243 14.9.358c6.43 1.605 10.342 8.115 8.738 14.548v-.002zm-6.35-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.328-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.955.236c.535.136.63.486.615.766l-1.477 5.92c-.075.166-.24.406-.614.314.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.51 2.154 1.32.33.545-2.19c2.24.427 3.93.257 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.655-1.95l.044-.002zm-2.95 4.135c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.23 3.757.67 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.18 3.137.524 2.75 2.084v.006z" />
       </svg>
     </span>
@@ -508,8 +508,8 @@ function BTCIcon() {
 
 function ETHIcon() {
   return (
-    <span style={{ display: "inline-flex", width: 28, height: 28, borderRadius: "50%", background: "#627EEA", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-      <svg width="12" height="14" viewBox="0 0 24 24" fill="white">
+    <span style={{ display: "inline-flex", width: 22, height: 22, borderRadius: "50%", background: "#627EEA", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      <svg width="10" height="12" viewBox="0 0 24 24" fill="white">
         <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
       </svg>
     </span>
@@ -518,7 +518,7 @@ function ETHIcon() {
 
 function USDTIcon() {
   return (
-    <span style={{ display: "inline-flex", width: 28, height: 28, borderRadius: "50%", background: "#26A17B", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 9, fontWeight: 800, color: "#fff" }}>
+    <span style={{ display: "inline-flex", width: 22, height: 22, borderRadius: "50%", background: "#26A17B", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 7, fontWeight: 800, color: "#fff" }}>
       USDT
     </span>
   );
@@ -530,13 +530,29 @@ function PartnerLogo({ domain, label, localSrc }: { domain: string; label: strin
     <img
       src={localSrc ?? `https://img.logokit.com/${domain}`}
       alt={label}
-      className="h-6 w-auto object-contain rounded-sm"
+      className="h-[22px] max-h-[22px] w-auto object-contain object-center rounded-sm"
       onError={(event) => {
         const img = event.currentTarget;
         img.onerror = null;
         img.src = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
       }}
     />
+  );
+}
+
+/** Uniform logo rail — same height, baseline, spacing on mobile and desktop */
+function PaymentLogoRail({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-wrap items-center gap-2",
+        "[&_img]:h-[22px] [&_img]:max-h-[22px] [&_img]:w-auto [&_img]:object-contain [&_img]:object-center",
+        "[&>span]:inline-flex [&>span]:h-[22px] [&>span]:max-h-[22px] [&>span]:items-center [&>span]:justify-center",
+        className,
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -696,20 +712,20 @@ export function PaymentMethodSelector({
   const grandTotal = orderTotal + feeAmount;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 max-lg:space-y-3">
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="mb-1">
-        <h2 className="text-[18px] font-bold text-[var(--color-text-primary)] tracking-tight">
+      <div className="mb-1 max-lg:mb-2">
+        <h2 className="text-[18px] font-bold text-[var(--color-text-primary)] tracking-tight max-lg:text-[20px]">
           Choose your payment method
         </h2>
-        <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
+        <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5 max-lg:text-[13px]">
           All transactions are secure and encrypted
         </p>
       </div>
 
       {/* ── Method list ───────────────────────────────────────────────── */}
-      <div className="space-y-2">
+      <div className="space-y-2 max-lg:space-y-3">
         {visibleMethods.map((m) => {
           const active = selected === m.id;
           const fee = calcFeeAmount(m.id, orderTotal);
@@ -721,27 +737,25 @@ export function PaymentMethodSelector({
               onClick={() => onSelect(m.id)}
               className={cn(
                 "relative w-full text-left transition-[transform,border-color,background-color,box-shadow] duration-200",
-                "rounded-xl overflow-hidden border",
+                "rounded-xl overflow-hidden border active:scale-[0.99]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
-                !active && "hover:scale-[1.005]",
+                "max-lg:rounded-2xl",
+                !active && "lg:hover:scale-[1.005]",
                 active
-                  ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]/40 shadow-[0_8px_24px_rgba(253,80,0,0.08)] ring-1 ring-[var(--color-accent)]/25"
-                  : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)]",
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]/40 shadow-[0_8px_24px_rgba(253,80,0,0.08)] ring-1 ring-[var(--color-accent)]/25 max-lg:shadow-[0_6px_22px_rgba(253,80,0,0.12)]"
+                  : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)] max-lg:shadow-[0_2px_10px_rgba(0,0,0,0.04)]",
               )}
             >
-              <div className="flex items-center gap-4 px-4 py-3.5">
+              <div className="flex items-start gap-3 px-4 py-3.5 max-lg:gap-3.5 max-lg:p-4 lg:items-center lg:gap-4">
 
                 {/* Large icon — colored circle */}
-                {m.iconNode}
+                <div className="shrink-0 max-lg:mt-0.5">{m.iconNode}</div>
 
                 {/* Body */}
                 <div className="flex-1 min-w-0">
                   {/* Title + recommended */}
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className={cn(
-                      "text-[14px] font-bold leading-none",
-                      active ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-primary)]"
-                    )}>
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <p className="text-[14px] font-bold leading-none max-lg:text-[15px]">
                       {m.title}
                     </p>
                     {m.recommended && (
@@ -752,46 +766,57 @@ export function PaymentMethodSelector({
                   </div>
 
                   {/* Description */}
-                  <p className="text-[12px] text-[var(--color-text-secondary)] leading-snug mb-2">
+                  <p className="text-[12px] text-[var(--color-text-secondary)] leading-snug mb-2 max-lg:text-[13px] max-lg:leading-relaxed">
                     {m.description}
                   </p>
 
                   {/* Payment logos row - only for non-crypto methods */}
                   {m.id !== "nowpayments" && m.id !== "binancepay" && m.id !== "paypal" && (
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                    <PaymentLogoRail>
                       {m.logos}
                       {fee > 0 && (
-                        <span className="text-[10px] text-[var(--color-text-secondary)] ml-1 bg-[var(--color-background-secondary)] border border-[var(--color-border-tertiary)] px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] text-[var(--color-text-secondary)] ml-0.5 bg-[var(--color-background-secondary)] border border-[var(--color-border-tertiary)] px-1.5 py-0.5 rounded whitespace-nowrap">
                           {m.feeLabel} fee
                         </span>
                       )}
-                    </div>
+                    </PaymentLogoRail>
+                  )}
+
+                  {(m.id === "nowpayments" || m.id === "binancepay" || m.id === "paypal") && (
+                    <PaymentLogoRail className="mt-2 lg:hidden">
+                      {m.logos}
+                      {fee > 0 && (
+                        <span className="text-[10px] text-[var(--color-text-secondary)] bg-[var(--color-background-secondary)] border border-[var(--color-border-tertiary)] px-1.5 py-0.5 rounded whitespace-nowrap">
+                          {m.feeLabel} fee
+                        </span>
+                      )}
+                    </PaymentLogoRail>
                   )}
                 </div>
 
-                {/* Right side - logos for crypto, binance pay, and paypal */}
+                {/* Right side - logos for crypto, binance pay, and paypal (desktop) */}
                 {(m.id === "nowpayments" || m.id === "binancepay" || m.id === "paypal") && (
-                  <div className="flex-shrink-0 flex items-center gap-1.5">
-                    {m.logos}
+                  <div className="hidden shrink-0 items-center lg:flex">
+                    <PaymentLogoRail>{m.logos}</PaymentLogoRail>
                   </div>
                 )}
 
                 {/* Right side - fee badge and radio button */}
-                <div className="flex-shrink-0 flex items-center gap-2">
-                  {fee > 0 && (
-                    <span className="text-[10px] text-[var(--color-text-secondary)] bg-[var(--color-background-secondary)] border border-[var(--color-border-tertiary)] px-1.5 py-0.5 rounded whitespace-nowrap">
+                <div className="flex-shrink-0 flex items-center gap-2 max-lg:mt-1">
+                  {fee > 0 && m.id !== "flutterwave" && (
+                    <span className="text-[10px] text-[var(--color-text-secondary)] bg-[var(--color-background-secondary)] border border-[var(--color-border-tertiary)] px-1.5 py-0.5 rounded whitespace-nowrap max-lg:hidden">
                       {m.feeLabel} fee
                     </span>
                   )}
                   {/* Radio button — right side */}
                   <div className={cn(
-                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150",
+                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150 max-lg:h-7 max-lg:w-7",
                     active
                       ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
-                      : "border-[var(--color-border)] bg-transparent"
+                      : "border-[var(--color-border)] bg-transparent",
                   )}>
                     {active && (
-                      <div className="h-2 w-2 rounded-full bg-white" />
+                      <div className="h-2 w-2 rounded-full bg-white max-lg:h-2.5 max-lg:w-2.5" />
                     )}
                   </div>
                 </div>

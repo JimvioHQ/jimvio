@@ -625,6 +625,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
   const image = product ? getProductImage(product) : null;
   const stageProfile = useAdaptiveStageProfile(image);
   const { formatMoney } = useCurrency();
+  const router = useRouter();
 
   if (products.length === 0 || !product) return null;
 
@@ -642,7 +643,6 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
     hasReviews: bannerHasReviews,
     rating: bannerRating,
   } = getBannerReviewStats(product);
-  const router = useRouter();
   const productHref = `/marketplace/${product.slug}`;
 
   function handleHeroNavigate(e: MouseEvent | KeyboardEvent) {
