@@ -1421,6 +1421,7 @@ interface Props {
   membership?: MembershipLite | null;
   overview?: CommunityOverviewStats | null;
   basePath?: string;
+  hideSidebar?: boolean;
   children: React.ReactNode;
 }
 
@@ -1499,6 +1500,7 @@ export function WorkspaceLayout({
   initialView,
   profile = null, points = null, spacesWithRooms = [],
   membership = null, overview = null, basePath: basePathProp,
+  hideSidebar = false,
   children,
 }: Props) {
   const router = useRouter();
@@ -1585,14 +1587,16 @@ export function WorkspaceLayout({
         <div className="flex flex-col bg-bg font-[family-name:var(--font-dm-sans)] h-full min-h-0">
           <div
             className={cn(
-              "flex flex-1 min-h-0 px-4 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6",
+              "flex flex-1 min-h-0",
+              hideSidebar ? "p-0 pb-14 lg:pb-0" : "px-4 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6",
               roomOverlayOpen
                 ? "flex flex-col"
-                : "lg:grid lg:grid-cols-[240px_1fr] lg:gap-5",
+                : hideSidebar
+                  ? "flex flex-col"
+                  : "lg:grid lg:grid-cols-[240px_1fr] lg:gap-5",
             )}
           >
-            {/* ── Left sidebar ── */}
-            {!roomOverlayOpen && (
+            {!roomOverlayOpen && !hideSidebar && (
               <aside className="hidden lg:flex flex-col flex-shrink-0">
                 <Sidebar
                   community={community}

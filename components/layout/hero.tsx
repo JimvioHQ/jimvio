@@ -730,7 +730,7 @@ function HeroAIFeatureCard({
     <motion.button
       type="button"
       onClick={() => onSelect(query)}
-      className="group relative flex h-[50px] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-[#e8e8ec] bg-white px-0.5 py-1 text-center shadow-[0_1px_4px_rgba(15,23,42,0.04)] transition-[border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/35 focus-visible:ring-offset-2 sm:h-[48px] sm:flex-row sm:gap-2.5 sm:rounded-lg sm:px-4 sm:py-2 sm:text-left sm:shadow-[0_2px_8px_rgba(15,23,42,0.05)] sm:hover:border-[#fd5000]/35 sm:hover:shadow-[0_8px_24px_rgba(253,80,0,0.12)]"
+      className="group relative flex h-[50px] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-0.5 py-1 text-center shadow-[var(--shadow-sm)] transition-[border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/35 focus-visible:ring-offset-2 sm:h-[48px] sm:flex-row sm:gap-2.5 sm:rounded-lg sm:px-4 sm:py-2 sm:text-left sm:shadow-[0_2px_8px_rgba(15,23,42,0.05)] sm:hover:border-[#fd5000]/35 sm:hover:shadow-[0_8px_24px_rgba(253,80,0,0.12)]"
       whileHover={isMobile || reduced ? undefined : { y: -4, scale: 1.01 }}
       transition={{ type: "spring", stiffness: 420, damping: 28 }}
     >
@@ -906,8 +906,8 @@ function HeroPremiumBackground({ reduced }: { reduced: boolean }) {
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[#FCFCFC]" />
-      <div className="absolute inset-0 bg-white/80" />
+      <div className="absolute inset-0 bg-[var(--color-bg)]" />
+      <div className="absolute inset-0 bg-[var(--color-surface)]/80" />
 
       <div className="absolute -right-[12%] top-[6%] h-[min(460px,56vw)] w-[min(460px,56vw)] rounded-full bg-[rgba(255,90,31,0.035)] blur-[128px]" />
       <div className="absolute right-[2%] top-[22%] h-[min(320px,40vw)] w-[min(320px,40vw)] rounded-full bg-[rgba(255,120,80,0.025)] blur-[108px]" />
@@ -1021,7 +1021,7 @@ export function Hero() {
 
   return (
     <div className="w-full max-w-[100dvw] overflow-x-hidden bg-[var(--color-surface)]">
-      <section className="relative w-full overflow-visible bg-white pt-5 pb-6 sm:pt-8 sm:pb-10">
+      <section className="relative w-full overflow-visible bg-[var(--color-surface)] pt-5 pb-6 sm:pt-8 sm:pb-10">
         <HeroPremiumBackground reduced={reduced} />
 
         <div className="relative z-10 mx-auto w-full min-w-0 max-w-8xl px-4 sm:px-6">
