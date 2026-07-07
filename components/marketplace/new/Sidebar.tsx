@@ -176,7 +176,8 @@ function CheckRow({
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center justify-between rounded-md px-1.5 py-1 text-xs transition-colors hover:bg-[var(--color-surface-secondary)]"
+      aria-pressed={checked}
+      className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-1"
       style={{ color: "var(--color-text-secondary)" }}
     >
       <span className="flex items-center gap-1.5">
@@ -338,11 +339,11 @@ export function Sidebar({ type = "physical" }: Props) {
   return (
     <aside className="flex w-full shrink-0 flex-col gap-0 self-start">
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3.5">
 
         {/* ── Categories ── */}
         <div
-          className="rounded-md p-3"
+          className="rounded-xl p-3.5"
           style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
         >
           <div className="mb-2.5 flex items-center justify-between">
@@ -392,7 +393,7 @@ export function Sidebar({ type = "physical" }: Props) {
 
         {/* ── Filters ── */}
         <div
-          className="rounded-md p-3"
+          className="rounded-xl p-3.5"
           style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
         >
           <div className="mb-2.5 flex items-center justify-between">
@@ -504,7 +505,7 @@ export function Sidebar({ type = "physical" }: Props) {
 
         {/* ── AI Shopping Assistant ── */}
         <div
-          className="rounded-md p-3"
+          className="rounded-xl p-3.5"
           style={{
             background: JIMVIO_ORANGE.gradient135,
             boxShadow: type === "digital" ? JIMVIO_ORANGE.glow : undefined,
@@ -564,7 +565,7 @@ export function Sidebar({ type = "physical" }: Props) {
 
         {/* ── Elite Club ── */}
         <div
-          className="rounded-md p-3"
+          className="rounded-xl p-3.5"
           style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
         >
           <div className="mb-2 flex items-center gap-1.5">

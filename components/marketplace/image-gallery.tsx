@@ -524,8 +524,9 @@ function Thumbnail({
             onClick={onClick}
             aria-label={isVideo ? `View product video ${index + 1}` : `View image ${index + 1}`}
             className={cn(
-                "relative flex-shrink-0 w-[64px] h-[64px] rounded-lg overflow-hidden transition-all duration-200 outline-none",
-                "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+                "relative flex-shrink-0 w-[68px] h-[68px] rounded-xl overflow-hidden transition-[opacity,transform,border-color] duration-200 outline-none",
+                "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2",
+                !active && "hover:scale-[1.02] hover:opacity-80",
             )}
                 style={{
                     border: active
@@ -782,7 +783,7 @@ export function ImageGallery({
                         aspectRatio: "1 / 1",
                         background: mainVideo ? "#0a0a0c" : "var(--color-surface)",
                         border: mainVideo ? "1px solid rgba(255,255,255,0.08)" : "1px solid var(--color-border)",
-                        borderRadius: "12px",
+                        borderRadius: "14px",
                         isolation: "isolate",
                         cursor: showZoom ? (zoom.active ? "none" : "crosshair") : "default",
                         touchAction: "manipulation",
@@ -883,7 +884,7 @@ export function ImageGallery({
                                     setMediaError(true);
                                     setImageLoaded(true);
                                 }}
-                                className="absolute inset-0 z-[1] h-full w-full object-contain p-4 sm:p-6 transition-opacity duration-300"
+                                className="absolute inset-0 z-[1] h-full w-full object-contain p-4 sm:p-5 transition-opacity duration-300 [image-rendering:auto]"
                                 style={{
                                     opacity: zoom.active ? 0 : mediaError ? 0 : imageLoaded ? 1 : 0.01,
                                 }}

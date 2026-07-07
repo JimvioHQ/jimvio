@@ -391,14 +391,14 @@ export function Navbar({ user, marketing }: NavbarProps) {
           </motion.div>
 
           {/* main bar */}
-          <div className="flex items-center max-w-8xl mx-auto h-14 md:h-[62px] px-4 sm:px-8 gap-2 md:gap-4">
+          <div className="flex items-center max-w-8xl mx-auto h-14 md:h-[62px] px-4 sm:px-8">
             {/* Logo */}
-            <div className="shrink-0 mr-3 transition-transform active:scale-95">
+            <div className="shrink-0 transition-transform active:scale-95">
               <JimvioLogo href="/" size={isMobile ? "md" : "xl"} className="text-[36px] tracking-[0.03em]" />
             </div>
 
             {/* Desktop nav */}
-            <nav className="hidden min-[1150px]:flex items-center gap-1">
+            <nav className="hidden min-[1150px]:flex items-center gap-2 ml-6 lg:ml-9 xl:ml-11">
 
               {navLinks.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -415,7 +415,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         <DropdownMenuTrigger asChild>
                           <ConsoleButton
                             active={active}
-                            className="px-3.5 py-2 text-[13px] font-semibold tracking-[0.01em]"
+                            className="h-9 gap-1.5 px-3 py-0 text-[13px] font-semibold tracking-[0.01em]"
                             onMouseEnter={onMarketplaceEnter}
                             onMouseLeave={onMarketplaceLeave}
                           >
@@ -486,7 +486,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       key={item.href}
                       href={item.href}
                       active={active}
-                      className="group px-3.5 py-2 text-[13px] font-semibold tracking-[0.01em]"
+                      className="h-9 gap-1.5 px-3 py-0 text-[13px] font-semibold tracking-[0.01em]"
                     >
                       <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
                       <span>{item.label}</span>
@@ -497,10 +497,10 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </nav>
 
             {/* Right side */}
-            <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
+            <div className="flex flex-1 items-center justify-end gap-2 min-w-0 ml-3 lg:ml-4">
 
-              {/* Desktop search */}
-              <div className="hidden min-[1100px]:block max-w-[260px] w-full shrink min-w-0">
+              {/* Desktop search + Ask AI */}
+              <div className="hidden min-[1100px]:flex items-center gap-2 shrink-0">
                 <NavbarSearch
                   searchQ={searchQ}
                   setSearchQ={setSearchQ}
@@ -509,17 +509,16 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   runSearch={runSearch}
                   navLinks={navLinks}
                 />
-              </div>
 
-              {/* AI button */}
-              <ConsoleButton
-                orange
-                className="hidden min-[1200px]:flex shrink-0 px-3.5 py-2 text-[11px] uppercase tracking-widest"
-                onClick={() => openAssistant()}
-              >
-                <Sparkles className="h-3.5 w-3.5 fill-white stroke-none" />
-                <span>AI</span>
-              </ConsoleButton>
+                <ConsoleButton
+                  orange
+                  className="hidden min-[1200px]:inline-flex h-9 shrink-0 gap-1.5 px-3.5 py-0 text-[11px] uppercase tracking-widest"
+                  onClick={() => openAssistant()}
+                >
+                  <Sparkles className="h-3.5 w-3.5 fill-white stroke-none" />
+                  <span>Ask AI</span>
+                </ConsoleButton>
+              </div>
 
               {/* Messages */}
               {user && (
@@ -538,7 +537,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 <ThemeToggle />
               </div>
 
-              <div className="hidden lg:block h-6 w-px mx-1 bg-border/40 shrink-0" />
+              <div className="hidden lg:block h-6 w-px mx-0.5 bg-border/40 shrink-0" />
 
               {/* User menu / auth */}
               <div className="hidden sm:flex items-center shrink-0">

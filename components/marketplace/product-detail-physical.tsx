@@ -23,7 +23,7 @@ import {
   VariantSelector,
   type ProductVariant,
 } from "@/components/marketplace/variant-selector";
-import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
+import { filterStorefrontVariants, requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
   ProductBreadcrumb, SaveShareBar,
@@ -43,6 +43,10 @@ import {
 import { resolveWarehouseCountryLabel } from "@/lib/shipping/warehouse-country";
 import { useRegionalShipping } from "@/hooks/use-regional-shipping";
 import type { RegionalShippingOption } from "@/lib/shipping/regional-shipping";
+import { buildProductCommerceGraph } from "@/lib/commerce-graph";
+import { buildProductBusinessGraph } from "@/lib/business-graph";
+import { CommerceGraphDiscovery, CommerceGraphPanel } from "@/components/commerce-graph";
+import { BusinessCollaborationPanel } from "@/components/business-graph";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -390,20 +394,22 @@ function CompactBuyerProtectionCard() {
     "Dispute support",
   ];
   return (
-    <div className="rounded-md p-4" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
-      <div className="flex items-center gap-2 mb-3">
-        <ShieldCheck className="h-4 w-4 text-sky-500" />
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+      <div className="mb-3.5 flex items-center gap-2.5">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-sky-500/10">
+          <ShieldCheck className="h-4 w-4 text-sky-500" />
+        </span>
         <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Jimvio Buyer Protection</p>
       </div>
-      <ul className="space-y-2">
+      <ul className="space-y-2.5">
         {items.map((p) => (
-          <li key={p} className="flex items-center gap-2 text-[12px] text-[var(--color-text-primary)]">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+          <li key={p} className="flex items-center gap-2.5 text-[12px] text-[var(--color-text-primary)]">
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
             {p}
           </li>
         ))}
       </ul>
-      <Link href="#" className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-sky-600 hover:text-sky-700">
+      <Link href="#" className="mt-3.5 inline-flex items-center gap-1 text-[12px] font-semibold text-sky-600 transition-opacity hover:opacity-80">
         Learn more <ArrowRight className="h-3 w-3" />
       </Link>
     </div>
@@ -420,18 +426,22 @@ function BuyerProtectionSection() {
     { icon: MessageSquare, title: "Dispute protection", desc: "We're on your side" },
   ];
   return (
-    <div className="rounded-md p-4 space-y-3" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
-      <div className="flex items-center gap-2 mb-1">
-        <Shield className="h-4 w-4 text-emerald-500" />
+    <div className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-4">
+      <div className="mb-1 flex items-center gap-2.5">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-500/10">
+          <Shield className="h-4 w-4 text-emerald-500" />
+        </span>
         <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-text-primary)]">Buyer Protection</p>
       </div>
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-3">
         {items.map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="flex items-start gap-2">
-            <div className="h-6 w-6 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5"><Icon className="h-3 w-3 text-emerald-500" /></div>
-            <div>
-              <p className="text-[10px] font-semibold text-[var(--color-text-primary)] leading-none">{title}</p>
-              <p className="text-[9px] text-[var(--color-text-muted)] mt-0.5 leading-tight">{desc}</p>
+          <div key={title} className="flex items-start gap-2.5">
+            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
+              <Icon className="h-3.5 w-3.5 text-emerald-500" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10.5px] font-semibold leading-tight text-[var(--color-text-primary)]">{title}</p>
+              <p className="mt-0.5 text-[9.5px] leading-tight text-[var(--color-text-muted)]">{desc}</p>
             </div>
           </div>
         ))}
@@ -615,9 +625,9 @@ function ShippingInfoCard({
   );
 
   return (
-    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
-      <div className="px-5 py-3.5 border-b border-[var(--color-border)]">
-        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Shipping Information</p>
+    <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="border-b border-[var(--color-border)] px-5 py-4">
+        <p className="text-[13px] font-bold tracking-[-0.01em] text-[var(--color-text-primary)]">Shipping Information</p>
         {regionLabel ? (
           <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
             {loading ? "Loading rates for your region…" : `Rates for ${regionLabel}`}
@@ -626,9 +636,9 @@ function ShippingInfoCard({
       </div>
       <div className="divide-y divide-[var(--color-border)]">
         {rows.map(({ label, value }, i) => (
-          <div key={i} className="flex items-center justify-between px-5 py-3">
-            <span className="text-[11px] text-[var(--color-text-muted)] shrink-0">{label}</span>
-            <div className="text-right">{value}</div>
+          <div key={i} className="flex items-center justify-between gap-4 px-5 py-3.5">
+            <span className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">{label}</span>
+            <div className="min-w-0 text-right">{value}</div>
           </div>
         ))}
       </div>
@@ -880,12 +890,12 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
   ] as const;
 
   return (
-    <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
+    <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="p-4">
-        <div className="flex items-center gap-3 mb-3">
+        <div className="mb-4 flex items-center gap-3">
           <Link
             href={`/vendors/${vendor.business_slug}`}
-            className="h-10 w-10 rounded-md border border-[var(--color-border)] overflow-hidden flex items-center justify-center shrink-0 bg-[var(--color-surface-secondary)] hover:border-[var(--color-text-muted)] transition-colors"
+            className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] transition-[border-color,transform] duration-200 hover:scale-[1.02] hover:border-[var(--color-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2"
           >
             {vendor.business_logo ? (
               <img src={vendor.business_logo} className="w-full h-full object-cover" alt="" loading="lazy" />
@@ -906,26 +916,28 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
             <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{followersLabel}</p>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2 border-t border-[var(--color-border)] pt-3 text-[11px]">
+        <div className="grid grid-cols-3 gap-2.5 border-t border-[var(--color-border)] pt-4 text-[11px]">
           {trustItems.map(({ icon: Icon, label, iconClass, bgClass }) => (
-            <div key={label} className="flex flex-col items-center gap-1.5 text-center px-1">
-              <span className={cn("grid h-8 w-8 place-items-center rounded-full", bgClass)}>
+            <div key={label} className="flex flex-col items-center gap-2 px-1 text-center">
+              <span className={cn("grid h-9 w-9 place-items-center rounded-full", bgClass)}>
                 <Icon className={cn("h-4 w-4", iconClass)} />
               </span>
-              <div className="font-semibold text-[var(--color-text-primary)] leading-tight text-[10px]">
+              <div className="text-[10px] font-semibold leading-tight text-[var(--color-text-primary)]">
                 {label}
               </div>
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-2 mt-3">
-          <button className="h-9 rounded-sm text-[12px] font-semibold transition-colors" style={{ border: "1px solid var(--color-border)", color: "var(--color-text-primary)", background: "var(--color-surface)" }}>
+        <div className="mt-3.5 grid grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            className="h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[12px] font-semibold text-[var(--color-text-primary)] transition-[transform,background-color,border-color] duration-200 hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 active:scale-[0.99]"
+          >
             Contact Seller
           </button>
           <Link
             href={`/vendors/${vendor.business_slug}`}
-            className="h-9 rounded-sm text-[12px] font-semibold text-[var(--color-text-primary)] transition-colors flex items-center justify-center"
-            style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
+            className="flex h-10 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[12px] font-semibold text-[var(--color-text-primary)] transition-[transform,background-color,border-color] duration-200 hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 active:scale-[0.99]"
           >
             Visit Store
           </Link>
@@ -1022,15 +1034,26 @@ function ReviewBreakdown({ rating, reviewCount, breakdown }: { rating: number; r
 
 function MobileStickyBuyBar({ price, compareAtPrice, currency, savings, outOfStock, onBuyClick }: { price: number; compareAtPrice: number | null; currency: string; savings: number | null; outOfStock: boolean; onBuyClick: () => void }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 flex items-center gap-3 shadow-lg">
-      <div className="flex-1 min-w-0">
+    <div className="fixed bottom-0 left-0 right-0 z-40 flex items-center gap-3 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md lg:hidden">
+      <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <span className="text-lg font-bold text-[var(--color-text-primary)]">{currency} {price.toLocaleString()}</span>
+          <span className="text-lg font-extrabold tracking-[-0.02em] text-[var(--color-accent)]">{currency} {price.toLocaleString()}</span>
           {compareAtPrice && compareAtPrice > price && <span className="text-[11px] text-[var(--color-text-muted)] line-through">{currency} {compareAtPrice.toLocaleString()}</span>}
         </div>
-        {savings !== null && savings > 0 && <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">You save {savings}%</p>}
+        {savings !== null && savings > 0 && <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">You save {savings}%</p>}
       </div>
-      <button onClick={onBuyClick} disabled={outOfStock} className={cn("h-11 px-6 rounded-md text-sm font-bold transition-colors shrink-0", outOfStock ? "bg-[var(--color-border)] text-[var(--color-text-muted)] cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600 text-white")}>
+      <button
+        type="button"
+        onClick={onBuyClick}
+        disabled={outOfStock}
+        className={cn(
+          "h-11 shrink-0 rounded-xl px-6 text-sm font-bold transition-[transform,background-color,box-shadow] duration-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+          outOfStock
+            ? "cursor-not-allowed bg-[var(--color-border)] text-[var(--color-text-muted)]"
+            : "bg-[var(--color-accent)] text-white shadow-[0_4px_14px_rgba(253,80,0,0.22)] hover:scale-[1.02] active:scale-[0.98]",
+        )}
+      >
         {outOfStock ? "Out of stock" : "Buy now"}
       </button>
     </div>
@@ -1088,6 +1111,7 @@ export function PhysicalProductDetail({
   );
 
   const hasVariants = variants.length > 0;
+  const needsVariantSelection = requiresPurchasableVariantSelection(variants);
   const defaultVariant = useMemo(
     () => variants[0] ?? null,
     [variants]
@@ -1228,6 +1252,36 @@ export function PhysicalProductDetail({
     return Array.isArray(meta) ? meta : [];
   }, [cjMeta, product]);
 
+  const commerceGraph = useMemo(
+    () =>
+      buildProductCommerceGraph({
+        product: {
+          id: product.id,
+          name: title,
+          slug: product.slug,
+          price: activePrice,
+          images: activeImages,
+          product_type: product.product_type,
+          vendor_id: product.vendor_id,
+          category: product.product_categories?.name ?? product.category ?? null,
+        },
+        vendor,
+        relatedProducts,
+        frequentlyBoughtTogether,
+      }),
+    [product, title, activePrice, activeImages, vendor, relatedProducts, frequentlyBoughtTogether],
+  );
+
+  const businessGraph = useMemo(
+    () =>
+      buildProductBusinessGraph({
+        product: { id: product.id, name: title, slug: product.slug, images: activeImages },
+        vendor,
+        relatedProducts,
+      }),
+    [product, title, activeImages, vendor, relatedProducts],
+  );
+
   // ─── Shared Shipping cards (used in both sub-col-3 and mobile) ─────────────
   const shippingCards = (
     <>
@@ -1288,7 +1342,7 @@ export function PhysicalProductDetail({
               <section className="lg:col-span-5 space-y-4">
                 <div>
                   {/* Title */}
-                  <h1 className="text-[20px] lg:text-[22px] font-bold leading-snug text-[var(--color-text-primary)] tracking-tight">
+                  <h1 className="text-[20px] font-bold leading-[1.25] tracking-[-0.02em] text-[var(--color-text-primary)] lg:text-[24px]">
                     {title}
                   </h1>
 
@@ -1305,25 +1359,39 @@ export function PhysicalProductDetail({
                   </div>
 
                   {/* Price */}
-                  <div className="mt-3">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[30px] font-extrabold text-orange-600 leading-none">
+                  <div className="mt-4">
+                    <div className="flex flex-wrap items-baseline gap-2.5">
+                      <span className="text-[32px] font-extrabold leading-none tracking-[-0.03em] text-[var(--color-accent)]">
                         {formatMoney(activePrice, product.currency)}
                       </span>
                       {activeCompareAt && (
-                        <span className="text-base text-[var(--color-text-muted)] line-through">
+                        <span className="text-[15px] font-medium text-[var(--color-text-muted)] line-through decoration-[var(--color-border-strong)]">
                           {formatMoney(activeCompareAt, product.currency)}
                         </span>
                       )}
                       {savings !== null && savings > 0 && (
-                        <span className="rounded-md bg-orange-100 px-1.5 py-0.5 text-[11px] font-bold text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
-                          -{savings}%
+                        <span className="rounded-lg bg-[var(--color-accent-light)] px-2 py-0.5 text-[11px] font-bold text-[var(--color-accent)]">
+                          −{savings}%
                         </span>
                       )}
                     </div>
                     {savingsAmount > 0 && (
-                      <p className="mt-1 text-[12px] font-medium text-emerald-600 dark:text-emerald-400">
-                        You save {formatMoney(savingsAmount, product.currency)} on this item
+                      <p className="mt-1.5 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        You save {formatMoney(savingsAmount, product.currency)}
+                      </p>
+                    )}
+                    {!isCJ && !isOutOfStock && activeInventory > 0 && (
+                      <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {activeInventory <= 10
+                          ? `Only ${activeInventory} left in stock`
+                          : "In stock — ready to ship"}
+                      </p>
+                    )}
+                    {!isCJ && isOutOfStock && (
+                      <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-rose-600 dark:text-rose-400">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Currently out of stock
                       </p>
                     )}
                   </div>
@@ -1341,8 +1409,8 @@ export function PhysicalProductDetail({
                   </div>
 
                   {/* Variants */}
-                  {hasVariants && (
-                    <div className="mt-3">
+                  {hasVariants && needsVariantSelection && (
+                    <div className="mt-4">
                       <VariantSelector
                         variants={variants}
                         selectedVariantId={selectedVariant?.id ?? null}
@@ -1356,10 +1424,10 @@ export function PhysicalProductDetail({
                   )}
 
                   {/* Stock warning */}
-                  {!isCJ && activeInventory > 0 && activeInventory <= 10 && (
-                    <div className="flex items-center gap-2 text-[12px] text-amber-600 dark:text-amber-400 font-medium mt-3">
+                  {!isCJ && !isOutOfStock && activeInventory > 0 && activeInventory <= 10 && needsVariantSelection && (
+                    <div className="mt-3 flex items-center gap-2 text-[12px] font-medium text-amber-600 dark:text-amber-400">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
-                      <span>Only <strong>{activeInventory}</strong> left in stock</span>
+                      <span>Only <strong>{activeInventory}</strong> left for this option</span>
                     </div>
                   )}
 
@@ -1370,6 +1438,7 @@ export function PhysicalProductDetail({
                       vendor={vendorProps}
                       selectedVariantId={selectedVariant?.id ?? null}
                       selectedVariantOutOfStock={isOutOfStock}
+                      requiresVariantSelection={needsVariantSelection}
                       currentPath={`/marketplace/${product.slug}`}
                       className="w-full"
                     />
@@ -1387,18 +1456,20 @@ export function PhysicalProductDetail({
                   </div>
 
                   {/* 4-badge trust row */}
-                  <div className="grid grid-cols-4 gap-3 border-t border-[var(--color-border)] pt-3 mt-4 text-[11px]">
+                  <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[var(--color-border)] pt-4 text-[11px] sm:grid-cols-4">
                     {[
                       { icon: Lock, label: "Secure Checkout", sub: "SSL Encrypted" },
                       { icon: RotateCcw, label: "30-Day Returns", sub: "Easy Returns" },
                       { icon: ShieldCheck, label: "Buyer Protection", sub: "Money Back Guarantee" },
                       { icon: Headphones, label: "24/7 Support", sub: "We're here to help" },
                     ].map(({ icon: Icon, label, sub }) => (
-                      <div key={label} className="flex items-start gap-1.5">
-                        <Icon className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <div className="leading-tight">
+                      <div key={label} className="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-[var(--color-surface-secondary)]">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-500/10">
+                          <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        </span>
+                        <div className="min-w-0 leading-tight">
                           <p className="text-[10.5px] font-semibold text-[var(--color-text-primary)]">{label}</p>
-                          <p className="text-[10px] text-[var(--color-text-muted)]">{sub}</p>
+                          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">{sub}</p>
                         </div>
                       </div>
                     ))}
@@ -1665,6 +1736,8 @@ export function PhysicalProductDetail({
             )}
             <AffiliateBanner product={product} />
             <CommunityAccessCard vendorSlug={vendor?.business_slug} productName={title} />
+            <CommerceGraphDiscovery graph={commerceGraph} maxSections={6} className="space-y-5" />
+            <BusinessCollaborationPanel graph={businessGraph} title="Business opportunities" />
             <RelatedProducts products={relatedProducts} formatMoney={formatMoney} />
             <RecentlyViewedSection currentId={product.id} formatMoney={formatMoney} />
           </div>
@@ -1673,6 +1746,7 @@ export function PhysicalProductDetail({
               {shippingCards}
               <CompactBuyerProtectionCard />
               <WhyChooseSection vendor={vendor} product={product} />
+              <CommerceGraphPanel graph={commerceGraph} />
               <LiveActivityFeedSidebar liveViewers={liveViewers} recentActivity={recentActivity} />
             </div>
           </aside>

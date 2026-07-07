@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { ProductChatWidgetLoader } from "@/components/marketplace/product-chat-widget-loader";
-import { AISourcingAssistant } from "@/components/marketplace/ai-sourcing-assistant";
 import { createClient, getCachedUser } from "@/lib/supabase/server";
 import { getResolvedPlatformSettings, PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings";
 import { pageMetadata } from "@/lib/seo";
@@ -47,7 +46,6 @@ export default async function UGCLayout({ children }: { children: React.ReactNod
       </Suspense>
       <main className="flex-1 pt-[var(--navbar-height)]">{children}</main>
       <Footer contact={platformSettings?.contact} />
-      <AISourcingAssistant />
       <ProductChatWidgetLoader />
     </div>
   );

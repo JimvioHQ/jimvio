@@ -28,6 +28,7 @@ import {
   Shirt, Home, Sofa, HeartPulse, Apple, Trophy, Puzzle,
   BookOpen, Car, Flower2, Gem, Music, Palette, Plane, PawPrint, Baby, Wrench,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import type { LucideIcon } from "lucide-react";
 
 /* ─── Types ─── */
@@ -742,11 +743,19 @@ function FadeScroll({ children, className }: { children: React.ReactNode; classN
 
 /* ─── Main ─── */
 export function MarketplaceClient({
-  initialProducts, categories, total, currentPage, limit, params,
+  initialProducts, categories, total, limit, params,
   viralClips = [], cartProductIds = [], followedVendorIds = [],
   marketplaceStats, basePath = "/marketplace", uiVariant = "all",
 }: MarketplaceClientProps & { basePath?: string }) {
   const router = useRouter();
+  const supabaseRef = useRef(createClient());
+
+  const [products, setProducts] = useState(initialProducts);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
 
   const [priceRange, setPriceRange] = useState<[number, number]>([
     Number(params.minPrice ?? 0),
@@ -790,10 +799,55 @@ export function MarketplaceClient({
   useEffect(() => { setIsNavigating(false); }, [initialProducts]);
 
   const gridRef = useRef<HTMLDivElement>(null);
-  const handlePageChange = useCallback((href: string) => {
-    navigateTo(href);
-    setTimeout(() => gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-  }, [navigateTo]);
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || products.length >= total) return;
+
+    setLoadingMore(true);
+    const offset = products.length;
+
+    let q = supabaseRef.current
+      .from("products")
+      .select(`
+        id, name, slug, short_description, price, compare_at_price,
+        images, rating, review_count, is_featured, is_digital,
+        product_type, status, affiliate_enabled, affiliate_commission_rate,
+        sale_count, view_count, wishlist_count, inventory_quantity,
+        created_at, source, currency, button_text,
+        pricing_type, billing_period,
+        vendors ( id, business_name, business_slug, rating, verification_status, business_country ),
+        product_categories ( id, name, slug )
+      `)
+      .eq("status", "active")
+      .eq("is_active", true);
+
+    if (params.catalog === "shopify") q = q.eq("source", "shopify");
+    if (params.affiliate === "1") q = q.eq("affiliate_enabled", true);
+    if (params.type) q = q.eq("product_type", params.type as any);
+    if (params.cat) q = q.eq("product_categories.slug", params.cat);
+    if (params.q) q = q.ilike("name", `%${params.q}%`);
+    if (params.minPrice) q = q.gte("price", Number(params.minPrice));
+    if (params.maxPrice) q = q.lte("price", Number(params.maxPrice));
+
+    switch (params.sort ?? "trending") {
+      case "newest": q = q.order("created_at", { ascending: false }); break;
+      case "price_asc": q = q.order("price", { ascending: true }); break;
+      case "price_desc": q = q.order("price", { ascending: false }); break;
+      case "rating": q = q.order("rating", { ascending: false }); break;
+      case "sales": q = q.order("sale_count", { ascending: false }); break;
+      default: q = q.order("view_count", { ascending: false });
+    }
+
+    const { data } = await q.range(offset, offset + limit - 1);
+    const next = (data ?? []) as Product[];
+
+    setProducts((prev) => {
+      const seen = new Set(prev.map((p) => p.id));
+      const toAdd = next.filter((p) => !seen.has(p.id));
+      return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
+    });
+    setLoadingMore(false);
+  }, [limit, loadingMore, params, products.length, total]);
 
   const displayCategories = useMemo(() => {
     if (params.type === "digital") {
@@ -815,13 +869,12 @@ export function MarketplaceClient({
     return categories;
   }, [categories, params.type]);
 
-  const totalPages = Math.ceil(total / limit);
   const paramsRecord = params as Record<string, string | undefined>;
   const currentSort = params.sort ?? "trending";
 
   const mixedFeed = useMemo(
-    () => initialProducts.map(p => ({ type: "product" as const, data: p })),
-    [initialProducts],
+    () => products.map(p => ({ type: "product" as const, data: p })),
+    [products],
   );
 
   const hasActiveFilter = !!(params.q || params.cat || params.affiliate === "1" || params.minPrice || params.maxPrice || params.minRating);
@@ -1086,7 +1139,7 @@ export function MarketplaceClient({
                 </motion.div>
               ) : mixedFeed.length > 0 ? (
                 <motion.div
-                  key={`${params.sort}-${params.cat}-${params.q}-${params.type}-${currentPage}`}
+                  key={`${params.sort}-${params.cat}-${params.q}-${params.type}`}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   transition={{ duration: 0.18 }}
                 >
@@ -1185,19 +1238,11 @@ export function MarketplaceClient({
 
           {mixedFeed.length > 0 && (
             <MarketplacePagination
-              currentPage={currentPage}
-              totalPages={totalPages}
+              hasMore={products.length < total}
+              loading={loadingMore}
+              onLoadMore={loadMore}
               total={total}
               pageSize={limit}
-              onPageChange={(page) =>
-                handlePageChange(
-                  marketplaceHref(
-                    paramsRecord,
-                    { page: page <= 1 ? undefined : String(page) },
-                    basePath,
-                  ),
-                )
-              }
             />
           )}
         </main>

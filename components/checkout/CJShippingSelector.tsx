@@ -34,10 +34,11 @@ export function CJShippingSelector({
   // Loading
   if (loading) {
     return (
-      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] py-10">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
-          <p className="text-[12.5px] text-[var(--color-text-muted)]">
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] py-12">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-pulse rounded-full bg-[var(--color-border)]" />
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--color-accent)]" />
+          <p className="text-[12.5px] font-medium text-[var(--color-text-muted)]">
             Calculating shipping rates…
           </p>
           <p className="text-[11px] text-[var(--color-text-muted)]/70">
@@ -133,7 +134,7 @@ export function CJShippingSelector({
   };
 
   return (
-    <div className="rounded-md border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+    <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="grid grid-cols-[1fr_120px_80px_110px_44px] gap-2 px-4 py-2.5 bg-[var(--color-surface-secondary)] border-b border-[var(--color-border)] text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
         <SortHeader
           label="Shipping method"
@@ -176,11 +177,11 @@ export function CJShippingSelector({
               aria-checked={isSelected}
               onClick={() => onSelect(opt)}
               className={cn(
-                "w-full grid grid-cols-[1fr_120px_80px_110px_44px] gap-2 px-4 py-3.5 text-left transition-colors",
+                "w-full grid grid-cols-[1fr_120px_80px_110px_44px] gap-2 px-4 py-3.5 text-left transition-[background-color,transform] duration-200",
                 !isLast && "border-b border-[var(--color-border)]",
                 isSelected
-                  ? "bg-orange-50/60 dark:bg-orange-950/20"
-                  : "bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)]/60"
+                  ? "bg-[var(--color-accent-light)]/50"
+                  : "bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)]/60 hover:scale-[1.002]",
               )}
             >
               {/* Method name + badges */}
@@ -235,9 +236,9 @@ export function CJShippingSelector({
               {/* Radio indicator */}
               <div className="flex items-center justify-end">
                 <div className={cn(
-                  "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                  "flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
                   isSelected
-                    ? "border-orange-500 bg-orange-500"
+                    ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
                     : "border-[var(--color-border-strong)] bg-transparent"
                 )}>
                   {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}

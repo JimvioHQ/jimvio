@@ -1194,14 +1194,19 @@ import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
 import { grantDigitalAccess } from "./digital-access";
 import { Json } from "@/types/supabase";
 import { getAdminDB } from "../supabase/admin";
-import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
+import { filterStorefrontVariants, requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
 
 interface CJProductMeta {
   cj_pid?: string;
   cj_vid?: string;
   cj_weight?: number;
+  pending_variant_selection?: boolean;
   [key: string]: unknown;
 }
+
+type AddToCartOptions = {
+  allowPendingVariant?: boolean;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -1442,7 +1447,8 @@ export async function addToCart(
   productId: string,
   vendorId: string,
   quantity: number = 1,
-  variantId?: string | null
+  variantId?: string | null,
+  options?: AddToCartOptions,
 ) {
   try {
     const uuidRe =
@@ -1492,13 +1498,41 @@ export async function addToCart(
     const isCJ = isCJSource(productSource);
     const productMeta = (product.source_metadata as CJProductMeta) ?? {};
 
+    let effectiveVariantId =
+      variantId && uuidRe.test(variantId) ? variantId : null;
+    let variant = variantResult.data;
+    let pendingVariantSelection = false;
+
+    if (options?.allowPendingVariant) {
+      const { data: allVariants } = await supabase
+        .from("product_variants")
+        .select(
+          "id, cj_vid, cj_pid, price, inventory_quantity, source_metadata, weight, source, options, is_active",
+        )
+        .eq("product_id", productId)
+        .eq("is_active", true);
+
+      const storefrontVariants = filterStorefrontVariants(
+        allVariants ?? [],
+        Boolean(product.track_inventory),
+      );
+      const needsSelection = requiresPurchasableVariantSelection(storefrontVariants);
+
+      if (!effectiveVariantId && !needsSelection && storefrontVariants.length > 0) {
+        variant = storefrontVariants[0];
+        effectiveVariantId = variant.id;
+      }
+
+      pendingVariantSelection = needsSelection && !effectiveVariantId;
+    }
+
     let cjVid: string | null = null;
     let cjPid: string | null = productMeta.cj_pid ?? null;
     let variantWeight: number | null = null;
 
     if (isCJ) {
-      if (variantResult.data) {
-        const v = variantResult.data;
+      if (variant) {
+        const v = variant;
         cjVid = (v.source_metadata as any)?.cj_vid ?? v.cj_vid ?? null;
         cjPid = (v.source_metadata as any)?.cj_pid ?? v.cj_pid ?? cjPid;
         variantWeight = v.weight ?? null;
@@ -1507,15 +1541,13 @@ export async function addToCart(
         variantWeight = productMeta.cj_weight ?? null;
       }
 
-      if (!cjVid) {
+      if (!cjVid && !options?.allowPendingVariant) {
         return {
           success: false,
           error: "This product is missing variant information. Please contact support.",
         };
       }
     }
-
-    const variant = variantResult.data;
     const effectivePrice =
       variant && Number(variant.price) > 0
         ? Number(variant.price)
@@ -1526,6 +1558,7 @@ export async function addToCart(
       : (product.inventory_quantity ?? 0);
 
     if (
+      !pendingVariantSelection &&
       product.track_inventory &&
       !product.allow_backorder &&
       inventoryQty < quantity
@@ -1557,6 +1590,10 @@ export async function addToCart(
       ? { ...productMeta, cj_pid: cjPid, cj_vid: cjVid, cj_weight: variantWeight }
       : { ...(productMeta as object) };
 
+    if (pendingVariantSelection) {
+      lineMeta.pending_variant_selection = true;
+    }
+
     const lineSource = toOrderItemSource(product.source);
 
     const { data: cart, error: cartError } = await supabase
@@ -1572,18 +1609,34 @@ export async function addToCart(
 
     const existingQuery = supabase
       .from("cart_items")
-      .select("id, quantity")
+      .select("id, quantity, variant_id, source_metadata")
       .eq("cart_id", cart.id)
       .eq("product_id", productId);
 
-    const { data: existingItem } = variantId
-      ? await existingQuery.eq("variant_id", variantId).maybeSingle()
-      : await existingQuery.is("variant_id", null).maybeSingle();
+    let existingItem: {
+      id: string;
+      quantity: number;
+      variant_id: string | null;
+      source_metadata: Json;
+    } | null = null;
+
+    if (effectiveVariantId) {
+      const { data } = await existingQuery
+        .eq("variant_id", effectiveVariantId)
+        .maybeSingle();
+      existingItem = data;
+    }
+
+    if (!existingItem) {
+      const { data } = await existingQuery.is("variant_id", null).maybeSingle();
+      existingItem = data;
+    }
 
     if (existingItem) {
       const newQty = existingItem.quantity + quantity;
 
       if (
+        !pendingVariantSelection &&
         product.track_inventory &&
         !product.allow_backorder &&
         inventoryQty < newQty
@@ -1595,6 +1648,7 @@ export async function addToCart(
         .from("cart_items")
         .update({
           quantity: newQty,
+          variant_id: effectiveVariantId,
           unit_price_at_add: effectivePrice,
           source_metadata: lineMeta as Json,
         })
@@ -1607,7 +1661,7 @@ export async function addToCart(
         .insert({
           cart_id: cart.id,
           product_id: productId,
-          variant_id: variantId ?? null,
+          variant_id: effectiveVariantId,
           vendor_id: vendorId,
           quantity,
           unit_price_at_add: effectivePrice,
@@ -1718,6 +1772,123 @@ export async function updateCartItemQuantity(itemId: string, quantity: number) {
     return { success: true };
   } catch (error: any) {
     console.error("Update cart item error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateCartItemVariant(cartItemId: string, variantId: string) {
+  try {
+    const uuidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRe.test(cartItemId) || !uuidRe.test(variantId)) {
+      return { success: false, error: "Invalid item or variant ID" };
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Authentication required" };
+
+    const { data: item, error: itemErr } = await supabase
+      .from("cart_items")
+      .select(`
+        id, cart_id, product_id, variant_id, vendor_id, quantity, source_metadata, currency_at_add,
+        carts!inner(user_id),
+        products(id, source, source_metadata, price, currency, track_inventory, inventory_quantity, allow_backorder)
+      `)
+      .eq("id", cartItemId)
+      .eq("carts.user_id", user.id)
+      .single();
+
+    if (itemErr || !item) return { success: false, error: "Item not found" };
+
+    const product = Array.isArray(item.products) ? item.products[0] : item.products;
+    if (!product) return { success: false, error: "Product not found" };
+
+    const { data: variant, error: vErr } = await supabase
+      .from("product_variants")
+      .select("id, cj_vid, cj_pid, price, inventory_quantity, source_metadata, weight, source")
+      .eq("id", variantId)
+      .eq("product_id", item.product_id)
+      .single();
+
+    if (vErr || !variant) return { success: false, error: "Variant not found" };
+
+    const productSource = normalizeProductSource(product.source);
+    const isCJ = isCJSource(productSource);
+    const productMeta = (product.source_metadata as CJProductMeta) ?? {};
+
+    let cjVid: string | null = null;
+    let cjPid: string | null = productMeta.cj_pid ?? null;
+    let variantWeight: number | null = null;
+
+    if (isCJ) {
+      cjVid = (variant.source_metadata as any)?.cj_vid ?? variant.cj_vid ?? null;
+      cjPid = (variant.source_metadata as any)?.cj_pid ?? variant.cj_pid ?? cjPid;
+      variantWeight = variant.weight ?? null;
+      if (!cjVid) {
+        return { success: false, error: "Selected option is unavailable. Please choose another." };
+      }
+    }
+
+    const effectivePrice =
+      Number(variant.price) > 0 ? Number(variant.price) : Number(product.price);
+
+    if (product.track_inventory && !product.allow_backorder) {
+      const stock = variant.inventory_quantity ?? 0;
+      if (stock < item.quantity) {
+        return {
+          success: false,
+          error: stock === 0 ? "Out of stock" : `Only ${stock} available`,
+        };
+      }
+    }
+
+    const existingMeta = (item.source_metadata as Record<string, unknown>) ?? {};
+    const lineMeta: Record<string, unknown> = isCJ
+      ? { ...existingMeta, ...productMeta, cj_pid: cjPid, cj_vid: cjVid, cj_weight: variantWeight }
+      : { ...existingMeta };
+    delete lineMeta.pending_variant_selection;
+
+    const { data: duplicate } = await supabase
+      .from("cart_items")
+      .select("id, quantity")
+      .eq("cart_id", item.cart_id)
+      .eq("product_id", item.product_id)
+      .eq("variant_id", variantId)
+      .neq("id", cartItemId)
+      .maybeSingle();
+
+    if (duplicate) {
+      const { error: mergeError } = await supabase
+        .from("cart_items")
+        .update({
+          quantity: duplicate.quantity + item.quantity,
+          unit_price_at_add: effectivePrice,
+          source_metadata: lineMeta as Json,
+        })
+        .eq("id", duplicate.id);
+      if (mergeError) throw mergeError;
+
+      const { error: deleteError } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("id", cartItemId);
+      if (deleteError) throw deleteError;
+    } else {
+      const { error: updateError } = await supabase
+        .from("cart_items")
+        .update({
+          variant_id: variantId,
+          unit_price_at_add: effectivePrice,
+          source_metadata: lineMeta as Json,
+        })
+        .eq("id", cartItemId);
+      if (updateError) throw updateError;
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Update cart item variant error:", error);
     return { success: false, error: error.message };
   }
 }
@@ -1883,9 +2054,9 @@ export async function checkProductInCart(
       .select("id")
       .eq("cart_id", cart.id)
       .eq("product_id", productId)
-      .maybeSingle();
+      .limit(1);
 
-    if (data) return { inCart: true, itemId: data.id };
+    if (data && data.length > 0) return { inCart: true, itemId: data[0].id };
     return { inCart: false };
   } catch {
     return { inCart: false };
@@ -1908,15 +2079,20 @@ export async function removeProductFromCart(
 
     if (!cart) return { success: false, error: "Item not in cart" };
 
-    const { data: item } = await supabase
+    const { data: items } = await supabase
       .from("cart_items")
       .select("id")
       .eq("cart_id", cart.id)
-      .eq("product_id", productId)
-      .maybeSingle();
+      .eq("product_id", productId);
 
-    if (!item) return { success: false, error: "Item not in cart" };
-    return removeFromCart(item.id);
+    if (!items?.length) return { success: false, error: "Item not in cart" };
+
+    for (const item of items) {
+      const result = await removeFromCart(item.id);
+      if (!result.success) return result;
+    }
+
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

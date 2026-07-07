@@ -3,20 +3,107 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, Sparkles, TrendingUp } from "lucide-react";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import type { DbProduct } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 type Props = {
   initialType: "physical" | "digital";
 };
 
-function ProductGrid({ products }: { products: DbProduct[] }) {
+const POPULAR_FALLBACK = [
+  "Wireless Earbuds",
+  "Gaming Headset",
+  "Smart Watch",
+  "Portable Speaker",
+];
+
+function ProductGrid({ products, className }: { products: DbProduct[]; className?: string }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+    <div
+      className={cn(
+        "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5",
+        className,
+      )}
+      style={{ animation: "fadeInUp 280ms ease-out" }}
+    >
       {products.map((p) => (
         <ProductCardClient key={p.id} p={p as Parameters<typeof ProductCardClient>[0]["p"]} />
       ))}
+    </div>
+  );
+}
+
+function SearchSkeletonGrid() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div
+          key={i}
+          className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]"
+        >
+          <div
+            className="aspect-square animate-pulse"
+            style={{ background: "var(--color-surface-secondary)" }}
+          />
+          <div className="space-y-2 p-3">
+            <div className="h-3 w-4/5 animate-pulse rounded bg-[var(--color-surface-secondary)]" />
+            <div className="h-3 w-1/2 animate-pulse rounded bg-[var(--color-surface-secondary)]" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmptySearchState({
+  query,
+  type,
+  popular,
+}: {
+  query: string;
+  type: string;
+  popular: string[];
+}) {
+  return (
+    <div
+      className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-6 py-14 text-center"
+      style={{ animation: "fadeInUp 280ms ease-out" }}
+    >
+      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-accent-light)]">
+        <Search className="size-7 text-[var(--color-accent)]" />
+      </div>
+      <h2 className="text-base font-bold text-[var(--color-text-primary)]">
+        No products found for &ldquo;{query}&rdquo;
+      </h2>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[var(--color-text-muted)]">
+        Try a different keyword, check spelling, or explore popular searches below.
+      </p>
+      <div className="mt-6">
+        <p className="mb-2 flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
+          <TrendingUp className="size-3" />
+          Popular searches
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          {popular.map((term) => (
+            <Link
+              key={term}
+              href={`/marketplace/search?q=${encodeURIComponent(term)}&type=${type}`}
+              className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-primary)] transition-[transform,border-color] duration-200 hover:scale-[1.02] hover:border-[var(--color-accent)]/40"
+            >
+              {term}
+            </Link>
+          ))}
+        </div>
+      </div>
+      <Link
+        href={`/marketplace?type=${type}`}
+        className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
+      >
+        <Sparkles className="size-4" />
+        Browse marketplace
+      </Link>
     </div>
   );
 }
@@ -83,29 +170,31 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
     <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
       <Link
         href={`/marketplace?type=${type}`}
-        className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent)]"
+        className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 rounded-md"
       >
         <ArrowLeft className="size-3.5" />
         Back to marketplace
       </Link>
 
-      <div className="mb-5 flex items-center gap-2">
-        <Search className="size-4 text-[var(--color-accent)]" />
+      <div className="mb-5 flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--color-accent-light)]">
+          <Search className="size-4 text-[var(--color-accent)]" />
+        </span>
         <div>
-          <h1 className="text-lg font-black text-[var(--color-text-primary)]">
-            {q ? `Results for: ${q}` : "Search"}
+          <h1 className="text-lg font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
+            {q ? `Results for “${q}”` : "Search"}
           </h1>
           {!loading && q && !exactMatch && (
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-              No exact matches found
+              No exact matches — showing similar picks
             </p>
           )}
         </div>
       </div>
 
       {!loading && categories.length > 0 && (
-        <div className="mb-5">
-          <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
+        <div className="mb-5" style={{ animation: "fadeInUp 220ms ease-out" }}>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
             Related categories
           </p>
           <div className="flex flex-wrap gap-2">
@@ -113,7 +202,7 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
               <Link
                 key={c.slug}
                 href={`/marketplace?type=${type}&category=${c.slug}`}
-                className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-primary)] transition-all duration-200 hover:scale-[1.02] hover:border-[var(--color-accent)]/40"
+                className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-primary)] transition-all duration-200 hover:scale-[1.02] hover:border-[var(--color-accent)]/40"
               >
                 {c.name}
               </Link>
@@ -123,19 +212,11 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-52 animate-pulse rounded-xl"
-              style={{ background: "var(--color-surface-secondary)" }}
-            />
-          ))}
-        </div>
+        <SearchSkeletonGrid />
       ) : hasResults ? (
         <ProductGrid products={results} />
       ) : hasSimilar || hasRecommended ? (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {hasSimilar && (
             <div>
               <p className="mb-3 text-xs font-semibold text-[var(--color-text-secondary)]">
@@ -146,25 +227,15 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
           )}
           {hasRecommended && (
             <div>
-              <p className="mb-3 text-[10px] font-black uppercase tracking-wide text-[var(--color-text-muted)]">
-                Recommended for you
+              <p className="mb-3 text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
+                Popular right now
               </p>
               <ProductGrid products={recommended} />
             </div>
           )}
         </div>
-      ) : isEmpty ? (
-        <div
-          className="rounded-xl border border-dashed px-6 py-16 text-center"
-          style={{ borderColor: "var(--color-border)", background: "var(--color-surface-secondary)" }}
-        >
-          <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
-            No products found
-          </p>
-          <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-            Try a different keyword or browse categories on the marketplace.
-          </p>
-        </div>
+      ) : isEmpty && q ? (
+        <EmptySearchState query={q} type={type} popular={POPULAR_FALLBACK} />
       ) : null}
     </div>
   );

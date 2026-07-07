@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ChevronLeft, Pencil, Package, Truck, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, Pencil, Package, Truck, ChevronRight, Loader2 } from "lucide-react";
 
-import { CheckoutTopBar } from "./CheckoutTopBar";
 import { CheckoutFooter } from "./CheckoutFooter";
 import { OrderSummaryCard } from "./OrderSummaryCard";
 import { PaymentMethodSelector, type MethodId } from "./PaymentMethodSelector";
-import ShippingForm, { type ShippingFormValues } from "./ShippingForm";
+import ShippingForm, { type ShippingFormValues, validateShippingForm } from "./ShippingForm";
 import { CJShippingSelector } from "./CJShippingSelector";
 
 import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
@@ -18,6 +18,7 @@ import { CJ_CUSTOMER_MESSAGES, sanitizeCustomerError } from "@/lib/cj/customer-e
 
 
 import type { CartItem, CartOrder, CJShippingOption, PaymentApiResponse } from "@/types";
+import { cn } from "@/lib/utils";
 function defaultPayment(currency: string | null): MethodId {
    const c = (currency || "USD").toUpperCase();
    if (c === "RWF" || c === "USD") return "flutterwave";
@@ -167,6 +168,8 @@ export function CheckoutExperience({
 
    // ── Submission ────────────────────────────────────────────────────────────
    const [submitting, setSubmitting] = useState(false);
+   const payInFlightRef = useRef(false);
+   const [shippingAttempted, setShippingAttempted] = useState(false);
 
    // ── Totals ────────────────────────────────────────────────────────────────
    const subtotal = useMemo(
@@ -209,13 +212,10 @@ export function CheckoutExperience({
 
    // ── Shipping → delivery/payment ───────────────────────────────────────────
    async function advanceFromShipping() {
-      // validation
-      const { firstName, email, phone, address1, city, countryCode } = shipping;
-      if (!firstName.trim()) return toast.error("First name is required");
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return toast.error("Valid email required");
-      if (!/^\+?[\d\s\-()\x20]{7,}$/.test(phone)) return toast.error("Valid phone required");
-      if (!address1.trim()) return toast.error("Address is required");
-      if (!city.trim()) return toast.error("City is required");
+      setShippingAttempted(true);
+      const hideAddr = isAllDigital || isCommunity;
+      const fieldErrors = validateShippingForm(shipping, hideAddr);
+      if (Object.keys(fieldErrors).length > 0) return;
 
       if (isCJOrder) {
          setCjLoading(true);
@@ -236,7 +236,7 @@ export function CheckoutExperience({
             const missing = products.filter((p) => !p.cjVid);
             if (missing.length > 0) {
                throw new Error(
-                  "Some items are missing variant information. Please remove them from your cart and add them again."
+                  "Please choose your product options before checkout."
                );
             }
             const missingWeight = products.filter((p) => !p.weight);
@@ -290,7 +290,7 @@ export function CheckoutExperience({
 
    // ── Final pay ─────────────────────────────────────────────────────────────
    async function handlePay() {
-      if (submitting) return;
+      if (submitting || payInFlightRef.current) return;
       if (isCJOrder && !cjSelected) {
          toast.error("Please select a delivery method");
          setStage("delivery");
@@ -305,6 +305,7 @@ export function CheckoutExperience({
          return;
       }
 
+      payInFlightRef.current = true;
       setSubmitting(true);
       try {
          const orderIds = orders.map((o) => o.id);
@@ -355,6 +356,7 @@ export function CheckoutExperience({
       } catch (e) {
          toast.error(sanitizeCustomerError(e, CJ_CUSTOMER_MESSAGES.checkout));
       } finally {
+         payInFlightRef.current = false;
          setSubmitting(false);
       }
    }
@@ -377,24 +379,55 @@ export function CheckoutExperience({
    const payDisabled =
       isCJOrder && (shippingCost === null || !cjSelected);
 
+   const checkoutSteps = useMemo(() => {
+      if (isAllDigital || isCommunity) {
+         return [{ id: "payment" as const, label: "Payment" }];
+      }
+      if (isCJOrder) {
+         return [
+            { id: "shipping" as const, label: "Shipping" },
+            { id: "delivery" as const, label: "Delivery" },
+            { id: "payment" as const, label: "Payment" },
+         ];
+      }
+      return [
+         { id: "shipping" as const, label: "Shipping" },
+         { id: "payment" as const, label: "Payment" },
+      ];
+   }, [isAllDigital, isCommunity, isCJOrder]);
+
+   const activeStepIndex = checkoutSteps.findIndex((s) => s.id === stage);
+
    return (
-      <div className="min-h-screen bg-[var(--color-bg)] flex flex-col">
+      <div className="flex min-h-screen flex-col bg-[var(--color-bg)]">
          <div className="flex-1 pb-20">
-            <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+            <div className="mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
 
                <Link
                   href="/cart"
-                  className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-blue-500 hover:text-blue-600 mb-6"
+                  className={cn(
+                     "mb-6 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[var(--color-text-muted)]",
+                     "transition-colors hover:text-[var(--color-accent)]",
+                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 rounded-md",
+                  )}
                >
                   <ChevronLeft className="h-4 w-4" />
                   Back to Cart
                </Link>
-               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  <div className="lg:col-span-7 space-y-6">
+
+               {checkoutSteps.length > 1 && (
+                  <CheckoutStageProgress
+                     steps={checkoutSteps.map((s) => s.label)}
+                     activeIndex={activeStepIndex < 0 ? 0 : activeStepIndex}
+                  />
+               )}
+
+               <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+                  <div className="space-y-5 lg:col-span-7">
 
                      {stage !== "shipping" && !isAllDigital && !isCommunity && (
                         <CompletedSummaryPill
-                           icon={<Package className="h-4 w-4 text-orange-500" />}
+                           icon={<Package className="h-4 w-4 text-[var(--color-accent)]" />}
                            title={`${shipping.firstName} ${shipping.lastName}`}
                            subtitle={`${shipping.email} · ${shipping.address1}, ${shipping.city}`}
                            onEdit={() => setStage("shipping")}
@@ -404,7 +437,7 @@ export function CheckoutExperience({
                      {/* Delivery completed pill */}
                      {stage === "payment" && isCJOrder && cjSelected && (
                         <CompletedSummaryPill
-                           icon={<Truck className="h-4 w-4 text-blue-500" />}
+                           icon={<Truck className="h-4 w-4 text-sky-600" />}
                            title={cjSelected.name}
                            subtitle={
                               cjSelected.priceUSD === 0
@@ -415,37 +448,69 @@ export function CheckoutExperience({
                         />
                      )}
 
-                     {/* Stage content */}
+                     <AnimatePresence mode="wait">
                      {stage === "shipping" && (
-                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7">
-                           <h1 className="text-[20px] font-bold text-[var(--color-text-primary)] tracking-tight mb-1">
+                        <motion.div
+                           key="shipping"
+                           initial={{ opacity: 0, y: 10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           exit={{ opacity: 0, y: -6 }}
+                           transition={{ duration: 0.28, ease: "easeOut" }}
+                           className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-7"
+                        >
+                           <h1 className="mb-1 text-[20px] font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
                               Where should we ship?
                            </h1>
-                           <p className="text-[13px] text-[var(--color-text-muted)] mb-6">
-                              We'll send tracking information to your email.
+                           <p className="mb-6 text-[13px] text-[var(--color-text-muted)]">
+                              We&apos;ll send tracking information to your email.
                            </p>
                            <ShippingForm
                               values={shipping}
                               onChange={(p) => setShipping((s) => ({ ...s, ...p }))}
                               hideAddress={isAllDigital || isCommunity}
+                              showAllErrors={shippingAttempted}
                            />
                            <button
+                              type="button"
                               onClick={advanceFromShipping}
                               disabled={cjLoading}
-                              className="mt-6 w-full h-11 rounded-sm bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
+                              className={cn(
+                                 "mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-bold text-white",
+                                 "bg-[var(--color-accent)] transition-[transform,background-color,opacity] duration-200",
+                                 "hover:bg-[var(--color-accent)]/90 hover:scale-[1.01] active:scale-[0.99]",
+                                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+                                 "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100",
+                              )}
                            >
-                              {cjLoading ? "Loading shipping rates…" : "Continue to delivery"}
+                              {cjLoading ? (
+                                 <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Loading shipping rates…
+                                 </>
+                              ) : (
+                                 <>
+                                    Continue
+                                    <ChevronRight className="h-4 w-4" />
+                                 </>
+                              )}
                            </button>
-                        </div>
+                        </motion.div>
                      )}
 
                      {stage === "delivery" && (
-                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7">
-                           <h1 className="text-[20px] font-bold text-[var(--color-text-primary)] tracking-tight mb-1">
+                        <motion.div
+                           key="delivery"
+                           initial={{ opacity: 0, y: 10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           exit={{ opacity: 0, y: -6 }}
+                           transition={{ duration: 0.28, ease: "easeOut" }}
+                           className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-7"
+                        >
+                           <h1 className="mb-1 text-[20px] font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
                               Choose delivery method
                            </h1>
-                           <p className="text-[13px] text-[var(--color-text-muted)] mb-5">
-                              Shipping to <strong>{shipping.country}</strong>
+                           <p className="mb-5 text-[13px] text-[var(--color-text-muted)]">
+                              Shipping to <strong className="text-[var(--color-text-primary)]">{shipping.country}</strong>
                            </p>
 
                            <CJShippingSelector
@@ -457,17 +522,32 @@ export function CheckoutExperience({
                               formatMoney={formatMoney}
                            />
                            <button
+                              type="button"
                               onClick={() => setStage("payment")}
                               disabled={!cjSelected}
-                              className="mt-6 w-full h-11 rounded-sm bg-orange-500 hover:bg-orange-600 text-white text-[13px] font-bold transition-colors disabled:opacity-60"
+                              className={cn(
+                                 "mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[13px] font-bold text-white",
+                                 "bg-[var(--color-accent)] transition-[transform,background-color] duration-200",
+                                 "hover:bg-[var(--color-accent)]/90 hover:scale-[1.01] active:scale-[0.99]",
+                                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+                                 "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100",
+                              )}
                            >
                               Continue to payment
+                              <ChevronRight className="h-4 w-4" />
                            </button>
-                        </div>
+                        </motion.div>
                      )}
 
                      {stage === "payment" && (
-                        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 sm:p-7">
+                        <motion.div
+                           key="payment"
+                           initial={{ opacity: 0, y: 10 }}
+                           animate={{ opacity: 1, y: 0 }}
+                           exit={{ opacity: 0, y: -6 }}
+                           transition={{ duration: 0.28, ease: "easeOut" }}
+                           className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-7"
+                        >
                            <PaymentMethodSelector
                               selected={payment}
                               onSelect={setPayment}
@@ -476,11 +556,12 @@ export function CheckoutExperience({
                               showSummary={false}
                               enabledMethodIds={enabledPaymentMethods}
                            />
-                        </div>
+                        </motion.div>
                      )}
+                     </AnimatePresence>
                   </div>
 
-                  <aside className="lg:col-span-5 lg:sticky lg:top-24">
+                  <aside className="lg:col-span-5 lg:sticky lg:top-[calc(var(--navbar-height,64px)+16px)]">
                      <OrderSummaryCard
                         orders={orders}
                         items={allItems}
@@ -521,23 +602,81 @@ function CompletedSummaryPill({
    onEdit: () => void;
 }) {
    return (
-      <div className="flex items-center gap-3 p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-sm">
-         <div className="w-9 h-9 rounded-lg bg-[var(--color-surface-secondary)] flex items-center justify-center flex-shrink-0">
+      <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-[transform,box-shadow] duration-200 hover:shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
+         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-surface-secondary)]">
             {icon}
          </div>
-         <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-[var(--color-text-primary)] truncate">
+         <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-semibold text-[var(--color-text-primary)]">
                {title}
             </p>
-            <p className="text-[11px] text-[var(--color-text-muted)] truncate">{subtitle}</p>
+            <p className="truncate text-[11px] text-[var(--color-text-muted)]">{subtitle}</p>
          </div>
          <button
+            type="button"
             onClick={onEdit}
-            className="inline-flex items-center gap-1 text-[12px] font-semibold text-blue-500 hover:text-blue-600 shrink-0"
+            className={cn(
+               "inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-semibold text-[var(--color-accent)]",
+               "transition-colors hover:bg-[var(--color-accent-light)]",
+               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
+            )}
          >
             <Pencil className="h-3 w-3" />
             Edit
          </button>
       </div>
+   );
+}
+
+function CheckoutStageProgress({
+   steps,
+   activeIndex,
+}: {
+   steps: string[];
+   activeIndex: number;
+}) {
+   return (
+      <nav className="mb-8" aria-label="Checkout progress">
+         <ol className="flex items-center gap-2 sm:gap-3">
+            {steps.map((label, i) => {
+               const done = i < activeIndex;
+               const current = i === activeIndex;
+               return (
+                  <li key={label} className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+                     <div className="flex min-w-0 flex-col items-center gap-1.5 sm:flex-row sm:gap-2">
+                        <span
+                           className={cn(
+                              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold transition-[background-color,border-color,color] duration-200",
+                              done && "bg-[var(--color-accent)] text-white",
+                              current && !done && "border-2 border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]",
+                              !done && !current && "border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]",
+                           )}
+                           aria-current={current ? "step" : undefined}
+                        >
+                           {done ? "✓" : i + 1}
+                        </span>
+                        <span
+                           className={cn(
+                              "hidden text-center text-[11px] font-semibold sm:block sm:text-left",
+                              current || done ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-muted)]",
+                           )}
+                        >
+                           {label}
+                        </span>
+                     </div>
+                     {i < steps.length - 1 && (
+                        <div
+                           className={cn(
+                              "h-px min-w-[1.5rem] flex-1 rounded-full",
+                              done ? "bg-[var(--color-accent)]" : "bg-[var(--color-border)]",
+                           )}
+                           aria-hidden
+                        />
+                     )}
+                  </li>
+               );
+            })}
+         </ol>
+      </nav>
    );
 }

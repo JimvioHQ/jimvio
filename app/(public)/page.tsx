@@ -3,7 +3,7 @@ import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import {
   getHomepageCampaigns,
-  getHomepageTrendingProducts,
+  getProducts,
   getPlatformStats,
   getTopCreators,
   getHomepageCommunities,
@@ -46,22 +46,26 @@ async function HomepageContent() {
     platformSettings,
     campaigns,
     communitiesList,
-    trendingProducts,
+    trendingResult,
     topCreators,
   ] = await Promise.all([
     getPlatformStats().catch(() => DEFAULT_STATS),
     getResolvedPlatformSettings().catch(() => null),
     getHomepageCampaigns(8).catch(() => []),
     getHomepageCommunities(8).catch(() => []),
-    getHomepageTrendingProducts(12).catch(() => []),
+    getProducts({ sort: "trending", limit: 12 }).catch(() => ({ products: [], total: 0 })),
     getTopCreators(6).catch(() => []),
   ]);
+
+  const trendingProducts = trendingResult.products;
+  const trendingProductsTotal = trendingResult.total;
 
   return (
     <HomepageRedesign
       campaigns={campaigns as never}
       communities={communitiesList as never}
       products={trendingProducts as never}
+      trendingProductsTotal={trendingProductsTotal}
       creators={topCreators as never}
       platform={{
         totalUsers: PLATFORM_STATS.users,

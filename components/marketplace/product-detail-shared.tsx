@@ -188,30 +188,40 @@ export function SaveShareBar() {
 
     function handleShare() {
         navigator.clipboard.writeText(window.location.href)
-            .then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })
+            .then(() => { setCopied(true); toast.success("Link copied"); setTimeout(() => setCopied(false), 2000); })
             .catch(() => toast.error("Could not copy link"));
     }
 
     return (
         <div className="flex items-center gap-2">
             <button
+                type="button"
                 onClick={() => setSaved(v => !v)}
                 aria-label={saved ? "Remove from saved" : "Save product"}
+                aria-pressed={saved}
                 className={cn(
-                    "h-8 w-8 rounded-lg border flex items-center justify-center transition-all",
+                    "flex h-9 w-9 items-center justify-center rounded-xl border transition-[transform,background-color,border-color] duration-200",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
+                    "hover:scale-[1.03] active:scale-[0.97]",
                     saved
                         ? "border-rose-300 bg-rose-50 text-rose-500 dark:border-rose-500/30 dark:bg-rose-500/10"
-                        : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)]"
+                        : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)]"
                 )}
             >
                 <Heart className={cn("h-3.5 w-3.5 transition-all", saved && "fill-rose-500")} />
             </button>
             <button
+                type="button"
                 onClick={handleShare}
-                aria-label="Share product"
-                className="h-8 w-8 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)] flex items-center justify-center transition-all"
+                aria-label={copied ? "Link copied" : "Share product"}
+                className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition-[transform,background-color,border-color] duration-200",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
+                    "hover:scale-[1.03] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] active:scale-[0.97]",
+                    copied && "border-emerald-300 text-emerald-600 dark:border-emerald-500/30 dark:text-emerald-400",
+                )}
             >
-                <Share2 className="h-3.5 w-3.5" />
+                {copied ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
             </button>
         </div>
     );
@@ -565,48 +575,55 @@ export function RelatedProducts({
 }) {
     if (!products.length) return null;
     return (
-        <div className="space-y-4">
+        <div className="space-y-5">
             <div className="flex items-center justify-between">
-                <h2 className="text-base font-bold text-[var(--color-text-primary)] tracking-tight">
+                <h2 className="text-lg font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
                     You might also like
                 </h2>
                 <Link
                     href="/marketplace"
-                    className="text-xs font-semibold text-[var(--color-accent)] hover:opacity-80 transition-opacity flex items-center gap-1"
+                    className="flex items-center gap-1 text-xs font-semibold text-[var(--color-accent)] transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 rounded-md"
                 >
                     View all <ChevronRight className="h-3 w-3" />
                 </Link>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
                 {products.slice(0, 3).map(rp => (
                     <Link
                         key={rp.id}
                         href={`/marketplace/${rp.slug}`}
-                        className="group rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden hover:border-[var(--color-border-strong)] hover:shadow-sm transition-all"
+                        className={cn(
+                            "group overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]",
+                            "transition-[transform,border-color,box-shadow] duration-300 ease-out",
+                            "hover:scale-[1.02] hover:border-[var(--color-border-strong)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)]",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
+                        )}
                     >
-                        <div className="aspect-square bg-[var(--color-surface-secondary)] overflow-hidden">
+                        <div className="relative aspect-square overflow-hidden bg-[var(--color-surface-secondary)]">
                             {rp.images?.[0] ? (
                                 <img
                                     src={rp.images[0]}
                                     alt={rp.name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="h-full w-full object-cover transition-[transform,opacity] duration-500 group-hover:scale-[1.04] [image-rendering:auto]"
                                 />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center">
+                                <div className="flex h-full w-full items-center justify-center">
                                     <Package className="h-8 w-8 text-[var(--color-border)]" />
                                 </div>
                             )}
                         </div>
-                        <div className="p-3">
-                            <p className="text-xs font-semibold text-[var(--color-text-primary)] truncate leading-snug">
+                        <div className="p-3.5">
+                            <p className="truncate text-xs font-semibold leading-snug text-[var(--color-text-primary)]">
                                 {rp.name}
                             </p>
-                            <p className="text-xs font-bold mt-1" style={{ color: "var(--color-accent)" }}>
+                            <p className="mt-1.5 text-sm font-bold text-[var(--color-accent)]">
                                 {formatMoney(Number(rp.price), rp.currency)}
                             </p>
                             {rp.affiliate_enabled && (
                                 <span
-                                    className="inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded"
+                                    className="mt-1.5 inline-block rounded-md px-1.5 py-0.5 text-[9px] font-bold"
                                     style={{ background: "rgba(253,80,0,0.08)", color: "var(--color-accent)" }}
                                 >
                                     {rp.affiliate_commission_rate ?? 10}% affiliate

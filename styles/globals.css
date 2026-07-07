@@ -535,6 +535,114 @@
     }
   }
 
+  @keyframes jimvio-command-center-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes jimvio-creator-command-center-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes jimvio-opportunity-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes jimvio-commerce-graph-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes jimvio-workspace-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes jimvio-os-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes jimvio-business-graph-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes jimvio-super-app-enter {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.96);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes jimvio-copilot-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
   @keyframes marquee {
     0% {
       transform: translateX(0);
@@ -960,5 +1068,138 @@
 
   .stagger-children>*:nth-child(8) {
     animation-delay: 700ms;
+  }
+}
+
+/* Jimvio Design System — extended tokens (from jimvio-design-system.css) */
+@layer base {
+  :root {
+    /* Typography scale */
+    --ds-text-xs: 0.6875rem;
+    --ds-text-sm: 0.8125rem;
+    --ds-text-md: 0.875rem;
+    --ds-text-lg: 1rem;
+    --ds-text-xl: 1.125rem;
+    --ds-text-2xl: 1.25rem;
+    --ds-text-3xl: 1.5rem;
+    --ds-tracking-normal: -0.01em;
+
+    /* Elevation (shadow aliases) */
+    --ds-elevation-0: none;
+    --ds-elevation-1: var(--shadow-sm);
+    --ds-elevation-2: var(--shadow-md);
+    --ds-elevation-3: var(--shadow-lg);
+    --ds-elevation-4: var(--shadow-xl);
+
+    /* Opacity */
+    --ds-opacity-disabled: 0.45;
+    --ds-opacity-muted: 0.65;
+    --ds-opacity-overlay: 0.5;
+
+    /* Duration */
+    --ds-duration-fast: 150ms;
+    --ds-duration-normal: 200ms;
+    --ds-duration-slow: 300ms;
+
+    /* Blur */
+    --ds-blur-sm: 4px;
+    --ds-blur-md: 12px;
+    --ds-blur-lg: 24px;
+
+    /* Container widths */
+    --ds-container-sm: 640px;
+    --ds-container-md: 768px;
+    --ds-container-lg: 1024px;
+    --ds-container-xl: 1280px;
+
+    /* Z-index (reference — use dsZIndex in TS) */
+    --ds-z-dropdown: 1000;
+    --ds-z-popover: 9200;
+    --ds-z-modal: 9100;
+    --ds-z-toast: 9300;
+  }
+}
+
+@layer utilities {
+  /* Focus ring — consistent across DS components */
+  .ds-focus-ring {
+    outline: none;
+  }
+
+  .ds-focus-ring:focus-visible {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow:
+      0 0 0 2px var(--color-bg),
+      0 0 0 4px color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+
+  /* GPU motion */
+  .ds-motion-fade-in {
+    animation: ds-fade-in var(--ds-duration-normal) ease-out forwards;
+  }
+
+  .ds-motion-scale-in {
+    animation: ds-scale-in var(--ds-duration-normal) ease-out forwards;
+  }
+
+  .ds-motion-slide-up {
+    animation: ds-slide-up var(--ds-duration-normal) ease-out forwards;
+  }
+
+  .ds-motion-slide-down {
+    animation: ds-slide-down var(--ds-duration-slow) ease-out forwards;
+  }
+
+  .ds-gpu {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ds-motion-fade-in,
+    .ds-motion-scale-in,
+    .ds-motion-slide-up,
+    .ds-motion-slide-down {
+      animation: none;
+    }
+  }
+}
+
+@keyframes ds-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ds-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ds-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ds-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

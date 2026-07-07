@@ -28,7 +28,11 @@ import { Button } from "@/components/ui/button";
 import {
   updateCartItemQuantity,
   removeFromCart,
+  getProductVariants,
+  updateCartItemVariant,
 } from "@/lib/actions/marketplace";
+import { isPendingVariantSelection } from "@/lib/cart/pending-variant";
+import { VariantPickerDialog } from "@/components/marketplace/variant-picker-dialog";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
   formatAggregatedCartTotalInDisplayCurrency,
@@ -153,6 +157,7 @@ function QtyInput({
   onChange: (n: number) => void;
 }) {
   const [local, setLocal] = useState(value.toString());
+  const lockRef = useRef(false);
 
   useEffect(() => {
     if (!loading) setLocal(value.toString());
@@ -169,34 +174,79 @@ function QtyInput({
     else setLocal(value.toString());
   };
 
+  const step = (delta: number) => {
+    if (loading || lockRef.current) return;
+    lockRef.current = true;
+    const next = value + delta;
+    if (next < 1) {
+      lockRef.current = false;
+      return;
+    }
+    if (max && next > max) {
+      lockRef.current = false;
+      return;
+    }
+    onChange(next);
+    window.setTimeout(() => {
+      lockRef.current = false;
+    }, 280);
+  };
+
   return (
-    <div className="inline-flex items-center border border-gray-300 rounded overflow-hidden bg-white">
+    <div
+      className={cn(
+        "inline-flex h-10 items-center gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-1",
+        loading && "opacity-70",
+      )}
+      role="group"
+      aria-label="Quantity"
+    >
       <button
-        onClick={() => value > 1 && onChange(value - 1)}
+        type="button"
+        onClick={() => step(-1)}
         disabled={value <= 1 || loading}
         aria-label="Decrease quantity"
-        className="h-7 w-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+        className={cn(
+          "flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)]",
+          "transition-[transform,background-color,color] duration-200",
+          "hover:bg-[var(--color-surface)] hover:text-[var(--color-accent)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-1",
+          "active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
+        )}
       >
-        <Minus className="h-3 w-3" />
+        <Minus className="h-3.5 w-3.5" />
       </button>
-      <input
-        type="text"
-        inputMode="numeric"
-        value={loading ? value : local}
-        onChange={(e) => setLocal(e.target.value.replace(/\D/g, ""))}
-        onBlur={commit}
-        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-        disabled={loading}
-        aria-label="Quantity"
-        className="w-8 h-7 text-center text-[13px] font-medium text-gray-900 bg-transparent outline-none border-x border-gray-300 tabular-nums"
-      />
+      <div className="relative min-w-[2rem] text-center">
+        {loading ? (
+          <Loader2 className="mx-auto h-3.5 w-3.5 animate-spin text-[var(--color-accent)]" aria-hidden />
+        ) : (
+          <input
+            type="text"
+            inputMode="numeric"
+            value={local}
+            onChange={(e) => setLocal(e.target.value.replace(/\D/g, ""))}
+            onBlur={commit}
+            onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+            disabled={loading}
+            aria-label="Quantity"
+            className="h-8 w-8 bg-transparent text-center text-[13px] font-bold tabular-nums text-[var(--color-text-primary)] outline-none"
+          />
+        )}
+      </div>
       <button
-        onClick={() => (!max || value < max) && onChange(value + 1)}
+        type="button"
+        onClick={() => step(1)}
         disabled={(max ? value >= max : false) || loading}
         aria-label="Increase quantity"
-        className="h-7 w-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+        className={cn(
+          "flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)]",
+          "transition-[transform,background-color,color] duration-200",
+          "hover:bg-[var(--color-surface)] hover:text-[var(--color-accent)]",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-1",
+          "active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
+        )}
       >
-        <Plus className="h-3 w-3" />
+        <Plus className="h-3.5 w-3.5" />
       </button>
     </div>
   );
@@ -214,24 +264,72 @@ function OrangeCheckbox({
   label?: string;
 }) {
   return (
-    <label className="flex items-center gap-2 cursor-pointer select-none">
+    <label className="flex cursor-pointer select-none items-center gap-2">
       <span
+        role="checkbox"
+        aria-checked={checked}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === " " || e.key === "Enter") {
+            e.preventDefault();
+            onChange(!checked);
+          }
+        }}
         onClick={() => onChange(!checked)}
         className={cn(
-          "h-[18px] w-[18px] rounded flex items-center justify-center border-2 transition-colors shrink-0",
+          "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md border-2 transition-[transform,border-color,background-color] duration-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
           checked
-            ? "bg-[#F97316] border-[#F97316]"
-            : "bg-white border-gray-300 hover:border-[#F97316]"
+            ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
+            : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)]/50",
         )}
       >
         {checked && (
-          <svg viewBox="0 0 10 8" className="h-2.5 w-2.5 fill-white">
+          <svg viewBox="0 0 10 8" className="h-2.5 w-2.5 fill-white" aria-hidden>
             <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </span>
-      {label && <span className="text-sm text-gray-600">{label}</span>}
+      {label && <span className="text-sm text-[var(--color-text-muted)]">{label}</span>}
     </label>
+  );
+}
+
+/* ─── Empty cart ─────────────────────────────────────────────────────────── */
+
+function EmptyCartIllustration() {
+  return (
+    <div className="relative mx-auto mb-8 h-36 w-36" aria-hidden>
+      <div className="absolute inset-0 rounded-full bg-[var(--color-accent-light)] opacity-80" />
+      <div className="absolute inset-3 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_12px_40px_rgba(0,0,0,0.06)]" />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <ShoppingCart className="h-12 w-12 text-[var(--color-accent)]" strokeWidth={1.5} />
+      </div>
+      <div className="absolute -right-1 top-6 grid h-10 w-10 place-items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+        <Package className="h-4 w-4 text-[var(--color-text-muted)]" />
+      </div>
+      <div className="absolute -left-1 bottom-5 grid h-9 w-9 place-items-center rounded-full bg-emerald-500/10">
+        <ShieldCheck className="h-4 w-4 text-emerald-600" />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Cart skeleton ──────────────────────────────────────────────────────── */
+
+function CartItemSkeleton() {
+  return (
+    <div className="animate-pulse border-b border-[var(--color-border)] px-4 py-4 last:border-b-0">
+      <div className="flex gap-3">
+        <div className="h-[18px] w-[18px] rounded-md bg-[var(--color-surface-secondary)]" />
+        <div className="h-16 w-16 shrink-0 rounded-xl bg-[var(--color-surface-secondary)]" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="h-4 w-3/4 rounded bg-[var(--color-surface-secondary)]" />
+          <div className="h-3 w-1/3 rounded bg-[var(--color-surface-secondary)]" />
+          <div className="h-10 w-28 rounded-xl bg-[var(--color-surface-secondary)]" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -252,6 +350,11 @@ export function CartClient({ initialItems }: CartClientProps) {
   const [proceedingCheckout, setProceedingCheckout] = useState(false);
   const [discountExpanded, setDiscountExpanded] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
+  const [variantPickerItem, setVariantPickerItem] = useState<CartItem | null>(null);
+  const [pickerVariants, setPickerVariants] = useState<any[]>([]);
+  const [loadingVariantId, setLoadingVariantId] = useState<string | null>(null);
+  const [openingVariantPicker, setOpeningVariantPicker] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const hasMountedRef = useRef(false);
 
   /* Sync external prop changes after mount */
@@ -260,7 +363,10 @@ export function CartClient({ initialItems }: CartClientProps) {
       hasMountedRef.current = true;
       return;
     }
+    setIsSyncing(true);
     setItems(initialItems ?? []);
+    const t = window.setTimeout(() => setIsSyncing(false), 180);
+    return () => window.clearTimeout(t);
   }, [initialItems]);
 
   /* Handle checkout error params */
@@ -315,6 +421,11 @@ export function CartClient({ initialItems }: CartClientProps) {
     [items]
   );
 
+  const hasPendingVariants = useMemo(
+    () => items.some(isPendingVariantSelection),
+    [items]
+  );
+
   const allSelected =
     items.length > 0 && selectedIds.size === items.length;
 
@@ -335,6 +446,8 @@ export function CartClient({ initialItems }: CartClientProps) {
   /* Checkout */
   const handleProceedToCheckout = async () => {
     if (proceedingCheckout || items.length === 0) return;
+    if (hasPendingVariants) return;
+
     setProceedingCheckout(true);
     try {
       const result = await proceedToCheckout();
@@ -351,9 +464,44 @@ export function CartClient({ initialItems }: CartClientProps) {
     }
   };
 
+  const openVariantPicker = async (item: CartItem) => {
+    setOpeningVariantPicker(true);
+    setVariantPickerItem(item);
+    try {
+      const res = await getProductVariants(item.product_id);
+      setPickerVariants(res.variants ?? []);
+    } catch (err) {
+      console.error(err);
+      setVariantPickerItem(null);
+    } finally {
+      setOpeningVariantPicker(false);
+    }
+  };
+
+  const handleVariantSelect = async (variantId: string) => {
+    if (!variantPickerItem) return;
+    setLoadingVariantId(variantId);
+    try {
+      const res = await updateCartItemVariant(variantPickerItem.id, variantId);
+      if (!res.success) {
+        toast.error(res.error || "Couldn't update options");
+        return;
+      }
+      setVariantPickerItem(null);
+      setPickerVariants([]);
+      window.dispatchEvent(new CustomEvent("cart-updated"));
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong");
+    } finally {
+      setLoadingVariantId(null);
+    }
+  };
+
   /* Quantity update */
   const handleUpdateQuantity = async (itemId: string, newQty: number) => {
-    if (newQty < 1) return;
+    if (newQty < 1 || loadingItems.includes(itemId)) return;
     setLoadingItems((p) => [...p, itemId]);
     setItems((prev) =>
       prev.map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i))
@@ -411,47 +559,66 @@ export function CartClient({ initialItems }: CartClientProps) {
   /* ── Empty state ── */
   if (items.length === 0) {
     return (
-      <div className="max-w-md mx-auto py-20 text-center">
-        <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-orange-50 flex items-center justify-center">
-          <ShoppingCart className="h-9 w-9 text-[#F97316]" strokeWidth={1.5} />
-        </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
+        className="mx-auto max-w-lg py-16 text-center sm:py-24"
+      >
+        <EmptyCartIllustration />
+        <h2 className="mb-2 text-2xl font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
           Your cart is empty
         </h2>
-        <p className="text-sm text-gray-500 mb-6">
-          Add items to your cart to checkout.
+        <p className="mx-auto mb-8 max-w-sm text-sm leading-relaxed text-[var(--color-text-muted)]">
+          Looks like you haven&apos;t added anything yet. Discover products from verified sellers and start building your order.
         </p>
         <Button
           asChild
-          className="h-10 px-6 rounded-md text-sm bg-[#F97316] text-white hover:bg-[#EA6C0A] font-semibold"
+          className={cn(
+            "h-11 rounded-xl px-8 text-sm font-semibold text-white",
+            "bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90",
+            "shadow-[0_4px_14px_rgba(253,80,0,0.22)] transition-[transform,box-shadow] duration-200",
+            "hover:scale-[1.02] active:scale-[0.98]",
+            "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+          )}
         >
-          <Link href="/marketplace">Browse Marketplace</Link>
+          <Link href="/marketplace">Continue Shopping</Link>
         </Button>
-      </div>
+      </motion.div>
     );
   }
 
   /* ── Main layout ── */
   return (
-    <div className="pb-24">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="pb-24"
+    >
       {/* ── Page header ── */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center">
-            <ShoppingCart className="h-5 w-5 text-[#F97316]" strokeWidth={1.8} />
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-accent-light)]">
+            <ShoppingCart className="h-5 w-5 text-[var(--color-accent)]" strokeWidth={1.8} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 leading-tight">
+            <h1 className="text-2xl font-bold leading-tight tracking-[-0.02em] text-[var(--color-text-primary)]">
               Shopping Cart
             </h1>
-            <p className="text-sm text-gray-500">
-              {totalUnits} {totalUnits === 1 ? "item" : "items"} &bull; Ready for checkout
+            <p className="text-sm text-[var(--color-text-muted)]">
+              {totalUnits} {totalUnits === 1 ? "item" : "items"} · Ready for checkout
             </p>
           </div>
         </div>
         <Link
           href="/marketplace"
-          className="hidden sm:inline-flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 hover:border-gray-400 rounded-sm px-3.5 py-2 hover:bg-gray-50 transition-colors"
+          className={cn(
+            "hidden items-center gap-1.5 rounded-xl border border-[var(--color-border)] px-3.5 py-2.5 text-sm",
+            "text-[var(--color-text-muted)] transition-[transform,background-color,border-color,color] duration-200 sm:inline-flex",
+            "hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
+          )}
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           Continue Shopping
@@ -465,29 +632,35 @@ export function CartClient({ initialItems }: CartClientProps) {
         <div className="space-y-4">
 
           {/* Table header */}
-          <div className="bg-white border border-gray-200 rounded-md overflow-hidden shadow-sm">
-            <div className="hidden md:grid grid-cols-[auto_1fr_140px_90px_110px_90px_80px] gap-2 items-center px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="hidden items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3 md:grid md:grid-cols-[auto_1fr_140px_90px_110px_90px_80px]">
               <div className="w-5" />
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                 Products
               </span>
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                 Variant
               </span>
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <span className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                 Weight
               </span>
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide text-center">
+              <span className="text-center text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                 Quantity
               </span>
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide text-right">
+              <span className="text-right text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                 Price
               </span>
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide text-center">
+              <span className="text-center text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                 Action
               </span>
             </div>
 
+            {isSyncing ? (
+              <>
+                <CartItemSkeleton />
+                <CartItemSkeleton />
+              </>
+            ) : (
             <AnimatePresence mode="popLayout" initial={false}>
               {[...vendorGroups.entries()].map(([vendorId, vendorItems]) => {
                 const vendor = vendorItems[0]?.vendors;
@@ -504,19 +677,19 @@ export function CartClient({ initialItems }: CartClientProps) {
                     transition={{ duration: 0.18 }}
                   >
                     {/* Supplier row */}
-                    <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
-                      <Package className="h-3.5 w-3.5 text-[#F97316] shrink-0" />
+                    <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-3">
+                      <Package className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
                       <Link
                         href={`/vendors/${vendor?.business_slug ?? "#"}`}
-                        className="text-sm font-medium text-gray-700 hover:text-[#F97316] transition-colors truncate"
+                        className="truncate text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-accent)]"
                       >
-                        Supplier:{" "}
-                        <span className="font-semibold">
+                        Sold by{" "}
+                        <span className="font-semibold text-[var(--color-text-primary)]">
                           {vendor?.business_name || "Marketplace"}
                         </span>
                       </Link>
                       {isVerified && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400">
                           <ShieldCheck className="h-3 w-3" />
                           Verified
                         </span>
@@ -542,6 +715,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                           (variant?.options
                             ? Object.values(variant.options).join(" / ")
                             : null);
+                        const needsOptions = isPendingVariantSelection(item);
                         const lineTotal =
                           Number(item.unit_price_at_add) *
                           Number(item.quantity);
@@ -554,8 +728,8 @@ export function CartClient({ initialItems }: CartClientProps) {
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.18 }}
                             className={cn(
-                              "overflow-hidden border-b border-gray-100 last:border-b-0",
-                              isRemoving && "opacity-50 pointer-events-none"
+                              "overflow-hidden border-b border-[var(--color-border)] last:border-b-0 transition-opacity duration-200",
+                              isRemoving && "pointer-events-none opacity-50",
                             )}
                           >
                             {/* Desktop row */}
@@ -567,10 +741,10 @@ export function CartClient({ initialItems }: CartClientProps) {
                               />
 
                               {/* Product */}
-                              <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex min-w-0 items-center gap-3">
                                 <Link
                                   href={slug ? `/marketplace/${slug}` : "#"}
-                                  className="relative h-16 w-16 shrink-0 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden"
+                                  className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] transition-transform duration-200 hover:scale-[1.02]"
                                 >
                                   {image && !imageErrors[item.id] ? (
                                     <Image
@@ -578,7 +752,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                                       alt={name}
                                       fill
                                       sizes="64px"
-                                      className="object-cover"
+                                      className="object-cover [image-rendering:auto]"
                                       onError={() =>
                                         setImageErrors((p) => ({
                                           ...p,
@@ -587,76 +761,102 @@ export function CartClient({ initialItems }: CartClientProps) {
                                       }
                                     />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                      <ShoppingCart className="h-5 w-5 text-gray-300" strokeWidth={1.5} />
+                                    <div className="flex h-full w-full items-center justify-center">
+                                      <ShoppingCart className="h-5 w-5 text-[var(--color-border)]" strokeWidth={1.5} />
                                     </div>
                                   )}
                                 </Link>
                                 <div className="min-w-0">
                                   <Link
                                     href={slug ? `/marketplace/${slug}` : "#"}
-                                    className="text-sm font-medium text-gray-900 hover:text-[#F97316] line-clamp-2 leading-snug transition-colors"
+                                    className="line-clamp-2 text-sm font-semibold leading-snug text-[var(--color-text-primary)] transition-colors hover:text-[var(--color-accent)]"
                                   >
                                     {name}
                                   </Link>
-                                  <p className="text-[11px] text-gray-400 mt-0.5">
+                                  <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
                                     SKU:{" "}
-                                    {item.source_metadata?.sku as string ||
-                                      item.product_id.slice(0, 14).toUpperCase()}
+                                    <span className="font-medium text-[var(--color-text-secondary)]">
+                                      {(item.source_metadata?.sku as string) ||
+                                        item.product_id.slice(0, 14).toUpperCase()}
+                                    </span>
                                   </p>
                                 </div>
                               </div>
 
                               {/* Variant */}
                               <div>
-                                {variantLabel ? (
-                                  <div className="inline-flex items-center gap-1 border border-gray-300 rounded text-xs text-gray-700 px-2.5 py-1.5 bg-white min-w-0 max-w-[130px]">
+                                {needsOptions ? (
+                                  <div className="space-y-2">
+                                    <p className="text-[11px] leading-snug text-amber-700">
+                                      Please choose your product options before checkout.
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => openVariantPicker(item)}
+                                      disabled={openingVariantPicker && variantPickerItem?.id === item.id}
+                                      className="inline-flex items-center justify-center rounded-full border border-[var(--color-accent)]/30 bg-[var(--color-accent-light)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] transition-[transform,background-color] duration-200 hover:scale-[1.02] hover:bg-[var(--color-accent)]/10 disabled:opacity-60"
+                                    >
+                                      {openingVariantPicker && variantPickerItem?.id === item.id
+                                        ? "Loading…"
+                                        : "Choose Options"}
+                                    </button>
+                                  </div>
+                                ) : variantLabel ? (
+                                  <div className="inline-flex max-w-[130px] min-w-0 items-center gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 py-1.5 text-xs text-[var(--color-text-secondary)]">
                                     <span className="truncate">{variantLabel}</span>
-                                    <ChevronRight className="h-3 w-3 rotate-90 shrink-0 text-gray-400" />
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-gray-400">—</span>
+                                  <span className="text-xs text-[var(--color-text-muted)]">—</span>
                                 )}
                               </div>
 
                               {/* Weight */}
-                              <div className="text-sm text-gray-600 tabular-nums">
+                              <div className="text-sm tabular-nums text-[var(--color-text-secondary)]">
                                 {(item.source_metadata?.weight as string) || "—"}
                               </div>
 
                               {/* Quantity */}
                               <div className="flex justify-center">
-                                {isLoading ? (
-                                  <Loader2 className="h-4 w-4 animate-spin text-[#F97316]" />
-                                ) : (
-                                  <QtyInput
-                                    value={item.quantity}
-                                    loading={isLoading}
-                                    onChange={(q) =>
-                                      handleUpdateQuantity(item.id, q)
-                                    }
-                                  />
-                                )}
+                                <QtyInput
+                                  value={item.quantity}
+                                  loading={isLoading}
+                                  onChange={(q) =>
+                                    handleUpdateQuantity(item.id, q)
+                                  }
+                                />
                               </div>
 
                               {/* Price */}
-                              <div className="text-sm font-semibold text-gray-900 text-right tabular-nums">
+                              <div className="text-right text-sm font-bold tabular-nums text-[var(--color-text-primary)]">
                                 {formatMoney(lineTotal, currency)}
                               </div>
 
                               {/* Actions */}
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex items-center justify-center gap-1.5">
                                 <button
-                                  className="h-7 w-7 flex items-center justify-center rounded text-gray-400 hover:text-[#F97316] hover:bg-orange-50 transition-colors"
+                                  type="button"
+                                  className={cn(
+                                    "flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)]",
+                                    "transition-[transform,background-color,color] duration-200",
+                                    "hover:scale-[1.05] hover:bg-[var(--color-accent-light)] hover:text-[var(--color-accent)]",
+                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-1",
+                                  )}
                                   aria-label="Save for later"
                                   title="Save for later"
                                 >
                                   <Bookmark className="h-4 w-4" />
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => handleRemove(item.id)}
                                   disabled={isRemoving}
-                                  className="h-7 w-7 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                                  className={cn(
+                                    "flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)]",
+                                    "transition-[transform,background-color,color] duration-200",
+                                    "hover:scale-[1.05] hover:bg-rose-50 hover:text-rose-600",
+                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/30 focus-visible:ring-offset-1",
+                                    "disabled:opacity-50",
+                                  )}
                                   aria-label="Remove item"
                                   title="Remove"
                                 >
@@ -670,7 +870,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                             </div>
 
                             {/* Mobile row */}
-                            <div className="md:hidden px-4 py-4 flex gap-3">
+                            <div className="flex gap-3 px-4 py-4 md:hidden">
                               <div className="flex flex-col items-center gap-2 pt-1">
                                 <OrangeCheckbox
                                   checked={isSelected}
@@ -679,7 +879,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                               </div>
                               <Link
                                 href={slug ? `/marketplace/${slug}` : "#"}
-                                className="relative h-[72px] w-[72px] shrink-0 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden"
+                                className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
                               >
                                 {image && !imageErrors[item.id] ? (
                                   <Image
@@ -687,7 +887,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                                     alt={name}
                                     fill
                                     sizes="72px"
-                                    className="object-cover"
+                                    className="object-cover [image-rendering:auto]"
                                     onError={() =>
                                       setImageErrors((p) => ({
                                         ...p,
@@ -696,25 +896,42 @@ export function CartClient({ initialItems }: CartClientProps) {
                                     }
                                   />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <ShoppingCart className="h-5 w-5 text-gray-300" strokeWidth={1.5} />
+                                  <div className="flex h-full w-full items-center justify-center">
+                                    <ShoppingCart className="h-5 w-5 text-[var(--color-border)]" strokeWidth={1.5} />
                                   </div>
                                 )}
                               </Link>
-                              <div className="flex-1 min-w-0">
+                              <div className="min-w-0 flex-1">
                                 <Link
                                   href={slug ? `/marketplace/${slug}` : "#"}
-                                  className="text-sm font-medium text-gray-900 hover:text-[#F97316] line-clamp-2"
+                                  className="line-clamp-2 text-sm font-semibold text-[var(--color-text-primary)] hover:text-[var(--color-accent)]"
                                 >
                                   {name}
                                 </Link>
-                                {variantLabel && (
-                                  <p className="text-xs text-gray-500 mt-0.5">{variantLabel}</p>
+                                {variantLabel && !needsOptions && (
+                                  <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{variantLabel}</p>
                                 )}
-                                <p className="text-xs text-gray-400 mt-0.5">
+                                {needsOptions && (
+                                  <div className="mt-2 space-y-2">
+                                    <p className="text-[11px] leading-snug text-amber-700">
+                                      Please choose your product options before checkout.
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => openVariantPicker(item)}
+                                      disabled={openingVariantPicker && variantPickerItem?.id === item.id}
+                                      className="inline-flex items-center justify-center rounded-full border border-[var(--color-accent)]/30 bg-[var(--color-accent-light)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] transition-[transform,background-color] duration-200 hover:scale-[1.02] hover:bg-[var(--color-accent)]/10 disabled:opacity-60"
+                                    >
+                                      {openingVariantPicker && variantPickerItem?.id === item.id
+                                        ? "Loading…"
+                                        : "Choose Options"}
+                                    </button>
+                                  </div>
+                                )}
+                                <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
                                   {formatMoney(item.unit_price_at_add, currency)} each
                                 </p>
-                                <div className="flex items-center justify-between mt-2">
+                                <div className="mt-2.5 flex items-center justify-between gap-2">
                                   <QtyInput
                                     value={item.quantity}
                                     loading={isLoading}
@@ -723,13 +940,15 @@ export function CartClient({ initialItems }: CartClientProps) {
                                     }
                                   />
                                   <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold tabular-nums text-gray-900">
+                                    <span className="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">
                                       {formatMoney(lineTotal, currency)}
                                     </span>
                                     <button
+                                      type="button"
                                       onClick={() => handleRemove(item.id)}
                                       disabled={isRemoving}
-                                      className="h-7 w-7 flex items-center justify-center text-gray-400 hover:text-red-500 disabled:opacity-50"
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                                      aria-label="Remove item"
                                     >
                                       {isRemoving ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -749,11 +968,12 @@ export function CartClient({ initialItems }: CartClientProps) {
                 );
               })}
             </AnimatePresence>
-            <div className="bg-white border-t my-3 border-gray-200 rounded-none">
-              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100">
+            )}
+            <div className="my-3 rounded-none border-t border-[var(--color-border)] bg-[var(--color-surface)]">
+              <div className="grid grid-cols-2 divide-x divide-y divide-[var(--color-border)] sm:grid-cols-4 sm:divide-y-0">
                 {[
                   {
-                    icon: <Shield className="h-5 w-5 text-[#F97316]" />,
+                    icon: <Shield className="h-5 w-5 text-[var(--color-accent)]" />,
                     title: "Buyer Protection",
                     sub: "Shop with confidence",
                   },
@@ -775,14 +995,14 @@ export function CartClient({ initialItems }: CartClientProps) {
                 ].map((b) => (
                   <div
                     key={b.title}
-                    className="flex items-center gap-3 px-4 py-3.5"
+                    className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--color-surface-secondary)]"
                   >
                     <div className="shrink-0">{b.icon}</div>
-                    <div>
-                      <p className="text-[13px] font-semibold text-gray-800">
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
                         {b.title}
                       </p>
-                      <p className="text-[11px] text-gray-500">{b.sub}</p>
+                      <p className="text-[11px] text-[var(--color-text-muted)]">{b.sub}</p>
                     </div>
                   </div>
                 ))}
@@ -792,7 +1012,7 @@ export function CartClient({ initialItems }: CartClientProps) {
           {/* Mobile continue shopping */}
           <Link
             href="/marketplace"
-            className="sm:hidden inline-flex items-center gap-1 text-sm text-gray-600 hover:text-[#F97316] transition-colors"
+            className="inline-flex items-center gap-1 text-sm text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent)] sm:hidden"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
             Continue shopping
@@ -800,41 +1020,45 @@ export function CartClient({ initialItems }: CartClientProps) {
         </div>
 
         {/* ── Right: Order summary sidebar ── */}
-        <aside className="lg:sticky lg:top-[calc(var(--navbar-height,64px)+16px)] space-y-3">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="px-4 py-3.5 border-b border-gray-100">
-              <h2 className="text-base font-bold text-gray-900">
+        <aside className="space-y-3 lg:sticky lg:top-[calc(var(--navbar-height,64px)+16px)]">
+          <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="border-b border-[var(--color-border)] px-4 py-4">
+              <h2 className="text-base font-bold tracking-[-0.01em] text-[var(--color-text-primary)]">
                 Order Summary
               </h2>
             </div>
 
             {/* Discount code */}
-            <div className="border-b border-gray-100">
+            <div className="border-b border-[var(--color-border)]">
               <button
+                type="button"
                 onClick={() => setDiscountExpanded((v) => !v)}
-                className="w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 transition-colors"
+                className="flex w-full items-center justify-between px-4 py-3.5 text-sm transition-colors hover:bg-[var(--color-surface-secondary)]"
               >
-                <span className="flex items-center gap-2 text-[#F97316] font-medium">
+                <span className="flex items-center gap-2 font-medium text-[var(--color-accent)]">
                   <Tag className="h-4 w-4" />
                   Add discount code
                 </span>
                 <ChevronRight
                   className={cn(
-                    "h-4 w-4 text-gray-400 transition-transform",
-                    discountExpanded && "rotate-90"
+                    "h-4 w-4 text-[var(--color-text-muted)] transition-transform duration-200",
+                    discountExpanded && "rotate-90",
                   )}
                 />
               </button>
               {discountExpanded && (
-                <div className="px-4 pb-3 flex gap-2">
+                <div className="flex gap-2 px-4 pb-3">
                   <input
                     type="text"
                     value={discountCode}
                     onChange={(e) => setDiscountCode(e.target.value)}
                     placeholder="Enter code"
-                    className="flex-1 h-9 border border-gray-300 rounded text-sm px-3 outline-none focus:border-[#F97316] transition-colors"
+                    className="h-10 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm outline-none transition-colors focus:border-[var(--color-accent)]"
                   />
-                  <button className="h-9 px-3 rounded bg-[#F97316] text-white text-sm font-semibold hover:bg-[#EA6C0A] transition-colors">
+                  <button
+                    type="button"
+                    className="h-10 rounded-xl bg-[var(--color-accent)] px-3.5 text-sm font-semibold text-white transition-[transform,background-color] duration-200 hover:bg-[var(--color-accent)]/90 active:scale-[0.98]"
+                  >
                     Apply
                   </button>
                 </div>
@@ -842,61 +1066,73 @@ export function CartClient({ initialItems }: CartClientProps) {
             </div>
 
             {/* Line items */}
-            <div className="px-4 py-3.5 space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">
+            <div className="space-y-3 px-4 py-4 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-[var(--color-text-muted)]">
                   Subtotal ({selectedUnits || totalUnits}{" "}
                   {(selectedUnits || totalUnits) === 1 ? "item" : "items"})
                 </span>
-                <span className="font-semibold text-gray-900 tabular-nums">
+                <span className="font-semibold tabular-nums text-[var(--color-text-primary)]">
                   {totalsLabel}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Shipping</span>
-                <span className="text-gray-400 text-xs self-center">
+              <div className="flex justify-between gap-3">
+                <span className="text-[var(--color-text-muted)]">Shipping</span>
+                <span className="self-center text-xs text-[var(--color-text-muted)]">
                   Calculated at checkout
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Tax</span>
-                <span className="text-gray-400 text-xs self-center">
+              <div className="flex justify-between gap-3">
+                <span className="text-[var(--color-text-muted)]">Tax</span>
+                <span className="self-center text-xs text-[var(--color-text-muted)]">
                   Calculated at checkout
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="flex items-center gap-1 text-gray-500">
+              <div className="flex justify-between gap-3">
+                <span className="flex items-center gap-1 text-[var(--color-text-muted)]">
                   Buyer Protection Included
-                  <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                  <Info className="h-3.5 w-3.5 cursor-help text-[var(--color-text-muted)]" />
                 </span>
-                <span className="font-medium sr-only text-gray-700 tabular-nums">
+                <span className="sr-only font-medium tabular-nums text-[var(--color-text-secondary)]">
                   ${ESCROW_FEE.toFixed(2)}
                 </span>
               </div>
               {hasMixedCurrencies && (
-                <p className="text-xs text-gray-400 leading-relaxed pt-1">
-                  Cart contains items in multiple currencies. Each vendor's
+                <p className="pt-1 text-xs leading-relaxed text-[var(--color-text-muted)]">
+                  Cart contains items in multiple currencies. Each vendor&apos;s
                   order is processed separately.
                 </p>
               )}
             </div>
 
             {/* Total */}
-            <div className="px-4 py-3 border-t border-gray-100 flex justify-between items-baseline">
-              <span className="text-sm font-semibold text-gray-700">
+            <div className="flex items-baseline justify-between border-t border-[var(--color-border)] px-4 py-3.5">
+              <span className="text-sm font-semibold text-[var(--color-text-secondary)]">
                 Total
               </span>
-              <span className="text-xl font-bold text-[#F97316] tabular-nums">
+              <span className="text-xl font-extrabold tabular-nums tracking-[-0.02em] text-[var(--color-accent)]">
                 {totalsLabel}
               </span>
             </div>
 
             {/* Checkout button */}
             <div className="px-4 pb-6">
+              {hasPendingVariants && (
+                <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] leading-relaxed text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                  Please choose your product options before checkout.
+                </div>
+              )}
               <Button
                 onClick={handleProceedToCheckout}
-                disabled={proceedingCheckout || items.length === 0}
-                className="w-full rounded-md h-11 bg-[#F97316] hover:bg-[#EA6C0A] text-white font-semibold text-sm disabled:opacity-60 transition-colors"
+                disabled={proceedingCheckout || items.length === 0 || hasPendingVariants}
+                className={cn(
+                  "h-11 w-full rounded-xl border-none text-sm font-semibold text-white",
+                  "bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90",
+                  "shadow-[0_4px_14px_rgba(253,80,0,0.22)] transition-[transform,box-shadow,opacity] duration-200",
+                  "hover:scale-[1.01] active:scale-[0.99]",
+                  "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+                  "disabled:opacity-60 disabled:hover:scale-100",
+                )}
               >
                 {proceedingCheckout ? (
                   <span className="inline-flex items-center gap-2">
@@ -910,8 +1146,8 @@ export function CartClient({ initialItems }: CartClientProps) {
                   </span>
                 )}
               </Button>
-              <p className="mt-2.5 flex items-start gap-1.5 text-[11px] text-gray-400 leading-relaxed">
-                <Shield className="h-3 w-3 mt-0.5 text-[#F97316] shrink-0" />
+              <p className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed text-[var(--color-text-muted)]">
+                <Shield className="mt-0.5 h-3 w-3 shrink-0 text-[var(--color-accent)]" />
                 Your order is protected until delivery is confirmed.
               </p>
             </div>
@@ -930,11 +1166,11 @@ export function CartClient({ initialItems }: CartClientProps) {
           </div>
 
           {/* Help links */}
-          <div className="px-1 text-xs text-gray-400 space-y-1.5">
+          <div className="space-y-1.5 px-1 text-xs text-[var(--color-text-muted)]">
             <p>
               <Link
                 href="/help/returns"
-                className="hover:text-[#F97316] hover:underline transition-colors"
+                className="transition-colors hover:text-[var(--color-accent)] hover:underline"
               >
                 Return policy
               </Link>
@@ -942,7 +1178,7 @@ export function CartClient({ initialItems }: CartClientProps) {
             <p>
               <Link
                 href="/help/shipping"
-                className="hover:text-[#F97316] hover:underline transition-colors"
+                className="transition-colors hover:text-[var(--color-accent)] hover:underline"
               >
                 Shipping information
               </Link>
@@ -950,7 +1186,7 @@ export function CartClient({ initialItems }: CartClientProps) {
             <p>
               <Link
                 href="/support"
-                className="hover:text-[#F97316] hover:underline transition-colors"
+                className="transition-colors hover:text-[var(--color-accent)] hover:underline"
               >
                 Contact support
               </Link>
@@ -960,8 +1196,8 @@ export function CartClient({ initialItems }: CartClientProps) {
       </div>
 
       {/* ── Sticky bottom bar ── */}
-      <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-3">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-8xl flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
           {/* Select all */}
           <OrangeCheckbox
             checked={allSelected}
@@ -970,9 +1206,9 @@ export function CartClient({ initialItems }: CartClientProps) {
           />
 
           {/* Selected count */}
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-[var(--color-text-muted)]">
             Selected:{" "}
-            <span className="font-semibold text-[#F97316]">
+            <span className="font-semibold text-[var(--color-accent)]">
               {selectedIds.size}{" "}
               {selectedIds.size === 1 ? "item" : "items"}
             </span>
@@ -982,8 +1218,8 @@ export function CartClient({ initialItems }: CartClientProps) {
 
           {/* Subtotal */}
           <div className="text-sm">
-            <span className="text-gray-500 mr-1">Subtotal:</span>
-            <span className="font-bold text-gray-900 tabular-nums text-base">
+            <span className="mr-1 text-[var(--color-text-muted)]">Subtotal:</span>
+            <span className="text-base font-bold tabular-nums text-[var(--color-text-primary)]">
               {totalsLabel}
             </span>
           </div>
@@ -991,21 +1227,34 @@ export function CartClient({ initialItems }: CartClientProps) {
           {/* Actions */}
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={handleRemoveSelected}
               disabled={selectedIds.size === 0}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 rounded-sm px-3.5 py-2 hover:bg-gray-50 hover:text-red-500 hover:border-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-xl border border-[var(--color-border)] px-3.5 py-2 text-sm",
+                "text-[var(--color-text-muted)] transition-[transform,background-color,border-color,color] duration-200",
+                "hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600",
+                "disabled:cursor-not-allowed disabled:opacity-40",
+              )}
             >
               <Trash2 className="h-3.5 w-3.5" />
               Remove Selected
             </button>
-            <button className="hidden sm:inline-flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 rounded-sm px-3.5 py-2 hover:bg-gray-50 transition-colors">
+            <button
+              type="button"
+              className="hidden items-center gap-1.5 rounded-xl border border-[var(--color-border)] px-3.5 py-2 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] sm:inline-flex"
+            >
               <Bookmark className="h-3.5 w-3.5" />
               Save For Later
             </button>
             <Button
               onClick={handleProceedToCheckout}
-              disabled={proceedingCheckout || selectedIds.size === 0}
-              className="h-9 px-5 bg-[#F97316] hover:bg-[#EA6C0A] text-white font-semibold text-sm rounded-sm disabled:opacity-60 transition-colors"
+              disabled={proceedingCheckout || selectedIds.size === 0 || hasPendingVariants}
+              className={cn(
+                "h-10 rounded-xl bg-[var(--color-accent)] px-5 text-sm font-semibold text-white",
+                "hover:bg-[var(--color-accent)]/90 transition-[transform,opacity] duration-200",
+                "hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 disabled:hover:scale-100",
+              )}
             >
               {proceedingCheckout ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1019,6 +1268,24 @@ export function CartClient({ initialItems }: CartClientProps) {
           </div>
         </div>
       </div>
-    </div>
+
+      <VariantPickerDialog
+        open={Boolean(variantPickerItem)}
+        onClose={() => {
+          setVariantPickerItem(null);
+          setPickerVariants([]);
+        }}
+        onSelect={handleVariantSelect}
+        variants={pickerVariants}
+        productName={variantPickerItem?.products?.name ?? "Product"}
+        productImage={
+          variantPickerItem?.products?.images?.[0] ??
+          variantPickerItem?.product_variants?.image_url ??
+          null
+        }
+        currency={variantPickerItem?.currency_at_add ?? "RWF"}
+        loadingVariantId={loadingVariantId}
+      />
+    </motion.div>
   );
 }

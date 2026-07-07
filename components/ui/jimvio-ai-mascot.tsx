@@ -269,15 +269,23 @@ export function JimvioAIMascot({
           <Image
             src="/hero/jimvio-ai-mascot-cutout.png"
             alt=""
-            width={425}
-            height={425}
+            width={540}
+            height={540}
+            quality={92}
             priority={size === "md" || size === "hero"}
+            sizes={
+              size === "hero"
+                ? "(max-width: 1024px) 280px, 480px"
+                : size === "md"
+                  ? "(max-width: 768px) 128px, 176px"
+                  : "(max-width: 640px) 80px, 112px"
+            }
             draggable={false}
             className={cn(
-              "pointer-events-none h-full w-full select-none object-contain object-bottom [-webkit-user-drag:none]",
-            motionless
-              ? "[filter:drop-shadow(0_3px_8px_rgba(253,80,0,0.18))]"
-              : "[filter:drop-shadow(0_14px_32px_rgba(253,80,0,0.22))]",
+              "pointer-events-none h-full w-full select-none object-contain object-bottom [-webkit-user-drag:none] [transform:translateZ(0)]",
+              motionless
+                ? "[filter:drop-shadow(0_3px_8px_rgba(253,80,0,0.18))]"
+                : "[filter:drop-shadow(0_14px_32px_rgba(253,80,0,0.22))]",
             )}
           />
           <BlinkOverlay reduced={reduced || motionless} />

@@ -58,7 +58,7 @@ export function OrderSummaryCard({
     const heroItem = items[0];
 
     return (
-        <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-5 space-y-4">
+        <div className="space-y-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
 
             {/* Header */}
             <div className="flex items-center justify-between">
@@ -67,8 +67,9 @@ export function OrderSummaryCard({
                 </h2>
                 {onEditOrder && (
                     <button
+                        type="button"
                         onClick={onEditOrder}
-                        className="inline-flex items-center gap-1 text-[12px] font-semibold text-blue-500 hover:text-blue-600 transition-colors"
+                        className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)] transition-opacity hover:opacity-80"
                     >
                         <Pencil className="h-3 w-3" />
                         Edit order
@@ -78,22 +79,25 @@ export function OrderSummaryCard({
 
             {/* Big total */}
             <div>
-                <p className="text-[28px] font-bold text-[var(--color-text-primary)] tabular-nums tracking-tight leading-none">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                    Total due
+                </p>
+                <p className="mt-1 text-[30px] font-extrabold leading-none tracking-[-0.03em] text-[var(--color-accent)] tabular-nums">
                     {formatMoney(total, currency)}
                 </p>
             </div>
 
             {/* Hero product preview */}
             {heroItem && (
-                <div className="flex items-center gap-3 pb-3 border-b border-[var(--color-border)]">
-                    <div className="w-12 h-12 rounded-lg bg-[var(--color-surface-secondary)] border border-[var(--color-border)] overflow-hidden flex-shrink-0 flex items-center justify-center">
+                <div className="flex items-center gap-3 border-b border-[var(--color-border)] pb-4">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                         {heroItem.product_image ? (
                             <Image
                                 src={heroItem.product_image}
                                 alt={heroItem.product_name}
-                                width={48}
-                                height={48}
-                                className="w-full h-full object-cover"
+                                width={56}
+                                height={56}
+                                className="h-full w-full object-cover [image-rendering:auto]"
                             />
                         ) : null}
                     </div>
@@ -115,7 +119,7 @@ export function OrderSummaryCard({
             {items.length > 1 && (
                 <button
                     onClick={() => setDetailsOpen((o) => !o)}
-                    className="w-full flex items-center justify-between text-[12.5px] font-medium text-blue-500 hover:text-blue-600 transition-colors"
+                    className="flex w-full items-center justify-between text-[12.5px] font-medium text-[var(--color-accent)] transition-opacity hover:opacity-80"
                 >
                     <span>View order details ({items.length - 1} more {items.length === 2 ? "item" : "items"})</span>
                     <ChevronRight className={cn(
@@ -129,7 +133,7 @@ export function OrderSummaryCard({
                 <div className="space-y-2 pb-3 border-b border-[var(--color-border)]">
                     {items.slice(1).map((item) => (
                         <div key={item.id} className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-md bg-[var(--color-surface-secondary)] border border-[var(--color-border)] overflow-hidden flex-shrink-0">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                                 {item.product_image && (
                                     <Image
                                         src={item.product_image}
@@ -189,7 +193,12 @@ export function OrderSummaryCard({
                 <button
                     onClick={onPromoApply}
                     disabled={!promoCode.trim() || promoApplying}
-                    className="h-10 px-4 rounded-sm text-[12.5px] font-semibold text-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-40"
+                    className={cn(
+                        "flex h-10 items-center justify-center rounded-xl px-4 text-[12.5px] font-semibold text-[var(--color-accent)]",
+                        "transition-[transform,background-color] duration-200 hover:bg-[var(--color-accent-light)]",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
+                        "disabled:opacity-40",
+                    )}
                 >
                     {promoApplying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply"}
                 </button>
@@ -227,38 +236,40 @@ export function OrderSummaryCard({
                 </div>
             </div>
 
-            <div className="flex items-baseline justify-between pt-3 border-t border-[var(--color-border)]">
+            <div className="flex items-baseline justify-between border-t border-[var(--color-border)] pt-4">
                 <span className="text-[14px] font-bold text-[var(--color-text-primary)]">Total</span>
-                <span className="text-[18px] font-bold tabular-nums text-[var(--color-text-primary)]">
+                <span className="text-[20px] font-extrabold tabular-nums tracking-[-0.02em] text-[var(--color-accent)]">
                     {formatMoney(total, currency)}
                 </span>
             </div>
 
             {/* Buyer Protection */}
-            <div className="flex items-start gap-2.5 p-3 rounded-sm bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
-                <Shield className="h-4 w-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                <div className="leading-tight">
-                    <p className="text-[12px] font-bold text-blue-900 dark:text-blue-300">
+            <div className="flex items-start gap-3 rounded-xl border border-sky-200/80 bg-sky-50/80 p-3.5 dark:border-sky-900/40 dark:bg-sky-950/20">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sky-500/10">
+                    <Shield className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                </span>
+                <div className="min-w-0 leading-tight">
+                    <p className="text-[12px] font-bold text-sky-900 dark:text-sky-300">
                         Buyer Protection Guarantee
                     </p>
-                    <p className="text-[11px] text-blue-800/80 dark:text-blue-400/80 mt-1">
-                        Your purchase is protected. If you're not satisfied, we'll make it right.
+                    <p className="mt-1 text-[11px] leading-relaxed text-sky-800/80 dark:text-sky-400/80">
+                        Your purchase is protected. If you&apos;re not satisfied, we&apos;ll make it right.
                     </p>
-                    <button className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-1 hover:underline">
-                        Learn more →
-                    </button>
                 </div>
             </div>
 
             {/* CTA */}
             <button
+                type="button"
                 onClick={onPay}
                 disabled={paySubmitting || payDisabled}
                 className={cn(
-                    "w-full h-12 rounded-sm text-white text-[14px] font-bold transition-all",
-                    "flex items-center justify-center gap-2",
-                    "bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600",
-                    "active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
+                    "flex h-12 w-full items-center justify-center gap-2 rounded-xl text-[14px] font-bold text-white",
+                    "bg-[var(--color-accent)] shadow-[0_4px_14px_rgba(253,80,0,0.22)]",
+                    "transition-[transform,background-color,box-shadow,opacity] duration-200",
+                    "hover:scale-[1.01] hover:bg-[var(--color-accent)]/90",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+                    "active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100",
                 )}
             >
                 {paySubmitting ? (

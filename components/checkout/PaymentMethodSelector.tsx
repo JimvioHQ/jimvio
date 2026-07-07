@@ -644,13 +644,13 @@ const METHODS: MethodDef[] = [
 
 function TrustBadge({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center">
+    <div className="flex items-center gap-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-2.5">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/30">
         {icon}
       </div>
-      <div>
-        <p className="text-[11px] font-semibold text-[var(--color-text-primary)] leading-none">{title}</p>
-        <p className="text-[10px] text-[var(--color-text-secondary)] mt-0.5 leading-none">{subtitle}</p>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold leading-tight text-[var(--color-text-primary)]">{title}</p>
+        <p className="mt-0.5 text-[10px] leading-tight text-[var(--color-text-muted)]">{subtitle}</p>
       </div>
     </div>
   );
@@ -720,11 +720,13 @@ export function PaymentMethodSelector({
               type="button"
               onClick={() => onSelect(m.id)}
               className={cn(
-                "relative w-full text-left transition-all duration-150 active:scale-[0.995]",
-                "rounded-sm overflow-hidden border",
+                "relative w-full text-left transition-[transform,border-color,background-color,box-shadow] duration-200",
+                "rounded-xl overflow-hidden border",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
+                !active && "hover:scale-[1.005]",
                 active
-                  ? "bg-orange-50 border-accent-400 ring-1 ring-accent-400 dark:bg-orange-950/20 shadow-[0_10px_30px_rgba(253,110,50,0.08)]"
-                  : "bg-[var(--color-background-primary)] border-[var(--color-border)]"
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]/40 shadow-[0_8px_24px_rgba(253,80,0,0.08)] ring-1 ring-[var(--color-accent)]/25"
+                  : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-border-strong)]",
               )}
             >
               <div className="flex items-center gap-4 px-4 py-3.5">
@@ -783,13 +785,13 @@ export function PaymentMethodSelector({
                   )}
                   {/* Radio button — right side */}
                   <div className={cn(
-                    "flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-150",
+                    "flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-all duration-150",
                     active
-                      ? "border-orange-500"
-                      : "border-[var(--color-border-secondary)]"
+                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
+                      : "border-[var(--color-border)] bg-transparent"
                   )}>
                     {active && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+                      <div className="h-2 w-2 rounded-full bg-white" />
                     )}
                   </div>
                 </div>

@@ -14,6 +14,7 @@ import { ReferralTracker } from "@/components/affiliate/referral-tracker";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { PlatformStatsProvider } from "@/components/platform/platform-stats-provider";
+import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
 
 export const metadata: Metadata = constructMetadata();
 
@@ -68,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PlatformStatsProvider>
             <CurrencyProvider>{children}</CurrencyProvider>
           </PlatformStatsProvider>
+          <JimvioCopilotLoader />
           <Toaster
             richColors
             position="top-right"

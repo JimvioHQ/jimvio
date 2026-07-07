@@ -70,11 +70,12 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
   const { formatMoney } = useCurrency();
   const discount = getDiscount(d);
   const compareAtPrice = getEffectiveCompareAtPrice(d);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   return (
     <Link
       href={`/marketplace/${d.slug}`}
-      className="product-tap-nav group relative flex w-full min-w-0 flex-col rounded-xl border border-border bg-card p-2 transition-[transform,box-shadow] duration-150 ease-out hover:shadow-[var(--shadow-card)] sm:p-2.5"
+      className="product-tap-nav group relative flex w-full min-w-0 flex-col rounded-xl border border-border bg-card p-2.5 transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:scale-[1.02] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 sm:p-3"
     >
       {discount && (
         <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-1 py-0.5 text-[8px] font-bold leading-none text-primary-foreground md:text-[9px]">
@@ -82,6 +83,9 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
         </span>
       )}
       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted/50">
+        {!imgLoaded && (
+          <div className="absolute inset-0 animate-pulse bg-muted" aria-hidden />
+        )}
         <img
           src={getImage(d.images)}
           alt={d.name}
@@ -89,7 +93,8 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
           height={512}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-cover object-center"
+          className={`h-full w-full object-cover object-center transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+          onLoad={() => setImgLoaded(true)}
         />
       </div>
       <h4

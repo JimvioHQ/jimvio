@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/services/db";
+import { isPendingVariantSelection } from "@/lib/cart/pending-variant";
 import { OrderUpdate } from "@/types/db";
 import { Json } from "@/types/supabase";
 import { revalidatePath } from "next/cache";
@@ -170,6 +171,11 @@ function validateCartItems(items: CartItem[]): string[] {
 
     if (!p || p.status !== "active" || !p.is_active || p.deleted_at) {
       errors.push(`"${p?.name ?? "An item"}" is no longer available`);
+      continue;
+    }
+
+    if (isPendingVariantSelection(item)) {
+      errors.push(`Please choose your product options for "${p.name}" before checkout`);
       continue;
     }
 
@@ -805,6 +811,15 @@ export async function syncOrderWithCart(orderId: string): Promise<SyncResult> {
 
   if (orderError || !order) {
     return { ok: false, error: "Order not found" };
+  }
+
+  const metadata = (order.metadata as Record<string, unknown>) ?? {};
+  const isDirectCheckout =
+    order.status === "checkout_direct" || metadata.is_direct_checkout === true;
+
+  // Buy Now creates a standalone checkout session — never sync it against the cart.
+  if (isDirectCheckout) {
+    return { ok: true, changed: false };
   }
 
   // Don't sync orders that are already in flight or completed

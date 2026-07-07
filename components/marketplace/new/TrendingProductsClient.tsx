@@ -3,14 +3,16 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Flame, Sparkles,
-  TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star,
+  TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star, CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
 import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel, normalizeImages, isRenderableImageSrc } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { addToCart } from "@/lib/actions/marketplace";
+import { addToCart, checkProductInCart, removeProductFromCart } from "@/lib/actions/marketplace";
+import { requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
+import { useCartStore } from "@/lib/store/use-cart-store";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
 import type { Tables } from "@/types/supabase";
@@ -64,12 +66,36 @@ function reportError(
   setTimeout(() => setAddError(null), 3000);
 }
 
+function LoadMoreSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={`load-more-skeleton-${i}`}
+          className="overflow-hidden rounded-xl border border-[var(--color-border)]"
+          style={{ background: "var(--color-surface)" }}
+        >
+          <div className="aspect-square animate-pulse" style={{ background: "var(--color-surface-secondary)" }} />
+          <div className="space-y-2 p-2.5">
+            <div className="h-3 w-full animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
+            <div className="h-4 w-1/2 animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 export function TrendingProductsClient({
   products,
   type = "physical",
+  newProductIds,
+  loadingMore = false,
 }: {
   products: Product[];
   type?: "physical" | "digital";
+  newProductIds?: Set<string>;
+  loadingMore?: boolean;
 }) {
   const TABS = type === "digital" ? DIGITAL_TABS : PHYSICAL_TABS;
   const [activeTab, setActiveTab] = useState(0);
@@ -86,7 +112,13 @@ export function TrendingProductsClient({
   const filtered = products.filter(TABS[activeTab].filter);
 
   return (
-    <div className="w-full max-w-full min-w-0 space-y-5 overflow-hidden">
+    <div className="w-full max-w-full min-w-0 space-y-6 overflow-hidden">
+      <style>{`
+        @keyframes marketplaceProductIn {
+          from { opacity: 0; transform: translate3d(0, 8px, 0); }
+          to { opacity: 1; transform: translate3d(0, 0, 0); }
+        }
+      `}</style>
       <div className="relative flex w-full max-w-full flex-nowrap items-center justify-between gap-1 overflow-hidden border-b border-[var(--color-border)] sm:flex-wrap sm:justify-start sm:gap-0.5">
         <div
           className="absolute bottom-0 h-[2px] bg-[var(--color-accent)] transition-all duration-300 ease-out rounded-full"
@@ -100,13 +132,15 @@ export function TrendingProductsClient({
               ref={(el) => { tabRefs.current[i] = el; }}
               type="button"
               onClick={() => setActiveTab(i)}
-              className="relative flex h-[30px] min-w-0 flex-1 items-center justify-center gap-0.5 rounded-full px-2 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors duration-150 sm:h-auto sm:flex-none sm:justify-start sm:gap-1.5 sm:rounded-none sm:px-3.5 sm:py-2.5 sm:text-[11px] sm:tracking-wide"
+              className="relative flex h-[32px] min-w-0 flex-1 items-center justify-center gap-0.5 rounded-full px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 sm:h-auto sm:flex-none sm:justify-start sm:gap-1.5 sm:rounded-none sm:px-4 sm:py-2.5 sm:text-[11px] sm:tracking-wide"
               style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }}
+              aria-selected={active}
+              role="tab"
             >
               <t.icon
                 className="size-[10px] shrink-0 sm:size-3"
                 style={{
-                  transform: active ? "scale(1.15)" : "scale(1)",
+                  transform: active ? "scale(1.1)" : "scale(1)",
                   transition: "transform 150ms",
                 }}
               />
@@ -130,13 +164,33 @@ export function TrendingProductsClient({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-          {filtered.map((p) => (
-            <ProductCard
-              key={p.id}
-              p={p}
-            />
-          ))}
+        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+          {(() => {
+            let newIdx = 0;
+            return filtered.map((p) => {
+              const shouldAnimate = newProductIds?.has(p.id) ?? false;
+              const staggerIndex = shouldAnimate ? newIdx++ : 0;
+              return (
+                <div
+                  key={p.id}
+                  className={cn(
+                    shouldAnimate && "motion-safe:animate-[marketplaceProductIn_0.45s_cubic-bezier(0.23,1,0.32,1)_both]",
+                  )}
+                  style={
+                    shouldAnimate
+                      ? {
+                          animationDelay: `${Math.min(staggerIndex, 11) * 45}ms`,
+                          willChange: "transform, opacity",
+                        }
+                      : undefined
+                  }
+                >
+                  <ProductCard p={p} />
+                </div>
+              );
+            });
+          })()}
+          {loadingMore ? <LoadMoreSkeleton /> : null}
         </div>
       )}
     </div>
@@ -166,10 +220,6 @@ function cssColor(raw: string): string {
   for (let i = 0; i < raw.length; i++) hash = raw.charCodeAt(i) + ((hash << 5) - hash);
   return `hsl(${Math.abs(hash) % 360}, 55%, 55%)`;
 }
-
-/* ─────────────────────────────────────────────────────────── */
-/*  ProductCard                                                */
-/* ─────────────────────────────────────────────────────────── */
 
 function ProductCard({
   p,
@@ -202,6 +252,7 @@ function ProductCard({
   const activeVariants = variants.filter((v) => v.is_active);
   const activeVariantsCount = activeVariants.length;
   const defaultVariant = activeVariantsCount === 1 ? activeVariants[0] : null;
+  const needsPurchasableSelection = requiresPurchasableVariantSelection(activeVariants);
 
   const initialColor = (() => {
     if (defaultVariant) {
@@ -225,10 +276,33 @@ function ProductCard({
   const [selectedSize, setSelectedSize] = useState<string | null>(initialSize);
   const [showSizes, setShowSizes] = useState(false);
   const [adding, setAdding] = useState(false);
-  const [added, setAdded] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [inCart, setInCart] = useState(false);
+  const [cartHovered, setCartHovered] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [hovered, setHovered] = useState(false);
+  const [imgReady, setImgReady] = useState(false);
+  const { incrementCartCount, setCartCount, refreshCounts } = useCartStore();
   const { formatMoney } = useCurrency();
+
+  useEffect(() => {
+    let cancelled = false;
+    checkProductInCart(p.id).then((res) => {
+      if (!cancelled) setInCart(res.inCart);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [p.id]);
+
+  useEffect(() => {
+    const syncCartState = () => {
+      checkProductInCart(p.id).then((res) => setInCart(res.inCart));
+      void refreshCounts();
+    };
+    window.addEventListener("cart-updated", syncCartState);
+    return () => window.removeEventListener("cart-updated", syncCartState);
+  }, [p.id, refreshCounts]);
 
   let activeVariant = variants.find((v) => {
     const colorMatch = !selectedColor || getColorValue(getOptions(v)) === selectedColor;
@@ -237,6 +311,15 @@ function ProductCard({
   }) ?? null;
 
   if (!activeVariant && activeVariantsCount === 1) activeVariant = defaultVariant;
+
+  const variantForCart = (() => {
+    if (!needsPurchasableSelection) {
+      return activeVariant ?? activeVariants[0] ?? null;
+    }
+    if (hasColors && !selectedColor) return null;
+    if (hasSizes && sizeKey && !selectedSize) return null;
+    return activeVariant;
+  })();
 
   const sizeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -279,38 +362,71 @@ function ProductCard({
   const visibleColors = colorVariants.slice(0, SWATCH_LIMIT);
   const extraColors = colorVariants.length - SWATCH_LIMIT;
 
-  async function handleAddToCart(e: React.MouseEvent) {
+  async function handleCartToggle(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (adding) return;
+    if (adding || removing) return;
 
     if (!vendorId) {
       reportError("Missing vendor information.", setAddError);
       return;
     }
 
-    if (variants.length > 0 && !activeVariant) {
-      reportError("Please select options first.", setAddError);
+    if (inCart) {
+      setRemoving(true);
+      setAddError(null);
+      const previousInCart = true;
+      const previousCount = useCartStore.getState().cartCount;
+      setInCart(false);
+      setCartCount(Math.max(0, previousCount - 1));
+
+      try {
+        const result = await removeProductFromCart(p.id);
+        if (!result.success) {
+          setInCart(previousInCart);
+          setCartCount(previousCount);
+          if (result.error === "Authentication required") {
+            window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+            return;
+          }
+          reportError(result.error ?? "Failed to remove from cart.", setAddError);
+          return;
+        }
+        window.dispatchEvent(new CustomEvent("cart-updated"));
+      } catch (err: any) {
+        setInCart(previousInCart);
+        setCartCount(previousCount);
+        reportError(err?.message ?? "Something went wrong.", setAddError);
+      } finally {
+        setRemoving(false);
+      }
       return;
     }
 
-    if (outOfStock) {
+    if (outOfStock && activeVariant) {
       reportError("This item is out of stock.", setAddError);
       return;
     }
 
     setAdding(true);
     setAddError(null);
+    const previousInCart = false;
+    const previousCount = useCartStore.getState().cartCount;
+    setInCart(true);
+    incrementCartCount(1);
 
     try {
       const result = await addToCart(
         p.id,
         vendorId,
         1,
-        activeVariant?.id ?? null
+        variantForCart?.id ?? null,
+        { allowPendingVariant: true },
       );
 
       if (!result.success) {
+        setInCart(previousInCart);
+        setCartCount(previousCount);
         if (result.error === "Authentication required") {
           window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
           return;
@@ -319,10 +435,11 @@ function ProductCard({
         return;
       }
 
-      setAdded(true);
+      window.dispatchEvent(new CustomEvent("cart-updated"));
       toast.success("Added to cart!");
-      setTimeout(() => setAdded(false), 2000);
     } catch (err: any) {
+      setInCart(previousInCart);
+      setCartCount(previousCount);
       if (err?.message === "Authentication required") {
         window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
         return;
@@ -333,12 +450,47 @@ function ProductCard({
     }
   }
 
+  const cartButtonLabel = (() => {
+    if (removing) return "Removing…";
+    if (adding) return "Adding…";
+    if (addError) return "Failed";
+    if (inCart) return cartHovered ? "Remove from Cart" : "✓ In Cart";
+    if (outOfStock) return "Out of Stock";
+    return "Add to Cart";
+  })();
+
+  useEffect(() => {
+    setImgReady(false);
+    if (!displayImage) {
+      setImgReady(true);
+      return;
+    }
+    let cancelled = false;
+    const img = new window.Image();
+    img.onload = () => {
+      if (!cancelled) setImgReady(true);
+    };
+    img.onerror = () => {
+      if (!cancelled) setImgReady(true);
+    };
+    img.src = displayImage;
+    return () => {
+      cancelled = true;
+    };
+  }, [displayImage]);
+
+  const isVerifiedVendor = p.vendors?.verification_status === "verified";
+  const ratingValue = typeof p.rating === "number" ? p.rating : null;
+
   return (
     <div
-      className="product-tap-nav group relative flex flex-col rounded-md overflow-hidden transition-[transform,box-shadow] duration-150 ease-out hover:shadow-[0_8px_24px_rgba(0,0,0,.10)]"
-      style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+      className="product-tap-nav group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)] transition-[transform,box-shadow,border-color] duration-200 ease-out will-change-transform hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:shadow-[0_10px_28px_rgba(0,0,0,0.08)]"
+      style={{ background: "var(--color-surface)" }}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => {
+        setHovered(false);
+        setCartHovered(false);
+      }}
     >
       <Link
         href={`/marketplace/${p.slug}${activeVariant ? `?variant=${activeVariant.id}` : ""}`}
@@ -352,6 +504,13 @@ function ProductCard({
           className="relative flex aspect-square w-full items-center justify-center overflow-hidden p-2.5 sm:p-3"
           style={{ background: "var(--color-surface-secondary)" }}
         >
+          {!imgReady && (
+            <div
+              className="absolute inset-0 animate-pulse"
+              style={{ background: "var(--color-surface-secondary)" }}
+              aria-hidden
+            />
+          )}
           <ProductCardVideoMedia
             productId={p.id}
             product={p}
@@ -363,17 +522,17 @@ function ProductCard({
             layout="fit"
             imageFit="contain"
             imageClassName={cn(
-              "max-h-full max-w-full",
-              previewImages.length <= 1 &&
-                "transition-transform duration-300 ease-out group-hover:scale-[1.02]",
+              "max-h-full max-w-full transition-[transform,opacity] duration-300 ease-out",
+              imgReady ? "opacity-100" : "opacity-0",
+              previewImages.length <= 1 && "group-hover:scale-[1.02]",
             )}
           />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/[.03] transition-colors duration-200 pointer-events-none" />
+          <div className="absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/[0.03] pointer-events-none" />
         </div>
 
         {discount && (
           <span
-            className="absolute left-2 top-2 z-10 rounded-md px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white"
+            className="absolute left-2 top-2 z-10 rounded-lg px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow-[0_2px_8px_rgba(253,80,0,0.28)]"
             style={{ background: "var(--color-accent)" }}
           >
             {discount}
@@ -382,10 +541,19 @@ function ProductCard({
 
         {p.is_free_shipping && !discount && (
           <span
-            className="absolute left-2 top-2 z-10 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white"
+            className="absolute left-2 top-2 z-10 rounded-lg px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm"
             style={{ background: "var(--color-success, #16a34a)" }}
           >
             Free ship
+          </span>
+        )}
+
+        {inCart && (
+          <span
+            className="absolute right-2 top-2 z-10 rounded-lg px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm"
+            style={{ background: "var(--color-success, #16a34a)" }}
+          >
+            ✓ In Cart
           </span>
         )}
 
@@ -399,35 +567,45 @@ function ProductCard({
         )}
 
         <div
-          className="pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex translate-y-full gap-1 p-1.5 transition-transform duration-200 ease-out group-hover:translate-y-0"
-          style={{ background: "linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%)" }}
+          className={cn(
+            "pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex gap-1.5 p-2 transition-[transform,opacity] duration-200 ease-out will-change-transform",
+            inCart ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100",
+          )}
+          style={{ background: "linear-gradient(to top, rgba(0,0,0,.58) 0%, transparent 100%)" }}
         >
           <button
             type="button"
-            onClick={handleAddToCart}
-            disabled={adding || !vendorId || outOfStock}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-[10px] font-bold text-white transition-all hover:opacity-90 disabled:opacity-60"
+            onClick={handleCartToggle}
+            onMouseEnter={() => setCartHovered(true)}
+            onMouseLeave={() => setCartHovered(false)}
+            disabled={adding || removing || !vendorId || (outOfStock && !inCart)}
+            aria-label={cartButtonLabel}
+            className="flex flex-1 items-center justify-center gap-1 rounded-lg py-2 text-[10px] font-bold text-white transition-[background-color,opacity,transform] duration-200 ease-out will-change-transform hover:opacity-95 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-60"
             style={{
               background: addError
                 ? "#dc2626"
-                : added
-                  ? "var(--color-success, #16a34a)"
+                : inCart
+                  ? cartHovered
+                    ? "#dc2626"
+                    : "var(--color-success, #16a34a)"
                   : outOfStock
                     ? "rgba(100,100,100,.7)"
                     : "var(--color-accent)",
             }}
           >
-            {adding ? (
-              <span className="size-3 animate-spin rounded-full border border-white border-t-transparent" />
+            {adding || removing ? (
+              <span className="size-3 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden />
+            ) : inCart ? (
+              <CheckCircle2 className="size-3" />
             ) : (
               <ShoppingCart className="size-3" />
             )}
-            {adding ? "Adding…" : addError ? "Failed" : added ? "Added!" : outOfStock ? "Out of Stock" : "Add to Cart"}
+            {cartButtonLabel}
           </button>
           <Link
             href={`/marketplace/${p.slug}`}
-            className="pointer-events-auto relative z-10 grid size-7 shrink-0 place-items-center rounded-lg text-white transition-colors hover:bg-white/20"
-            style={{ background: "rgba(255,255,255,.15)" }}
+            className="pointer-events-auto relative z-10 grid size-8 shrink-0 place-items-center rounded-lg text-white transition-[background-color,transform] duration-200 hover:scale-[1.04] hover:bg-white/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            style={{ background: "rgba(255,255,255,.16)" }}
             aria-label="Quick view"
             onClick={(e) => e.stopPropagation()}
           >
@@ -437,22 +615,37 @@ function ProductCard({
       </div>
 
       {/* ── Info ── */}
-      <div className="pointer-events-none relative z-[2] flex flex-col gap-1 p-2.5 pt-2">
+      <div className="pointer-events-none relative z-[2] flex flex-1 flex-col gap-1.5 p-2.5 pt-2">
+        {(isVerifiedVendor || (ratingValue != null && ratingValue > 0)) && (
+          <div className="flex items-center gap-2 text-[9px] font-semibold" style={{ color: "var(--color-text-muted)" }}>
+            {isVerifiedVendor && (
+              <span className="inline-flex items-center gap-0.5 text-[var(--color-accent)]">
+                <CheckCircle2 className="size-2.5" />
+                Verified
+              </span>
+            )}
+            {ratingValue != null && ratingValue > 0 && (
+              <span className="inline-flex items-center gap-0.5">
+                <Star className="size-2.5 fill-amber-400 text-amber-400" />
+                {ratingValue.toFixed(1)}
+              </span>
+            )}
+          </div>
+        )}
+
         <h4
-          className="line-clamp-2 text-[11px] font-semibold leading-snug"
+          className="line-clamp-2 text-[11px] font-semibold leading-snug tracking-[-0.01em]"
           style={{ color: "var(--color-text-primary)" }}
         >
           {p.name}
         </h4>
 
-
-
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>
+        <div className="mt-auto flex items-baseline gap-1.5 pt-0.5">
+          <span className="text-[15px] font-black leading-none tracking-[-0.02em]" style={{ color: "var(--color-accent)" }}>
             {formatMoney(displayPrice, currency)}
           </span>
           {effectiveCompareAt && (
-            <span className="text-[10px] line-through" style={{ color: "var(--color-text-muted)" }}>
+            <span className="text-[10px] font-medium leading-none line-through" style={{ color: "var(--color-text-muted)" }}>
               {formatMoney(effectiveCompareAt, currency)}
             </span>
           )}
@@ -570,3 +763,6 @@ function ProductCard({
     </div>
   );
 }
+
+export type TrendingProductCardProduct = Product;
+export { ProductCard as MarketplaceTrendingProductCard, LoadMoreSkeleton as TrendingProductLoadMoreSkeleton };

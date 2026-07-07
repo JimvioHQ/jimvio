@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
@@ -44,6 +44,12 @@ import type {
   Community,
 } from "@/types/dashboard";
 import { QUICK_ACTIONS } from "@/data/dashboard";
+import { CreatorCommandCenter } from "@/components/creator-command-center/CreatorCommandCenter";
+import { JimvioWorkspace } from "@/components/jimvio-workspace";
+import { OpportunityEngineDashboard } from "@/components/opportunity-engine/OpportunityEngineDashboard";
+import { mapDashboardToCommandCenter } from "@/lib/creator-command-center";
+import { mapDashboardToWorkspace } from "@/lib/jimvio-workspace";
+import { buildOpportunityEngineData } from "@/lib/opportunity-engine";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -819,6 +825,98 @@ export default function DashboardHomePage() {
   const displayName =
     profile?.full_name ?? profile?.email?.split("@")[0] ?? "there";
 
+  const workspaceData = useMemo(
+    () =>
+      mapDashboardToWorkspace({
+        displayName,
+        earnedToday,
+        monthlyEarnings: wallet?.total_earned ?? earningsTotal ?? 0,
+        pendingBalance: wallet?.pending_balance ?? 0,
+        productsCount: products.length,
+        communitiesCount: communities.length,
+        coursesCount: 0,
+        ordersCount: activityItems.filter((a) => a.icon === "sale" || a.icon === "check").length,
+        messagesCount: dashboardMessages.length,
+        notificationsCount: unreadNotifications,
+        affiliateRevenue:
+          earningsDatasets?.find((d) => d.label.toLowerCase().includes("affiliate"))?.data.at(-1) ?? 0,
+        ugcRevenue:
+          earningsDatasets?.find((d) => d.label.toLowerCase().includes("ugc"))?.data.at(-1) ?? 0,
+        campaignsCount: campaignsCount,
+        activeLinks: activeLinks,
+        earnedTrend,
+        activityItems,
+        messages: dashboardMessages,
+        earningsDatasets,
+        formatMoney,
+      }),
+    [
+      displayName,
+      earnedToday,
+      wallet,
+      earningsTotal,
+      products.length,
+      communities.length,
+      activityItems,
+      dashboardMessages,
+      unreadNotifications,
+      earningsDatasets,
+      earnedTrend,
+      campaignsCount,
+      activeLinks,
+      formatMoney,
+    ],
+  );
+
+  const opportunityEngineData = useMemo(
+    () =>
+      buildOpportunityEngineData({
+        products,
+        campaigns,
+        communities,
+        sidebarCampaigns,
+        recommendedCreators: sidebarCreators,
+      }),
+    [products, campaigns, communities, sidebarCampaigns, sidebarCreators],
+  );
+
+  const commandCenterData = useMemo(
+    () =>
+      mapDashboardToCommandCenter({
+        earnedToday,
+        monthlyEarnings: wallet?.total_earned ?? earningsTotal ?? 0,
+        pendingBalance: wallet?.pending_balance ?? 0,
+        productsCount: products.length,
+        communitiesCount: communities.length,
+        coursesCount: 0,
+        ordersCount: activityItems.filter((a) => a.icon === "sale" || a.icon === "check").length,
+        messagesCount: dashboardMessages.length,
+        notificationsCount: unreadNotifications,
+        affiliateRevenue:
+          earningsDatasets?.find((d) => d.label.toLowerCase().includes("affiliate"))?.data.at(-1) ?? 0,
+        ugcRevenue:
+          earningsDatasets?.find((d) => d.label.toLowerCase().includes("ugc"))?.data.at(-1) ?? 0,
+        earnedTrend,
+        activityItems,
+        messages: dashboardMessages,
+        earningsDatasets,
+        formatMoney,
+      }),
+    [
+      earnedToday,
+      wallet,
+      earningsTotal,
+      products.length,
+      communities.length,
+      activityItems,
+      dashboardMessages,
+      unreadNotifications,
+      earningsDatasets,
+      earnedTrend,
+      formatMoney,
+    ],
+  );
+
   // ─ Derive featured campaign props from the real row ─
   const featuredProps = featuredCampaign
     ? (() => {
@@ -928,6 +1026,12 @@ export default function DashboardHomePage() {
             </>
           }
         />
+
+        <JimvioWorkspace data={workspaceData} loading={loading} />
+
+        <CreatorCommandCenter data={commandCenterData} loading={loading} />
+
+        <OpportunityEngineDashboard data={opportunityEngineData} loading={loading} />
 
         <HeroStatsRow
           earnedToday={loading ? "—" : `${formatMoney(earnedToday, "USD")} today`}

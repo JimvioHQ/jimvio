@@ -11,7 +11,7 @@
     "type-check": "tsc --noEmit",
     "pesapal:verify": "node scripts/pesapal-verify.mjs",
     "pawapay:generate-signing-key": "node scripts/generate-pawapay-signing-key.mjs",
-    "icons:generate": "node scripts/generate-round-icons.mjs"
+    "icons:generate": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@emoji-mart/data": "^1.2.1",

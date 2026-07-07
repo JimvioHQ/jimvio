@@ -516,16 +516,14 @@ export function NavbarSearch({
     closePanel();
   }
 
-  // ── Desktop shell width ───────────────────────────────────────────────────
-  const shellWidth = isDesktop ? (open || hasQuery ? 240 : 148) : "100%";
+  // ── Desktop shell width — fixed to prevent layout shift ───────────────────
+  const desktopSearchWidth = 220;
 
   return (
-    <div className={cn("relative flex items-center", isDesktop ? "gap-2" : "flex-1 w-full")}>
+    <div className={cn("relative flex items-center", isDesktop ? "shrink-0" : "flex-1 w-full gap-2")}>
 
       {/* ── Trigger shell — purely visual, owns no real input ── */}
-      <motion.div
-        animate={{ width: shellWidth }}
-        transition={{ type: "spring", damping: 80, stiffness: 300 }}
+      <div
         onClick={openPanel}
         role="button"
         aria-label="Open search"
@@ -533,22 +531,31 @@ export function NavbarSearch({
           "relative flex h-10 items-center overflow-hidden cursor-text",
           "border-[1.5px] border-border bg-surface",
           "rounded-md shadow-[var(--shadow-sm)]",
-          "transition-[border-color,box-shadow] duration-[180ms]",
+          "transition-[border-color,box-shadow] duration-200 ease-out",
           open
-            ? "border-accent shadow-[var(--shadow-sm),var(--shadow-glow)]"
-            : "hover:border-border-strong",
-          !isDesktop && "flex-1"
+            ? "border-accent shadow-[var(--shadow-sm),0_0_0_3px_color-mix(in_srgb,var(--color-accent)_12%,transparent)]"
+            : "hover:border-border-strong hover:shadow-[var(--shadow-sm)]",
+          isDesktop ? "w-[220px] shrink-0" : "flex-1 w-full",
         )}
+        style={isDesktop ? { width: desktopSearchWidth } : undefined}
       >
         <div className="flex shrink-0 items-center pl-3 pr-2">
-          <Search size={15} className={cn("transition-colors duration-[180ms]", open || hasQuery ? "text-accent" : "text-text-muted")} />
+          <Search
+            size={15}
+            className={cn(
+              "transition-colors duration-[180ms]",
+              open || hasQuery ? "text-accent" : "text-text-muted",
+            )}
+          />
         </div>
 
         {/* Visual mirror of current query */}
-        <span className={cn(
-          "flex-1 min-w-0 truncate text-[13px] tracking-[-0.01em] select-none",
-          hasQuery ? "font-medium text-text-primary" : "font-normal text-text-muted"
-        )}>
+        <span
+          className={cn(
+            "flex-1 min-w-0 truncate text-[13px] tracking-[-0.01em] select-none",
+            hasQuery ? "font-medium text-text-primary" : "font-normal text-text-muted",
+          )}
+        >
           {hasQuery ? searchQ : (placeholder ?? "Search products…")}
         </span>
 
@@ -561,7 +568,10 @@ export function NavbarSearch({
               exit={{ opacity: 0, scale: 0.6 }}
               transition={{ duration: 0.12 }}
               tabIndex={-1}
-              onClick={(e) => { e.stopPropagation(); setSearchQ(""); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSearchQ("");
+              }}
               className="mr-2.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-sm bg-black/[0.07] text-text-muted transition-colors hover:bg-black/[0.12]"
             >
               <X size={10} />
@@ -584,7 +594,7 @@ export function NavbarSearch({
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </div>
 
       {/* Filter — mobile only */}
       {!isDesktop && (
