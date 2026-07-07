@@ -28,7 +28,7 @@ export async function runAutoPublishRetry(): Promise<AutoPublishRetryResult> {
     reevaluated: 0,
     newlyReady: 0,
     enqueued: 0,
-    queue: { processed: 0, published: 0, failed: 0, skipped: 0 },
+    queue: { processed: 0, published: 0, failed: 0, skipped: 0, verified: 0 },
   };
 
   try {

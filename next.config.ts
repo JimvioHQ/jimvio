@@ -1,7 +1,23 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pdfkit"],
+  serverExternalPackages: [
+    "pdfkit",
+    "exceljs",
+    "@prisma/client",
+    "prisma",
+    "maplibre-gl",
+    "openai",
+    "cloudinary",
+    "sharp",
+  ],
+
+  productionBrowserSourceMaps: false,
+
+  typescript: {
+    tsconfigPath: "tsconfig.build.json",
+  },
+
   turbopack: {
     root: "",
   },
@@ -16,6 +32,7 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
+    webpackMemoryOptimizations: true,
     serverActions: {
       allowedOrigins: ["*"],
     },

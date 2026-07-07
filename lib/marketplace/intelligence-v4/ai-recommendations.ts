@@ -81,7 +81,7 @@ export function generateProductRecommendations(
 }
 
 export function aggregateRecommendations(
-  products: Array<{ signals: MarketplaceProductSignals; recs: ReturnType<typeof generateProductRecommendations> }>
+  products: Array<{ recs: ReturnType<typeof generateProductRecommendations> }>
 ): AiRecommendation[] {
   const buckets = new Map<string, { count: number; sample: string; action: string; priority: number }>();
 

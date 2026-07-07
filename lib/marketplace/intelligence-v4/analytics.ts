@@ -45,7 +45,7 @@ export async function computeMarketplaceIntelligenceAnalytics(): Promise<Marketp
   let rankSum = 0;
   let trendSum = 0;
   let qualitySum = 0;
-  const allRecs: Array<{ signals: { productId: string; name: string }; recs: ReturnType<typeof generateProductRecommendations> }> = [];
+  const allRecs: Array<{ recs: ReturnType<typeof generateProductRecommendations> }> = [];
 
   for (const row of rows) {
     rankSum += Number(row.rank_score ?? 0);
@@ -56,10 +56,7 @@ export async function computeMarketplaceIntelligenceAnalytics(): Promise<Marketp
       ? (row.ai_recommendations as ReturnType<typeof generateProductRecommendations>)
       : [];
     if (recs.length > 0) {
-      allRecs.push({
-        signals: { productId: "", name: "" },
-        recs,
-      });
+      allRecs.push({ recs });
     }
   }
 

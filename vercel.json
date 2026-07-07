@@ -1,6 +1,12 @@
 {
   "regions": ["fra1"],
 
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--max-old-space-size=4096"
+    }
+  },
+
   "crons": [
     {
       "path": "/api/cron/shopify-sync",
