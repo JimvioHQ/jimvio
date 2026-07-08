@@ -1,6 +1,7 @@
 /**
  * Full Catalog Scanner — continuously evaluates the entire imported CJ catalog.
  * Runs in background batches; resumes after restart via cj_catalog_scan_state.
+ * Never stops on individual product failures — failed PIDs are retried later.
  */
 
 import { getCatalogDB } from "./db";
@@ -11,11 +12,14 @@ import { invalidateCatalogCache } from "./catalog-cache";
 const DEFAULT_BATCH_SIZE = 200;
 const MIN_BATCH = 100;
 const MAX_BATCH = 300;
+const MAX_FAILURE_ATTEMPTS = 5;
 
 export interface CatalogScannerResult {
   batchSize: number;
   evaluated: number;
   queued: number;
+  failed: number;
+  retried: number;
   cycleNumber: number;
   totalScanned: number;
   cycleComplete: boolean;
@@ -105,6 +109,57 @@ async function fetchNextBatch(
   return (data ?? []).map((r) => r.pid as string);
 }
 
+async function fetchRetryBatch(limit: number): Promise<string[]> {
+  try {
+    const db = getCatalogDB();
+    const { data } = await db
+      .from("cj_scan_failures")
+      .select("pid")
+      .lte("next_retry_at", new Date().toISOString())
+      .order("next_retry_at", { ascending: true })
+      .limit(limit);
+    return (data ?? []).map((r) => r.pid as string);
+  } catch {
+    return [];
+  }
+}
+
+async function recordScanFailure(pid: string, error: string): Promise<void> {
+  try {
+    const db = getCatalogDB();
+    const { data: existing } = await db
+      .from("cj_scan_failures")
+      .select("attempts")
+      .eq("pid", pid)
+      .maybeSingle();
+
+    const attempts = (Number(existing?.attempts) || 0) + 1;
+    const delayMs = Math.min(attempts * 120_000, 3_600_000);
+
+    await db.from("cj_scan_failures").upsert(
+      {
+        pid,
+        attempts,
+        last_error: error.slice(0, 500),
+        next_retry_at: new Date(Date.now() + delayMs).toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "pid" }
+    );
+  } catch {
+    // table may not exist yet
+  }
+}
+
+async function clearScanFailure(pid: string): Promise<void> {
+  try {
+    const db = getCatalogDB();
+    await db.from("cj_scan_failures").delete().eq("pid", pid);
+  } catch {
+    // ignore
+  }
+}
+
 async function syncPublishLink(pid: string, productId: string | null): Promise<void> {
   if (!productId) return;
   const db = getCatalogDB();
@@ -129,8 +184,22 @@ async function syncPublishLink(pid: string, productId: string | null): Promise<v
     .eq("pid", pid);
 }
 
+async function evaluatePid(pid: string): Promise<{ queued: boolean }> {
+  const result = await triggerAutoPublishEvaluation(pid, "signal_recalc");
+  if (result.productId) {
+    await syncPublishLink(pid, result.productId);
+  }
+  const db = getCatalogDB();
+  await db
+    .from("cj_product_intelligence")
+    .update({ last_scanned_at: new Date().toISOString() })
+    .eq("pid", pid);
+  await clearScanFailure(pid);
+  return { queued: result.queued };
+}
+
 /**
- * Evaluate one batch of products: 8 Auto Publish rules → intelligence → queue READY.
+ * Evaluate one batch of products: progressive publish rules → intelligence → queue READY.
  */
 export async function runCatalogScannerBatch(
   batchSize = DEFAULT_BATCH_SIZE
@@ -142,6 +211,8 @@ export async function runCatalogScannerBatch(
     batchSize: 0,
     evaluated: 0,
     queued: 0,
+    failed: 0,
+    retried: 0,
     cycleNumber: 1,
     totalScanned: 0,
     cycleComplete: false,
@@ -154,7 +225,9 @@ export async function runCatalogScannerBatch(
   }
 
   const state = await getScanState();
-  const pids = await fetchNextBatch(state.last_pid, size);
+  const retryPids = await fetchRetryBatch(Math.min(25, Math.floor(size / 4)));
+  let pids = await fetchNextBatch(state.last_pid, size - retryPids.length);
+  pids = [...new Set([...retryPids, ...pids])];
 
   if (pids.length === 0) {
     await saveScanState({
@@ -182,22 +255,22 @@ export async function runCatalogScannerBatch(
 
   let evaluated = 0;
   let queued = 0;
-  const db = getCatalogDB();
-  const now = new Date().toISOString();
+  let failed = 0;
+  let retried = 0;
 
   for (const pid of pids) {
-    const result = await triggerAutoPublishEvaluation(pid, "signal_recalc");
-    evaluated += 1;
-    if (result.queued) queued += 1;
-
-    if (result.productId) {
-      await syncPublishLink(pid, result.productId);
+    const isRetry = retryPids.includes(pid);
+    try {
+      const r = await evaluatePid(pid);
+      evaluated += 1;
+      if (r.queued) queued += 1;
+      if (isRetry) retried += 1;
+    } catch (err) {
+      failed += 1;
+      const message = err instanceof Error ? err.message : "scan failed";
+      await recordScanFailure(pid, message);
+      evaluated += 1;
     }
-
-    await db
-      .from("cj_product_intelligence")
-      .update({ last_scanned_at: now })
-      .eq("pid", pid);
   }
 
   const lastPid = pids[pids.length - 1]!;
@@ -222,6 +295,8 @@ export async function runCatalogScannerBatch(
     batchSize: evaluated,
     evaluated,
     queued,
+    failed,
+    retried,
     cycleNumber: cycleComplete ? state.cycle_number + 1 : state.cycle_number,
     totalScanned: newTotal,
     cycleComplete,
@@ -236,6 +311,7 @@ export async function getCatalogScannerStatus(): Promise<{
   totalScanned: number;
   lastBatchAt: string | null;
   status: string;
+  pendingRetries: number;
 }> {
   if (!(await isScannerSchemaReady())) {
     return {
@@ -244,15 +320,24 @@ export async function getCatalogScannerStatus(): Promise<{
       totalScanned: 0,
       lastBatchAt: null,
       status: "schema_missing",
+      pendingRetries: 0,
     };
   }
 
   const db = getCatalogDB();
-  const { data } = await db
-    .from("cj_catalog_scan_state")
-    .select("*")
-    .eq("id", "default")
-    .maybeSingle();
+  const [{ data }, retryCount] = await Promise.all([
+    db.from("cj_catalog_scan_state").select("*").eq("id", "default").maybeSingle(),
+    (async () => {
+      try {
+        const { count } = await db
+          .from("cj_scan_failures")
+          .select("pid", { count: "exact", head: true });
+        return count ?? 0;
+      } catch {
+        return 0;
+      }
+    })(),
+  ]);
 
   return {
     lastPid: (data?.last_pid as string) ?? "",
@@ -260,5 +345,6 @@ export async function getCatalogScannerStatus(): Promise<{
     totalScanned: Number(data?.total_scanned) || 0,
     lastBatchAt: (data?.last_batch_at as string) ?? null,
     status: (data?.status as string) ?? "idle",
+    pendingRetries: retryCount,
   };
 }

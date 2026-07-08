@@ -104,17 +104,17 @@ export async function triggerAutoPublishEvaluation(
   const v3 = evaluateV3Intelligence(product);
   const payload = {
     ...toV3DbPayload(v3),
-    ...(v3.autoPublish.ready && !v3.blocked
+    ...(v3.publishReady && !v3.blocked
       ? { auto_publish_ready_at: new Date().toISOString() }
       : {}),
   };
   await updateIntelligence(pid, payload);
 
-  result.ready = v3.autoPublish.ready;
+  result.ready = v3.publishReady;
   result.blocked = v3.blocked;
 
   if (!productId) return result;
-  if (v3.blocked || !v3.autoPublish.ready) return result;
+  if (v3.blocked || !v3.publishReady) return result;
 
   const db = getCatalogDB();
   const { data: existingProduct } = await db
@@ -143,10 +143,16 @@ export async function triggerAutoPublishEvaluation(
       ready: true,
       published: false,
       score: v3.autoPublish.score,
-      status: v3.autoPublish.status,
+      status: "READY",
       processingTimeMs: debounceMs,
       eventType: "queued",
     });
+
+    const { invalidateCatalogCache } = await import("./catalog-cache");
+    invalidateCatalogCache();
+
+    const { processAutoPublishQueue } = await import("./auto-publish-queue");
+    void processAutoPublishQueue(10).catch(() => {});
   }
 
   return result;

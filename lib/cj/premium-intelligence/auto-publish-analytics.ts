@@ -1,4 +1,5 @@
 import { getCatalogDB } from "./db";
+import { FAILURE_LABELS } from "./catalog-filter-index";
 
 export interface AutoPublishAnalyticsSnapshot {
   totalProducts: number;
@@ -20,50 +21,82 @@ export interface AutoPublishAnalyticsSnapshot {
   snapshotAt: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CountQuery = any;
+
+async function countIntel(apply?: (q: CountQuery) => CountQuery): Promise<number> {
+  const db = getCatalogDB();
+  let q = db.from("cj_product_intelligence").select("pid", { count: "exact", head: true });
+  if (apply) q = apply(q);
+  const { count } = await q;
+  return count ?? 0;
+}
+
 export async function computeAutoPublishAnalytics(): Promise<AutoPublishAnalyticsSnapshot> {
   const db = getCatalogDB();
   const now = new Date().toISOString();
 
   const [
-    { count: totalProducts },
-    { count: ready },
-    { count: pendingEnrichment },
-    { count: requirementsMissing },
-    { count: published },
-    { count: adminOverride },
-    intelSample,
+    totalProducts,
+    ready,
+    pendingEnrichment,
+    requirementsMissing,
+    published,
+    adminOverride,
+    missingVideo,
+    missingSupplier,
+    missingShipping,
+    missingImages,
+    missingDescription,
+    missingVariants,
+    missingStock,
+    trendingMissing,
+    scoreSample,
     enrichmentTimes,
   ] = await Promise.all([
-    db
-      .from("cj_product_intelligence")
-      .select("pid", { count: "exact", head: true }),
-    db
-      .from("cj_product_intelligence")
-      .select("pid", { count: "exact", head: true })
-      .eq("auto_publish_ready", true),
-    db
-      .from("cj_product_intelligence")
-      .select("pid", { count: "exact", head: true })
-      .eq("auto_publish_status", "PENDING_ENRICHMENT"),
-    db
-      .from("cj_product_intelligence")
-      .select("pid", { count: "exact", head: true })
-      .eq("auto_publish_status", "REQUIREMENTS_MISSING"),
+    countIntel(),
+    countIntel((q) =>
+      q.eq("auto_publish_ready", true).eq("auto_publish_status", "READY")
+    ),
+    countIntel((q) => q.eq("auto_publish_status", "PENDING_ENRICHMENT")),
+    countIntel((q) => q.eq("auto_publish_status", "REQUIREMENTS_MISSING")),
     db
       .from("products")
       .select("id", { count: "exact", head: true })
       .eq("source", "cj")
       .eq("status", "active")
-      .is("deleted_at", null),
-    db
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("published_by_admin_override", true)
-      .is("deleted_at", null),
+      .is("deleted_at", null)
+      .then(({ count }) => count ?? 0),
+    countIntel((q) => q.eq("is_admin_override", true)),
+    countIntel((q) =>
+      q.contains("auto_publish_failures", [FAILURE_LABELS.missingVideo])
+    ),
+    countIntel((q) =>
+      q.contains("auto_publish_failures", [FAILURE_LABELS.missingSupplier])
+    ),
+    countIntel((q) =>
+      q.contains("auto_publish_failures", [FAILURE_LABELS.missingShipping])
+    ),
+    countIntel((q) =>
+      q.contains("auto_publish_failures", [FAILURE_LABELS.missingImages])
+    ),
+    countIntel((q) =>
+      q.contains("auto_publish_failures", [FAILURE_LABELS.missingDescription])
+    ),
+    countIntel((q) =>
+      q.contains("auto_publish_failures", [FAILURE_LABELS.missingVariants])
+    ),
+    countIntel((q) =>
+      q.contains("auto_publish_failures", [FAILURE_LABELS.missingStock])
+    ),
+    countIntel((q) =>
+      q.contains("auto_publish_failures", [FAILURE_LABELS.missingTrending])
+    ),
     db
       .from("cj_product_intelligence")
-      .select("auto_publish_score, auto_publish_failures")
-      .limit(10000),
+      .select("auto_publish_score")
+      .eq("enrichment_status", "complete")
+      .limit(5000),
     db
       .from("cj_product_intelligence")
       .select("enriched_at, created_at")
@@ -72,32 +105,11 @@ export async function computeAutoPublishAnalytics(): Promise<AutoPublishAnalytic
       .limit(5000),
   ]);
 
-  const rows = intelSample.data ?? [];
-  let scoreSum = 0;
-  let missingVideo = 0;
-  let missingSupplier = 0;
-  let missingShipping = 0;
-  let missingImages = 0;
-  let missingDescription = 0;
-  let missingVariants = 0;
-  let missingStock = 0;
-  let trendingMissing = 0;
-
-  for (const row of rows) {
-    scoreSum += Number(row.auto_publish_score ?? 0);
-    const failures = Array.isArray(row.auto_publish_failures)
-      ? (row.auto_publish_failures as string[])
-      : [];
-
-    if (failures.includes("Missing Product Video")) missingVideo++;
-    if (failures.includes("Supplier Not Verified")) missingSupplier++;
-    if (failures.includes("Fast Shipping Missing")) missingShipping++;
-    if (failures.includes("Insufficient Images")) missingImages++;
-    if (failures.includes("Incomplete Description")) missingDescription++;
-    if (failures.includes("Missing Variants")) missingVariants++;
-    if (failures.includes("Out of Stock")) missingStock++;
-    if (failures.includes("Product Not Trending")) trendingMissing++;
-  }
+  const scoreRows = scoreSample.data ?? [];
+  const scoreSum = scoreRows.reduce(
+    (acc, r) => acc + Number(r.auto_publish_score ?? 0),
+    0
+  );
 
   let avgEnrichmentTimeMs: number | null = null;
   const timeRows = enrichmentTimes.data ?? [];
@@ -111,12 +123,12 @@ export async function computeAutoPublishAnalytics(): Promise<AutoPublishAnalytic
   }
 
   const snapshot: AutoPublishAnalyticsSnapshot = {
-    totalProducts: totalProducts ?? 0,
-    ready: ready ?? 0,
-    published: published ?? 0,
-    pendingEnrichment: pendingEnrichment ?? 0,
-    requirementsMissing: requirementsMissing ?? 0,
-    adminOverride: adminOverride ?? 0,
+    totalProducts,
+    ready,
+    published,
+    pendingEnrichment,
+    requirementsMissing,
+    adminOverride,
     missingVideo,
     missingSupplier,
     missingShipping,
@@ -125,7 +137,10 @@ export async function computeAutoPublishAnalytics(): Promise<AutoPublishAnalytic
     missingVariants,
     missingStock,
     trendingMissing,
-    avgPublishScore: rows.length > 0 ? Math.round((scoreSum / rows.length) * 100) / 100 : 0,
+    avgPublishScore:
+      scoreRows.length > 0
+        ? Math.round((scoreSum / scoreRows.length) * 100) / 100
+        : 0,
     avgEnrichmentTimeMs,
     snapshotAt: now,
   };

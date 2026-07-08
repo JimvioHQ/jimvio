@@ -22,10 +22,10 @@ export const AUTO_PUBLISH_RETRY_DELAYS_MS = [
 
 export const AUTO_PUBLISH_MAX_RETRIES = 5;
 
-/** Debounce window: 2–5 minutes after becoming READY */
+/** Debounce window: 30–60 seconds after becoming READY */
 export function computePublishDebounceMs(): number {
-  const min = 2 * 60_000;
-  const max = 5 * 60_000;
+  const min = 30_000;
+  const max = 60_000;
   return min + Math.floor(Math.random() * (max - min));
 }
 

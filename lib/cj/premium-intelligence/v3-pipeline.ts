@@ -9,6 +9,10 @@ import {
   type AutoPublishResult,
 } from "../import-intelligence/auto-publish-engine";
 import {
+  evaluateProgressivePublish,
+  type PublishTier,
+} from "../import-intelligence/progressive-publish";
+import {
   detectDuplicate,
   type DuplicateMatch,
 } from "../import-intelligence/duplicate-detection";
@@ -21,6 +25,8 @@ import {
 
 export interface V3Intelligence {
   autoPublish: AutoPublishResult;
+  publishTier: PublishTier;
+  publishReady: boolean;
   qualityConfidence: "very_high" | "high" | "medium" | "low";
   qualityExplanation: string;
   qualityFactors: string[];
@@ -38,15 +44,32 @@ export function evaluateV3Intelligence(
     adminOverride?: boolean;
   }
 ): V3Intelligence {
-  const autoPublish = evaluateAutoPublish(product, {
+  const progressive = evaluateProgressivePublish(product, {
     adminOverride: options?.adminOverride,
   });
+  const autoPublish = progressive.autoPublish;
   const quality = assessProductQuality(product, autoPublish);
   const supplierReputation = computeSupplierReputationFromProduct(product);
   const duplicate = options?.duplicateCandidates
     ? detectDuplicate(product, options.duplicateCandidates)
     : null;
-  const publishPriority = computePublishPriority(product);
+  const publishPriority = computePublishPriority({
+    ...product,
+    intelligence: {
+      ...product.intelligence,
+      autoPublish: {
+        ready: progressive.publishReady,
+        score: autoPublish.score,
+        status: progressive.publishReady ? "READY" : autoPublish.status,
+        failures: autoPublish.failures,
+        pendingEnrichment: autoPublish.pendingEnrichment,
+        checks: autoPublish.checks,
+        decision: autoPublish.decision,
+        lastCheck: new Date().toISOString(),
+        ...(product.intelligence.autoPublish ?? {}),
+      },
+    },
+  });
 
   const blockReasons: string[] = [];
   if (supplierReputation.blacklisted) {
@@ -56,8 +79,14 @@ export function evaluateV3Intelligence(
     blockReasons.push(`Duplicate detected (${Math.round(duplicate.similarity * 100)}% similar to ${duplicate.duplicatePid})`);
   }
 
+  const publishReady = progressive.publishReady && blockReasons.length === 0;
+
   return {
-    autoPublish,
+    autoPublish: publishReady
+      ? { ...autoPublish, ready: true, status: "READY" }
+      : autoPublish,
+    publishTier: progressive.tier,
+    publishReady,
     qualityConfidence: quality.confidence,
     qualityExplanation: quality.explanation,
     qualityFactors: quality.factors,
@@ -72,11 +101,14 @@ export function evaluateV3Intelligence(
 export function toV3DbPayload(v3: V3Intelligence) {
   return {
     ...{
-      auto_publish_ready: v3.autoPublish.ready && !v3.blocked,
+      auto_publish_ready: v3.publishReady && !v3.blocked,
       auto_publish_score: v3.autoPublish.score,
       auto_publish_status: v3.blocked
         ? "REQUIREMENTS_MISSING"
-        : v3.autoPublish.status,
+        : v3.publishReady
+          ? "READY"
+          : v3.autoPublish.status,
+      publish_tier: v3.publishTier,
       auto_publish_failures: [
         ...v3.autoPublish.failures,
         ...v3.blockReasons,
@@ -109,9 +141,13 @@ export function attachV3Intelligence(
     intelligence: {
       ...product.intelligence,
       autoPublish: {
-        ready: v3.autoPublish.ready && !v3.blocked,
+        ready: v3.publishReady && !v3.blocked,
         score: v3.autoPublish.score,
-        status: v3.blocked ? "REQUIREMENTS_MISSING" : v3.autoPublish.status,
+        status: v3.blocked
+          ? "REQUIREMENTS_MISSING"
+          : v3.publishReady
+            ? "READY"
+            : v3.autoPublish.status,
         failures: [...v3.autoPublish.failures, ...v3.blockReasons],
         pendingEnrichment: v3.autoPublish.pendingEnrichment,
         checks: v3.autoPublish.checks,

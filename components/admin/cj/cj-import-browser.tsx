@@ -101,6 +101,12 @@ import { StickyBulkPublishBar } from "@/components/admin/cj/import-intelligence/
 import { BulkAutoPublishBar } from "@/components/admin/cj/import-intelligence/bulk-auto-publish-bar";
 import { AutoPublishAnalyticsDashboard } from "@/components/admin/cj/import-intelligence/auto-publish-analytics-dashboard";
 import { CatalogHealthV3Panel } from "@/components/admin/cj/import-intelligence/catalog-health-v3-panel";
+import { DashboardViewControls } from "@/components/admin/cj/import-intelligence/dashboard-view-controls";
+import {
+  loadDashboardPrefs,
+  saveDashboardPrefs,
+  type CjDashboardLayoutPrefs,
+} from "@/lib/cj/import-intelligence/dashboard-layout-prefs";
 import { evaluateAutoPublish } from "@/lib/cj/import-intelligence/auto-publish-engine";
 import { useAutoPublishSync } from "@/lib/cj/import-intelligence/use-auto-publish-sync";
 import type {
@@ -218,7 +224,21 @@ export default function CJImportBrowser({
     optionA?: { title: string; steps: string[] };
     optionB?: { title: string; sql: string };
   } | null>(null);
+  const [dashboardPrefs, setDashboardPrefs] = useState<CjDashboardLayoutPrefs>(() =>
+    typeof window !== "undefined" ? loadDashboardPrefs() : loadDashboardPrefs()
+  );
   const isLgScreen = useIsLgScreen();
+
+  useEffect(() => {
+    setDashboardPrefs(loadDashboardPrefs());
+  }, []);
+
+  const handleDashboardPrefsChange = useCallback((prefs: CjDashboardLayoutPrefs) => {
+    setDashboardPrefs(prefs);
+    saveDashboardPrefs(prefs);
+    if (prefs.hideFilters) setSidebarOpen(false);
+    else setSidebarOpen(true);
+  }, []);
 
   const {
     enrichmentMap,
@@ -525,7 +545,7 @@ export default function CJImportBrowser({
         .catch(() => {});
     };
     loadCounts();
-    const id = window.setInterval(loadCounts, 30_000);
+    const id = window.setInterval(loadCounts, 10_000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -561,10 +581,7 @@ export default function CJImportBrowser({
     [dbTierCounts, enrichedCatalog]
   );
 
-  const useServerFiltering =
-    activeFilterCount > 0 ||
-    debouncedSearch.trim().length > 0 ||
-    debouncedLocalSearch.trim().length > 0;
+  const useServerFiltering = hasSearched;
 
   const visibleProducts = useMemo(() => {
     if (useServerFiltering) {
@@ -970,6 +987,9 @@ export default function CJImportBrowser({
       invalidateCJCache();
       setSelectedPids(new Set());
       setNextCursor(null);
+      void fetchCatalogFilterCounts()
+        .then(({ counts }) => setServerFilterCounts(counts))
+        .catch(() => {});
       void loadPage(1, false, filters);
     },
     [loadPage]
@@ -1074,6 +1094,13 @@ export default function CJImportBrowser({
           </div>
         </div>
 
+        <DashboardViewControls
+          prefs={dashboardPrefs}
+          onChange={handleDashboardPrefsChange}
+          className="mb-2"
+        />
+
+        {!dashboardPrefs.hideJimvioIntelligence && (
         <SessionAnalytics
           publishedProducts={sessionStats.publishedProducts}
           catalogSize={total || cjTotalCount}
@@ -1083,8 +1110,9 @@ export default function CJImportBrowser({
           averageRoi={averageRoi}
           averageMargin={sessionStats.averageMargin}
         />
+        )}
 
-        <IntelligenceMonitor />
+        {!dashboardPrefs.hideIntelligenceMonitor && <IntelligenceMonitor />}
 
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
@@ -1221,14 +1249,15 @@ export default function CJImportBrowser({
           />
         )}
 
-        {hasSearched && (
-          <>
-            <AutoPublishAnalyticsDashboard
-              className="mt-3"
-              onApplyFilter={handleAnalyticsFilter}
-            />
-            <CatalogHealthV3Panel className="mt-2" />
-          </>
+        {hasSearched && !dashboardPrefs.hideAutoPublishAnalytics && (
+          <AutoPublishAnalyticsDashboard
+            className="mt-3"
+            onApplyFilter={handleAnalyticsFilter}
+            pollIntervalMs={10_000}
+          />
+        )}
+        {hasSearched && !dashboardPrefs.hideCatalogHealth && (
+          <CatalogHealthV3Panel className="mt-2" />
         )}
       </div>
 
@@ -1268,7 +1297,7 @@ export default function CJImportBrowser({
           <EmptyState onSearch={runSearch} />
         ) : (
           <div className="flex w-full min-w-0 items-start gap-3">
-            {isLgScreen && (
+            {isLgScreen && !dashboardPrefs.hideFilters && (
               <FilterSidebar
                 filters={intelFilters}
                 onChange={handleIntelFiltersChange}
@@ -1281,7 +1310,7 @@ export default function CJImportBrowser({
               />
             )}
 
-            {sidebarOpen && !isLgScreen && (
+            {sidebarOpen && !isLgScreen && !dashboardPrefs.hideFilters && (
               <div
                 className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
                 onClick={() => setSidebarOpen(false)}

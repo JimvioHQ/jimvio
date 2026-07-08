@@ -41,7 +41,10 @@ export async function enqueueAutoPublish(
     .maybeSingle();
 
   if (existing) {
-    if (existing.status === "failed") {
+    const sooner =
+      debounceMs != null &&
+      new Date(existing.next_attempt_at as string).getTime() > Date.now() + debounceMs;
+    if (existing.status === "failed" || sooner) {
       const updatePayload: Record<string, unknown> = {
         status: "pending",
         priority: priority ?? 0,
@@ -113,14 +116,20 @@ async function loadProductForPublish(
   return enriched;
 }
 
-/** Auto-published products must be marketplace-eligible (Premium minimum). */
+/** Auto-published products — Premium → PREMIUM; Standard → STANDARD minimum. */
 async function promoteMarketplaceTier(
   pid: string,
-  product: EnrichedProduct
+  product: EnrichedProduct,
+  publishTier?: string | null
 ): Promise<CatalogTier> {
   const scored = scoreEnrichedProduct(product, "complete");
   let tier = scored.catalogTier;
-  if (tier !== "ELITE" && tier !== "PREMIUM") {
+
+  if (publishTier === "standard") {
+    if (tier !== "ELITE" && tier !== "PREMIUM" && tier !== "STANDARD") {
+      tier = "STANDARD";
+    }
+  } else if (tier !== "ELITE" && tier !== "PREMIUM") {
     tier = "PREMIUM";
   }
 
@@ -243,7 +252,7 @@ export async function processAutoPublishQueue(
         continue;
       }
 
-      if (!v3.autoPublish.ready) {
+      if (!v3.publishReady) {
         result.skipped += 1;
         await db
           .from("cj_auto_publish_queue")
@@ -279,7 +288,7 @@ export async function processAutoPublishQueue(
         eventType: "publishing",
       });
 
-      await promoteMarketplaceTier(pid, product);
+      await promoteMarketplaceTier(pid, product, v3.publishTier);
 
       const pub = await publishProductSystem(productId);
       if (!pub.success) throw new Error(pub.error ?? "Publish failed");
