@@ -368,13 +368,16 @@ export function Sidebar({ type = "physical" }: Props) {
           ) : (
             <div>
               <CustomSelect
-                options={allCategories.map((c) => ({
-                  label: c.product_count ? `${c.name} (${fmtCount(c.product_count)})` : c.name,
-                  value: c.name,
-                }))}
-                value={filters.category ?? null}
+                options={[
+                  { label: "All", value: "" },
+                  ...allCategories.map((c) => ({
+                    label: c.product_count ? `${c.name} (${fmtCount(c.product_count)})` : c.name,
+                    value: c.name,
+                  })),
+                ]}
+                value={filters.category || ""}
                 onChange={(v) => setCategory(v)}
-                placeholder="Select category"
+                placeholder="All"
                 searchable
                 isClearable
                 className="h-10"

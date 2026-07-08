@@ -53,7 +53,7 @@ async function HomepageContent() {
     getResolvedPlatformSettings().catch(() => null),
     getHomepageCampaigns(8).catch(() => []),
     getHomepageCommunities(8).catch(() => []),
-    getProducts({ sort: "trending", limit: 12 }).catch(() => ({ products: [], total: 0 })),
+    getProducts({ type: "physical", sort: "newest", limit: 12 }).catch(() => ({ products: [], total: 0 })),
     getTopCreators(6).catch(() => []),
   ]);
 

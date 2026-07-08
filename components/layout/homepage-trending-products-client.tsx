@@ -136,8 +136,9 @@ export function HomepageTrendingProductsClient({
         .select(PRODUCT_SELECT, { count: "exact" })
         .eq("status", "active")
         .eq("is_active", true)
+        .eq("product_type", "physical")
         .is("deleted_at", null)
-        .order("view_count", { ascending: false })
+        .order("created_at", { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
 
       const batch = (data ?? []) as TrendingProductCardProduct[];
