@@ -187,13 +187,28 @@ async function syncPublishLink(pid: string, productId: string | null): Promise<v
 }
 
 async function evaluatePid(pid: string): Promise<{ queued: boolean }> {
+  const db = getCatalogDB();
+  const { data: intel } = await db
+    .from("cj_product_intelligence")
+    .select("enrichment_status")
+    .eq("pid", pid)
+    .maybeSingle();
+
+  if (intel?.enrichment_status !== "complete") {
+    await db
+      .from("cj_product_intelligence")
+      .update({ last_scanned_at: new Date().toISOString() })
+      .eq("pid", pid);
+    await clearScanFailure(pid);
+    return { queued: false };
+  }
+
   const result = await triggerAutoPublishEvaluation(pid, "signal_recalc", {
     scanOnly: true,
   });
   if (result.productId) {
     await syncPublishLink(pid, result.productId);
   }
-  const db = getCatalogDB();
   await db
     .from("cj_product_intelligence")
     .update({ last_scanned_at: new Date().toISOString() })

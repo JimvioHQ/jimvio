@@ -10,6 +10,7 @@ import { invalidateCatalogCache } from "./catalog-cache";
 import { logAutoPublishEvent } from "./auto-publish-events";
 import { runStockHealthMonitor } from "./auto-unpublish-monitor";
 import { restoreAggressiveUnpublishes, fixMisalignedLiveIntelligence } from "./marketplace-restore";
+import { realignPendingEnrichmentStatus, resetStuckEnrichmentJobs } from "./catalog-repository";
 
 const STUCK_PROCESSING_MS = 15 * 60_000;
 
@@ -117,6 +118,9 @@ export async function runMarketplaceMaintenance(): Promise<MarketplaceMaintenanc
   const restoreResult = await restoreAggressiveUnpublishes(200);
   result.restored = restoreResult.restored;
   result.intelligenceFixed = restoreResult.intelligenceFixed;
+
+  await realignPendingEnrichmentStatus(500);
+  await resetStuckEnrichmentJobs();
 
   const misaligned = await fixMisalignedLiveIntelligence(200);
   result.intelligenceFixed += misaligned.fixed;

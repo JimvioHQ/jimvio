@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import {
   bootstrapCatalog,
-  processEnrichmentQueue,
+  processEnrichmentQueueChained,
   retryFailedEnrichments,
-  syncCjListCatalog,
+  realignPendingEnrichmentStatus,
+  resetStuckEnrichmentJobs,
 } from "@/lib/cj/premium-intelligence";
 import { getSchemaHealth } from "@/lib/cj/premium-intelligence/schema-health";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
@@ -16,7 +17,7 @@ function authorized(req: Request): boolean {
   return req.headers.get("authorization") === `Bearer ${secret}`;
 }
 
-/** Process enrichment queue — run frequently between 6h syncs */
+/** Process enrichment queue continuously — chained batches until time budget expires */
 export async function GET(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -33,9 +34,13 @@ export async function GET(req: Request) {
     }
 
     await bootstrapCatalog({ runSyncIfEmpty: false, runEnrichment: false });
-    const retried = await retryFailedEnrichments(50);
-    const result = await processEnrichmentQueue(25);
-    return NextResponse.json({ ok: true, retried, ...result });
+    const realigned = await realignPendingEnrichmentStatus(1000);
+    const stuckReset = await resetStuckEnrichmentJobs();
+    const retried = await retryFailedEnrichments(200);
+    const result = await processEnrichmentQueueChained(100, {
+      maxDurationMs: 280_000,
+    });
+    return NextResponse.json({ ok: true, realigned, stuckReset, retried, ...result });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : "failed" },

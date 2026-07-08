@@ -110,6 +110,7 @@ export const DEFAULT_INTELLIGENCE_FILTERS: IntelligenceFilters = {
   missingVariants: false,
   missingStock: false,
   missingTrending: false,
+  publishQueueStatus: undefined,
 };
 
 export function enrichProduct(

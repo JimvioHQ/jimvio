@@ -1,5 +1,5 @@
 export { syncCjListCatalog, buildEnrichedFromRaw, buildLiteEnrichedFromRaw, scoreEnrichedProduct } from "./score-product";
-export { processEnrichmentQueue } from "./process-enrichment-queue";
+export { processEnrichmentQueue, processEnrichmentQueueChained } from "./process-enrichment-queue";
 export { enrichSingleProduct } from "./enrich-product";
 export { runSixHourRefresh, runDailyScoreRecalc } from "./refresh-jobs";
 export { bootstrapCatalog } from "./bootstrap";

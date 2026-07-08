@@ -8,6 +8,7 @@ import { triggerAutoPublishEvaluation } from "./auto-publish-trigger";
 import { runCatalogScannerBatch } from "./catalog-scanner";
 import { runCjWatcherBatch } from "./cj-watcher";
 import { processSignalWatchQueue } from "./signal-watch";
+import { processEnrichmentQueueChained } from "./process-enrichment-queue";
 import {
   AUTO_PUBLISH_WORKER_BATCH_SIZE,
   verifyPublishedProduct,
@@ -16,6 +17,7 @@ import {
 export interface AutoPublishWorkerResult {
   scanned: number;
   newlyQueued: number;
+  enrichment: { processed: number; succeeded: number; failed: number };
   watcher: {
     watched: number;
     signalsDetected: number;
@@ -82,6 +84,7 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
   const result: AutoPublishWorkerResult = {
     scanned: 0,
     newlyQueued: 0,
+    enrichment: { processed: 0, succeeded: 0, failed: 0 },
     watcher: {
       watched: 0,
       signalsDetected: 0,
@@ -116,8 +119,9 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
     return result;
   }
 
-  const watcherResult = await runCjWatcherBatch(150);
-  result.watcher = watcherResult;
+  result.enrichment = await processEnrichmentQueueChained(50, {
+    maxDurationMs: 50_000,
+  });
 
   const signalResult = await processSignalWatchQueue(50);
   result.signalWatch = signalResult;
@@ -139,6 +143,9 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
   result.queue.failed = queueResult.failed;
   result.queue.skipped = queueResult.skipped;
   result.queue.verified = queueResult.verified ?? 0;
+
+  const watcherResult = await runCjWatcherBatch(100);
+  result.watcher = watcherResult;
 
   result.durationMs = Date.now() - start;
   return result;

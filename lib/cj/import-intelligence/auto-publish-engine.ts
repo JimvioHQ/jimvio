@@ -215,6 +215,12 @@ function needsEnrichmentForKey(
         product.descriptionLength == null;
     case "shipping":
       return deliveryDays(product) === null;
+    case "stock":
+      return product.warehouseInventoryNum == null;
+    case "variants":
+      return product.variantCount == null;
+    case "trending":
+      return !product.intelligenceEnriched;
     default:
       return false;
   }

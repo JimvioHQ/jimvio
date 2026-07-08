@@ -5,6 +5,7 @@ import {
   applyGlobalSearch,
   applyIntelFiltersToQuery,
   applyRawFiltersToQuery,
+  getAutoPublishQueuePids,
   type CatalogFilterIndex,
 } from "./catalog-filter-index";
 import { searchIndexPids } from "./search-index";
@@ -55,7 +56,7 @@ export function makePendingIntelligence(pid: string): CjProductIntelligenceRow {
     scored_at: null,
     auto_publish_ready: false,
     auto_publish_score: 0,
-    auto_publish_status: "REQUIREMENTS_MISSING",
+    auto_publish_status: "PENDING_ENRICHMENT",
     auto_publish_failures: [],
     pending_enrichment_reasons: [],
     last_auto_publish_check: null,
@@ -90,6 +91,8 @@ export async function ensureIntelligenceRows(pids: string[]): Promise<void> {
     pid,
     enrichment_status: "pending" as const,
     catalog_tier: "PENDING" as const,
+    auto_publish_status: "PENDING_ENRICHMENT" as const,
+    auto_publish_ready: false,
   }));
 
   const BATCH = 500;
@@ -164,7 +167,7 @@ export async function enqueueEnrichment(
   return pids.length;
 }
 
-/** Enqueue all products not complete/dead_letter in intelligence table. */
+/** Enqueue all products not complete in intelligence table. */
 export async function enqueueMissingEnrichment(): Promise<number> {
   const db = getCatalogDB();
   let enqueued = 0;
@@ -175,7 +178,8 @@ export async function enqueueMissingEnrichment(): Promise<number> {
     const { data, error } = await db
       .from("cj_product_intelligence")
       .select("pid")
-      .in("enrichment_status", ["pending", "failed"])
+      .in("enrichment_status", ["pending", "failed", "dead_letter", "processing"])
+      .order("pid")
       .range(offset, offset + pageSize - 1);
 
     if (error) throw new Error(error.message);
@@ -189,6 +193,68 @@ export async function enqueueMissingEnrichment(): Promise<number> {
   }
 
   return enqueued;
+}
+
+/** Reset intelligence rows incorrectly marked REQUIREMENTS_MISSING before enrichment. */
+export async function realignPendingEnrichmentStatus(limit = 500): Promise<number> {
+  const db = getCatalogDB();
+  const { data } = await db
+    .from("cj_product_intelligence")
+    .select("pid")
+    .neq("enrichment_status", "complete")
+    .eq("auto_publish_status", "REQUIREMENTS_MISSING")
+    .limit(limit);
+
+  if (!data?.length) return 0;
+
+  const pids = data.map((r) => r.pid as string);
+  const { error } = await db
+    .from("cj_product_intelligence")
+    .update({
+      auto_publish_status: "PENDING_ENRICHMENT",
+      auto_publish_ready: false,
+      updated_at: new Date().toISOString(),
+    })
+    .in("pid", pids);
+
+  if (error) throw new Error(error.message);
+  return pids.length;
+}
+
+const STUCK_ENRICHMENT_MS = 15 * 60_000;
+
+/** Reset enrichment jobs stuck in processing state. */
+export async function resetStuckEnrichmentJobs(): Promise<number> {
+  const db = getCatalogDB();
+  const cutoff = new Date(Date.now() - STUCK_ENRICHMENT_MS).toISOString();
+  let reset = 0;
+
+  const { data: intelRows } = await db
+    .from("cj_product_intelligence")
+    .update({
+      enrichment_status: "pending",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("enrichment_status", "processing")
+    .lt("updated_at", cutoff)
+    .select("pid");
+
+  reset += intelRows?.length ?? 0;
+
+  const { data: queueRows } = await db
+    .from("cj_enrichment_queue")
+    .update({
+      status: "pending",
+      next_attempt_at: new Date().toISOString(),
+      last_error: "Reset from stuck processing",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("status", "processing")
+    .lt("updated_at", cutoff)
+    .select("pid");
+
+  reset += queueRows?.length ?? 0;
+  return reset;
 }
 
 export async function getTierCounts(): Promise<Record<CatalogTier, number>> {
@@ -251,16 +317,27 @@ export async function getCatalogPage(
     const db = getCatalogDB();
     const pageSize = Math.min(100, Math.max(1, params.pageSize));
     const page = Math.max(1, params.page);
-    const tiers = params.tiers?.length ? params.tiers : DEFAULT_VISIBLE_TIERS;
-    const cursor = parseCursor(params.cursor);
     const sortKey = params.sort ?? "curated";
     const filters: CatalogFilterIndex = params.filters ?? {};
+    let tiers = params.tiers?.length ? params.tiers : DEFAULT_VISIBLE_TIERS;
+    if (filters.isHidden && !tiers.includes("HIDDEN")) {
+      tiers = [...tiers, "HIDDEN"];
+    }
+    const cursor = parseCursor(params.cursor);
 
     let query = db
       .from("cj_raw_products")
       .select("*, cj_product_intelligence!inner(*)", {
         count: page === 1 && !cursor ? "exact" : undefined,
       });
+
+    if (filters.publishQueueStatus) {
+      const queuePids = await getAutoPublishQueuePids(filters.publishQueueStatus);
+      if (queuePids.length === 0) {
+        return { products: [], total: 0, nextCursor: null };
+      }
+      query = query.in("pid", queuePids);
+    }
 
     if (params.search?.trim()) {
       const term = params.search.trim();

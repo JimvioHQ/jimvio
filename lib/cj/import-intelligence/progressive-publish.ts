@@ -1,21 +1,39 @@
 /**
- * Progressive Auto Publish — relaxed Premium / Standard / Draft tiers.
- * Video and Trending boost ranking but do NOT block publishing.
+ * Progressive Auto Publish — score-based Premium / Standard / Draft tiers.
+ *
+ * Premium: score 100 (all requirements) → publish immediately
+ * Standard: score 80–99 + critical requirements → publish at lower tier
+ * Draft: below 80 → remain unpublished
+ *
+ * Critical (Standard): verified supplier, stock, shipping, description, images
+ * Non-critical: trending, video, warehouse preference, opportunity score
  */
 
 import type { EnrichedProduct } from "./types";
 import {
   evaluateAutoPublish,
   type AutoPublishResult,
+  type AutoPublishRequirementKey,
   hasStockAvailable,
   isSupplierVerified,
   hasFastShipping,
+  isDescriptionComplete,
+  hasEnoughImages,
+  isEnrichmentComplete,
 } from "./auto-publish-engine";
-import { getDescriptionLength } from "./quality-engine";
 
 export type PublishTier = "premium" | "standard" | "draft";
 
-const MIN_STANDARD_DESCRIPTION = 40;
+const STANDARD_MIN_SCORE = 80;
+const PREMIUM_MIN_SCORE = 100;
+
+const CRITICAL_KEYS: AutoPublishRequirementKey[] = [
+  "verified",
+  "stock",
+  "shipping",
+  "description",
+  "images",
+];
 
 export interface ProgressivePublishResult {
   tier: PublishTier;
@@ -24,33 +42,49 @@ export interface ProgressivePublishResult {
   relaxedFailures: string[];
 }
 
-function hasMinimumDescription(product: EnrichedProduct): boolean {
-  return getDescriptionLength(product) >= MIN_STANDARD_DESCRIPTION;
+function criticalChecksPass(checks: AutoPublishResult["checks"]): boolean {
+  return CRITICAL_KEYS.every((key) => {
+    const check = checks.find((c) => c.key === key);
+    return check?.passed === true;
+  });
 }
 
-/** Premium: stock + verified supplier + shipping + description */
-function premiumEligible(product: EnrichedProduct): boolean {
-  return (
-    hasStockAvailable(product) &&
-    isSupplierVerified(product) &&
-    hasFastShipping(product) &&
-    hasMinimumDescription(product)
-  );
+/** Hard blocks — never publish regardless of score */
+function hasHardPublishBlocks(product: EnrichedProduct): boolean {
+  if (!hasStockAvailable(product)) return true;
+  if (!isSupplierVerified(product)) return true;
+  return false;
 }
 
-/** Standard: stock + shipping + description (supplier preferred, not required) */
-function standardEligible(product: EnrichedProduct): boolean {
-  return (
-    hasStockAvailable(product) &&
-    hasFastShipping(product) &&
-    hasMinimumDescription(product)
-  );
+function relaxedFailureMessages(auto: AutoPublishResult): string[] {
+  const nonCritical: AutoPublishRequirementKey[] = [
+    "video",
+    "trending",
+    "variants",
+  ];
+  return auto.checks
+    .filter((c) => nonCritical.includes(c.key) && !c.passed && !c.pendingEnrichment)
+    .map((c) => c.label);
 }
 
 export function evaluateProgressivePublish(
   product: EnrichedProduct,
   options?: { adminOverride?: boolean }
 ): ProgressivePublishResult {
+  if (!isEnrichmentComplete(product)) {
+    const autoPublish = evaluateAutoPublish(product, options);
+    return {
+      tier: "draft",
+      publishReady: false,
+      autoPublish: {
+        ...autoPublish,
+        ready: false,
+        status: "PENDING_ENRICHMENT",
+      },
+      relaxedFailures: [],
+    };
+  }
+
   const autoPublish = evaluateAutoPublish(product, options);
 
   if (options?.adminOverride) {
@@ -62,7 +96,18 @@ export function evaluateProgressivePublish(
     };
   }
 
-  if (premiumEligible(product)) {
+  if (hasHardPublishBlocks(product)) {
+    return {
+      tier: "draft",
+      publishReady: false,
+      autoPublish,
+      relaxedFailures: [],
+    };
+  }
+
+  const score = autoPublish.score;
+
+  if (score >= PREMIUM_MIN_SCORE && autoPublish.ready) {
     return {
       tier: "premium",
       publishReady: true,
@@ -71,13 +116,18 @@ export function evaluateProgressivePublish(
         ready: true,
         status: "READY",
       },
-      relaxedFailures: autoPublish.failures.filter(
-        (f) => f.includes("Trending") || f.includes("Video") || f.includes("Images")
-      ),
+      relaxedFailures: relaxedFailureMessages(autoPublish),
     };
   }
 
-  if (standardEligible(product)) {
+  if (
+    score >= STANDARD_MIN_SCORE &&
+    score < PREMIUM_MIN_SCORE &&
+    criticalChecksPass(autoPublish.checks) &&
+    hasFastShipping(product) &&
+    isDescriptionComplete(product) &&
+    hasEnoughImages(product)
+  ) {
     return {
       tier: "standard",
       publishReady: true,
@@ -86,7 +136,7 @@ export function evaluateProgressivePublish(
         ready: true,
         status: "READY",
       },
-      relaxedFailures: autoPublish.failures,
+      relaxedFailures: relaxedFailureMessages(autoPublish),
     };
   }
 

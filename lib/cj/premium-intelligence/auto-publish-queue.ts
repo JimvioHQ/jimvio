@@ -13,6 +13,7 @@ import { updateIntelligence } from "./catalog-repository";
 import { evaluateV3Intelligence, toV3DbPayload } from "./v3-pipeline";
 import { scoreEnrichedProduct } from "./score-product";
 import type { CatalogTier } from "../import-intelligence/types";
+import { ensureCjProductImported } from "./system-import";
 
 export interface QueueProcessResult {
   processed: number;
@@ -173,7 +174,7 @@ export async function processAutoPublishQueue(
   for (const job of jobs) {
     const start = Date.now();
     const pid = job.pid as string;
-    const productId = job.product_id as string | null;
+    let resolvedProductId = job.product_id as string | null;
 
     await db
       .from("cj_auto_publish_queue")
@@ -186,7 +187,17 @@ export async function processAutoPublishQueue(
 
     result.processed += 1;
 
-    if (!productId) {
+    if (!resolvedProductId) {
+      resolvedProductId = await ensureCjProductImported(pid);
+      if (resolvedProductId) {
+        await db
+          .from("cj_auto_publish_queue")
+          .update({ product_id: resolvedProductId })
+          .eq("id", job.id);
+      }
+    }
+
+    if (!resolvedProductId) {
       result.skipped += 1;
       await db
         .from("cj_auto_publish_queue")
@@ -198,6 +209,8 @@ export async function processAutoPublishQueue(
         .eq("id", job.id);
       continue;
     }
+
+    const productId = resolvedProductId;
 
     try {
       const { data: currentProduct } = await db
@@ -223,7 +236,7 @@ export async function processAutoPublishQueue(
         continue;
       }
 
-      const product = await loadProductForPublish(pid, productId);
+      const product = await loadProductForPublish(pid, resolvedProductId);
       if (!product) throw new Error("Product data not found");
 
       const v3 = evaluateV3Intelligence(product);

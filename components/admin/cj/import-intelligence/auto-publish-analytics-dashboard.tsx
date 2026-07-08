@@ -77,9 +77,9 @@ const FILTER_MAP: Record<
   trendingMissing: { ...DEFAULT_INTELLIGENCE_FILTERS, missingTrending: true },
   draft: { ...DEFAULT_INTELLIGENCE_FILTERS, isDraft: true },
   hidden: { ...DEFAULT_INTELLIGENCE_FILTERS, isHidden: true },
-  queue: { ...DEFAULT_INTELLIGENCE_FILTERS, autoPublishReady: true },
-  processing: { ...DEFAULT_INTELLIGENCE_FILTERS, autoPublishReady: true },
-  failed: { ...DEFAULT_INTELLIGENCE_FILTERS, autoPublishRequirementsMissing: true },
+  queue: { ...DEFAULT_INTELLIGENCE_FILTERS, publishQueueStatus: "pending" },
+  processing: { ...DEFAULT_INTELLIGENCE_FILTERS, publishQueueStatus: "processing" },
+  failed: { ...DEFAULT_INTELLIGENCE_FILTERS, publishQueueStatus: "failed" },
 };
 
 function StatCard({

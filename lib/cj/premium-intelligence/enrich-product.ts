@@ -1,7 +1,6 @@
 import { getServiceClient, getCJToken, cjFetch } from "@/lib/cj/client";
 import { fetchCjProductVideoUrls } from "@/lib/cj/fetch-product-videos";
 import { mapDetailToIntelligence } from "../import-intelligence/intelligence-mapper";
-import { attachAutoPublish, evaluateAutoPublish, toAutoPublishDbPayload } from "../import-intelligence/auto-publish-engine";
 import { patchProductWithIntelligence } from "../import-intelligence/enrichment-merge";
 import type { EnrichedProduct } from "../import-intelligence/types";
 import {
@@ -15,6 +14,8 @@ import { scoreEnrichedProduct } from "./score-product";
 import { resolveDeliveryDaysFromFreight } from "./resolve-delivery-days";
 import { detectSignalChanges, scheduleSignalRecalc, type IntelSnapshot } from "./signal-watch";
 import { indexProductSearchRow } from "./search-index";
+import { evaluateV3Intelligence, toV3DbPayload } from "./v3-pipeline";
+import { publishTierCatalogMapping } from "../import-intelligence/progressive-publish";
 
 const RETRY_DELAYS_MS = [5_000, 30_000, 120_000, 600_000, 1_800_000];
 
@@ -102,8 +103,9 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
     };
 
     const patched = patchProductWithIntelligence(stub, intelPayload) as EnrichedProduct;
+    patched.intelligence.enrichmentStatus = "complete";
     const scored = scoreEnrichedProduct(patched, "complete");
-    const withAutoPublish = attachAutoPublish(patched);
+    const v3 = evaluateV3Intelligence(patched);
 
     const description = String(detail.description ?? "").replace(/<[^>]+>/g, " ").trim();
     const imageSet = Array.isArray(detail.productImageSet) ? detail.productImageSet : [];
@@ -116,6 +118,8 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
     const deliveryDays = intelPayload.deliveryCycle
       ? parseInt(intelPayload.deliveryCycle, 10)
       : null;
+
+    const productId = await resolveEnrichedProductId(pid);
 
     await updateIntelligence(pid, {
       enrichment_status: "complete",
@@ -134,12 +138,13 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
       confidence_score: scored.confidenceScore,
       quality_scores: scored.qualityScores as unknown as Record<string, number>,
       opportunity_score: scored.opportunityScore,
-      catalog_tier: scored.catalogTier,
+      catalog_tier: publishTierCatalogMapping(v3.publishTier),
       trending: scored.trending,
       badges: scored.badges,
       scored_at: new Date().toISOString(),
       last_error: null,
-      ...toAutoPublishDbPayload(evaluateAutoPublish(withAutoPublish)),
+      ...toV3DbPayload(v3),
+      ...(productId ? { linked_product_id: productId } : {}),
     });
 
     await markQueueJob(pid, { status: "complete", last_error: null });
@@ -164,12 +169,11 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
     await indexProductSearchRow(
       pid,
       { ...raw, raw_payload: raw.raw_payload },
-      { linked_product_id: null },
+      { linked_product_id: productId },
       description.slice(0, 500)
     );
 
-    const autoPublishResult = evaluateAutoPublish(withAutoPublish);
-    if (autoPublishResult.ready) {
+    if (v3.publishReady && !v3.blocked) {
       const { triggerAutoPublishEvaluation } = await import("./auto-publish-trigger");
       await triggerAutoPublishEvaluation(pid, "enrichment_complete");
     }
@@ -200,6 +204,17 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
 
     return false;
   }
+}
+
+async function resolveEnrichedProductId(pid: string): Promise<string | null> {
+  const { getCatalogDB } = await import("./db");
+  const db = getCatalogDB();
+  const { data: mapped } = await db
+    .from("cj_product_map")
+    .select("product_id")
+    .eq("cj_pid", pid)
+    .maybeSingle();
+  return (mapped?.product_id as string) ?? null;
 }
 
 async function getAttempts(pid: string): Promise<number> {

@@ -230,6 +230,7 @@ export interface IntelligenceFilters {
   missingVariants: boolean;
   missingStock: boolean;
   missingTrending: boolean;
+  publishQueueStatus?: "pending" | "processing" | "failed";
 }
 
 export interface ImportSettings {

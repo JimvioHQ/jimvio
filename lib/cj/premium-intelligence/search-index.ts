@@ -130,7 +130,12 @@ export async function refreshSearchIndexBatch(
 
   for (const raw of rows) {
     const pid = raw.pid as string;
-    await indexProductSearchRow(pid, raw, intelMap.get(pid));
+    const payload = raw.raw_payload as Record<string, unknown> | null;
+    const snippet =
+      typeof payload?.description === "string"
+        ? payload.description.replace(/<[^>]+>/g, " ").trim().slice(0, 500)
+        : "";
+    await indexProductSearchRow(pid, raw, intelMap.get(pid), snippet);
   }
 
   const lastPid = rows[rows.length - 1]!.pid as string;

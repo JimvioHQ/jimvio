@@ -44,6 +44,31 @@ export function evaluateV3Intelligence(
     adminOverride?: boolean;
   }
 ): V3Intelligence {
+  if (product.intelligence.enrichmentStatus !== "complete") {
+    const pendingAuto: AutoPublishResult = {
+      ready: false,
+      score: 0,
+      status: "PENDING_ENRICHMENT",
+      failures: [],
+      pendingEnrichment: ["Awaiting enrichment"],
+      checks: [],
+      decision: { status: "PENDING_ENRICHMENT", visibility: "PRIVATE", published: false },
+    };
+    return {
+      autoPublish: pendingAuto,
+      publishTier: "draft",
+      publishReady: false,
+      qualityConfidence: "low",
+      qualityExplanation: "Enrichment not complete",
+      qualityFactors: [],
+      supplierReputation: computeSupplierReputationFromProduct(product),
+      duplicate: null,
+      publishPriority: 0,
+      blocked: false,
+      blockReasons: [],
+    };
+  }
+
   const progressive = evaluateProgressivePublish(product, {
     adminOverride: options?.adminOverride,
   });

@@ -33,6 +33,7 @@ export interface CatalogFilterIndex {
   hideImported?: boolean;
   isDraft?: boolean;
   isHidden?: boolean;
+  publishQueueStatus?: "pending" | "processing" | "failed";
   minHealthScore?: number;
   minMargin?: number;
 }
@@ -211,6 +212,21 @@ export function parseCatalogFiltersFromParams(
   };
 }
 
+/** PIDs in auto-publish queue by status */
+export async function getAutoPublishQueuePids(
+  status: "pending" | "processing" | "failed"
+): Promise<string[]> {
+  const db = getCatalogDB();
+  const statuses =
+    status === "failed" ? (["failed", "dead_letter"] as const) : ([status] as const);
+  const { data } = await db
+    .from("cj_auto_publish_queue")
+    .select("pid")
+    .in("status", [...statuses])
+    .limit(5000);
+  return (data ?? []).map((r) => r.pid as string);
+}
+
 export function intelligenceFiltersToCatalogIndex(
   filters: IntelligenceFilters
 ): CatalogFilterIndex {
@@ -240,6 +256,7 @@ export function intelligenceFiltersToCatalogIndex(
     hideImported: Boolean(filters.hideImported),
     isDraft: Boolean(filters.isDraft),
     isHidden: Boolean(filters.isHidden),
+    publishQueueStatus: filters.publishQueueStatus,
     minHealthScore:
       typeof filters.minHealthScore === "number" && filters.minHealthScore > 0
         ? filters.minHealthScore

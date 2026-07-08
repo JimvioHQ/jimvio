@@ -1,10 +1,13 @@
 import {
   finishSyncRun,
+  markQueueJob,
   pollEnrichmentJobs,
   startSyncRun,
 } from "./catalog-repository";
 import { enrichSingleProduct } from "./enrich-product";
 import type { EnrichmentBatchResult } from "./types";
+
+const DEFAULT_INTER_JOB_MS = 100;
 
 export async function processEnrichmentQueue(
   limit = 15
@@ -17,11 +20,19 @@ export async function processEnrichmentQueue(
   let failed = 0;
 
   for (const job of jobs) {
+    await markQueueJob(job.pid as string, {
+      status: "processing",
+      updated_at: new Date().toISOString(),
+    });
+
     processed++;
-    const ok = await enrichSingleProduct(job.pid);
+    const ok = await enrichSingleProduct(job.pid as string);
     if (ok) succeeded++;
     else failed++;
-    await sleep(400);
+
+    if (DEFAULT_INTER_JOB_MS > 0) {
+      await sleep(DEFAULT_INTER_JOB_MS);
+    }
   }
 
   await finishSyncRun(runId, {
@@ -32,6 +43,28 @@ export async function processEnrichmentQueue(
   });
 
   return { processed, succeeded, failed };
+}
+
+/**
+ * Process enrichment batches back-to-back until the queue is empty or time budget expires.
+ */
+export async function processEnrichmentQueueChained(
+  batchSize = 100,
+  options?: { maxDurationMs?: number }
+): Promise<EnrichmentBatchResult> {
+  const maxDuration = options?.maxDurationMs ?? 110_000;
+  const start = Date.now();
+  const total: EnrichmentBatchResult = { processed: 0, succeeded: 0, failed: 0 };
+
+  while (Date.now() - start < maxDuration) {
+    const batch = await processEnrichmentQueue(batchSize);
+    total.processed += batch.processed;
+    total.succeeded += batch.succeeded;
+    total.failed += batch.failed;
+    if (batch.processed === 0) break;
+  }
+
+  return total;
 }
 
 function sleep(ms: number) {

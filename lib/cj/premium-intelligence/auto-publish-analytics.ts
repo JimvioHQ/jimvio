@@ -32,6 +32,64 @@ async function countIntel(apply?: (q: CountQuery) => CountQuery): Promise<number
   return count ?? 0;
 }
 
+async function computeAvgEnrichmentTimeMs(): Promise<number | null> {
+  const db = getCatalogDB();
+  const MAX_MS = 7 * 24 * 60 * 60 * 1000;
+  let totalMs = 0;
+  let count = 0;
+
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await db
+      .from("cj_product_intelligence")
+      .select("enriched_at, created_at")
+      .eq("enrichment_status", "complete")
+      .not("enriched_at", "is", null)
+      .order("enriched_at", { ascending: false })
+      .range(offset, offset + 999);
+
+    if (error || !data?.length) break;
+
+    for (const row of data) {
+      const start = new Date(row.created_at as string).getTime();
+      const end = new Date(row.enriched_at as string).getTime();
+      const delta = end - start;
+      if (delta > 0 && delta < MAX_MS) {
+        totalMs += delta;
+        count += 1;
+      }
+    }
+
+    if (data.length < 1000) break;
+  }
+
+  return count > 0 ? Math.round(totalMs / count) : null;
+}
+
+async function computeAvgPublishScore(): Promise<number> {
+  const db = getCatalogDB();
+  let total = 0;
+  let count = 0;
+
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await db
+      .from("cj_product_intelligence")
+      .select("auto_publish_score")
+      .eq("enrichment_status", "complete")
+      .range(offset, offset + 999);
+
+    if (error || !data?.length) break;
+
+    for (const row of data) {
+      total += Number(row.auto_publish_score ?? 0);
+      count += 1;
+    }
+
+    if (data.length < 1000) break;
+  }
+
+  return count > 0 ? Math.round((total / count) * 100) / 100 : 0;
+}
+
 export async function computeAutoPublishAnalytics(): Promise<AutoPublishAnalyticsSnapshot> {
   const db = getCatalogDB();
   const now = new Date().toISOString();
@@ -51,8 +109,8 @@ export async function computeAutoPublishAnalytics(): Promise<AutoPublishAnalytic
     missingVariants,
     missingStock,
     trendingMissing,
-    scoreSample,
-    enrichmentTimes,
+    avgPublishScore,
+    avgEnrichmentTimeMs,
   ] = await Promise.all([
     countIntel(),
     countIntel((q) =>
@@ -92,35 +150,9 @@ export async function computeAutoPublishAnalytics(): Promise<AutoPublishAnalytic
     countIntel((q) =>
       q.contains("auto_publish_failures", [FAILURE_LABELS.missingTrending])
     ),
-    db
-      .from("cj_product_intelligence")
-      .select("auto_publish_score")
-      .eq("enrichment_status", "complete")
-      .limit(5000),
-    db
-      .from("cj_product_intelligence")
-      .select("enriched_at, created_at")
-      .eq("enrichment_status", "complete")
-      .not("enriched_at", "is", null)
-      .limit(5000),
+    computeAvgPublishScore(),
+    computeAvgEnrichmentTimeMs(),
   ]);
-
-  const scoreRows = scoreSample.data ?? [];
-  const scoreSum = scoreRows.reduce(
-    (acc, r) => acc + Number(r.auto_publish_score ?? 0),
-    0
-  );
-
-  let avgEnrichmentTimeMs: number | null = null;
-  const timeRows = enrichmentTimes.data ?? [];
-  if (timeRows.length > 0) {
-    const totalMs = timeRows.reduce((acc, r) => {
-      const start = new Date(r.created_at as string).getTime();
-      const end = new Date(r.enriched_at as string).getTime();
-      return acc + Math.max(0, end - start);
-    }, 0);
-    avgEnrichmentTimeMs = Math.round(totalMs / timeRows.length);
-  }
 
   const snapshot: AutoPublishAnalyticsSnapshot = {
     totalProducts,
@@ -137,10 +169,7 @@ export async function computeAutoPublishAnalytics(): Promise<AutoPublishAnalytic
     missingVariants,
     missingStock,
     trendingMissing,
-    avgPublishScore:
-      scoreRows.length > 0
-        ? Math.round((scoreSum / scoreRows.length) * 100) / 100
-        : 0,
+    avgPublishScore,
     avgEnrichmentTimeMs,
     snapshotAt: now,
   };

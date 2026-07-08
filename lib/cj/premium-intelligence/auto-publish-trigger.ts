@@ -13,6 +13,7 @@ import { evaluateV3Intelligence, toV3DbPayload } from "./v3-pipeline";
 import { computePublishPriority } from "./smart-queue-priority";
 import { computePublishDebounceMs } from "./system-publish";
 import type { CjProductIntelligenceRow } from "./types";
+import { ensureCjProductImported } from "./system-import";
 
 export type TriggerReason =
   | "enrichment_complete"
@@ -103,6 +104,15 @@ export async function triggerAutoPublishEvaluation(
 
   if (!product) return result;
 
+  if (product.intelligence.enrichmentStatus !== "complete") {
+    await updateIntelligence(pid, {
+      auto_publish_status: "PENDING_ENRICHMENT",
+      auto_publish_ready: false,
+      last_auto_publish_check: new Date().toISOString(),
+    });
+    return result;
+  }
+
   const db = getCatalogDB();
   let isLivePublished = false;
 
@@ -143,13 +153,19 @@ export async function triggerAutoPublishEvaluation(
   result.ready = v3.publishReady;
   result.blocked = v3.blocked;
 
-  if (!productId) return result;
+  let resolvedProductId = productId;
+  if (!resolvedProductId && v3.publishReady && !v3.blocked) {
+    resolvedProductId = await ensureCjProductImported(pid);
+    result.productId = resolvedProductId;
+  }
+
+  if (!resolvedProductId) return result;
   if (v3.blocked || !v3.publishReady) return result;
 
   const { data: existingProduct } = await db
     .from("products")
     .select("status, is_active, published_by_admin_override")
-    .eq("id", productId)
+    .eq("id", resolvedProductId)
     .maybeSingle();
 
   if (!existingProduct) return result;
@@ -160,14 +176,14 @@ export async function triggerAutoPublishEvaluation(
 
   const priority = v3.publishPriority || computePublishPriority(product);
   const debounceMs = computePublishDebounceMs();
-  const queued = await enqueueAutoPublish(pid, productId, priority, debounceMs);
+  const queued = await enqueueAutoPublish(pid, resolvedProductId, priority, debounceMs);
 
   result.queued = queued;
 
   if (queued) {
     await logAutoPublishEvent({
       pid,
-      productId,
+      productId: resolvedProductId,
       supplier: product.supplierName,
       ready: true,
       published: false,
