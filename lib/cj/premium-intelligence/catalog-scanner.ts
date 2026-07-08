@@ -166,7 +166,7 @@ async function syncPublishLink(pid: string, productId: string | null): Promise<v
 
   const { data: product } = await db
     .from("products")
-    .select("status, is_active, published_by_admin_override")
+    .select("status, is_active, published_by_admin_override, auto_unpublished")
     .eq("id", productId)
     .maybeSingle();
 
@@ -177,7 +177,9 @@ async function syncPublishLink(pid: string, productId: string | null): Promise<v
     .update({
       linked_product_id: productId,
       is_published_active:
-        product.status === "active" && product.is_active === true,
+        product.status === "active" &&
+        product.is_active === true &&
+        !product.auto_unpublished,
       is_admin_override: Boolean(product.published_by_admin_override),
       updated_at: new Date().toISOString(),
     })
@@ -185,7 +187,9 @@ async function syncPublishLink(pid: string, productId: string | null): Promise<v
 }
 
 async function evaluatePid(pid: string): Promise<{ queued: boolean }> {
-  const result = await triggerAutoPublishEvaluation(pid, "signal_recalc");
+  const result = await triggerAutoPublishEvaluation(pid, "signal_recalc", {
+    scanOnly: true,
+  });
   if (result.productId) {
     await syncPublishLink(pid, result.productId);
   }

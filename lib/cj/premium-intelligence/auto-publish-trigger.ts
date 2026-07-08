@@ -12,6 +12,7 @@ import { updateIntelligence } from "./catalog-repository";
 import { evaluateV3Intelligence, toV3DbPayload } from "./v3-pipeline";
 import { computePublishPriority } from "./smart-queue-priority";
 import { computePublishDebounceMs } from "./system-publish";
+import type { CjProductIntelligenceRow } from "./types";
 
 export type TriggerReason =
   | "enrichment_complete"
@@ -81,11 +82,12 @@ async function loadEnrichedProduct(
 
 /**
  * Re-evaluate Auto Publish and queue with debounce if READY.
- * Does not publish directly — worker handles that.
+ * Scan mode preserves visibility for already-live published products.
  */
 export async function triggerAutoPublishEvaluation(
   pid: string,
-  reason: TriggerReason
+  reason: TriggerReason,
+  options?: { scanOnly?: boolean }
 ): Promise<TriggerResult> {
   const productId = await resolveProductId(pid);
   const product = await loadEnrichedProduct(pid, productId);
@@ -101,13 +103,41 @@ export async function triggerAutoPublishEvaluation(
 
   if (!product) return result;
 
+  const db = getCatalogDB();
+  let isLivePublished = false;
+
+  if (productId) {
+    const { data: existingProduct } = await db
+      .from("products")
+      .select("status, is_active, published_by_admin_override, auto_unpublished")
+      .eq("id", productId)
+      .maybeSingle();
+
+    isLivePublished = Boolean(
+      existingProduct?.status === "active" &&
+        existingProduct?.is_active &&
+        !existingProduct?.auto_unpublished
+    );
+  }
+
   const v3 = evaluateV3Intelligence(product);
-  const payload = {
+  let payload: Partial<CjProductIntelligenceRow> = {
     ...toV3DbPayload(v3),
     ...(v3.publishReady && !v3.blocked
       ? { auto_publish_ready_at: new Date().toISOString() }
       : {}),
   };
+
+  if (isLivePublished && !v3.blocked) {
+    payload = {
+      ...payload,
+      auto_publish_ready: true,
+      auto_publish_status: "READY",
+      is_published_active: true,
+      linked_product_id: productId,
+    };
+  }
+
   await updateIntelligence(pid, payload);
 
   result.ready = v3.publishReady;
@@ -116,7 +146,6 @@ export async function triggerAutoPublishEvaluation(
   if (!productId) return result;
   if (v3.blocked || !v3.publishReady) return result;
 
-  const db = getCatalogDB();
   const { data: existingProduct } = await db
     .from("products")
     .select("status, is_active, published_by_admin_override")

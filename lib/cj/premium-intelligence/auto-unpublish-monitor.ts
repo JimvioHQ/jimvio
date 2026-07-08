@@ -120,12 +120,11 @@ export async function runStockHealthMonitor(): Promise<UnpublishMonitorResult> {
     const evaluation = evaluateUnpublishConditions(enriched, {
       rawProductExists: true,
       supplierBlacklisted: blacklisted.has(supplierId),
-      previouslyHadVideo: intel?.has_video === true,
     });
 
     if (!evaluation.shouldUnpublish) continue;
 
-    const reason = evaluation.reasons[0] ?? "Quality requirements no longer met";
+    const reason = evaluation.reasons[0] ?? "Stock became zero";
     const ok = await unpublishProduct(row.id as string, reason, pid);
     if (ok) {
       result.unpublished += 1;

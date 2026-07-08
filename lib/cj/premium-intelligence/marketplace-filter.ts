@@ -5,16 +5,24 @@ import type { CatalogTier } from "@/lib/cj/premium-intelligence/types";
 export interface MarketplaceVisibilitySets {
   visibleCjPids: Set<string>;
   autoPublishReadyPids: Set<string>;
+  livePublishedPids: Set<string>;
+  pidTiers: Map<string, CatalogTier>;
   adminOverrideProductIds: Set<string>;
   blacklistedSupplierIds: Set<string>;
   blacklistedSupplierNames: Set<string>;
 }
 
-/** Load CJ visibility sets — tier gate + auto publish ready + admin override + supplier blacklist */
+function isMarketplaceVisibleTier(tier: CatalogTier, isLivePublished: boolean): boolean {
+  if (isCustomerVisibleTier(tier)) return true;
+  if (isLivePublished && tier === "STANDARD") return true;
+  return false;
+}
+
+/** Load CJ visibility sets — tier gate + auto publish ready + live published + admin override */
 export async function getMarketplaceVisibilitySets(): Promise<MarketplaceVisibilitySets> {
   const db = getCatalogDB();
 
-  const [intelRows, overrideRes, blacklistRes] = await Promise.all([
+  const [intelRows, overrideRes, blacklistRes, livePublishedRes] = await Promise.all([
     fetchAllCompleteIntelligence(db),
     db
       .from("products")
@@ -26,25 +34,44 @@ export async function getMarketplaceVisibilitySets(): Promise<MarketplaceVisibil
       .from("cj_supplier_reputation")
       .select("supplier_id, supplier_name")
       .eq("blacklisted", true),
+    db
+      .from("products")
+      .select("id, source_metadata")
+      .eq("source", "cj")
+      .eq("status", "active")
+      .eq("is_active", true)
+      .eq("auto_unpublished", false)
+      .is("deleted_at", null),
   ]);
 
   const visibleCjPids = new Set<string>();
   const autoPublishReadyPids = new Set<string>();
+  const pidTiers = new Map<string, CatalogTier>();
 
   for (const row of intelRows) {
     if (row.duplicate_blocked === true) continue;
 
+    const pid = row.pid as string;
     const tier = row.catalog_tier as CatalogTier;
+    pidTiers.set(pid, tier);
+
     if (isCustomerVisibleTier(tier)) {
-      visibleCjPids.add(row.pid as string);
+      visibleCjPids.add(pid);
     }
     if (
       row.auto_publish_ready === true ||
       row.auto_publish_status === "READY" ||
       row.auto_publish_status === "PUBLISHED_BY_ADMIN"
     ) {
-      autoPublishReadyPids.add(row.pid as string);
+      autoPublishReadyPids.add(pid);
     }
+  }
+
+  const livePublishedPids = new Set<string>();
+  for (const row of livePublishedRes.data ?? []) {
+    const meta = row.source_metadata as Record<string, unknown> | null;
+    const pid = typeof meta?.cj_pid === "string" ? meta.cj_pid : null;
+    if (pid) livePublishedPids.add(pid);
   }
 
   const adminOverrideProductIds = new Set<string>();
@@ -62,6 +89,8 @@ export async function getMarketplaceVisibilitySets(): Promise<MarketplaceVisibil
   return {
     visibleCjPids,
     autoPublishReadyPids,
+    livePublishedPids,
+    pidTiers,
     adminOverrideProductIds,
     blacklistedSupplierIds,
     blacklistedSupplierNames,
@@ -86,8 +115,8 @@ function isBlacklistedSupplier(
 }
 
 /**
- * Marketplace protection v3 — only Ready, Published, or Admin Override.
- * Never shows: Draft, Pending, Requirements Missing, Unpublished, Blacklisted Supplier.
+ * Marketplace protection — show live published CJ products even when a scan
+ * temporarily clears auto_publish_ready. New products still require READY status.
  */
 export function filterProductsForCustomers<
   T extends {
@@ -113,7 +142,14 @@ export function filterProductsForCustomers<
     const pid = typeof meta?.cj_pid === "string" ? meta.cj_pid : null;
     if (!pid) return false;
 
-    if (!sets.visibleCjPids.has(pid)) return false;
+    const tier = sets.pidTiers.get(pid) ?? "PENDING";
+    const isLive = sets.livePublishedPids.has(pid);
+
+    if (isLive) {
+      return isMarketplaceVisibleTier(tier, true);
+    }
+
+    if (!isMarketplaceVisibleTier(tier, false)) return false;
 
     return sets.autoPublishReadyPids.has(pid);
   });

@@ -1,41 +1,21 @@
 /**
- * Progressive Auto Publish — Premium / Standard / Draft tiers.
- * Additive layer on evaluateAutoPublish; does not replace v2 engine.
+ * Progressive Auto Publish — relaxed Premium / Standard / Draft tiers.
+ * Video and Trending boost ranking but do NOT block publishing.
  */
 
 import type { EnrichedProduct } from "./types";
 import {
   evaluateAutoPublish,
-  type AutoPublishRequirementKey,
   type AutoPublishResult,
   hasStockAvailable,
   isSupplierVerified,
   hasFastShipping,
-  hasValidVideo,
-  hasProductVariants,
 } from "./auto-publish-engine";
-import {
-  getImageCount,
-  getDescriptionLength,
-} from "./quality-engine";
+import { getDescriptionLength } from "./quality-engine";
 
 export type PublishTier = "premium" | "standard" | "draft";
 
-/** Must never fail for Standard auto-publish */
-const CRITICAL_KEYS: AutoPublishRequirementKey[] = [
-  "stock",
-  "verified",
-  "shipping",
-  "variants",
-  "video",
-];
-
-/** May fail for Standard tier (score 80–99%) */
-const NON_CRITICAL_KEYS: AutoPublishRequirementKey[] = [
-  "trending",
-  "images",
-  "description",
-];
+const MIN_STANDARD_DESCRIPTION = 40;
 
 export interface ProgressivePublishResult {
   tier: PublishTier;
@@ -44,36 +24,27 @@ export interface ProgressivePublishResult {
   relaxedFailures: string[];
 }
 
-function criticalChecksPass(product: EnrichedProduct, checks: AutoPublishResult["checks"]): boolean {
-  for (const key of CRITICAL_KEYS) {
-    const check = checks.find((c) => c.key === key);
-    if (!check?.passed) return false;
-  }
-  if (!hasStockAvailable(product)) return false;
-  if (!isSupplierVerified(product)) return false;
-  if (!hasFastShipping(product)) return false;
-  if (!hasValidVideo(product)) return false;
-  if (!hasProductVariants(product)) return false;
-  return true;
+function hasMinimumDescription(product: EnrichedProduct): boolean {
+  return getDescriptionLength(product) >= MIN_STANDARD_DESCRIPTION;
 }
 
-function standardTierEligible(
-  product: EnrichedProduct,
-  auto: AutoPublishResult
-): boolean {
-  if (auto.score < 80 || auto.score >= 100) return false;
-  if (!criticalChecksPass(product, auto.checks)) return false;
-
-  const failedKeys = auto.checks.filter((c) => !c.passed).map((c) => c.key);
-  const hasDisallowedFailure = failedKeys.some(
-    (k) => !NON_CRITICAL_KEYS.includes(k)
+/** Premium: stock + verified supplier + shipping + description */
+function premiumEligible(product: EnrichedProduct): boolean {
+  return (
+    hasStockAvailable(product) &&
+    isSupplierVerified(product) &&
+    hasFastShipping(product) &&
+    hasMinimumDescription(product)
   );
-  if (hasDisallowedFailure) return false;
+}
 
-  if (getImageCount(product) < 3) return false;
-  if (getDescriptionLength(product) < 40) return false;
-
-  return true;
+/** Standard: stock + shipping + description (supplier preferred, not required) */
+function standardEligible(product: EnrichedProduct): boolean {
+  return (
+    hasStockAvailable(product) &&
+    hasFastShipping(product) &&
+    hasMinimumDescription(product)
+  );
 }
 
 export function evaluateProgressivePublish(
@@ -82,16 +53,31 @@ export function evaluateProgressivePublish(
 ): ProgressivePublishResult {
   const autoPublish = evaluateAutoPublish(product, options);
 
-  if (autoPublish.ready) {
+  if (options?.adminOverride) {
     return {
       tier: "premium",
       publishReady: true,
-      autoPublish,
+      autoPublish: { ...autoPublish, ready: true, status: "READY" },
       relaxedFailures: [],
     };
   }
 
-  if (standardTierEligible(product, autoPublish)) {
+  if (premiumEligible(product)) {
+    return {
+      tier: "premium",
+      publishReady: true,
+      autoPublish: {
+        ...autoPublish,
+        ready: true,
+        status: "READY",
+      },
+      relaxedFailures: autoPublish.failures.filter(
+        (f) => f.includes("Trending") || f.includes("Video") || f.includes("Images")
+      ),
+    };
+  }
+
+  if (standardEligible(product)) {
     return {
       tier: "standard",
       publishReady: true,
@@ -116,4 +102,16 @@ export function publishTierCatalogMapping(tier: PublishTier): "PREMIUM" | "STAND
   if (tier === "premium") return "PREMIUM";
   if (tier === "standard") return "STANDARD";
   return "PENDING";
+}
+
+/** Hard blocks that justify unpublishing — nothing else. */
+export const PERMANENT_UNPUBLISH_REASONS = new Set([
+  "Product removed from CJ",
+  "Stock became zero",
+  "Supplier blacklisted",
+]);
+
+export function isPermanentUnpublishReason(reason: string | null | undefined): boolean {
+  if (!reason) return false;
+  return PERMANENT_UNPUBLISH_REASONS.has(reason);
 }

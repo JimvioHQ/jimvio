@@ -9,10 +9,13 @@ import { refreshSearchIndexBatch } from "./search-index";
 import { invalidateCatalogCache } from "./catalog-cache";
 import { logAutoPublishEvent } from "./auto-publish-events";
 import { runStockHealthMonitor } from "./auto-unpublish-monitor";
+import { restoreAggressiveUnpublishes, fixMisalignedLiveIntelligence } from "./marketplace-restore";
 
 const STUCK_PROCESSING_MS = 15 * 60_000;
 
 export interface MarketplaceMaintenanceResult {
+  restored: number;
+  intelligenceFixed: number;
   stuckQueueReset: number;
   stuckSignalReset: number;
   duplicateRowsRemoved: number;
@@ -99,6 +102,8 @@ async function removeDuplicateQueueEntries(): Promise<number> {
 export async function runMarketplaceMaintenance(): Promise<MarketplaceMaintenanceResult> {
   const start = Date.now();
   const result: MarketplaceMaintenanceResult = {
+    restored: 0,
+    intelligenceFixed: 0,
     stuckQueueReset: 0,
     stuckSignalReset: 0,
     duplicateRowsRemoved: 0,
@@ -108,6 +113,13 @@ export async function runMarketplaceMaintenance(): Promise<MarketplaceMaintenanc
     filtersRefreshed: false,
     durationMs: 0,
   };
+
+  const restoreResult = await restoreAggressiveUnpublishes(200);
+  result.restored = restoreResult.restored;
+  result.intelligenceFixed = restoreResult.intelligenceFixed;
+
+  const misaligned = await fixMisalignedLiveIntelligence(200);
+  result.intelligenceFixed += misaligned.fixed;
 
   result.stuckQueueReset = await resetStuckAutoPublishJobs();
   result.stuckSignalReset = await resetStuckSignalJobs();
@@ -138,6 +150,7 @@ export async function runMarketplaceMaintenance(): Promise<MarketplaceMaintenanc
   await logAutoPublishEvent({
     eventType: "catalog_cleanup",
     failureReasons: [
+      `Restored ${result.restored} products, fixed ${result.intelligenceFixed} intelligence rows`,
       `Maintenance: reset ${result.stuckQueueReset} stuck publish jobs`,
       `Indexed ${result.searchIndexed} search rows`,
       `Unpublished ${result.unpublish.unpublished}`,
