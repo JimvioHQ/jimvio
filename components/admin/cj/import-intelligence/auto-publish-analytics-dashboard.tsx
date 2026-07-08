@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { BarChart3, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { IntelligenceFilters } from "@/lib/cj/import-intelligence/types";
+import { DEFAULT_INTELLIGENCE_FILTERS } from "@/lib/cj/import-intelligence/filters";
 
 interface AnalyticsData {
   totalProducts: number;
@@ -24,14 +26,55 @@ interface AnalyticsData {
   snapshotAt: string;
 }
 
+export type AnalyticsFilterKey =
+  | "ready"
+  | "published"
+  | "pendingEnrichment"
+  | "requirementsMissing"
+  | "adminOverride"
+  | "missingVideo"
+  | "missingSupplier"
+  | "missingShipping"
+  | "missingImages"
+  | "missingDescription"
+  | "missingVariants"
+  | "missingStock"
+  | "trendingMissing";
+
+const FILTER_MAP: Record<
+  AnalyticsFilterKey,
+  Partial<IntelligenceFilters>
+> = {
+  ready: { ...DEFAULT_INTELLIGENCE_FILTERS, autoPublishReady: true },
+  published: { ...DEFAULT_INTELLIGENCE_FILTERS, isPublished: true },
+  pendingEnrichment: { ...DEFAULT_INTELLIGENCE_FILTERS, autoPublishPending: true },
+  requirementsMissing: {
+    ...DEFAULT_INTELLIGENCE_FILTERS,
+    autoPublishRequirementsMissing: true,
+  },
+  adminOverride: { ...DEFAULT_INTELLIGENCE_FILTERS, autoPublishAdminOverride: true },
+  missingVideo: { ...DEFAULT_INTELLIGENCE_FILTERS, missingVideo: true },
+  missingSupplier: { ...DEFAULT_INTELLIGENCE_FILTERS, missingSupplier: true },
+  missingShipping: { ...DEFAULT_INTELLIGENCE_FILTERS, missingShipping: true },
+  missingImages: { ...DEFAULT_INTELLIGENCE_FILTERS, missingImages: true },
+  missingDescription: { ...DEFAULT_INTELLIGENCE_FILTERS, missingDescription: true },
+  missingVariants: { ...DEFAULT_INTELLIGENCE_FILTERS, missingVariants: true },
+  missingStock: { ...DEFAULT_INTELLIGENCE_FILTERS, missingStock: true },
+  trendingMissing: { ...DEFAULT_INTELLIGENCE_FILTERS, missingTrending: true },
+};
+
 function StatCard({
   label,
   value,
   accent,
+  filterKey,
+  onApplyFilter,
 }: {
   label: string;
   value: number | string;
   accent?: "green" | "amber" | "sky" | "violet";
+  filterKey?: AnalyticsFilterKey;
+  onApplyFilter?: (key: AnalyticsFilterKey) => void;
 }) {
   const accentClass =
     accent === "green"
@@ -44,20 +87,43 @@ function StatCard({
             ? "text-violet-600"
             : "text-[#111827]";
 
+  const clickable = Boolean(filterKey && onApplyFilter && typeof value === "number" && value > 0);
+
   return (
-    <div className="rounded-[10px] border border-[#E5E7EB] bg-white px-2.5 py-2">
+    <button
+      type="button"
+      disabled={!clickable}
+      onClick={() => filterKey && onApplyFilter?.(filterKey)}
+      className={cn(
+        "rounded-[10px] border border-[#E5E7EB] bg-white px-2.5 py-2 text-left transition-all",
+        clickable &&
+          "cursor-pointer hover:border-[#FF5A1F]/50 hover:bg-[#FFF7F3] hover:shadow-sm active:scale-[0.98]",
+        !clickable && "cursor-default"
+      )}
+    >
       <p className="text-[9px] font-medium text-[#9CA3AF]">{label}</p>
       <p className={cn("text-[15px] font-bold tabular-nums", accentClass)}>{value}</p>
-    </div>
+      {clickable && (
+        <p className="mt-0.5 text-[8px] font-medium text-[#FF5A1F]">View products →</p>
+      )}
+    </button>
   );
 }
 
-export function AutoPublishAnalyticsDashboard({ className }: { className?: string }) {
+export function AutoPublishAnalyticsDashboard({
+  className,
+  onApplyFilter,
+  pollIntervalMs = 30_000,
+}: {
+  className?: string;
+  onApplyFilter?: (filters: IntelligenceFilters) => void;
+  pollIntervalMs?: number;
+}) {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (refresh = false) => {
-    setLoading(true);
+    setLoading((prev) => (refresh ? prev : true));
     try {
       const res = await fetch(
         `/api/admin/cj/auto-publish/analytics${refresh ? "?refresh=1" : ""}`
@@ -74,6 +140,19 @@ export function AutoPublishAnalyticsDashboard({ className }: { className?: strin
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const id = window.setInterval(() => void load(true), pollIntervalMs);
+    return () => window.clearInterval(id);
+  }, [load, pollIntervalMs]);
+
+  const handleCardFilter = useCallback(
+    (key: AnalyticsFilterKey) => {
+      const patch = FILTER_MAP[key];
+      if (patch && onApplyFilter) onApplyFilter(patch as IntelligenceFilters);
+    },
+    [onApplyFilter]
+  );
 
   if (loading && !data) {
     return (
@@ -97,6 +176,7 @@ export function AutoPublishAnalyticsDashboard({ className }: { className?: strin
         <div className="flex items-center gap-1.5">
           <BarChart3 className="h-3.5 w-3.5 text-[#FF5A1F]" />
           <h3 className="text-[12px] font-semibold text-[#111827]">Auto Publish Analytics</h3>
+          <span className="text-[9px] text-[#9CA3AF]">· live</span>
         </div>
         <button
           type="button"
@@ -115,22 +195,94 @@ export function AutoPublishAnalyticsDashboard({ className }: { className?: strin
 
       <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4 lg:grid-cols-6">
         <StatCard label="Total Products" value={data.totalProducts} />
-        <StatCard label="Ready" value={data.ready} accent="green" />
-        <StatCard label="Published" value={data.published} accent="green" />
-        <StatCard label="Pending Enrichment" value={data.pendingEnrichment} accent="sky" />
-        <StatCard label="Requirements Missing" value={data.requirementsMissing} accent="amber" />
-        <StatCard label="Admin Override" value={data.adminOverride} accent="violet" />
-        <StatCard label="Missing Video" value={data.missingVideo} />
-        <StatCard label="Missing Supplier" value={data.missingSupplier} />
-        <StatCard label="Missing Shipping" value={data.missingShipping} />
-        <StatCard label="Missing Images" value={data.missingImages} />
-        <StatCard label="Missing Description" value={data.missingDescription} />
-        <StatCard label="Missing Variants" value={data.missingVariants} />
-        <StatCard label="Missing Stock" value={data.missingStock} />
-        <StatCard label="Trending Missing" value={data.trendingMissing} />
+        <StatCard
+          label="Ready"
+          value={data.ready}
+          accent="green"
+          filterKey="ready"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Published"
+          value={data.published}
+          accent="green"
+          filterKey="published"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Pending Enrichment"
+          value={data.pendingEnrichment}
+          accent="sky"
+          filterKey="pendingEnrichment"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Requirements Missing"
+          value={data.requirementsMissing}
+          accent="amber"
+          filterKey="requirementsMissing"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Admin Override"
+          value={data.adminOverride}
+          accent="violet"
+          filterKey="adminOverride"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Missing Video"
+          value={data.missingVideo}
+          filterKey="missingVideo"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Missing Supplier"
+          value={data.missingSupplier}
+          filterKey="missingSupplier"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Missing Shipping"
+          value={data.missingShipping}
+          filterKey="missingShipping"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Missing Images"
+          value={data.missingImages}
+          filterKey="missingImages"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Missing Description"
+          value={data.missingDescription}
+          filterKey="missingDescription"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Missing Variants"
+          value={data.missingVariants}
+          filterKey="missingVariants"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Missing Stock"
+          value={data.missingStock}
+          filterKey="missingStock"
+          onApplyFilter={handleCardFilter}
+        />
+        <StatCard
+          label="Trending Missing"
+          value={data.trendingMissing}
+          filterKey="trendingMissing"
+          onApplyFilter={handleCardFilter}
+        />
         <StatCard label="Avg Publish Score" value={`${data.avgPublishScore}`} />
         <StatCard label="Avg Enrichment Time" value={avgEnrichmentSec} />
       </div>
     </div>
   );
 }
+
+export { FILTER_MAP as ANALYTICS_FILTER_MAP };

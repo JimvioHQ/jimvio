@@ -6,6 +6,7 @@
 import { getCatalogDB } from "./db";
 import { processAutoPublishQueue } from "./auto-publish-queue";
 import { triggerAutoPublishEvaluation } from "./auto-publish-trigger";
+import { runCatalogScannerBatch } from "./catalog-scanner";
 import {
   AUTO_PUBLISH_WORKER_BATCH_SIZE,
   verifyPublishedProduct,
@@ -14,6 +15,12 @@ import {
 export interface AutoPublishWorkerResult {
   scanned: number;
   newlyQueued: number;
+  scanner: {
+    evaluated: number;
+    queued: number;
+    cycleComplete: boolean;
+    totalScanned: number;
+  };
   queue: {
     processed: number;
     published: number;
@@ -64,6 +71,12 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
   const result: AutoPublishWorkerResult = {
     scanned: 0,
     newlyQueued: 0,
+    scanner: {
+      evaluated: 0,
+      queued: 0,
+      cycleComplete: false,
+      totalScanned: 0,
+    },
     queue: {
       processed: 0,
       published: 0,
@@ -82,6 +95,14 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
 
   result.newlyQueued = await scanAndQueueReadyProducts();
   result.scanned = result.newlyQueued;
+
+  const scannerResult = await runCatalogScannerBatch(200);
+  result.scanner = {
+    evaluated: scannerResult.evaluated,
+    queued: scannerResult.queued,
+    cycleComplete: scannerResult.cycleComplete,
+    totalScanned: scannerResult.totalScanned,
+  };
 
   const queueResult = await processAutoPublishQueue(AUTO_PUBLISH_WORKER_BATCH_SIZE);
   result.queue.processed = queueResult.processed;

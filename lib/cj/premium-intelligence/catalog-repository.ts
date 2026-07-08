@@ -1,6 +1,12 @@
 import { getCached, setCached } from "./catalog-cache";
 import { timedQuery } from "./query-timing";
 import { getCatalogDB } from "./db";
+import {
+  applyGlobalSearch,
+  applyIntelFiltersToQuery,
+  applyRawFiltersToQuery,
+  type CatalogFilterIndex,
+} from "./catalog-filter-index";
 import type {
   CatalogCursor,
   CatalogListParams,
@@ -247,6 +253,7 @@ export async function getCatalogPage(
     const tiers = params.tiers?.length ? params.tiers : DEFAULT_VISIBLE_TIERS;
     const cursor = parseCursor(params.cursor);
     const sortKey = params.sort ?? "curated";
+    const filters: CatalogFilterIndex = params.filters ?? {};
 
     let query = db
       .from("cj_raw_products")
@@ -255,10 +262,12 @@ export async function getCatalogPage(
       });
 
     if (params.search?.trim()) {
-      query = query.ilike("title", `%${params.search.trim()}%`);
+      query = applyGlobalSearch(query, params.search.trim());
     }
 
     query = query.in("cj_product_intelligence.catalog_tier", tiers);
+    query = applyIntelFiltersToQuery(query, filters);
+    query = applyRawFiltersToQuery(query, filters);
 
     if (cursor) {
       query = query.or(

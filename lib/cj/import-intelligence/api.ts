@@ -1,4 +1,6 @@
 import type { CJApiFilters, CJProduct, CatalogTier } from "./types";
+import { intelligenceFiltersToCatalogIndex } from "@/lib/cj/premium-intelligence/catalog-filter-index";
+import type { IntelligenceFilters } from "./types";
 
 const CATALOG_CACHE_TTL_MS = 30_000;
 const META_CACHE_TTL_MS = 45_000;
@@ -24,6 +26,45 @@ export interface FetchCatalogOptions {
   tiers?: CatalogTier[];
   sort?: string;
   cursor?: string | null;
+  intelFilters?: IntelligenceFilters;
+}
+
+function appendIntelFilterParams(
+  params: URLSearchParams,
+  intel?: IntelligenceFilters
+): void {
+  if (!intel) return;
+  const index = intelligenceFiltersToCatalogIndex(intel);
+  const map: Record<string, boolean | number | undefined> = {
+    hasVideo: index.hasVideo,
+    verifiedSupplier: index.verifiedSupplier,
+    trending: index.trending,
+    fastShipping: index.fastShipping,
+    usWarehouse: index.usWarehouse,
+    euWarehouse: index.euWarehouse,
+    ukWarehouse: index.ukWarehouse,
+    highQualityImages: index.minImages === 5,
+    hasDescription: index.hasDescription,
+    autoPublishReady: index.autoPublishReady,
+    autoPublishPending: index.autoPublishPending,
+    autoPublishRequirementsMissing: index.autoPublishRequirementsMissing,
+    autoPublishAdminOverride: index.autoPublishAdminOverride,
+    isPublished: index.isPublished,
+    missingVideo: index.missingVideo,
+    missingSupplier: index.missingSupplier,
+    missingShipping: index.missingShipping,
+    missingImages: index.missingImages,
+    missingDescription: index.missingDescription,
+    missingVariants: index.missingVariants,
+    missingStock: index.missingStock,
+    missingTrending: index.missingTrending,
+    hideImported: index.hideImported,
+  };
+  if (index.minHealthScore) params.set("minHealthScore", String(index.minHealthScore));
+  if (index.minMargin) params.set("minMargin", String(index.minMargin));
+  for (const [key, val] of Object.entries(map)) {
+    if (val) params.set(key, "1");
+  }
 }
 
 export async function fetchCJProducts(
@@ -53,6 +94,7 @@ export async function fetchCJProducts(
   if (options?.cursor) {
     params.set("cursor", options.cursor);
   }
+  appendIntelFilterParams(params, options?.intelFilters);
 
   const json = await cachedFetch<{
     success: boolean;
@@ -120,6 +162,16 @@ export async function triggerCatalogSync(): Promise<void> {
 export interface CJCategory {
   categoryId: string;
   categoryName: string;
+}
+
+export async function fetchCatalogFilterCounts(): Promise<{
+  counts: Record<string, number>;
+  scanner: Record<string, unknown>;
+}> {
+  const res = await fetch("/api/admin/cj/catalog/filter-counts");
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || "Could not load filter counts");
+  return { counts: json.counts, scanner: json.scanner };
 }
 
 export async function fetchCJCategories(): Promise<CJCategory[]> {

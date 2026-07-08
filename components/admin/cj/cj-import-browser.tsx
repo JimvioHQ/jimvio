@@ -43,6 +43,7 @@ import {
 import {
   fetchCJProducts,
   fetchCatalogIntelligenceBatch,
+  fetchCatalogFilterCounts,
   fetchCJCategories,
   fetchImportedMap,
   invalidateCJCache,
@@ -175,6 +176,10 @@ export default function CJImportBrowser({
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
   const [localSearch, setLocalSearch] = useState("");
+  const debouncedLocalSearch = useDebouncedValue(localSearch, 300);
+  const [serverFilterCounts, setServerFilterCounts] = useState<Record<string, number> | null>(
+    null
+  );
   const [products, setProducts] = useState<EnrichedProduct[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -343,10 +348,24 @@ export default function CJImportBrowser({
     [enrichedCatalog, intelFilters, localSearch, importedMap]
   );
 
-  const filterCounts = useMemo(
-    () => computeFilterCounts(countPool, intelFilters),
-    [countPool, intelFilters]
-  );
+  const filterCounts = useMemo(() => {
+    if (serverFilterCounts) {
+      return {
+        trending: serverFilterCounts.trending ?? 0,
+        hasVideo: serverFilterCounts.hasVideo ?? 0,
+        highProfit: 0,
+        fastShipping: serverFilterCounts.fastShipping ?? 0,
+        usWarehouse: serverFilterCounts.usWarehouse ?? 0,
+        rating45: 0,
+        verifiedSupplier: serverFilterCounts.verifiedSupplier ?? 0,
+        opportunity90: 0,
+        opportunity80: 0,
+        opportunity70: 0,
+        poolSize: serverFilterCounts.totalProducts ?? total,
+      };
+    }
+    return computeFilterCounts(countPool, intelFilters);
+  }, [serverFilterCounts, countPool, intelFilters, total]);
 
   const sessionStats = useMemo(
     () =>
@@ -406,6 +425,7 @@ export default function CJImportBrowser({
           {
             tiers: tierList,
             cursor: append ? (opts?.cursor ?? nextCursor) : null,
+            intelFilters: activeIntel,
           }
         );
 
@@ -486,6 +506,29 @@ export default function CJImportBrowser({
     void loadPage(1, false);
   }, [debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const skipLocalSearchReload = useRef(true);
+  useEffect(() => {
+    if (!hasSearched) return;
+    if (skipLocalSearchReload.current) {
+      skipLocalSearchReload.current = false;
+      return;
+    }
+    invalidateCJCache();
+    setNextCursor(null);
+    void loadPage(1, false, undefined, { search: debouncedLocalSearch });
+  }, [debouncedLocalSearch]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const loadCounts = () => {
+      void fetchCatalogFilterCounts()
+        .then(({ counts }) => setServerFilterCounts(counts))
+        .catch(() => {});
+    };
+    loadCounts();
+    const id = window.setInterval(loadCounts, 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
   const runSearch = useCallback(() => {
     if (searchQuery.trim()) {
       saveRecentSearch(searchQuery);
@@ -518,31 +561,28 @@ export default function CJImportBrowser({
     [dbTierCounts, enrichedCatalog]
   );
 
-  const visibleProducts = useMemo(() => {
-    const hasClientFilters =
-      activeFilterCount > 0 || localSearch.trim().length > 0 || sortOption !== "default";
+  const useServerFiltering =
+    activeFilterCount > 0 ||
+    debouncedSearch.trim().length > 0 ||
+    debouncedLocalSearch.trim().length > 0;
 
-    if (!hasClientFilters) {
+  const visibleProducts = useMemo(() => {
+    if (useServerFiltering) {
+      if (sortOption === "default") return enrichedCatalog;
+      return sortProducts(enrichedCatalog, sortOption);
+    }
+
+    if (sortOption === "default") {
       return enrichedCatalog;
     }
 
-    let result = applyIntelligenceFilters(enrichedCatalog, intelFilters);
-    if (localSearch.trim()) {
-      result = filterBySmartSearch(result, localSearch).map((p) =>
-        enrichProduct(p, importedMap)
-      );
-    }
-    if (sortOption === "default") {
-      return sortPremiumCatalog(result);
-    }
+    const result = applyIntelligenceFilters(enrichedCatalog, intelFilters);
     return sortProducts(result, sortOption);
   }, [
     enrichedCatalog,
     intelFilters,
-    localSearch,
-    importedMap,
     sortOption,
-    activeFilterCount,
+    useServerFiltering,
   ]);
 
   useEffect(() => {
@@ -912,16 +952,27 @@ export default function CJImportBrowser({
     (next) => {
       setIntelFilters((prev) => {
         const resolved = typeof next === "function" ? next(prev) : next;
-        const videoChanged = resolved.hasVideo !== prev.hasVideo;
-        if (hasSearched && videoChanged) {
+        if (hasSearched) {
           invalidateCJCache();
           setSelectedPids(new Set());
+          setNextCursor(null);
           void loadPage(1, false, resolved);
         }
         return resolved;
       });
     },
     [hasSearched, loadPage]
+  );
+
+  const handleAnalyticsFilter = useCallback(
+    (filters: IntelligenceFilters) => {
+      setIntelFilters(filters);
+      invalidateCJCache();
+      setSelectedPids(new Set());
+      setNextCursor(null);
+      void loadPage(1, false, filters);
+    },
+    [loadPage]
   );
 
   function handleQuickFilterToggle(key: QuickFilterKey) {
@@ -1079,7 +1130,7 @@ export default function CJImportBrowser({
                 inputSize="sm"
                 value={localSearch}
                 onChange={(e) => setLocalSearch(e.target.value)}
-                placeholder="Filter loaded results…"
+                placeholder="Search PID, SKU, title, supplier, warehouse…"
                 className="h-8 rounded-[10px] border-[#E5E7EB] text-[11px]"
               />
             )}
@@ -1172,7 +1223,10 @@ export default function CJImportBrowser({
 
         {hasSearched && (
           <>
-            <AutoPublishAnalyticsDashboard className="mt-3" />
+            <AutoPublishAnalyticsDashboard
+              className="mt-3"
+              onApplyFilter={handleAnalyticsFilter}
+            />
             <CatalogHealthV3Panel className="mt-2" />
           </>
         )}

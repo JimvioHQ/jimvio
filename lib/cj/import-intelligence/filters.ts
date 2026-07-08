@@ -99,6 +99,7 @@ export const DEFAULT_INTELLIGENCE_FILTERS: IntelligenceFilters = {
   autoPublishPending: false,
   autoPublishRequirementsMissing: false,
   autoPublishAdminOverride: false,
+  isPublished: false,
   missingVideo: false,
   missingSupplier: false,
   missingImages: false,
@@ -335,6 +336,7 @@ export function intelligenceFilterCount(filters: IntelligenceFilters): number {
   if (filters.minOpportunityScore > 0) count++;
   if (filters.hideImported) count++;
   count += countAutoPublishFilters(filters);
+  if (filters.isPublished) count++;
   return count;
 }
 

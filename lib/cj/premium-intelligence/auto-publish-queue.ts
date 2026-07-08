@@ -323,6 +323,16 @@ export async function processAutoPublishQueue(
         failureReasons: [],
         status: JSON.stringify(verification.checks),
       });
+
+      await db
+        .from("cj_product_intelligence")
+        .update({
+          linked_product_id: productId,
+          is_published_active: true,
+          is_admin_override: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("pid", pid);
     } catch (err) {
       result.failed += 1;
       const attempts = (job.attempts as number) + 1;

@@ -19,6 +19,7 @@ export function passesAutoPublishFilters(
   if (filters.autoPublishAdminOverride && auto.status !== "PUBLISHED_BY_ADMIN") {
     return false;
   }
+  if (filters.isPublished && !product.intelligence.isImported) return false;
 
   if (filters.missingVideo && auto.checks.find((c) => c.key === "video")?.passed) {
     return false;
@@ -57,6 +58,7 @@ export function countAutoPublishFilters(filters: IntelligenceFilters): number {
   if (filters.autoPublishPending) count++;
   if (filters.autoPublishRequirementsMissing) count++;
   if (filters.autoPublishAdminOverride) count++;
+  if (filters.isPublished) count++;
   if (filters.missingVideo) count++;
   if (filters.missingSupplier) count++;
   if (filters.missingImages) count++;

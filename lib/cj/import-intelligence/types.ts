@@ -219,6 +219,7 @@ export interface IntelligenceFilters {
   autoPublishPending: boolean;
   autoPublishRequirementsMissing: boolean;
   autoPublishAdminOverride: boolean;
+  isPublished: boolean;
   missingVideo: boolean;
   missingSupplier: boolean;
   missingImages: boolean;

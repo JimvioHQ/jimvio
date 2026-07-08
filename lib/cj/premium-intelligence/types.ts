@@ -81,6 +81,7 @@ export interface CatalogListParams {
   tiers?: CatalogTier[];
   sort?: "curated" | "health" | "margin" | "orders" | "newest";
   cursor?: string | null;
+  filters?: import("./catalog-filter-index").CatalogFilterIndex;
 }
 
 export interface CatalogCursor {
