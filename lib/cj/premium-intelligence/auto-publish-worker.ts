@@ -3,8 +3,7 @@
  */
 
 import { getCatalogDB } from "./db";
-import { processAutoPublishQueue } from "./auto-publish-queue";
-import { triggerAutoPublishEvaluation } from "./auto-publish-trigger";
+import { processAutoPublishQueue, queueReadyProductsFromIntel } from "./auto-publish-queue";
 import { runCatalogScannerBatch } from "./catalog-scanner";
 import { runCjWatcherBatch } from "./cj-watcher";
 import { processSignalWatchQueue } from "./signal-watch";
@@ -57,26 +56,7 @@ async function isAutoPublishSchemaReady(): Promise<boolean> {
 }
 
 async function scanAndQueueReadyProducts(limit = 200): Promise<number> {
-  const db = getCatalogDB();
-  let queued = 0;
-
-  const { data: readyIntel } = await db
-    .from("cj_product_intelligence")
-    .select("pid, publish_priority")
-    .eq("auto_publish_ready", true)
-    .eq("auto_publish_status", "READY")
-    .eq("enrichment_status", "complete")
-    .or("duplicate_blocked.is.null,duplicate_blocked.eq.false")
-    .order("publish_priority", { ascending: false })
-    .limit(limit);
-
-  for (const row of readyIntel ?? []) {
-    const pid = row.pid as string;
-    const result = await triggerAutoPublishEvaluation(pid, "worker_scan");
-    if (result.queued) queued += 1;
-  }
-
-  return queued;
+  return queueReadyProductsFromIntel(limit);
 }
 
 export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
@@ -119,15 +99,22 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
     return result;
   }
 
+  result.newlyQueued = await scanAndQueueReadyProducts();
+  result.scanned = result.newlyQueued;
+
+  const queueResult = await processAutoPublishQueue(AUTO_PUBLISH_WORKER_BATCH_SIZE);
+  result.queue.processed = queueResult.processed;
+  result.queue.published = queueResult.published;
+  result.queue.failed = queueResult.failed;
+  result.queue.skipped = queueResult.skipped;
+  result.queue.verified = queueResult.verified ?? 0;
+
   result.enrichment = await processEnrichmentQueueChained(50, {
-    maxDurationMs: 50_000,
+    maxDurationMs: 45_000,
   });
 
   const signalResult = await processSignalWatchQueue(50);
   result.signalWatch = signalResult;
-
-  result.newlyQueued = await scanAndQueueReadyProducts();
-  result.scanned = result.newlyQueued;
 
   const scannerResult = await runCatalogScannerBatch(200);
   result.scanner = {
@@ -136,13 +123,6 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
     cycleComplete: scannerResult.cycleComplete,
     totalScanned: scannerResult.totalScanned,
   };
-
-  const queueResult = await processAutoPublishQueue(AUTO_PUBLISH_WORKER_BATCH_SIZE);
-  result.queue.processed = queueResult.processed;
-  result.queue.published = queueResult.published;
-  result.queue.failed = queueResult.failed;
-  result.queue.skipped = queueResult.skipped;
-  result.queue.verified = queueResult.verified ?? 0;
 
   const watcherResult = await runCjWatcherBatch(100);
   result.watcher = watcherResult;

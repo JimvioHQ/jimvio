@@ -64,6 +64,9 @@ function appendIntelFilterParams(
   };
   if (index.minHealthScore) params.set("minHealthScore", String(index.minHealthScore));
   if (index.minMargin) params.set("minMargin", String(index.minMargin));
+  if (index.publishQueueStatus) {
+    params.set("publishQueueStatus", index.publishQueueStatus);
+  }
   for (const [key, val] of Object.entries(map)) {
     if (val) params.set(key, "1");
   }

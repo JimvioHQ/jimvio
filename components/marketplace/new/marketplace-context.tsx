@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   DEFAULT_FILTERS,
   filterListings,
+  SELECT_CATEGORY_LABEL,
   type AppliedFilters,
   type DeliveryTime,
   type FilterableListing,
@@ -93,7 +94,7 @@ function adaptRow(row: any): MarketplaceProduct {
     is_flash_deal:       row.is_flash_deal ?? false,
     sold_count:          row.sold_count ?? null,
     claimed_pct:         row.claimed_pct ?? null,
-    category:            row.category ?? "Trending Now",
+    category:            row.category ?? "",
     shippingFrom:        row.shipping_from ?? "",
     deliveryTime:        (row.delivery_time as DeliveryTime) ?? "standard",
     type:                (row.type as ProductType) ?? "physical",

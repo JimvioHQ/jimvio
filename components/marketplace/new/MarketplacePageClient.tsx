@@ -18,7 +18,7 @@ import { MarketplaceTrustStrip } from "./MarketplaceTrustStrip";
 import type { HeroProduct } from "@/types";
 import { useMarketplace } from "./marketplace-context";
 import type { DbProduct } from "@/lib/utils";
-import { isRenderableUrl } from "@/lib/utils";
+import { isRenderableUrl, SELECT_CATEGORY_LABEL } from "@/lib/utils";
 import { Sidebar } from "./Sidebar";
 import { MarketplacePagination } from "./MarketplacePagination";
 import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
@@ -259,7 +259,7 @@ export function MarketplacePageClient({
 
   function handleTypeChange(t: ProductType) {
     setType(t);
-    setCategory("Trending Now");
+    setCategory("");
     clearFilters();
     setSearch("");
     setDebouncedSearch("");
@@ -334,7 +334,10 @@ export function MarketplacePageClient({
       const hasPriceMax = filters.priceRange[1] < 5000;
       const hasPriceMin = filters.priceRange[0] > 0;
       const hasRating = filters.minRating > 0;
-      const hasCategory = filters.category && filters.category !== "Trending Now";
+      const hasCategory =
+        filters.category &&
+        filters.category !== "" &&
+        filters.category !== SELECT_CATEGORY_LABEL;
 
       let categoryId: string | null = null;
       if (hasCategory) {
@@ -525,7 +528,10 @@ export function MarketplacePageClient({
       const hasPriceMax = filters.priceRange[1] < 5000;
       const hasPriceMin = filters.priceRange[0] > 0;
       const hasRating = filters.minRating > 0;
-      const hasCategory = filters.category && filters.category !== "Trending Now";
+      const hasCategory =
+        filters.category &&
+        filters.category !== "" &&
+        filters.category !== SELECT_CATEGORY_LABEL;
 
       let categoryId: string | null = null;
       if (hasCategory) {
@@ -1037,7 +1043,9 @@ export function MarketplacePageClient({
             <h2 className="text-lg font-black tracking-[-0.02em] text-[var(--color-text-primary)]">
               {debouncedSearch
                 ? `Results for: ${debouncedSearch}`
-                : filters.category && filters.category !== "Trending Now"
+                : filters.category &&
+                    filters.category !== "" &&
+                    filters.category !== SELECT_CATEGORY_LABEL
                   ? filters.category
                   : `Trending ${type === "digital" ? "Digital " : ""}Products`}
             </h2>
@@ -1050,7 +1058,9 @@ export function MarketplacePageClient({
               >
                 ✕ Clear search
               </button>
-            ) : filters.category && filters.category !== "Trending Now" ? (
+            ) : filters.category &&
+                filters.category !== "" &&
+                filters.category !== SELECT_CATEGORY_LABEL ? (
               <button
                 type="button"
                 onClick={() => setCategory("Trending Now")}

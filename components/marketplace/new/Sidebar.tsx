@@ -11,7 +11,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { Slider } from "@/components/ui/slider";
 import CustomSelect from "@/components/ui/select-2";
 import { useMarketplace } from "./marketplace-context";
-import type { DeliveryTime } from "@/lib/utils";
+import { SELECT_CATEGORY_LABEL, type DeliveryTime } from "@/lib/utils";
 import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -272,11 +272,12 @@ export function Sidebar({ type = "physical" }: Props) {
   useEffect(() => {
     if (loadingCats) return;
     const valid = new Set([
-      "Trending Now",
+      "",
+      SELECT_CATEGORY_LABEL,
       ...sidebarCategories.map((c) => c.name),
     ]);
     if (filters.category && !valid.has(filters.category)) {
-      setCategory("Trending Now");
+      setCategory("");
     }
   }, [type, loadingCats, sidebarCategories, filters.category, setCategory]);
 
@@ -331,10 +332,7 @@ export function Sidebar({ type = "physical" }: Props) {
     })
     .filter((d) => d.count !== "");
 
-  const allCategories = [
-    { name: "Trending Now", slug: "trending", product_count: null, icon: "Flame" },
-    ...sidebarCategories,
-  ];
+  const allCategories = [...sidebarCategories];
 
   return (
     <aside className="flex w-full shrink-0 flex-col gap-0 self-start">
@@ -357,7 +355,7 @@ export function Sidebar({ type = "physical" }: Props) {
               </span>
             </span>
             <button
-              onClick={() => setCategory("Trending Now")}
+              onClick={() => setCategory("")}
               className="text-[10px] font-semibold"
               style={{ color: "var(--color-accent)" }}
             >
@@ -530,7 +528,7 @@ export function Sidebar({ type = "physical" }: Props) {
             className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 ring-1 ring-white/10 focus-within:ring-white/30 transition-all"
             onSubmit={(e) => {
               e.preventDefault();
-              if (aiQuery.trim()) { setCategory("Trending Now"); setAiQuery(""); }
+              if (aiQuery.trim()) { setCategory(""); setAiQuery(""); }
             }}
           >
             <input
@@ -554,7 +552,7 @@ export function Sidebar({ type = "physical" }: Props) {
               <button
                 key={t}
                 type="button"
-                onClick={() => setCategory("Trending Now")}
+                onClick={() => setCategory("")}
                 className="rounded-full bg-white/15 px-2 py-0.5 text-white transition-colors hover:bg-white/30"
               >
                 {t}

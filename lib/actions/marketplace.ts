@@ -1151,7 +1151,7 @@
 //   const { data } = await query;
 
 //   // Filter by category name after fetch since category is a join
-//   if (filters?.category && filters.category !== "Trending Now") {
+//   if (filters?.category && filters.category !== "" && filters.category !== "Select category") {
 //     return (data ?? []).filter((p) => {
 //       const cat = Array.isArray(p.product_categories)
 //         ? p.product_categories[0]
@@ -2495,7 +2495,7 @@ export async function getTrendingProducts(filters?: {
     ),
   }));
 
-  if (filters?.category && filters.category !== "Trending Now") {
+  if (filters?.category && filters.category !== "" && filters.category !== "Select category") {
     return products.filter((p) => {
       const cat = Array.isArray(p.product_categories)
         ? p.product_categories[0]

@@ -2,10 +2,10 @@ import { getCached, setCached } from "./catalog-cache";
 import { timedQuery } from "./query-timing";
 import { getCatalogDB } from "./db";
 import {
-  applyGlobalSearch,
-  applyIntelFiltersToQuery,
-  applyRawFiltersToQuery,
+  applyIntelFiltersStandalone,
   getAutoPublishQueuePids,
+  getRawSearchPids,
+  getWarehouseFilterPids,
   type CatalogFilterIndex,
 } from "./catalog-filter-index";
 import { searchIndexPids } from "./search-index";
@@ -310,6 +310,10 @@ const DEFAULT_VISIBLE_TIERS: CatalogTier[] = [
   "PENDING",
 ];
 
+function hasWarehouseFilters(filters: CatalogFilterIndex): boolean {
+  return Boolean(filters.usWarehouse || filters.euWarehouse || filters.ukWarehouse);
+}
+
 export async function getCatalogPage(
   params: CatalogListParams
 ): Promise<CatalogListResult> {
@@ -325,91 +329,121 @@ export async function getCatalogPage(
     }
     const cursor = parseCursor(params.cursor);
 
-    let query = db
-      .from("cj_raw_products")
-      .select("*, cj_product_intelligence!inner(*)", {
-        count: page === 1 && !cursor ? "exact" : undefined,
-      });
+    let pidFilter: string[] | null = null;
 
     if (filters.publishQueueStatus) {
-      const queuePids = await getAutoPublishQueuePids(filters.publishQueueStatus);
-      if (queuePids.length === 0) {
+      pidFilter = await getAutoPublishQueuePids(filters.publishQueueStatus);
+      if (pidFilter.length === 0) {
         return { products: [], total: 0, nextCursor: null };
       }
-      query = query.in("pid", queuePids);
+    }
+
+    if (hasWarehouseFilters(filters)) {
+      const warehousePids = await getWarehouseFilterPids(filters);
+      if (warehousePids.length === 0) {
+        return { products: [], total: 0, nextCursor: null };
+      }
+      pidFilter = pidFilter
+        ? pidFilter.filter((p) => warehousePids.includes(p))
+        : warehousePids;
+      if (pidFilter.length === 0) {
+        return { products: [], total: 0, nextCursor: null };
+      }
     }
 
     if (params.search?.trim()) {
       const term = params.search.trim();
       const indexPids = await searchIndexPids(term, 1000);
-      if (indexPids.length > 0) {
-        query = query.in("pid", indexPids);
-      } else {
-        query = applyGlobalSearch(query, term);
+      const searchPids =
+        indexPids.length > 0 ? indexPids : await getRawSearchPids(term, 1000);
+      if (searchPids.length === 0) {
+        return { products: [], total: 0, nextCursor: null };
+      }
+      pidFilter = pidFilter
+        ? pidFilter.filter((p) => searchPids.includes(p))
+        : searchPids;
+      if (pidFilter.length === 0) {
+        return { products: [], total: 0, nextCursor: null };
       }
     }
 
-    query = query.in("cj_product_intelligence.catalog_tier", tiers);
-    query = applyIntelFiltersToQuery(query, filters);
-    query = applyRawFiltersToQuery(query, filters);
+    let intelQuery = db.from("cj_product_intelligence").select("*", {
+      count: page === 1 && !cursor ? "exact" : undefined,
+    });
+
+    intelQuery = intelQuery.in("catalog_tier", tiers);
+    intelQuery = applyIntelFiltersStandalone(intelQuery, filters);
+
+    if (pidFilter) {
+      intelQuery = intelQuery.in("pid", pidFilter.slice(0, 5000));
+    }
 
     if (cursor) {
-      query = query.or(
-        `orders.lt.${cursor.orders},and(orders.eq.${cursor.orders},pid.lt.${cursor.pid})`
+      intelQuery = intelQuery.or(
+        `health_score.lt.${cursor.health_score ?? 0},and(health_score.eq.${cursor.health_score ?? 0},pid.lt.${cursor.pid})`
       );
     }
 
     switch (sortKey) {
       case "health":
       case "curated":
-        query = query
-          .order("health_score", {
-            ascending: false,
-            foreignTable: "cj_product_intelligence",
-          })
+        intelQuery = intelQuery
+          .order("health_score", { ascending: false })
           .order("pid", { ascending: false });
         break;
       case "margin":
-        query = query
-          .order("margin_percent", {
-            ascending: false,
-            nullsFirst: false,
-            foreignTable: "cj_product_intelligence",
-          })
+        intelQuery = intelQuery
+          .order("margin_percent", { ascending: false, nullsFirst: false })
           .order("pid", { ascending: false });
         break;
       case "newest":
-        query = query.order("created_at", { ascending: false }).order("pid", {
-          ascending: false,
-        });
+        intelQuery = intelQuery
+          .order("created_at", { ascending: false })
+          .order("pid", { ascending: false });
         break;
       default:
-        query = query.order("orders", { ascending: false }).order("pid", {
-          ascending: false,
-        });
+        intelQuery = intelQuery.order("pid", { ascending: false });
+        break;
     }
 
     if (cursor) {
-      query = query.limit(pageSize);
+      intelQuery = intelQuery.limit(pageSize);
     } else {
       const from = (page - 1) * pageSize;
-      query = query.range(from, from + pageSize - 1);
+      intelQuery = intelQuery.range(from, from + pageSize - 1);
     }
 
-    const { data, count, error } = await query;
+    const { data: intelRows, count, error } = await intelQuery;
     if (error) throw new Error(error.message);
 
-    const products = (data ?? []).map((row: Record<string, unknown>) => {
-      const raw = row as unknown as CjRawProductRow;
-      const intelJoin = row.cj_product_intelligence;
-      const intel = Array.isArray(intelJoin) ? intelJoin[0] : intelJoin;
-      return {
-        ...raw,
-        intelligence:
-          (intel as CjProductIntelligenceRow | null) ??
-          makePendingIntelligence(raw.pid),
-      };
-    });
+    const intelList = (intelRows ?? []) as CjProductIntelligenceRow[];
+    if (intelList.length === 0) {
+      return { products: [], total: count ?? 0, nextCursor: null };
+    }
+
+    const pids = intelList.map((r) => r.pid);
+    const { data: rawRows, error: rawError } = await db
+      .from("cj_raw_products")
+      .select("*")
+      .in("pid", pids);
+
+    if (rawError) throw new Error(rawError.message);
+
+    const rawMap = new Map(
+      (rawRows ?? []).map((r) => [r.pid as string, r as CjRawProductRow])
+    );
+    const intelMap = new Map(intelList.map((r) => [r.pid, r]));
+
+    const products = pids
+      .map((pid) => {
+        const raw = rawMap.get(pid);
+        if (!raw) return null;
+        return {
+          ...raw,
+          intelligence: intelMap.get(pid) ?? makePendingIntelligence(pid),
+        };
+      })
+      .filter(Boolean) as Array<CjRawProductRow & { intelligence: CjProductIntelligenceRow }>;
 
     const last = products[products.length - 1];
     const nextCursor =

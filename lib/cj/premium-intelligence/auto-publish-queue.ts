@@ -72,6 +72,58 @@ export async function enqueueAutoPublish(
   return !error;
 }
 
+export async function queueReadyProductsFromIntel(limit = 200): Promise<number> {
+  const db = getCatalogDB();
+  const { computePublishDebounceMs } = await import("./system-publish");
+  const debounceMs = computePublishDebounceMs();
+  let queued = 0;
+
+  const { data: readyIntel } = await db
+    .from("cj_product_intelligence")
+    .select("pid, publish_priority, linked_product_id")
+    .eq("auto_publish_ready", true)
+    .eq("auto_publish_status", "READY")
+    .eq("enrichment_status", "complete")
+    .or("duplicate_blocked.is.null,duplicate_blocked.eq.false")
+    .order("publish_priority", { ascending: false })
+    .limit(limit);
+
+  for (const row of readyIntel ?? []) {
+    const pid = row.pid as string;
+    let productId: string | null = (row.linked_product_id as string) ?? null;
+
+    if (!productId) {
+      const { data: mapped } = await db
+        .from("cj_product_map")
+        .select("product_id")
+        .eq("cj_pid", pid)
+        .maybeSingle();
+      productId = (mapped?.product_id as string) ?? null;
+    }
+
+    if (!productId) {
+      productId = await ensureCjProductImported(pid);
+    }
+    if (!productId) continue;
+
+    const { data: product } = await db
+      .from("products")
+      .select("status, is_active, published_by_admin_override")
+      .eq("id", productId)
+      .maybeSingle();
+
+    if (!product) continue;
+    if (product.published_by_admin_override) continue;
+    if (product.status === "active" && product.is_active) continue;
+
+    const priority = Number(row.publish_priority) || 0;
+    const ok = await enqueueAutoPublish(pid, productId, priority, debounceMs);
+    if (ok) queued += 1;
+  }
+
+  return queued;
+}
+
 export async function enqueueAutoPublishBatch(
   items: Array<{ pid: string; productId?: string; priority?: number; debounceMs?: number }>
 ): Promise<number> {

@@ -52,79 +52,92 @@ export const FAILURE_LABELS = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CatalogQuery = any;
 
-/** Apply intelligence-table filters to a joined Supabase query. */
-export function applyIntelFiltersToQuery(
+const MIN_DESCRIPTION_LENGTH = 80;
+const MIN_IMAGE_COUNT = 5;
+const FAST_SHIPPING_DAYS = 7;
+
+/**
+ * Apply intelligence filters on cj_product_intelligence directly (no join prefix).
+ * Uses indexed columns — never JSON contains (causes invalid json errors on joins).
+ */
+export function applyIntelFiltersStandalone(
   query: CatalogQuery,
   filters: CatalogFilterIndex
 ): CatalogQuery {
   let q = query;
 
-  if (filters.hasVideo) {
-    q = q.eq("cj_product_intelligence.has_video", true);
-  }
-  if (filters.verifiedSupplier) {
-    q = q.eq("cj_product_intelligence.supplier_verified", true);
-  }
-  if (filters.trending) {
-    q = q.eq("cj_product_intelligence.trending", true);
-  }
+  if (filters.hasVideo) q = q.eq("has_video", true);
+  if (filters.verifiedSupplier) q = q.eq("supplier_verified", true);
+  if (filters.trending) q = q.eq("trending", true);
   if (filters.fastShipping) {
-    q = q.lte("cj_product_intelligence.delivery_days", 7);
+    q = q.not("delivery_days", "is", null).lte("delivery_days", FAST_SHIPPING_DAYS);
   }
   if (filters.minImages != null && filters.minImages > 0) {
-    q = q.gte("cj_product_intelligence.image_count", filters.minImages);
+    q = q.gte("image_count", filters.minImages);
   }
   if (filters.hasDescription) {
-    q = q.gte("cj_product_intelligence.description_length", 100);
+    q = q.gte("description_length", MIN_DESCRIPTION_LENGTH);
   }
   if (filters.minHealthScore != null && filters.minHealthScore > 0) {
-    q = q.gte("cj_product_intelligence.health_score", filters.minHealthScore);
+    q = q.gte("health_score", filters.minHealthScore);
   }
   if (filters.minMargin != null && filters.minMargin > 0) {
-    q = q.gte("cj_product_intelligence.margin_percent", filters.minMargin);
+    q = q.gte("margin_percent", filters.minMargin);
   }
 
   if (filters.autoPublishReady) {
-    q = q
-      .eq("cj_product_intelligence.auto_publish_ready", true)
-      .eq("cj_product_intelligence.auto_publish_status", "READY");
+    q = q.eq("auto_publish_ready", true).eq("auto_publish_status", "READY");
   }
   if (filters.autoPublishPending) {
-    q = q.eq("cj_product_intelligence.auto_publish_status", "PENDING_ENRICHMENT");
+    q = q.eq("auto_publish_status", "PENDING_ENRICHMENT");
   }
   if (filters.autoPublishRequirementsMissing) {
-    q = q.eq("cj_product_intelligence.auto_publish_status", "REQUIREMENTS_MISSING");
+    q = q.eq("auto_publish_status", "REQUIREMENTS_MISSING");
   }
   if (filters.autoPublishAdminOverride) {
-    q = q.eq("cj_product_intelligence.is_admin_override", true);
+    q = q.eq("is_admin_override", true);
   }
   if (filters.isPublished) {
-    q = q.eq("cj_product_intelligence.is_published_active", true);
+    q = q.eq("is_published_active", true);
   }
   if (filters.hideImported) {
-    q = q.is("cj_product_intelligence.linked_product_id", null);
+    q = q.is("linked_product_id", null);
   }
   if (filters.isHidden) {
-    q = q.eq("cj_product_intelligence.catalog_tier", "HIDDEN");
+    q = q.eq("catalog_tier", "HIDDEN");
   }
   if (filters.isDraft) {
-    q = q
-      .not("cj_product_intelligence.linked_product_id", "is", null)
-      .eq("cj_product_intelligence.is_published_active", false);
+    q = q.not("linked_product_id", "is", null).eq("is_published_active", false);
   }
 
-  for (const [key, label] of Object.entries(FAILURE_LABELS)) {
-    const filterKey = key as keyof typeof FAILURE_LABELS;
-    if (filters[filterKey as keyof CatalogFilterIndex]) {
-      q = q.contains("cj_product_intelligence.auto_publish_failures", [label]);
-    }
+  if (filters.missingVideo) q = q.eq("has_video", false);
+  if (filters.missingSupplier) q = q.eq("supplier_verified", false);
+  if (filters.missingShipping) {
+    q = q.or(`delivery_days.gt.${FAST_SHIPPING_DAYS},delivery_days.is.null`);
+  }
+  if (filters.missingImages) q = q.lt("image_count", MIN_IMAGE_COUNT);
+  if (filters.missingDescription) q = q.lt("description_length", MIN_DESCRIPTION_LENGTH);
+  if (filters.missingTrending) q = q.eq("trending", false);
+  if (filters.missingStock) {
+    q = q.contains("auto_publish_failures", [FAILURE_LABELS.missingStock]);
+  }
+  if (filters.missingVariants) {
+    q = q.contains("auto_publish_failures", [FAILURE_LABELS.missingVariants]);
   }
 
   return q;
 }
 
-/** Apply raw-product warehouse filters. */
-export function applyRawFiltersToQuery(
+/** @deprecated Use applyIntelFiltersStandalone — kept for compatibility */
+export function applyIntelFiltersToQuery(
+  query: CatalogQuery,
+  filters: CatalogFilterIndex
+): CatalogQuery {
+  return applyIntelFiltersStandalone(query, filters);
+}
+
+/** Apply raw-product warehouse filters (standalone cj_raw_products query). */
+export function applyRawFiltersStandalone(
   query: CatalogQuery,
   filters: CatalogFilterIndex
 ): CatalogQuery {
@@ -143,35 +156,48 @@ export function applyRawFiltersToQuery(
   return q;
 }
 
-/** Global search across pid, sku, title, supplier, warehouse, product id. */
-export function applyGlobalSearch(query: CatalogQuery, search: string): CatalogQuery {
+/** @deprecated Use applyRawFiltersStandalone */
+export function applyRawFiltersToQuery(
+  query: CatalogQuery,
+  filters: CatalogFilterIndex
+): CatalogQuery {
+  return applyRawFiltersStandalone(query, filters);
+}
+
+/** Search raw products by pid, sku, title, supplier, warehouse. */
+export function applyRawSearchStandalone(query: CatalogQuery, search: string): CatalogQuery {
   const q = search.trim();
   if (!q) return query;
 
   const escaped = q.replace(/[%_\\]/g, "\\$&");
   const pattern = `%${escaped}%`;
-  const isUuid =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q);
 
-  const parts = [
-    `title.ilike.${pattern}`,
-    `pid.ilike.${pattern}`,
-    `sku.ilike.${pattern}`,
-    `supplier.ilike.${pattern}`,
-    `warehouse.ilike.${pattern}`,
-  ];
+  return query.or(
+    [
+      `title.ilike.${pattern}`,
+      `pid.ilike.${pattern}`,
+      `sku.ilike.${pattern}`,
+      `supplier.ilike.${pattern}`,
+      `warehouse.ilike.${pattern}`,
+    ].join(",")
+  );
+}
 
-  if (isUuid) {
-    parts.push(`cj_product_intelligence.linked_product_id.eq.${q}`);
-  }
-
-  return query.or(parts.join(","));
+/** @deprecated Use applyRawSearchStandalone */
+export function applyGlobalSearch(query: CatalogQuery, search: string): CatalogQuery {
+  return applyRawSearchStandalone(query, search);
 }
 
 export function parseCatalogFiltersFromParams(
   sp: URLSearchParams
 ): CatalogFilterIndex {
   const bool = (key: string) => sp.get(key) === "1" || sp.get(key) === "true";
+
+  const queueStatus = sp.get("publishQueueStatus");
+  const publishQueueStatus =
+    queueStatus === "pending" || queueStatus === "processing" || queueStatus === "failed"
+      ? queueStatus
+      : undefined;
 
   return {
     hasVideo: bool("hasVideo"),
@@ -203,6 +229,7 @@ export function parseCatalogFiltersFromParams(
     hideImported: bool("hideImported"),
     isDraft: bool("isDraft"),
     isHidden: bool("isHidden"),
+    publishQueueStatus,
     minHealthScore: sp.has("minHealthScore")
       ? parseInt(sp.get("minHealthScore") ?? "0", 10)
       : undefined,
@@ -224,6 +251,29 @@ export async function getAutoPublishQueuePids(
     .select("pid")
     .in("status", [...statuses])
     .limit(5000);
+  return (data ?? []).map((r) => r.pid as string);
+}
+
+/** Resolve PIDs matching warehouse filters from raw table. */
+export async function getWarehouseFilterPids(
+  filters: CatalogFilterIndex,
+  limit = 50000
+): Promise<string[]> {
+  const db = getCatalogDB();
+  let q = db.from("cj_raw_products").select("pid").limit(limit);
+  q = applyRawFiltersStandalone(q, filters);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => r.pid as string);
+}
+
+/** Resolve PIDs from raw search fallback. */
+export async function getRawSearchPids(search: string, limit = 1000): Promise<string[]> {
+  const db = getCatalogDB();
+  let q = db.from("cj_raw_products").select("pid").limit(limit);
+  q = applyRawSearchStandalone(q, search);
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
   return (data ?? []).map((r) => r.pid as string);
 }
 
@@ -348,37 +398,25 @@ export async function computeCatalogFilterCounts(): Promise<CatalogFilterCounts>
     countIntel((q) => q.eq("has_video", true)),
     countIntel((q) => q.eq("supplier_verified", true)),
     countIntel((q) => q.eq("trending", true)),
-    countIntel((q) => q.lte("delivery_days", 7)),
-    countIntel((q) => q.gte("image_count", 5)),
+    countIntel((q) => q.not("delivery_days", "is", null).lte("delivery_days", FAST_SHIPPING_DAYS)),
+    countIntel((q) => q.gte("image_count", MIN_IMAGE_COUNT)),
     countIntel((q) => q.eq("auto_publish_ready", true).eq("auto_publish_status", "READY")),
     countIntel((q) => q.eq("is_published_active", true)),
     countIntel((q) => q.eq("auto_publish_status", "PENDING_ENRICHMENT")),
     countIntel((q) => q.eq("auto_publish_status", "REQUIREMENTS_MISSING")),
     countIntel((q) => q.eq("is_admin_override", true)),
-    countIntel((q) =>
-      q.contains("auto_publish_failures", [FAILURE_LABELS.missingVideo])
-    ),
-    countIntel((q) =>
-      q.contains("auto_publish_failures", [FAILURE_LABELS.missingSupplier])
-    ),
-    countIntel((q) =>
-      q.contains("auto_publish_failures", [FAILURE_LABELS.missingShipping])
-    ),
-    countIntel((q) =>
-      q.contains("auto_publish_failures", [FAILURE_LABELS.missingImages])
-    ),
-    countIntel((q) =>
-      q.contains("auto_publish_failures", [FAILURE_LABELS.missingDescription])
-    ),
+    countIntel((q) => q.eq("has_video", false)),
+    countIntel((q) => q.eq("supplier_verified", false)),
+    countIntel((q) => q.or(`delivery_days.gt.${FAST_SHIPPING_DAYS},delivery_days.is.null`)),
+    countIntel((q) => q.lt("image_count", MIN_IMAGE_COUNT)),
+    countIntel((q) => q.lt("description_length", MIN_DESCRIPTION_LENGTH)),
     countIntel((q) =>
       q.contains("auto_publish_failures", [FAILURE_LABELS.missingVariants])
     ),
     countIntel((q) =>
       q.contains("auto_publish_failures", [FAILURE_LABELS.missingStock])
     ),
-    countIntel((q) =>
-      q.contains("auto_publish_failures", [FAILURE_LABELS.missingTrending])
-    ),
+    countIntel((q) => q.eq("trending", false)),
     countRaw((q) => q.or("country_code.eq.US,warehouse.ilike.%US%")),
     countRaw((q) => q.or("country_code.in.(DE,FR,EU),warehouse.ilike.%EU%")),
     countRaw((q) => q.or("country_code.eq.GB,warehouse.ilike.%UK%")),
@@ -425,6 +463,7 @@ export function hasActiveServerFilters(filters: CatalogFilterIndex): boolean {
   return Object.entries(filters).some(([, v]) => {
     if (typeof v === "boolean") return v;
     if (typeof v === "number") return v > 0;
+    if (typeof v === "string") return v.length > 0;
     return false;
   });
 }
