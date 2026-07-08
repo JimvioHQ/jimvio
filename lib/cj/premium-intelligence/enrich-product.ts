@@ -13,6 +13,8 @@ import {
 import { rawRowToCJProduct } from "./map-to-cj-product";
 import { scoreEnrichedProduct } from "./score-product";
 import { resolveDeliveryDaysFromFreight } from "./resolve-delivery-days";
+import { detectSignalChanges, scheduleSignalRecalc, type IntelSnapshot } from "./signal-watch";
+import { indexProductSearchRow } from "./search-index";
 
 const RETRY_DELAYS_MS = [5_000, 30_000, 120_000, 600_000, 1_800_000];
 
@@ -29,6 +31,26 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
   await updateIntelligence(pid, {
     enrichment_status: "processing",
   });
+
+  const { getCatalogDB } = await import("./db");
+  const db = getCatalogDB();
+  const { data: priorIntel } = await db
+    .from("cj_product_intelligence")
+    .select("has_video, supplier_verified, delivery_days, image_count, description_length, trending")
+    .eq("pid", pid)
+    .maybeSingle();
+
+  const beforeSnapshot: IntelSnapshot = {
+    has_video: priorIntel?.has_video,
+    supplier_verified: priorIntel?.supplier_verified,
+    delivery_days: priorIntel?.delivery_days,
+    image_count: priorIntel?.image_count,
+    description_length: priorIntel?.description_length,
+    trending: priorIntel?.trending,
+    stock: raw.stock,
+    warehouse: raw.warehouse,
+    orders: raw.orders,
+  };
 
   try {
     const supabase = getServiceClient();
@@ -121,6 +143,30 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
     });
 
     await markQueueJob(pid, { status: "complete", last_error: null });
+
+    const afterSnapshot: IntelSnapshot = {
+      has_video: intelPayload.hasVideo,
+      supplier_verified: intelPayload.supplierVerified,
+      delivery_days: Number.isNaN(deliveryDays!) ? null : deliveryDays,
+      image_count: uniqueImages.length || (intelPayload.imageCount ?? 0),
+      description_length: intelPayload.descriptionLength ?? description.length,
+      trending: scored.trending,
+      stock: raw.stock,
+      warehouse: raw.warehouse,
+      orders: raw.orders,
+    };
+
+    const signalChanges = detectSignalChanges(beforeSnapshot, afterSnapshot);
+    if (signalChanges.length > 0) {
+      await scheduleSignalRecalc(pid, signalChanges);
+    }
+
+    await indexProductSearchRow(
+      pid,
+      { ...raw, raw_payload: raw.raw_payload },
+      { linked_product_id: null },
+      description.slice(0, 500)
+    );
 
     const autoPublishResult = evaluateAutoPublish(withAutoPublish);
     if (autoPublishResult.ready) {

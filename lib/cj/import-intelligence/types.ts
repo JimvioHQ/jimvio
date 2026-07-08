@@ -214,6 +214,8 @@ export interface IntelligenceFilters {
   minOpportunityScore: number;
   // Misc
   hideImported: boolean;
+  isDraft: boolean;
+  isHidden: boolean;
   // Auto Publish Engine filters
   autoPublishReady: boolean;
   autoPublishPending: boolean;

@@ -39,7 +39,21 @@ export type AnalyticsFilterKey =
   | "missingDescription"
   | "missingVariants"
   | "missingStock"
-  | "trendingMissing";
+  | "trendingMissing"
+  | "draft"
+  | "hidden"
+  | "queue"
+  | "processing"
+  | "failed";
+
+interface PipelineMetrics {
+  draft: number;
+  hidden: number;
+  queuePending: number;
+  queueProcessing: number;
+  queueFailed: number;
+  signalWatchPending: number;
+}
 
 const FILTER_MAP: Record<
   AnalyticsFilterKey,
@@ -61,6 +75,11 @@ const FILTER_MAP: Record<
   missingVariants: { ...DEFAULT_INTELLIGENCE_FILTERS, missingVariants: true },
   missingStock: { ...DEFAULT_INTELLIGENCE_FILTERS, missingStock: true },
   trendingMissing: { ...DEFAULT_INTELLIGENCE_FILTERS, missingTrending: true },
+  draft: { ...DEFAULT_INTELLIGENCE_FILTERS, isDraft: true },
+  hidden: { ...DEFAULT_INTELLIGENCE_FILTERS, isHidden: true },
+  queue: { ...DEFAULT_INTELLIGENCE_FILTERS, autoPublishReady: true },
+  processing: { ...DEFAULT_INTELLIGENCE_FILTERS, autoPublishReady: true },
+  failed: { ...DEFAULT_INTELLIGENCE_FILTERS, autoPublishRequirementsMissing: true },
 };
 
 function StatCard({
@@ -113,23 +132,29 @@ function StatCard({
 export function AutoPublishAnalyticsDashboard({
   className,
   onApplyFilter,
-  pollIntervalMs = 30_000,
+  pollIntervalMs = 15_000,
 }: {
   className?: string;
   onApplyFilter?: (filters: IntelligenceFilters) => void;
   pollIntervalMs?: number;
 }) {
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [pipeline, setPipeline] = useState<PipelineMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (refresh = false) => {
     setLoading((prev) => (refresh ? prev : true));
     try {
-      const res = await fetch(
-        `/api/admin/cj/auto-publish/analytics${refresh ? "?refresh=1" : ""}`
-      );
-      const json = await res.json();
-      if (json.success) setData(json.analytics);
+      const [analyticsRes, countsRes] = await Promise.all([
+        fetch(`/api/admin/cj/auto-publish/analytics${refresh ? "?refresh=1" : ""}`),
+        fetch("/api/admin/cj/catalog/filter-counts"),
+      ]);
+      const analyticsJson = await analyticsRes.json();
+      const countsJson = await countsRes.json();
+      if (analyticsJson.success) setData(analyticsJson.analytics);
+      if (countsJson.success && countsJson.pipeline) {
+        setPipeline(countsJson.pipeline as PipelineMetrics);
+      }
     } catch {
       // ignore
     } finally {
@@ -278,6 +303,44 @@ export function AutoPublishAnalyticsDashboard({
           filterKey="trendingMissing"
           onApplyFilter={handleCardFilter}
         />
+        {pipeline && (
+          <>
+            <StatCard
+              label="Draft"
+              value={pipeline.draft}
+              accent="sky"
+              filterKey="draft"
+              onApplyFilter={handleCardFilter}
+            />
+            <StatCard
+              label="Hidden"
+              value={pipeline.hidden}
+              accent="violet"
+              filterKey="hidden"
+              onApplyFilter={handleCardFilter}
+            />
+            <StatCard
+              label="Queue"
+              value={pipeline.queuePending}
+              accent="green"
+              filterKey="queue"
+              onApplyFilter={handleCardFilter}
+            />
+            <StatCard
+              label="Processing"
+              value={pipeline.queueProcessing}
+              accent="amber"
+              filterKey="processing"
+              onApplyFilter={handleCardFilter}
+            />
+            <StatCard
+              label="Failed"
+              value={pipeline.queueFailed}
+              filterKey="failed"
+              onApplyFilter={handleCardFilter}
+            />
+          </>
+        )}
         <StatCard label="Avg Publish Score" value={`${data.avgPublishScore}`} />
         <StatCard label="Avg Enrichment Time" value={avgEnrichmentSec} />
       </div>

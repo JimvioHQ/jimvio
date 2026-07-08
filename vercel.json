@@ -33,6 +33,10 @@
       "schedule": "*/2 * * * *"
     },
     {
+      "path": "/api/cron/cj-marketplace-maintenance",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/cj-stock-health",
       "schedule": "*/30 * * * *"
     },

@@ -1,15 +1,37 @@
 /**
- * Smart Publish Queue Priority v3
- * Priority: Elite > Trending > Video > Verified > Fast Shipping > Orders > New Arrival
+ * Smart Publish Queue Priority v5
+ * Ready+Trending+Verified+Video > Ready+Video > Ready+Verified > Ready > Pending > Requirements Missing
  */
 
 import type { EnrichedProduct } from "../import-intelligence/types";
-import { hasFastShipping, hasValidVideo, isSupplierVerified, isTrendingOrBestSelling } from "../import-intelligence/auto-publish-engine";
+import {
+  evaluateAutoPublish,
+  hasFastShipping,
+  hasValidVideo,
+  isSupplierVerified,
+  isTrendingOrBestSelling,
+} from "../import-intelligence/auto-publish-engine";
 
 export function computePublishPriority(product: EnrichedProduct): number {
+  const auto = product.intelligence.autoPublish ?? evaluateAutoPublish(product);
   let priority = 0;
-  const tier = product.intelligence.catalogTier;
 
+  if (auto.ready) {
+    priority += 50_000;
+    const trending = isTrendingOrBestSelling(product);
+    const video = hasValidVideo(product);
+    const verified = isSupplierVerified(product);
+
+    if (trending && verified && video) priority += 50_000;
+    else if (video) priority += 30_000;
+    else if (verified) priority += 20_000;
+  } else if (auto.status === "PENDING_ENRICHMENT") {
+    priority += 5_000;
+  } else if (auto.status === "REQUIREMENTS_MISSING") {
+    priority += 1_000;
+  }
+
+  const tier = product.intelligence.catalogTier;
   if (tier === "ELITE") priority += 10_000;
   else if (tier === "PREMIUM") priority += 5_000;
   else if (tier === "STANDARD") priority += 1_000;

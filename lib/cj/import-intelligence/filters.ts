@@ -95,6 +95,8 @@ export const DEFAULT_INTELLIGENCE_FILTERS: IntelligenceFilters = {
   minHealthScore: 0,
   minOpportunityScore: 0,
   hideImported: false,
+  isDraft: false,
+  isHidden: false,
   autoPublishReady: false,
   autoPublishPending: false,
   autoPublishRequirementsMissing: false,
@@ -335,8 +337,10 @@ export function intelligenceFilterCount(filters: IntelligenceFilters): number {
   if (filters.minHealthScore > 0) count++;
   if (filters.minOpportunityScore > 0) count++;
   if (filters.hideImported) count++;
-  count += countAutoPublishFilters(filters);
   if (filters.isPublished) count++;
+  if (filters.isDraft) count++;
+  if (filters.isHidden) count++;
+  count += countAutoPublishFilters(filters);
   return count;
 }
 

@@ -21,6 +21,10 @@ import type { CJOrderParams } from "@/lib/cj/webhoo-subscription";
 import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
 import { mapCjFulfillmentToOrderStatus } from "@/lib/payments/order-payment-utils";
 import type { OrderStatusValue } from "@/lib/payments/record-status-change";
+import {
+  scheduleFromWebhookFields,
+  scheduleProductRemoval,
+} from "@/lib/cj/premium-intelligence/cj-watcher";
 
 function createClient() {
     return createSupabaseClient(
@@ -529,6 +533,7 @@ export async function POST(req: Request): Promise<Response> {
 
             if (payload.messageType === "DELETE") {
                 await archiveProduct(supabase, params.pid);
+                await scheduleProductRemoval(params.pid).catch(() => {});
                 console.log(`[CJ webhook] PRODUCT archived pid=${params.pid}`);
                 return Response.json({ ok: true, event: "PRODUCT_DELETE" });
             }
@@ -575,6 +580,9 @@ export async function POST(req: Request): Promise<Response> {
             console.log(
                 `[CJ webhook] PRODUCT upsert ok pid=${params.pid} productId=${productId}`
             );
+
+            await scheduleFromWebhookFields(params.pid, params.fields).catch(() => {});
+
             return Response.json({
                 ok: true,
                 event: `PRODUCT_${payload.messageType}`,

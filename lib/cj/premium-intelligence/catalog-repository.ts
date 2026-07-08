@@ -7,6 +7,7 @@ import {
   applyRawFiltersToQuery,
   type CatalogFilterIndex,
 } from "./catalog-filter-index";
+import { searchIndexPids } from "./search-index";
 import type {
   CatalogCursor,
   CatalogListParams,
@@ -262,7 +263,13 @@ export async function getCatalogPage(
       });
 
     if (params.search?.trim()) {
-      query = applyGlobalSearch(query, params.search.trim());
+      const term = params.search.trim();
+      const indexPids = await searchIndexPids(term, 1000);
+      if (indexPids.length > 0) {
+        query = query.in("pid", indexPids);
+      } else {
+        query = applyGlobalSearch(query, term);
+      }
     }
 
     query = query.in("cj_product_intelligence.catalog_tier", tiers);

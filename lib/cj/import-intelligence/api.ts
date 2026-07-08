@@ -59,6 +59,8 @@ function appendIntelFilterParams(
     missingStock: index.missingStock,
     missingTrending: index.missingTrending,
     hideImported: index.hideImported,
+    isDraft: index.isDraft,
+    isHidden: index.isHidden,
   };
   if (index.minHealthScore) params.set("minHealthScore", String(index.minHealthScore));
   if (index.minMargin) params.set("minMargin", String(index.minMargin));

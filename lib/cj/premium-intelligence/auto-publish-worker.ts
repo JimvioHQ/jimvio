@@ -1,12 +1,13 @@
 /**
- * Auto Publish Worker — runs every 2 minutes.
- * Finds READY draft products, processes debounced queue, publishes autonomously.
+ * Autonomous Marketplace Engine v5 — unified 2-minute worker.
  */
 
 import { getCatalogDB } from "./db";
 import { processAutoPublishQueue } from "./auto-publish-queue";
 import { triggerAutoPublishEvaluation } from "./auto-publish-trigger";
 import { runCatalogScannerBatch } from "./catalog-scanner";
+import { runCjWatcherBatch } from "./cj-watcher";
+import { processSignalWatchQueue } from "./signal-watch";
 import {
   AUTO_PUBLISH_WORKER_BATCH_SIZE,
   verifyPublishedProduct,
@@ -15,6 +16,18 @@ import {
 export interface AutoPublishWorkerResult {
   scanned: number;
   newlyQueued: number;
+  watcher: {
+    watched: number;
+    signalsDetected: number;
+    enrichmentQueued: number;
+    newProducts: number;
+  };
+  signalWatch: {
+    processed: number;
+    reevaluated: number;
+    queued: number;
+    failed: number;
+  };
   scanner: {
     evaluated: number;
     queued: number;
@@ -41,20 +54,18 @@ async function isAutoPublishSchemaReady(): Promise<boolean> {
   }
 }
 
-/**
- * Scan for imported draft products that are READY but not yet queued.
- */
 async function scanAndQueueReadyProducts(limit = 200): Promise<number> {
   const db = getCatalogDB();
   let queued = 0;
 
   const { data: readyIntel } = await db
     .from("cj_product_intelligence")
-    .select("pid")
+    .select("pid, publish_priority")
     .eq("auto_publish_ready", true)
     .eq("auto_publish_status", "READY")
     .eq("enrichment_status", "complete")
     .or("duplicate_blocked.is.null,duplicate_blocked.eq.false")
+    .order("publish_priority", { ascending: false })
     .limit(limit);
 
   for (const row of readyIntel ?? []) {
@@ -71,6 +82,18 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
   const result: AutoPublishWorkerResult = {
     scanned: 0,
     newlyQueued: 0,
+    watcher: {
+      watched: 0,
+      signalsDetected: 0,
+      enrichmentQueued: 0,
+      newProducts: 0,
+    },
+    signalWatch: {
+      processed: 0,
+      reevaluated: 0,
+      queued: 0,
+      failed: 0,
+    },
     scanner: {
       evaluated: 0,
       queued: 0,
@@ -92,6 +115,12 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
     result.durationMs = Date.now() - start;
     return result;
   }
+
+  const watcherResult = await runCjWatcherBatch(150);
+  result.watcher = watcherResult;
+
+  const signalResult = await processSignalWatchQueue(50);
+  result.signalWatch = signalResult;
 
   result.newlyQueued = await scanAndQueueReadyProducts();
   result.scanned = result.newlyQueued;

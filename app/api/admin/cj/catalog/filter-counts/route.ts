@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { computeCatalogFilterCounts } from "@/lib/cj/premium-intelligence/catalog-filter-index";
 import { getCatalogScannerStatus } from "@/lib/cj/premium-intelligence/catalog-scanner";
+import { computeMarketplacePipelineMetrics } from "@/lib/cj/premium-intelligence/marketplace-pipeline-metrics";
 import { getCached, setCached } from "@/lib/cj/premium-intelligence/catalog-cache";
 
 async function assertAdmin() {
@@ -32,17 +33,15 @@ export async function GET() {
   const cached = getCached<Awaited<ReturnType<typeof computeCatalogFilterCounts>>>(
     "filter-counts"
   );
-  if (cached) {
-    const scanner = await getCatalogScannerStatus();
-    return NextResponse.json({ success: true, counts: cached, scanner });
-  }
-
-  const [counts, scanner] = await Promise.all([
-    computeCatalogFilterCounts(),
+  const [counts, scanner, pipeline] = await Promise.all([
+    cached ? Promise.resolve(cached) : computeCatalogFilterCounts(),
     getCatalogScannerStatus(),
+    computeMarketplacePipelineMetrics(),
   ]);
 
-  setCached("filter-counts", counts, 30_000);
+  if (!cached) {
+    setCached("filter-counts", counts, 30_000);
+  }
 
-  return NextResponse.json({ success: true, counts, scanner });
+  return NextResponse.json({ success: true, counts, scanner, pipeline });
 }

@@ -31,6 +31,8 @@ export interface CatalogFilterIndex {
   missingStock?: boolean;
   missingTrending?: boolean;
   hideImported?: boolean;
+  isDraft?: boolean;
+  isHidden?: boolean;
   minHealthScore?: number;
   minMargin?: number;
 }
@@ -100,6 +102,14 @@ export function applyIntelFiltersToQuery(
   }
   if (filters.hideImported) {
     q = q.is("cj_product_intelligence.linked_product_id", null);
+  }
+  if (filters.isHidden) {
+    q = q.eq("cj_product_intelligence.catalog_tier", "HIDDEN");
+  }
+  if (filters.isDraft) {
+    q = q
+      .not("cj_product_intelligence.linked_product_id", "is", null)
+      .eq("cj_product_intelligence.is_published_active", false);
   }
 
   for (const [key, label] of Object.entries(FAILURE_LABELS)) {
@@ -190,6 +200,8 @@ export function parseCatalogFiltersFromParams(
     missingStock: bool("missingStock"),
     missingTrending: bool("missingTrending"),
     hideImported: bool("hideImported"),
+    isDraft: bool("isDraft"),
+    isHidden: bool("isHidden"),
     minHealthScore: sp.has("minHealthScore")
       ? parseInt(sp.get("minHealthScore") ?? "0", 10)
       : undefined,
@@ -226,6 +238,8 @@ export function intelligenceFiltersToCatalogIndex(
     missingStock: Boolean(filters.missingStock),
     missingTrending: Boolean(filters.missingTrending),
     hideImported: Boolean(filters.hideImported),
+    isDraft: Boolean(filters.isDraft),
+    isHidden: Boolean(filters.isHidden),
     minHealthScore:
       typeof filters.minHealthScore === "number" && filters.minHealthScore > 0
         ? filters.minHealthScore

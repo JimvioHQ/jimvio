@@ -48,6 +48,7 @@ async function unpublishProduct(
         auto_publish_ready: false,
         auto_publish_status: "REQUIREMENTS_MISSING",
         auto_unpublish_reason: reason,
+        is_published_active: false,
         last_auto_publish_check: now,
       })
       .eq("pid", pid);
