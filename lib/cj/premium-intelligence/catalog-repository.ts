@@ -267,7 +267,7 @@ export async function getTierCounts(): Promise<Record<CatalogTier, number>> {
       TIER_ORDER.map(async (tier) => {
         const { count } = await db
           .from("cj_product_intelligence")
-          .select("pid", { count: "exact", head: true })
+          .select("pid", { count: "estimated", head: true })
           .eq("catalog_tier", tier);
         return [tier, count ?? 0] as const;
       })
@@ -314,6 +314,28 @@ function hasWarehouseFilters(filters: CatalogFilterIndex): boolean {
   return Boolean(filters.usWarehouse || filters.euWarehouse || filters.ukWarehouse);
 }
 
+/** Narrow tier scope so status filters use indexed paths instead of scanning all tiers. */
+function resolveCatalogTiers(
+  filters: CatalogFilterIndex,
+  paramTiers?: CatalogTier[]
+): CatalogTier[] {
+  if (paramTiers?.length) return paramTiers;
+  if (filters.isHidden) return ["HIDDEN"];
+  if (
+    filters.isDraft ||
+    filters.isPublished ||
+    filters.autoPublishReady ||
+    filters.autoPublishPending ||
+    filters.autoPublishRequirementsMissing ||
+    filters.publishQueueStatus
+  ) {
+    return TIER_ORDER;
+  }
+  return DEFAULT_VISIBLE_TIERS;
+}
+
+const INTEL_SORT_COLUMNS = "pid, health_score, margin_percent, created_at";
+
 export async function getCatalogPage(
   params: CatalogListParams
 ): Promise<CatalogListResult> {
@@ -323,10 +345,7 @@ export async function getCatalogPage(
     const page = Math.max(1, params.page);
     const sortKey = params.sort ?? "curated";
     const filters: CatalogFilterIndex = params.filters ?? {};
-    let tiers = params.tiers?.length ? params.tiers : DEFAULT_VISIBLE_TIERS;
-    if (filters.isHidden && !tiers.includes("HIDDEN")) {
-      tiers = [...tiers, "HIDDEN"];
-    }
+    const tiers = resolveCatalogTiers(filters, params.tiers);
     const cursor = parseCursor(params.cursor);
 
     let pidFilter: string[] | null = null;
@@ -367,16 +386,31 @@ export async function getCatalogPage(
       }
     }
 
-    let intelQuery = db.from("cj_product_intelligence").select("*", {
-      count: page === 1 && !cursor ? "exact" : undefined,
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const applyIntelListFilters = (query: any) => {
+      let q = query.in("catalog_tier", tiers);
+      q = applyIntelFiltersStandalone(q, filters);
+      if (pidFilter) {
+        q = q.in("pid", pidFilter.slice(0, 5000));
+      }
+      return q;
+    };
 
-    intelQuery = intelQuery.in("catalog_tier", tiers);
-    intelQuery = applyIntelFiltersStandalone(intelQuery, filters);
-
-    if (pidFilter) {
-      intelQuery = intelQuery.in("pid", pidFilter.slice(0, 5000));
+    let totalCount = -1;
+    if (page === 1 && !cursor) {
+      let countQuery = db
+        .from("cj_product_intelligence")
+        .select("pid", { count: "exact", head: true });
+      countQuery = applyIntelListFilters(countQuery);
+      const { count: exactCount, error: countError } = await countQuery;
+      if (countError) throw new Error(countError.message);
+      totalCount = exactCount ?? 0;
     }
+
+    let intelQuery = db
+      .from("cj_product_intelligence")
+      .select(INTEL_SORT_COLUMNS);
+    intelQuery = applyIntelListFilters(intelQuery);
 
     if (cursor) {
       intelQuery = intelQuery.or(
@@ -413,28 +447,31 @@ export async function getCatalogPage(
       intelQuery = intelQuery.range(from, from + pageSize - 1);
     }
 
-    const { data: intelRows, count, error } = await intelQuery;
+    const { data: sortRows, error } = await intelQuery;
     if (error) throw new Error(error.message);
 
-    const intelList = (intelRows ?? []) as CjProductIntelligenceRow[];
-    if (intelList.length === 0) {
-      return { products: [], total: count ?? 0, nextCursor: null };
+    const sortedPids = (sortRows ?? []).map((r) => r.pid as string);
+    if (sortedPids.length === 0) {
+      return { products: [], total: totalCount >= 0 ? totalCount : 0, nextCursor: null };
     }
 
-    const pids = intelList.map((r) => r.pid);
-    const { data: rawRows, error: rawError } = await db
-      .from("cj_raw_products")
-      .select("*")
-      .in("pid", pids);
+    const [{ data: intelRows, error: intelError }, { data: rawRows, error: rawError }] =
+      await Promise.all([
+        db.from("cj_product_intelligence").select("*").in("pid", sortedPids),
+        db.from("cj_raw_products").select("*").in("pid", sortedPids),
+      ]);
 
+    if (intelError) throw new Error(intelError.message);
     if (rawError) throw new Error(rawError.message);
 
     const rawMap = new Map(
       (rawRows ?? []).map((r) => [r.pid as string, r as CjRawProductRow])
     );
-    const intelMap = new Map(intelList.map((r) => [r.pid, r]));
+    const intelMap = new Map(
+      (intelRows ?? []).map((r) => [r.pid as string, r as CjProductIntelligenceRow])
+    );
 
-    const products = pids
+    const products = sortedPids
       .map((pid) => {
         const raw = rawMap.get(pid);
         if (!raw) return null;
@@ -453,7 +490,7 @@ export async function getCatalogPage(
 
     return {
       products,
-      total: count ?? -1,
+      total: totalCount >= 0 ? totalCount : -1,
       nextCursor,
     };
   });

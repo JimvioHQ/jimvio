@@ -5,6 +5,9 @@ import { getCatalogScannerStatus } from "@/lib/cj/premium-intelligence/catalog-s
 import { computeMarketplacePipelineMetrics } from "@/lib/cj/premium-intelligence/marketplace-pipeline-metrics";
 import { getCached, setCached } from "@/lib/cj/premium-intelligence/catalog-cache";
 
+const FILTER_COUNTS_CACHE_KEY = "filter-counts-bundle";
+const FILTER_COUNTS_TTL_MS = 120_000;
+
 async function assertAdmin() {
   const supabase = await createClient();
   const {
@@ -25,23 +28,32 @@ async function assertAdmin() {
   return isAdminRole || adminEmails.includes(user.email ?? "");
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   if (!(await assertAdmin())) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const cached = getCached<Awaited<ReturnType<typeof computeCatalogFilterCounts>>>(
-    "filter-counts"
-  );
+  const refresh = new URL(req.url).searchParams.get("refresh") === "1";
+
+  if (!refresh) {
+    const cached = getCached<{
+      counts: Awaited<ReturnType<typeof computeCatalogFilterCounts>>;
+      pipeline: Awaited<ReturnType<typeof computeMarketplacePipelineMetrics>>;
+      scanner: Awaited<ReturnType<typeof getCatalogScannerStatus>>;
+    }>(FILTER_COUNTS_CACHE_KEY);
+    if (cached) {
+      return NextResponse.json({ success: true, ...cached, cached: true });
+    }
+  }
+
   const [counts, scanner, pipeline] = await Promise.all([
-    cached ? Promise.resolve(cached) : computeCatalogFilterCounts(),
+    computeCatalogFilterCounts(),
     getCatalogScannerStatus(),
     computeMarketplacePipelineMetrics(),
   ]);
 
-  if (!cached) {
-    setCached("filter-counts", counts, 30_000);
-  }
+  const bundle = { counts, scanner, pipeline };
+  setCached(FILTER_COUNTS_CACHE_KEY, bundle, FILTER_COUNTS_TTL_MS);
 
-  return NextResponse.json({ success: true, counts, scanner, pipeline });
+  return NextResponse.json({ success: true, ...bundle, cached: false });
 }

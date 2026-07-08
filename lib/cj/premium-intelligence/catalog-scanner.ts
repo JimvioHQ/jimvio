@@ -5,13 +5,13 @@
  */
 
 import { getCatalogDB } from "./db";
-import { triggerAutoPublishEvaluation } from "./auto-publish-trigger";
-import { computeAutoPublishAnalytics } from "./auto-publish-analytics";
+import { enqueueAutoPublish } from "./auto-publish-queue";
+import { computePublishDebounceMs } from "./system-publish";
 import { invalidateCatalogCache } from "./catalog-cache";
 
-const DEFAULT_BATCH_SIZE = 200;
-const MIN_BATCH = 100;
-const MAX_BATCH = 300;
+const DEFAULT_BATCH_SIZE = 50;
+const MIN_BATCH = 25;
+const MAX_BATCH = 100;
 const MAX_FAILURE_ATTEMPTS = 5;
 
 export interface CatalogScannerResult {
@@ -190,31 +190,77 @@ async function evaluatePid(pid: string): Promise<{ queued: boolean }> {
   const db = getCatalogDB();
   const { data: intel } = await db
     .from("cj_product_intelligence")
-    .select("enrichment_status")
+    .select(
+      "enrichment_status, auto_publish_ready, auto_publish_status, linked_product_id, publish_priority, duplicate_blocked"
+    )
     .eq("pid", pid)
     .maybeSingle();
+
+  const now = new Date().toISOString();
 
   if (intel?.enrichment_status !== "complete") {
     await db
       .from("cj_product_intelligence")
-      .update({ last_scanned_at: new Date().toISOString() })
+      .update({ last_scanned_at: now })
       .eq("pid", pid);
     await clearScanFailure(pid);
     return { queued: false };
   }
 
-  const result = await triggerAutoPublishEvaluation(pid, "signal_recalc", {
-    scanOnly: true,
-  });
-  if (result.productId) {
-    await syncPublishLink(pid, result.productId);
+  if (intel.duplicate_blocked === true) {
+    await db
+      .from("cj_product_intelligence")
+      .update({ last_scanned_at: now })
+      .eq("pid", pid);
+    await clearScanFailure(pid);
+    return { queued: false };
   }
+
+  let queued = false;
+
+  if (intel.auto_publish_ready === true && intel.auto_publish_status === "READY") {
+    let productId = (intel.linked_product_id as string) ?? null;
+
+    if (!productId) {
+      const { data: mapped } = await db
+        .from("cj_product_map")
+        .select("product_id")
+        .eq("cj_pid", pid)
+        .maybeSingle();
+      productId = (mapped?.product_id as string) ?? null;
+    }
+
+    if (productId) {
+      const { data: product } = await db
+        .from("products")
+        .select("status, is_active, published_by_admin_override")
+        .eq("id", productId)
+        .maybeSingle();
+
+      if (
+        product &&
+        !product.published_by_admin_override &&
+        !(product.status === "active" && product.is_active)
+      ) {
+        const debounceMs = computePublishDebounceMs();
+        queued = await enqueueAutoPublish(
+          pid,
+          productId,
+          Number(intel.publish_priority) || 0,
+          debounceMs
+        );
+      }
+
+      await syncPublishLink(pid, productId);
+    }
+  }
+
   await db
     .from("cj_product_intelligence")
-    .update({ last_scanned_at: new Date().toISOString() })
+    .update({ last_scanned_at: now })
     .eq("pid", pid);
   await clearScanFailure(pid);
-  return { queued: result.queued };
+  return { queued };
 }
 
 /**
@@ -306,8 +352,7 @@ export async function runCatalogScannerBatch(
   });
 
   if (cycleComplete) {
-    invalidateCatalogCache();
-    await computeAutoPublishAnalytics().catch(() => {});
+    invalidateCatalogCache("filter-counts");
   }
 
   return {

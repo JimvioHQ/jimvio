@@ -76,7 +76,6 @@ export async function queueReadyProductsFromIntel(limit = 200): Promise<number> 
   const db = getCatalogDB();
   const { computePublishDebounceMs } = await import("./system-publish");
   const debounceMs = computePublishDebounceMs();
-  let queued = 0;
 
   const { data: readyIntel } = await db
     .from("cj_product_intelligence")
@@ -88,30 +87,63 @@ export async function queueReadyProductsFromIntel(limit = 200): Promise<number> 
     .order("publish_priority", { ascending: false })
     .limit(limit);
 
-  for (const row of readyIntel ?? []) {
-    const pid = row.pid as string;
-    let productId: string | null = (row.linked_product_id as string) ?? null;
+  if (!readyIntel?.length) return 0;
 
-    if (!productId) {
-      const { data: mapped } = await db
-        .from("cj_product_map")
-        .select("product_id")
-        .eq("cj_pid", pid)
-        .maybeSingle();
-      productId = (mapped?.product_id as string) ?? null;
+  const pids = readyIntel.map((r) => r.pid as string);
+  const needsMap = readyIntel
+    .filter((r) => !r.linked_product_id)
+    .map((r) => r.pid as string);
+
+  const productIdByPid = new Map<string, string>();
+  for (const row of readyIntel) {
+    if (row.linked_product_id) {
+      productIdByPid.set(row.pid as string, row.linked_product_id as string);
     }
+  }
+
+  if (needsMap.length > 0) {
+    const { data: mapRows } = await db
+      .from("cj_product_map")
+      .select("cj_pid, product_id")
+      .in("cj_pid", needsMap);
+    for (const row of mapRows ?? []) {
+      if (row.cj_pid && row.product_id) {
+        productIdByPid.set(row.cj_pid as string, row.product_id as string);
+      }
+    }
+  }
+
+  const productIds = [...new Set(productIdByPid.values())];
+  const productById = new Map<
+    string,
+    { status: string; is_active: boolean; published_by_admin_override: boolean }
+  >();
+
+  if (productIds.length > 0) {
+    const { data: products } = await db
+      .from("products")
+      .select("id, status, is_active, published_by_admin_override")
+      .in("id", productIds);
+    for (const p of products ?? []) {
+      productById.set(p.id as string, {
+        status: p.status as string,
+        is_active: Boolean(p.is_active),
+        published_by_admin_override: Boolean(p.published_by_admin_override),
+      });
+    }
+  }
+
+  let queued = 0;
+  for (const row of readyIntel) {
+    const pid = row.pid as string;
+    let productId = productIdByPid.get(pid) ?? null;
 
     if (!productId) {
       productId = await ensureCjProductImported(pid);
     }
     if (!productId) continue;
 
-    const { data: product } = await db
-      .from("products")
-      .select("status, is_active, published_by_admin_override")
-      .eq("id", productId)
-      .maybeSingle();
-
+    const product = productById.get(productId);
     if (!product) continue;
     if (product.published_by_admin_override) continue;
     if (product.status === "active" && product.is_active) continue;

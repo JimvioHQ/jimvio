@@ -49,10 +49,10 @@ export async function processEnrichmentQueue(
  * Process enrichment batches back-to-back until the queue is empty or time budget expires.
  */
 export async function processEnrichmentQueueChained(
-  batchSize = 100,
+  batchSize = 25,
   options?: { maxDurationMs?: number }
 ): Promise<EnrichmentBatchResult> {
-  const maxDuration = options?.maxDurationMs ?? 110_000;
+  const maxDuration = options?.maxDurationMs ?? 90_000;
   const start = Date.now();
   const total: EnrichmentBatchResult = { processed: 0, succeeded: 0, failed: 0 };
 

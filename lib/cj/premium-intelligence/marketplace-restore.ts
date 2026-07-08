@@ -15,8 +15,6 @@ import { getCatalogDB } from "./db";
 import { getBlacklistedSupplierIds } from "./supplier-reputation-engine";
 import { rawRowToCJProduct } from "./map-to-cj-product";
 import { invalidateCatalogCache } from "./catalog-cache";
-import { computeAutoPublishAnalytics } from "./auto-publish-analytics";
-import { computeCatalogFilterCounts } from "./catalog-filter-index";
 import { refreshSearchIndexBatch } from "./search-index";
 import { logAutoPublishEvent } from "./auto-publish-events";
 
@@ -285,20 +283,12 @@ export async function runMarketplaceRecovery(): Promise<{
   let filtersRefreshed = false;
 
   try {
-    await computeAutoPublishAnalytics();
+    invalidateCatalogCache();
     analyticsRefreshed = true;
-  } catch {
-    // optional
-  }
-
-  try {
-    await computeCatalogFilterCounts();
     filtersRefreshed = true;
   } catch {
     // optional
   }
-
-  invalidateCatalogCache();
 
   await logAutoPublishEvent({
     eventType: "catalog_cleanup",

@@ -3,6 +3,11 @@
  */
 
 import { getCatalogDB } from "./db";
+import { getCached, setCached } from "./catalog-cache";
+
+const HEALTH_CACHE_KEY = "catalog-health";
+const HEALTH_CACHE_TTL_MS = 120_000;
+const FAST_SHIPPING_DAYS = 7;
 
 export interface CatalogHealthSnapshot {
   healthPercent: number;
@@ -33,8 +38,17 @@ function healthLabel(percent: number): string {
 }
 
 export async function computeCatalogHealth(): Promise<CatalogHealthSnapshot> {
+  const cached = getCached<CatalogHealthSnapshot>(HEALTH_CACHE_KEY);
+  if (cached) return cached;
+
   const db = getCatalogDB();
   const now = new Date().toISOString();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const countIntel = (apply?: (q: any) => any) => {
+    let q = db.from("cj_product_intelligence").select("pid", { count: "estimated", head: true });
+    if (apply) q = apply(q);
+    return q;
+  };
 
   const [
     { count: totalIntel },
@@ -50,52 +64,18 @@ export async function computeCatalogHealth(): Promise<CatalogHealthSnapshot> {
     { count: duplicateCount },
     supplierAvg,
   ] = await Promise.all([
-    db.from("cj_product_intelligence").select("pid", { count: "exact", head: true }),
-    db
-      .from("cj_product_intelligence")
-      .select("pid", { count: "exact", head: true })
-      .eq("auto_publish_ready", true),
-    db
-      .from("cj_product_intelligence")
-      .select("pid", { count: "exact", head: true })
-      .eq("auto_publish_status", "PENDING_ENRICHMENT"),
-    db
-      .from("cj_product_intelligence")
-      .select("pid", { count: "exact", head: true })
-      .eq("catalog_tier", "HIDDEN"),
-    db
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("source", "cj")
-      .eq("status", "active")
-      .is("deleted_at", null),
-    db
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("source", "cj")
-      .eq("status", "draft")
-      .is("deleted_at", null),
-    db
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("auto_unpublished", true),
-    db
-      .from("cj_supplier_reputation")
-      .select("supplier_id", { count: "exact", head: true })
-      .eq("blacklisted", true),
-    db
-      .from("cj_product_intelligence")
-      .select("pid", { count: "exact", head: true })
-      .contains("auto_publish_failures", ["Fast Shipping Missing"]),
-    db
-      .from("cj_product_intelligence")
-      .select("pid", { count: "exact", head: true })
-      .contains("auto_publish_failures", ["Missing Product Video"]),
-    db
-      .from("cj_product_duplicates")
-      .select("id", { count: "exact", head: true })
-      .eq("blocked", true),
-    db.from("cj_supplier_reputation").select("reputation_score").limit(1000),
+    countIntel(),
+    countIntel((q) => q.eq("auto_publish_ready", true).eq("auto_publish_status", "READY")),
+    countIntel((q) => q.eq("auto_publish_status", "PENDING_ENRICHMENT")),
+    countIntel((q) => q.eq("catalog_tier", "HIDDEN")),
+    countIntel((q) => q.eq("is_published_active", true)),
+    countIntel((q) => q.not("linked_product_id", "is", null).eq("is_published_active", false)),
+    db.from("products").select("id", { count: "estimated", head: true }).eq("auto_unpublished", true),
+    db.from("cj_supplier_reputation").select("supplier_id", { count: "estimated", head: true }).eq("blacklisted", true),
+    countIntel((q) => q.or(`delivery_days.gt.${FAST_SHIPPING_DAYS},delivery_days.is.null`)),
+    countIntel((q) => q.eq("has_video", false)),
+    db.from("cj_product_duplicates").select("id", { count: "estimated", head: true }).eq("blocked", true),
+    db.from("cj_supplier_reputation").select("reputation_score").limit(200),
   ]);
 
   const total = totalIntel ?? 1;
@@ -142,7 +122,12 @@ export async function computeCatalogHealth(): Promise<CatalogHealthSnapshot> {
     snapshotAt: now,
   };
 
-  await db.from("cj_catalog_health").insert({
+  setCached(HEALTH_CACHE_KEY, snapshot, HEALTH_CACHE_TTL_MS);
+
+  const latest = await getLatestCatalogHealth();
+  const age = latest ? Date.now() - new Date(latest.snapshotAt).getTime() : Infinity;
+  if (age >= 10 * 60_000) {
+    await db.from("cj_catalog_health").insert({
     snapshot_at: now,
     health_percent: snapshot.healthPercent,
     health_label: snapshot.healthLabel,
@@ -160,8 +145,9 @@ export async function computeCatalogHealth(): Promise<CatalogHealthSnapshot> {
     publish_percent: snapshot.publishPercent,
     duplicate_rate: snapshot.duplicateRate,
     avg_supplier_quality: snapshot.avgSupplierQuality,
-    marketplace_health: snapshot.marketplaceHealth,
-  });
+      marketplace_health: snapshot.marketplaceHealth,
+    });
+  }
 
   return snapshot;
 }

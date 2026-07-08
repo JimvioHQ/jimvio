@@ -3,8 +3,6 @@
  */
 
 import { getCatalogDB } from "./db";
-import { computeAutoPublishAnalytics } from "./auto-publish-analytics";
-import { computeCatalogFilterCounts } from "./catalog-filter-index";
 import { refreshSearchIndexBatch } from "./search-index";
 import { invalidateCatalogCache } from "./catalog-cache";
 import { logAutoPublishEvent } from "./auto-publish-events";
@@ -136,20 +134,12 @@ export async function runMarketplaceMaintenance(): Promise<MarketplaceMaintenanc
   result.unpublish = { scanned: unpublish.scanned, unpublished: unpublish.unpublished };
 
   try {
-    await computeAutoPublishAnalytics();
+    invalidateCatalogCache();
     result.analyticsRefreshed = true;
-  } catch {
-    // optional
-  }
-
-  try {
-    await computeCatalogFilterCounts();
     result.filtersRefreshed = true;
   } catch {
     // optional
   }
-
-  invalidateCatalogCache();
 
   await logAutoPublishEvent({
     eventType: "catalog_cleanup",

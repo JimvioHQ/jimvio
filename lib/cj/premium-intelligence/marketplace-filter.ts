@@ -1,6 +1,10 @@
 import { getCatalogDB } from "./db";
 import { isCustomerVisibleTier } from "@/lib/cj/import-intelligence/quality-engine";
 import type { CatalogTier } from "@/lib/cj/premium-intelligence/types";
+import { getCached, setCached } from "./catalog-cache";
+
+const VISIBILITY_CACHE_KEY = "marketplace-visibility-sets";
+const VISIBILITY_CACHE_TTL_MS = 120_000;
 
 export interface MarketplaceVisibilitySets {
   visibleCjPids: Set<string>;
@@ -20,6 +24,9 @@ function isMarketplaceVisibleTier(tier: CatalogTier, isLivePublished: boolean): 
 
 /** Load CJ visibility sets — tier gate + auto publish ready + live published + admin override */
 export async function getMarketplaceVisibilitySets(): Promise<MarketplaceVisibilitySets> {
+  const cached = getCached<MarketplaceVisibilitySets>(VISIBILITY_CACHE_KEY);
+  if (cached) return cached;
+
   const db = getCatalogDB();
 
   const [intelRows, overrideRes, blacklistRes, livePublishedRes] = await Promise.all([
@@ -86,7 +93,7 @@ export async function getMarketplaceVisibilitySets(): Promise<MarketplaceVisibil
     if (row.supplier_name) blacklistedSupplierNames.add(row.supplier_name as string);
   }
 
-  return {
+  const result = {
     visibleCjPids,
     autoPublishReadyPids,
     livePublishedPids,
@@ -95,6 +102,9 @@ export async function getMarketplaceVisibilitySets(): Promise<MarketplaceVisibil
     blacklistedSupplierIds,
     blacklistedSupplierNames,
   };
+
+  setCached(VISIBILITY_CACHE_KEY, result, VISIBILITY_CACHE_TTL_MS);
+  return result;
 }
 
 /** PIDs of CJ products visible to marketplace customers (Elite + Premium only) */
@@ -155,7 +165,7 @@ export function filterProductsForCustomers<
   });
 }
 
-const INTEL_PAGE_SIZE = 1000;
+const INTEL_PAGE_SIZE = 500;
 
 async function fetchAllCompleteIntelligence(
   db: ReturnType<typeof getCatalogDB>

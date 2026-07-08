@@ -32,8 +32,9 @@ export async function GET(req: Request) {
 
   const refresh = new URL(req.url).searchParams.get("refresh") === "1";
   const analytics = refresh
-    ? await computeAutoPublishAnalytics()
-    : (await getLatestAutoPublishAnalytics()) ?? (await computeAutoPublishAnalytics());
+    ? await computeAutoPublishAnalytics({ force: true })
+    : (await getLatestAutoPublishAnalytics()) ??
+      (await computeAutoPublishAnalytics());
 
   return NextResponse.json({ success: true, analytics });
 }

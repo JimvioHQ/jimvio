@@ -1063,7 +1063,7 @@ export function MarketplacePageClient({
                 filters.category !== SELECT_CATEGORY_LABEL ? (
               <button
                 type="button"
-                onClick={() => setCategory("Trending Now")}
+                onClick={() => setCategory("")}
                 className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
                 style={{ background: "var(--color-accent)" }}
               >

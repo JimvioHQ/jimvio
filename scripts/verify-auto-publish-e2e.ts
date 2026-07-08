@@ -29,6 +29,18 @@ async function sleep(ms: number) {
 async function main() {
   console.log("\n=== Autonomous Auto Publish E2E Verification ===\n");
 
+  const hasCjEnv = Boolean(process.env.CJ_VENDOR_ID?.trim() && process.env.CJ_API_KEY?.trim());
+  const isProductionVerify = process.env.PRODUCTION_VERIFY === "1";
+
+  if (!hasCjEnv) {
+    if (isProductionVerify) {
+      console.error("CJ_VENDOR_ID and CJ_API_KEY are required with PRODUCTION_VERIFY=1");
+      process.exit(1);
+    }
+    console.log("SKIP: CJ_VENDOR_ID / CJ_API_KEY not set locally — skipping CJ API E2E\n");
+    process.exit(0);
+  }
+
   const { getCatalogDB } = await import("../lib/cj/premium-intelligence/db");
   const db = getCatalogDB();
 
@@ -383,6 +395,28 @@ async function main() {
   }
 
   const allPass = steps.every((s) => s.pass);
+
+  // Release gate evidence
+  if (pid && productId) {
+    const queued = events?.find((e) => e.event_type === "queued");
+    const publishing = events?.find((e) => e.event_type === "publishing");
+    const autoPublished = events?.find((e) => e.event_type === "auto_published");
+    const verified = events?.find((e) => e.event_type === "verified");
+
+    console.log("\n=== E2E Evidence ===");
+    console.log(`  CJ PID:        ${pid}`);
+    console.log(`  Product ID:    ${productId}`);
+    console.log(
+      `  Queue event:   ${queued ? `${queued.event_type} @ ${queued.created_at}` : "MISSING"}`
+    );
+    console.log(
+      `  Publish event: ${autoPublished ? `${autoPublished.event_type} @ ${autoPublished.created_at}` : publishing ? `${publishing.event_type} @ ${publishing.created_at}` : "MISSING"}`
+    );
+    console.log(
+      `  Verify event:  ${verified ? `${verified.event_type} @ ${verified.created_at}` : "MISSING"}`
+    );
+  }
+
   printSummary(allPass);
   process.exit(allPass ? 0 : 1);
 }

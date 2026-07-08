@@ -5,6 +5,10 @@
 import { getCatalogDB } from "./db";
 import type { CatalogTier } from "./types";
 import type { IntelligenceFilters } from "../import-intelligence/types";
+import { getCached, setCached } from "./catalog-cache";
+
+const FILTER_COUNTS_CACHE_KEY = "catalog-filter-counts";
+const FILTER_COUNTS_TTL_MS = 120_000;
 
 /** Serializable filter params from API / UI */
 export interface CatalogFilterIndex {
@@ -257,7 +261,7 @@ export async function getAutoPublishQueuePids(
 /** Resolve PIDs matching warehouse filters from raw table. */
 export async function getWarehouseFilterPids(
   filters: CatalogFilterIndex,
-  limit = 50000
+  limit = 5000
 ): Promise<string[]> {
   const db = getCatalogDB();
   let q = db.from("cj_raw_products").select("pid").limit(limit);
@@ -345,20 +349,23 @@ export interface CatalogFilterCounts {
   computedAt: string;
 }
 
-async function countIntel(apply: (q: CatalogQuery) => CatalogQuery): Promise<number> {
+async function countIntel(
+  apply: (q: CatalogQuery) => CatalogQuery,
+  exact = false
+): Promise<number> {
   const db = getCatalogDB();
   let q = db
     .from("cj_product_intelligence")
-    .select("pid", { count: "exact", head: true });
+    .select("pid", { count: exact ? "exact" : "estimated", head: true });
   q = apply(q);
   const { count, error } = await q;
-  if (error) return 0;
+  if (error) throw error;
   return count ?? 0;
 }
 
 async function countRaw(apply: (q: CatalogQuery) => CatalogQuery): Promise<number> {
   const db = getCatalogDB();
-  let q = db.from("cj_raw_products").select("pid", { count: "exact", head: true });
+  let q = db.from("cj_raw_products").select("pid", { count: "estimated", head: true });
   q = apply(q);
   const { count, error } = await q;
   if (error) return 0;
@@ -366,6 +373,9 @@ async function countRaw(apply: (q: CatalogQuery) => CatalogQuery): Promise<numbe
 }
 
 export async function computeCatalogFilterCounts(): Promise<CatalogFilterCounts> {
+  const cached = getCached<CatalogFilterCounts>(FILTER_COUNTS_CACHE_KEY);
+  if (cached) return cached;
+
   const db = getCatalogDB();
   const tiers: CatalogTier[] = ["ELITE", "PREMIUM", "STANDARD", "PENDING", "HIDDEN"];
 
@@ -400,10 +410,10 @@ export async function computeCatalogFilterCounts(): Promise<CatalogFilterCounts>
     countIntel((q) => q.eq("trending", true)),
     countIntel((q) => q.not("delivery_days", "is", null).lte("delivery_days", FAST_SHIPPING_DAYS)),
     countIntel((q) => q.gte("image_count", MIN_IMAGE_COUNT)),
-    countIntel((q) => q.eq("auto_publish_ready", true).eq("auto_publish_status", "READY")),
-    countIntel((q) => q.eq("is_published_active", true)),
-    countIntel((q) => q.eq("auto_publish_status", "PENDING_ENRICHMENT")),
-    countIntel((q) => q.eq("auto_publish_status", "REQUIREMENTS_MISSING")),
+    countIntel((q) => q.eq("auto_publish_ready", true).eq("auto_publish_status", "READY"), true),
+    countIntel((q) => q.eq("is_published_active", true), true),
+    countIntel((q) => q.eq("auto_publish_status", "PENDING_ENRICHMENT"), true),
+    countIntel((q) => q.eq("auto_publish_status", "REQUIREMENTS_MISSING"), true),
     countIntel((q) => q.eq("is_admin_override", true)),
     countIntel((q) => q.eq("has_video", false)),
     countIntel((q) => q.eq("supplier_verified", false)),
@@ -424,14 +434,14 @@ export async function computeCatalogFilterCounts(): Promise<CatalogFilterCounts>
       tiers.map(async (tier) => {
         const { count } = await db
           .from("cj_product_intelligence")
-          .select("pid", { count: "exact", head: true })
+          .select("pid", { count: "estimated", head: true })
           .eq("catalog_tier", tier);
         return [tier, count ?? 0] as const;
       })
     ),
   ]);
 
-  return {
+  const result = {
     hasVideo,
     verifiedSupplier,
     trending,
@@ -457,6 +467,9 @@ export async function computeCatalogFilterCounts(): Promise<CatalogFilterCounts>
     totalProducts,
     computedAt: new Date().toISOString(),
   };
+
+  setCached(FILTER_COUNTS_CACHE_KEY, result, FILTER_COUNTS_TTL_MS);
+  return result;
 }
 
 export function hasActiveServerFilters(filters: CatalogFilterIndex): boolean {
