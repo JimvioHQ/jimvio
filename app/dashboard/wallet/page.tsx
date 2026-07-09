@@ -122,7 +122,7 @@ export default function WalletDashboardPage() {
             title="My Wallet"
             subtitle="Earnings, transfers and history"
             actions={
-               <DashboardActionLink href="/dashboard/withdrawals" variant="primary">
+               <DashboardActionLink href="/dashboard/payments" variant="primary">
                   <ArrowUpRight className="h-3.5 w-3.5" />
                   Withdraw
                </DashboardActionLink>

@@ -115,7 +115,7 @@ const ACTIONS = [
   { icon: ShoppingBag, title: "Buy Products", desc: "Browse what's selling and order when you find a fit.", cta: "Go to marketplace", href: "/marketplace", color: ORANGE },
   { icon: Store, title: "Sell Products", desc: "List inventory and manage orders from your dashboard.", cta: "Open dashboard", href: "/dashboard", color: BLUE },
   { icon: DollarSign, title: "Earn Commissions", desc: "Share links and get a cut when someone checks out.", cta: "See affiliate program", href: "/affiliates", color: GREEN },
-  { icon: Megaphone, title: "Create Campaigns", desc: "Post a brief and pay creators for content.", cta: "New campaign", href: "/dashboard/campaigns/new", color: PURPLE },
+  { icon: Megaphone, title: "Create Campaigns", desc: "Post a brief and pay creators for content.", cta: "New campaign", href: "/dashboard/vendor/campaigns/new", color: PURPLE },
   { icon: Target, title: "Join Campaigns", desc: "Apply to brand briefs and get paid per post or view.", cta: "Browse campaigns", href: "/ugc", color: BLUE },
   { icon: Users, title: "Build Communities", desc: "Start a group around your niche and charge if you want.", cta: "Create community", href: "/communities", color: YELLOW },
 ];
@@ -288,7 +288,7 @@ const JOURNEYS = [
     tagline: "Launch campaigns, brief creators, and track performance from one hub.",
     items: ["Campaign builder", "Creator matching", "ROI tracking"],
     cta: "Launch a campaign",
-    href: "/dashboard/campaigns/new",
+    href: "/dashboard/vendor/campaigns/new",
   },
   {
     role: "Creator",
@@ -943,7 +943,7 @@ const OPPS = [
   { title: "Marketplace", color: ORANGE, items: ["Checked suppliers", "Shipping options", "Card & wallet pay"], href: "/marketplace", cta: "Browse" },
   { title: "Affiliate program", color: GREEN, items: ["Up to 30% per sale", "Click tracking", "Wallet payouts"], href: "/affiliates", cta: "How it works" },
   { title: "Vendor center", color: BLUE, items: ["Your own storefront", "Product uploads", "Order inbox"], href: "/dashboard", cta: "Open store" },
-  { title: "Brand campaigns", color: PURPLE, items: ["Post a brief", "Pick creators", "See submissions"], href: "/dashboard/campaigns/new", cta: "Start campaign" },
+  { title: "Brand campaigns", color: PURPLE, items: ["Post a brief", "Pick creators", "See submissions"], href: "/dashboard/vendor/campaigns/new", cta: "Start campaign" },
   { title: "UGC campaigns", color: PURPLE, items: ["Paid per view", "Brand briefs", "Content approvals"], href: "/ugc", cta: "View open briefs" },
   { title: "Communities", color: BLUE, items: ["Free or paid", "Live rooms", "Courses & events"], href: "/communities", cta: "Find a group" },
 ];
@@ -984,7 +984,7 @@ export function OnePlatformOpportunities() {
 const AI_TOOLS = [
   { icon: Search, title: "Product finder", desc: "Search the catalog and filter by what's moving.", href: "/marketplace" },
   { icon: Wand2, title: "Content drafts", desc: "Rough out captions and scripts before you post.", href: "/ugc" },
-  { icon: Bot, title: "Campaign setup", desc: "Walk through budget, brief, and payout rules.", href: "/dashboard/campaigns/new" },
+  { icon: Bot, title: "Campaign setup", desc: "Walk through budget, brief, and payout rules.", href: "/dashboard/vendor/campaigns/new" },
   { icon: Users, title: "Creator search", desc: "Find people who already post in your category.", href: "/ugc" },
   { icon: LineChart, title: "Sales snapshot", desc: "See clicks, orders, and what's lagging.", href: "/dashboard" },
   { icon: Store, title: "Listing helper", desc: "Tidy titles, prices, and stock on your store.", href: "/dashboard" },
@@ -1362,14 +1362,14 @@ const ONBOARD_BRANDS: OnboardStep[] = [
     desc: "Budget, audience, platforms, and payout model.",
     detail: "Decide per-view or fixed pay, which platforms you need, and how much budget to allocate.",
     minute: "5–12 min",
-    href: "/dashboard/campaigns/new",
+    href: "/dashboard/vendor/campaigns/new",
   },
   {
     title: "Launch a campaign",
     desc: "Write the brief and publish.",
     detail: "Add examples, hashtags, and deliverables so creators know exactly what to submit.",
     minute: "12–20 min",
-    href: "/dashboard/campaigns/new",
+    href: "/dashboard/vendor/campaigns/new",
   },
   {
     title: "Review submissions",
@@ -1383,7 +1383,7 @@ const ONBOARD_BRANDS: OnboardStep[] = [
     desc: "Increase budget or spin up another campaign.",
     detail: "Double down on creators and formats that perform. Clone a winning campaign to move faster.",
     minute: "26–30 min",
-    href: "/dashboard/campaigns/new",
+    href: "/dashboard/vendor/campaigns/new",
   },
 ];
 

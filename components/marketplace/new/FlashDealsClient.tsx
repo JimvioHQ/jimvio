@@ -12,7 +12,7 @@ import {
   isRenderableImageSrc,
 } from "@/lib/utils";
 import { dedupeProductsByIdentity } from "@/lib/marketplace/homepage-ranking";
-import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
+import { ProductCardVideoMedia, type ProductVideoSource } from "@/components/marketplace/product-card-video-media";
 
 type FlashDealProduct = DbProduct & {
   currency?: string | null;
@@ -122,7 +122,7 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
         )}
         <ProductCardVideoMedia
           productId={d.id}
-          product={d}
+          product={d as ProductVideoSource}
           alt={d.name}
           imageSrc={displayImage}
           previewImages={previewImages}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
 import { DollarSign, Eye, MousePointerClick, TrendingUp } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { lookupVendorsByUserId } from "@/lib/vendor/lookup";
 import { useCurrency } from "@/context/CurrencyContext";
 import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
@@ -97,13 +98,8 @@ export default function DashboardAnalyticsPage() {
     const since30 = subDays(new Date(), 30).toISOString();
     const mid15 = subDays(new Date(), 15).toISOString();
 
-    const { data: vendorRow } = await supabase
-      .from("vendors")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    const vendorId = vendorRow?.id ?? null;
+    const vendorLookup = await lookupVendorsByUserId(supabase, userId, "id");
+    const vendorId = vendorLookup.ok ? vendorLookup.vendor?.id ?? null : null;
 
     const [walletRes, txRes, productsRes, orderItemsRes, affiliateRes, creatorsRes] =
       await Promise.all([

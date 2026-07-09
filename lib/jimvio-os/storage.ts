@@ -47,7 +47,7 @@ export function buildScaffoldNotifications(): OsNotification[] {
     { id: "n1", category: "orders", title: "New order #1042", body: "A customer placed a new order.", time: "2m ago", read: false, archived: false, href: "/dashboard/orders" },
     { id: "n2", category: "payments", title: "Payout processed", body: "$240.00 sent to your wallet.", time: "1h ago", read: false, archived: false, href: "/dashboard/wallet" },
     { id: "n3", category: "messages", title: "New buyer message", body: "Question about shipping timeline.", time: "3h ago", read: true, archived: false, href: "/dashboard/messages" },
-    { id: "n4", category: "affiliate", title: "Commission earned", body: "+$18.20 from affiliate link.", time: "5h ago", read: true, archived: false, href: "/dashboard/affiliate" },
+    { id: "n4", category: "payments", title: "Payment received", body: "+$18.20 from store sale.", time: "5h ago", read: true, archived: false, href: "/dashboard/payments" },
     { id: "n5", category: "ugc", title: "UGC submission", body: "Creator submitted campaign video.", time: "Yesterday", read: false, archived: false, href: "/ugc" },
     { id: "n6", category: "communities", title: "New member", body: "Someone joined your community hub.", time: "Yesterday", read: true, archived: false, href: "/dashboard/communities" },
     { id: "n7", category: "security", title: "New login", body: "Sign-in from Chrome on macOS.", time: "2d ago", read: true, archived: false },

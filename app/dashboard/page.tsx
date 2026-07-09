@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
@@ -8,48 +9,41 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { Settings, BarChart3 } from "lucide-react";
-
-import { HeroStatsRow } from "@/components/dashboard/HeroStatsRow";
-import { FeaturedCampaignBanner } from "@/components/dashboard/FeaturedCampaignBanner";
-import { JimvioAIPanel } from "@/components/ui/jimvio-ai-panel";
-import { StatCardsRow } from "@/components/dashboard/StatCardsRow";
-import { EarningsOverview } from "@/components/dashboard/EarningsOverview";
-import type { EarningsDataset } from "@/components/dashboard/EarningsOverview";
+import type { EarningsDataset } from "@/types/dashboard";
 import { QuickActionsStrip } from "@/components/dashboard/QuickActionsStrip";
-import { DashboardDiscoveryGrid } from "@/components/dashboard/DashboardDiscoveryGrid";
-import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
-import { DashboardAnalyticsBoard } from "@/components/dashboard/DashboardAnalyticsBoard";
+import { WorkspaceHeroCards, type WorkspaceCardStats } from "@/components/workspace/WorkspaceHeroCards";
+import { MissionControlSummaries } from "@/components/dashboard/MissionControlSummaries";
 import {
   DashboardMessagesPanel,
   type DashboardMessagePreview,
 } from "@/components/dashboard/DashboardMessagesPanel";
+import { mapProductToStockRow, type StockQuantityRow } from "@/components/dashboard/StockQuantityTable";
 import {
-  StockQuantityTable,
-  mapProductToStockRow,
-  type StockQuantityRow,
-} from "@/components/dashboard/StockQuantityTable";
-import { DashboardOpportunities } from "@/components/dashboard/DashboardOpportunities";
-import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-import type {
-  TrendingCampaignItem,
-  RecommendedCreator,
-  RecentSearchItem,
-} from "@/components/dashboard/DashboardSidebar";
+  DashboardEmptyState,
+  DashboardPanel,
+  DashboardSectionHeader,
+  SECTION_LINKS,
+} from "@/components/dashboard/dashboard-sections";
+import {
+  DashboardStatSkeleton,
+  DashboardGridSkeleton,
+} from "@/components/dashboard/dashboard-skeleton";
 
-import type {
-  StatCard,
-  ActivityItem,
-  Campaign,
-  Product,
-  Community,
-} from "@/types/dashboard";
+import type { StatCard, ActivityItem, Product, Community } from "@/types/dashboard";
 import { QUICK_ACTIONS } from "@/data/dashboard";
-import { CreatorCommandCenter } from "@/components/creator-command-center/CreatorCommandCenter";
-import { JimvioWorkspace } from "@/components/jimvio-workspace";
-import { OpportunityEngineDashboard } from "@/components/opportunity-engine/OpportunityEngineDashboard";
-import { mapDashboardToCommandCenter } from "@/lib/creator-command-center";
-import { mapDashboardToWorkspace } from "@/lib/jimvio-workspace";
-import { buildOpportunityEngineData } from "@/lib/opportunity-engine";
+
+const JimvioAIPanel = dynamic(
+  () =>
+    import("@/components/ui/jimvio-ai-panel").then((m) => ({
+      default: m.JimvioAIPanel,
+    })),
+  {
+    loading: () => (
+      <div className="h-[280px] animate-pulse rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]" />
+    ),
+    ssr: false,
+  }
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,33 +70,12 @@ interface NotifRow {
   action_url: string | null;
 }
 
-interface CampaignRow {
-  id: string;
-  title: string;
-  description: string | null;
-  campaign_type: string;
-  rate_per_1k_views: number;
-  fixed_rate: number;
-  payment_model: string;
-  submission_count: number;
-  total_budget: number;
-  ends_at: string | null;
-  ugc_campaign_media: { url: string; type: string; usage: string }[];
-  vendors: { business_name: string; business_logo: string | null } | null;
-  ugc_campaign_participants: {
-    influencers: {
-      profiles: { full_name: string | null; avatar_url: string | null } | null;
-    } | null;
-  }[];
-}
-
 interface ProductRow {
   id: string;
   slug: string | null;
   name: string;
   price: number;
   currency: string;
-  affiliate_commission_rate: number | null;
   sale_count: number;
   images: unknown;
   product_categories: { name: string } | null;
@@ -120,15 +93,14 @@ interface CommunityMembershipRow {
   };
 }
 
-type SidebarCampaignRow = {
+interface OrderRow {
   id: string;
-  title: string;
-  fixed_rate: number;
-  rate_per_1k_views: number;
-  payment_model: string;
-  submission_count: number;
-  ugc_campaign_media: { url: string; type: string; usage: string }[] | null;
-};
+  order_number: string | null;
+  total_amount: number;
+  currency: string;
+  status: string;
+  created_at: string;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -142,20 +114,16 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-// Robust extraction for products.images (Json? — could be string[], object[], or stringified)
 function getProductImage(images: unknown): string | null {
   if (!images) return null;
-
   if (typeof images === "string") {
     if (images.startsWith("http")) return images;
     try {
-      const parsed = JSON.parse(images);
-      return getProductImage(parsed);
+      return getProductImage(JSON.parse(images));
     } catch {
       return null;
     }
   }
-
   if (Array.isArray(images) && images.length > 0) {
     const first = images[0];
     if (typeof first === "string" && first.startsWith("http")) return first;
@@ -164,25 +132,24 @@ function getProductImage(images: unknown): string | null {
       if (typeof url === "string" && url.startsWith("http")) return url;
     }
   }
-
   return null;
 }
 
-function classifyTx(
-  type: string
-): "affiliate" | "ugc" | "marketplace" | "communities" {
+function classifyTx(type: string): "marketplace" | "communities" | "other" {
   const t = type.toLowerCase();
-  if (t.includes("affiliate") || t.includes("link")) return "affiliate";
-  if (t.includes("ugc") || t.includes("influencer") || t.includes("creator")) return "ugc";
   if (t.includes("community")) return "communities";
-  return "marketplace";
+  if (
+    t.includes("order") ||
+    t.includes("sale") ||
+    t.includes("marketplace") ||
+    t.includes("payment")
+  ) {
+    return "marketplace";
+  }
+  return "other";
 }
 
-function buildSparkline(
-  txs: TxRow[],
-  bucket: "affiliate" | "ugc" | "marketplace" | "communities",
-  days = 8
-): number[] {
+function buildSparkline(txs: TxRow[], bucket: "marketplace" | "communities", days = 8): number[] {
   const end = new Date();
   const start = subDays(end, days - 1);
   const range = eachDayOfInterval({ start: startOfDay(start), end: startOfDay(end) });
@@ -200,11 +167,10 @@ function buildSparkline(
 function notifToActivity(n: NotifRow): ActivityItem {
   const iconMap: Record<string, { icon: string; iconBg: string }> = {
     payment: { icon: "sale", iconBg: "#e9f9ef" },
-    affiliate: { icon: "sale", iconBg: "#e9f9ef" },
     order: { icon: "check", iconBg: "#ede9ff" },
-    influencer: { icon: "check", iconBg: "#ede9ff" },
     community: { icon: "member", iconBg: "#f0f4ff" },
     system: { icon: "payout", iconBg: "#fff3ee" },
+    message: { icon: "member", iconBg: "#f0f4ff" },
   };
   const m = iconMap[n.type] ?? { icon: "sale", iconBg: "#e9f9ef" };
   return {
@@ -216,12 +182,6 @@ function notifToActivity(n: NotifRow): ActivityItem {
     amount: null,
     positive: null,
   };
-}
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-xl bg-surface-secondary ${className}`} />;
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -239,25 +199,15 @@ export default function DashboardHomePage() {
   const [wallet, setWallet] = useState<WalletRow | null>(null);
   const [statCards, setStatCards] = useState<StatCard[]>([]);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [recentNotifications, setRecentNotifications] = useState<NotifRow[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [communities, setCommunities] = useState<Community[]>([]);
-  const [featuredCampaign, setFeaturedCampaign] = useState<CampaignRow | null>(null);
-  const [earnedToday, setEarnedToday] = useState(0);
-  const [activeLinks, setActiveLinks] = useState(0);
-  const [campaignsCount, setCampaignsCount] = useState(0);
-  const [earningsTotal, setEarningsTotal] = useState<number | undefined>(undefined);
-  const [earningsLabels, setEarningsLabels] = useState<string[] | undefined>(undefined);
-  const [earningsDatasets, setEarningsDatasets] = useState<EarningsDataset[] | undefined>(undefined);
-  const [earnedTrend, setEarnedTrend] = useState<string>("vs yesterday");
-  const [campaignsTrend, setCampaignsTrend] = useState<string>("UGC campaigns");
-  const [linksTrend, setLinksTrend] = useState<string>("active links");
-  const [sidebarCampaigns, setSidebarCampaigns] = useState<TrendingCampaignItem[]>([]);
-  const [sidebarCreators, setSidebarCreators] = useState<RecommendedCreator[]>([]);
-  const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [recentOrders, setRecentOrders] = useState<OrderRow[]>([]);
+  const [earningsLabels, setEarningsLabels] = useState<string[]>([]);
+  const [earningsDatasets, setEarningsDatasets] = useState<EarningsDataset[]>([]);
   const [dashboardMessages, setDashboardMessages] = useState<DashboardMessagePreview[]>([]);
   const [stockRows, setStockRows] = useState<StockQuantityRow[]>([]);
+  const [isVendor, setIsVendor] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -271,26 +221,18 @@ export default function DashboardHomePage() {
 
     const userId = user.id;
     const since14 = subDays(new Date(), 14).toISOString();
-    const todayStart = startOfDay(new Date()).toISOString();
-    const yesterdayStart = startOfDay(subDays(new Date(), 1)).toISOString();
 
     const [
       profileRes,
       walletRes,
       txRes,
-      txTodayRes,
-      txYesterdayRes,
       notifsRes,
-      campaignsRes,
       productsRes,
       membershipsRes,
-      affiliateRes,
-      influencerRes,
-      trendingCampsRes,
-      creatorsRes,
-      searchesRes,
       buyerConvsRes,
       vendorRes,
+      ordersRes,
+      ordersCountRes,
     ] = await Promise.all([
       supabase
         .from("profiles")
@@ -309,129 +251,83 @@ export default function DashboardHomePage() {
         .gte("created_at", since14)
         .order("created_at", { ascending: true }),
       supabase
-        .from("transactions")
-        .select("amount, direction")
-        .eq("user_id", userId)
-        .gte("created_at", todayStart)
-        .eq("direction", "credit"),
-      supabase
-        .from("transactions")
-        .select("amount, direction")
-        .eq("user_id", userId)
-        .gte("created_at", yesterdayStart)
-        .lt("created_at", todayStart)
-        .eq("direction", "credit"),
-      supabase
         .from("notifications")
         .select("id, type, title, message, is_read, created_at, action_url")
         .eq("user_id", userId)
-        .eq("is_read", false)
         .order("created_at", { ascending: false })
-        .limit(6),
-      supabase
-        .from("ugc_campaigns")
-        .select(
-          `
-          id,
-          title,
-          description,
-          campaign_type,
-          rate_per_1k_views,
-          fixed_rate,
-          payment_model,
-          submission_count,
-          total_budget,
-          ends_at,
-          ugc_campaign_media(url, type, usage),
-          vendors(business_name, business_logo),
-          ugc_campaign_participants(
-            influencers(
-              profiles(full_name, avatar_url)
-            )
-          )
-        `
-        )
-        .eq("status", "active")
-        .order("submission_count", { ascending: false })
-        .limit(3),
+        .limit(8),
       supabase
         .from("products")
         .select(
-          "id, slug, name, price, currency, affiliate_commission_rate, sale_count, images, product_categories(name), price_usd"
+          "id, slug, name, price, currency, sale_count, images, product_categories(name), price_usd"
         )
         .eq("status", "active")
         .eq("is_active", true)
         .order("sale_count", { ascending: false })
-        .limit(3),
+        .limit(4),
       supabase
         .from("community_memberships")
-        .select(
-          "community_id, communities(id, name, avatar_url, member_count, slug)"
-        )
+        .select("community_id, communities(id, name, avatar_url, member_count, slug)")
         .eq("user_id", userId)
         .eq("status", "active")
-        .limit(3),
-      supabase.from("affiliates").select("id").eq("user_id", userId).single(),
-      supabase.from("influencers").select("id").eq("user_id", userId).single(),
-      supabase
-        .from("ugc_campaigns")
-        .select(`
-          id,
-          title,
-          fixed_rate,
-          rate_per_1k_views,
-          payment_model,
-          submission_count,
-          ugc_campaign_media(url, type, usage)
-        `)
-        .eq("status", "active")
-        .order("submission_count", { ascending: false })
-        .limit(3),
-      supabase
-        .from("profiles")
-        .select("id, full_name, username, avatar_url")
-        .neq("id", userId)
-        .limit(3),
-      supabase
-        .from("search_history")
-        .select("query, created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(5),
+        .limit(4),
       supabase
         .from("conversations")
         .select("id, updated_at, vendors(business_name, business_logo)")
         .eq("buyer_id", userId)
         .order("updated_at", { ascending: false })
         .limit(4),
-      supabase.from("vendors").select("id").eq("user_id", userId).maybeSingle(),
+      supabase.from("vendors").select("id").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase
+        .from("orders")
+        .select("id, order_number, total_amount, currency, status, created_at")
+        .eq("buyer_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(5),
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("buyer_id", userId),
     ]);
 
-    // Active links count
-    let linksCount = 0;
-    if (!affiliateRes.error && affiliateRes.data) {
-      const { count } = await supabase
-        .from("affiliate_links")
-        .select("id", { count: "exact", head: true })
-        .eq("affiliate_id", affiliateRes.data.id)
-        .eq("is_active", true);
-      linksCount = count ?? 0;
-    }
+    const vendorId = vendorRes.data?.id ?? null;
+    setIsVendor(!!vendorId);
 
-    // Campaigns joined count
-    let campCount = 0;
-    if (!influencerRes.error && influencerRes.data) {
-      const { count } = await supabase
-        .from("ugc_campaign_participants")
-        .select("id", { count: "exact", head: true })
-        .eq("influencer_id", influencerRes.data.id)
-        .eq("status", "accepted");
-      campCount = count ?? 0;
+    let vendorProductsCount = 0;
+    let vendorCustomersCount = 0;
+    let vendorOrdersCount = 0;
+    let vendorOrders: OrderRow[] = [];
+
+    if (vendorId) {
+      const [vendorProductsRes, vendorOrdersRes, vendorCustomersRes, vendorOrdersCountRes] =
+        await Promise.all([
+        supabase
+          .from("products")
+          .select("id", { count: "exact", head: true })
+          .eq("vendor_id", vendorId)
+          .is("deleted_at", null),
+        supabase
+          .from("orders")
+          .select("id, order_number, total_amount, currency, status, created_at")
+          .eq("vendor_id", vendorId)
+          .order("created_at", { ascending: false })
+          .limit(5),
+        supabase
+          .from("orders")
+          .select("buyer_id", { count: "exact", head: true })
+          .eq("vendor_id", vendorId),
+        supabase
+          .from("orders")
+          .select("id", { count: "exact", head: true })
+          .eq("vendor_id", vendorId),
+      ]);
+      vendorProductsCount = vendorProductsRes.count ?? 0;
+      vendorCustomersCount = vendorCustomersRes.count ?? 0;
+      vendorOrdersCount = vendorOrdersCountRes.count ?? 0;
+      vendorOrders = (vendorOrdersRes.data ?? []) as OrderRow[];
     }
 
     const txs = (txRes.data ?? []) as TxRow[];
-
-    // ─ Build earnings chart data ─
     const days = 14;
     const chartEnd = new Date();
     const chartStart = subDays(chartEnd, days - 1);
@@ -441,125 +337,84 @@ export default function DashboardHomePage() {
     });
     const labels = range.map((d) => format(d, "MMM d"));
 
-    const buckets: Record<string, { affiliate: number; ugc: number; marketplace: number; communities: number }> = {};
-    for (const label of labels)
-      buckets[label] = { affiliate: 0, ugc: 0, marketplace: 0, communities: 0 };
+    const buckets: Record<string, { marketplace: number; communities: number }> = {};
+    for (const label of labels) buckets[label] = { marketplace: 0, communities: 0 };
     for (const tx of txs) {
       if (tx.direction !== "credit") continue;
       const key = format(new Date(tx.created_at), "MMM d");
       if (!(key in buckets)) continue;
-      buckets[key][classifyTx(tx.type)] += Number(tx.amount);
+      const bucket = classifyTx(tx.type);
+      if (bucket === "marketplace" || bucket === "communities") {
+        buckets[key][bucket] += Number(tx.amount);
+      }
     }
 
-    const CHART_COLORS = {
-      affiliate: "#fd5000",
-      ugc: "#8b5cf6",
-      marketplace: "#3b82f6",
-      communities: "#30a46c",
-    };
-    const CHART_LABELS_MAP: Record<string, string> = {
-      affiliate: "Affiliate",
-      ugc: "UGC",
-      marketplace: "Marketplace",
-      communities: "Communities",
-    };
     const realDatasets: EarningsDataset[] = (
-      ["affiliate", "ugc", "marketplace", "communities"] as const
-    ).map((bucket) => {
-      const data = labels.map((l) => buckets[l][bucket]);
+      [
+        { key: "marketplace" as const, label: "Revenue", color: "#3b82f6" },
+        { key: "communities" as const, label: "Communities", color: "#30a46c" },
+      ] as const
+    ).map(({ key, label, color }) => {
+      const data = labels.map((l) => buckets[l][key]);
       const total = data.reduce((s, v) => s + v, 0);
       return {
-        label: CHART_LABELS_MAP[bucket],
+        label,
         data,
-        color: CHART_COLORS[bucket],
+        color,
         amount: formatMoney(total, "USD"),
       };
     });
-    const realTotal = realDatasets.reduce(
-      (s, d) => s + d.data.reduce((a, b) => a + b, 0),
-      0
-    );
 
-    // Earned today
-    const todayEarned = (txTodayRes.data ?? []).reduce(
-      (s: number, r: { amount: number; direction: string }) =>
-        s + Number(r.amount),
-      0
-    );
-
-    // Real trend calculations
-    const yesterdayEarned = (txYesterdayRes.data ?? []).reduce(
-      (s: number, r: { amount: number; direction: string }) =>
-        s + Number(r.amount),
-      0
-    );
-    const earnPctRaw =
-      yesterdayEarned > 0
-        ? ((todayEarned - yesterdayEarned) / yesterdayEarned) * 100
-        : todayEarned > 0
-          ? 100
-          : 0;
-    const earnPct = Math.abs(Math.round(earnPctRaw));
-    const earnUp = earnPctRaw >= 0;
-    const realEarnedTrend = `${earnPct}% vs yesterday`;
-
-    const realCampaignsTrend =
-      campCount > 0 ? `${campCount} campaigns joined` : "No campaigns yet";
-    const realLinksTrend =
-      linksCount > 0 ? `${linksCount} active links` : "No active links";
-
-    // Stat cards with real sparklines
-    const spark = (b: "affiliate" | "ugc" | "marketplace" | "communities") =>
-      buildSparkline(txs, b);
     const w = walletRes.data as WalletRow | null;
+    const spark = (b: "marketplace" | "communities") => buildSparkline(txs, b);
+    const displayOrders = vendorId ? vendorOrders : ((ordersRes.data ?? []) as OrderRow[]);
+    const displayOrdersCount = vendorId ? vendorOrdersCount : (ordersCountRes.count ?? 0);
+    const displayProductsCount = vendorId ? vendorProductsCount : (productsRes.data ?? []).length;
 
     const cards: StatCard[] = [
       {
-        label: "Available Balance",
-        value: formatMoney(w?.available_balance ?? 0, "USD"),
+        label: "Revenue",
+        value: formatMoney(w?.total_earned ?? 0, "USD"),
         change: w?.pending_balance
           ? `${formatMoney(w.pending_balance, "USD")} pending`
-          : "No pending",
-        up: true,
-        chartColor: "#fd5000",
-        data: spark("affiliate"),
-      },
-      {
-        label: "Active Links",
-        value: linksCount.toString(),
-        change: "generating clicks",
-        up: true,
-        chartColor: "#8b5cf6",
-        data: spark("affiliate"),
-      },
-      {
-        label: "Campaigns Joined",
-        value: campCount.toString(),
-        change: "UGC campaigns",
+          : "All time",
         up: true,
         chartColor: "#3b82f6",
-        data: spark("ugc"),
+        data: spark("marketplace"),
       },
       {
-        label: "Total Earned",
-        value: formatMoney(w?.total_earned ?? 0, "USD"),
-        change: "all time",
+        label: "Orders",
+        value: String(displayOrdersCount),
+        change: vendorId ? "Store orders" : "Your purchases",
+        up: true,
+        chartColor: "#fd5000",
+        data: spark("marketplace"),
+      },
+      {
+        label: "Products",
+        value: String(displayProductsCount),
+        change: vendorId ? "Active listings" : "Trending picks",
+        up: true,
+        chartColor: "#8b5cf6",
+        data: spark("marketplace"),
+      },
+      {
+        label: "Customers",
+        value: vendorId ? String(vendorCustomersCount) : String((membershipsRes.data ?? []).length),
+        change: vendorId ? "Unique buyers" : "Communities joined",
         up: true,
         chartColor: "#30a46c",
-        data: spark("marketplace"),
+        data: spark("communities"),
       },
     ];
 
-    // Activity items (unread only)
-    const activity = (notifsRes.data ?? []).map((n: any) =>
-      notifToActivity(n as NotifRow)
-    );
-    setUnreadNotifications(activity.length);
+    const allNotifs = (notifsRes.data ?? []) as NotifRow[];
+    const activity = allNotifs.filter((n) => !n.is_read).map((n) => notifToActivity(n));
+    const recentNotifications = allNotifs.slice(0, 5);
 
-    // Dashboard message previews
     const buyerConvs = buyerConvsRes.data ?? [];
     const convIds = buyerConvs.map((c: { id: string }) => c.id);
-    let lastByConv: Record<string, { body: string; created_at: string }> = {};
+    const lastByConv: Record<string, { body: string; created_at: string }> = {};
 
     if (convIds.length > 0) {
       const { data: convMsgs } = await supabase
@@ -578,7 +433,7 @@ export default function DashboardHomePage() {
       }
     }
 
-    let mappedMessages: DashboardMessagePreview[] = buyerConvs.map(
+    const mappedMessages: DashboardMessagePreview[] = buyerConvs.map(
       (c: {
         id: string;
         updated_at: string;
@@ -604,57 +459,10 @@ export default function DashboardHomePage() {
       }
     );
 
-    if (mappedMessages.length === 0 && activity.length > 0) {
-      mappedMessages = activity.slice(0, 4).map((a: ActivityItem, i: number) => ({
-        id: `activity-${i}`,
-        name: a.title,
-        preview: a.sub,
-        time: a.time,
-        initials: a.title.slice(0, 2).toUpperCase(),
-        color: ["#fd5000", "#7c3aed", "#2563eb", "#16a34a"][i % 4],
-        href: "/dashboard/notifications",
-      }));
-    }
-
-    // ─ Campaigns mapping (for the bottom TopCampaigns card) ─
-    const rawCampaigns = (campaignsRes.data ?? []) as unknown as CampaignRow[];
-    const mappedCampaigns: Campaign[] = rawCampaigns.map((c) => {
-      const img = c.ugc_campaign_media?.find((m) => m.type === "image");
-      const earnStr =
-        c.payment_model === "per_views"
-          ? `${formatMoney(c.rate_per_1k_views, "USD")}/1k`
-          : formatMoney(c.fixed_rate, "USD");
-      const ratePerSubmission =
-        c.payment_model === "per_views" ? null : c.fixed_rate || null;
-      const totalSpots =
-        ratePerSubmission && ratePerSubmission > 0
-          ? Math.floor(c.total_budget / ratePerSubmission)
-          : null;
-      const budgetPct =
-        totalSpots && totalSpots > 0
-          ? Math.min(100, Math.round((c.submission_count / totalSpots) * 100))
-          : 0;
-      const hue = c.title.charCodeAt(0) % 360;
-      return {
-        id: c.id,
-        name: c.title,
-        badges: [c.campaign_type.replace(/_/g, " ")],
-        earn: earnStr,
-        joined: c.submission_count,
-        progress: budgetPct,
-        imageUrl: img?.url ?? null,
-        imageColor: `hsl(${hue},65%,35%)`,
-        imageInitial: c.title[0]?.toUpperCase() ?? "C",
-        endsAt: c.ends_at,
-      };
-    });
-
-    // ─ Products mapping ─
     const rawProducts = (productsRes.data ?? []) as unknown as ProductRow[];
     const mappedProducts: Product[] = rawProducts.map((p) => {
       const imgUrl = getProductImage(p.images);
       const displayPrice = p.price_usd > 0 ? p.price_usd : p.price;
-      const commission = p.affiliate_commission_rate ?? 0;
       const hue = p.name.charCodeAt(0) % 360;
       return {
         id: p.id,
@@ -662,15 +470,13 @@ export default function DashboardHomePage() {
         name: p.name,
         category: p.product_categories?.name ?? "General",
         price: formatMoney(displayPrice, p.currency ?? "USD"),
-        commission:
-          commission > 0 ? `${commission}% Commission` : "No commission",
+        commission: `${p.sale_count} sold`,
         sold: `${p.sale_count} sold`,
         imageUrl: imgUrl,
         imageColor: `hsl(${hue},65%,45%)`,
       };
     });
 
-    // ─ Communities mapping ─
     const rawMemberships = (membershipsRes.data ?? []) as unknown as CommunityMembershipRow[];
     const mappedCommunities: Community[] = rawMemberships
       .filter((m) => m.communities)
@@ -692,72 +498,6 @@ export default function DashboardHomePage() {
         };
       });
 
-    // ─ Sidebar: Trending Campaigns ─
-    const BADGE_LABELS = ["Trending", "Hot", "New"];
-    const BADGE_STYLES = [
-      "bg-orange-50 text-orange-700 ring-orange-600/20 dark:bg-orange-950/30 dark:text-orange-400",
-      "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/30 dark:text-rose-400",
-      "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-950/30 dark:text-emerald-400",
-    ];
-    const mappedSidebarCampaigns: TrendingCampaignItem[] = (
-      (trendingCampsRes.data ?? []) as SidebarCampaignRow[]
-    ).map((c, i) => {
-      const cover = c.ugc_campaign_media?.find((m) => m.type === "image")?.url ?? null;
-      return {
-        name: c.title,
-        earn: c.payment_model === "per_views"
-          ? `Earn ${formatMoney(c.rate_per_1k_views, "USD")}/1k views`
-          : `Earn up to ${formatMoney(c.fixed_rate, "USD")}`,
-        badge: BADGE_LABELS[i % 3],
-        badgeCls: BADGE_STYLES[i % 3],
-        href: `/ugc/${c.id}`,
-        imageUrl: cover,
-      };
-    });
-
-    // ─ Sidebar: Recommended Creators ─
-    const CREATOR_BADGES = ["Top Creator", "Rising Star", "UGC Expert"];
-    const CREATOR_BADGE_STYLES = [
-      "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] ring-[var(--color-border)]",
-      "bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-950/30 dark:text-blue-400",
-      "bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-950/30 dark:text-violet-400",
-    ];
-    const mappedCreators: RecommendedCreator[] = (
-      (creatorsRes.data ?? []) as {
-        id: string;
-        full_name: string | null;
-        username: string | null;
-        avatar_url: string | null;
-      }[]
-    ).map((p, i) => {
-      const name = p.full_name ?? p.username ?? "Creator";
-      return {
-        initials: name
-          .split(" ")
-          .map((w) => w[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2),
-        name,
-        badge: CREATOR_BADGES[i % 3],
-        badgeCls: CREATOR_BADGE_STYLES[i % 3],
-        avatarUrl: p.avatar_url ?? null,
-        username: p.username ?? null,
-        href: p.username ? `/u/${p.username}` : `/creators/${p.id}`,
-      };
-    });
-
-    // ─ Sidebar: Recent Searches ─
-    const mappedSearches: RecentSearchItem[] = (
-      (searchesRes.data ?? []) as { query: string }[]
-    ).map((s) => ({ text: s.query }));
-
-    setSidebarCampaigns(mappedSidebarCampaigns);
-    setSidebarCreators(mappedCreators);
-    setRecentSearches(mappedSearches);
-    setDashboardMessages(mappedMessages);
-
-    const vendorId = vendorRes.data?.id ?? null;
     if (vendorId) {
       const { data: inventoryProducts } = await supabase
         .from("products")
@@ -770,29 +510,31 @@ export default function DashboardHomePage() {
         .limit(8);
 
       setStockRows(
-        (inventoryProducts ?? []).map((p: {
-          id: string;
-          name: string;
-          slug: string | null;
-          sku?: string | null;
-          price: number;
-          currency?: string | null;
-          status: string;
-          inventory_quantity?: number | null;
-          track_inventory?: boolean | null;
-          is_digital?: boolean | null;
-          images?: unknown;
-        }) => {
-          const hue = p.name.charCodeAt(0) % 360;
-          return mapProductToStockRow(
-            {
-              ...p,
-              imageUrl: getProductImage(p.images),
-              imageColor: `hsl(${hue}, 55%, 45%)`,
-            },
-            formatMoney
-          );
-        })
+        (inventoryProducts ?? []).map(
+          (p: {
+            id: string;
+            name: string;
+            slug: string | null;
+            sku?: string | null;
+            price: number;
+            currency?: string | null;
+            status: string;
+            inventory_quantity?: number | null;
+            track_inventory?: boolean | null;
+            is_digital?: boolean | null;
+            images?: unknown;
+          }) => {
+            const hue = p.name.charCodeAt(0) % 360;
+            return mapProductToStockRow(
+              {
+                ...p,
+                imageUrl: getProductImage(p.images),
+                imageColor: `hsl(${hue}, 55%, 45%)`,
+              },
+              formatMoney
+            );
+          }
+        )
       );
     } else {
       setStockRows([]);
@@ -802,19 +544,13 @@ export default function DashboardHomePage() {
     setWallet(w);
     setStatCards(cards);
     setActivityItems(activity);
-    setCampaigns(mappedCampaigns);
+    setRecentNotifications(recentNotifications);
     setProducts(mappedProducts);
     setCommunities(mappedCommunities);
-    setFeaturedCampaign(rawCampaigns[0] ?? null);
-    setEarnedToday(todayEarned);
-    setActiveLinks(linksCount);
-    setCampaignsCount(campCount);
-    setEarningsTotal(realTotal);
+    setRecentOrders(displayOrders);
     setEarningsLabels(labels);
     setEarningsDatasets(realDatasets);
-    setEarnedTrend(`${earnUp ? "↑" : "↓"} ${realEarnedTrend}`);
-    setCampaignsTrend(realCampaignsTrend);
-    setLinksTrend(realLinksTrend);
+    setDashboardMessages(mappedMessages);
     setLoading(false);
   }, [supabase, formatMoney]);
 
@@ -822,191 +558,15 @@ export default function DashboardHomePage() {
     fetchData();
   }, [fetchData]);
 
-  const displayName =
-    profile?.full_name ?? profile?.email?.split("@")[0] ?? "there";
-
-  const workspaceData = useMemo(
-    () =>
-      mapDashboardToWorkspace({
-        displayName,
-        earnedToday,
-        monthlyEarnings: wallet?.total_earned ?? earningsTotal ?? 0,
-        pendingBalance: wallet?.pending_balance ?? 0,
-        productsCount: products.length,
-        communitiesCount: communities.length,
-        coursesCount: 0,
-        ordersCount: activityItems.filter((a) => a.icon === "sale" || a.icon === "check").length,
-        messagesCount: dashboardMessages.length,
-        notificationsCount: unreadNotifications,
-        affiliateRevenue:
-          earningsDatasets?.find((d) => d.label.toLowerCase().includes("affiliate"))?.data.at(-1) ?? 0,
-        ugcRevenue:
-          earningsDatasets?.find((d) => d.label.toLowerCase().includes("ugc"))?.data.at(-1) ?? 0,
-        campaignsCount: campaignsCount,
-        activeLinks: activeLinks,
-        earnedTrend,
-        activityItems,
-        messages: dashboardMessages,
-        earningsDatasets,
-        formatMoney,
-      }),
-    [
-      displayName,
-      earnedToday,
-      wallet,
-      earningsTotal,
-      products.length,
-      communities.length,
-      activityItems,
-      dashboardMessages,
-      unreadNotifications,
-      earningsDatasets,
-      earnedTrend,
-      campaignsCount,
-      activeLinks,
-      formatMoney,
-    ],
-  );
-
-  const opportunityEngineData = useMemo(
-    () =>
-      buildOpportunityEngineData({
-        products,
-        campaigns,
-        communities,
-        sidebarCampaigns,
-        recommendedCreators: sidebarCreators,
-      }),
-    [products, campaigns, communities, sidebarCampaigns, sidebarCreators],
-  );
-
-  const commandCenterData = useMemo(
-    () =>
-      mapDashboardToCommandCenter({
-        earnedToday,
-        monthlyEarnings: wallet?.total_earned ?? earningsTotal ?? 0,
-        pendingBalance: wallet?.pending_balance ?? 0,
-        productsCount: products.length,
-        communitiesCount: communities.length,
-        coursesCount: 0,
-        ordersCount: activityItems.filter((a) => a.icon === "sale" || a.icon === "check").length,
-        messagesCount: dashboardMessages.length,
-        notificationsCount: unreadNotifications,
-        affiliateRevenue:
-          earningsDatasets?.find((d) => d.label.toLowerCase().includes("affiliate"))?.data.at(-1) ?? 0,
-        ugcRevenue:
-          earningsDatasets?.find((d) => d.label.toLowerCase().includes("ugc"))?.data.at(-1) ?? 0,
-        earnedTrend,
-        activityItems,
-        messages: dashboardMessages,
-        earningsDatasets,
-        formatMoney,
-      }),
-    [
-      earnedToday,
-      wallet,
-      earningsTotal,
-      products.length,
-      communities.length,
-      activityItems,
-      dashboardMessages,
-      unreadNotifications,
-      earningsDatasets,
-      earnedTrend,
-      formatMoney,
-    ],
-  );
-
-  // ─ Derive featured campaign props from the real row ─
-  const featuredProps = featuredCampaign
-    ? (() => {
-      const realParticipants = (
-        featuredCampaign.ugc_campaign_participants ?? []
-      )
-        .map((p) => p.influencers?.profiles)
-        .filter(
-          (p): p is { full_name: string | null; avatar_url: string | null } => !!p
-        )
-        .slice(0, 4)
-        .map((p, i) => {
-          const name = p.full_name ?? "Creator";
-          const initials =
-            name
-              .split(" ")
-              .map((w) => w[0])
-              .join("")
-              .toUpperCase()
-              .slice(0, 2) || "C";
-          const palette = ["#fd5000", "#8b5cf6", "#3b82f6", "#30a46c"];
-          return {
-            initials,
-            color: palette[i % palette.length],
-            avatarUrl: p.avatar_url,
-          };
-        });
-
-      const ratePerSubmission =
-        featuredCampaign.payment_model === "per_views"
-          ? null
-          : featuredCampaign.fixed_rate || null;
-      const totalSpots =
-        ratePerSubmission && ratePerSubmission > 0
-          ? Math.floor(featuredCampaign.total_budget / ratePerSubmission)
-          : null;
-      const spotsLeft =
-        totalSpots !== null
-          ? Math.max(0, totalSpots - featuredCampaign.submission_count)
-          : null;
-
-      const alreadyPaidNumber =
-        featuredCampaign.payment_model === "per_views"
-          ? null
-          : featuredCampaign.submission_count * featuredCampaign.fixed_rate;
-
-      return {
-        title: featuredCampaign.title,
-        description: featuredCampaign.description,
-        campaignType: featuredCampaign.campaign_type,
-        paymentModel: featuredCampaign.payment_model as
-          | "per_views"
-          | "fixed_rate",
-        brandName: featuredCampaign.vendors?.business_name ?? null,
-        brandLogo: featuredCampaign.vendors?.business_logo ?? null,
-        creatorsJoined: featuredCampaign.submission_count,
-        spotsLeft,
-        alreadyPaid:
-          alreadyPaidNumber !== null
-            ? formatMoney(alreadyPaidNumber, "USD")
-            : null,
-        earnUpTo:
-          featuredCampaign.payment_model === "per_views"
-            ? `${formatMoney(featuredCampaign.rate_per_1k_views, "USD")}/1k`
-            : formatMoney(featuredCampaign.fixed_rate, "USD"),
-        participants: realParticipants,
-        extraCount: Math.max(
-          0,
-          featuredCampaign.submission_count - realParticipants.length
-        ),
-        coverImage:
-          featuredCampaign.ugc_campaign_media?.find((m) => m.type === "image")
-            ?.url ?? null,
-        endsAt: featuredCampaign.ends_at,
-        href: `/ugc/${featuredCampaign.id}`,
-      };
-    })()
-    : null;
+  const displayName = profile?.full_name ?? profile?.email?.split("@")[0] ?? "there";
 
   return (
     <div className="min-h-screen bg-bg font-[family-name:var(--font-dm-sans)]">
       <DashboardPage className="px-2 sm:px-0">
         <PageHeader
-          eyebrow="Dashboard"
+          eyebrow="Mission Control"
           title={loading ? "Loading…" : `Welcome back, ${displayName}`}
-          subtitle={new Date().toLocaleDateString("en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-          })}
+          subtitle="Your unified command center across all Jimvio workspaces."
           actions={
             <>
               <Link
@@ -1027,131 +587,241 @@ export default function DashboardHomePage() {
           }
         />
 
-        <JimvioWorkspace data={workspaceData} loading={loading} />
-
-        <CreatorCommandCenter data={commandCenterData} loading={loading} />
-
-        <OpportunityEngineDashboard data={opportunityEngineData} loading={loading} />
-
-        <HeroStatsRow
-          earnedToday={loading ? "—" : `${formatMoney(earnedToday, "USD")} today`}
-          newCampaigns={campaignsCount}
-          affiliateClicks={activeLinks}
-          walletBalance={
-            loading
-              ? "—"
-              : formatMoney(wallet?.available_balance ?? 0, "USD")
-          }
-          earnedTrend={earnedTrend}
-          campaignsTrend={campaignsTrend}
-          linksTrend={linksTrend}
-        />
-
-        {/* Two-column layout */}
-        <div className="flex flex-col xl:grid xl:grid-cols-[1fr_320px] gap-5">
-          {/* ── Left / main column ── */}
-          <div className="flex flex-col gap-5">
-            {/* Featured campaign hero */}
-            {loading ? (
-              <Skeleton className="h-[220px] w-full" />
-            ) : featuredProps ? (
-              <>
-                <FeaturedCampaignBanner {...featuredProps} />
-                <DashboardMessagesPanel messages={dashboardMessages} className="xl:hidden" />
-                <DashboardDiscoveryGrid
-                  campaigns={campaigns}
-                  products={products}
-                  communities={communities}
-                  loading={loading}
-                  className="xl:hidden"
-                />
-              </>
-            ) : (
-              <div className="flex flex-col gap-5">
-                <JimvioAIPanel />
-                <DashboardMessagesPanel messages={dashboardMessages} />
-                <DashboardDiscoveryGrid
-                  campaigns={campaigns}
-                  products={products}
-                  communities={communities}
-                  loading={loading}
-                />
-              </div>
-            )}
-
-            {/* Stat cards */}
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-24" />
-                ))}
-              </div>
-            ) : (
-              <StatCardsRow cards={statCards} />
-            )}
-
-            {loading ? (
-              <Skeleton className="h-[520px] w-full" />
-            ) : (
-              <DashboardAnalyticsBoard
-                wallet={wallet}
-                labels={earningsLabels ?? []}
-                datasets={earningsDatasets ?? []}
-                products={products}
+        {loading ? (
+          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-48 animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
               />
-            )}
+            ))}
+          </div>
+        ) : (
+          <WorkspaceHeroCards
+            className="mt-6"
+            stats={{
+              marketplace: {
+                status: "Active",
+                stat: String(recentOrders.length),
+                statLabel: "Recent orders",
+                recentActivity:
+                  recentOrders[0]?.order_number
+                    ? `Latest order #${recentOrders[0].order_number}`
+                    : "Browse the marketplace",
+              },
+              communities: {
+                status: "Connected",
+                stat: String(communities.length),
+                statLabel: "Communities",
+                recentActivity:
+                  communities[0]?.name
+                    ? `Active in ${communities[0].name}`
+                    : "Explore communities",
+              },
+              affiliates: {
+                status: "Ready",
+                stat: wallet
+                  ? formatMoney(Number(wallet.available_balance ?? 0), "USD")
+                  : "—",
+                statLabel: "Available balance",
+                recentActivity: "Promote products and earn",
+              },
+              ugc: {
+                status: "Open",
+                stat:
+                  activityItems.filter((a) => a.title.toLowerCase().includes("campaign")).length > 0
+                    ? String(
+                        activityItems.filter((a) => a.title.toLowerCase().includes("campaign")).length
+                      )
+                    : "—",
+                statLabel: "Campaign activity",
+                recentActivity: "Discover creator campaigns",
+              },
+            } satisfies WorkspaceCardStats}
+          />
+        )}
 
-            {!loading && stockRows.length > 0 && (
-              <StockQuantityTable rows={stockRows} />
-            )}
-
-            {loading ? (
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <Skeleton className="h-[280px]" />
-                <Skeleton className="h-[280px]" />
-              </div>
-            ) : (
-              <DashboardInsights
-                labels={earningsLabels ?? []}
-                datasets={earningsDatasets ?? []}
-                earnedToday={earnedToday}
-                earnedTrend={earnedTrend}
-              />
-            )}
-
-            {/* Earnings chart */}
-            <EarningsOverview
-              labels={earningsLabels}
-              datasets={earningsDatasets}
-              totalEarnings={earningsTotal}
+        {loading ? (
+          <DashboardStatSkeleton />
+        ) : (
+          <div className="mt-6">
+            <MissionControlSummaries
+              summaries={[
+                {
+                  id: "marketplace",
+                  title: "Marketplace",
+                  value: String(recentOrders.length),
+                  sub: "Recent orders across your account",
+                  href: "/marketplace",
+                  accent: "#fd5000",
+                },
+                {
+                  id: "community",
+                  title: "Community",
+                  value: String(communities.length),
+                  sub: "Active memberships",
+                  href: "/communities",
+                  accent: "#7c3aed",
+                },
+                {
+                  id: "revenue",
+                  title: "Revenue",
+                  value: wallet
+                    ? formatMoney(Number(wallet.available_balance ?? 0), "USD")
+                    : "—",
+                  sub: "Available wallet balance",
+                  href: "/dashboard/payments",
+                  accent: "#0d9488",
+                },
+                {
+                  id: "store",
+                  title: "Store Health",
+                  value: isVendor ? String(stockRows.length) : "—",
+                  sub: isVendor ? "SKUs tracked in inventory" : "Activate seller account",
+                  href: isVendor ? "/dashboard/vendor/store" : "/dashboard/activate/vendor",
+                  accent: "#2563eb",
+                },
+              ]}
             />
           </div>
+        )}
 
-          <DashboardSidebar
-            activityItems={activityItems}
-            unreadNotifications={unreadNotifications}
-            trendingCampaigns={sidebarCampaigns}
-            recommendedCreators={sidebarCreators}
-            recentSearches={recentSearches}
-            showAIPanel={!!featuredProps}
-            messages={dashboardMessages}
-            discoveryCampaigns={campaigns}
-            discoveryProducts={products}
-            discoveryCommunities={communities}
-          />
+        {loading ? (
+          <DashboardGridSkeleton />
+        ) : (
+        <>
+        <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-12">
+          <div className="xl:col-span-8 flex flex-col gap-5">
+            <section aria-label="Recent activity">
+              <DashboardSectionHeader
+                title="Recent Activity"
+                href={SECTION_LINKS.notifications}
+                linkLabel="All notifications"
+              />
+              <DashboardPanel>
+                {activityItems.length === 0 ? (
+                  <DashboardEmptyState
+                    title="No recent activity"
+                    description="Orders, messages, and updates will appear here."
+                    href={SECTION_LINKS.marketplace}
+                    linkLabel="Browse marketplace"
+                  />
+                ) : (
+                  <ul className="divide-y divide-[var(--color-border)]">
+                    {activityItems.map((item, i) => (
+                      <li
+                        key={`${item.title}-${i}`}
+                        className="flex items-start justify-between gap-3 px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-semibold text-[var(--color-text-primary)] truncate">
+                            {item.title}
+                          </p>
+                          <p className="text-[11px] text-[var(--color-text-muted)] truncate">
+                            {item.sub}
+                          </p>
+                        </div>
+                        <span className="text-[10px] text-[var(--color-text-muted)] shrink-0">
+                          {item.time}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </DashboardPanel>
+            </section>
+          </div>
+
+          <div className="xl:col-span-4 flex flex-col gap-5">
+            <section aria-label="Messages">
+              <DashboardMessagesPanel messages={dashboardMessages} />
+            </section>
+
+            <section aria-label="Notifications">
+              <DashboardSectionHeader
+                title="Notifications"
+                href={SECTION_LINKS.notifications}
+              />
+              <DashboardPanel>
+                {recentNotifications.length === 0 ? (
+                  <DashboardEmptyState
+                    title="You're all caught up"
+                    description="New alerts will show up here."
+                  />
+                ) : (
+                  <ul className="divide-y divide-[var(--color-border)]">
+                    {recentNotifications.map((n) => (
+                      <li key={n.id} className="px-4 py-3">
+                        <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">
+                          {n.title}
+                        </p>
+                        <p className="text-[11px] text-[var(--color-text-muted)] line-clamp-2">
+                          {n.message}
+                        </p>
+                        <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">
+                          {timeAgo(n.created_at)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </DashboardPanel>
+            </section>
+
+            <section aria-label="Community overview">
+              <DashboardSectionHeader
+                title="Community Overview"
+                href={SECTION_LINKS.communities}
+              />
+              <DashboardPanel>
+                {communities.length === 0 ? (
+                  <DashboardEmptyState
+                    title="No communities yet"
+                    description="Join or create a community to connect with your audience."
+                    href="/communities"
+                    linkLabel="Explore communities"
+                  />
+                ) : (
+                  <ul className="divide-y divide-[var(--color-border)]">
+                    {communities.map((c) => (
+                      <li key={c.id}>
+                        <Link
+                          href={c.slug ? `/communities/${c.slug}` : SECTION_LINKS.communities}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--color-surface-secondary)] transition-colors"
+                        >
+                          <span
+                            className="grid size-9 place-items-center rounded-full text-[11px] font-bold text-white"
+                            style={{ background: c.color }}
+                          >
+                            {c.initial}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-semibold text-[var(--color-text-primary)] truncate">
+                              {c.name}
+                            </p>
+                            <p className="text-[11px] text-[var(--color-text-muted)]">
+                              {c.members} members
+                            </p>
+                          </div>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </DashboardPanel>
+            </section>
+          </div>
         </div>
+        </>
+        )}
 
-        <div className="mt-10 space-y-8 border-t border-[var(--color-border)] pt-8">
+        <div className="mt-8 space-y-8 border-t border-[var(--color-border)] pt-8">
           <QuickActionsStrip actions={QUICK_ACTIONS} />
 
-          {!loading && (
-            <DashboardOpportunities
-              campaignsCount={campaignsCount}
-              linksCount={activeLinks}
-              walletBalance={wallet?.available_balance ?? 0}
-              pendingBalance={wallet?.pending_balance ?? 0}
-            />
-          )}
+          <section aria-label="AI insights">
+            <DashboardSectionHeader title="AI Insights" />
+            <JimvioAIPanel />
+          </section>
         </div>
       </DashboardPage>
     </div>

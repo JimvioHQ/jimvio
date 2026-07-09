@@ -1,53 +1,44 @@
 ﻿import type { Metadata } from "next";
-import { Suspense } from "react";
-import { Navbar } from "@/components/layout/navbar";
-import { Footer } from "@/components/layout/footer";
-import { ProductChatWidgetLoader } from "@/components/marketplace/product-chat-widget-loader";
-import { createClient, getCachedUser } from "@/lib/supabase/server";
-import { getResolvedPlatformSettings, PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings";
 import { pageMetadata } from "@/lib/seo";
+import { createClient, getCachedUser } from "@/lib/supabase/server";
+import { UGCWorkspaceLayoutClient } from "@/components/ugc/workspace/UGCWorkspaceLayoutClient";
+import { ProductChatWidgetLoader } from "@/components/marketplace/product-chat-widget-loader";
 
 export const metadata: Metadata = pageMetadata("ugc");
 
 export default async function UGCLayout({ children }: { children: React.ReactNode }) {
-  let profile = null;
+  let user:
+    | { name: string; avatarUrl?: string | null; isPremium?: boolean }
+    | undefined;
 
   try {
-    const { data: { user } } = await getCachedUser();
-    const supabase = await createClient();
-
-    if (user) {
-      const { data } = await supabase
+    const {
+      data: { user: authUser },
+    } = await getCachedUser();
+    if (authUser) {
+      const supabase = await createClient();
+      const { data: profile } = await supabase
         .from("profiles")
-        .select("email, full_name, avatar_url")
-        .eq("id", user.id)
-        .single();
-      profile = data;
-
-      if (!profile && user.email) {
-        profile = {
-          email: user.email,
-          full_name: user.user_metadata?.full_name || null,
-          avatar_url: user.user_metadata?.avatar_url || null,
-        };
-      }
+        .select("full_name, avatar_url")
+        .eq("id", authUser.id)
+        .maybeSingle();
+      user = {
+        name:
+          profile?.full_name ??
+          authUser.user_metadata?.full_name ??
+          authUser.email?.split("@")[0] ??
+          "Creator",
+        avatarUrl: profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null,
+      };
     }
   } catch {
-    // Silently handle DB errors
+    // optional profile
   }
 
-  const platformSettings = await getResolvedPlatformSettings().catch(() => null);
-  const marketing = platformSettings?.marketing ?? PLATFORM_SETTINGS_DEFAULTS.marketing;
-
   return (
-    <div className="flex flex-col min-h-screen">
-      <Suspense fallback={<div className="min-h-[var(--navbar-height)]" />}>
-        <Navbar user={profile} marketing={marketing} />
-      </Suspense>
-      <main className="flex-1 pt-[var(--navbar-height)]">{children}</main>
-      <Footer contact={platformSettings?.contact} />
+    <>
+      <UGCWorkspaceLayoutClient user={user}>{children}</UGCWorkspaceLayoutClient>
       <ProductChatWidgetLoader />
-    </div>
+    </>
   );
 }
-

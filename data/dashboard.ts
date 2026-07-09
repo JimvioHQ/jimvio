@@ -1,4 +1,11 @@
-import { ActivityItem, Campaign, Community, Product, QuickAction, TickerItem } from "@/types/dashboard";
+import {
+  ActivityItem,
+  Campaign,
+  Community,
+  Product,
+  QuickAction,
+  TickerItem,
+} from "@/types/dashboard";
 
 export const ACTIVITY_ITEMS: ActivityItem[] = [
   {
@@ -48,7 +55,7 @@ export const TOP_CAMPAIGNS: Campaign[] = [
     progress: 80,
     imageColor: "#1a1a1a",
     imageInitial: "N",
-    id: ""
+    id: "",
   },
   {
     name: "Skincare Routine",
@@ -58,7 +65,7 @@ export const TOP_CAMPAIGNS: Campaign[] = [
     progress: 60,
     imageColor: "#f9a8d4",
     imageInitial: "S",
-    id: ""
+    id: "",
   },
 ];
 
@@ -70,7 +77,7 @@ export const TRENDING_PRODUCTS: Product[] = [
     commission: "12% Commission",
     sold: "1.2k sold",
     imageColor: "#e8e8e8",
-    id: ""
+    id: "",
   },
   {
     name: "Smart Watch Series 8",
@@ -79,7 +86,7 @@ export const TRENDING_PRODUCTS: Product[] = [
     commission: "15% Commission",
     sold: "892 sold",
     imageColor: "#dbeafe",
-    id: ""
+    id: "",
   },
 ];
 
@@ -128,40 +135,54 @@ export const TICKER_ITEMS: TickerItem[] = [
 
 export const QUICK_ACTIONS: QuickAction[] = [
   {
-    label: "Create Affiliate Link",
-    sub: "Promote any product",
+    label: "Open Marketplace",
+    sub: "Browse and shop",
     accentColor: "#fd5000",
     bgColor: "#fff3ee",
+    href: "/marketplace",
   },
   {
-    label: "Join Campaign",
-    sub: "Earn with UGC content",
-    accentColor: "#8b5cf6",
+    label: "Open Communities",
+    sub: "Connect and grow",
+    accentColor: "#7c3aed",
     bgColor: "#ede9ff",
+    href: "/communities",
   },
   {
-    label: "Browse Products",
-    sub: "Find products to promote",
-    accentColor: "#30a46c",
-    bgColor: "#e9f9ef",
+    label: "Affiliate Workspace",
+    sub: "Promote and earn",
+    accentColor: "#0d9488",
+    bgColor: "#e6fffa",
+    href: "/affiliates",
   },
   {
-    label: "Create Post",
-    sub: "Share with your audience",
-    accentColor: "#0284c7",
-    bgColor: "#e0f2fe",
+    label: "Creator Workspace",
+    sub: "UGC & clipping campaigns",
+    accentColor: "#e11d48",
+    bgColor: "#fff1f2",
+    href: "/ugc",
   },
   {
-    label: "Request Withdrawal",
-    sub: "Withdraw your earnings",
-    accentColor: "#fd5000",
-    bgColor: "#fff3ee",
+    label: "Messages",
+    sub: "Reply to conversations",
+    accentColor: "#3b82f6",
+    bgColor: "#eff6ff",
+    href: "/dashboard/messages",
   },
 ];
 
 export const EARNINGS_LABELS = [
-  "May 1", "May 4", "May 7", "May 10", "May 13",
-  "May 16", "May 19", "May 22", "May 25", "May 28", "May 31",
+  "May 1",
+  "May 4",
+  "May 7",
+  "May 10",
+  "May 13",
+  "May 16",
+  "May 19",
+  "May 22",
+  "May 25",
+  "May 28",
+  "May 31",
 ];
 
 export const EARNINGS_DATASETS = [

@@ -275,7 +275,7 @@
 //                            {shared ? <Check className="h-4 w-4 text-emerald-500" /> : <Share2 className="h-4 w-4" />}
 //                         </button>
 //                         <Link
-//                            href={isJoined ? `/dashboard/ugc/${id}` : `/dashboard/ugc/${id}/join`}
+//                            href={isJoined ? `/ugc/${id}` : `/ugc/${id}/join`}
 //                            className={cn(
 //                               'inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold text-white transition-all active:scale-[0.98]',
 //                               isActive
@@ -535,7 +535,7 @@
 
 //                         {isActive ? (
 //                            <Link
-//                               href={isJoined ? `/dashboard/ugc/${id}` : `/dashboard/ugc/${id}/join`}
+//                               href={isJoined ? `/ugc/${id}` : `/ugc/${id}/join`}
 //                               className="flex items-center justify-center gap-2 w-full py-3 rounded-md text-sm font-semibold text-white bg-orange-500 hover:bg-orange-600 shadow-[0_4px_16px_rgba(249,115,22,0.3)] transition-all active:scale-[0.98]"
 //                            >
 //                               {isJoined ? 'Go to Dashboard' : 'Join Campaign'}
@@ -818,7 +818,7 @@ function MobileStickyCTA({
 
             {isActive ? (
                <Link
-                  href={isJoined ? `/dashboard/ugc/${id}` : `/dashboard/ugc/${id}/join`}
+                  href={isJoined ? `/ugc/${id}` : `/ugc/${id}/join`}
                   className={cn(
                      'flex-1 flex items-center justify-center gap-2',
                      'h-12 rounded-2xl text-sm font-bold text-white',
@@ -1067,7 +1067,7 @@ export default function CampaignDetailPage() {
 
                         {isActive ? (
                            <Link
-                              href={isJoined ? `/dashboard/ugc/${id}` : `/dashboard/ugc/${id}/join`}
+                              href={isJoined ? `/ugc/${id}` : `/ugc/${id}/join`}
 
                               className={cn(
                                  'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all',
@@ -1317,7 +1317,7 @@ export default function CampaignDetailPage() {
                         <div className="hidden lg:block">
                            {isActive ? (
                               <Link
-                                 href={isJoined ? `/dashboard/ugc/${id}` : `/dashboard/ugc/${id}/join`}
+                                 href={isJoined ? `/ugc/${id}` : `/ugc/${id}/join`}
                                  className={cn(
                                     'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all',
                                     'bg-orange-500 shadow-[0_4px_16px_rgba(249,115,22,0.3)]',
@@ -1338,7 +1338,7 @@ export default function CampaignDetailPage() {
                         <div className="sm:block lg:hidden">
                            {isActive ? (
                               <Link
-                                 href={isJoined ? `/dashboard/ugc/${id}` : `/dashboard/ugc/${id}/join`}
+                                 href={isJoined ? `/ugc/${id}` : `/ugc/${id}/join`}
                                  className={cn(
                                     'inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all',
                                     'bg-orange-500 shadow-[0_4px_16px_rgba(249,115,22,0.3)]',

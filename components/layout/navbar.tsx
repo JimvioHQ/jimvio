@@ -68,6 +68,7 @@ import { CurrencySelector } from "@/context/CurrencyContext";
 import { Input } from "@/components/ui/input";
 import JimvioLogo from "../ui/logo";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { MOBILE_BOTTOM_NAV_ITEMS, isDashboardActive } from "@/lib/navigation/primary-nav";
 
 
 const TRENDING_SEARCHES: {
@@ -228,7 +229,7 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
     out.push({ label: "Marketplace", href: "/marketplace" });
 
   if (!out.some((l) => norm(l.href) === "/communities"))
-    out.push({ label: "Communities", href: "/communities" });
+    out.push({ label: "Communities", href: "/c" });
 
   if (!out.some((l) => norm(l.href) === "/"))
     out.unshift({ label: "Home", href: "/" });
@@ -267,6 +268,7 @@ function iconForHref(href: string): LucideIcon {
 function isActive(pathname: string, href: string) {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return pathname === "/";
+  if (h === "/c") return pathname === "/c" || pathname.startsWith("/c/");
   return pathname === h || pathname.startsWith(`${h}/`);
 }
 
@@ -328,12 +330,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
     { title: "Physical Market", desc: "Real-world goods & equipment", href: "/marketplace?type=physical", icon: Package, color: "#f59e0b" },
   ];
 
-  const mobileBottomLinks = [
-    { label: "Home", href: "/", icon: Home },
-    { label: "Market", href: "/marketplace", icon: ShoppingBag },
-    { label: "Communities", href: "/communities", icon: Users },
-    { label: "UGC & Clipping", href: "/ugc", icon: Clapperboard },
-  ];
+  const mobileBottomLinks = MOBILE_BOTTOM_NAV_ITEMS;
 
   const runSearch = useCallback(
     (override?: string) => {
@@ -402,7 +399,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </div>
 
             {/* Desktop nav — flex-1 center column, clips before overlapping search */}
-            <nav className="hidden min-[1240px]:flex items-center justify-start gap-1 xl:gap-1.5 min-w-0 overflow-hidden px-1">
+            <nav className="hidden min-[1240px]:flex min-w-0 flex-nowrap items-center justify-start gap-1 overflow-hidden px-1 xl:gap-1.5">
 
               {navLinks.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -493,7 +490,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       className="h-9 gap-1.5 px-2.5 xl:px-3 py-0 text-[12px] xl:text-[13px] font-semibold tracking-[0.01em] shrink-0"
                     >
                       <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
-                      <span>{item.label}</span>
+                      <span className="whitespace-nowrap">{item.label}</span>
                     </ConsoleButton>
                   );
                 }
@@ -542,6 +539,17 @@ export function Navbar({ user, marketing }: NavbarProps) {
               </div>
 
               <div className="hidden lg:block h-6 w-px mx-0.5 bg-border/40 shrink-0" />
+
+              {user && (
+                <ConsoleButton
+                  href="/dashboard"
+                  active={isDashboardActive(pathname)}
+                  className="hidden h-9 shrink-0 gap-1 px-2.5 py-0 text-[11px] font-semibold sm:inline-flex sm:px-3 sm:text-xs"
+                >
+                  <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">Dashboard</span>
+                </ConsoleButton>
+              )}
 
               {/* User menu / auth */}
               <div className="hidden sm:flex items-center shrink-0">
@@ -812,49 +820,61 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
       {portalReady &&
         createPortal(
-          <div className="md:hidden fixed bottom-0 inset-x-0 z-[100] h-[68px] pointer-events-none">
+          <div className="md:hidden fixed bottom-0 inset-x-0 z-[100] pointer-events-none pb-[env(safe-area-inset-bottom,0px)]">
             <motion.nav
               initial={{ y: 80 }}
               animate={{ y: navHidden ? 80 : 0 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="h-full bg-white/95 dark:bg-stone-950/95 backdrop-blur-md border-t border-stone-100 dark:border-white/5 flex items-center px-1 pointer-events-auto relative shadow-[0_-10px_30px_rgba(0,0,0,0.04)]"
+              className="pointer-events-auto relative grid h-[60px] grid-cols-5 items-stretch border-t border-stone-100 bg-white/95 shadow-[0_-8px_24px_rgba(0,0,0,0.04)] backdrop-blur-md dark:border-white/5 dark:bg-stone-950/95"
             >
               {mobileBottomLinks.map((link) => {
                 const active = isActive(pathname, link.href);
+                const ariaLabel = "ariaLabel" in link ? link.ariaLabel : link.label;
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
+                    aria-label={ariaLabel}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
-                      "relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-300",
+                      "relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-0.5 transition-colors duration-200",
                       active ? "text-orange-600 dark:text-orange-500" : "text-stone-400 dark:text-stone-600"
                     )}
                   >
-                    <div className="relative">
+                    <div className="relative flex h-6 items-center justify-center">
                       <link.icon
-                        className={cn("h-5 w-5 transition-all duration-500", active ? "scale-110" : "scale-100")}
+                        className={cn("h-5 w-5 shrink-0 transition-transform duration-300", active && "scale-105")}
                         strokeWidth={active ? 2.5 : 2}
                       />
                       {active && (
-                        <motion.div layoutId="mobile-glow" className="absolute inset-0 bg-orange-500/20 blur-xl rounded-full" />
+                        <motion.div layoutId="mobile-glow" className="absolute inset-0 rounded-full bg-orange-500/20 blur-xl" />
                       )}
                     </div>
-                    <span className={cn("text-[10px] font-bold tracking-tight transition-all duration-300", active ? "opacity-100" : "opacity-50")}>
+                    <span
+                      className={cn(
+                        "max-w-full truncate text-[9px] font-semibold leading-none tracking-tight whitespace-nowrap",
+                        active ? "text-orange-600 opacity-100 dark:text-orange-500" : "opacity-70"
+                      )}
+                    >
                       {link.label}
                     </span>
                     {active && (
-                      <motion.div layoutId="mobile-pill-active" className="absolute top-0 h-[3px] w-8 rounded-b-full bg-orange-500" />
+                      <motion.div layoutId="mobile-pill-active" className="absolute top-0 h-[2px] w-7 rounded-b-full bg-orange-500" />
                     )}
                   </Link>
                 );
               })}
 
               <button
+                type="button"
                 onClick={() => setMobileOpen(true)}
-                className="flex flex-col items-center justify-center flex-1 h-full gap-1 text-stone-400 dark:text-stone-600 transition-all duration-300"
+                aria-label="Open menu"
+                className="flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-0.5 text-stone-400 transition-colors duration-200 dark:text-stone-600"
               >
-                <Menu className="h-5 w-5 stroke-[2px]" />
-                <span className="text-[10px] font-bold tracking-tight opacity-50">Menu</span>
+                <Menu className="h-5 w-5 shrink-0 stroke-[2px]" />
+                <span className="text-[9px] font-semibold leading-none tracking-tight whitespace-nowrap opacity-70">
+                  Menu
+                </span>
               </button>
             </motion.nav>
           </div>,
@@ -1154,7 +1174,7 @@ function MobileDrawer({
                       <SubItem key={v.href} href={v.href} icon={v.icon} color={v.color} title={v.title} desc={v.desc} />
                     ))}
                   </ExpandSection>
-                  <NavRow href="/communities" icon={Users} label="Communities" active={pathname.startsWith("/communities")} />
+                  <NavRow href="/c" icon={Users} label="Communities" active={pathname.startsWith("/c") || pathname.startsWith("/communities")} />
                   <NavRow href="/ugc" icon={Clapperboard} label="UGC & Clipping" active={pathname.startsWith("/ugc")} />
                   <NavRow href="/affiliates" icon={BanknoteIcon} label="Affiliates" active={pathname.startsWith("/affiliates")} />
                   <NavRow href="/help" icon={CircleHelp} label="Help Center" active={pathname.startsWith("/help")} />

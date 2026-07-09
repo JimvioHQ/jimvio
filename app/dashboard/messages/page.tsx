@@ -9,6 +9,7 @@ import {
 import type { User } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { lookupVendorsByUserId } from "@/lib/vendor/lookup";
 import { timeAgo } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { MessageBubble, type MessageRow } from "@/components/messages/message-bubble";
@@ -259,9 +260,8 @@ export default function MessagesPage() {
 
       setUserId(user.id);
 
-      const { data: v } = await supabase
-        .from("vendors").select("id").eq("user_id", user.id).maybeSingle();
-      const vid = v?.id ?? null;
+      const vendorLookup = await lookupVendorsByUserId(supabase, user.id, "id");
+      const vid = vendorLookup.ok ? vendorLookup.vendor?.id ?? null : null;
       setVendorId(vid);
 
       // FIX: correctly destructure { data } from supabase response

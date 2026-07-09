@@ -467,7 +467,7 @@ export function HubFeedPage() {
                   </p>
                 )}
                 <HubLinkButton
-                  href="/dashboard/earnings"
+                  href="/dashboard/payments"
                   variant="secondary"
                   className="mt-3 w-full !rounded-md !border-white/25 !bg-white/15 !text-white hover:!bg-white/25"
                 >

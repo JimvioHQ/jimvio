@@ -5,10 +5,6 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
     Home,
-    ShoppingBag,
-    Users,
-    DollarSign,
-    Clapperboard,
     ChevronDown,
     Search,
     Bell,
@@ -20,6 +16,7 @@ import {
     Layers,
     MessageSquare,
     Target,
+    LayoutDashboard,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
@@ -32,17 +29,16 @@ import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 import type { Profile as DbProfile } from "@/types/db";
 import { buildHubLoginUrl, getCommunitySlugFromPath } from "@/lib/community/hub-auth";
+import {
+  isCommunitiesNavActive,
+  isDashboardActive,
+  isPrimaryNavActive,
+  PRIMARY_NAV_ITEMS,
+} from "@/lib/navigation/primary-nav";
 
 type Profile = Pick<DbProfile, "id" | "username" | "full_name" | "avatar_url">;
 
-// ── Primary navigation (matches public marketing nav) ────────────────────────
-const PRIMARY_NAV: { label: string; href: string; icon: typeof Home; dropdown?: boolean }[] = [
-    { label: "Home", href: "/", icon: Home },
-    { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, dropdown: true },
-    { label: "Communities", href: "/communities", icon: Users },
-    { label: "Affiliates", href: "/affiliates", icon: DollarSign },
-    { label: "UGC & Clipping", href: "/ugc", icon: Clapperboard },
-];
+// ── Primary navigation (shared design system) ────────────────────────────────
 
 // ── User avatar ───────────────────────────────────────────────────────────────
 function UserAvatar({ profile, size = 32 }: { profile: Profile | null; size?: number }) {
@@ -117,12 +113,6 @@ function usePageTitle(pathname: string): string {
 
     if (slug) return communityName ?? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     return staticTitle;
-}
-
-function isNavActive(pathname: string, href: string): boolean {
-    const h = href.replace(/\/$/, "") || "/";
-    if (h === "/") return false; // never highlight Home inside the hub
-    return pathname === h || pathname.startsWith(`${h}/`);
 }
 
 // ── Layout ────────────────────────────────────────────────────────────────────
@@ -232,7 +222,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* ── Main header (full width, above sidebar) ── */}
-            <header className="z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-3 sm:px-6">
+            <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-3 sm:gap-x-3 sm:px-6">
                 {/* Mobile hamburger */}
                     <button
                         onClick={() => setMobileNavOpen((o) => !o)}
@@ -248,39 +238,42 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 </Link>
 
                 {/* Primary nav (desktop) */}
-                <nav className="ml-2 hidden items-center gap-0.5 min-[1150px]:flex">
-                    {PRIMARY_NAV.map(({ label, href, icon: Icon, dropdown }) => {
-                        const active = isNavActive(pathname, href);
+                <nav className="hidden min-w-0 items-center justify-center gap-0.5 overflow-hidden min-[1060px]:flex min-[1060px]:flex-nowrap">
+                    {PRIMARY_NAV_ITEMS.map((item) => {
+                        const { label, href, icon: Icon, dropdown } = item;
+                        const active =
+                            item.label === "Communities"
+                                ? isCommunitiesNavActive(pathname)
+                                : isPrimaryNavActive(pathname, item);
                         return (
                     <Link
                                 key={href}
                                 href={href}
                                 className={cn(
-                                    "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold tracking-tight transition-colors",
+                                    "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-1.5 text-[12px] font-semibold tracking-tight transition-colors xl:px-2.5 xl:text-[13px]",
                                     active
                                         ? "bg-[#fd5000]/10 text-[#fd5000]"
                                         : "text-[var(--color-text-secondary,#52525b)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                                 )}
                             >
-                                <Icon className="h-3.5 w-3.5 text-[#fd5000]" />
-                                {label}
-                                {dropdown && <ChevronDown className="h-3 w-3 opacity-50" />}
+                                <Icon className="h-3.5 w-3.5 shrink-0 text-[#fd5000]" />
+                                <span className="whitespace-nowrap">{label}</span>
+                                {dropdown && <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />}
                     </Link>
                         );
                     })}
                 </nav>
 
-                {/* Right cluster */}
-                <div className="ml-auto flex items-center gap-1.5">
+                <div className="col-start-3 ml-auto flex shrink-0 items-center justify-end gap-1.5">
                     {/* Search */}
-                    <div className="hidden items-center gap-2 rounded-full border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface-secondary,#f4f4f5)] px-3 py-1.5 min-[1100px]:flex lg:w-[240px]">
-                        <Search className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
+                    <div className="hidden h-9 w-[132px] items-center gap-1.5 rounded-full border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface-secondary,#f4f4f5)] px-2.5 min-[1060px]:flex xl:w-[152px]">
+                        <Search className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
                         <input
-                            placeholder="Search global community…"
+                            placeholder="Search…"
                             aria-label="Search"
-                            className="w-full bg-transparent text-[13px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
+                            className="min-w-0 flex-1 bg-transparent text-[12px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
                         />
-                        <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] px-1 text-[10px] font-semibold text-[var(--color-text-muted)] xl:block">⌘K</kbd>
+                        <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] px-1 py-px text-[9px] font-semibold text-[var(--color-text-muted)] 2xl:block">⌘K</kbd>
                     </div>
 
                     {/* Create */}
@@ -327,6 +320,21 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     <div className="hidden sm:flex">
                         <ThemeToggle />
                     </div>
+
+                    {isAuthenticated !== false && (
+                        <Link
+                            href="/dashboard"
+                            className={cn(
+                                "hidden h-9 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors sm:inline-flex sm:px-3 sm:text-xs",
+                                isDashboardActive(pathname)
+                                    ? "border-[#fd5000] bg-[#fd5000]/10 text-[#fd5000]"
+                                    : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[#fd5000]/40 hover:bg-[#fd5000]/5 hover:text-[#fd5000]"
+                            )}
+                        >
+                            <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
+                            <span className="whitespace-nowrap">Dashboard</span>
+                        </Link>
+                    )}
 
                     {/* Avatar / Sign in */}
                     {isAuthenticated === false ? (

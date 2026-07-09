@@ -205,7 +205,7 @@ const ROLES: Record<RoleKey, RoleConfig> = {
       { q: "Can I promote any product?", a: "You can generate affiliate links for any product on Jimvio that has affiliate enabled by the vendor." },
     ],
     buttonLabel: "Activate affiliate",
-    setupPath: "/dashboard/roles",
+    setupPath: "/dashboard/analytics",
     icon: <Link2 className="h-5 w-5" />,
     iconColor: "text-emerald-600 dark:text-emerald-400",
     table: "affiliates",
@@ -225,7 +225,7 @@ const ROLES: Record<RoleKey, RoleConfig> = {
       { q: "How is creator pay calculated?", a: "Each campaign has a fixed rate or performance bonus set by the brand. You see the payout before applying." },
     ],
     buttonLabel: "Activate creator",
-    setupPath: "/dashboard/roles",
+    setupPath: "/ugc",
     icon: <Video className="h-5 w-5" />,
     iconColor: "text-pink-600 dark:text-pink-400",
     table: "influencers",
@@ -302,7 +302,7 @@ export default function ActivateRolePage() {
 
       // Check all three roles in parallel
       const [vendorRes, affiliateRes, influencerRes] = await Promise.all([
-        supabase.from("vendors").select("id").eq("user_id", user.id).maybeSingle(),
+        supabase.from("vendors").select("id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("affiliates").select("id").eq("user_id", user.id).maybeSingle(),
         supabase.from("influencers").select("id").eq("user_id", user.id).maybeSingle(),
       ]);

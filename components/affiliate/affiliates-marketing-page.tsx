@@ -283,7 +283,7 @@ export function AffiliatesMarketingPage({
 
   const minPayout = settings.fees.min_payout_rwf;
   const primaryCtaHref = hasAffiliateAccount
-    ? "/dashboard/links"
+    ? "/dashboard/analytics"
     : isLoggedIn
       ? "/dashboard/activate/affiliate"
       : "/register?role=affiliate";
@@ -702,7 +702,7 @@ export function AffiliatesMarketingPage({
                 </Link>
               </Button>
               <Link
-                href="/dashboard/affiliate/analytics"
+                href="/dashboard/analytics"
                 className="text-center text-[12px] text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent)]"
               >
                 Already active? View analytics →

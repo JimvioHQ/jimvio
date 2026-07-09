@@ -20,6 +20,11 @@ import { PageHeader, Th, StatusPill, RowArrow } from "@/components/ui/admin";
 import { EmptyState } from "@/components/empty-states";
 import { Tile } from "@/components/ui/admin-tile";
 import { DashboardFilterChip } from "@/components/dashboard/dashboard-filter-chip";
+import {
+  lookupVendorsByUserId,
+  vendorLookupToastMessage,
+  type VendorRow,
+} from "@/lib/vendor/lookup";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +38,7 @@ type Product = Pick<Database["public"]["Tables"]["products"]["Row"],
   | "deleted_at"
 >;
 
-type Vendor = Database["public"]["Tables"]["vendors"]["Row"];
+type Vendor = VendorRow;
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -76,6 +81,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [vendorLookupError, setVendorLookupError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<Filter>("All");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -93,22 +99,27 @@ export default function ProductsPage() {
       return;
     }
 
-    const { data: vendorRow, error: vendorError } = await supabase
-      .from("vendors")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (vendorError) {
-      console.error("Vendor lookup failed:", vendorError);
-      toast.error("Couldn't load vendor profile");
+    const vendorLookup = await lookupVendorsByUserId(supabase, user.id, "*");
+    if (!vendorLookup.ok) {
+      const message = vendorLookupToastMessage(vendorLookup);
+      console.error("Vendor lookup failed:", vendorLookup.code, vendorLookup.error);
+      setVendorLookupError(message);
+      toast.error(message);
       setLoading(false);
       setRefreshing(false);
       return;
     }
 
-    setVendor(vendorRow);
+    if (vendorLookup.multipleMatches) {
+      console.warn(
+        `Multiple vendor profiles (${vendorLookup.vendors.length}) for user ${user.id}; using primary vendor ${vendorLookup.vendor?.id}`
+      );
+    }
 
-    if (!vendorRow) {
+    setVendorLookupError(null);
+    setVendor(vendorLookup.vendor);
+
+    if (!vendorLookup.vendor) {
       setLoading(false);
       setRefreshing(false);
       return;
@@ -122,7 +133,7 @@ export default function ProductsPage() {
          is_active, view_count, rating, review_count, track_inventory,
          low_stock_threshold, deleted_at`
       )
-      .eq("vendor_id", vendorRow.id)
+      .eq("vendor_id", vendorLookup.vendor.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
     if (prodsError) {
@@ -387,6 +398,34 @@ export default function ProductsPage() {
     );
   }
 
+  // ── Vendor lookup failed (query/RLS), not missing account ───────────────
+  if (vendorLookupError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 bg-[var(--color-bg)]">
+        <div className="max-w-sm w-full text-center space-y-6">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]">
+            <AlertCircle className="h-7 w-7 text-[var(--color-danger)]" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-[var(--color-text-primary)]">
+              Could not load vendor profile
+            </h3>
+            <p className="text-sm mt-2 leading-relaxed text-[var(--color-text-muted)]">
+              {vendorLookupError}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => load()}
+            className="inline-flex w-full h-11 rounded-2xl text-sm font-semibold items-center justify-center transition-all bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:ring-[var(--color-border-strong)] text-[var(--color-text-primary)]"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── No vendor account ───────────────────────────────────────────────────
   if (!vendor) {
     return (
@@ -400,7 +439,7 @@ export default function ProductsPage() {
               Vendor account required
             </h3>
             <p className="text-sm mt-2 leading-relaxed text-[var(--color-text-muted)]">
-              You need an active vendor account to manage products.
+              No seller profile is linked to your account yet. Create one to manage products.
             </p>
           </div>
           <Link
