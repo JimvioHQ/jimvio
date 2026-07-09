@@ -2,8 +2,10 @@
 import React, { Suspense } from "react";
 import type { Metadata } from "next";
 import {
+  getHomepageProductBundle,
+} from "@/lib/marketplace/homepage-products";
+import {
   getHomepageCampaigns,
-  getProducts,
   getPlatformStats,
   getTopCreators,
   getHomepageCommunities,
@@ -46,19 +48,24 @@ async function HomepageContent() {
     platformSettings,
     campaigns,
     communitiesList,
-    trendingResult,
+    homepageProducts,
     topCreators,
   ] = await Promise.all([
     getPlatformStats().catch(() => DEFAULT_STATS),
     getResolvedPlatformSettings().catch(() => null),
     getHomepageCampaigns(8).catch(() => []),
     getHomepageCommunities(8).catch(() => []),
-    getProducts({ type: "physical", sort: "newest", limit: 12 }).catch(() => ({ products: [], total: 0 })),
+    getHomepageProductBundle().catch(() => ({
+      trending: [],
+      flashDeals: [],
+      hero: null,
+      total: 0,
+    })),
     getTopCreators(6).catch(() => []),
   ]);
 
-  const trendingProducts = trendingResult.products;
-  const trendingProductsTotal = trendingResult.total;
+  const trendingProducts = homepageProducts.trending;
+  const trendingProductsTotal = homepageProducts.total;
 
   return (
     <HomepageRedesign

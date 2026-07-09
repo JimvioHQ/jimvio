@@ -123,10 +123,10 @@ export function applyIntelFiltersStandalone(
   if (filters.missingDescription) q = q.lt("description_length", MIN_DESCRIPTION_LENGTH);
   if (filters.missingTrending) q = q.eq("trending", false);
   if (filters.missingStock) {
-    q = q.contains("auto_publish_failures", [FAILURE_LABELS.missingStock]);
+    q = q.filter("auto_publish_failures", "cs", JSON.stringify([FAILURE_LABELS.missingStock]));
   }
   if (filters.missingVariants) {
-    q = q.contains("auto_publish_failures", [FAILURE_LABELS.missingVariants]);
+    q = q.filter("auto_publish_failures", "cs", JSON.stringify([FAILURE_LABELS.missingVariants]));
   }
 
   return q;
@@ -363,6 +363,21 @@ async function countIntel(
   return count ?? 0;
 }
 
+async function countIntelSafe(
+  apply: (q: CatalogQuery) => CatalogQuery,
+  exact = false
+): Promise<number> {
+  try {
+    return await countIntel(apply, exact);
+  } catch {
+    return 0;
+  }
+}
+
+function countIntelWithFailureLabel(label: string): (q: CatalogQuery) => CatalogQuery {
+  return (q) => q.filter("auto_publish_failures", "cs", JSON.stringify([label]));
+}
+
 async function countRaw(apply: (q: CatalogQuery) => CatalogQuery): Promise<number> {
   const db = getCatalogDB();
   let q = db.from("cj_raw_products").select("pid", { count: "estimated", head: true });
@@ -404,29 +419,25 @@ export async function computeCatalogFilterCounts(): Promise<CatalogFilterCounts>
     ukWarehouse,
     tierEntries,
   ] = await Promise.all([
-    countIntel((q) => q),
-    countIntel((q) => q.eq("has_video", true)),
-    countIntel((q) => q.eq("supplier_verified", true)),
-    countIntel((q) => q.eq("trending", true)),
-    countIntel((q) => q.not("delivery_days", "is", null).lte("delivery_days", FAST_SHIPPING_DAYS)),
-    countIntel((q) => q.gte("image_count", MIN_IMAGE_COUNT)),
-    countIntel((q) => q.eq("auto_publish_ready", true).eq("auto_publish_status", "READY"), true),
-    countIntel((q) => q.eq("is_published_active", true), true),
-    countIntel((q) => q.eq("auto_publish_status", "PENDING_ENRICHMENT"), true),
-    countIntel((q) => q.eq("auto_publish_status", "REQUIREMENTS_MISSING"), true),
-    countIntel((q) => q.eq("is_admin_override", true)),
-    countIntel((q) => q.eq("has_video", false)),
-    countIntel((q) => q.eq("supplier_verified", false)),
-    countIntel((q) => q.or(`delivery_days.gt.${FAST_SHIPPING_DAYS},delivery_days.is.null`)),
-    countIntel((q) => q.lt("image_count", MIN_IMAGE_COUNT)),
-    countIntel((q) => q.lt("description_length", MIN_DESCRIPTION_LENGTH)),
-    countIntel((q) =>
-      q.contains("auto_publish_failures", [FAILURE_LABELS.missingVariants])
-    ),
-    countIntel((q) =>
-      q.contains("auto_publish_failures", [FAILURE_LABELS.missingStock])
-    ),
-    countIntel((q) => q.eq("trending", false)),
+    countIntelSafe((q) => q),
+    countIntelSafe((q) => q.eq("has_video", true)),
+    countIntelSafe((q) => q.eq("supplier_verified", true)),
+    countIntelSafe((q) => q.eq("trending", true)),
+    countIntelSafe((q) => q.not("delivery_days", "is", null).lte("delivery_days", FAST_SHIPPING_DAYS)),
+    countIntelSafe((q) => q.gte("image_count", MIN_IMAGE_COUNT)),
+    countIntelSafe((q) => q.eq("auto_publish_ready", true).eq("auto_publish_status", "READY"), true),
+    countIntelSafe((q) => q.eq("is_published_active", true), true),
+    countIntelSafe((q) => q.eq("auto_publish_status", "PENDING_ENRICHMENT"), true),
+    countIntelSafe((q) => q.eq("auto_publish_status", "REQUIREMENTS_MISSING"), true),
+    countIntelSafe((q) => q.eq("is_admin_override", true)),
+    countIntelSafe((q) => q.eq("has_video", false)),
+    countIntelSafe((q) => q.eq("supplier_verified", false)),
+    countIntelSafe((q) => q.or(`delivery_days.gt.${FAST_SHIPPING_DAYS},delivery_days.is.null`)),
+    countIntelSafe((q) => q.lt("image_count", MIN_IMAGE_COUNT)),
+    countIntelSafe((q) => q.lt("description_length", MIN_DESCRIPTION_LENGTH)),
+    countIntelSafe(countIntelWithFailureLabel(FAILURE_LABELS.missingVariants)),
+    countIntelSafe(countIntelWithFailureLabel(FAILURE_LABELS.missingStock)),
+    countIntelSafe((q) => q.eq("trending", false)),
     countRaw((q) => q.or("country_code.eq.US,warehouse.ilike.%US%")),
     countRaw((q) => q.or("country_code.in.(DE,FR,EU),warehouse.ilike.%EU%")),
     countRaw((q) => q.or("country_code.eq.GB,warehouse.ilike.%UK%")),

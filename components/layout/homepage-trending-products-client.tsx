@@ -17,9 +17,10 @@ const INTERACTION_RESUME_MS = 3500;
 
 const PRODUCT_SELECT = `
   id, name, slug, price, currency, compare_at_price, images, product_type,
-  status, is_flash_deal, discount_label, shipping_from,
-  delivery_time, affiliate_commission_rate, sale_count,
+  status, is_active, is_flash_deal, discount_label, shipping_from,
+  delivery_time, affiliate_commission_rate, sale_count, view_count,
   rating, review_count, is_free_shipping, vendor_id, category_id,
+  created_at, auto_unpublished, deleted_at,
   vendors(id, verification_status)
 `;
 

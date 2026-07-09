@@ -1,10 +1,15 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DbProduct } from "@/lib/utils";
 import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos";
+import { getMarketplaceVisibilitySets } from "@/lib/cj/premium-intelligence/marketplace-filter";
 import {
-  filterProductsForCustomers,
-  getMarketplaceVisibilitySets,
-} from "@/lib/cj/premium-intelligence/marketplace-filter";
+  dedupeProductsById,
+  ensureNonEmptyCollection,
+  HOMEPAGE_FLASH_DEALS_LIMIT,
+  resolveMarketplaceProductPool,
+  selectFlashDeals,
+  selectTrendingProducts,
+} from "@/lib/marketplace/homepage-ranking";
 import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
 
 export type MarketplaceProductType = "physical" | "digital";
@@ -48,10 +53,11 @@ export function getMarketplaceTypeFilter(
 
 const PRODUCT_SELECT = `
   id, name, slug, price, currency, compare_at_price, images, product_type,
-  status, is_flash_deal, discount_label, shipping_from,
+  status, is_active, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, view_count, sale_count,
   sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
-  source, source_metadata, published_by_admin_override, auto_unpublished,
+  created_at, auto_unpublished, deleted_at,
+  source, source_metadata, published_by_admin_override,
   vendors(id, verification_status)
 `;
 
@@ -114,9 +120,8 @@ export async function fetchMarketplacePageBundle(
         .is("deleted_at", null)
         .in("product_type", [...typeFilter])
         .or("is_flash_deal.eq.true,compare_at_price.not.is.null")
-        .order("is_flash_deal", { ascending: false })
-        .order("view_count", { ascending: false })
-        .limit(12),
+        .order("created_at", { ascending: false })
+        .limit(48),
 
       supabase
         .from("products")
@@ -125,8 +130,8 @@ export async function fetchMarketplacePageBundle(
         .eq("is_active", true)
         .is("deleted_at", null)
         .in("product_type", [...typeFilter])
-        .order("view_count", { ascending: false })
-        .range(offset, offset + pageSize - 1),
+        .order("created_at", { ascending: false })
+        .range(offset, offset + Math.max(pageSize, 48) - 1),
 
       supabase
         .from("products")
@@ -139,23 +144,59 @@ export async function fetchMarketplacePageBundle(
       fetchCategoriesForType(supabase, typeFilter),
     ]);
 
-  const dealList = filterProductsForCustomers(
-    (deals ?? []) as DbProduct[],
-    visibilitySets
-  ) as DbProduct[];
-  const trendList = filterProductsForCustomers(
-    (trend ?? []) as DbProduct[],
-    visibilitySets
-  ) as DbProduct[];
+  const listingCount = count ?? 0;
+  const rawMerged = dedupeProductsById([
+    ...((deals ?? []) as DbProduct[]),
+    ...((trend ?? []) as DbProduct[]),
+  ]);
+
+  let pool = resolveMarketplaceProductPool(rawMerged, visibilitySets, listingCount);
+
+  if (pool.length === 0 && listingCount > 0) {
+    const { data: fallback } = await supabase
+      .from("products")
+      .select(PRODUCT_SELECT)
+      .eq("status", "active")
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .in("product_type", [...typeFilter])
+      .order("created_at", { ascending: false })
+      .limit(Math.max(pageSize, HOMEPAGE_FLASH_DEALS_LIMIT, 48));
+
+    pool = resolveMarketplaceProductPool(
+      (fallback ?? []) as DbProduct[],
+      visibilitySets,
+      listingCount,
+    );
+  }
+
+  let flashDeals = selectFlashDeals(pool, 12);
+  let trendingProducts = selectTrendingProducts(pool, pageSize);
+
+  flashDeals = ensureNonEmptyCollection(
+    flashDeals,
+    pool,
+    (items) => selectFlashDeals(items, 12),
+    12,
+    listingCount,
+  );
+  trendingProducts = ensureNonEmptyCollection(
+    trendingProducts,
+    pool,
+    (items) => selectTrendingProducts(items, pageSize),
+    pageSize,
+    listingCount,
+  );
+
   const videoMap = await fetchProductVideosMap(
     supabase,
-    [...dealList, ...trendList].map((p) => p.id),
+    dedupeProductsById([...flashDeals, ...trendingProducts]).map((p) => p.id),
   );
 
   return {
-    flashDeals: attachProductVideos(dealList, videoMap),
-    trending: attachProductVideos(trendList, videoMap),
+    flashDeals: attachProductVideos(flashDeals, videoMap),
+    trending: attachProductVideos(trendingProducts, videoMap),
     categories,
-    listingCount: count ?? 0,
+    listingCount,
   };
 }

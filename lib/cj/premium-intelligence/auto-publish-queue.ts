@@ -36,7 +36,7 @@ export async function enqueueAutoPublish(
 
   const { data: existing } = await db
     .from("cj_auto_publish_queue")
-    .select("id, status, next_attempt_at")
+    .select("id, status, next_attempt_at, product_id")
     .eq("pid", pid)
     .in("status", ["pending", "processing", "failed"])
     .maybeSingle();
@@ -45,7 +45,8 @@ export async function enqueueAutoPublish(
     const sooner =
       debounceMs != null &&
       new Date(existing.next_attempt_at as string).getTime() > Date.now() + debounceMs;
-    if (existing.status === "failed" || sooner) {
+    const needsProductId = Boolean(productId && !existing.product_id);
+    if (existing.status === "failed" || sooner || needsProductId) {
       const updatePayload: Record<string, unknown> = {
         status: "pending",
         priority: priority ?? 0,
@@ -143,7 +144,21 @@ export async function queueReadyProductsFromIntel(limit = 200): Promise<number> 
     }
     if (!productId) continue;
 
-    const product = productById.get(productId);
+    let product = productById.get(productId);
+    if (!product) {
+      const { data: fresh } = await db
+        .from("products")
+        .select("id, status, is_active, published_by_admin_override")
+        .eq("id", productId)
+        .maybeSingle();
+      if (fresh) {
+        product = {
+          status: fresh.status as string,
+          is_active: Boolean(fresh.is_active),
+          published_by_admin_override: Boolean(fresh.published_by_admin_override),
+        };
+      }
+    }
     if (!product) continue;
     if (product.published_by_admin_override) continue;
     if (product.status === "active" && product.is_active) continue;

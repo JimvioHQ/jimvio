@@ -16,6 +16,8 @@ import { detectSignalChanges, scheduleSignalRecalc, type IntelSnapshot } from ".
 import { indexProductSearchRow } from "./search-index";
 import { evaluateV3Intelligence, toV3DbPayload } from "./v3-pipeline";
 import { publishTierCatalogMapping } from "../import-intelligence/progressive-publish";
+import { calculateTrendScore, calculateSupplierScore } from "../import-intelligence/product-utils";
+import { QUICK_FILTER_DEFAULTS } from "../import-intelligence/quick-filter-intelligence";
 
 const RETRY_DELAYS_MS = [5_000, 30_000, 120_000, 600_000, 1_800_000];
 
@@ -105,6 +107,11 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
     const patched = patchProductWithIntelligence(stub, intelPayload) as EnrichedProduct;
     patched.intelligence.enrichmentStatus = "complete";
     const scored = scoreEnrichedProduct(patched, "complete");
+    const trendScoreRaw = calculateTrendScore(rawRowToCJProduct(raw));
+    const isTrending =
+      trendScoreRaw >= QUICK_FILTER_DEFAULTS.trendingMinAbsoluteScore &&
+      trendScoreRaw > 0;
+    patched.intelligence.trending = isTrending;
     const v3 = evaluateV3Intelligence(patched);
 
     const description = String(detail.description ?? "").replace(/<[^>]+>/g, " ").trim();
@@ -121,17 +128,24 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
 
     const productId = await resolveEnrichedProductId(pid);
 
+    const hasVideo =
+      intelPayload.hasVideo || videos.length > 0 || base.isVideo === 1;
+    const supplierVerified =
+      intelPayload.supplierVerified ||
+      intelPayload.verifiedWarehouse === 1 ||
+      calculateSupplierScore(patched) >= 75;
+
     await updateIntelligence(pid, {
       enrichment_status: "complete",
       enriched_at: new Date().toISOString(),
-      has_video: intelPayload.hasVideo,
-      video_count: intelPayload.videoCount,
+      has_video: hasVideo,
+      video_count: intelPayload.videoCount || videos.length,
       image_count: uniqueImages.length || (intelPayload.imageCount ?? 0),
       description_length: intelPayload.descriptionLength ?? description.length,
       delivery_days: Number.isNaN(deliveryDays!) ? null : deliveryDays,
       rating: intelPayload.rating ?? null,
       review_count: intelPayload.reviewCount ?? 0,
-      supplier_verified: intelPayload.supplierVerified,
+      supplier_verified: supplierVerified,
       verified_warehouse: intelPayload.verifiedWarehouse ?? null,
       margin_percent: patched.intelligence.profit.marginPercent,
       health_score: scored.qualityScores.healthScore,
@@ -139,7 +153,7 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
       quality_scores: scored.qualityScores as unknown as Record<string, number>,
       opportunity_score: scored.opportunityScore,
       catalog_tier: publishTierCatalogMapping(v3.publishTier),
-      trending: scored.trending,
+      trending: isTrending,
       badges: scored.badges,
       scored_at: new Date().toISOString(),
       last_error: null,
@@ -150,12 +164,12 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
     await markQueueJob(pid, { status: "complete", last_error: null });
 
     const afterSnapshot: IntelSnapshot = {
-      has_video: intelPayload.hasVideo,
-      supplier_verified: intelPayload.supplierVerified,
+      has_video: hasVideo,
+      supplier_verified: supplierVerified,
       delivery_days: Number.isNaN(deliveryDays!) ? null : deliveryDays,
       image_count: uniqueImages.length || (intelPayload.imageCount ?? 0),
       description_length: intelPayload.descriptionLength ?? description.length,
-      trending: scored.trending,
+      trending: isTrending,
       stock: raw.stock,
       warehouse: raw.warehouse,
       orders: raw.orders,
@@ -209,12 +223,23 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
 async function resolveEnrichedProductId(pid: string): Promise<string | null> {
   const { getCatalogDB } = await import("./db");
   const db = getCatalogDB();
+
   const { data: mapped } = await db
     .from("cj_product_map")
     .select("product_id")
     .eq("cj_pid", pid)
     .maybeSingle();
-  return (mapped?.product_id as string) ?? null;
+  if (mapped?.product_id) return mapped.product_id as string;
+
+  const { data: byMeta } = await db
+    .from("products")
+    .select("id")
+    .eq("source", "cj")
+    .contains("source_metadata", { cj_pid: pid })
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  return (byMeta?.id as string) ?? null;
 }
 
 async function getAttempts(pid: string): Promise<number> {

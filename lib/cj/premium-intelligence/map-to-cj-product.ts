@@ -29,7 +29,12 @@ export function rawRowToCJProduct(
         ? String(intel.delivery_days)
         : (p.deliveryCycle as string | undefined),
     countryCode: raw.country_code ?? (p.countryCode as string | undefined),
-    isVideo: intel?.has_video ? 1 : (p.isVideo as number | undefined),
+    isVideo:
+      intel?.has_video === true
+        ? 1
+        : Number(p.isVideo ?? p.is_video ?? 0) === 1
+          ? 1
+          : (p.isVideo as number | undefined),
     videoList: Array.isArray(p.videoList) ? (p.videoList as string[]) : undefined,
     videoUrl: typeof p.videoUrl === "string" ? p.videoUrl : undefined,
     videoCount: intel?.video_count ?? (p.videoCount as number | undefined),
@@ -43,7 +48,14 @@ export function rawRowToCJProduct(
     reviewCount: intel?.review_count ?? (p.reviewCount as number | undefined),
     favoriteCount: p.favoriteCount as number | undefined,
     warehouseName: raw.warehouse ?? (p.warehouseName as string | undefined),
-    supplierVerified: intel?.supplier_verified ?? false,
+    supplierVerified:
+      intel != null
+        ? Boolean(intel.supplier_verified)
+        : Boolean(
+            p.supplierVerified === true ||
+              Number(p.verifiedSupplier ?? p.verified_supplier ?? 0) === 1 ||
+              Number(p.verifiedWarehouse ?? 0) === 1
+          ),
     intelligenceEnriched: intel?.enrichment_status === "complete",
     imageCount: intel?.image_count,
     descriptionLength: intel?.description_length,

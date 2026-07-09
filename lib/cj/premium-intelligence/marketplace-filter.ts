@@ -155,8 +155,9 @@ export function filterProductsForCustomers<
     const tier = sets.pidTiers.get(pid) ?? "PENDING";
     const isLive = sets.livePublishedPids.has(pid);
 
+    // Live marketplace listings stay visible unless explicitly hidden tier.
     if (isLive) {
-      return isMarketplaceVisibleTier(tier, true);
+      return tier !== "HIDDEN";
     }
 
     if (!isMarketplaceVisibleTier(tier, false)) return false;

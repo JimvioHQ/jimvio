@@ -56,7 +56,7 @@ export async function publishProductSystem(
 
   const { data: product, error: fetchErr } = await admin
     .from("products")
-    .select("id, images, status, is_active, source, source_metadata")
+    .select("id, images, status, is_active, source, source_metadata, auto_unpublished")
     .eq("id", productId)
     .maybeSingle();
 
@@ -64,6 +64,18 @@ export async function publishProductSystem(
   if (!product) return { success: false, error: "Product not found." };
 
   if (product.status === "active" && product.is_active) {
+    if (product.auto_unpublished) {
+      const now = new Date().toISOString();
+      await admin
+        .from("products")
+        .update({
+          auto_unpublished: false,
+          auto_unpublish_reason: null,
+          auto_unpublished_at: null,
+          updated_at: now,
+        })
+        .eq("id", productId);
+    }
     return { success: true, alreadyPublished: true };
   }
 
@@ -86,6 +98,9 @@ export async function publishProductSystem(
     .update({
       status: "active",
       is_active: true,
+      auto_unpublished: false,
+      auto_unpublish_reason: null,
+      auto_unpublished_at: null,
       updated_at: now,
     })
     .eq("id", productId);

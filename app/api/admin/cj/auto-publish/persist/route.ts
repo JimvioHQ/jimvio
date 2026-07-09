@@ -77,5 +77,12 @@ export async function POST(req: Request) {
     );
   }
 
+  if (saved > 0) {
+    const { queueReadyProductsFromIntel } = await import(
+      "@/lib/cj/premium-intelligence/auto-publish-queue"
+    );
+    await queueReadyProductsFromIntel(Math.min(saved, 200)).catch(() => {});
+  }
+
   return NextResponse.json({ success: true, saved });
 }

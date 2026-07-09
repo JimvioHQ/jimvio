@@ -72,7 +72,7 @@ export async function runAutoPublishRetry(): Promise<AutoPublishRetryResult> {
       await updateIntelligence(pid, toV3DbPayload(v3));
       result.reevaluated += 1;
 
-      if (v3.autoPublish.ready && !v3.blocked) {
+      if (v3.publishReady && !v3.blocked) {
         result.newlyReady += 1;
         toEnqueue.push({
           pid,

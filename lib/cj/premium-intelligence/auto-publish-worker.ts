@@ -127,6 +127,14 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
   const watcherResult = await runCjWatcherBatch(100);
   result.watcher = watcherResult;
 
+  const { backfillIntelFilterSignals } = await import("./catalog-repository");
+  const { getCached, setCached } = await import("./catalog-cache");
+  const offset = getCached<number>("intel-signal-backfill-offset") ?? 0;
+  const patched = await backfillIntelFilterSignals(300, offset).catch(() => 0);
+  if (patched > 0) {
+    setCached("intel-signal-backfill-offset", offset + patched, 86_400_000);
+  }
+
   result.durationMs = Date.now() - start;
   return result;
 }

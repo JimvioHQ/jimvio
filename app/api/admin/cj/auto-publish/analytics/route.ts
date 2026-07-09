@@ -30,11 +30,23 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const refresh = new URL(req.url).searchParams.get("refresh") === "1";
-  const analytics = refresh
-    ? await computeAutoPublishAnalytics({ force: true })
-    : (await getLatestAutoPublishAnalytics()) ??
-      (await computeAutoPublishAnalytics());
+  try {
+    const refresh = new URL(req.url).searchParams.get("refresh") === "1";
+    const analytics = refresh
+      ? await computeAutoPublishAnalytics({ force: true })
+      : (await getLatestAutoPublishAnalytics()) ??
+        (await computeAutoPublishAnalytics());
 
-  return NextResponse.json({ success: true, analytics });
+    return NextResponse.json({ success: true, analytics });
+  } catch (err) {
+    console.error("[auto-publish/analytics]", err);
+    return NextResponse.json(
+      {
+        success: false,
+        error: err instanceof Error ? err.message : "Analytics unavailable",
+        analytics: null,
+      },
+      { status: 200 }
+    );
+  }
 }

@@ -2,6 +2,7 @@
  * Marketplace Maintenance v5 — self-healing, duplicates, stuck jobs, index refresh.
  */
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCatalogDB } from "./db";
 import { refreshSearchIndexBatch } from "./search-index";
 import { invalidateCatalogCache } from "./catalog-cache";
@@ -23,6 +24,35 @@ export interface MarketplaceMaintenanceResult {
   analyticsRefreshed: boolean;
   filtersRefreshed: boolean;
   durationMs: number;
+}
+
+async function repairActiveAutoUnpublishedProducts(limit = 200): Promise<number> {
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+  const { data } = await admin
+    .from("products")
+    .select("id")
+    .eq("status", "active")
+    .eq("is_active", true)
+    .eq("auto_unpublished", true)
+    .is("deleted_at", null)
+    .limit(limit);
+
+  if (!data?.length) return 0;
+
+  for (const row of data) {
+    await admin
+      .from("products")
+      .update({
+        auto_unpublished: false,
+        auto_unpublish_reason: null,
+        auto_unpublished_at: null,
+        updated_at: now,
+      })
+      .eq("id", row.id as string);
+  }
+
+  return data.length;
 }
 
 async function resetStuckAutoPublishJobs(): Promise<number> {
@@ -113,8 +143,11 @@ export async function runMarketplaceMaintenance(): Promise<MarketplaceMaintenanc
     durationMs: 0,
   };
 
+  const repairedFlags = await repairActiveAutoUnpublishedProducts(300);
+  result.restored += repairedFlags;
+
   const restoreResult = await restoreAggressiveUnpublishes(200);
-  result.restored = restoreResult.restored;
+  result.restored += restoreResult.restored;
   result.intelligenceFixed = restoreResult.intelligenceFixed;
 
   await realignPendingEnrichmentStatus(500);

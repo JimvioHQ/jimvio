@@ -9,6 +9,13 @@ import {
   type CatalogFilterIndex,
 } from "./catalog-filter-index";
 import { searchIndexPids } from "./search-index";
+import { rawRowToCJProduct } from "./map-to-cj-product";
+import {
+  calculateSupplierScore,
+  calculateTrendScore,
+  productHasVideo,
+} from "../import-intelligence/product-utils";
+import { QUICK_FILTER_DEFAULTS } from "../import-intelligence/quick-filter-intelligence";
 import type {
   CatalogCursor,
   CatalogListParams,
@@ -81,7 +88,71 @@ export async function upsertRawProducts(
   if (error) throw new Error(error.message);
 
   await ensureIntelligenceRows(rows.map((r) => r.pid));
+  await patchListIntelSignalsFromRaw(rows, false);
   return rows.length;
+}
+
+/** Seed trending / supplier / video signals from CJ list payload. */
+async function patchListIntelSignalsFromRaw(
+  rows: Array<Omit<CjRawProductRow, "created_at" | "updated_at" | "list_synced_at">>,
+  fullReplace = false
+): Promise<void> {
+  if (rows.length === 0) return;
+  const db = getCatalogDB();
+  const updates: Array<Record<string, unknown>> = [];
+
+  for (const row of rows) {
+    const cj = rawRowToCJProduct(row as CjRawProductRow);
+    const trendScore = calculateTrendScore(cj);
+    const isTrending =
+      trendScore >= QUICK_FILTER_DEFAULTS.trendingMinAbsoluteScore && trendScore > 0;
+    const supplierVerified =
+      calculateSupplierScore(cj) >= 75 ||
+      cj.verifiedWarehouse === 1 ||
+      cj.supplierVerified === true;
+    const hasVideo = productHasVideo(cj);
+
+    const entry: Record<string, unknown> = {
+      pid: row.pid,
+      trending: isTrending,
+      supplier_verified: supplierVerified,
+      ...(cj.verifiedWarehouse != null ? { verified_warehouse: cj.verifiedWarehouse } : {}),
+      updated_at: new Date().toISOString(),
+    };
+    if (fullReplace || hasVideo) entry.has_video = hasVideo;
+    updates.push(entry);
+  }
+
+  const BATCH = 50;
+  for (let i = 0; i < updates.length; i += BATCH) {
+    await Promise.all(
+      updates.slice(i, i + BATCH).map(({ pid, ...patch }) =>
+        db.from("cj_product_intelligence").update(patch).eq("pid", pid)
+      )
+    );
+  }
+}
+
+/** Rotate through raw catalog rows and sync filter signals into intelligence. */
+export async function backfillIntelFilterSignals(
+  limit = 250,
+  offset = 0
+): Promise<number> {
+  if (limit <= 0) return 0;
+  const db = getCatalogDB();
+  const from = Math.max(0, offset);
+  const to = from + limit - 1;
+
+  const { data: rawRows, error: rawError } = await db
+    .from("cj_raw_products")
+    .select("*")
+    .order("orders", { ascending: false })
+    .range(from, to);
+
+  if (rawError || !rawRows?.length) return 0;
+
+  await patchListIntelSignalsFromRaw(rawRows, true);
+  return rawRows.length;
 }
 
 export async function ensureIntelligenceRows(pids: string[]): Promise<void> {
@@ -314,12 +385,32 @@ function hasWarehouseFilters(filters: CatalogFilterIndex): boolean {
   return Boolean(filters.usWarehouse || filters.euWarehouse || filters.ukWarehouse);
 }
 
-/** Narrow tier scope so status filters use indexed paths instead of scanning all tiers. */
+/** Narrow tier scope — status/attribute filters search the full catalog tier set. */
+function hasCatalogWideIntelFilters(filters: CatalogFilterIndex): boolean {
+  return Boolean(
+    filters.hasVideo ||
+      filters.verifiedSupplier ||
+      filters.trending ||
+      filters.fastShipping ||
+      filters.minImages ||
+      filters.hasDescription ||
+      filters.minHealthScore ||
+      filters.minMargin ||
+      filters.missingVideo ||
+      filters.missingSupplier ||
+      filters.missingShipping ||
+      filters.missingImages ||
+      filters.missingDescription ||
+      filters.missingVariants ||
+      filters.missingStock ||
+      filters.missingTrending
+  );
+}
+
 function resolveCatalogTiers(
   filters: CatalogFilterIndex,
   paramTiers?: CatalogTier[]
 ): CatalogTier[] {
-  if (paramTiers?.length) return paramTiers;
   if (filters.isHidden) return ["HIDDEN"];
   if (
     filters.isDraft ||
@@ -327,10 +418,15 @@ function resolveCatalogTiers(
     filters.autoPublishReady ||
     filters.autoPublishPending ||
     filters.autoPublishRequirementsMissing ||
+    filters.autoPublishAdminOverride ||
     filters.publishQueueStatus
   ) {
     return TIER_ORDER;
   }
+  if (hasCatalogWideIntelFilters(filters)) {
+    return TIER_ORDER;
+  }
+  if (paramTiers?.length) return paramTiers;
   return DEFAULT_VISIBLE_TIERS;
 }
 

@@ -35,25 +35,39 @@ export async function GET(req: Request) {
 
   const refresh = new URL(req.url).searchParams.get("refresh") === "1";
 
-  if (!refresh) {
-    const cached = getCached<{
-      counts: Awaited<ReturnType<typeof computeCatalogFilterCounts>>;
-      pipeline: Awaited<ReturnType<typeof computeMarketplacePipelineMetrics>>;
-      scanner: Awaited<ReturnType<typeof getCatalogScannerStatus>>;
-    }>(FILTER_COUNTS_CACHE_KEY);
-    if (cached) {
-      return NextResponse.json({ success: true, ...cached, cached: true });
+  try {
+    if (!refresh) {
+      const cached = getCached<{
+        counts: Awaited<ReturnType<typeof computeCatalogFilterCounts>>;
+        pipeline: Awaited<ReturnType<typeof computeMarketplacePipelineMetrics>>;
+        scanner: Awaited<ReturnType<typeof getCatalogScannerStatus>>;
+      }>(FILTER_COUNTS_CACHE_KEY);
+      if (cached) {
+        return NextResponse.json({ success: true, ...cached, cached: true });
+      }
     }
+
+    const [counts, scanner, pipeline] = await Promise.all([
+      computeCatalogFilterCounts(),
+      getCatalogScannerStatus(),
+      computeMarketplacePipelineMetrics(),
+    ]);
+
+    const bundle = { counts, scanner, pipeline };
+    setCached(FILTER_COUNTS_CACHE_KEY, bundle, FILTER_COUNTS_TTL_MS);
+
+    return NextResponse.json({ success: true, ...bundle, cached: false });
+  } catch (err) {
+    console.error("[catalog/filter-counts]", err);
+    return NextResponse.json(
+      {
+        success: false,
+        error: err instanceof Error ? err.message : "Filter counts unavailable",
+        counts: null,
+        scanner: null,
+        pipeline: null,
+      },
+      { status: 200 }
+    );
   }
-
-  const [counts, scanner, pipeline] = await Promise.all([
-    computeCatalogFilterCounts(),
-    getCatalogScannerStatus(),
-    computeMarketplacePipelineMetrics(),
-  ]);
-
-  const bundle = { counts, scanner, pipeline };
-  setCached(FILTER_COUNTS_CACHE_KEY, bundle, FILTER_COUNTS_TTL_MS);
-
-  return NextResponse.json({ success: true, ...bundle, cached: false });
 }
