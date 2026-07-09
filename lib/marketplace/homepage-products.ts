@@ -12,6 +12,7 @@ import {
   dedupeProductsById,
   HOMEPAGE_FLASH_DEALS_LIMIT,
   HOMEPAGE_TRENDING_LIMIT,
+  ensureNonEmptyCollection,
   resolveMarketplaceProductPool,
   selectFlashDeals,
   selectHeroProduct,
@@ -104,8 +105,39 @@ export async function getHomepageProductBundle(): Promise<HomepageProductBundle>
     return { trending: [], flashDeals: [], hero: null, total };
   }
 
-  const trending = selectTrendingProducts(pool, HOMEPAGE_TRENDING_LIMIT);
-  const flashDeals = selectFlashDeals(pool, HOMEPAGE_FLASH_DEALS_LIMIT);
+  let flashDeals = dedupeProductsById(
+    selectFlashDeals(pool, HOMEPAGE_FLASH_DEALS_LIMIT),
+  );
+  const flashIds = new Set(flashDeals.map((p) => p.id));
+  const trendingPool = pool.filter((p) => !flashIds.has(p.id));
+  let trending = dedupeProductsById(
+    selectTrendingProducts(
+      trendingPool.length > 0 ? trendingPool : pool,
+      HOMEPAGE_TRENDING_LIMIT,
+    ),
+  );
+
+  flashDeals = ensureNonEmptyCollection(
+    flashDeals,
+    pool,
+    (items) => dedupeProductsById(selectFlashDeals(items, HOMEPAGE_FLASH_DEALS_LIMIT)),
+    HOMEPAGE_FLASH_DEALS_LIMIT,
+    total,
+  );
+  trending = ensureNonEmptyCollection(
+    trending,
+    trendingPool.length > 0 ? trendingPool : pool,
+    (items) => dedupeProductsById(selectTrendingProducts(items, HOMEPAGE_TRENDING_LIMIT)),
+    HOMEPAGE_TRENDING_LIMIT,
+    total,
+  );
+
+  if (trending.length < HOMEPAGE_TRENDING_LIMIT) {
+    const used = new Set([...flashIds, ...trending.map((p) => p.id)]);
+    const fill = pool.filter((p) => !used.has(p.id)).slice(0, HOMEPAGE_TRENDING_LIMIT - trending.length);
+    trending = dedupeProductsById([...trending, ...fill]);
+  }
+
   const heroPick = selectHeroProduct(pool);
 
   const ids = dedupeProductsById([

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import DOMPurify from "isomorphic-dompurify";
 import { CheckCircle2 } from "lucide-react";
 import {
@@ -31,9 +31,10 @@ const ALLOWED_HTML_TAGS = [
   "td",
   "th",
   "div",
+  "img",
 ];
 
-const ALLOWED_HTML_ATTR = ["class"];
+const ALLOWED_HTML_ATTR = ["class", "src", "alt", "title", "width", "height", "loading"];
 
 function FeatureList({ features }: { features: CJFeatureHighlight[] }) {
   return (
@@ -61,11 +62,16 @@ export function ProductDescriptionView({
   description,
   featureBullets = [],
   className,
+  collapsible = false,
+  collapsedMaxHeight = 280,
 }: {
   description?: string | null;
   featureBullets?: string[];
   className?: string;
+  collapsible?: boolean;
+  collapsedMaxHeight?: number;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const sections = useMemo(
     () => parseCJDescriptionSections(description),
     [description],
@@ -103,10 +109,26 @@ export function ProductDescriptionView({
       {parsedFeatures.length > 0 ? <FeatureList features={parsedFeatures} /> : null}
 
       {safeHtml ? (
-        <div
-          className="product-description text-[12.5px] leading-relaxed text-[var(--color-text-secondary)]"
-          dangerouslySetInnerHTML={{ __html: safeHtml }}
-        />
+        <>
+          <div
+            className="product-description text-[12.5px] leading-relaxed text-[var(--color-text-secondary)] overflow-hidden transition-[max-height] duration-300"
+            style={
+              collapsible && !expanded
+                ? { maxHeight: collapsedMaxHeight }
+                : undefined
+            }
+            dangerouslySetInnerHTML={{ __html: safeHtml }}
+          />
+          {collapsible ? (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-2 text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
+            >
+              {expanded ? "Show less" : "Read more"}
+            </button>
+          ) : null}
+        </>
       ) : null}
 
       {bullets.length > 0 ? (

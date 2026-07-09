@@ -142,10 +142,7 @@ export function cleanCJDescription(remark: string | null | undefined): string {
 
   let html = remark;
 
-  // Remove images (shown in gallery)
-  html = html.replace(/<img\b[^>]*\/?>/gi, "");
-
-  // Remove embedded videos (shown in gallery)
+  // Keep embedded images in rich descriptions (gallery shows primary images separately).
   html = html.replace(/<video\b[^>]*>[\s\S]*?<\/video>/gi, "");
   html = html.replace(/<video\b[^>]*\/?>/gi, "");
 

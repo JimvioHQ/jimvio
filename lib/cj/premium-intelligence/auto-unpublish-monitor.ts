@@ -1,5 +1,6 @@
 /**
- * Auto Unpublish Monitor v3 — scans published CJ products and unpublishes.
+ * Auto Unpublish Monitor v3 — scans published CJ products; metadata-only updates.
+ * Does NOT remove, archive, or draft marketplace products (hotfix: no automatic hiding).
  */
 
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,7 +20,8 @@ export interface UnpublishMonitorResult {
   reasons: Record<string, number>;
 }
 
-async function unpublishProduct(
+/** Record availability signals on intelligence only — never hide live marketplace rows. */
+async function recordAvailabilitySignal(
   productId: string,
   reason: string,
   pid?: string
@@ -27,32 +29,36 @@ async function unpublishProduct(
   const admin = createAdminClient();
   const now = new Date().toISOString();
 
-  const { error } = await admin
-    .from("products")
-    .update({
-      status: "draft",
-      is_active: false,
-      auto_unpublished: true,
-      auto_unpublish_reason: reason,
-      auto_unpublished_at: now,
-      updated_at: now,
-    })
-    .eq("id", productId);
-
-  if (error) return false;
-
   if (pid) {
-    await admin
+    const db = getCatalogDB();
+    await db
       .from("cj_product_intelligence")
       .update({
-        auto_publish_ready: false,
-        auto_publish_status: "REQUIREMENTS_MISSING",
         auto_unpublish_reason: reason,
-        is_published_active: false,
         last_auto_publish_check: now,
+        updated_at: now,
       })
       .eq("pid", pid);
   }
+
+  const { data: existing } = await admin
+    .from("products")
+    .select("source_metadata")
+    .eq("id", productId)
+    .maybeSingle();
+
+  const meta = (existing?.source_metadata as Record<string, unknown> | null) ?? {};
+  await admin
+    .from("products")
+    .update({
+      source_metadata: {
+        ...meta,
+        cj_availability_note: reason,
+        cj_availability_checked_at: now,
+      },
+      updated_at: now,
+    })
+    .eq("id", productId);
 
   await logAutoPublishEvent({
     pid,
@@ -97,12 +103,9 @@ export async function runStockHealthMonitor(): Promise<UnpublishMonitorResult> {
     ]);
 
     if (!raw) {
-      const ok = await unpublishProduct(row.id as string, "Product removed from CJ", pid);
-      if (ok) {
-        result.unpublished += 1;
-        result.reasons["Product removed from CJ"] =
-          (result.reasons["Product removed from CJ"] ?? 0) + 1;
-      }
+      const reason = "Product removed from CJ";
+      await recordAvailabilitySignal(row.id as string, reason, pid);
+      result.reasons[reason] = (result.reasons[reason] ?? 0) + 1;
       continue;
     }
 
@@ -125,12 +128,9 @@ export async function runStockHealthMonitor(): Promise<UnpublishMonitorResult> {
     if (!evaluation.shouldUnpublish) continue;
 
     const reason = evaluation.reasons[0] ?? "Stock became zero";
-    const ok = await unpublishProduct(row.id as string, reason, pid);
-    if (ok) {
-      result.unpublished += 1;
-      for (const r of evaluation.reasons) {
-        result.reasons[r] = (result.reasons[r] ?? 0) + 1;
-      }
+    await recordAvailabilitySignal(row.id as string, reason, pid);
+    for (const r of evaluation.reasons) {
+      result.reasons[r] = (result.reasons[r] ?? 0) + 1;
     }
   }
 

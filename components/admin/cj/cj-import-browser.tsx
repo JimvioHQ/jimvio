@@ -810,7 +810,7 @@ export default function CJImportBrowser({
           ...prev.slice(0, 49),
         ]);
         toast.error(message);
-        return { ok: false, published: false };
+        return { ok: false, published: false, error: message };
       } finally {
         setImportingPid(null);
       }
@@ -834,7 +834,8 @@ export default function CJImportBrowser({
       };
       const skipReasonsList: Array<{ reasons: string[] }> = [];
 
-      for (const product of items) {
+      for (let i = 0; i < items.length; i++) {
+        const product = items[i]!;
         setImportQueue((q) =>
           q ? { ...q, currentName: product.productNameEn } : q
         );
@@ -854,10 +855,16 @@ export default function CJImportBrowser({
         } else {
           queue.failed += 1;
           summary.skipped += 1;
-          skipReasonsList.push({ reasons: ["Import failed"] });
+          const reason = result.error ?? "Import failed";
+          skipReasonsList.push({ reasons: [reason] });
         }
 
         setImportQueue({ ...queue });
+
+        // Pace requests to avoid CJ HTTP 429 during bulk manual import
+        if (i < items.length - 1) {
+          await new Promise((r) => setTimeout(r, 700));
+        }
       }
 
       for (const item of skipReasonsList) {

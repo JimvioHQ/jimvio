@@ -314,18 +314,25 @@ type GalleryMedia =
     | { type: "image"; url: string };
 
 function buildGalleryMedia(images: string[], videos: string[] = []): GalleryMedia[] {
-    const poster = images[0];
-    const videoItems: GalleryMedia[] = videos
-        .map((url) => normalizeVideoUrl(url.trim()))
-        .filter((url) => isPlayableVideoUrl(url))
-        .map((url) => ({
-            type: "video" as const,
-            url,
-            poster,
-            playback: resolveVideoPlayback(url),
-        }));
-    const imageItems: GalleryMedia[] = images.map((url) => ({ type: "image", url }));
-    return [...videoItems, ...imageItems];
+  const seenImages = new Set<string>();
+  const uniqueImages = images.filter((url) => {
+    const key = url.toLowerCase();
+    if (seenImages.has(key)) return false;
+    seenImages.add(key);
+    return true;
+  });
+  const poster = uniqueImages[0];
+  const videoItems: GalleryMedia[] = videos
+    .map((url) => normalizeVideoUrl(url.trim()))
+    .filter((url) => isPlayableVideoUrl(url))
+    .map((url) => ({
+      type: "video" as const,
+      url,
+      poster,
+      playback: resolveVideoPlayback(url),
+    }));
+  const imageItems: GalleryMedia[] = uniqueImages.map((url) => ({ type: "image", url }));
+  return [...videoItems, ...imageItems];
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────

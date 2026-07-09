@@ -3,14 +3,10 @@ import Link from "next/link";
 import { getAdminProducts, getAdminDB } from "@/services/db";
 import type { ProductStatus } from "@/types/db";
 import { PageHeader } from "@/components/ui/admin";
-import { Tile } from "@/components/ui/admin-server";
-import { ProductsTable } from "@/components/admin/products-table";
 import { ProductFilterBar } from "@/components/admin/products/product-filter-bar";
 import { AdminProductsHeaderActions } from "@/components/admin/products/admin-products-header-actions";
 import { AdminExportMenu } from "@/components/admin/admin-export-menu";
-import {
-  Package, Star, CheckCircle2, FileEdit, AlertTriangle,
-} from "lucide-react";
+import { AdminProductsWorkspace } from "@/components/admin/products/admin-products-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -106,48 +102,6 @@ export default async function AdminProductsPage({
         }
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Tile
-          label="Catalog"
-          value={catalogCount.toLocaleString()}
-          sublabel="All listings"
-          icon={Package}
-        />
-        <Tile
-          label="Active"
-          value={totalActive.toLocaleString()}
-          sublabel={`${activePct}% of catalog`}
-          icon={CheckCircle2}
-          tone="success"
-        />
-        <Tile
-          label="Featured"
-          value={totalFeatured.toLocaleString()}
-          sublabel="Highlighted"
-          icon={Star}
-        />
-        <Tile
-          label="Draft"
-          value={draftCount.toLocaleString()}
-          sublabel="Not published"
-          icon={FileEdit}
-          tone={draftCount > 0 ? "warn" : "default"}
-        />
-        <Tile
-          label="Low stock"
-          value={lowStockCount.toLocaleString()}
-          sublabel="Tracked · ≤5 units"
-          icon={AlertTriangle}
-          tone={lowStockCount > 0 ? "warn" : "default"}
-        />
-        <Tile
-          label="Matching"
-          value={total.toLocaleString()}
-          sublabel={`Page ${page} · ${products.length} shown`}
-          icon={Package}
-        />
-      </div>
-
       <Suspense fallback={null}>
         <ProductFilterBar
           status={status}
@@ -157,7 +111,15 @@ export default async function AdminProductsPage({
         />
       </Suspense>
 
-      <ProductsTable
+      <AdminProductsWorkspace
+        stats={{
+          catalogCount,
+          totalActive,
+          totalFeatured,
+          draftCount,
+          lowStockCount,
+          activePct,
+        }}
         products={products}
         total={total}
         page={page}

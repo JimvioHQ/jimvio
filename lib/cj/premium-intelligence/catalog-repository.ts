@@ -702,18 +702,40 @@ export async function getLastEnrichmentAt(): Promise<string | null> {
   return data?.finished_at ?? null;
 }
 
-export async function pollEnrichmentJobs(limit = 15) {
+export async function pollEnrichmentJobs(limit = 15, afterPid?: string) {
   const db = getCatalogDB();
-  const { data, error } = await db
+  let query = db
     .from("cj_enrichment_queue")
-    .select("*")
+    .select("pid, priority, next_attempt_at, status, attempts, last_error")
     .in("status", ["pending", "failed"])
     .lte("next_attempt_at", new Date().toISOString())
     .order("priority", { ascending: false })
     .order("next_attempt_at", { ascending: true })
-    .limit(limit);
+    .order("pid", { ascending: true });
+
+  if (afterPid) {
+    query = query.gt("pid", afterPid);
+  }
+
+  query = query.limit(limit);
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+/** Claim a queue job — returns false if another worker already claimed it. */
+export async function claimEnrichmentJob(pid: string): Promise<boolean> {
+  const db = getCatalogDB();
+  const now = new Date().toISOString();
+  const { data, error } = await db
+    .from("cj_enrichment_queue")
+    .update({ status: "processing", updated_at: now })
+    .eq("pid", pid)
+    .in("status", ["pending", "failed"])
+    .select("pid")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return Boolean(data);
 }
 
 export async function markQueueJob(
@@ -728,7 +750,9 @@ export async function getRawProduct(pid: string): Promise<CjRawProductRow | null
   const db = getCatalogDB();
   const { data, error } = await db
     .from("cj_raw_products")
-    .select("*")
+    .select(
+      "pid, name, sku, price, stock, warehouse, orders, is_video, raw_payload, list_synced_at, updated_at"
+    )
     .eq("pid", pid)
     .maybeSingle();
   if (error) throw new Error(error.message);

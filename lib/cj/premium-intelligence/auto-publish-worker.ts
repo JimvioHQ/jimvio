@@ -7,7 +7,6 @@ import { processAutoPublishQueue, queueReadyProductsFromIntel } from "./auto-pub
 import { runCatalogScannerBatch } from "./catalog-scanner";
 import { runCjWatcherBatch } from "./cj-watcher";
 import { processSignalWatchQueue } from "./signal-watch";
-import { processEnrichmentQueueChained } from "./process-enrichment-queue";
 import {
   AUTO_PUBLISH_WORKER_BATCH_SIZE,
   verifyPublishedProduct,
@@ -109,9 +108,8 @@ export async function runAutoPublishWorker(): Promise<AutoPublishWorkerResult> {
   result.queue.skipped = queueResult.skipped;
   result.queue.verified = queueResult.verified ?? 0;
 
-  result.enrichment = await processEnrichmentQueueChained(50, {
-    maxDurationMs: 45_000,
-  });
+  // Enrichment owned by dedicated /api/cron/cj-enrichment — avoid duplicate CJ API load
+  result.enrichment = { processed: 0, succeeded: 0, failed: 0 };
 
   const signalResult = await processSignalWatchQueue(50);
   result.signalWatch = signalResult;

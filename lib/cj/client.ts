@@ -90,7 +90,7 @@ export async function cjFetch<T = unknown>(
     return json as T;
 }
 
-const RETRYABLE_HTTP = new Set([429, 503, 502]);
+const RETRYABLE_HTTP = new Set([429, 500, 502, 503]);
 
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));

@@ -12,7 +12,7 @@ import { Slider } from "@/components/ui/slider";
 import CustomSelect from "@/components/ui/select-2";
 import { useMarketplace } from "./marketplace-context";
 import { SELECT_CATEGORY_LABEL, type DeliveryTime } from "@/lib/utils";
-import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
+import { JIMVIO_ORANGE, resolveShopCategories } from "@/lib/marketplace/category-catalog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -247,22 +247,53 @@ export function Sidebar({ type = "physical" }: Props) {
 
       const ids = [...new Set((catIds ?? []).map((r: any) => r.category_id).filter(Boolean))];
 
-      if (ids.length === 0) {
-        setSidebarCategories([]);
-        setLoadingCats(false);
-        return;
+      let categories: SidebarCategory[] = [];
+
+      if (ids.length > 0) {
+        const { data } = await supabase
+          .from("product_categories")
+          .select("name, slug, product_count, icon")
+          .eq("is_active", true)
+          .eq("visible", true)
+          .is("parent_id", null)
+          .in("id", ids)
+          .order("product_count", { ascending: false })
+          .limit(14);
+
+        if (data) categories = data as SidebarCategory[];
       }
 
-      const { data } = await supabase
-        .from("product_categories")
-        .select("name, slug, product_count, icon")
-        .eq("is_active", true)
-        .is("parent_id", null)
-        .in("id", ids)
-        .order("product_count", { ascending: false })
-        .limit(14);
+      if (categories.length === 0) {
+        const { count } = await supabase
+          .from("products")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "active")
+          .eq("is_active", true)
+          .is("deleted_at", null)
+          .in("product_type", typeFilter as any[]);
 
-      if (data) setSidebarCategories(data as SidebarCategory[]);
+        if ((count ?? 0) > 0) {
+          const { data: fallback } = await supabase
+            .from("product_categories")
+            .select("name, slug, product_count, icon")
+            .eq("is_active", true)
+            .eq("visible", true)
+            .is("parent_id", null)
+            .order("product_count", { ascending: false })
+            .limit(14);
+          if (fallback?.length) categories = fallback as SidebarCategory[];
+          else {
+            categories = resolveShopCategories(type, []).map((c) => ({
+              name: c.name,
+              slug: c.slug,
+              product_count: c.product_count,
+              icon: null,
+            }));
+          }
+        }
+      }
+
+      setSidebarCategories(categories);
       setLoadingCats(false);
     }
     load();

@@ -29,6 +29,7 @@ import {
 } from "@/lib/marketplace/fetch-page-data";
 import { DEFAULT_FILTERS } from "@/lib/utils";
 import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
+import { dedupeProductsById } from "@/lib/marketplace/homepage-ranking";
 import { getCategoryImageFallbacks } from "@/lib/marketplace/category-images";
 import {
   MarketplaceSearchBar,
@@ -643,7 +644,23 @@ export function MarketplacePageClient({
         nextCategories = (catRows ?? []) as DbCategory[];
       }
 
-      const dealList = (deals ?? []) as DbProduct[];
+      if (nextCategories.length === 0 && (count ?? 0) > 0) {
+        const { data: fallbackCats } = await supabaseRef.current
+          .from("product_categories")
+          .select("id, name, slug, product_count, image_url, tint_color")
+          .eq("is_active", true)
+          .eq("visible", true)
+          .is("parent_id", null)
+          .order("product_count", { ascending: false })
+          .limit(40);
+        if (loadGeneration !== loadGenRef.current) return;
+        nextCategories = (fallbackCats ?? []) as DbCategory[];
+        if (nextCategories.length === 0) {
+          nextCategories = resolveShopCategories(type, []) as DbCategory[];
+        }
+      }
+
+      const dealList = dedupeProductsById((deals ?? []) as DbProduct[]);
       const trendList = (trend ?? []) as DbProduct[];
       const videoMap = await fetchProductVideosMap(
         supabaseRef.current,
@@ -738,8 +755,18 @@ export function MarketplacePageClient({
     };
   }, [debouncedSearch, type, filters]);
 
-  // Flash deals stay unfiltered during search (section unchanged)
-  const filteredDeals = flashDeals;
+  // Flash deals — unique IDs only (server bundle already ranked)
+  const filteredDeals = useMemo(
+    () => {
+      const seen = new Set<string>();
+      return flashDeals.filter((p) => {
+        if (seen.has(p.id)) return false;
+        seen.add(p.id);
+        return true;
+      });
+    },
+    [flashDeals],
+  );
 
   const shopCategories = useMemo(
     () => resolveShopCategories(type, categoriesType === type ? categories : []),
@@ -1004,8 +1031,6 @@ export function MarketplacePageClient({
               <SkeletonDeals />
             ) : filteredDeals.length > 0 ? (
               <FlashDealsClient deals={filteredDeals} />
-            ) : trending.length > 0 ? (
-              <FlashDealsClient deals={trending.slice(0, 12)} />
             ) : (
               <p
                 className="py-6 text-center text-xs"

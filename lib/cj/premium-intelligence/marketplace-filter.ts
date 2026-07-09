@@ -4,7 +4,7 @@ import type { CatalogTier } from "@/lib/cj/premium-intelligence/types";
 import { getCached, setCached } from "./catalog-cache";
 
 const VISIBILITY_CACHE_KEY = "marketplace-visibility-sets";
-const VISIBILITY_CACHE_TTL_MS = 120_000;
+const VISIBILITY_CACHE_TTL_MS = 300_000;
 
 export interface MarketplaceVisibilitySets {
   visibleCjPids: Set<string>;

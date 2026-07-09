@@ -1175,8 +1175,6 @@ export function PhysicalProductDetail({
   const ratingDisplay = hasReviews ? rating.toFixed(1) : null;
 
   const cleanedHtml = useMemo(() => cleanCJDescription(product.description), [product.description]);
-  const safeHtml = useMemo(() => DOMPurify.sanitize(cleanedHtml, { ALLOWED_TAGS: ALLOWED_HTML_TAGS, ALLOWED_ATTR: ALLOWED_HTML_ATTR }), [cleanedHtml]);
-  const descriptionPreview = useMemo(() => { const plain = htmlToPlainText(cleanedHtml); return plain.length > 220 ? `${plain.slice(0, 220)}…` : plain; }, [cleanedHtml]);
 
   const { specs: parsedSpecs } = useMemo(() => parseCJSpecifications(product.description), [product.description]);
   const cjMeta = product.source_metadata ?? {};
@@ -1419,9 +1417,16 @@ export function PhysicalProductDetail({
                       />
                     </div>
                   )}
-                  {!hasVariants && (
-                    <p className="mt-3 text-sm text-[var(--color-text-muted)] leading-relaxed">{descriptionPreview}</p>
-                  )}
+                  {!hasVariants && product.description?.trim() ? (
+                    <div className="mt-3">
+                      <ProductDescriptionView
+                        description={product.description}
+                        featureBullets={featureBullets}
+                        collapsible
+                        collapsedMaxHeight={220}
+                      />
+                    </div>
+                  ) : null}
 
                   {/* Stock warning */}
                   {!isCJ && !isOutOfStock && activeInventory > 0 && activeInventory <= 10 && needsVariantSelection && (

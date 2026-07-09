@@ -279,24 +279,40 @@ async function resolveVariantRow(
     return resolveVariantByCjVid(supabase, vid, { variantSku, pid });
 }
 
-async function archiveProduct(
+async function markCjCatalogUnavailable(
     supabase: SupabaseClient,
     pid: string
 ): Promise<void> {
     const productId = await resolveProductId(supabase, pid);
 
     if (!productId) {
-        console.warn(`[CJ webhook] archiveProduct: no product found for pid=${pid}`);
+        console.warn(`[CJ webhook] markCjCatalogUnavailable: no product found for pid=${pid}`);
         return;
     }
 
+    const { data: existing } = await supabase
+        .from("products")
+        .select("source_metadata")
+        .eq("id", productId)
+        .maybeSingle();
+
+    const meta = (existing?.source_metadata as Record<string, unknown> | null) ?? {};
+    const now = new Date().toISOString();
+
     const { error } = await supabase
         .from("products")
-        .update({ status: "archived", is_active: false })
+        .update({
+            source_metadata: {
+                ...meta,
+                cj_catalog_removed: true,
+                cj_catalog_removed_at: now,
+            },
+            updated_at: now,
+        })
         .eq("id", productId);
 
     if (error) {
-        console.error(`[CJ webhook] Failed to archive product ${pid}:`, error.message);
+        console.error(`[CJ webhook] Failed to mark product unavailable ${pid}:`, error.message);
     }
 }
 
@@ -532,7 +548,7 @@ export async function POST(req: Request): Promise<Response> {
             }
 
             if (payload.messageType === "DELETE") {
-                await archiveProduct(supabase, params.pid);
+                await markCjCatalogUnavailable(supabase, params.pid);
                 await scheduleProductRemoval(params.pid).catch(() => {});
                 console.log(`[CJ webhook] PRODUCT archived pid=${params.pid}`);
                 return Response.json({ ok: true, event: "PRODUCT_DELETE" });

@@ -164,7 +164,7 @@ export async function runMarketplaceMaintenance(): Promise<MarketplaceMaintenanc
   result.searchIndexed = indexBatch.indexed;
 
   const unpublish = await runStockHealthMonitor();
-  result.unpublish = { scanned: unpublish.scanned, unpublished: unpublish.unpublished };
+  result.unpublish = { scanned: unpublish.scanned, unpublished: 0 };
 
   try {
     invalidateCatalogCache();
@@ -180,7 +180,7 @@ export async function runMarketplaceMaintenance(): Promise<MarketplaceMaintenanc
       `Restored ${result.restored} products, fixed ${result.intelligenceFixed} intelligence rows`,
       `Maintenance: reset ${result.stuckQueueReset} stuck publish jobs`,
       `Indexed ${result.searchIndexed} search rows`,
-      `Unpublished ${result.unpublish.unpublished}`,
+      `Availability signals recorded for ${result.unpublish.scanned} products`,
     ],
   });
 

@@ -471,7 +471,11 @@ export function normalizeImages(input: unknown): string[] {
       }
       return "";
     })
-    .filter(isRenderableUrl);
+    .filter(isRenderableUrl)
+    .filter((url, index, all) => {
+      const key = url.toLowerCase();
+      return all.findIndex((u) => u.toLowerCase() === key) === index;
+    });
 }
 
 export function isRenderableUrl(s: unknown): s is string {

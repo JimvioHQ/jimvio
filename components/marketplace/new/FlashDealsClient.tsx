@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
 import { type DbProduct, getImage, getDiscount, getEffectiveCompareAtPrice } from "@/lib/utils";
+import { dedupeProductsById } from "@/lib/marketplace/homepage-ranking";
 
 type FlashDealProduct = DbProduct & {
   currency?: string | null;
@@ -23,6 +24,8 @@ export function FlashDealsClient({ deals }: { deals: FlashDealProduct[] }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [cardWidth, setCardWidth] = useState<number | null>(null);
 
+  const uniqueDeals = useMemo(() => dedupeProductsById(deals), [deals]);
+
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
@@ -39,23 +42,18 @@ export function FlashDealsClient({ deals }: { deals: FlashDealProduct[] }) {
     return () => observer.disconnect();
   }, []);
 
-  const loopDeals = useMemo(() => {
-    if (deals.length === 0) return [];
-    return [...deals, ...deals];
-  }, [deals]);
-
-  if (deals.length === 0) return null;
+  if (uniqueDeals.length === 0) return null;
 
   return (
     <div ref={viewportRef} className="w-full overflow-hidden">
       <div
-        className="flash-deals-marquee flex w-max gap-2"
+        className="flex w-full gap-2 overflow-x-auto pb-1 snap-x snap-mandatory"
         style={{ visibility: cardWidth == null ? "hidden" : "visible" }}
       >
-        {loopDeals.map((d, i) => (
+        {uniqueDeals.map((d) => (
           <div
-            key={`${d.id}-${i}`}
-            className="shrink-0"
+            key={d.id}
+            className="shrink-0 snap-start"
             style={cardWidth != null ? { width: cardWidth } : undefined}
           >
             <FlashDealCard d={d} />

@@ -1,4 +1,4 @@
-import { getServiceClient, getCJToken, cjFetch } from "@/lib/cj/client";
+import { getServiceClient, getCJToken, cjFetchWithRetry } from "@/lib/cj/client";
 import { fetchCjProductVideoUrls } from "@/lib/cj/fetch-product-videos";
 import { mapDetailToIntelligence } from "../import-intelligence/intelligence-mapper";
 import { patchProductWithIntelligence } from "../import-intelligence/enrichment-merge";
@@ -21,7 +21,36 @@ import { QUICK_FILTER_DEFAULTS } from "../import-intelligence/quick-filter-intel
 
 const RETRY_DELAYS_MS = [5_000, 30_000, 120_000, 600_000, 1_800_000];
 
-export async function enrichSingleProduct(pid: string): Promise<boolean> {
+type EnrichResult = boolean | "skipped";
+
+function hasCloudinaryMedia(images: unknown): boolean {
+  if (!Array.isArray(images)) return false;
+  return images.some(
+    (u) =>
+      typeof u === "string" &&
+      (u.includes("cloudinary.com") || u.includes("res.cloudinary"))
+  );
+}
+
+function isFullyEnriched(intel: {
+  has_video?: boolean | null;
+  image_count?: number | null;
+  supplier_verified?: boolean | null;
+  delivery_days?: number | null;
+  description_length?: number | null;
+  enrichment_status?: string | null;
+} | null): boolean {
+  if (!intel || intel.enrichment_status !== "complete") return false;
+  return (
+    Boolean(intel.has_video) &&
+    (intel.image_count ?? 0) > 0 &&
+    Boolean(intel.supplier_verified) &&
+    intel.delivery_days != null &&
+    (intel.description_length ?? 0) > 0
+  );
+}
+
+export async function enrichSingleProduct(pid: string): Promise<EnrichResult> {
   const raw = await getRawProduct(pid);
   if (!raw) {
     await markQueueJob(pid, {
@@ -31,17 +60,24 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
     return false;
   }
 
-  await updateIntelligence(pid, {
-    enrichment_status: "processing",
-  });
-
   const { getCatalogDB } = await import("./db");
   const db = getCatalogDB();
   const { data: priorIntel } = await db
     .from("cj_product_intelligence")
-    .select("has_video, supplier_verified, delivery_days, image_count, description_length, trending")
+    .select(
+      "has_video, supplier_verified, delivery_days, image_count, description_length, trending, enrichment_status, enriched_at, video_count"
+    )
     .eq("pid", pid)
     .maybeSingle();
+
+  if (isFullyEnriched(priorIntel)) {
+    await markQueueJob(pid, { status: "complete", last_error: null });
+    return "skipped";
+  }
+
+  await updateIntelligence(pid, {
+    enrichment_status: "processing",
+  });
 
   const beforeSnapshot: IntelSnapshot = {
     has_video: priorIntel?.has_video,
@@ -59,22 +95,46 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
     const supabase = getServiceClient();
     const token = await getCJToken(supabase);
 
-    const detailRes = await cjFetch<{ data: Record<string, unknown> }>(
+    const detailRes = await cjFetchWithRetry<{ data: Record<string, unknown> }>(
       `/product/query?pid=${encodeURIComponent(pid)}&features=enable_video,enable_inventory`,
-      token
+      token,
+      {},
+      { maxRetries: 4, baseDelayMs: 1200 },
     );
     const detail = detailRes.data;
 
-    const { videos } = await fetchCjProductVideoUrls(token, pid, {
-      productVideo: detail.productVideo as string[] | undefined,
-      videoList: detail.videoList as string[] | undefined,
-      description: detail.description as string | undefined,
-      bigImage: detail.bigImage as string | undefined,
-    });
+    const productId = await resolveEnrichedProductId(pid);
+    let skipVideoApi = Boolean(priorIntel?.has_video && (priorIntel?.video_count ?? 0) > 0);
+
+    if (!skipVideoApi && productId) {
+      const { data: linkedProduct } = await db
+        .from("products")
+        .select("images")
+        .eq("id", productId)
+        .maybeSingle();
+      if (hasCloudinaryMedia(linkedProduct?.images) && priorIntel?.has_video) {
+        skipVideoApi = true;
+      }
+    }
+
+    const { videos } = await fetchCjProductVideoUrls(
+      token,
+      pid,
+      {
+        productVideo: detail.productVideo as string[] | undefined,
+        videoList: detail.videoList as string[] | undefined,
+        description: detail.description as string | undefined,
+        bigImage: detail.bigImage as string | undefined,
+      },
+      { skipVideoApi },
+    );
 
     const intelPayload = mapDetailToIntelligence(detail as never, videos);
 
-    const freightDays = await resolveDeliveryDaysFromFreight(supabase, pid, detail);
+    const freightDays =
+      priorIntel?.delivery_days != null
+        ? priorIntel.delivery_days
+        : await resolveDeliveryDaysFromFreight(supabase, pid, detail);
     if (freightDays !== null && !intelPayload.deliveryCycle) {
       intelPayload.deliveryCycle = String(freightDays);
     }
@@ -126,7 +186,7 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
       ? parseInt(intelPayload.deliveryCycle, 10)
       : null;
 
-    const productId = await resolveEnrichedProductId(pid);
+    const productIdResolved = productId;
 
     const hasVideo =
       intelPayload.hasVideo || videos.length > 0 || base.isVideo === 1;
@@ -158,7 +218,7 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
       scored_at: new Date().toISOString(),
       last_error: null,
       ...toV3DbPayload(v3),
-      ...(productId ? { linked_product_id: productId } : {}),
+      ...(productIdResolved ? { linked_product_id: productIdResolved } : {}),
     });
 
     await markQueueJob(pid, { status: "complete", last_error: null });
@@ -183,7 +243,7 @@ export async function enrichSingleProduct(pid: string): Promise<boolean> {
     await indexProductSearchRow(
       pid,
       { ...raw, raw_payload: raw.raw_payload },
-      { linked_product_id: productId },
+      { linked_product_id: productIdResolved },
       description.slice(0, 500)
     );
 

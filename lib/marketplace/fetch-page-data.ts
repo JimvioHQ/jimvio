@@ -10,6 +10,7 @@ import {
   selectFlashDeals,
   selectTrendingProducts,
 } from "@/lib/marketplace/homepage-ranking";
+import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
 import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
 
 export type MarketplaceProductType = "physical" | "digital";
@@ -61,18 +62,20 @@ const PRODUCT_SELECT = `
   vendors(id, verification_status)
 `;
 
-async function fetchCategoriesForType(
+const POOL_FETCH_LIMIT = 120;
+
+export async function fetchCategoriesForType(
   supabase: SupabaseLike,
   typeFilter: readonly string[],
 ): Promise<MarketplaceCategory[]> {
-  const { data: catIds } = await supabase
+  const { data: catIds, count: productCount } = await supabase
     .from("products")
-    .select("category_id")
+    .select("category_id", { count: "estimated", head: false })
     .eq("status", "active")
     .eq("is_active", true)
     .is("deleted_at", null)
     .in("product_type", [...typeFilter])
-    .not("category_id", "is", null);
+    .limit(5000);
 
   const ids = [
     ...new Set(
@@ -82,22 +85,42 @@ async function fetchCategoriesForType(
     ),
   ] as string[];
 
-  if (ids.length === 0) return [];
+  let catRows: MarketplaceCategory[] = [];
 
-  const { data: catRows } = await supabase
-    .from("product_categories")
-    .select("id, name, slug, product_count, image_url, tint_color")
-    .eq("is_active", true)
-    .eq("visible", true)
-    .is("parent_id", null)
-    .in("id", ids)
-    .order("product_count", { ascending: false })
-    .limit(40);
+  if (ids.length > 0) {
+    const { data } = await supabase
+      .from("product_categories")
+      .select("id, name, slug, product_count, image_url, tint_color")
+      .eq("is_active", true)
+      .eq("visible", true)
+      .is("parent_id", null)
+      .in("id", ids)
+      .order("product_count", { ascending: false })
+      .limit(40);
+    catRows = (data ?? []) as MarketplaceCategory[];
+  }
 
-  return (catRows ?? []) as MarketplaceCategory[];
+  if (catRows.length === 0 && (productCount ?? 0) > 0) {
+    const { data: fallbackCats } = await supabase
+      .from("product_categories")
+      .select("id, name, slug, product_count, image_url, tint_color")
+      .eq("is_active", true)
+      .eq("visible", true)
+      .is("parent_id", null)
+      .order("product_count", { ascending: false })
+      .limit(40);
+    catRows = (fallbackCats ?? []) as MarketplaceCategory[];
+  }
+
+  if (catRows.length === 0 && (productCount ?? 0) > 0) {
+    const type = typeFilter.includes("physical") ? "physical" : "digital";
+    return resolveShopCategories(type, []);
+  }
+
+  return catRows;
 }
 
-/** Fetch flash deals, trending page, categories, and count for a product type — all in parallel. */
+/** Fetch flash deals, trending page, categories, and count for a product type — optimized queries. */
 export async function fetchMarketplacePageBundle(
   supabase: SupabaseLike,
   type: MarketplaceProductType,
@@ -110,47 +133,26 @@ export async function fetchMarketplacePageBundle(
 
   const visibilitySets = await getMarketplaceVisibilitySets();
 
-  const [{ data: deals }, { data: trend }, { count }, categories] =
-    await Promise.all([
-      supabase
-        .from("products")
-        .select(PRODUCT_SELECT)
-        .eq("status", "active")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .in("product_type", [...typeFilter])
-        .or("is_flash_deal.eq.true,compare_at_price.not.is.null")
-        .order("created_at", { ascending: false })
-        .limit(48),
+  const [{ data: rawRows, count }, categories] = await Promise.all([
+    supabase
+      .from("products")
+      .select(PRODUCT_SELECT, { count: "estimated", head: false })
+      .eq("status", "active")
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .in("product_type", [...typeFilter])
+      .order("created_at", { ascending: false })
+      .range(offset, offset + POOL_FETCH_LIMIT - 1),
 
-      supabase
-        .from("products")
-        .select(PRODUCT_SELECT)
-        .eq("status", "active")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .in("product_type", [...typeFilter])
-        .order("created_at", { ascending: false })
-        .range(offset, offset + Math.max(pageSize, 48) - 1),
-
-      supabase
-        .from("products")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "active")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .in("product_type", [...typeFilter]),
-
-      fetchCategoriesForType(supabase, typeFilter),
-    ]);
-
-  const listingCount = count ?? 0;
-  const rawMerged = dedupeProductsById([
-    ...((deals ?? []) as DbProduct[]),
-    ...((trend ?? []) as DbProduct[]),
+    fetchCategoriesForType(supabase, typeFilter),
   ]);
 
-  let pool = resolveMarketplaceProductPool(rawMerged, visibilitySets, listingCount);
+  const listingCount = count ?? 0;
+  let pool = resolveMarketplaceProductPool(
+    dedupeProductsById((rawRows ?? []) as DbProduct[]),
+    visibilitySets,
+    listingCount,
+  );
 
   if (pool.length === 0 && listingCount > 0) {
     const { data: fallback } = await supabase
@@ -164,29 +166,49 @@ export async function fetchMarketplacePageBundle(
       .limit(Math.max(pageSize, HOMEPAGE_FLASH_DEALS_LIMIT, 48));
 
     pool = resolveMarketplaceProductPool(
-      (fallback ?? []) as DbProduct[],
+      dedupeProductsById((fallback ?? []) as DbProduct[]),
       visibilitySets,
       listingCount,
     );
   }
 
-  let flashDeals = selectFlashDeals(pool, 12);
-  let trendingProducts = selectTrendingProducts(pool, pageSize);
+  let flashDeals = dedupeProductsById(selectFlashDeals(pool, HOMEPAGE_FLASH_DEALS_LIMIT));
+  const flashIds = new Set(flashDeals.map((p) => p.id));
+  const trendingPool =
+    pool.filter((p) => !flashIds.has(p.id)).length > 0
+      ? pool.filter((p) => !flashIds.has(p.id))
+      : pool;
+  let trendingProducts = dedupeProductsById(
+    selectTrendingProducts(trendingPool, pageSize),
+  );
 
   flashDeals = ensureNonEmptyCollection(
     flashDeals,
     pool,
-    (items) => selectFlashDeals(items, 12),
-    12,
+    (items) => dedupeProductsById(selectFlashDeals(items, HOMEPAGE_FLASH_DEALS_LIMIT)),
+    HOMEPAGE_FLASH_DEALS_LIMIT,
     listingCount,
   );
   trendingProducts = ensureNonEmptyCollection(
     trendingProducts,
-    pool,
-    (items) => selectTrendingProducts(items, pageSize),
+    trendingPool,
+    (items) => dedupeProductsById(selectTrendingProducts(items, pageSize)),
     pageSize,
     listingCount,
   );
+
+  if (trendingProducts.length < pageSize && pool.length > trendingProducts.length) {
+    const used = new Set([...flashIds, ...trendingProducts.map((p) => p.id)]);
+    const fill = [...pool]
+      .filter((p) => !used.has(p.id))
+      .sort((a, b) => {
+        const ta = Date.parse(String((a as { created_at?: string }).created_at ?? 0)) || 0;
+        const tb = Date.parse(String((b as { created_at?: string }).created_at ?? 0)) || 0;
+        return tb - ta;
+      })
+      .slice(0, pageSize - trendingProducts.length);
+    trendingProducts = dedupeProductsById([...trendingProducts, ...fill]);
+  }
 
   const videoMap = await fetchProductVideosMap(
     supabase,
