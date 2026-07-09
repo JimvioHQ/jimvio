@@ -2,6 +2,7 @@
  * Auto Publish Trigger — queue products for autonomous publish after becoming READY.
  */
 
+import { isAutomaticAutoPublishEnabled } from "@/lib/platform/background-jobs";
 import { enrichProduct } from "../import-intelligence/filters";
 import type { EnrichedProduct } from "../import-intelligence/types";
 import { enqueueAutoPublish } from "./auto-publish-queue";
@@ -171,6 +172,10 @@ export async function triggerAutoPublishEvaluation(
   if (!existingProduct) return result;
   if (existingProduct.published_by_admin_override) return result;
   if (existingProduct.status === "active" && existingProduct.is_active) {
+    return result;
+  }
+
+  if (!isAutomaticAutoPublishEnabled()) {
     return result;
   }
 

@@ -91,8 +91,6 @@ export function VendorEarningsDashboard() {
 
   useEffect(() => {
     void load();
-    const id = setInterval(() => void load(), 30_000);
-    return () => clearInterval(id);
   }, [load]);
 
   const available = num(wallet?.available_balance);

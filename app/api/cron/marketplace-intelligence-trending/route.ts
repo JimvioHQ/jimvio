@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isMarketplaceIntelligenceCronEnabled } from "@/lib/platform/background-jobs";
 import { runTrendingUpdate } from "@/lib/marketplace/intelligence-v4/run-intelligence";
 import { getIntelligenceSchemaHealth } from "@/lib/marketplace/intelligence-v4/schema-health";
 
@@ -18,6 +19,14 @@ function authorized(req: Request): boolean {
 export async function GET(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isMarketplaceIntelligenceCronEnabled()) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "Marketplace intelligence cron is disabled.",
+    });
   }
 
   try {

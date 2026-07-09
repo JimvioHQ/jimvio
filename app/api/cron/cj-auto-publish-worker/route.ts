@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAutomaticAutoPublishEnabled } from "@/lib/platform/background-jobs";
 import { runAutoPublishWorker } from "@/lib/cj/premium-intelligence/auto-publish-worker";
 import { getCatalogDB } from "@/lib/cj/premium-intelligence/db";
 import { getActiveHeavyWorkerJob } from "@/lib/cj/premium-intelligence/worker-coordinator";
@@ -29,6 +30,14 @@ async function isWorkerSchemaReady(): Promise<boolean> {
 export async function GET(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isAutomaticAutoPublishEnabled()) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "Automatic auto-publish worker is disabled. Manual publish remains available.",
+    });
   }
 
   try {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAutomaticAutoPublishEnabled } from "@/lib/platform/background-jobs";
 import { runAutoPublishRetry } from "@/lib/cj/premium-intelligence/auto-publish-retry";
 import { computeAutoPublishAnalytics } from "@/lib/cj/premium-intelligence/auto-publish-analytics";
 import { getSchemaHealth } from "@/lib/cj/premium-intelligence/schema-health";
@@ -20,6 +21,14 @@ function authorized(req: Request): boolean {
 export async function GET(req: Request) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!isAutomaticAutoPublishEnabled()) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "Automatic auto-publish is disabled. Manual publish remains available.",
+    });
   }
 
   try {
