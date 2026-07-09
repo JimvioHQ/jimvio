@@ -4,11 +4,12 @@ import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos
 import { getMarketplaceVisibilitySets } from "@/lib/cj/premium-intelligence/marketplace-filter";
 import {
   dedupeProductsById,
+  dedupeProductsByIdentity,
   ensureNonEmptyCollection,
   HOMEPAGE_FLASH_DEALS_LIMIT,
+  resolveMarketplaceFlashDeals,
   resolveMarketplaceProductPool,
-  selectFlashDeals,
-  selectTrendingProducts,
+  sortByHomepagePriority,
 } from "@/lib/marketplace/homepage-ranking";
 import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
 import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
@@ -57,12 +58,12 @@ const PRODUCT_SELECT = `
   status, is_active, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, view_count, sale_count,
   sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
-  created_at, auto_unpublished, deleted_at,
+  created_at, auto_unpublished, deleted_at, sku,
   source, source_metadata, published_by_admin_override,
   vendors(id, verification_status)
 `;
 
-const POOL_FETCH_LIMIT = 120;
+const POOL_FETCH_LIMIT = 200;
 
 export async function fetchCategoriesForType(
   supabase: SupabaseLike,
@@ -120,36 +121,38 @@ export async function fetchCategoriesForType(
   return catRows;
 }
 
-/** Fetch flash deals, trending page, categories, and count for a product type — optimized queries. */
-export async function fetchMarketplacePageBundle(
+async function fetchMarketplaceProductPool(
   supabase: SupabaseLike,
-  type: MarketplaceProductType,
-  options?: { page?: number; pageSize?: number },
-): Promise<MarketplacePageBundle> {
-  const typeFilter = getMarketplaceTypeFilter(type);
-  const page = options?.page ?? 1;
-  const pageSize = options?.pageSize ?? MARKETPLACE_PAGE_SIZE;
-  const offset = (page - 1) * pageSize;
+  typeFilter: readonly string[],
+  visibilitySets: Awaited<ReturnType<typeof getMarketplaceVisibilitySets>>,
+): Promise<{ pool: DbProduct[]; listingCount: number }> {
+  let offset = 0;
+  let listingCount = 0;
+  const rawRows: DbProduct[] = [];
 
-  const visibilitySets = await getMarketplaceVisibilitySets();
-
-  const [{ data: rawRows, count }, categories] = await Promise.all([
-    supabase
+  while (true) {
+    const { data, count } = await supabase
       .from("products")
-      .select(PRODUCT_SELECT, { count: "estimated", head: false })
+      .select(PRODUCT_SELECT, { count: offset === 0 ? "estimated" : undefined, head: false })
       .eq("status", "active")
       .eq("is_active", true)
       .is("deleted_at", null)
       .in("product_type", [...typeFilter])
       .order("created_at", { ascending: false })
-      .range(offset, offset + POOL_FETCH_LIMIT - 1),
+      .range(offset, offset + POOL_FETCH_LIMIT - 1);
 
-    fetchCategoriesForType(supabase, typeFilter),
-  ]);
+    if (offset === 0) listingCount = count ?? 0;
 
-  const listingCount = count ?? 0;
+    const batch = (data ?? []) as DbProduct[];
+    rawRows.push(...batch);
+
+    if (batch.length < POOL_FETCH_LIMIT) break;
+    if (listingCount > 0 && rawRows.length >= listingCount) break;
+    offset += POOL_FETCH_LIMIT;
+  }
+
   let pool = resolveMarketplaceProductPool(
-    dedupeProductsById((rawRows ?? []) as DbProduct[]),
+    dedupeProductsByIdentity(rawRows),
     visibilitySets,
     listingCount,
   );
@@ -163,51 +166,62 @@ export async function fetchMarketplacePageBundle(
       .is("deleted_at", null)
       .in("product_type", [...typeFilter])
       .order("created_at", { ascending: false })
-      .limit(Math.max(pageSize, HOMEPAGE_FLASH_DEALS_LIMIT, 48));
+      .limit(Math.max(listingCount, HOMEPAGE_FLASH_DEALS_LIMIT, 48));
 
     pool = resolveMarketplaceProductPool(
-      dedupeProductsById((fallback ?? []) as DbProduct[]),
+      dedupeProductsByIdentity((fallback ?? []) as DbProduct[]),
       visibilitySets,
       listingCount,
     );
   }
 
-  let flashDeals = dedupeProductsById(selectFlashDeals(pool, HOMEPAGE_FLASH_DEALS_LIMIT));
+  return { pool, listingCount };
+}
+
+/** Fetch flash deals, trending page, categories, and count for a product type — optimized queries. */
+export async function fetchMarketplacePageBundle(
+  supabase: SupabaseLike,
+  type: MarketplaceProductType,
+  options?: { page?: number; pageSize?: number },
+): Promise<MarketplacePageBundle> {
+  const typeFilter = getMarketplaceTypeFilter(type);
+  const pageSize = options?.pageSize ?? MARKETPLACE_PAGE_SIZE;
+
+  const visibilitySets = await getMarketplaceVisibilitySets();
+
+  const [{ pool, listingCount }, categories] = await Promise.all([
+    fetchMarketplaceProductPool(supabase, typeFilter, visibilitySets),
+    fetchCategoriesForType(supabase, typeFilter),
+  ]);
+
+  let flashDeals = resolveMarketplaceFlashDeals(pool, listingCount);
   const flashIds = new Set(flashDeals.map((p) => p.id));
   const trendingPool =
     pool.filter((p) => !flashIds.has(p.id)).length > 0
       ? pool.filter((p) => !flashIds.has(p.id))
       : pool;
-  let trendingProducts = dedupeProductsById(
-    selectTrendingProducts(trendingPool, pageSize),
+  const rankedTrending = dedupeProductsByIdentity(
+    sortByHomepagePriority(trendingPool),
   );
+  let trendingProducts = rankedTrending.slice(0, Math.max(pageSize, listingCount));
 
-  flashDeals = ensureNonEmptyCollection(
-    flashDeals,
-    pool,
-    (items) => dedupeProductsById(selectFlashDeals(items, HOMEPAGE_FLASH_DEALS_LIMIT)),
-    HOMEPAGE_FLASH_DEALS_LIMIT,
-    listingCount,
-  );
   trendingProducts = ensureNonEmptyCollection(
     trendingProducts,
     trendingPool,
-    (items) => dedupeProductsById(selectTrendingProducts(items, pageSize)),
-    pageSize,
+    (items) =>
+      dedupeProductsByIdentity(
+        sortByHomepagePriority(items).slice(0, Math.max(pageSize, listingCount)),
+      ),
+    Math.max(pageSize, listingCount),
     listingCount,
   );
 
-  if (trendingProducts.length < pageSize && pool.length > trendingProducts.length) {
+  if (trendingProducts.length < listingCount && rankedTrending.length > trendingProducts.length) {
     const used = new Set([...flashIds, ...trendingProducts.map((p) => p.id)]);
-    const fill = [...pool]
+    const fill = rankedTrending
       .filter((p) => !used.has(p.id))
-      .sort((a, b) => {
-        const ta = Date.parse(String((a as { created_at?: string }).created_at ?? 0)) || 0;
-        const tb = Date.parse(String((b as { created_at?: string }).created_at ?? 0)) || 0;
-        return tb - ta;
-      })
-      .slice(0, pageSize - trendingProducts.length);
-    trendingProducts = dedupeProductsById([...trendingProducts, ...fill]);
+      .slice(0, listingCount - trendingProducts.length);
+    trendingProducts = dedupeProductsByIdentity([...trendingProducts, ...fill]);
   }
 
   const videoMap = await fetchProductVideosMap(

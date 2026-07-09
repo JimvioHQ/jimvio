@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { FeedProduct } from "@/lib/marketplace/personalization";
+import type { FeedProduct, PersonalizationSignals } from "@/lib/marketplace/personalization";
 import {
   buildPersonalizedFeed,
   collectPersonalizationSignals,
@@ -11,6 +11,18 @@ import { PersonalizedFeedSection } from "./PersonalizedFeedSection";
 import { PersonalizedForYouGate } from "./PersonalizedForYouGate";
 
 const MIN_CATALOG_FOR_GATE = 3;
+
+const EMPTY_SIGNALS: PersonalizationSignals = {
+  viewedProductIds: [],
+  viewedProducts: [],
+  viewedCategoryIds: [],
+  cartProductIds: [],
+  wishlistProductIds: [],
+  searchTerms: [],
+  countryCode: "US",
+  language: "en",
+  creatorInterestTags: [],
+};
 
 function extractCartProductIds(orders: unknown[]): string[] {
   const ids = new Set<string>();
@@ -42,6 +54,11 @@ export function PersonalizedMarketplaceFeed({
 }: PersonalizedMarketplaceFeedProps) {
   const orders = useCartStore((s) => s.orders);
   const [signalTick, setSignalTick] = useState(0);
+  const [signalsReady, setSignalsReady] = useState(false);
+
+  useEffect(() => {
+    setSignalsReady(true);
+  }, []);
 
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
@@ -54,9 +71,10 @@ export function PersonalizedMarketplaceFeed({
   }, []);
 
   const signals = useMemo(() => {
+    if (!signalsReady) return EMPTY_SIGNALS;
     void signalTick;
     return collectPersonalizationSignals(extractCartProductIds(orders), []);
-  }, [orders, signalTick]);
+  }, [signalsReady, orders, signalTick]);
 
   const sections = useMemo(
     () =>
@@ -71,10 +89,10 @@ export function PersonalizedMarketplaceFeed({
   );
 
   if (!loading && catalog.length < MIN_CATALOG_FOR_GATE) return null;
-  if (!loading && sections.length === 0) return null;
+  if (!loading && (!signalsReady || sections.length === 0)) return null;
 
   return (
-    <PersonalizedForYouGate sectionCount={loading ? 3 : sections.length} loading={loading}>
+    <PersonalizedForYouGate sectionCount={sections.length} loading={loading}>
       {() =>
         loading
           ? Array.from({ length: 3 }).map((_, i) => (

@@ -164,7 +164,7 @@ export function TrendingProductsClient({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
+        <div className="grid grid-cols-2 items-stretch gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
           {(() => {
             let newIdx = 0;
             return filtered.map((p) => {
@@ -174,6 +174,7 @@ export function TrendingProductsClient({
                 <div
                   key={p.id}
                   className={cn(
+                    "h-full",
                     shouldAnimate && "motion-safe:animate-[marketplaceProductIn_0.45s_cubic-bezier(0.23,1,0.32,1)_both]",
                   )}
                   style={
@@ -460,6 +461,14 @@ function ProductCard({
   })();
 
   useEffect(() => {
+    for (const src of previewImages.slice(1)) {
+      const img = new window.Image();
+      img.decoding = "async";
+      img.src = src;
+    }
+  }, [previewImages]);
+
+  useEffect(() => {
     setImgReady(false);
     if (!displayImage) {
       setImgReady(true);
@@ -499,14 +508,14 @@ function ProductCard({
       />
 
       {/* ── Image ── */}
-      <div className="relative z-[2] overflow-hidden pointer-events-none">
+      <div className="relative z-[2] shrink-0 overflow-hidden pointer-events-none">
         <div
-          className="relative flex aspect-square w-full items-center justify-center overflow-hidden p-2.5 sm:p-3"
+          className="relative aspect-square w-full overflow-hidden"
           style={{ background: "var(--color-surface-secondary)" }}
         >
           {!imgReady && (
             <div
-              className="absolute inset-0 animate-pulse"
+              className="absolute inset-0 z-[1] animate-pulse"
               style={{ background: "var(--color-surface-secondary)" }}
               aria-hidden
             />
@@ -519,10 +528,10 @@ function ProductCard({
             previewImages={previewImages}
             hovered={hovered}
             useNextImage={false}
-            layout="fit"
-            imageFit="contain"
+            layout="fill"
+            imageFit="cover"
             imageClassName={cn(
-              "max-h-full max-w-full transition-[transform,opacity] duration-300 ease-out",
+              "transition-[transform,opacity] duration-300 ease-out",
               imgReady ? "opacity-100" : "opacity-0",
               previewImages.length <= 1 && "group-hover:scale-[1.02]",
             )}
@@ -615,44 +624,36 @@ function ProductCard({
       </div>
 
       {/* ── Info ── */}
-      <div className="pointer-events-none relative z-[2] flex flex-1 flex-col gap-1.5 p-2.5 pt-2">
-        {(isVerifiedVendor || (ratingValue != null && ratingValue > 0)) && (
-          <div className="flex items-center gap-2 text-[9px] font-semibold" style={{ color: "var(--color-text-muted)" }}>
-            {isVerifiedVendor && (
-              <span className="inline-flex items-center gap-0.5 text-[var(--color-accent)]">
-                <CheckCircle2 className="size-2.5" />
-                Verified
-              </span>
-            )}
-            {ratingValue != null && ratingValue > 0 && (
-              <span className="inline-flex items-center gap-0.5">
-                <Star className="size-2.5 fill-amber-400 text-amber-400" />
-                {ratingValue.toFixed(1)}
-              </span>
-            )}
-          </div>
-        )}
+      <div className="pointer-events-none relative z-[2] flex min-h-0 flex-1 flex-col gap-1.5 p-2.5 pt-2">
+        <div
+          className="flex min-h-[14px] items-center gap-2 text-[9px] font-semibold"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          {isVerifiedVendor ? (
+            <span className="inline-flex items-center gap-0.5 text-[var(--color-accent)]">
+              <CheckCircle2 className="size-2.5 shrink-0" />
+              Verified
+            </span>
+          ) : null}
+          {ratingValue != null && ratingValue > 0 ? (
+            <span className="inline-flex items-center gap-0.5">
+              <Star className="size-2.5 shrink-0 fill-amber-400 text-amber-400" />
+              {ratingValue.toFixed(1)}
+            </span>
+          ) : null}
+        </div>
 
         <h4
-          className="line-clamp-2 text-[11px] font-semibold leading-snug tracking-[-0.01em]"
+          className="line-clamp-2 min-h-[2.75em] max-h-[2.75em] overflow-hidden text-[11px] font-semibold leading-[1.375] tracking-[-0.01em]"
           style={{ color: "var(--color-text-primary)" }}
+          title={p.name}
         >
           {p.name}
         </h4>
 
-        <div className="mt-auto flex items-baseline gap-1.5 pt-0.5">
-          <span className="text-[15px] font-black leading-none tracking-[-0.02em]" style={{ color: "var(--color-accent)" }}>
-            {formatMoney(displayPrice, currency)}
-          </span>
-          {effectiveCompareAt && (
-            <span className="text-[10px] font-medium leading-none line-through" style={{ color: "var(--color-text-muted)" }}>
-              {formatMoney(effectiveCompareAt, currency)}
-            </span>
-          )}
-        </div>
-
+        <div className="mt-auto flex flex-col gap-1 pt-0.5">
         {hasColors && (
-          <div className="pointer-events-auto mt-1 flex items-center gap-1 flex-wrap">
+          <div className="pointer-events-auto flex items-center gap-1 flex-wrap">
             {visibleColors.map((v) => {
               const raw = getColorValue(getOptions(v))!;
               const isSelected = selectedColor === raw;
@@ -692,7 +693,7 @@ function ProductCard({
         )}
 
         {hasSizes && (
-          <div className="pointer-events-auto relative mt-1" ref={sizeRef}>
+          <div className="pointer-events-auto relative" ref={sizeRef}>
             <button
               type="button"
               onClick={(e) => {
@@ -758,6 +759,18 @@ function ProductCard({
             )}
           </div>
         )}
+
+        <div className="flex min-h-[20px] items-baseline gap-1.5">
+          <span className="text-[15px] font-black leading-none tracking-[-0.02em]" style={{ color: "var(--color-accent)" }}>
+            {formatMoney(displayPrice, currency)}
+          </span>
+          {effectiveCompareAt && (
+            <span className="text-[10px] font-medium leading-none line-through" style={{ color: "var(--color-text-muted)" }}>
+              {formatMoney(effectiveCompareAt, currency)}
+            </span>
+          )}
+        </div>
+        </div>
       </div>
 
     </div>

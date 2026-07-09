@@ -9,6 +9,7 @@ import {
 } from "@/components/marketplace/new/TrendingProductsClient";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
+import { dedupeProductsByIdentity } from "@/lib/marketplace/homepage-ranking";
 
 const PAGE_SIZE = 12;
 /** ~25px/s at 60fps — premium, non-distracting marquee speed */
@@ -20,7 +21,7 @@ const PRODUCT_SELECT = `
   status, is_active, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, sale_count, view_count,
   rating, review_count, is_free_shipping, vendor_id, category_id,
-  created_at, auto_unpublished, deleted_at,
+  created_at, auto_unpublished, deleted_at, sku, source, source_metadata,
   vendors(id, verification_status)
 `;
 
@@ -77,7 +78,9 @@ export function HomepageTrendingProductsClient({
   initialTotal,
 }: HomepageTrendingProductsClientProps) {
   const reducedMotion = usePrefersReducedMotion();
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState(() =>
+    dedupeProductsByIdentity(initialProducts),
+  );
   const [total, setTotal] = useState(initialTotal);
   const [paused, setPaused] = useState(false);
 
@@ -151,10 +154,7 @@ export function HomepageTrendingProductsClient({
       );
       const enriched = attachProductVideos(batch, videoMap);
 
-      setProducts((prev) => {
-        const seen = new Set(prev.map((p) => p.id));
-        return [...prev, ...enriched.filter((p) => !seen.has(p.id))];
-      });
+      setProducts((prev) => dedupeProductsByIdentity([...prev, ...enriched]));
       if (count != null) setTotal(count);
     } finally {
       loadingRef.current = false;

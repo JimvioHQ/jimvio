@@ -122,10 +122,14 @@ export function ProductCardVideoMedia({
   }, []);
 
   const handlePreviewStart = useCallback(() => {
-    setSlideIndex(0);
     setPreviewActive(true);
     preloadPreviewImages(slideshowImages.slice(1));
     clearSlideTimer();
+    if (slideshowImages.length > 1) {
+      setSlideIndex(1);
+    } else {
+      setSlideIndex(0);
+    }
     slideTimerRef.current = setInterval(() => {
       setSlideIndex((i) => (i + 1) % slideshowImages.length);
     }, ImagePreviewEngine.slideIntervalMs);

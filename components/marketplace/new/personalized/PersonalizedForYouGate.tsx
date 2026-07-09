@@ -40,9 +40,24 @@ export function PersonalizedForYouGate({
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setExpanded(readSessionExpanded());
+    if (typeof window === "undefined") {
+      setHydrated(true);
+      return;
+    }
+    try {
+      const hasPreference = sessionStorage.getItem(SESSION_KEY) !== null;
+      const stored = readSessionExpanded();
+      if (!hasPreference && sectionCount > 0 && !loading) {
+        setExpanded(true);
+        writeSessionExpanded(true);
+      } else {
+        setExpanded(stored);
+      }
+    } catch {
+      setExpanded(false);
+    }
     setHydrated(true);
-  }, []);
+  }, [sectionCount, loading]);
 
   const toggle = useCallback(() => {
     setExpanded((prev) => {
@@ -65,9 +80,11 @@ export function PersonalizedForYouGate({
   const isExpanded = hydrated && expanded;
   const subtitle = loading
     ? "Preparing your picks…"
-    : isExpanded
-      ? "Tap to hide your recommendations"
-      : `${sectionCount} curated ${sectionCount === 1 ? "section" : "sections"} ready for you`;
+    : !hydrated
+      ? "Curated sections ready for you"
+      : isExpanded
+        ? "Tap to hide your recommendations"
+        : `${sectionCount} curated ${sectionCount === 1 ? "section" : "sections"} ready for you`;
 
   return (
     <div className="flex flex-col gap-3 lg:gap-4" aria-label="Personalized marketplace recommendations">

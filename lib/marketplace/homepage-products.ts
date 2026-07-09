@@ -10,13 +10,14 @@ import type { DbProduct } from "@/lib/utils";
 import type { HeroProduct } from "@/types";
 import {
   dedupeProductsById,
+  dedupeProductsByIdentity,
   HOMEPAGE_FLASH_DEALS_LIMIT,
   HOMEPAGE_TRENDING_LIMIT,
   ensureNonEmptyCollection,
   resolveMarketplaceProductPool,
   selectFlashDeals,
   selectHeroProduct,
-  selectTrendingProducts,
+  selectUniqueTrendingProducts,
 } from "./homepage-ranking";
 
 const POOL_LIMIT = 400;
@@ -26,7 +27,7 @@ const HOMEPAGE_PRODUCT_SELECT = `
   status, is_active, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, sale_count, view_count,
   rating, review_count, is_free_shipping, vendor_id, category_id,
-  created_at, auto_unpublished, deleted_at, source, source_metadata,
+  created_at, auto_unpublished, deleted_at, sku, source, source_metadata,
   published_by_admin_override,
   vendors(id, verification_status)
 `;
@@ -51,7 +52,7 @@ export function getHomepageProductsFromPool(
 
   switch (type) {
     case "trending":
-      return selectTrendingProducts(pool, HOMEPAGE_TRENDING_LIMIT, videoIds);
+      return selectUniqueTrendingProducts(pool, HOMEPAGE_TRENDING_LIMIT, videoIds);
     case "flashDeals":
       return selectFlashDeals(pool, HOMEPAGE_FLASH_DEALS_LIMIT, videoIds);
     case "hero": {
@@ -82,7 +83,11 @@ async function fetchPhysicalProductPool(): Promise<{
 
   const raw = (data ?? []) as unknown as DbProduct[];
   const total = count ?? raw.length;
-  const pool = resolveMarketplaceProductPool(raw, visibilitySets, total);
+  const pool = resolveMarketplaceProductPool(
+    dedupeProductsByIdentity(raw),
+    visibilitySets,
+    total,
+  );
 
   return { pool, total };
 }
@@ -105,42 +110,46 @@ export async function getHomepageProductBundle(): Promise<HomepageProductBundle>
     return { trending: [], flashDeals: [], hero: null, total };
   }
 
-  let flashDeals = dedupeProductsById(
+  let flashDeals = dedupeProductsByIdentity(
     selectFlashDeals(pool, HOMEPAGE_FLASH_DEALS_LIMIT),
   );
   const flashIds = new Set(flashDeals.map((p) => p.id));
   const trendingPool = pool.filter((p) => !flashIds.has(p.id));
-  let trending = dedupeProductsById(
-    selectTrendingProducts(
-      trendingPool.length > 0 ? trendingPool : pool,
-      HOMEPAGE_TRENDING_LIMIT,
-    ),
+  let trending = selectUniqueTrendingProducts(
+    trendingPool.length > 0 ? trendingPool : pool,
+    HOMEPAGE_TRENDING_LIMIT,
   );
 
   flashDeals = ensureNonEmptyCollection(
     flashDeals,
     pool,
-    (items) => dedupeProductsById(selectFlashDeals(items, HOMEPAGE_FLASH_DEALS_LIMIT)),
+    (items) => dedupeProductsByIdentity(selectFlashDeals(items, HOMEPAGE_FLASH_DEALS_LIMIT)),
     HOMEPAGE_FLASH_DEALS_LIMIT,
     total,
   );
   trending = ensureNonEmptyCollection(
     trending,
     trendingPool.length > 0 ? trendingPool : pool,
-    (items) => dedupeProductsById(selectTrendingProducts(items, HOMEPAGE_TRENDING_LIMIT)),
+    (items) =>
+      selectUniqueTrendingProducts(
+        items,
+        HOMEPAGE_TRENDING_LIMIT,
+      ),
     HOMEPAGE_TRENDING_LIMIT,
     total,
   );
 
   if (trending.length < HOMEPAGE_TRENDING_LIMIT) {
     const used = new Set([...flashIds, ...trending.map((p) => p.id)]);
-    const fill = pool.filter((p) => !used.has(p.id)).slice(0, HOMEPAGE_TRENDING_LIMIT - trending.length);
-    trending = dedupeProductsById([...trending, ...fill]);
+    const fill = dedupeProductsByIdentity(
+      (trendingPool.length > 0 ? trendingPool : pool).filter((p) => !used.has(p.id)),
+    ).slice(0, HOMEPAGE_TRENDING_LIMIT - trending.length);
+    trending = dedupeProductsByIdentity([...trending, ...fill]);
   }
 
   const heroPick = selectHeroProduct(pool);
 
-  const ids = dedupeProductsById([
+  const ids = dedupeProductsByIdentity([
     ...trending,
     ...flashDeals,
     ...(heroPick ? [heroPick as unknown as DbProduct] : []),

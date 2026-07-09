@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
 import { type DbProduct, getImage, getDiscount, getEffectiveCompareAtPrice } from "@/lib/utils";
-import { dedupeProductsById } from "@/lib/marketplace/homepage-ranking";
+import { dedupeProductsByIdentity } from "@/lib/marketplace/homepage-ranking";
 
 type FlashDealProduct = DbProduct & {
   currency?: string | null;
@@ -24,7 +24,7 @@ export function FlashDealsClient({ deals }: { deals: FlashDealProduct[] }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [cardWidth, setCardWidth] = useState<number | null>(null);
 
-  const uniqueDeals = useMemo(() => dedupeProductsById(deals), [deals]);
+  const uniqueDeals = useMemo(() => dedupeProductsByIdentity(deals), [deals]);
 
   useEffect(() => {
     const el = viewportRef.current;

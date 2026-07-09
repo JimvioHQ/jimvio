@@ -29,7 +29,7 @@ import {
 } from "@/lib/marketplace/fetch-page-data";
 import { DEFAULT_FILTERS } from "@/lib/utils";
 import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
-import { dedupeProductsById } from "@/lib/marketplace/homepage-ranking";
+import { dedupeProductsByIdentity, resolveMarketplaceFlashDeals, HOMEPAGE_FLASH_DEALS_LIMIT } from "@/lib/marketplace/homepage-ranking";
 import { getCategoryImageFallbacks } from "@/lib/marketplace/category-images";
 import {
   MarketplaceSearchBar,
@@ -77,8 +77,8 @@ function applyBundleToState(
     setListingCount: (v: number) => void;
   },
 ) {
-  setters.setFlashDeals(bundle.flashDeals);
-  setters.setTrending(bundle.trending);
+  setters.setFlashDeals(dedupeProductsByIdentity(bundle.flashDeals));
+  setters.setTrending(dedupeProductsByIdentity(bundle.trending));
   setters.setCategories(bundle.categories);
   setters.setCategoriesType(productType);
   setters.setListingCount(bundle.listingCount);
@@ -239,9 +239,21 @@ export function MarketplacePageClient({
     setType(urlType);
   }, [urlType]);
 
-  const cacheRef = useRef<Record<ProductType, MarketplacePageBundle>>(initialBundles);
+  const cacheRef = useRef<Record<ProductType, MarketplacePageBundle>>({
+    physical: {
+      ...initialBundles.physical,
+      flashDeals: dedupeProductsByIdentity(initialBundles.physical.flashDeals),
+      trending: dedupeProductsByIdentity(initialBundles.physical.trending),
+    },
+    digital: {
+      ...initialBundles.digital,
+      flashDeals: dedupeProductsByIdentity(initialBundles.digital.flashDeals),
+      trending: dedupeProductsByIdentity(initialBundles.digital.trending),
+    },
+  });
   const loadGenRef = useRef(0);
   const skipInitialFetchRef = useRef(true);
+  const hydrateAllRef = useRef<string | null>(null);
   const prefetchRef = useRef<Map<string, DbProduct[]>>(new Map());
   const prefetchingRef = useRef<Set<string>>(new Set());
 
@@ -267,6 +279,7 @@ export function MarketplacePageClient({
     setNewProductIds(new Set());
     prefetchRef.current.clear();
     prefetchingRef.current.clear();
+    hydrateAllRef.current = null;
     applyCachedType(t);
     setLoading(false);
     setProductsLoading(false);
@@ -281,8 +294,12 @@ export function MarketplacePageClient({
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [flashDeals, setFlashDeals] = useState<DbProduct[]>(startingBundle.flashDeals);
-  const [trending, setTrending] = useState<DbProduct[]>(startingBundle.trending);
+  const [flashDeals, setFlashDeals] = useState<DbProduct[]>(() =>
+    dedupeProductsByIdentity(startingBundle.flashDeals),
+  );
+  const [trending, setTrending] = useState<DbProduct[]>(() =>
+    dedupeProductsByIdentity(startingBundle.trending),
+  );
   const [categories, setCategories] = useState<DbCategory[]>(startingBundle.categories);
   const [categoriesType, setCategoriesType] = useState<ProductType>(initialType);
   const [stats, setStats] = useState<Stats>(initialStats);
@@ -368,7 +385,8 @@ export function MarketplacePageClient({
               id, name, slug, price, currency, compare_at_price, images, product_type,
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sale_count,
-              rating, review_count, is_free_shipping, vendor_id, category_id,
+              rating, review_count, is_free_shipping, vendor_id, category_id, sku,
+              source, source_metadata,
               vendors(id, verification_status)
             `)
           .eq("status", "active")
@@ -440,7 +458,7 @@ export function MarketplacePageClient({
 
     if (toAdd.length > 0) {
       setNewProductIds(new Set(toAdd.map((p) => p.id)));
-      setTrending((prev) => [...prev, ...toAdd]);
+      setTrending((prev) => dedupeProductsByIdentity([...prev, ...toAdd]));
     }
 
     setLoadingMore(false);
@@ -483,9 +501,6 @@ export function MarketplacePageClient({
       if (urlType !== initialType) {
         applyCachedType(urlType);
       }
-      if (!debouncedSearch && startingBundle.trending.length < startingBundle.listingCount) {
-        void prefetchNextPage(MARKETPLACE_PAGE_SIZE);
-      }
       return;
     }
 
@@ -510,9 +525,6 @@ export function MarketplacePageClient({
       applyCachedType(type);
       setLoading(false);
       setProductsLoading(false);
-      if (cacheRef.current[type].trending.length < cacheRef.current[type].listingCount) {
-        void prefetchNextPage(MARKETPLACE_PAGE_SIZE);
-      }
       return;
     }
 
@@ -597,7 +609,8 @@ export function MarketplacePageClient({
               id, name, slug, price, currency, compare_at_price, images, product_type,
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sale_count,
-              rating, review_count, is_free_shipping, vendor_id, category_id,
+              rating, review_count, is_free_shipping, vendor_id, category_id, sku,
+              source, source_metadata,
               vendors(id, verification_status)
             `)
                   .eq("status", "active")
@@ -660,16 +673,22 @@ export function MarketplacePageClient({
         }
       }
 
-      const dealList = dedupeProductsById((deals ?? []) as DbProduct[]);
-      const trendList = (trend ?? []) as DbProduct[];
+      const dealList = dedupeProductsByIdentity((deals ?? []) as DbProduct[]);
+      const trendList = dedupeProductsByIdentity((trend ?? []) as DbProduct[]);
+      const dealPool = dedupeProductsByIdentity([...dealList, ...trendList]);
+      const resolvedDeals = resolveMarketplaceFlashDeals(
+        dealPool,
+        count ?? 0,
+        HOMEPAGE_FLASH_DEALS_LIMIT,
+      );
       const videoMap = await fetchProductVideosMap(
         supabaseRef.current,
-        [...dealList, ...trendList].map((p) => p.id),
+        [...resolvedDeals, ...trendList].map((p) => p.id),
       );
 
       if (loadGeneration !== loadGenRef.current) return;
 
-      const nextDeals = attachProductVideos(dealList, videoMap);
+      const nextDeals = attachProductVideos(resolvedDeals, videoMap);
       const nextTrending = attachProductVideos(trendList, videoMap);
       const nextCount = count ?? 0;
 
@@ -692,14 +711,10 @@ export function MarketplacePageClient({
 
       setLoading(false);
       setProductsLoading(false);
-
-      if (!skipTrending && nextTrending.length < nextCount) {
-        void prefetchNextPage(MARKETPLACE_PAGE_SIZE);
-      }
     }
 
     load();
-  }, [type, filtersKey, debouncedSearch, filters, router, searchParams, urlType, initialType, prefetchNextPage, startingBundle.listingCount, startingBundle.trending.length]);
+  }, [type, filtersKey, debouncedSearch, urlType, initialType]);
 
   useEffect(() => {
     if (!debouncedSearch) {
@@ -740,7 +755,7 @@ export function MarketplacePageClient({
           supabaseRef.current,
           combined.map((p: DbProduct) => p.id),
         );
-        setTrending(attachProductVideos(combined, videoMap));
+        setTrending(dedupeProductsByIdentity(attachProductVideos(combined, videoMap)));
         setSearchExactMatch(Boolean(data.exactMatch));
         setListingCount(combined.length);
       } catch {
@@ -755,18 +770,61 @@ export function MarketplacePageClient({
     };
   }, [debouncedSearch, type, filters]);
 
+  // Hydrate any remaining published products if SSR bundle was partial.
+  useEffect(() => {
+    if (debouncedSearch || !isDefaultBrowseState(filters, debouncedSearch)) return;
+
+    const hydrateKey = `${type}:${filtersKey}`;
+    if (hydrateAllRef.current === hydrateKey) return;
+
+    const cached = cacheRef.current[type];
+    if (!cached || cached.trending.length >= cached.listingCount) {
+      hydrateAllRef.current = hydrateKey;
+      return;
+    }
+
+    hydrateAllRef.current = hydrateKey;
+    let cancelled = false;
+
+    (async () => {
+      let offset = cached.trending.length;
+      const target = cached.listingCount;
+
+      while (!cancelled && offset < target) {
+        const generation = loadGenRef.current;
+        const batch = await fetchTrendingSlice(offset, generation);
+        if (!batch?.length || cancelled || generation !== loadGenRef.current) break;
+
+        setTrending((prev) => {
+          const merged = dedupeProductsByIdentity([...prev, ...batch]);
+          offset = merged.length;
+          return merged;
+        });
+
+        if (batch.length < MARKETPLACE_PAGE_SIZE) break;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [type, filtersKey, debouncedSearch, filters, fetchTrendingSlice]);
+
   // Flash deals — unique IDs only (server bundle already ranked)
-  const filteredDeals = useMemo(
-    () => {
-      const seen = new Set<string>();
-      return flashDeals.filter((p) => {
-        if (seen.has(p.id)) return false;
-        seen.add(p.id);
-        return true;
-      });
-    },
-    [flashDeals],
+  const displayTrending = useMemo(
+    () => dedupeProductsByIdentity(trending),
+    [trending],
   );
+
+  const displayFlashDeals = useMemo(() => {
+    const deals = dedupeProductsByIdentity(flashDeals);
+    if (deals.length > 0 || listingCount === 0) return deals;
+    return resolveMarketplaceFlashDeals(
+      displayTrending,
+      listingCount,
+      HOMEPAGE_FLASH_DEALS_LIMIT,
+    );
+  }, [flashDeals, displayTrending, listingCount]);
 
   const shopCategories = useMemo(
     () => resolveShopCategories(type, categoriesType === type ? categories : []),
@@ -863,14 +921,17 @@ export function MarketplacePageClient({
   const searchPending = productsLoading && search.trim() === debouncedSearch && debouncedSearch.length > 0;
 
   return (
-    <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-x-4 lg:gap-y-3">
-      {/* Sidebar — sticky while scrolling product feed */}
-      <div className="hidden lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:block lg:self-start lg:sticky lg:top-[calc(var(--navbar-height,64px)+0.75rem)] lg:z-20 lg:max-h-[calc(100dvh-var(--navbar-height,64px)-1.5rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:pr-0.5 [scrollbar-width:thin]">
-        <Sidebar type={type} />
+    <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:gap-4">
+      {/* Sidebar — fixed in viewport while product grid scrolls */}
+      <div className="hidden lg:block lg:w-[15rem] lg:shrink-0">
+        <div className="sticky top-[calc(var(--navbar-height,64px)+0.75rem)] z-20 max-h-[calc(100dvh-var(--navbar-height,64px)-1.5rem)] overflow-y-auto overflow-x-hidden overscroll-contain pr-0.5 [scrollbar-width:thin]">
+          <Sidebar type={type} />
+        </div>
       </div>
 
+      <div className="flex min-w-0 flex-1 flex-col gap-3 lg:gap-4">
       {/* Search — aligns top with Categories */}
-      <div className="min-w-0 lg:col-start-2 lg:row-start-1">
+      <div className="min-w-0">
         <div className="flex flex-col gap-2 relative">
           <div className={marketplaceSearchBarClassName(searchFocused)}>
             <button
@@ -976,7 +1037,7 @@ export function MarketplacePageClient({
       </div>
 
       {/* Main content below search */}
-      <div className="flex min-w-0 flex-col gap-4 overflow-x-hidden lg:col-start-2 lg:row-start-2 lg:gap-5">
+      <div className="flex min-w-0 flex-col gap-4 overflow-x-hidden lg:gap-5">
         <HeroBannerView physical={heroPhysical} digital={heroDigital} initialType={type} />
 
         <div className="w-full min-w-0">
@@ -985,8 +1046,8 @@ export function MarketplacePageClient({
 
         {isDefaultBrowseState(filters, debouncedSearch) && (
           <PersonalizedMarketplaceFeed
-            catalog={trending}
-            flashDeals={filteredDeals}
+            catalog={displayTrending}
+            flashDeals={displayFlashDeals}
             newProductIds={newProductIds}
             productType={type}
             loading={loading && trending.length === 0}
@@ -1027,18 +1088,11 @@ export function MarketplacePageClient({
             </div>
           </div>
           <div className="p-2">
-            {loading && filteredDeals.length === 0 ? (
+            {loading && displayFlashDeals.length === 0 ? (
               <SkeletonDeals />
-            ) : filteredDeals.length > 0 ? (
-              <FlashDealsClient deals={filteredDeals} />
-            ) : (
-              <p
-                className="py-6 text-center text-xs"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                No deals available right now — check back soon
-              </p>
-            )}
+            ) : displayFlashDeals.length > 0 ? (
+              <FlashDealsClient deals={displayFlashDeals} />
+            ) : null}
           </div>
         </section>
 
@@ -1110,9 +1164,9 @@ export function MarketplacePageClient({
               No exact matches found — showing similar products
             </p>
           )}
-          {(loading || productsLoading) && trending.length === 0 ? (
+          {(loading || productsLoading) && displayTrending.length === 0 ? (
             <SkeletonGrid />
-          ) : trending.length === 0 ? (
+          ) : displayTrending.length === 0 ? (
             <div
               className="rounded-2xl border border-dashed px-6 py-14 text-center"
               style={{
@@ -1151,14 +1205,14 @@ export function MarketplacePageClient({
             <>
               <TrendingProductsClient
                 key={type}
-                products={trending}
+                products={displayTrending}
                 type={type}
                 newProductIds={newProductIds}
                 loadingMore={loadingMore}
               />
               {!debouncedSearch && (
                 <MarketplacePagination
-                  hasMore={trending.length < listingCount}
+                  hasMore={displayTrending.length < listingCount}
                   loading={loadingMore}
                   onLoadMore={loadMore}
                   total={listingCount}
@@ -1174,6 +1228,7 @@ export function MarketplacePageClient({
           listingCount={listingCount}
           onSearchPick={setSearch}
         />
+      </div>
       </div>
     </div>
   );
