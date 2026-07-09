@@ -37,6 +37,7 @@ type Props = {
   popularSearches: string[];
   trendingCategories: string[];
   onPick: (term: string) => void;
+  onCategoryPick?: (category: string) => void;
   onSubmit: (term: string) => void;
   onClearRecent?: () => void;
 };
@@ -136,6 +137,7 @@ export const MarketplaceSearchPopover = forwardRef<MarketplaceSearchPopoverHandl
       popularSearches,
       trendingCategories,
       onPick,
+      onCategoryPick,
       onSubmit,
       onClearRecent,
     },
@@ -225,16 +227,19 @@ export const MarketplaceSearchPopover = forwardRef<MarketplaceSearchPopoverHandl
     const activateItem = useCallback(
       (item: NavItem) => {
         if (item.type === "chip") {
-          if (item.chipKind === "category") onPick(item.term);
-          else onSubmit(item.term);
+          if (item.chipKind === "category") {
+            (onCategoryPick ?? onPick)(item.term);
+          } else {
+            onSubmit(item.term);
+          }
           return;
         }
         const { suggestion } = item;
         if (suggestion.kind === "product") onSubmit(suggestion.label);
-        else if (suggestion.kind === "category") onPick(suggestion.label);
+        else if (suggestion.kind === "category") (onCategoryPick ?? onPick)(suggestion.label);
         else onSubmit(q);
       },
-      [onPick, onSubmit, q],
+      [onCategoryPick, onPick, onSubmit, q],
     );
 
     const onKeyDown = useCallback(

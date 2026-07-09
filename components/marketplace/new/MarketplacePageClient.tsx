@@ -271,6 +271,7 @@ export function MarketplacePageClient({
   }
 
   function handleTypeChange(t: ProductType) {
+    loadGenRef.current += 1;
     setType(t);
     setCategory("");
     clearFilters();
@@ -513,6 +514,7 @@ export function MarketplacePageClient({
     if (filterOrSearchChanged || typeChanged) {
       prefetchRef.current.clear();
       prefetchingRef.current.clear();
+      hydrateAllRef.current = null;
       setNewProductIds(new Set());
       setLoadingMore(false);
     }
@@ -520,6 +522,24 @@ export function MarketplacePageClient({
     loadDepsRef.current = { type, filtersKey, debouncedSearch };
 
     const defaultBrowse = isDefaultBrowseState(filters, debouncedSearch);
+    const searchCleared = Boolean(prev.debouncedSearch) && !debouncedSearch;
+    let hadActiveFilters = false;
+    try {
+      hadActiveFilters = !isDefaultBrowseState(
+        JSON.parse(prev.filtersKey) as typeof DEFAULT_FILTERS & { shippingFrom: string[] },
+        prev.debouncedSearch,
+      );
+    } catch {
+      hadActiveFilters = false;
+    }
+    const filtersClearedToDefault = hadActiveFilters && defaultBrowse && !debouncedSearch;
+
+    if ((searchCleared || filtersClearedToDefault) && cacheRef.current[type]) {
+      applyCachedType(type);
+      setLoading(false);
+      setProductsLoading(false);
+      return;
+    }
 
     if (typeChanged && defaultBrowse && !debouncedSearch && cacheRef.current[type]) {
       applyCachedType(type);
@@ -719,14 +739,12 @@ export function MarketplacePageClient({
   useEffect(() => {
     if (!debouncedSearch) {
       setSearchExactMatch(true);
-      if (isDefaultBrowseState(filters, "") && cacheRef.current[type]) {
-        applyCachedType(type);
-      }
       return;
     }
 
     prefetchRef.current.clear();
     prefetchingRef.current.clear();
+    hydrateAllRef.current = null;
     setNewProductIds(new Set());
     setLoadingMore(false);
 
@@ -739,6 +757,7 @@ export function MarketplacePageClient({
         const res = await fetch(
           `/api/marketplace/search?q=${encodeURIComponent(debouncedSearch)}&type=${type}&limit=40`,
         );
+        if (!res.ok) throw new Error("Search failed");
         const data = await res.json();
         if (cancelled || searchGeneration !== loadGenRef.current) return;
 
@@ -755,6 +774,8 @@ export function MarketplacePageClient({
           supabaseRef.current,
           combined.map((p: DbProduct) => p.id),
         );
+        if (cancelled || searchGeneration !== loadGenRef.current) return;
+
         setTrending(dedupeProductsByIdentity(attachProductVideos(combined, videoMap)));
         setSearchExactMatch(Boolean(data.exactMatch));
         setListingCount(combined.length);
@@ -768,7 +789,7 @@ export function MarketplacePageClient({
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, type, filters]);
+  }, [debouncedSearch, type]);
 
   // Hydrate any remaining published products if SSR bundle was partial.
   useEffect(() => {
@@ -783,7 +804,6 @@ export function MarketplacePageClient({
       return;
     }
 
-    hydrateAllRef.current = hydrateKey;
     let cancelled = false;
 
     (async () => {
@@ -803,12 +823,16 @@ export function MarketplacePageClient({
 
         if (batch.length < MARKETPLACE_PAGE_SIZE) break;
       }
+
+      if (!cancelled) {
+        hydrateAllRef.current = hydrateKey;
+      }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [type, filtersKey, debouncedSearch, filters, fetchTrendingSlice]);
+  }, [type, filtersKey, debouncedSearch, fetchTrendingSlice]);
 
   // Flash deals — unique IDs only (server bundle already ranked)
   const displayTrending = useMemo(
@@ -894,6 +918,15 @@ export function MarketplacePageClient({
     setSearch(t);
     setDebouncedSearch(t);
     setSearchFocused(false);
+  }
+
+  function applyCategoryFilter(categoryName: string) {
+    const name = categoryName.trim();
+    if (!name) return;
+    setSearch("");
+    setDebouncedSearch("");
+    setSearchFocused(false);
+    setCategory(name);
   }
 
   function clearSearch() {
@@ -1013,6 +1046,7 @@ export function MarketplacePageClient({
             popularSearches={POPULAR_SEARCHES}
             trendingCategories={trendingCategorySuggestions}
             onPick={(term) => applySearch(term)}
+            onCategoryPick={applyCategoryFilter}
             onSubmit={submitSearch}
             onClearRecent={clearRecentHistory}
           />
@@ -1226,7 +1260,7 @@ export function MarketplacePageClient({
         <MarketplaceEngagementHub
           productType={type}
           listingCount={listingCount}
-          onSearchPick={setSearch}
+          onSearchPick={applySearch}
         />
       </div>
       </div>

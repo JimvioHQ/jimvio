@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import {
   Flame, Sparkles,
   TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star, CheckCircle2,
@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
 import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel, normalizeImages, isRenderableImageSrc } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { addToCart, checkProductInCart, removeProductFromCart } from "@/lib/actions/marketplace";
+import { addToCart, getCartProductIds, removeProductFromCart } from "@/lib/actions/marketplace";
 import { requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
@@ -101,6 +101,24 @@ export function TrendingProductsClient({
   const [activeTab, setActiveTab] = useState(0);
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [cartProductIds, setCartProductIds] = useState<Set<string>>(() => new Set());
+
+  const refreshCartProductIds = useCallback(async () => {
+    const ids = await getCartProductIds();
+    setCartProductIds(new Set(ids));
+  }, []);
+
+  useEffect(() => {
+    void refreshCartProductIds();
+  }, [refreshCartProductIds]);
+
+  useEffect(() => {
+    const onCartUpdated = () => {
+      void refreshCartProductIds();
+    };
+    window.addEventListener("cart-updated", onCartUpdated);
+    return () => window.removeEventListener("cart-updated", onCartUpdated);
+  }, [refreshCartProductIds]);
 
   useEffect(() => { setActiveTab(0); }, [type]);
 
@@ -186,7 +204,7 @@ export function TrendingProductsClient({
                       : undefined
                   }
                 >
-                  <ProductCard p={p} />
+                  <ProductCard p={p} inCartInitially={cartProductIds.has(p.id)} />
                 </div>
               );
             });
@@ -224,8 +242,10 @@ function cssColor(raw: string): string {
 
 function ProductCard({
   p,
+  inCartInitially = false,
 }: {
   p: Product;
+  inCartInitially?: boolean;
 }) {
   const trackInventory = Boolean(p.track_inventory);
   const variants: DbVariant[] = filterStorefrontVariants(
@@ -278,32 +298,17 @@ function ProductCard({
   const [showSizes, setShowSizes] = useState(false);
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState(false);
-  const [inCart, setInCart] = useState(false);
+  const [inCart, setInCart] = useState(inCartInitially);
   const [cartHovered, setCartHovered] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [hovered, setHovered] = useState(false);
   const [imgReady, setImgReady] = useState(false);
-  const { incrementCartCount, setCartCount, refreshCounts } = useCartStore();
+  const { incrementCartCount, setCartCount } = useCartStore();
   const { formatMoney } = useCurrency();
 
   useEffect(() => {
-    let cancelled = false;
-    checkProductInCart(p.id).then((res) => {
-      if (!cancelled) setInCart(res.inCart);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [p.id]);
-
-  useEffect(() => {
-    const syncCartState = () => {
-      checkProductInCart(p.id).then((res) => setInCart(res.inCart));
-      void refreshCounts();
-    };
-    window.addEventListener("cart-updated", syncCartState);
-    return () => window.removeEventListener("cart-updated", syncCartState);
-  }, [p.id, refreshCounts]);
+    setInCart(inCartInitially);
+  }, [inCartInitially, p.id]);
 
   let activeVariant = variants.find((v) => {
     const colorMatch = !selectedColor || getColorValue(getOptions(v)) === selectedColor;
@@ -459,14 +464,6 @@ function ProductCard({
     if (outOfStock) return "Out of Stock";
     return "Add to Cart";
   })();
-
-  useEffect(() => {
-    for (const src of previewImages.slice(1)) {
-      const img = new window.Image();
-      img.decoding = "async";
-      img.src = src;
-    }
-  }, [previewImages]);
 
   useEffect(() => {
     setImgReady(false);

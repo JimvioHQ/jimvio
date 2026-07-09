@@ -7,15 +7,6 @@ import { cn } from "@/lib/utils";
 
 const SESSION_KEY = "jimvio_marketplace_personalized_expanded";
 
-function readSessionExpanded(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return sessionStorage.getItem(SESSION_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
 function writeSessionExpanded(value: boolean) {
   try {
     sessionStorage.setItem(SESSION_KEY, String(value));
@@ -25,14 +16,17 @@ function writeSessionExpanded(value: boolean) {
 }
 
 type PersonalizedForYouGateProps = {
-  sectionCount: number;
+  /** Loaded section count; null while recommendations have not been fetched yet. */
+  sectionCount: number | null;
   loading?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
   children: () => React.ReactNode;
 };
 
 export function PersonalizedForYouGate({
   sectionCount,
   loading = false,
+  onExpandedChange,
   children,
 }: PersonalizedForYouGateProps) {
   const panelId = useId();
@@ -40,32 +34,17 @@ export function PersonalizedForYouGate({
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      setHydrated(true);
-      return;
-    }
-    try {
-      const hasPreference = sessionStorage.getItem(SESSION_KEY) !== null;
-      const stored = readSessionExpanded();
-      if (!hasPreference && sectionCount > 0 && !loading) {
-        setExpanded(true);
-        writeSessionExpanded(true);
-      } else {
-        setExpanded(stored);
-      }
-    } catch {
-      setExpanded(false);
-    }
     setHydrated(true);
-  }, [sectionCount, loading]);
+  }, []);
 
   const toggle = useCallback(() => {
     setExpanded((prev) => {
       const next = !prev;
       writeSessionExpanded(next);
+      onExpandedChange?.(next);
       return next;
     });
-  }, []);
+  }, [onExpandedChange]);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -84,7 +63,9 @@ export function PersonalizedForYouGate({
       ? "Curated sections ready for you"
       : isExpanded
         ? "Tap to hide your recommendations"
-        : `${sectionCount} curated ${sectionCount === 1 ? "section" : "sections"} ready for you`;
+        : sectionCount != null && sectionCount > 0
+          ? `${sectionCount} curated ${sectionCount === 1 ? "section" : "sections"} ready for you`
+          : "Curated sections ready for you";
 
   return (
     <div className="flex flex-col gap-3 lg:gap-4" aria-label="Personalized marketplace recommendations">

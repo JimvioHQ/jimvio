@@ -3,8 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
-import { type DbProduct, getImage, getDiscount, getEffectiveCompareAtPrice } from "@/lib/utils";
+import {
+  type DbProduct,
+  getImage,
+  getDiscount,
+  getEffectiveCompareAtPrice,
+  normalizeImages,
+  isRenderableImageSrc,
+} from "@/lib/utils";
 import { dedupeProductsByIdentity } from "@/lib/marketplace/homepage-ranking";
+import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
 
 type FlashDealProduct = DbProduct & {
   currency?: string | null;
@@ -68,12 +76,40 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
   const { formatMoney } = useCurrency();
   const discount = getDiscount(d);
   const compareAtPrice = getEffectiveCompareAtPrice(d);
-  const [imgLoaded, setImgLoaded] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [imgReady, setImgReady] = useState(false);
+  const displayImage = getImage(d.images);
+  const previewImages = useMemo(
+    () => normalizeImages(d.images).filter(isRenderableImageSrc).slice(0, 3),
+    [d.images],
+  );
+
+  useEffect(() => {
+    setImgReady(false);
+    if (!displayImage) {
+      setImgReady(true);
+      return;
+    }
+    let cancelled = false;
+    const img = new window.Image();
+    img.onload = () => {
+      if (!cancelled) setImgReady(true);
+    };
+    img.onerror = () => {
+      if (!cancelled) setImgReady(true);
+    };
+    img.src = displayImage;
+    return () => {
+      cancelled = true;
+    };
+  }, [displayImage]);
 
   return (
     <Link
       href={`/marketplace/${d.slug}`}
       className="product-tap-nav group relative flex w-full min-w-0 flex-col rounded-xl border border-border bg-card p-2.5 transition-[transform,box-shadow] duration-200 ease-out will-change-transform hover:scale-[1.02] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2 sm:p-3"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {discount && (
         <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-1 py-0.5 text-[8px] font-bold leading-none text-primary-foreground md:text-[9px]">
@@ -81,18 +117,20 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
         </span>
       )}
       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted/50">
-        {!imgLoaded && (
-          <div className="absolute inset-0 animate-pulse bg-muted" aria-hidden />
+        {!imgReady && (
+          <div className="absolute inset-0 z-[1] animate-pulse bg-muted" aria-hidden />
         )}
-        <img
-          src={getImage(d.images)}
+        <ProductCardVideoMedia
+          productId={d.id}
+          product={d}
           alt={d.name}
-          width={512}
-          height={512}
-          loading="lazy"
-          decoding="async"
-          className={`h-full w-full object-cover object-center transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
-          onLoad={() => setImgLoaded(true)}
+          imageSrc={displayImage}
+          previewImages={previewImages}
+          hovered={hovered}
+          useNextImage={false}
+          layout="fill"
+          imageFit="cover"
+          imageClassName={`transition-opacity duration-300 ease-out ${imgReady ? "opacity-100" : "opacity-0"}`}
         />
       </div>
       <h4

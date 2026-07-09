@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FeedProduct, PersonalizationSignals } from "@/lib/marketplace/personalization";
 import {
   buildPersonalizedFeed,
@@ -9,8 +9,6 @@ import {
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { PersonalizedFeedSection } from "./PersonalizedFeedSection";
 import { PersonalizedForYouGate } from "./PersonalizedForYouGate";
-
-const MIN_CATALOG_FOR_GATE = 3;
 
 const EMPTY_SIGNALS: PersonalizationSignals = {
   viewedProductIds: [],
@@ -55,12 +53,15 @@ export function PersonalizedMarketplaceFeed({
   const orders = useCartStore((s) => s.orders);
   const [signalTick, setSignalTick] = useState(0);
   const [signalsReady, setSignalsReady] = useState(false);
+  /** Stays true after first expand — caches recommendations for instant re-open. */
+  const [contentRequested, setContentRequested] = useState(false);
 
   useEffect(() => {
     setSignalsReady(true);
   }, []);
 
   useEffect(() => {
+    if (!contentRequested) return;
     const onStorage = (event: StorageEvent) => {
       if (event.key === "recently_viewed" || event.key === "marketplace_recent_searches_v1") {
         setSignalTick((n) => n + 1);
@@ -68,33 +69,40 @@ export function PersonalizedMarketplaceFeed({
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
+  }, [contentRequested]);
+
+  const handleExpandedChange = useCallback((expanded: boolean) => {
+    if (expanded) setContentRequested(true);
   }, []);
 
   const signals = useMemo(() => {
-    if (!signalsReady) return EMPTY_SIGNALS;
+    if (!contentRequested || !signalsReady) return EMPTY_SIGNALS;
     void signalTick;
     return collectPersonalizationSignals(extractCartProductIds(orders), []);
-  }, [signalsReady, orders, signalTick]);
+  }, [contentRequested, signalsReady, orders, signalTick]);
 
-  const sections = useMemo(
-    () =>
-      buildPersonalizedFeed({
-        catalog,
-        flashDeals,
-        newProductIds,
-        signals,
-        productType,
-      }),
-    [catalog, flashDeals, newProductIds, signals, productType],
-  );
+  const sections = useMemo(() => {
+    if (!contentRequested) return [];
+    return buildPersonalizedFeed({
+      catalog,
+      flashDeals,
+      newProductIds,
+      signals,
+      productType,
+    });
+  }, [contentRequested, catalog, flashDeals, newProductIds, signals, productType]);
 
-  if (!loading && catalog.length < MIN_CATALOG_FOR_GATE) return null;
-  if (!loading && (!signalsReady || sections.length === 0)) return null;
+  const panelLoading = contentRequested && loading && sections.length === 0;
+  const sectionCount = contentRequested ? sections.length : null;
 
   return (
-    <PersonalizedForYouGate sectionCount={sections.length} loading={loading}>
+    <PersonalizedForYouGate
+      sectionCount={sectionCount}
+      loading={panelLoading}
+      onExpandedChange={handleExpandedChange}
+    >
       {() =>
-        loading
+        panelLoading
           ? Array.from({ length: 3 }).map((_, i) => (
               <PersonalizedFeedSection
                 key={`personalized-loading-${i}`}
