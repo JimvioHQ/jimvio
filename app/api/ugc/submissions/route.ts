@@ -116,6 +116,20 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const { data: participation } = await db
+    .from("ugc_campaign_participants")
+    .select("status")
+    .eq("campaign_id", campaign_id)
+    .eq("influencer_id", influencer.id)
+    .maybeSingle();
+
+  if (!participation || participation.status !== "accepted") {
+    return NextResponse.json(
+      { error: "You must be an approved campaign participant before submitting content." },
+      { status: 403 }
+    );
+  }
+
   const { data: submission, error } = await db
     .from('ugc_submissions')
     .insert({

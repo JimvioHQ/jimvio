@@ -21,7 +21,13 @@ export async function GET(
       vendor:vendors!brand_id (
         business_name,
         business_logo,
-        business_slug
+        business_slug,
+        business_description,
+        business_country,
+        business_type,
+        created_at,
+        rating,
+        follower_count
       )
     `)
     .eq('id', id)

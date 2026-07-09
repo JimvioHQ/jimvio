@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   BarChart3,
   Clapperboard,
@@ -15,6 +15,7 @@ import {
   Scissors,
   Settings,
   User,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,31 +25,38 @@ const NAV: {
   href: string;
   icon: typeof LayoutDashboard;
 }[] = [
-  { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { id: "dashboard", label: "Dashboard", href: "/ugc/dashboard", icon: LayoutDashboard },
   { id: "discover", label: "Discover Campaigns", href: "/ugc", icon: Compass },
-  { id: "applications", label: "My Applications", href: "/dashboard/vendor/submissions", icon: FileVideo },
-  { id: "projects", label: "Active Projects", href: "/dashboard/vendor/campaigns", icon: Clapperboard },
-  { id: "submissions", label: "Submissions", href: "/dashboard/vendor/submissions", icon: FileVideo },
-  { id: "clipping", label: "Clipping Hub", href: "/ugc?type=clipping", icon: Scissors },
-  { id: "templates", label: "Templates", href: "/ugc", icon: LayoutTemplate },
-  { id: "analytics", label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { id: "earnings", label: "Earnings", href: "/dashboard/payments", icon: DollarSign },
-  { id: "payouts", label: "Payouts", href: "/dashboard/payments", icon: DollarSign },
-  { id: "deals", label: "Brand Deals", href: "/ugc", icon: Handshake },
+  { id: "applications", label: "My Applications", href: "/ugc/applications", icon: FileVideo },
+  { id: "projects", label: "Active Projects", href: "/ugc/campaigns", icon: Clapperboard },
+  { id: "submissions", label: "Submissions", href: "/ugc/submissions", icon: FileVideo },
+  { id: "clipping", label: "Clipping Hub", href: "/ugc/clipping", icon: Scissors },
+  { id: "templates", label: "Templates", href: "/ugc/templates", icon: LayoutTemplate },
+  { id: "analytics", label: "Analytics", href: "/ugc/analytics", icon: BarChart3 },
+  { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign },
+  { id: "payouts", label: "Payouts", href: "/ugc/payouts", icon: Wallet },
+  { id: "deals", label: "Brand Deals", href: "/ugc/brand-deals", icon: Handshake },
   { id: "profile", label: "My Profile", href: "/c/profile", icon: User },
   { id: "settings", label: "Settings", href: "/c/settings", icon: Settings },
 ];
 
-function resolveActive(pathname: string, search: string): string {
-  if (search.includes("type=clipping")) return "clipping";
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return "dashboard";
-  if (pathname === "/ugc" || pathname === "/ugc/") return "discover";
-  if (pathname.startsWith("/dashboard/vendor/submissions")) return "submissions";
-  if (pathname.startsWith("/dashboard/vendor/campaigns")) return "projects";
-  if (pathname.startsWith("/dashboard/payments")) return "earnings";
-  if (pathname.startsWith("/dashboard/analytics")) return "analytics";
+function resolveActive(pathname: string): string {
+  if (pathname === "/ugc/dashboard" || pathname === "/ugc/dashboard/") return "dashboard";
+  if (/^\/ugc\/[^/]+\/dashboard\/?$/.test(pathname)) return "projects";
+  if (pathname.startsWith("/ugc/applications")) return "applications";
+  if (pathname.startsWith("/ugc/campaigns")) return "projects";
+  if (pathname.startsWith("/ugc/submissions")) return "submissions";
+  if (pathname.startsWith("/ugc/clipping")) return "clipping";
+  if (pathname.startsWith("/ugc/templates")) return "templates";
+  if (pathname.startsWith("/ugc/analytics")) return "analytics";
+  if (pathname.startsWith("/ugc/earnings")) return "earnings";
+  if (pathname.startsWith("/ugc/payouts")) return "payouts";
+  if (pathname.startsWith("/ugc/brand-deals")) return "deals";
   if (pathname.startsWith("/c/profile")) return "profile";
   if (pathname.startsWith("/c/settings")) return "settings";
+  if (pathname === "/ugc" || pathname === "/ugc/") return "discover";
+  if (pathname.startsWith("/ugc/")) return "discover";
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return "mission";
   return "discover";
 }
 
@@ -58,11 +66,7 @@ type UGCWorkspaceSidebarProps = {
 
 export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const activeId = resolveActive(
-    pathname,
-    searchParams.toString() ? `?${searchParams.toString()}` : ""
-  );
+  const activeId = resolveActive(pathname);
 
   return (
     <div className="flex h-full w-[200px] flex-col bg-white xl:w-[216px]">
@@ -71,7 +75,12 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
         <Link
           href="/dashboard"
           onClick={onNavigate}
-          className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-[#FFE4D6] bg-[#FFF8F5] px-2 py-1.5 text-[10px] font-bold text-[#FF5A1F] transition-colors hover:bg-[#FFF0E8]"
+          className={cn(
+            "mt-1.5 flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[10px] font-bold transition-colors",
+            activeId === "mission"
+              ? "border-[#FF5A1F] bg-[#FFF0E8] text-[#FF5A1F]"
+              : "border-[#FFE4D6] bg-[#FFF8F5] text-[#FF5A1F] hover:bg-[#FFF0E8]",
+          )}
         >
           <LayoutDashboard className="h-3 w-3" />
           Mission Control
@@ -93,7 +102,6 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
                     active
                       ? "bg-[#FFF0E8] text-[#FF5A1F]"
                       : "text-[#4B5563] hover:bg-[#F5F6F8] hover:text-[#111827]",
-                    item.id === "dashboard" && !active && "font-semibold text-[#374151]"
                   )}
                 >
                   <Icon
