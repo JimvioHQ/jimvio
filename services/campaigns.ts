@@ -1,8 +1,8 @@
+import { unstable_cache } from "next/cache";
 import { getAdminDB } from "./base";
 
-/** Slimmer select for homepage UGC cards (public Affiliates / UGC surfaces). */
-export async function getHomepageCampaigns(limit = 8) {
-  const db = await getAdminDB();
+async function fetchHomepageCampaigns(limit: number) {
+  const db = getAdminDB();
   const { data, error } = await db
     .from("ugc_campaigns")
     .select(`
@@ -20,4 +20,13 @@ export async function getHomepageCampaigns(limit = 8) {
     return [];
   }
   return data ?? [];
+}
+
+/** Slimmer select for homepage UGC cards (public Affiliates / UGC surfaces). */
+export async function getHomepageCampaigns(limit = 8) {
+  return unstable_cache(
+    () => fetchHomepageCampaigns(limit),
+    [`homepage-campaigns-v2-${limit}`],
+    { revalidate: 120 },
+  )();
 }

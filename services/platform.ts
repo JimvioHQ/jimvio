@@ -11,16 +11,12 @@ async function fetchPlatformStats() {
     admin.from("communities").select("id", { count: "exact", head: true }),
     admin
       .from("influencers")
-      .select("total_earnings")
-      .eq("is_active", true)
-      .order("total_earnings", { ascending: false })
-      .limit(2000),
+      .select("total_earnings.sum()")
+      .eq("is_active", true),
   ]);
 
-  const influencerEarnings = ((earningsRes.data as { total_earnings?: number | string }[]) ?? []).reduce(
-    (sum, row) => sum + Number(row.total_earnings || 0),
-    0,
-  );
+  const earningsAgg = earningsRes.data as { sum?: number | string | null }[] | null;
+  const totalEarnings = Number(earningsAgg?.[0]?.sum ?? 0);
 
   return {
     totalUsers: users.count ?? 0,
@@ -28,15 +24,13 @@ async function fetchPlatformStats() {
     totalProducts: products.count ?? 0,
     totalCampaigns: campaigns.count ?? 0,
     totalCommunities: communities.count ?? 0,
-    totalEarnings: influencerEarnings,
+    totalEarnings,
   };
 }
 
-export const getPlatformStats = unstable_cache(
-  fetchPlatformStats,
-  ["platform-stats"],
-  { revalidate: 300 },
-);
+export const getPlatformStats = unstable_cache(fetchPlatformStats, ["platform-stats-v2"], {
+  revalidate: 300,
+});
 
 export async function getAdminOverviewStats() {
   const admin = getAdminDB();
@@ -48,14 +42,15 @@ export async function getAdminOverviewStats() {
     admin.from("products").select("id", { count: "exact", head: true }).is("deleted_at", null),
   ]);
 
-  const totalRevenue = revenue.data?.reduce((sum: number, o: any) => sum + Number(o.total_amount), 0) ?? 0;
+  const totalRevenue =
+    revenue.data?.reduce((sum: number, o: { total_amount?: number | string }) => sum + Number(o.total_amount), 0) ?? 0;
 
   return {
-    totalUsers:     userCount.count    ?? 0,
-    totalVendors:   vendorCount.count  ?? 0,
-    totalOrders:    orderCount.count   ?? 0,
-    totalRevenue:   totalRevenue,
-    totalProducts:  productCount.count ?? 0,
+    totalUsers: userCount.count ?? 0,
+    totalVendors: vendorCount.count ?? 0,
+    totalOrders: orderCount.count ?? 0,
+    totalRevenue,
+    totalProducts: productCount.count ?? 0,
   };
 }
 
@@ -67,7 +62,8 @@ export async function getAdminRevenueChartData() {
     .select("total_amount, created_at")
     .in("payment_status", ["paid", "completed"])
     .gte("created_at", since12mo)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .limit(5000);
 
   const now = new Date();
   const chartData = Array.from({ length: 12 }, (_, i) => {
@@ -75,7 +71,8 @@ export async function getAdminRevenueChartData() {
     return { name: d.toLocaleDateString("en-US", { month: "short" }), revenue: 0 };
   });
 
-  recentOrders?.forEach((o: any) => {
+  recentOrders?.forEach((o) => {
+    if (!o.created_at) return;
     const d = new Date(o.created_at);
     const monthsAgo = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
     if (monthsAgo < 0 || monthsAgo > 11) return;
@@ -85,24 +82,61 @@ export async function getAdminRevenueChartData() {
   return chartData;
 }
 
-export async function getPublicCommunities(limit = 12) {
+const COMMUNITY_CARD_COLUMNS =
+  "id, name, slug, tagline, category, member_count, post_count, is_free, monthly_price, currency, cover_image, avatar_url, created_at, owner_id";
+
+async function attachOwnerProfiles<T extends { owner_id?: string | null }>(
+  rows: T[],
+): Promise<(T & { profiles: { full_name: string | null; avatar_url: string | null; username: string | null } | null })[]> {
+  if (!rows.length) return rows.map((r) => ({ ...r, profiles: null }));
+
+  const ownerIds = [...new Set(rows.map((r) => r.owner_id).filter(Boolean))] as string[];
+  if (!ownerIds.length) return rows.map((r) => ({ ...r, profiles: null }));
+
+  const admin = getAdminDB();
+  const { data: profiles } = await admin
+    .from("profiles")
+    .select("id, full_name, avatar_url, username")
+    .in("id", ownerIds);
+
+  const map = new Map(
+    (profiles ?? []).map((p) => [
+      p.id,
+      { full_name: p.full_name, avatar_url: p.avatar_url, username: p.username },
+    ]),
+  );
+
+  return rows.map((r) => ({
+    ...r,
+    profiles: r.owner_id ? map.get(r.owner_id) ?? null : null,
+  }));
+}
+
+async function fetchPublicCommunitiesUncached(limit: number) {
   const admin = getAdminDB();
   const { data, error } = await admin
     .from("communities")
-    .select("*, profiles!communities_owner_id_fkey(full_name, avatar_url, username)")
+    .select(COMMUNITY_CARD_COLUMNS)
     .eq("is_active", true)
     .order("member_count", { ascending: false })
     .limit(limit);
-  
+
   if (error) {
     console.error("Error fetching public communities:", error);
     return [];
   }
-  return data ?? [];
+  return attachOwnerProfiles(data ?? []);
 }
 
-/** Lighter query for homepage cards — skips owner profile join. */
-export async function getHomepageCommunities(limit = 8) {
+export async function getPublicCommunities(limit = 12) {
+  return unstable_cache(
+    () => fetchPublicCommunitiesUncached(limit),
+    [`public-communities-v3-${limit}`],
+    { revalidate: 120 },
+  )();
+}
+
+async function fetchHomepageCommunitiesUncached(limit: number) {
   const admin = getAdminDB();
   const { data, error } = await admin
     .from("communities")
@@ -116,4 +150,13 @@ export async function getHomepageCommunities(limit = 8) {
     return [];
   }
   return data ?? [];
+}
+
+/** Lighter query for homepage cards — skips owner profile join. */
+export async function getHomepageCommunities(limit = 8) {
+  return unstable_cache(
+    () => fetchHomepageCommunitiesUncached(limit),
+    [`homepage-communities-v2-${limit}`],
+    { revalidate: 120 },
+  )();
 }

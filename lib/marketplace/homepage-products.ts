@@ -3,6 +3,7 @@
  * Max 2 DB round-trips: (1) product pool, (2) video map for selected IDs.
  */
 
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMarketplaceVisibilitySets } from "@/lib/cj/premium-intelligence/marketplace-filter";
 import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos";
@@ -20,7 +21,7 @@ import {
   selectUniqueTrendingProducts,
 } from "./homepage-ranking";
 
-const POOL_LIMIT = 400;
+const POOL_LIMIT = 120;
 
 const HOMEPAGE_PRODUCT_SELECT = `
   id, name, slug, price, currency, compare_at_price, images, product_type,
@@ -103,7 +104,7 @@ async function attachVideos(products: DbProduct[]): Promise<DbProduct[]> {
 }
 
 /** Server entry for `/` — trending (24), flash deals (12), hero product. */
-export async function getHomepageProductBundle(): Promise<HomepageProductBundle> {
+async function buildHomepageProductBundle(): Promise<HomepageProductBundle> {
   const { pool, total } = await fetchPhysicalProductPool();
 
   if (pool.length === 0) {
@@ -167,6 +168,12 @@ export async function getHomepageProductBundle(): Promise<HomepageProductBundle>
     total,
   };
 }
+
+export const getHomepageProductBundle = unstable_cache(
+  buildHomepageProductBundle,
+  ["homepage-product-bundle-v2"],
+  { revalidate: 120 },
+);
 
 /** Convenience alias requested in spec. */
 export async function getHomepageProducts(
