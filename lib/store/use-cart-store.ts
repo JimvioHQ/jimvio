@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { getCart, getNavbarCounts } from '@/lib/actions/marketplace';
 
+const COUNTS_COOLDOWN_MS = 30_000;
+let lastCountsFetchAt = 0;
+let countsFetchInFlight: Promise<void> | null = null;
+
 interface CartState {
   orders: any[];
   total: number;
@@ -50,15 +54,30 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   refreshCounts: async () => {
-    try {
-      const counts = await getNavbarCounts();
-      set({ 
-        cartCount: counts.cartCount, 
-        chatCount: counts.chatCount 
-      });
-    } catch (err) {
-      console.error("[CartStore] refreshCounts failed:", err);
+    const now = Date.now();
+    if (lastCountsFetchAt > 0 && now - lastCountsFetchAt < COUNTS_COOLDOWN_MS) {
+      return;
     }
+    if (countsFetchInFlight) {
+      return countsFetchInFlight;
+    }
+
+    countsFetchInFlight = (async () => {
+      try {
+        const counts = await getNavbarCounts();
+        lastCountsFetchAt = Date.now();
+        set({
+          cartCount: counts.cartCount,
+          chatCount: counts.chatCount,
+        });
+      } catch (err) {
+        console.error("[CartStore] refreshCounts failed:", err);
+      } finally {
+        countsFetchInFlight = null;
+      }
+    })();
+
+    return countsFetchInFlight;
   },
 
     setCartData: (orders, total) => {

@@ -1,23 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { Suspense } from "react";
 import type { WorkspaceId } from "@/lib/workspace/config";
-
-const WorkspaceShell = dynamic(
-  () =>
-    import("@/components/workspace/WorkspaceShell").then((m) => ({
-      default: m.WorkspaceShell,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-dvh items-center justify-center bg-[var(--color-bg)]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-accent)]" />
-      </div>
-    ),
-  }
-);
+import { WorkspaceShell } from "./WorkspaceShell";
 
 type WorkspaceLayoutClientProps = {
   workspace: WorkspaceId;
@@ -29,19 +14,21 @@ type WorkspaceLayoutClientProps = {
   };
 };
 
+function ShellFallback() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-[var(--color-bg)]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-accent)]" />
+    </div>
+  );
+}
+
 export function WorkspaceLayoutClient({
   workspace,
   children,
   user,
 }: WorkspaceLayoutClientProps) {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-dvh items-center justify-center bg-[var(--color-bg)]">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-accent)]" />
-        </div>
-      }
-    >
+    <Suspense fallback={<ShellFallback />}>
       <WorkspaceShell workspace={workspace} user={user}>
         {children}
       </WorkspaceShell>

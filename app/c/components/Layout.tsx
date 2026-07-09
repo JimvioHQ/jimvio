@@ -157,44 +157,53 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             }
             setIsAuthenticated(true);
 
-            const { data: prof } = await supabase
-                .from("profiles")
-                .select("id, username, full_name, avatar_url")
-                .eq("id", user.id)
-                .maybeSingle();
+            const [profResult, notifResult, msgResult] = await Promise.all([
+                supabase
+                    .from("profiles")
+                    .select("id, username, full_name, avatar_url")
+                    .eq("id", user.id)
+                    .maybeSingle(),
+                supabase
+                    .from("notifications")
+                    .select("id", { count: "exact", head: true })
+                    .eq("user_id", user.id)
+                    .eq("is_read", false),
+                supabase
+                    .from("notifications")
+                    .select("id", { count: "exact", head: true })
+                    .eq("user_id", user.id)
+                    .eq("type", "message")
+                    .eq("is_read", false),
+            ]);
+
             if (cancelled) return;
-            if (prof) setProfile(prof);
+            if (profResult.data) setProfile(profResult.data);
+            setUnreadNotifications(notifResult.count ?? 0);
+            setUnreadMessages(msgResult.count ?? 0);
 
-            const { count: notifCount } = await supabase
-                .from("notifications")
-                .select("id", { count: "exact", head: true })
-                .eq("user_id", user.id)
-                .eq("is_read", false);
-            if (!cancelled) setUnreadNotifications(notifCount ?? 0);
-
-            const { count: msgCount } = await supabase
-                .from("notifications")
-                .select("id", { count: "exact", head: true })
-                .eq("user_id", user.id)
-                .eq("type", "message")
-                .eq("is_read", false);
-            if (!cancelled) setUnreadMessages(msgCount ?? 0);
+            return user;
         }
 
-        load();
-        refreshCounts();
-
         let channel: ReturnType<typeof supabase.channel> | null = null;
-        (async () => {
-            const { data: { user } } = await supabase.auth.getUser();
+
+        void load().then((user) => {
             if (!user || cancelled) return;
             channel = supabase
                 .channel(`hub-notifications-${user.id}`)
-                .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => load())
+                .on(
+                    "postgres_changes",
+                    { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+                    () => { void load(); }
+                )
                 .subscribe();
-        })();
+        });
 
-        return () => { cancelled = true; if (channel) supabase.removeChannel(channel); };
+        refreshCounts();
+
+        return () => {
+            cancelled = true;
+            if (channel) supabase.removeChannel(channel);
+        };
     }, [refreshCounts]);
 
     const profileHref = profile?.username ? `/c/profile/${profile.username}` : "/c/profile";

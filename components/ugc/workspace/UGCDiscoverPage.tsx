@@ -88,24 +88,36 @@ export function UGCDiscoverPage() {
     if (pageNum === 1) setLoading(true);
     else setLoadingMore(true);
 
-    const params = new URLSearchParams({
-      page: String(pageNum),
-      limit: String(LIMIT),
-      status: "active",
-    });
-    if (contentType !== "all") params.set("type", contentType);
+    try {
+      const params = new URLSearchParams({
+        page: String(pageNum),
+        limit: String(LIMIT),
+        status: "active",
+      });
+      if (contentType !== "all") params.set("type", contentType);
 
-    const res = await fetch(`/api/ugc/campaigns?${params}`);
-    if (res.ok) {
-      const json = await res.json();
-      const batch = (json.data ?? []) as UGCCampaign[];
-      setTotal(json.total ?? 0);
-      setRawCampaigns((prev) => (replace ? batch : [...prev, ...batch]));
-      setHasMore(batch.length === LIMIT && pageNum * LIMIT < (json.total ?? 0));
+      const res = await fetch(`/api/ugc/campaigns?${params}`);
+      if (res.ok) {
+        const json = await res.json();
+        const batch = (json.data ?? []) as UGCCampaign[];
+        setTotal(json.total ?? 0);
+        setRawCampaigns((prev) => (replace ? batch : [...prev, ...batch]));
+        setHasMore(batch.length === LIMIT && pageNum * LIMIT < (json.total ?? 0));
+      } else if (replace) {
+        setRawCampaigns([]);
+        setTotal(0);
+        setHasMore(false);
+      }
+    } catch {
+      if (replace) {
+        setRawCampaigns([]);
+        setTotal(0);
+        setHasMore(false);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-
-    setLoading(false);
-    setLoadingMore(false);
   }, [contentType]);
 
   // Refetch when content type filter changes (API param)

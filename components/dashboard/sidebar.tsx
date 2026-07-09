@@ -137,22 +137,17 @@ function SidebarContent({
     let channel: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
     const channelPrefix = "sidebar-notifications";
 
-    async function refreshBadges() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user || cancelled) return;
-
+    async function refreshBadges(userId: string) {
       const [{ count: notifCount }, { count: msgCount }] = await Promise.all([
         supabase
           .from("notifications")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .eq("is_read", false),
         supabase
           .from("notifications")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .eq("type", "message")
           .eq("is_read", false),
       ]);
@@ -168,7 +163,7 @@ function SidebarContent({
       } = await supabase.auth.getUser();
       if (!user || cancelled) return;
 
-      void refreshBadges();
+      await refreshBadges(user.id);
 
       channel = await subscribePostgresChanges(
         supabase,
@@ -180,7 +175,7 @@ function SidebarContent({
           filter: `user_id=eq.${user.id}`,
         },
         () => {
-          void refreshBadges();
+          void refreshBadges(user.id);
         },
         () => cancelled
       );

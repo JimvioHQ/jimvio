@@ -89,7 +89,20 @@ function parseStore(value: unknown): SessionStore {
   }
 }
 
+const SESSION_STORE_CACHE_MS = 45_000;
+
+const sessionStoreCache = new Map<
+  string,
+  { store: SessionStore; expiresAt: number }
+>();
+
 async function readSessionStore(userId: string): Promise<SessionStore> {
+  const now = Date.now();
+  const cached = sessionStoreCache.get(userId);
+  if (cached && cached.expiresAt > now) {
+    return cached.store;
+  }
+
   const supabase = createAdminClient()
   const { data, error } = await supabase
     .from('platform_settings')
@@ -102,10 +115,18 @@ async function readSessionStore(userId: string): Promise<SessionStore> {
     return emptyStore()
   }
 
-  return parseStore(data?.value)
+  const store = parseStore(data?.value)
+  sessionStoreCache.set(userId, { store, expiresAt: now + SESSION_STORE_CACHE_MS })
+  if (sessionStoreCache.size > 2000) {
+    const oldest = sessionStoreCache.keys().next().value
+    if (oldest) sessionStoreCache.delete(oldest)
+  }
+
+  return store
 }
 
 async function writeSessionStore(userId: string, store: SessionStore): Promise<void> {
+  sessionStoreCache.delete(userId)
   const supabase = createAdminClient()
   const { error } = await supabase.from('platform_settings').upsert(
     {
