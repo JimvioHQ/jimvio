@@ -1,4 +1,4 @@
-﻿// components/community/workspace-context.tsx
+// components/community/workspace-context.tsx
 "use client";
 
 import React, { createContext, useContext } from "react";
@@ -55,10 +55,12 @@ export type WorkspaceContextValue = {
   ownerId: string;
   memberCount: number;
   avatarUrl: string | null;
+  coverImage: string | null;
   userId: string;
   currentUserId: string;
   view: 'member' | 'admin';
   isAdmin: boolean;
+  isOwner: boolean;
   profile: { full_name: string | null; avatar_url: string | null; username: string | null } | null;
   membership: MembershipLite | null;
   spacesWithRooms: WorkspaceSpaceRow[];
@@ -66,7 +68,7 @@ export type WorkspaceContextValue = {
   overview: CommunityOverviewStats | null;
 };
 
-const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+export const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export function WorkspaceProvider({
   value,

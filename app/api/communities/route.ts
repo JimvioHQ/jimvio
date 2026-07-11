@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
     is_private: body.is_private as boolean | undefined,
     is_free: body.is_free as boolean | undefined,
     monthly_price: body.monthly_price as number | undefined,
+    weekly_price: body.weekly_price as number | undefined,
     yearly_price: body.yearly_price as number | undefined,
     lifetime_price: body.lifetime_price as number | undefined,
     currency: (body.currency as string) || "USD",

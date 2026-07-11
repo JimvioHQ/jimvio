@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Wallet, Loader2, Store, Users, Sparkles, History,
-  ArrowUpRight, ChevronRight,
+  ArrowUpRight, ChevronRight, TrendingUp,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { HubCard, HubLinkButton, HubSectionTitle, HubStatCard } from "@/components/community/hub/hub-ui";
@@ -76,9 +76,9 @@ export default function HubWalletPage() {
 
   const sources = useMemo(
     () => [
-      { label: "Sales", value: agg?.vendor ?? 0, icon: Store, color: "text-sky-600", bg: "bg-sky-500/10" },
-      { label: "Affiliate", value: agg?.affiliate ?? 0, icon: Users, color: "text-violet-600", bg: "bg-violet-500/10" },
-      { label: "Creator", value: agg?.creator ?? 0, icon: Sparkles, color: "text-amber-600", bg: "bg-amber-500/10" },
+      { label: "Sales", value: agg?.vendor ?? 0, icon: Store, color: "sage", bg: "bg-[var(--color-sage)]/15" },
+      { label: "Affiliate", value: agg?.affiliate ?? 0, icon: Users, color: "ocean", bg: "bg-[var(--color-ocean)]/15" },
+      { label: "Creator", value: agg?.creator ?? 0, icon: Sparkles, color: "amber", bg: "bg-[var(--color-amber)]/15" },
     ],
     [agg]
   );
@@ -86,7 +86,7 @@ export default function HubWalletPage() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
       </div>
     );
   }
@@ -94,12 +94,16 @@ export default function HubWalletPage() {
   const wallet = data?.wallet;
 
   return (
-    <div className="min-h-full bg-[var(--color-bg,#f4f4f5)]">
-      <div className="mx-auto max-w-[960px] space-y-4 p-4 lg:p-6">
+    <div className="min-h-full bg-[var(--color-bg)]"
+         style={{
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+         }}>
+      <div className="mx-auto flex max-w-[960px] flex-col gap-6 p-4 lg:p-6">
+        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="flex items-center gap-2 text-xl font-black tracking-tight">
-              <Wallet className="h-5 w-5 text-[#fd5000]" />
+            <h1 className="flex items-center gap-2 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
+              <Wallet className="h-5 w-5 text-[var(--color-accent)]" />
               Wallet
             </h1>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
@@ -111,13 +115,32 @@ export default function HubWalletPage() {
           </HubLinkButton>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <HubStatCard
-            label="Available"
-            value={formatMoney(wallet?.available_balance ?? 0, currency)}
-            icon={<Wallet className="h-4 w-4" />}
-            accent="#22c55e"
-          />
+        {/* Hero balance card */}
+        <div className="relative overflow-hidden rounded-2xl p-6 hover-lift animate-in animate-fade-in-up"
+             style={{
+               background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))",
+             }}>
+          <div className="absolute inset-0 -z-10 opacity-20 animate-blob"
+               style={{ background: "radial-gradient(circle at 30% 70%, var(--color-berry), transparent 50%)" }} />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70">Available Balance</p>
+              <p className="mt-1 text-[36px] font-black tracking-tight text-white">{formatMoney(wallet?.available_balance ?? 0, currency)}</p>
+              {data?.earnings.monthChangePct != null && (
+                <p className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-300">
+                  <TrendingUp className="h-3 w-3" />
+                  {data.earnings.monthChangePct >= 0 ? "+" : ""}{data.earnings.monthChangePct.toFixed(1)}% this month
+                </p>
+              )}
+            </div>
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15">
+              <Wallet className="h-8 w-8 text-white" />
+            </div>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 animate-in stagger-children">
           <HubStatCard
             label="Pending"
             value={formatMoney(wallet?.pending_balance ?? 0, currency)}
@@ -130,27 +153,41 @@ export default function HubWalletPage() {
             icon={<ArrowUpRight className="h-4 w-4" />}
             accent="#fd5000"
           />
+          <HubStatCard
+            label="This month"
+            value={formatMoney(data?.earnings.total ?? 0, currency)}
+            icon={<TrendingUp className="h-4 w-4" />}
+            accent="#22c55e"
+          />
         </div>
 
-        <HubCard>
-          <HubSectionTitle title="Earnings by source" />
+        {/* Earnings by source */}
+        <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift animate-in animate-fade-in-up">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Earnings by source</h3>
+            <HubBadge variant="orange">Quick</HubBadge>
+          </div>
           <div className="grid gap-2 sm:grid-cols-3">
             {sources.map(({ label, value, icon: Icon, color, bg }) => (
-              <div key={label} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] p-3">
+              <div key={label} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-3 hover-lift">
                 <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl", bg, color)}>
                   <Icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-[14px] font-black">{formatMoney(value, currency)}</p>
+                  <p className="text-[14px] font-black text-[var(--color-text-primary)]">{formatMoney(value, currency)}</p>
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">{label}</p>
                 </div>
               </div>
             ))}
           </div>
-        </HubCard>
+        </div>
 
-        <HubCard>
-          <HubSectionTitle title="Recent activity" badge={String(wallet?.recentTransactions.length ?? 0)} />
+        {/* Recent activity */}
+        <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift animate-in animate-fade-in-up">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Recent activity</h3>
+            <HubBadge variant="default">{String(wallet?.recentTransactions.length ?? 0)}</HubBadge>
+          </div>
           {(wallet?.recentTransactions.length ?? 0) === 0 ? (
             <p className="py-6 text-center text-[12px] text-[var(--color-text-muted)]">
               No transactions yet. Start selling or sharing affiliate links to earn.
@@ -158,16 +195,16 @@ export default function HubWalletPage() {
           ) : (
             <div className="space-y-1">
               {wallet!.recentTransactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 hover:bg-[var(--color-surface-secondary)]">
+                <div key={tx.id} className="flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 hover:bg-[var(--color-surface-secondary)] transition-colors">
                   <div className="min-w-0">
-                    <p className="truncate text-[12px] font-semibold">
+                    <p className="truncate text-[12px] font-semibold text-[var(--color-text-primary)]">
                       {tx.description ?? TX_LABELS[tx.type] ?? tx.type.replace(/_/g, " ")}
                     </p>
                     <p className="text-[10px] text-[var(--color-text-muted)]">
                       {formatDistanceToNow(new Date(tx.created_at), { addSuffix: true })}
                     </p>
                   </div>
-                  <span className={cn("shrink-0 text-[12px] font-bold", tx.amount >= 0 ? "text-emerald-600" : "text-red-500")}>
+                  <span className={cn("shrink-0 text-[12px] font-bold", tx.amount >= 0 ? "text-emerald-500" : "text-red-400")}>
                     {tx.amount >= 0 ? "+" : ""}{formatMoney(tx.amount, currency)}
                   </span>
                 </div>
@@ -177,7 +214,7 @@ export default function HubWalletPage() {
           <HubLinkButton href="/dashboard/wallet" variant="secondary" className="mt-3 w-full">
             View all transactions
           </HubLinkButton>
-        </HubCard>
+        </div>
       </div>
     </div>
   );

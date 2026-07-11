@@ -1035,7 +1035,7 @@ function SidebarContent({
                                     {badge && collapsed && typeof badge === "number" && (
                                         <span style={{
                                             position: "absolute", top: -4, right: -4,
-                                            background: "var(--color-danger, #f07070)", color: "#fff",
+                                            background: "var(--color-accent, #fd5000)", color: "#fff",
                                             fontSize: 9, fontWeight: 700, borderRadius: 99,
                                             minWidth: 14, height: 14,
                                             display: "flex", alignItems: "center", justifyContent: "center",
@@ -1052,7 +1052,7 @@ function SidebarContent({
                                         </span>
                                         {badge && typeof badge === "number" && (
                                             <span style={{
-                                                background: "var(--color-danger, #f07070)", color: "#fff",
+                                                background: "var(--color-accent, #fd5000)", color: "#fff",
                                                 fontSize: 10, fontWeight: 700, borderRadius: 99,
                                                 minWidth: 18, height: 18,
                                                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -1063,7 +1063,7 @@ function SidebarContent({
                                         )}
                                         {badge && typeof badge === "string" && (
                                             <span style={{
-                                                background: badge === "LIVE" ? "#ef4444" : "var(--color-accent, #fd5000)",
+                                                background: badge === "LIVE" ? "var(--color-accent)" : "var(--color-accent, #fd5000)",
                                                 color: "#fff", fontSize: 9, fontWeight: 700, borderRadius: 99,
                                                 padding: "0 6px", height: 16, display: "flex", alignItems: "center",
                                             }}>{badge}</span>

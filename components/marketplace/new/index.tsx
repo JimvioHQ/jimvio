@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import {
-  Zap, DollarSign, Star, ShieldCheck, BadgeDollarSign,
+  DollarSign, Star, ShieldCheck, BadgeDollarSign,
   CircleCheck, Truck, Users, Sparkles, TrendingUp,
   Warehouse, MapPin, Flame, ChevronRight, ArrowRight,
 } from "lucide-react";
@@ -187,28 +187,21 @@ function TrustBadgesSection({
 
 function FlashDealsSection({ deals }: { deals: DbProduct[] }) {
   return (
-    <section
-      className="overflow-hidden rounded-2xl"
-      style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)", boxShadow: "var(--shadow-sm)" }}
-    >
-      <div
-        className="flex items-center justify-between px-4 py-2.5 text-white"
-        style={{ background: "linear-gradient(90deg, var(--color-accent) 0%, #ff8c00 100%)" }}
-      >
-        <div className="flex items-center gap-2">
-          <Zap className="size-4 fill-current" />
+    <section>
+      <div className="flex items-start justify-between px-4 py-3">
+        <div>
           <span className="font-bold">Flash Deals</span>
-          <span className="hidden text-xs text-white/80 sm:inline">
+          <p className="hidden text-xs font-light text-muted-foreground sm:block">
             Limited time offers – Don&apos;t miss out!
-          </span>
+          </p>
         </div>
         <div className="flex items-center gap-4">
           <FlashDealsCountdown />
           <Link
             href="/marketplace/flash-deals"
-            className="flex items-center gap-1 text-xs font-semibold text-white/90 transition-colors hover:text-white"
+            className="font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e]"
           >
-            View All Deals <ChevronRight className="size-3.5" />
+            View All Deals →
           </Link>
         </div>
       </div>
@@ -284,13 +277,12 @@ function TrendingProductsSection({ products }: { products: DbProduct[] }) {
         <h2 className="text-lg font-black" style={{ color: "var(--color-text-primary)" }}>
           Trending Products
         </h2>
-        <button
-          type="button"
-          className="ml-auto flex items-center gap-1 text-xs font-semibold"
-          style={{ color: "var(--color-accent)" }}
+        <Link
+          href="/marketplace"
+          className="ml-auto font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e]"
         >
-          View all <ArrowRight className="size-3.5" />
-        </button>
+          View all →
+        </Link>
       </div>
       <TrendingProductsClient products={products} />
     </section>

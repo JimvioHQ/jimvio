@@ -62,10 +62,11 @@ if (typeof window !== "undefined") {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
-    <NextThemesProvider
+<NextThemesProvider
       attribute="class"
       defaultTheme="system"
       enableSystem
+      enableColorScheme
       disableTransitionOnChange={false}
     >
       {children}

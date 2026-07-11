@@ -7,7 +7,6 @@ import { Search, Loader2, X, ArrowUpRight, ChevronDown } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 import {
   SharedCommunityCard,
-  CreateCommunityTile,
   CommunityRow,
 } from "./community-card-shared";
 
@@ -226,12 +225,9 @@ function SortMenu({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 text-[13px] text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+        className="inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 text-[12px] font-medium transition-colors text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
       >
-        <span>Sort</span>
-        <span className="font-medium text-[var(--color-text-primary)]">
-          {current.label}
-        </span>
+        <span>{current.label}</span>
         <ChevronDown
           size={13}
           className={cn("transition-transform duration-200", open && "rotate-180")}
@@ -240,7 +236,7 @@ function SortMenu({
       {open && (
         <div
           role="listbox"
-          className="absolute right-0 top-full z-20 mt-1.5 w-44 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg"
+          className="absolute right-0 top-full z-20 mt-1.5 w-40 overflow-hidden rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg"
         >
           {SORTS.map((s) => (
             <button
@@ -252,10 +248,10 @@ function SortMenu({
                 onChange(s.value);
                 setOpen(false);
               }}
-              className={cn(
-                "w-full px-3.5 py-2.5 text-left text-[13px] transition-colors",
+className={cn(
+                "w-full px-3.5 py-2 text-left text-[13px] font-medium transition-colors whitespace-nowrap rounded-sm",
                 s.value === value
-                  ? "bg-[var(--color-accent-light)] font-medium text-[var(--color-accent)]"
+                  ? "bg-[var(--color-success-light)] text-[var(--color-success)]"
                   : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
               )}
             >
@@ -430,37 +426,13 @@ export function CommunitiesDiscovery({
               <ArrowUpRight size={14} />
             </Link>
           </div>
-
-          <div className="relative mt-7">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
-            />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by community name…"
-              aria-label="Search communities"
-              className="h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] pl-11 pr-11 text-[15px] text-[var(--color-text-primary)] outline-none transition-all placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-light)]"
-            />
-            {search && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
         </header>
 
-        <div className="sticky top-[var(--navbar-height,64px)] z-30 -mx-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
-          <div className="flex flex-wrap items-end justify-between gap-3 pb-0 pt-1">
+<div className="sticky top-[var(--navbar-height,64px)] z-30 -mx-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-0 pt-1">
             <nav
               aria-label="Filter by category"
-              className="-mb-px flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto no-scrollbar"
+              className="flex shrink-0 items-center gap-0.5 overflow-x-auto no-scrollbar"
             >
               {CATEGORIES.map((c) => {
                 const active = category === c;
@@ -471,7 +443,7 @@ export function CommunitiesDiscovery({
                     onClick={() => setCategory(c)}
                     aria-pressed={active}
                     className={cn(
-                      "h-10 shrink-0 border-b-2 px-3 text-[13px] font-medium transition-colors sm:px-4",
+                      "h-9 shrink-0 border-b-2 px-3 text-[12px] font-medium transition-colors sm:px-4",
                       active
                         ? "border-[var(--color-text-primary)] text-[var(--color-text-primary)]"
                         : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
@@ -483,9 +455,32 @@ export function CommunitiesDiscovery({
               })}
             </nav>
 
-            <div className="flex shrink-0 items-center gap-3 pb-1.5">
-              <PriceFilterChips value={priceFilter} onChange={setPriceFilter} />
-              <div className="hidden sm:block">
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative flex min-w-0 w-full max-w-md sm:max-w-lg">
+                <Search
+                  size={16}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+                />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search by community name…"
+                  aria-label="Search communities"
+                  className="h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] pl-9 pr-9 text-[14px] text-[var(--color-text-primary)] outline-none transition-all placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-light)]"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    onClick={() => setSearch("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <PriceFilterChips value={priceFilter} onChange={setPriceFilter} />
                 <SortMenu value={sort} onChange={setSort} />
               </div>
             </div>
@@ -584,9 +579,6 @@ export function CommunitiesDiscovery({
               {gridItems.map((c) => (
                 <SharedCommunityCard key={c.id} c={c} />
               ))}
-              {!debounced && category === "All" && (
-                <CreateCommunityTile />
-              )}
             </div>
 
             {hasMore && (

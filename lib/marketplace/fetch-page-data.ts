@@ -36,6 +36,29 @@ export type MarketplacePageBundle = {
   listingCount: number;
 };
 
+export type TopReviewedProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  images: unknown;
+  rating: number | null;
+  review_count: number | null;
+  featuredReviews: Array<{
+    id: string;
+    rating: number;
+    title: string | null;
+    body: string | null;
+    is_verified_purchase: boolean;
+    buyer_id: string;
+    created_at: string;
+    profiles: {
+      full_name: string | null;
+      avatar_url: string | null;
+      username: string | null;
+    } | null;
+  }>;
+};
+
 type SupabaseLike = SupabaseClient<any, any, any>;
 
 export function getMarketplaceTypeFilter(
@@ -157,4 +180,123 @@ export async function fetchMarketplacePageBundle(
     categories,
     listingCount: count ?? 0,
   };
+}
+
+/** Fetch testimonial products: featured first, then newest */
+export async function fetchTopReviewedProducts(
+  supabase: SupabaseLike,
+  type: MarketplaceProductType,
+  limit = 5,
+): Promise<TopReviewedProduct[]> {
+  const typeFilter = getMarketplaceTypeFilter(type);
+  const visibleCjPids = await getCustomerVisibleCjPids();
+
+  const TESTIMONIAL_SELECT = `
+    id, name, slug, images, rating, review_count, is_featured, is_flash_deal, view_count, created_at,
+    reviews!inner(
+      id, rating, title, body, is_verified_purchase, buyer_id, created_at,
+      profiles(full_name, avatar_url, username)
+    )
+  `;
+
+  const applyType = (q: any) =>
+    typeof typeFilter === "string"
+      ? q.eq("product_type", typeFilter)
+      : q.in("product_type", [...typeFilter]);
+
+  const applyActive = (q: any) =>
+    q.eq("status", "active").eq("is_active", true).is("deleted_at", null);
+
+  const existingIds = new Set<string>();
+  const results: any[] = [];
+
+  // 1 — featured products (priority)
+  const { data: featured } = await applyActive(
+    applyType(supabase.from("products").select(TESTIMONIAL_SELECT))
+  )
+    .eq("is_featured", true)
+    .order("view_count", { ascending: false })
+    .limit(limit);
+
+  for (const p of (featured ?? []) as any[]) {
+    if (!existingIds.has(p.id)) { existingIds.add(p.id); results.push(p); }
+  }
+  if (results.length >= limit) return formatResults(results.slice(0, limit));
+
+  // 2 — newest products to fill remaining
+  const remaining = limit - results.length;
+  const { data: newest } = await applyActive(
+    applyType(supabase.from("products").select(TESTIMONIAL_SELECT))
+  )
+    .order("created_at", { ascending: false })
+    .limit(remaining * 2);
+
+  for (const p of (newest ?? []) as any[]) {
+    if (!existingIds.has(p.id)) { existingIds.add(p.id); results.push(p); }
+    if (results.length >= limit) break;
+  }
+
+  function formatResults(data: any[]): TopReviewedProduct[] {
+    if (!data?.length) return [];
+
+    type ProductWithReviews = {
+      id: string;
+      name: string;
+      slug: string;
+      images: unknown;
+      rating: number | null;
+      review_count: number | null;
+      is_featured: boolean | null;
+      is_flash_deal: boolean | null;
+      reviews: Array<{
+        id: string;
+        rating: number;
+        title: string | null;
+        body: string | null;
+        is_verified_purchase: boolean;
+        buyer_id: string;
+        created_at: string;
+        profiles: Array<{
+          full_name: string | null;
+          avatar_url: string | null;
+          username: string | null;
+        }> | null;
+      }> | null;
+    };
+
+    const filtered = filterProductsForCustomers(
+      (data ?? []) as ProductWithReviews[],
+      visibleCjPids
+    ) as ProductWithReviews[];
+
+    return filtered.map((p) => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      images: p.images,
+      rating: p.rating,
+      review_count: p.review_count ?? 0,
+      featuredReviews: (p.reviews ?? [])
+        .filter((r) => r && r.body)
+        .sort((a, b) => {
+          if (a.is_verified_purchase !== b.is_verified_purchase) {
+            return b.is_verified_purchase ? 1 : -1;
+          }
+          return b.rating - a.rating;
+        })
+        .slice(0, 3)
+        .map((r) => ({
+          id: r.id,
+          rating: r.rating,
+          title: r.title,
+          body: r.body,
+          is_verified_purchase: r.is_verified_purchase ?? false,
+          buyer_id: r.buyer_id,
+          created_at: r.created_at,
+          profiles: r.profiles?.[0] ?? null,
+        })),
+    }));
+  }
+
+  return formatResults(results.slice(0, limit));
 }

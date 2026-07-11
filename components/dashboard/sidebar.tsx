@@ -37,6 +37,8 @@ import {
   FolderSymlink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCurrency } from "@/context/CurrencyContext";
 import { getUserBalance } from "@/lib/actions/wallet";
@@ -408,10 +410,28 @@ function SidebarContent({
           })}
         </nav>
 
+        {/* Profile icon */}
+        <div
+          className="flex justify-center py-2 flex-shrink-0"
+          style={{ borderTop: "1px solid var(--color-border)" }}
+        >
+          <Link
+            href="/dashboard/settings"
+            title="Settings"
+            className="w-9 h-9 flex items-center justify-center"
+          >
+            <Avatar className="h-7 w-7 rounded-lg shrink-0 ring-2 ring-[var(--color-border)]">
+              <AvatarImage src={user.avatar_url ?? undefined} className="rounded-lg object-cover" />
+              <AvatarFallback className="rounded-lg bg-[var(--color-accent)] text-white text-[9px] font-bold">
+                {user.full_name?.[0] || user.email?.[0] || "U"}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+        </div>
+
         {/* Expand button */}
         <div
           className="flex justify-center py-3 flex-shrink-0"
-          style={{ borderTop: "1px solid var(--color-border)" }}
         >
           <button
             onClick={() => onCollapsedChange(false)}
@@ -571,11 +591,11 @@ function SidebarContent({
         <Link
           href="/dashboard"
           onClick={onMobileClose}
-          className="relative flex items-center gap-2.5 px-2.5 py-2 mb-1 text-[13px] font-medium"
+          className="relative flex items-center gap-2.5 px-2.5 py-2 mb-1 text-[13px]"
           style={{
             borderRadius: "var(--radius-sm)",
             backgroundColor: isActive("/dashboard")
-              ? "var(--color-accent-light)"
+              ? "var(--color-surface-secondary)"
               : "transparent",
             color: isActive("/dashboard")
               ? "var(--color-accent)"
@@ -599,11 +619,6 @@ function SidebarContent({
           />
           Dashboard
         </Link>
-
-        <div
-          className="mb-1"
-          style={{ borderBottom: "1px solid var(--color-border)" }}
-        />
 
         {/* Sections */}
         {SECTIONS.map((section) => {
@@ -702,16 +717,44 @@ function SidebarContent({
                 </AnimatePresence>
               </div>
 
-              {isOpen && (
-                <div
-                  className="mb-1"
-                  style={{ borderBottom: "1px solid var(--color-border)" }}
-                />
-              )}
             </React.Fragment>
           );
         })}
       </nav>
+
+      {/* Profile footer */}
+      <div
+        className="flex-shrink-0 px-3 py-3"
+        style={{ borderTop: "1px solid var(--color-border)" }}
+      >
+        <div className="flex items-center gap-2.5">
+          <Link href="/dashboard/settings" onClick={onMobileClose}>
+            <Avatar className="h-8 w-8 rounded-lg shrink-0 ring-2 ring-[var(--color-border)]">
+              <AvatarImage src={user.avatar_url ?? undefined} className="rounded-lg object-cover" />
+              <AvatarFallback className="rounded-lg bg-[var(--color-accent)] text-white text-[11px] font-bold">
+                {user.full_name?.[0] || user.email?.[0] || "U"}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+          <div className="min-w-0 flex-1 hidden sm:block">
+            <Link href="/dashboard/settings" onClick={onMobileClose}>
+              <p
+                className="text-[13px] font-semibold truncate leading-tight"
+                style={{ color: "var(--color-text-primary)" }}
+              >
+                {user.full_name?.split(" ")[0] || "Account"}
+              </p>
+            </Link>
+            <p
+              className="text-[11px] truncate leading-tight mt-px"
+              style={{ color: "var(--color-text-muted)" }}
+            >
+              {user.email}
+            </p>
+          </div>
+          <SignOutButton />
+        </div>
+      </div>
     </div>
   );
 }

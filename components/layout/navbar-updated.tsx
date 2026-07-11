@@ -97,7 +97,7 @@ const NavBtn = React.forwardRef<any, {
     className?: string; active?: boolean; accent?: boolean; style?: React.CSSProperties;[k: string]: any;
 }>(({ children, href, onClick, className, active = false, accent = false, style, ...props }, ref) => {
     const cls = cn(
-        "relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-medium tracking-tight transition-all duration-150 active:scale-[0.97] select-none whitespace-nowrap",
+        "relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[13px] font-normal tracking-wide transition-all duration-150 active:scale-[0.97] select-none whitespace-nowrap",
         active
             ? "bg-stone-100 dark:bg-white/8 text-stone-900 dark:text-white font-semibold"
             : accent
@@ -428,9 +428,6 @@ function UserMenu({ user }: { user: { email: string; full_name?: string | null; 
             <DropdownMenuTrigger asChild>
                 <button
                     className="relative flex items-center gap-2.5 px-2 py-1.5 rounded-xl transition-all hover:bg-stone-100 dark:hover:bg-white/6 active:scale-[0.97] group"
-                    style={{ border: "1px solid transparent" }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--color-border, #e5e5e5)")}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = "transparent")}
                 >
                     <div className="relative">
                         <Avatar className="h-7 w-7 rounded-lg shrink-0 ring-2 ring-white dark:ring-[#0a0a0a]">

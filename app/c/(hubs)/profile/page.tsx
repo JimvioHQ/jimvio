@@ -1,313 +1,365 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import {
-  formatProfileLocation,
-  parseProfileLocationInput,
-  PROFILE_SELECT_FIELDS,
-} from "@/lib/profile-location";
-import { User, Mail, MapPin, Link as LinkIcon, Loader2, Check, X } from "lucide-react";
+import { Loader2, Camera, MapPin, Flag, Check, Save, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { parseProfileLocationInput, formatProfileLocation } from "@/lib/profile-location";
 
-interface Profile {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  username: string | null;
-  bio: string | null;
-  city: string | null;
-  country: string | null;
-  website: string | null;
-  updated_at?: string;
-}
-
-export default function MyProfilePage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
+export default function HubProfilePage() {
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState<{
+    id: string;
+    username: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    bio: string | null;
+    location: string | null;
+  } | null>(null);
 
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     full_name: "",
-    username: "",
     bio: "",
     location: "",
-    website: "",
   });
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    async function getUser() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setCurrentUserId(user.id);
-        loadProfile(user.id);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data } = await supabase
+          .from("profiles")
+          .select("id, username, full_name, avatar_url, bio, location")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!cancelled && data) {
+          setProfile(data);
+          setForm({
+            full_name: data.full_name ?? "",
+            bio: data.bio ?? "",
+            location: formatProfileLocation(data.location),
+          });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    }
-    getUser();
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  async function loadProfile(userId: string) {
-    setLoading(true);
-    try {
-      const { data, error } = await createClient()
-        .from("profiles")
-        .select(PROFILE_SELECT_FIELDS)
-        .eq("id", userId)
-        .single();
-
-      if (error) {
-        console.error("Failed to load profile:", error.message ?? error.code ?? error);
-      } else if (data) {
-        setProfile(data as Profile);
-        setFormData({
-          full_name: data.full_name || "",
-          username: data.username || "",
-          bio: data.bio || "",
-          location: formatProfileLocation(data.city, data.country),
-          website: data.website || "",
-        });
-      }
-    } finally {
-      setLoading(false);
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Avatar must be under 2MB");
+      return;
     }
-  }
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
 
-  async function handleSave() {
-    if (!currentUserId) return;
+  const handleSubmit = async () => {
+    if (!profile) return;
     setSaving(true);
     try {
-      const { city, country } = parseProfileLocationInput(formData.location);
-      const { error } = await createClient()
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      let avatarUrl = profile.avatar_url;
+      if (avatarFile) {
+        const fileExt = avatarFile.name.split(".").pop();
+        const path = `${user.id}/avatar.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(path, avatarFile, { upsert: true });
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+        avatarUrl = data.publicUrl;
+      }
+
+      const locationParsed = parseProfileLocationInput(form.location);
+
+      const { error } = await supabase
         .from("profiles")
         .update({
-          full_name: formData.full_name,
-          username: formData.username,
-          bio: formData.bio,
-          city,
-          country,
-          website: formData.website,
+          full_name: form.full_name.trim() || null,
+          bio: form.bio.trim() || null,
+          location: locationParsed,
+          avatar_url: avatarUrl,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", currentUserId);
+        .eq("id", profile.id);
 
-      if (error) {
-        console.error("Failed to save profile:", error.message ?? error.code ?? error);
-      } else {
-        setProfile(prev =>
-          prev
-            ? {
-                ...prev,
-                full_name: formData.full_name,
-                username: formData.username,
-                bio: formData.bio,
-                website: formData.website,
-                city,
-                country,
-              }
-            : null,
-        );
-        setEditing(false);
-      }
+      if (error) throw error;
+
+      setProfile((p) => p ? { ...p, full_name: form.full_name || null, bio: form.bio || null, location: locationParsed, avatar_url: avatarUrl } : null);
+      setEditing(false);
+      if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+      setAvatarPreview(null);
+      setAvatarFile(null);
+    } catch (err) {
+      console.error("[Profile] save failed:", err);
+      alert("Failed to save profile");
     } finally {
       setSaving(false);
     }
-  }
+  };
 
-  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !currentUserId) return;
-
-    setSaving(true);
-    try {
-      const filename = `${currentUserId}-${Date.now()}`;
-      const { error: uploadError } = await createClient().storage
-        .from("avatars")
-        .upload(filename, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = createClient().storage
-        .from("avatars")
-        .getPublicUrl(filename);
-
-      const { error: updateError } = await createClient()
-        .from("profiles")
-        .update({ avatar_url: publicUrl })
-        .eq("id", currentUserId);
-
-      if (updateError) throw updateError;
-
-      setProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
-    } catch (error) {
-      console.error("Avatar upload failed:", error);
-    } finally {
-      setSaving(false);
+  const cancelEdit = () => {
+    setEditing(false);
+    setForm({
+      full_name: profile?.full_name ?? "",
+      bio: profile?.bio ?? "",
+      location: formatProfileLocation(profile?.location),
+    });
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+      setAvatarPreview(null);
+      setAvatarFile(null);
     }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
+      </div>
+    );
   }
 
-  if (!currentUserId) return <div className="p-4">Loading...</div>;
-  if (loading) return <div className="p-4">Loading profile...</div>;
+  const avatarSrc = avatarPreview ?? profile?.avatar_url;
 
   return (
-    <div className="min-h-screen bg-bg">
-      <div className="max-w-2xl mx-auto p-4">
+    <div className="min-h-full bg-[var(--color-bg)]"
+         style={{
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+         }}>
+      <div className="mx-auto max-w-[720px] space-y-6 p-4 lg:p-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <User className="w-6 h-6" />
-            My Profile
-          </h1>
-        </div>
-
-        {/* Profile Card */}
-        <div className="bg-surface rounded-lg border border-border p-6 mb-6">
-          {/* Avatar */}
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                {profile?.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt="Avatar"
-                    className="w-20 h-20 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                    {(profile?.full_name || "U")[0]?.toUpperCase()}
-                  </div>
-                )}
-                {editing && (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={saving}
-                    className="absolute bottom-0 right-0 bg-primary hover:bg-primary/80 text-white p-2 rounded-full"
-                  >
-                    <LinkIcon className="w-4 h-4" />
-                  </button>
-                )}
+        <div className="flex flex-wrap items-center justify-between gap-3 animate-in animate-fade-in-up">
+          <div>
+            <h1 className="flex items-center gap-2 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-berry)]/15 text-[var(--color-berry)]">
+                <Flag className="h-5 w-5" />
               </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
-              <div>
-                <div className="text-sm text-text-muted">Profile Picture</div>
-                {profile?.updated_at && (
-                  <div className="text-xs text-text-muted">
-                    Updated {new Date(profile.updated_at).toLocaleDateString()}
-                  </div>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={() => setEditing(!editing)}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors"
-            >
-              {editing ? "Cancel" : "Edit"}
-            </button>
+              {editing ? "Edit Profile" : "My Profile"}
+            </h1>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+              {editing ? "Update your profile information" : "Manage your public profile"}
+            </p>
           </div>
-
-          {/* Form */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Full Name</label>
-              <input
-                type="text"
-                value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                disabled={!editing}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-bg disabled:opacity-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 flex items-center gap-1">
-                <User className="w-4 h-4" />
-                Username
-              </label>
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                disabled={!editing}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-bg disabled:opacity-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Bio</label>
-              <textarea
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                disabled={!editing}
-                rows={4}
-                placeholder="Tell us about yourself..."
-                className="w-full px-3 py-2 border border-border rounded-lg bg-bg disabled:opacity-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                Location
-              </label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                disabled={!editing}
-                placeholder="City, Country"
-                className="w-full px-3 py-2 border border-border rounded-lg bg-bg disabled:opacity-50"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 flex items-center gap-1">
-                <LinkIcon className="w-4 h-4" />
-                Website
-              </label>
-              <input
-                type="url"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                disabled={!editing}
-                placeholder="https://example.com"
-                className="w-full px-3 py-2 border border-border rounded-lg bg-bg disabled:opacity-50"
-              />
-            </div>
-
-            {editing && (
-              <div className="flex gap-2 pt-4">
+          <div className="flex gap-2">
+            {editing ? (
+              <>
                 <button
-                  onClick={handleSave}
+                  type="button"
+                  onClick={cancelEdit}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)]/30 bg-[var(--color-surface)] px-4 py-2 text-[12px] font-semibold text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-secondary)]"
+                >
+                  <X className="h-3.5 w-3.5" /> Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-[12px] font-bold text-white transition hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
                 >
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  Save Changes
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                  {saving ? "Saving…" : "Save"}
                 </button>
-                <button
-                  onClick={() => setEditing(false)}
-                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center justify-center gap-2"
-                >
-                  <X className="w-4 h-4" />
-                  Cancel
-                </button>
-              </div>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-[12px] font-bold text-white transition hover:bg-[var(--color-accent-hover)]"
+              >
+                <Edit className="h-3.5 w-3.5" /> Edit profile
+              </button>
             )}
           </div>
         </div>
 
-        {/* User ID Info */}
-        <div className="bg-surface rounded-lg border border-border p-4 text-center">
-          <div className="text-sm text-text-muted mb-1">User ID</div>
-          <div className="font-mono text-sm text-text-primary break-all">{currentUserId}</div>
+        {/* Avatar + Name */}
+        <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+          <div className="flex items-center gap-4">
+            <div className="relative shrink-0">
+              <div className="relative w-28 h-28 rounded-xl overflow-hidden bg-gradient-to-br from-zinc-800 to-zinc-900 ring-2 ring-[var(--color-accent)]/30">
+                {avatarSrc ? (
+                  <img src={avatarSrc} alt={profile?.full_name ?? "Profile"} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-berry)] text-white font-bold text-[24px]">
+                    {(profile?.full_name ?? profile?.username ?? "?").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {editing && (
+                  <label className="absolute bottom-0 right-0 p-1.5" htmlFor="avatar-upload">
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="sr-only"
+                    />
+                    <button type="button" className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent)] text-white shadow-lg transition hover:bg-[var(--color-accent-hover)]">
+                      <Camera className="h-4 w-4" />
+                    </button>
+                  </label>
+                )}
+              </div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[18px] font-black text-[var(--color-text-primary)]">{profile?.full_name ?? profile?.username ?? "User"}</p>
+              <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">@{profile?.username}</p>
+              {editing && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Full Name</label>
+                    <input
+                      type="text"
+                      value={form.full_name}
+                      onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                      placeholder="Your name"
+                      className="mt-1 w-full rounded-xl border border-[var(--color-border)]/30 bg-[var(--color-surface)] px-3 py-2.5 text-[13px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)]/40 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Bio</label>
+                    <textarea
+                      value={form.bio}
+                      onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                      placeholder="Tell the community about yourself…"
+                      rows={3}
+                      className="mt-1 w-full rounded-xl border border-[var(--color-border)]/30 bg-[var(--color-surface)] px-3 py-2.5 text-[13px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)]/40 focus:outline-none resize-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Location</label>
+                    <input
+                      type="text"
+                      value={form.location}
+                      onChange={(e) => setForm({ ...form, location: e.target.value })}
+                      placeholder="City, Country"
+                      className="mt-1 w-full rounded-xl border border-[var(--color-border)]/30 bg-[var(--color-surface)] px-3 py-2.5 text-[13px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)]/40 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {editing && (
+          <div className="flex justify-end gap-2 animate-in animate-fade-in">
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)]/30 bg-[var(--color-surface)] px-4 py-2 text-[12px] font-semibold text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-secondary)]"
+            >
+              <X className="h-3.5 w-3.5" /> Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-5 py-2 text-[12px] font-bold text-white transition hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        )}
+
+        {/* Info cards */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-sage)]/15 text-[var(--color-sage)]">
+                <Flag className="h-4 w-4" />
+              </div>
+              <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Location</h3>
+            </div>
+            <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+              {profile?.location ? formatProfileLocation(profile.location) : "Not set"}
+            </p>
+            {editing && (
+              <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">Format: City, Country (e.g. Nairobi, Kenya)</p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-berry)]/15 text-[var(--color-berry)]">
+                <User className="h-4 w-4" />
+              </div>
+              <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Account</h3>
+            </div>
+            <div className="space-y-2 text-[13px]">
+              <div className="flex justify-between">
+                <dt className="text-[var(--color-text-muted)]">Username</dt>
+                <dd className="font-semibold text-[var(--color-text-primary)]">@{profile?.username}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-[var(--color-text-muted)]">Email</dt>
+                <dd className="font-semibold text-[var(--color-text-primary)] truncate max-w-[200px]">{profile?.email ?? "—"}</dd>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-ocean)]/15 text-[var(--color-ocean)]">
+                <ShieldCheck className="h-4 w-4" />
+              </div>
+              <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Privacy & Security</h3>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">Private profile</p>
+                  <p className="text-[10px] text-[var(--color-text-muted)]">Only community members can see your profile</p>
+                </div>
+                <input
+                  type="checkbox"
+                  defaultChecked={true}
+                  className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-accent)] focus:ring-[var(--color-accent)]"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">Two-factor authentication</p>
+                  <p className="text-[10px] text-[var(--color-text-muted)]">Add an extra layer of security</p>
+                </div>
+                <button className="rounded-lg border border-[var(--color-border)]/30 bg-[var(--color-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-secondary)]">
+                  Enable
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Danger zone */}
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-4">
+          <h3 className="mb-3 flex items-center gap-2 text-[13px] font-black text-red-400">
+            <AlertTriangle className="h-4 w-4" />
+            Danger Zone
+          </h3>
+          <p className="mb-4 text-[12px] text-red-300">This action is irreversible. All your data will be permanently deleted.</p>
+          <button className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-[12px] font-bold text-white transition hover:bg-red-500">
+            <Trash2 className="h-4 w-4" /> Delete my account
+          </button>
         </div>
       </div>
     </div>

@@ -37,6 +37,7 @@ export type CommunityDetailPayload = {
   is_free: boolean | null;
   is_private: boolean | null;
   monthly_price: number | string | null;
+  weekly_price: number | string | null;
   yearly_price: number | string | null;
   lifetime_price: number | string | null;
   currency: string | null;
@@ -73,7 +74,7 @@ type SpaceRow = {
   hasAccess?: boolean;
 };
 
-type PlanKey = "monthly" | "yearly" | "lifetime";
+type PlanKey = "weekly" | "monthly" | "yearly" | "lifetime";
 
 /* ─── Constants ─────────────────────────────────────────────────────── */
 
@@ -287,17 +288,23 @@ export function CommunityDetailView({
     return days >= 0 ? days : null;
   }, [localMembership]);
 
+  const weekly = Number(community.weekly_price ?? 0);
   const monthly = Number(community.monthly_price ?? 0);
   const yearly = Number(community.yearly_price ?? 0);
   const lifetime = Number(community.lifetime_price ?? 0);
   const currency = (community.currency || "USD").toUpperCase();
-  const isFree = community.is_free || (monthly === 0 && yearly === 0 && lifetime === 0);
+  const isFree = community.is_free || (weekly === 0 && monthly === 0 && yearly === 0 && lifetime === 0);
   const isPrivate = !!community.is_private;
   const trialDays = community.trial_days ?? 0;
 
-  const priceForPlan = (p: PlanKey) =>
-    p === "monthly" ? monthly : p === "yearly" ? yearly : lifetime;
+  const priceForPlan = (p: PlanKey) => {
+    if (p === "weekly") return weekly;
+    if (p === "monthly") return monthly;
+    if (p === "yearly") return yearly;
+    return lifetime;
+  };
   const availablePlans: PlanKey[] = [
+    weekly > 0 && "weekly",
     monthly > 0 && "monthly",
     yearly > 0 && "yearly",
     lifetime > 0 && "lifetime",
@@ -736,7 +743,7 @@ export function CommunityDetailView({
                         {formatMoney(priceForPlan(plan), currency)}
                       </span>
                       <span className="text-[12px] text-[var(--color-text-muted)]">
-                        {plan === "monthly" ? "per month" : plan === "yearly" ? "per year" : "one-time"}
+                        {plan === "weekly" ? "per week" : plan === "monthly" ? "per month" : plan === "yearly" ? "per year" : "one-time"}
                       </span>
                     </div>
                     {plan === "yearly" && yearlySaving > 0 && (

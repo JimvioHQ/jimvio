@@ -108,13 +108,13 @@ function VideoProgressBar({
           style={{ width: `${bufferPct}%` }}
         />
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#fd5000] to-[#ff8c42]"
+            className="absolute inset-y-0 left-0 rounded-full bg-[var(--color-accent)]"
           style={{ width: `${progress}%` }}
         />
       </div>
       <div
         className={cn(
-          "absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_0_2px_rgba(253,80,0,0.5)] transition-transform",
+            "absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white transition-transform",
           dragging || "group-hover/progress:scale-110",
         )}
         style={{ left: `${progress}%` }}
@@ -421,7 +421,7 @@ export function ProductVideoPlayer({
   if (embedSrc) {
     return (
       <div
-        className="absolute inset-0 z-[1] overflow-hidden bg-[#0a0a0c]"
+        className="absolute inset-0 z-[1] overflow-hidden bg-[var(--color-bg-darker,#0a1410)]"
         onMouseMove={revealChrome}
         onTouchStart={revealChrome}
       >
@@ -434,7 +434,7 @@ export function ProductVideoPlayer({
             aria-hidden
           />
         )}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(253,80,0,0.08)_0%,transparent_55%)]" />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, rgba(253,80,0,0.08) 0%, transparent 55%)" }} />
         <div className="absolute inset-3 flex flex-col sm:inset-4">
           <div
             className={cn(
@@ -466,7 +466,7 @@ export function ProductVideoPlayer({
 
   return (
     <div
-      className="absolute inset-0 z-[1] overflow-hidden bg-[#0a0a0c]"
+      className="absolute inset-0 z-[1] overflow-hidden bg-[var(--color-bg-darker,#0a1410)]"
       onMouseMove={revealChrome}
       onTouchStart={revealChrome}
     >
@@ -479,15 +479,15 @@ export function ProductVideoPlayer({
           aria-hidden
         />
       )}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(253,80,0,0.1)_0%,transparent_60%)]" />
+      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, rgba(253,80,0,0.10) 0%, transparent 60%)" }} />
 
       <div className="absolute inset-[10px] flex items-center justify-center sm:inset-4">
         <div
           ref={shellRef}
-          className="relative flex h-full w-full max-w-full items-center justify-center bg-[#0a0a0c]"
+          className="relative flex h-full w-full max-w-full items-center justify-center bg-[var(--color-bg-darker,#0a1410)]"
         >
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#fd5000]/20 via-transparent to-white/5 p-px">
-            <div className="h-full w-full rounded-2xl bg-[#0a0a0c]/80" />
+            <div className="h-full w-full rounded-2xl bg-[var(--color-bg-darker,#0a1410)]/80" />
           </div>
 
           <div className="relative h-full w-full overflow-hidden rounded-2xl shadow-[0_20px_56px_rgba(0,0,0,0.55)] ring-1 ring-white/10">

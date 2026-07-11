@@ -12,12 +12,15 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-dm-sans)', 'sans-serif'],
         mono: ['var(--font-jetbrains-mono)', 'monospace'],
+        display: ['var(--font-fraunces)', 'serif'],
+        body: ['var(--font-dm-sans)', 'sans-serif'],
         primary: ['var(--font-dm-sans)', 'sans-serif'],
         secondary: ['var(--font-dm-sans)', 'sans-serif'],
         outfit: ['var(--font-dm-sans)', 'sans-serif'],
       },
       colors: {
         bg: "var(--color-bg)",
+        "bg-elevated": "var(--color-bg-elevated)",
         surface: "var(--color-surface)",
         "surface-secondary": "var(--color-surface-secondary)",
         border: "var(--color-border)",
@@ -31,13 +34,19 @@ const config: Config = {
           DEFAULT: "var(--color-accent)",
           hover: "var(--color-accent-hover)",
           light: "var(--color-accent-light)",
+          soft: "var(--color-accent-soft)",
           400: "#f76707",
           500: "var(--color-accent)",
           600: "var(--color-accent)",
         },
         "accent-hover": "var(--color-accent-hover)",
         "accent-light": "var(--color-accent-light)",
-        /* Primary/brand = orange accent for dashboard & components */
+        /* Feature palette — each section gets an intentional color */
+        sage: "var(--color-sage)",          /* growth, earnings, wallet */
+        amber: "var(--color-amber)",        /* events, courses */
+        ocean: "var(--color-ocean)",        /* live, streaming */
+        berry: "var(--color-berry)",        /* creator, missions */
+        /* Primary/brand = orange accent */
         primary: {
           50: "var(--color-accent-light)",
           100: "#ffe8cc",
@@ -64,6 +73,8 @@ const config: Config = {
         muted: "var(--color-surface-secondary)",
       },
       boxShadow: {
+        card: "var(--shadow-card)",
+        elevated: "var(--shadow-elevated)",
         brand: "0 2px 8px rgba(232, 89, 12, 0.25)",
         primary: "0 2px 8px rgba(232, 89, 12, 0.2)",
       },
@@ -100,6 +111,14 @@ const config: Config = {
         "slide-in-right": "slideInRight 0.4s ease-out",
         "shimmer": "shimmer 2s linear infinite",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "lift": "lift 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "breathe": "breathe 2s ease-in-out infinite",
+        "stagger-1": "fadeInUp 0.4s ease-out 50ms both",
+        "stagger-2": "fadeInUp 0.4s ease-out 100ms both",
+        "stagger-3": "fadeInUp 0.4s ease-out 150ms both",
+        "stagger-4": "fadeInUp 0.4s ease-out 200ms both",
+        "stagger-5": "fadeInUp 0.4s ease-out 250ms both",
+        "stagger-6": "fadeInUp 0.4s ease-out 300ms both",
       },
       keyframes: {
         fadeIn: {
@@ -137,6 +156,14 @@ const config: Config = {
         "pulse-glow": {
           "0%, 100%": { boxShadow: "0 0 20px rgba(249, 115, 22, 0.2)" },
           "50%": { boxShadow: "0 0 40px rgba(249, 115, 22, 0.4)" },
+        },
+        lift: {
+          "0%": { transform: "translateY(0)", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" },
+          "100%": { transform: "translateY(-2px)", boxShadow: "0 8px 24px rgba(0,0,0,0.3)" },
+        },
+        breathe: {
+          "0%, 100%": { opacity: "1", transform: "scale(1)" },
+          "50%": { opacity: "0.85", transform: "scale(0.97)" },
         },
       },
     },

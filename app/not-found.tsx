@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { noIndexMetadata } from "@/lib/seo";
 import { NotFoundPageClient } from "@/components/empty-states/not-found-page-client";
 

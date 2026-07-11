@@ -31,7 +31,7 @@ export default async function CommunitySubscribePage({
   const { data: community } = await supabase
     .from("communities")
     .select(
-      "id, name, slug, tagline, avatar_url, is_free, monthly_price, yearly_price, lifetime_price, currency"
+      "id, name, slug, tagline, avatar_url, is_free, monthly_price, weekly_price, yearly_price, lifetime_price, currency"
     )
     .eq("slug", slug)
     .eq("is_active", true)

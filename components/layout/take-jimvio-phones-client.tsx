@@ -41,7 +41,7 @@ function AppTabBar({ active }: { active: TabId }) {
   ];
 
   return (
-    <nav className="mt-auto flex border-t border-[#ececec] bg-white px-0.5 py-1">
+    <nav className="mt-auto flex border-t border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900 px-0.5 py-1">
       {tabs.map((tab) => {
         const isActive = tab.id === active;
         const Icon = tab.icon;
@@ -116,10 +116,10 @@ function DashboardWebScreen() {
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#f4f4f5] p-1 text-[#111]">
+    <div className="flex h-full min-h-0 flex-col bg-[#f4f4f5] dark:bg-zinc-950 p-1 text-[#111] dark:text-[#ededed]">
       <div className="grid grid-cols-3 gap-0.5">
         {kpis.map((k) => (
-          <div key={k.label} className="rounded-sm border border-[#ececec] bg-white px-1 py-0.5">
+          <div key={k.label} className="rounded-sm border border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900 px-1 py-0.5">
             <div className="flex items-start justify-between">
               <p className="text-[3.5px] font-medium text-[#9ca3af]">{k.label}</p>
               <span className="size-2 rounded-sm" style={{ background: k.bg }} />
@@ -133,26 +133,26 @@ function DashboardWebScreen() {
       </div>
 
       <div className="mt-0.5 grid min-h-0 flex-1 grid-cols-[1.4fr_0.8fr] gap-0.5">
-        <div className="flex min-h-0 flex-col rounded-sm border border-[#ececec] bg-white">
-          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-1 py-0.5">
+        <div className="flex min-h-0 flex-col rounded-sm border border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900">
+          <div className="flex items-center justify-between border-b border-[#f0f0f0] dark:border-zinc-800/60 px-1 py-0.5">
             <span className="text-[4px] font-bold">Traffic</span>
-            <span className="text-[3px] text-[#9ca3af]">This year</span>
+            <span className="text-[3px] text-[#9ca3af] dark:text-zinc-500">This year</span>
           </div>
           <div className="min-h-0 flex-1 px-0.5 py-0.5">
             <MiniLineChart />
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col rounded-sm border border-[#ececec] bg-white">
-          <div className="border-b border-[#f0f0f0] px-1 py-0.5 text-[4px] font-bold">Messages</div>
-          <div className="flex-1 divide-y divide-[#f5f5f5]">
+        <div className="flex min-h-0 flex-col rounded-sm border border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900">
+          <div className="border-b border-[#f0f0f0] dark:border-zinc-800/60 px-1 py-0.5 text-[4px] font-bold">Messages</div>
+          <div className="flex-1 divide-y divide-[#f5f5f5] dark:divide-zinc-800/40">
             {messages.map((m) => (
               <div key={m.name} className="px-1 py-0.5">
                 <div className="flex items-center justify-between">
                   <span className="text-[3.5px] font-bold">{m.name}</span>
-                  <span className="text-[3px] text-[#9ca3af]">{m.time}</span>
+                  <span className="text-[3px] text-[#9ca3af] dark:text-zinc-500">{m.time}</span>
                 </div>
-                <p className="truncate text-[3px] text-[#9ca3af]">{m.msg}</p>
+                <p className="truncate text-[3px] text-[#9ca3af] dark:text-zinc-500">{m.msg}</p>
               </div>
             ))}
           </div>
@@ -160,23 +160,23 @@ function DashboardWebScreen() {
       </div>
 
       <div className="mt-0.5 grid grid-cols-[0.85fr_1.15fr] gap-0.5">
-        <div className="rounded-sm border border-[#ececec] bg-white">
-          <div className="border-b border-[#f0f0f0] px-1 py-0.5 text-[4px] font-bold">Top products</div>
+        <div className="rounded-sm border border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900">
+          <div className="border-b border-[#f0f0f0] dark:border-zinc-800/60 px-1 py-0.5 text-[4px] font-bold">Top products</div>
           {products.map((p) => (
-            <div key={p.name} className="flex items-center justify-between border-b border-[#f5f5f5] px-1 py-0.5 last:border-0">
+            <div key={p.name} className="flex items-center justify-between border-b border-[#f5f5f5] dark:border-zinc-800/40 px-1 py-0.5 last:border-0">
               <div className="min-w-0">
                 <p className="truncate text-[3.5px] font-semibold">{p.name}</p>
-                <p className="text-[3px] text-[#9ca3af]">{p.sold}</p>
+                <p className="text-[3px] text-[#9ca3af] dark:text-zinc-500">{p.sold}</p>
               </div>
               <span className="text-[3.5px] font-bold">{p.price}</span>
             </div>
           ))}
         </div>
 
-        <div className="rounded-sm border border-[#ececec] bg-white">
-          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-1 py-0.5">
+        <div className="rounded-sm border border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900">
+          <div className="flex items-center justify-between border-b border-[#f0f0f0] dark:border-zinc-800/60 px-1 py-0.5">
             <span className="text-[4px] font-bold">Product sales</span>
-            <span className="text-[3px] text-[#9ca3af]">This year</span>
+            <span className="text-[3px] text-[#9ca3af] dark:text-zinc-500">This year</span>
           </div>
           <div className="h-8 px-0.5 py-0.5">
             <MiniBarChart />
@@ -198,30 +198,30 @@ function MarketplaceTabletScreen() {
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white">
-      <div className="border-b border-[#ececec] px-2 py-1.5">
+    <div className="flex h-full min-h-0 flex-col bg-white dark:bg-zinc-900 text-[#111] dark:text-[#ededed]">
+      <div className="border-b border-[#ececec] dark:border-zinc-800 px-2 py-1.5">
         <div className="flex items-center justify-between">
           <span className="text-[8px] font-black tracking-tight" style={{ color: ORANGE }}>
             Jimvio
           </span>
-          <span className="rounded border border-[#ececec] px-1 py-px text-[4px] font-semibold text-[#6b7280]">
+          <span className="rounded border border-[#ececec] dark:border-zinc-800 px-1 py-px text-[4px] font-semibold text-[#6b7280] dark:text-zinc-400">
             Lagos · USD
           </span>
         </div>
-        <div className="mt-1 flex items-center gap-1 rounded border border-[#e5e5e5] bg-[#fafafa] px-1.5 py-0.5">
-          <Search className="size-2 text-[#9ca3af]" />
-          <span className="text-[5px] text-[#9ca3af]">wireless mic, notion templates…</span>
+        <div className="mt-1 flex items-center gap-1 rounded border border-[#e5e5e5] dark:border-zinc-850 bg-[#fafafa] dark:bg-zinc-950 px-1.5 py-0.5">
+          <Search className="size-2 text-[#9ca3af] dark:text-zinc-500" />
+          <span className="text-[5px] text-[#9ca3af] dark:text-zinc-500">wireless mic, notion templates…</span>
         </div>
       </div>
 
-      <div className="flex gap-2 border-b border-[#f0f0f0] px-2">
+      <div className="flex gap-2 border-b border-[#f0f0f0] dark:border-zinc-800 px-2">
         {tabs.map((tab, i) => (
           <span
             key={tab}
             className="border-b-2 py-1 text-[5px] font-semibold"
             style={{
               borderColor: i === 0 ? ORANGE : "transparent",
-              color: i === 0 ? "#111" : MUTED,
+              color: i === 0 ? "var(--color-text-primary)" : "var(--color-text-muted)",
             }}
           >
             {tab}
@@ -229,16 +229,16 @@ function MarketplaceTabletScreen() {
         ))}
       </div>
 
-      <div className="flex-1 space-y-px overflow-hidden bg-[#fafafa] p-1.5">
+      <div className="flex-1 space-y-px overflow-hidden bg-[#fafafa] dark:bg-zinc-950 p-1.5">
         {listings.map((row) => (
           <div
             key={row.title}
-            className="flex items-center gap-1 border border-[#ececec] bg-white px-1 py-1"
+            className="flex items-center gap-1 border border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900 px-1 py-1"
           >
             <InitialAvatar label={row.vendor.slice(0, 2).toUpperCase()} bg={row.accent} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-[5px] font-bold">{row.title}</p>
-              <p className="truncate text-[4px] text-[#9ca3af]">
+              <p className="truncate text-[4px] text-[#9ca3af] dark:text-zinc-550">
                 {row.vendor} · {row.sold}
               </p>
             </div>
@@ -265,23 +265,23 @@ function WalletPhoneScreen() {
   ];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-[#fafafa]">
-      <div className="border-b border-[#ececec] bg-white px-3 pb-2 pt-1">
-        <p className="text-[10px] font-bold text-[#111]">Wallet</p>
-        <p className="text-[7px] text-[#9ca3af]">Payouts clear in 24h · min $25</p>
+    <div className="flex min-h-0 flex-1 flex-col bg-[#fafafa] dark:bg-zinc-950 text-[#111] dark:text-[#ededed]">
+      <div className="border-b border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900 px-3 pb-2 pt-1">
+        <p className="text-[10px] font-bold text-[#111] dark:text-zinc-100">Wallet</p>
+        <p className="text-[7px] text-[#9ca3af] dark:text-zinc-550">Payouts clear in 24h · min $25</p>
       </div>
 
       <div className="flex-1 space-y-2 overflow-hidden px-2.5 py-2">
-        <div className="border border-[#ececec] bg-white p-2.5">
+        <div className="border border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900 p-2.5">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-[6px] font-medium text-[#9ca3af]">Available</p>
-              <p className="mt-0.5 text-[15px] font-bold leading-none tabular-nums text-[#111]">
+              <p className="text-[6px] font-medium text-[#9ca3af] dark:text-zinc-550">Available</p>
+              <p className="mt-0.5 text-[15px] font-bold leading-none tabular-nums text-[#111] dark:text-zinc-100">
                 $1,247.60
               </p>
             </div>
             <div className="text-right">
-              <p className="text-[6px] font-medium text-[#9ca3af]">Pending</p>
+              <p className="text-[6px] font-medium text-[#9ca3af] dark:text-zinc-550">Pending</p>
               <p className="text-[8px] font-bold tabular-nums" style={{ color: ORANGE }}>
                 $47.20
               </p>
@@ -294,14 +294,14 @@ function WalletPhoneScreen() {
             >
               Withdraw
             </span>
-            <span className="rounded border border-[#e5e5e5] bg-[#fafafa] px-2 py-0.5 text-[6px] font-semibold text-[#6b7280]">
+            <span className="rounded border border-[#e5e5e5] dark:border-zinc-800 bg-[#fafafa] dark:bg-zinc-950 px-2 py-0.5 text-[6px] font-semibold text-[#6b7280] dark:text-zinc-400">
               Statement
             </span>
           </div>
         </div>
 
-        <div className="border border-[#ececec] bg-white">
-          <div className="flex items-center justify-between border-b border-[#f0f0f0] px-2 py-1">
+        <div className="border border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900">
+          <div className="flex items-center justify-between border-b border-[#f0f0f0] dark:border-zinc-800 px-2 py-1">
             <p className="text-[7px] font-bold">Recent</p>
             <span className="text-[6px] font-semibold" style={{ color: ORANGE }}>
               All
@@ -310,39 +310,39 @@ function WalletPhoneScreen() {
           {ledger.map((row) => (
             <div
               key={row.label}
-              className="flex items-center gap-1.5 border-b border-[#f5f5f5] px-2 py-1.5 last:border-0"
+              className="flex items-center gap-1.5 border-b border-[#f5f5f5] dark:border-zinc-850 px-2 py-1.5 last:border-0"
             >
               <div
                 className="flex size-4 shrink-0 items-center justify-center rounded-full"
-                style={{ background: row.done ? "#f0fdf4" : "#fff7ed" }}
+                style={{ background: row.done ? "rgba(22,163,74,0.15)" : "rgba(253,80,0,0.15)" }}
               >
                 {row.done ? (
-                  <CheckCircle2 className="size-2" style={{ color: GREEN }} />
+                  <CheckCircle2 className="size-2 text-green-600 dark:text-green-500" />
                 ) : (
-                  <Clock className="size-2" style={{ color: ORANGE }} />
+                  <Clock className="size-2 text-orange-600 dark:text-orange-500" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[6px] font-semibold">{row.label}</p>
-                <p className="truncate text-[5px] text-[#9ca3af]">{row.sub}</p>
+                <p className="truncate text-[5px] text-[#9ca3af] dark:text-zinc-550">{row.sub}</p>
               </div>
               <div className="shrink-0 text-right">
                 <p
                   className="text-[6px] font-bold tabular-nums"
-                  style={{ color: row.amt.startsWith("−") ? "#111" : GREEN }}
+                  style={{ color: row.amt.startsWith("−") ? "var(--color-text-primary)" : GREEN }}
                 >
                   {row.amt}
                 </p>
-                <p className="text-[5px] text-[#9ca3af]">{row.time}</p>
+                <p className="text-[5px] text-[#9ca3af] dark:text-zinc-550">{row.time}</p>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="flex items-center justify-between rounded border border-[#ececec] bg-white px-2 py-1.5">
+        <div className="flex items-center justify-between rounded border border-[#ececec] dark:border-zinc-800 bg-white dark:bg-zinc-900 px-2 py-1.5">
           <div>
             <p className="text-[6px] font-bold">Open UGC brief</p>
-            <p className="text-[5px] text-[#9ca3af]">Northline · 3 days left</p>
+            <p className="text-[5px] text-[#9ca3af] dark:text-zinc-550">Northline · 3 days left</p>
           </div>
           <div className="flex items-center gap-0.5 text-[6px] font-bold" style={{ color: ORANGE }}>
             Apply
@@ -360,7 +360,7 @@ function LaptopShell({ children, className = "" }: { children: React.ReactNode; 
   return (
     <div className={`flex shrink-0 flex-col items-center ${className}`}>
       <div className="w-full rounded-t-[10px] border-[3px] border-b-0 border-[#1c1c1e] bg-[#1c1c1e] p-1 shadow-[0_20px_50px_rgba(0,0,0,0.35)] sm:rounded-t-[12px] sm:border-[4px] sm:p-1.5">
-        <div className="aspect-[16/10] w-full overflow-hidden rounded-t-[4px] bg-white sm:rounded-t-[6px]">
+        <div className="aspect-[16/10] w-full overflow-hidden rounded-t-[4px] bg-white dark:bg-zinc-900 sm:rounded-t-[6px]">
           {children}
         </div>
       </div>
@@ -375,7 +375,7 @@ function TabletShell({ children, className = "" }: { children: React.ReactNode; 
     <div
       className={`shrink-0 rounded-[12px] border-[4px] border-[#1c1c1e] bg-[#1c1c1e] p-1 shadow-[0_16px_40px_rgba(0,0,0,0.3)] sm:rounded-[14px] sm:border-[5px] ${className}`}
     >
-      <div className="aspect-[3/4] w-full overflow-hidden rounded-[6px] bg-white sm:rounded-[8px]">
+      <div className="aspect-[3/4] w-full overflow-hidden rounded-[6px] bg-white dark:bg-zinc-900 sm:rounded-[8px]">
         {children}
       </div>
     </div>

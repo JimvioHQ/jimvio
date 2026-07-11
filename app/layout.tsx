@@ -8,7 +8,7 @@ import NextTopLoader from "nextjs-toploader";
 import "../styles/globals.css";
 import { constructMetadata } from "@/lib/seo";
 import { JimvioJsonLd } from "@/components/seo/JimvioJsonLd";
-import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, JetBrains_Mono, Fraunces, IBM_Plex_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next"
 import { ReferralTracker } from "@/components/affiliate/referral-tracker";
 import { SpeedInsights } from "@vercel/speed-insights/next"
@@ -29,7 +29,7 @@ export const viewport: Viewport = {
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["200", "400", "600", "700"],
   variable: "--font-dm-sans",
   display: "swap",
 });
@@ -41,13 +41,27 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-ibm-plex-mono",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["300", "400", "600", "800"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${dmSans.variable} ${jetbrainsMono.variable}`}
+      className={`${dmSans.variable} ${jetbrainsMono.variable} ${ibmPlexMono.variable} ${fraunces.variable}`}
     >
       <body
         suppressHydrationWarning

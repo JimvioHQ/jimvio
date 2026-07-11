@@ -1,23 +1,72 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
+let withBundleAnalyzer: (config: NextConfig) => NextConfig = (c) => c;
+if (process.env.ANALYZE === "true") {
+  try {
+    const mod = require("@next/bundle-analyzer");
+    withBundleAnalyzer = mod({ enabled: true });
+  } catch {}
+}
+let nextConfig: NextConfig = {
   serverExternalPackages: ["pdfkit"],
   turbopack: {
-    root: "",
   },
 
   images: {
+    deviceSizes: [640, 750, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    formats: ["image/webp", "image/avif"],
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "**",
+        hostname: "*.supabase.co",
+      },
+      {
+        protocol: "https",
+        hostname: "utfs.io",
+      },
+      {
+        protocol: "https",
+        hostname: "img.clerk.com",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
+      {
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
+      },
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+      },
+{
+        protocol: "https",
+        hostname: "cf.cjdropshipping.com",
+      },
+      {
+        protocol: "https",
+        hostname: "oss-cf.cjdropshipping.com",
+      },
+      {
+        protocol: "https",
+        hostname: "plus.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
       },
     ],
   },
 
   experimental: {
     serverActions: {
-      allowedOrigins: ["*"],
+      allowedOrigins: ["localhost:3000", "localhost", "jimvio.com", "www.jimvio.com"],
     },
   },
 
@@ -69,4 +118,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

@@ -341,10 +341,7 @@ export function Sidebar({ type = "physical" }: Props) {
       <div className="flex flex-col gap-3">
 
         {/* ── Categories ── */}
-        <div
-          className="rounded-md p-3"
-          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-        >
+        <div className="rounded-md p-3">
           <div className="mb-2.5 flex items-center justify-between">
             <span className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>
               Categories
@@ -391,10 +388,7 @@ export function Sidebar({ type = "physical" }: Props) {
         </div>
 
         {/* ── Filters ── */}
-        <div
-          className="rounded-md p-3"
-          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-        >
+        <div className="rounded-md p-3">
           <div className="mb-2.5 flex items-center justify-between">
             <span className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>Filters</span>
             <button

@@ -37,7 +37,7 @@ import { DashboardHeader } from "./dashboard-header";
 function DashboardShellContent({ children }: { children: React.ReactNode }) {
   const { activeRoles, fetchRoles } = useUserStore();
   const [user, setUser] = useState<UserProfile>({ email: "", full_name: null, avatar_url: null });
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);

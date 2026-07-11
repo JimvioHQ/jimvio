@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -806,6 +806,7 @@ export type Database = {
           long_description: string | null
           member_count: number | null
           monthly_price: number | null
+          weekly_price: number | null
           name: string
           owner_id: string
           platform_commission_rate: number | null
@@ -834,6 +835,7 @@ export type Database = {
           long_description?: string | null
           member_count?: number | null
           monthly_price?: number | null
+          weekly_price?: number | null
           name: string
           owner_id: string
           platform_commission_rate?: number | null
@@ -862,6 +864,7 @@ export type Database = {
           long_description?: string | null
           member_count?: number | null
           monthly_price?: number | null
+          weekly_price?: number | null
           name?: string
           owner_id?: string
           platform_commission_rate?: number | null

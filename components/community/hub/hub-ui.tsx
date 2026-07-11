@@ -2,6 +2,23 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import {
+  Radio, Users, Heart, Share2, Monitor, Mic, MicOff, Video, VideoOff,
+  ScreenShare, ScreenShareOff, MessageSquare, Square,
+  Loader2, Smile, Send, Wifi, LogIn, Link2, Copy, Check, UserPlus,
+  X, AlertTriangle, CheckCircle2, Info,
+  Flame, HelpCircle, BarChart3, TrendingUp, Sparkles, Plus, GraduationCap, Calendar, Wallet,
+  Target, FileText, Hash, Globe, Lock, ShieldCheck, ChevronDown, ChevronUp, Compass, Crown, MoreHorizontal,
+} from "lucide-react";
+
+export function LiveIndicator({ label = "LIVE", className }: { label?: string; className?: string }) {
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-red-600/20 px-2.5 py-1 text-[10px] font-mono font-medium text-red-400 backdrop-blur-sm", className)}>
+      <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+      {label}
+    </span>
+  );
+}
 
 export function HubCard({
   className,
@@ -158,7 +175,33 @@ export function HubProgressBar({ value, max, className }: { value: number; max: 
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
     <div className={cn("h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]", className)}>
-      <div className="h-full rounded-full bg-[#fd5000] transition-all" style={{ width: `${pct}%` }} />
+      <div className="h-full rounded-full bg-[var(--color-accent)] transition-all" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+export function FeatureStatCard({ label, value, delta, icon: Icon, color }: { label: string; value: string | number; delta?: string | null; icon: typeof Users; color: string }) {
+  const colorVar = `var(--color-${color})`;
+  return (
+    <div className="relative group hover-lift animate-in animate-fade-in-up rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)] p-4 transition-all duration-300"
+         style={{ background: `linear-gradient(135deg, var(--color-surface), var(--color-surface-secondary))` }}>
+      <div className="absolute inset-0 -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
+           style={{ background: `radial-gradient(circle at top right, var(--color-${color})15, transparent 60%)` }} />
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>{label}</p>
+          <p className="mt-1 text-[20px] font-black tracking-tight" style={{ color: "var(--color-text-primary)" }}>{value}</p>
+          {delta && (
+            <p className="mt-1 text-[10px] font-semibold text-emerald-500 flex items-center gap-0.5">
+              <TrendingUp className="h-3 w-3" /> {delta}
+            </p>
+          )}
+        </div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+             style={{ background: `${colorVar}15`, color: colorVar }}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -168,12 +211,13 @@ export function HubLinkButton({
   children,
   variant = "primary",
   className,
+  ...props
 }: {
   href: string;
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "ghost" | "soft";
   className?: string;
-}) {
+} & React.ComponentPropsWithoutRef<typeof Link>) {
   const styles = {
     primary: "bg-[#fd5000] text-white hover:bg-[#e04800] shadow-sm",
     secondary: "border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]",
@@ -188,6 +232,7 @@ export function HubLinkButton({
         styles[variant],
         className
       )}
+      {...props}
     >
       {children}
     </Link>

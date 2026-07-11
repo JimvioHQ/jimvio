@@ -26,7 +26,7 @@ export default function HubPrimarySidebar({
   return (
     <>
       <div className="hidden h-full shrink-0 lg:block">
-        <PrimarySidebar activeItem={resolveSidebarActiveItem(pathname)} />
+        <PrimarySidebar activeItem={resolveSidebarActiveItem(pathname)} collapsed={collapsed} onToggleCollapse={onToggleCollapse} />
       </div>
       {mobileOpen && (
         <HubSidebar

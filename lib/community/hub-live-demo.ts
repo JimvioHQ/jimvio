@@ -1,4 +1,4 @@
-import type { LiveDashboard } from "@/lib/community/hub-live-types";
+import type { LiveDashboard, LiveSessionItem } from "@/lib/community/hub-live-types";
 
 export function getEmptyHubLiveDashboard(): LiveDashboard {
   return {
@@ -8,6 +8,7 @@ export function getEmptyHubLiveDashboard(): LiveDashboard {
     chatMessages: [],
     speakers: [],
     upcomingSessions: [],
+    sessions: [],
     analytics: {
       viewers: 0,
       liveViewers: 0,
@@ -35,4 +36,81 @@ export function getEmptyHubLiveDashboard(): LiveDashboard {
 export function normalizeHubLiveDashboard(api: LiveDashboard | null | undefined): LiveDashboard {
   if (!api) return getEmptyHubLiveDashboard();
   return api;
+}
+
+/** Mock: return all live sessions across spaces for a community slug. */
+export function getMockSessions(communitySlug?: string): LiveSessionItem[] {
+  const all: LiveSessionItem[] = [
+    {
+      id: "sess-1",
+      title: "React Hooks Deep Dive",
+      host: "Sarah Chen",
+      host_avatar: null,
+      space_id: "space-coding",
+      space_name: "Learning Coding",
+      community_slug: communitySlug ?? "jimvio",
+      viewer_count: 342,
+      status: "live",
+      privacy: "public",
+      started_at: new Date(Date.now() - 1800000).toISOString(),
+    },
+    {
+      id: "sess-2",
+      title: "Forex Trading for Beginners",
+      host: "Mike Okonkwo",
+      host_avatar: null,
+      space_id: "space-trading",
+      space_name: "Forex Trading",
+      community_slug: communitySlug ?? "jimvio",
+      viewer_count: 187,
+      status: "live",
+      privacy: "public",
+      started_at: new Date(Date.now() - 3600000).toISOString(),
+    },
+    {
+      id: "sess-3",
+      title: "UI/UX Portfolio Review",
+      host: "Aisha Diallo",
+      host_avatar: null,
+      space_id: "space-design",
+      space_name: "Design Studio",
+      community_slug: communitySlug ?? "jimvio",
+      viewer_count: 56,
+      status: "live",
+      privacy: "public",
+      started_at: new Date(Date.now() - 900000).toISOString(),
+    },
+    {
+      id: "sess-4",
+      title: "Advanced TypeScript Patterns",
+      host: "James Wilson",
+      host_avatar: null,
+      space_id: "space-coding",
+      space_name: "Learning Coding",
+      community_slug: communitySlug ?? "jimvio",
+      viewer_count: 0,
+      status: "upcoming",
+      privacy: "public",
+      started_at: new Date(Date.now() + 7200000).toISOString(),
+    },
+    {
+      id: "sess-5",
+      title: "Members-only Q&A: Market Analysis",
+      host: "Mike Okonkwo",
+      host_avatar: null,
+      space_id: "space-trading",
+      space_name: "Forex Trading",
+      community_slug: communitySlug ?? "jimvio",
+      viewer_count: 0,
+      status: "upcoming",
+      privacy: "private",
+      started_at: new Date(Date.now() + 14400000).toISOString(),
+    },
+  ];
+  return all;
+}
+
+/** Get a single mock session by ID. */
+export function getMockSessionById(sessionId: string, communitySlug?: string): LiveSessionItem | undefined {
+  return getMockSessions(communitySlug).find((s) => s.id === sessionId);
 }

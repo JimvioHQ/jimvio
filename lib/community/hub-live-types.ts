@@ -30,6 +30,20 @@ export type UpcomingSession = {
   href: string;
 };
 
+export type LiveSessionItem = {
+  id: string;
+  title: string;
+  host: string;
+  host_avatar: string | null;
+  space_id: string;
+  space_name: string;
+  community_slug: string;
+  viewer_count: number;
+  status: "live" | "upcoming" | "ended";
+  privacy: "public" | "private";
+  started_at: string;
+};
+
 export type LiveDashboard = {
   stats: { membersOnline: number; liveSessions: number; voiceRooms: number };
   rooms: LiveRoom[];
@@ -37,6 +51,7 @@ export type LiveDashboard = {
   chatMessages: ChatMessage[];
   speakers: Speaker[];
   upcomingSessions: UpcomingSession[];
+  sessions: LiveSessionItem[];
   analytics: {
     viewers: number;
     liveViewers: number;

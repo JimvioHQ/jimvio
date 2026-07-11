@@ -32,15 +32,15 @@ export function AiMessageMarkdown({ content, className, onNavigate }: AiMessageM
           <p className="text-[14px] leading-relaxed text-[var(--color-text-secondary)]">{children}</p>
         ),
         strong: ({ children }) => (
-          <strong className="font-semibold text-[var(--color-text-primary)]">{children}</strong>
+          <strong className="font-semibold" style={{ color: JIMVIO_ORANGE }}>{children}</strong>
         ),
         ul: ({ children }) => (
-          <ul className="ml-4 list-disc space-y-1 text-[var(--color-text-secondary)]">{children}</ul>
+          <ul className="ml-4 space-y-1 text-[var(--color-text-secondary)]" style={{ listStyleType: "disc", color: "var(--color-text-secondary)" }}>{children}</ul>
         ),
         ol: ({ children }) => (
-          <ol className="ml-4 list-decimal space-y-1 text-[var(--color-text-secondary)]">{children}</ol>
+          <ol className="ml-4 space-y-1 text-[var(--color-text-secondary)]" style={{ listStyleType: "decimal", color: JIMVIO_ORANGE }}>{children}</ol>
         ),
-        li: ({ children }) => <li className="pl-0.5">{children}</li>,
+        li: ({ children }) => <li className="pl-0.5" style={{ color: "var(--color-text-secondary)" }}>{children}</li>,
         a: ({ href, children }) => {
           const path = href ?? "/";
           const isInternal = path.startsWith("/");

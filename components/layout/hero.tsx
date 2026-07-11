@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
+  Award,
   BookOpen,
   CheckCircle,
   Globe,
@@ -22,6 +23,9 @@ import {
   Users,
   Video,
   Zap,
+  MessageCircle,
+  Trophy,
+  Tag,
 } from "lucide-react";
 import { TICKER_ITEMS } from "@/data/dashboard";
 import { ApplePayLogo, MastercardLogo, VisaLogo } from "@/components/ui/payment-logos";
@@ -107,12 +111,10 @@ function HeroRotatingPhrase() {
 }
 
 const TRUST_BADGES = [
-  { icon: CheckCircle, label: "Verified", color: "#16a34a" },
-  { icon: Lock, label: "Secure Payments", color: "#2563eb" },
-  { icon: ShieldCheck, label: "Protected", color: "#2563eb" },
-  { icon: Zap, label: "Instant Payouts", color: "#ca8a04" },
-  { icon: Globe, label: "Global", color: "#4b5563" },
-  { icon: Headphones, label: "24/7 Support", color: "#4b5563" },
+  { icon: Users, label: "10k+ Creators", color: "#fd5000" },
+  { icon: Globe, label: "500+ Communities", color: "#16a34a" },
+  { icon: ShieldCheck, label: "100+ Partner Brands", color: "#2563eb" },
+  { icon: Package, label: "5,000+ Products", color: "#ca8a04" },
 ] as const;
 
 const PARTNER_LOGOS = [
@@ -186,7 +188,7 @@ function HeroPartnerStrip() {
   const items = [...marqueeLogos, ...marqueeLogos];
 
   return (
-    <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] py-5 sm:py-6">
+    <div className="bg-[var(--color-surface)] py-5 sm:py-6">
       <div className="mx-auto max-w-8xl px-4 sm:px-6">
         <p className="mb-4 text-center text-[11px] font-medium text-[var(--color-text-muted)] sm:text-[12px]">
           Trusted by {formatPlatformStat("users", getPlatformStatsLaunchSnapshot().users)} creators and businesses worldwide
@@ -695,120 +697,272 @@ function HeroAIFeatureCard({
   );
 }
 
-function HeroAIPanel() {
-  const openAssistant = useAIStore((s) => s.openAssistant);
-  const reduced = usePrefersReducedMotion();
+function CreatorWorkspaceShowcase() {
+  const [activeTab, setActiveTab] = useState<"all" | "community" | "shop" | "ugc">("all");
+  const [earnings, setEarnings] = useState(14258.90);
+  const [recentOrders, setRecentOrders] = useState([
+    { id: 1, text: "LUT Pack V2 sale", amount: "+$29.00", time: "Just now", icon: Tag, color: "#fd5000" },
+    { id: 2, text: "Community monthly sub", amount: "+$49.00", time: "2 min ago", icon: Users, color: "#16a34a" },
+    { id: 3, text: "Aura Cosmetics UGC payout", amount: "+$350.00", time: "15 min ago", icon: Award, color: "#2563eb" },
+  ]);
 
-  const ask = (query?: string) => {
-    const text = (query ?? "").trim();
-    openAssistant(text);
-  };
+  // Live earnings ticker
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setEarnings((prev) => prev + (Math.random() > 0.4 ? Number((Math.random() * 2.5).toFixed(2)) : 0));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const topRow = HERO_AI_FEATURES.slice(0, 4);
-  const bottomRow = HERO_AI_FEATURES.slice(4);
+  // Periodic new orders ticker simulation
+  useEffect(() => {
+    const products = ["Digital Planner", "LUT Pack V2", "eBook: Brand Deals", "Creator Hub VIP"];
+    const prices = ["+$19.00", "+$29.00", "+$39.00", "+$49.00"];
+    const icons = [Tag, Tag, BookOpen, Users];
+    const colors = ["#fd5000", "#fd5000", "#ca8a04", "#16a34a"];
+
+    const interval = setInterval(() => {
+      const idx = Math.floor(Math.random() * products.length);
+      const newOrder = {
+        id: Date.now(),
+        text: `${products[idx]} sale`,
+        amount: prices[idx],
+        time: "Just now",
+        icon: icons[idx],
+        color: colors[idx],
+      };
+      setRecentOrders((prev) => [newOrder, ...prev.slice(0, 2)]);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <motion.div
-      className="relative flex w-full min-w-0 max-w-full items-center py-1 sm:py-4 lg:py-6"
-      variants={AI_STAGGER}
-      initial={reduced ? "show" : "hidden"}
-      animate="show"
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-3xl"
-        style={{
-          background:
-            "radial-gradient(ellipse 58% 52% at 78% 36%, rgba(253,80,0,0.07) 0%, transparent 72%)",
-        }}
-      />
+    <div className="relative w-full max-w-[620px] mx-auto rounded-3xl border border-gray-200/50 dark:border-white/10 bg-gray-50/40 dark:bg-zinc-950/40 backdrop-blur-xl p-4 overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.04),_0_1px_3px_rgba(0,0,0,0.02)] dark:shadow-[0_20px_40px_rgba(0,0,0,0.35),_0_1px_3px_rgba(0,0,0,0.2)] transition-all">
+      {/* Decorative gradients */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      <HeroAIAmbientLayer reduced={reduced} />
-      <HeroAISparkles reduced={reduced} />
-
-      <div className="relative z-10 w-full min-w-0">
-        <div className="relative w-full min-w-0">
-          <div className="relative w-full min-w-0 lg:pr-[46%] xl:pr-[44%]">
-            <motion.div variants={AI_FADE_UP} className="mb-3 -translate-y-[140px] sm:mb-7 sm:translate-y-14">
-              <HeroAILogo />
-            </motion.div>
-
-            <motion.div variants={AI_FADE_UP}>
-              <HeroAIDescriptionTypewriter />
-            </motion.div>
-
-            <motion.div variants={AI_FADE_UP} className="mt-4 flex justify-center sm:mt-8 lg:justify-start">
-              <HeroAICTAButton onClick={() => ask()} />
-            </motion.div>
+      {/* Top Header - Creator Info */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200/50 dark:border-white/10 pb-4 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="relative h-12 w-12 rounded-full overflow-hidden border border-orange-500/30 bg-orange-100 flex items-center justify-center font-bold text-orange-600 text-lg">
+            SJ
           </div>
-
-          <motion.div variants={AI_FADE_UP} className="relative z-10 mt-4 w-full min-w-0 sm:mt-8">
-            <div className="grid w-full min-w-0 grid-cols-4 grid-rows-2 gap-1.5 sm:hidden">
-              {HERO_AI_FEATURES.map((feature, index) => (
-                <HeroAIFeatureCard
-                  key={feature.label}
-                  index={index}
-                  label={feature.label}
-                  mobileLabel={feature.mobileLabel}
-                  query={feature.query}
-                  icon={feature.icon}
-                  onSelect={ask}
-                />
-              ))}
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-gray-900 dark:text-white text-sm">Sarah Jenkins</span>
+              <span className="h-4 w-4 bg-[#fd5000] text-white rounded-full flex items-center justify-center text-[9px] font-black" title="Verified Creator">✓</span>
             </div>
-
-            <div className="hidden w-full min-w-0 flex-col gap-2 sm:flex">
-              {[topRow, bottomRow].map((row, rowIndex) => (
-                <div
-                  key={rowIndex}
-                  className="grid w-full min-w-0 grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-2.5"
-                >
-                  {row.map((feature, colIndex) => (
-                    <HeroAIFeatureCard
-                      key={feature.label}
-                      index={rowIndex * 4 + colIndex}
-                      label={feature.label}
-                      mobileLabel={feature.mobileLabel}
-                      query={feature.query}
-                      icon={feature.icon}
-                      onSelect={ask}
-                    />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </motion.div>
+            <span className="text-xs text-gray-500">SaaS & Design Creator</span>
+          </div>
         </div>
 
-        <motion.div
-          variants={AI_ROBOT_ENTER}
-          className="pointer-events-none relative z-[3] mx-auto mt-6 hidden w-full max-w-[320px] justify-center sm:flex sm:mt-10 lg:hidden"
-        >
-          <JimvioAIMascot size="hero" showRings className="h-64 w-64 sm:h-72 sm:w-72" />
-        </motion.div>
+        {/* Action Toggles */}
+        <div className="relative flex gap-1 bg-gray-200/50 dark:bg-white/5 p-1 rounded-xl text-xs">
+          {(["all", "community", "shop", "ugc"] as const).map((tab) => {
+            const isActive = activeTab === tab;
+            const label = tab === "all" ? "Overview" : tab === "community" ? "Communities" : tab === "shop" ? "Storefront" : "UGC Campaigns";
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className="relative px-3 py-1.5 rounded-lg font-bold transition-colors duration-200 text-xs cursor-pointer select-none"
+                style={{ WebkitTapHighlightColor: "transparent" }}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="activeTabPill"
+                    className="absolute inset-0 rounded-lg bg-white dark:bg-zinc-800 shadow-sm"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <span className={`relative z-10 ${isActive ? "text-gray-900 dark:text-white" : "text-gray-500 hover:text-gray-950 dark:hover:text-white"}`}>
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div
-        className="pointer-events-none absolute left-[62%] top-[10%] z-[2] hidden w-[min(82%,538px)] lg:block xl:left-[64%] xl:top-[12%] xl:w-[min(82%,605px)]"
-        style={{ transform: "translate(-50%, calc(-50% + 50px))" }}
-      >
-        <motion.div
-          className="pointer-events-none absolute left-1/2 top-[52%] h-[55%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#fd5000]/14 blur-3xl will-change-transform"
-          animate={reduced ? undefined : { opacity: [0.35, 0.6, 0.35], scale: [0.95, 1.05, 0.95] }}
-          transition={reduced ? undefined : { duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-          aria-hidden
-        />
-      </div>
+      {/* Dynamic Workspace Panels */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[380px] overflow-y-auto pr-1">
+        {/* Earnings Card */}
+        {(activeTab === "all" || activeTab === "shop") && (
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-4 rounded-2xl border border-gray-200/50 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                <span>Revenue Dashboard</span>
+                <span className="text-emerald-500 font-bold flex items-center gap-0.5">
+                  <TrendingUp className="h-3.5 w-3.5" /> +24.8%
+                </span>
+              </div>
+              <div className="text-3xl font-black text-gray-900 dark:text-white leading-none tracking-tight">
+                ${earnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <span className="text-[10px] text-gray-400">Real-time earnings ticker</span>
+            </div>
 
-      <div
-        className="pointer-events-none absolute left-[62%] top-[10%] z-[3] hidden w-[min(82%,538px)] lg:block xl:left-[64%] xl:top-[12%] xl:w-[min(82%,605px)]"
-        style={{ transform: "translate(-50%, calc(-50% + 50px))" }}
-      >
-        <motion.div variants={AI_ROBOT_ENTER} initial={reduced ? "show" : "hidden"} animate="show">
-          <JimvioAIMascot size="hero" showRings className="w-full" />
-        </motion.div>
+            {/* Sparkline chart */}
+            <div className="h-20 w-full mt-4 relative">
+              <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
+                <motion.path
+                  key={`chart-${activeTab}`}
+                  d="M 0 25 Q 15 15 30 20 T 60 10 T 80 18 T 100 5"
+                  fill="none"
+                  stroke="#fd5000"
+                  strokeWidth="2"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.8, ease: "easeOut" }}
+                />
+                <motion.path
+                  key={`fill-${activeTab}`}
+                  d="M 0 25 Q 15 15 30 20 T 60 10 T 80 18 T 100 5 L 100 30 L 0 30 Z"
+                  fill="url(#sparkline-grad)"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.12 }}
+                  transition={{ duration: 0.8, delay: 1.2 }}
+                />
+                <defs>
+                  <linearGradient id="sparkline-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#fd5000" />
+                    <stop offset="100%" stopColor="#fd5000" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] border-t border-gray-100 dark:border-white/5 pt-2 mt-2">
+              <div className="flex items-center gap-1">
+                <span className="size-2 rounded-full bg-orange-500" />
+                <span className="text-gray-500">Shop: 58%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="size-2 rounded-full bg-green-500" />
+                <span className="text-gray-500">Comm: 26%</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Community Hub Card */}
+        {(activeTab === "all" || activeTab === "community") && (
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-4 rounded-2xl border border-gray-200/50 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-gray-900 dark:text-white">Community (2.1k members)</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-950 px-2 py-0.5 text-[9px] font-bold text-red-600">
+                  <span className="relative size-1.5 flex shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full size-1.5 bg-red-600"></span>
+                  </span>
+                  LIVE
+                </span>
+              </div>
+              <div className="rounded-xl overflow-hidden bg-gradient-to-r from-orange-400 to-rose-400 h-16 w-full relative flex items-end p-2 mb-3">
+                <div className="text-white font-black text-xs drop-shadow-md">The Creative Guild</div>
+              </div>
+              <div className="space-y-1.5">
+                {[
+                  { name: "#announcements", icon: Megaphone, count: 0 },
+                  { name: "#q-and-a", icon: MessageCircle, count: 4 },
+                  { name: "#ugc-challenges", icon: Trophy, count: 12 },
+                ].map((channel, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 p-1 rounded-md transition-colors cursor-pointer">
+                    <div className="flex items-center gap-1.5">
+                      <channel.icon className="h-3.5 w-3.5 text-gray-400" />
+                      <span>{channel.name}</span>
+                    </div>
+                    {channel.count > 0 && (
+                      <span className="bg-orange-500 text-white rounded-full px-1.5 py-0.2 text-[9px] font-bold">
+                        {channel.count}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Marketplace Sales Ticker */}
+        {(activeTab === "all" || activeTab === "shop") && (
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-4 rounded-2xl border border-gray-200/50 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm flex flex-col justify-between"
+          >
+            <div>
+              <div className="text-xs font-bold text-gray-900 dark:text-white mb-3">Recent Sales Feed</div>
+              <div className="space-y-2">
+                <AnimatePresence initial={false}>
+                  {recentOrders.map((order) => (
+                    <motion.div
+                      key={order.id}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="flex items-center gap-2.5 p-2 rounded-xl bg-gray-100/50 dark:bg-white/5 text-xs"
+                    >
+                      <span
+                        className="p-1.5 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: `${order.color}15`, color: order.color }}
+                      >
+                        <order.icon className="h-3.5 w-3.5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-gray-800 dark:text-gray-200">{order.text}</p>
+                        <p className="text-[9px] text-gray-400">{order.time}</p>
+                      </div>
+                      <span className="font-bold text-gray-900 dark:text-white text-xs">{order.amount}</span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* UGC Brand Campaigns */}
+        {(activeTab === "all" || activeTab === "ugc") && (
+          <motion.div
+            layout
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-4 rounded-2xl border border-gray-200/50 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm flex flex-col justify-between"
+          >
+            <div>
+              <div className="text-xs font-bold text-gray-900 dark:text-white mb-2">UGC &amp; Brand Partnerships</div>
+              <div className="border border-gray-100 dark:border-white/5 rounded-xl p-3 bg-gray-50/50 dark:bg-zinc-800/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Aura Cosmetics Review</span>
+                  <span className="rounded-full bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 text-[8px] font-bold text-emerald-600 uppercase">
+                    Approved
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-500">Film a 30s Reels reviewing the Hydra Skin Elixir.</p>
+                <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-white/5 text-[10px]">
+                  <span className="text-gray-400">Payout Reward</span>
+                  <span className="font-bold text-[#fd5000]">$250.00</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -949,73 +1103,68 @@ export function Hero() {
       <section className="relative w-full overflow-visible bg-[var(--color-surface)] pt-4 pb-5 sm:pt-6 sm:pb-8">
         <HeroPremiumBackground reduced={reduced} />
 
-        <div className="relative z-10 mx-auto w-full min-w-0 max-w-8xl px-4 sm:px-6">
-          <div className="grid w-full min-w-0 grid-cols-1 items-center gap-4 sm:gap-10 lg:grid-cols-2 lg:gap-12 xl:gap-14">
-            <div className="w-full min-w-0 text-center lg:text-left">
-              <div className="flex justify-center lg:justify-start">
+        <div className="relative z-10 mx-auto w-full min-w-0 max-w-5xl px-4 sm:px-6">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-full min-w-0 max-w-3xl">
+              <div className="flex justify-center">
                 <PlatformStatsRotatingBadge className="mb-3 sm:mb-4" />
               </div>
 
-              <div className="mx-auto w-full min-w-0 max-w-[520px] lg:mx-0 lg:max-w-none">
-                <h1
-                  className="mx-auto flex w-full min-w-0 max-w-full flex-col space-y-2 overflow-hidden break-words font-black tracking-tight text-[var(--color-text-primary)] [overflow-wrap:anywhere] sm:space-y-3 lg:mx-0"
-                  style={{
-                    fontSize: "clamp(2rem, 7vw, 4rem)",
-                    letterSpacing: "-0.03em",
-                    lineHeight: 1.12,
-                  }}
-                >
-                  <span>The platform to</span>
-                  <HeroRotatingPhrase />
-                  <span>Anywhere.</span>
-                </h1>
-
-                <p className="mx-auto mt-3 w-full min-w-0 max-w-[520px] break-words text-[14px] leading-relaxed text-[var(--color-text-muted)] [overflow-wrap:anywhere] sm:mt-4 sm:text-base lg:mx-0">
-                  Sell products. Promote offers. Create content. Build your community. Grow your audience — all in one
-                  place.
-                </p>
+              <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#fd5000] dark:bg-orange-950/30">
+                Create. Connect. Earn.
               </div>
+              <h1
+                className="mx-auto flex w-full min-w-0 max-w-full flex-col space-y-1 overflow-visible font-black tracking-tight text-[var(--color-text-primary)] text-balance sm:space-y-2"
+                style={{
+                  fontSize: "clamp(2.25rem, 6vw, 4.5rem)",
+                  letterSpacing: "-0.03em",
+                  lineHeight: 1.1,
+                }}
+              >
+                <span>Turn Your Passion</span>
+                <span style={{ color: ORANGE }}>Into Income.</span>
+              </h1>
 
-              <div className="mt-5 flex w-full min-w-0 flex-col items-stretch gap-3 sm:mt-6 sm:flex-row sm:items-center sm:justify-center lg:justify-start">
-                <Link
-                  href="/register"
-                  className="inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-sm px-5 text-[13px] font-bold text-white transition-opacity hover:opacity-90 sm:h-[48px] sm:w-auto sm:px-6 sm:text-[14px]"
-                  style={{ background: ORANGE }}
-                >
-                  Start earning for Free
-                  <ArrowRight className="size-4 shrink-0" />
-                </Link>
-                <Link
-                  href="/marketplace"
-                  className="inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-[13px] font-bold text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-secondary)] sm:h-[48px] sm:w-auto sm:px-6 sm:text-[14px]"
-                >
-                  Browse Marketplace
-                  <ArrowRight className="size-4 shrink-0 opacity-60" />
-                </Link>
-              </div>
-
-              <div className="mt-5 grid w-full min-w-0 grid-cols-3 grid-rows-[28px_28px] gap-x-[10px] gap-y-2 sm:mt-6 sm:grid-cols-2 sm:grid-rows-none sm:gap-x-3 sm:gap-y-2 lg:flex lg:flex-nowrap lg:items-center lg:justify-start lg:gap-x-3">
-                {TRUST_BADGES.map(({ icon: Icon, label, color }) => (
-                  <div
-                    key={label}
-                    className="box-border flex h-full w-full min-w-0 items-center justify-center gap-1 px-1 sm:h-auto sm:w-auto sm:justify-start sm:gap-1.5 sm:px-0"
-                  >
-                    <span
-                      className="inline-flex h-[14px] w-[14px] shrink-0 items-center justify-center rounded-md sm:grid sm:size-6"
-                      style={{ background: `${color}18`, color }}
-                    >
-                      <Icon className="size-3 shrink-0" strokeWidth={2.4} />
-                    </span>
-                    <span className="flex h-full min-w-0 flex-1 items-center whitespace-nowrap text-[10px] font-medium leading-none text-[var(--color-text-muted)] sm:block sm:h-auto sm:truncate sm:text-[12px] sm:leading-normal lg:whitespace-nowrap">
-                      {label}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <p className="mx-auto mt-4 w-full min-w-0 max-w-2xl text-balance px-1 text-[14px] leading-relaxed text-[var(--color-text-secondary)] sm:mt-5 sm:text-base">
+                Build communities, collaborate with brands, sell physical and digital products, create courses, and grow your online business — all in one premium workspace.
+              </p>
             </div>
 
-            <div className="w-full min-w-0">
-              <HeroAIPanel />
+            <div className="mt-6 flex w-full min-w-0 flex-col items-stretch gap-3 sm:mt-7 sm:flex-row sm:items-center sm:justify-center">
+              <Link
+                href="/register"
+                className="inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-2xl border border-transparent px-8 text-[14px] font-bold text-white transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(253,80,0,0.35)] hover:brightness-105 active:translate-y-0 active:scale-[0.98] sm:h-[48px] sm:w-auto"
+                style={{ background: ORANGE, boxShadow: "0 6px 20px rgba(253,80,0,0.25)" }}
+              >
+                Start Creating
+                <ArrowRight className="size-4 shrink-0" />
+              </Link>
+              <Link
+                href="/communities"
+                className="inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-8 text-[14px] font-bold text-[var(--color-text-primary)] transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:border-[#fd5000]/30 hover:bg-orange-500/[0.03] hover:text-[#fd5000] hover:shadow-md active:translate-y-0 active:scale-[0.98] sm:h-[48px] sm:w-auto"
+              >
+                Explore Communities
+                <ArrowRight className="size-4 shrink-0 opacity-60" />
+              </Link>
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 sm:mt-10">
+              {TRUST_BADGES.map(({ icon: Icon, label, color }) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-1.5 text-left"
+                >
+                  <span
+                    className="inline-flex size-6 shrink-0 items-center justify-center rounded-md"
+                    style={{ background: `${color}18`, color }}
+                  >
+                    <Icon className="size-3 shrink-0" strokeWidth={2.4} />
+                  </span>
+                  <span className="text-[12px] font-medium text-[var(--color-text-muted)] whitespace-nowrap">
+                    {label}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

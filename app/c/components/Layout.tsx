@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -15,7 +15,6 @@ import {
     ShoppingCart,
     Sparkles,
     Menu,
-    Globe,
     Radio,
     Layers,
     MessageSquare,
@@ -23,10 +22,11 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
+import { CallProvider } from "@/components/community/call-context";
 import { CreateMenuDropdown } from "@/components/feed/CreateQuickLaunch";
 import JimvioLogo from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { CurrencySelector } from "@/context/CurrencyContext";
+
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,6 @@ import { buildHubLoginUrl, getCommunitySlugFromPath } from "@/lib/community/hub-
 
 type Profile = Pick<DbProfile, "id" | "username" | "full_name" | "avatar_url">;
 
-// ── Primary navigation (matches public marketing nav) ────────────────────────
 const PRIMARY_NAV: { label: string; href: string; icon: typeof Home; dropdown?: boolean }[] = [
     { label: "Home", href: "/", icon: Home },
     { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, dropdown: true },
@@ -44,14 +43,13 @@ const PRIMARY_NAV: { label: string; href: string; icon: typeof Home; dropdown?: 
     { label: "UGC & Clipping", href: "/ugc", icon: Clapperboard },
 ];
 
-// ── User avatar ───────────────────────────────────────────────────────────────
 function UserAvatar({ profile, size = 32 }: { profile: Profile | null; size?: number }) {
     if (profile?.avatar_url) {
         return (
             <img
                 src={profile.avatar_url}
                 alt={profile.full_name ?? "Profile"}
-                className="rounded-full object-cover"
+                className="rounded-full object-cover ring-2 ring-[var(--color-accent)]/30"
                 style={{ width: size, height: size }}
             />
         );
@@ -66,15 +64,14 @@ function UserAvatar({ profile, size = 32 }: { profile: Profile | null; size?: nu
             .toUpperCase() || "?";
     return (
         <span
-            className="inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#fd5000] to-[#ff7a30] font-bold text-white"
-            style={{ width: size, height: size, fontSize: size * 0.38 }}
+            className="inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white"
+            style={{ width: size, height: size, fontSize: size * 0.38, background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))" }}
         >
             {initials}
         </span>
     );
 }
 
-// ── Page title hook (mobile header) ───────────────────────────────────────────
 function usePageTitle(pathname: string): string {
     const [communityName, setCommunityName] = useState<string | null>(null);
 
@@ -121,11 +118,10 @@ function usePageTitle(pathname: string): string {
 
 function isNavActive(pathname: string, href: string): boolean {
     const h = href.replace(/\/$/, "") || "/";
-    if (h === "/") return false; // never highlight Home inside the hub
+    if (h === "/") return false;
     return pathname === h || pathname.startsWith(`${h}/`);
 }
 
-// ── Layout ────────────────────────────────────────────────────────────────────
 export default function HubLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
 
@@ -135,16 +131,37 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
+    const [searchOpen, setSearchOpen] = useState(false);
+
+    const manuallyToggled = useRef(false);
+
+    const FULLSCREEN_ROUTES = ["/c/live", "/c/events", "/c/spaces"];
+
+    function isFullscreenRoute(p: string) {
+        return FULLSCREEN_ROUTES.some((route) => p.startsWith(route));
+    }
+
+    const isFullscreen = isFullscreenRoute(pathname);
+
+    useEffect(() => {
+        if (isFullscreenRoute(pathname)) {
+            if (!manuallyToggled.current) setCollapsed(true);
+        } else {
+            manuallyToggled.current = false;
+        }
+    }, [pathname]);
+
+    function handleToggleCollapse() {
+        manuallyToggled.current = true;
+        setCollapsed((c) => !c);
+    }
 
     const pageTitle = usePageTitle(pathname);
-    const isLiveStudio = pathname.startsWith("/c/live");
     const { cartCount, refreshCounts } = useCartStore();
     const { openAssistant } = useAIStore();
 
-    // Close mobile nav on route change
     useEffect(() => { setMobileNavOpen(false); }, [pathname]);
 
-    // Close mobile nav when returning to desktop width
     useEffect(() => {
         const mq = window.matchMedia("(min-width: 1024px)");
         const closeOnDesktop = () => { if (mq.matches) setMobileNavOpen(false); };
@@ -198,8 +215,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
         (async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user || cancelled) return;
+            const uniqueNotifId = `${user.id}-${Math.random().toString(36).substring(2, 11)}`;
             channel = supabase
-                .channel(`hub-notifications-${user.id}`)
+                .channel(`hub-notifications-${uniqueNotifId}`)
                 .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => load())
                 .subscribe();
         })();
@@ -211,220 +229,222 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const loginHref = buildHubLoginUrl(pathname);
 
     return (
-        <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)] text-[var(--color-text-primary,#18181b)]">
+        <CallProvider>
+            <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
 
-            {/* ── Top utility strip (desktop) ── */}
-            <div className="hidden border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] lg:block">
-                <div className="mx-auto flex h-7 max-w-[1600px] items-center justify-between px-6">
-                    <div className="flex items-center gap-5">
-                        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-[var(--color-text-muted,#71717a)]">
-                            <Globe className="h-3 w-3 text-[#fd5000]" />
-                            Global Sourcing Network
-                        </span>
-                        <CurrencySelector className="h-5 border-0 bg-transparent px-1 text-[10px] font-bold text-[var(--color-text-muted,#71717a)] ring-0 transition-colors hover:text-[var(--color-text-primary)] focus:ring-0" />
-                    </div>
-                    <div className="flex items-center gap-5">
-                        <Link href="/help" className="text-[10px] font-bold uppercase text-[var(--color-text-muted,#71717a)] transition-colors hover:text-[#fd5000]">Support</Link>
-                        <span className="h-3 w-px bg-[var(--color-border,#e4e4e7)]" />
-                        <Link href="/vendors" className="text-[10px] font-bold uppercase text-[var(--color-text-muted,#71717a)] transition-colors hover:text-[var(--color-text-primary)]">Sell on Jimvio</Link>
-                    </div>
-                </div>
-            </div>
-
-            {/* ── Main header (full width, above sidebar) ── */}
-            <header className="z-30 flex h-14 shrink-0 items-center gap-3 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-3 sm:px-6">
-                {/* Mobile hamburger */}
+                {/* ── Main header (glassmorphism) ── */}
+                <header className="z-30 flex h-[56px] shrink-0 items-center gap-3 border-b border-[var(--color-border)]/30 bg-[var(--color-surface)]/80 backdrop-blur-xl px-3 sm:px-6">
+                    {/* Mobile hamburger */}
                     <button
                         onClick={() => setMobileNavOpen((o) => !o)}
                         aria-label="Open navigation menu"
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] lg:hidden"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] lg:hidden transition-colors"
                     >
-                    <Menu className="h-5 w-5" />
+                        <Menu className="h-5 w-5" />
                     </button>
 
-                {/* Logo */}
-                <Link href="/c" className="shrink-0" aria-label="Jimvio home">
-                    <JimvioLogo href={undefined} size="lg" />
-                </Link>
+                    {/* Logo */}
+                    <Link href="/c" className="shrink-0" aria-label="Jimvio home">
+                        <JimvioLogo href={undefined} size="lg" />
+                    </Link>
 
-                {/* Primary nav (desktop) */}
-                <nav className="ml-2 hidden items-center gap-0.5 min-[1150px]:flex">
-                    {PRIMARY_NAV.map(({ label, href, icon: Icon, dropdown }) => {
-                        const active = isNavActive(pathname, href);
-                        return (
-                    <Link
-                                key={href}
-                                href={href}
-                                className={cn(
-                                    "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-semibold tracking-tight transition-colors",
-                                    active
-                                        ? "bg-[#fd5000]/10 text-[#fd5000]"
-                                        : "text-[var(--color-text-secondary,#52525b)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                                )}
+                    {/* Primary nav (desktop) - soft pill tabs */}
+                    <nav className="ml-2 hidden items-center gap-1 min-[1150px]:flex">
+                        {PRIMARY_NAV.map(({ label, href, icon: Icon, dropdown }) => {
+                            const active = isNavActive(pathname, href);
+                            return (
+                                <Link
+                                    key={href}
+                                    href={href}
+                                    className={cn(
+                                        "inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold tracking-tight transition-all duration-200",
+                                        active
+                                            ? "bg-[var(--color-accent)] text-white shadow-[0_2px_8px_rgba(253,80,0,0.3)]"
+                                            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                                    )}
+                                >
+                                    <Icon className="h-3.5 w-3.5" style={{ color: active ? "white" : "var(--color-accent)" }} />
+                                    {label}
+                                    {dropdown && <ChevronDown className="h-3 w-3 opacity-60" />}
+                                </Link>
+                            );
+                        })}
+                    </nav>
+
+                    {/* Right cluster */}
+                    <div className="ml-auto flex items-center gap-1.5">
+                        {/* Search - expanding on focus */}
+                        <div className="relative hidden lg:flex">
+                            <button
+                                onClick={() => setSearchOpen(true)}
+                                aria-label="Search"
+                                className="group flex items-center gap-2 rounded-full border border-[var(--color-border)]/30 bg-[var(--color-surface-secondary)]/50 px-3 py-1.5 pr-8 transition-all duration-300 min-w-[60px]"
+                                style={{ width: searchOpen ? "240px" : "48px" }}
                             >
-                                <Icon className="h-3.5 w-3.5 text-[#fd5000]" />
-                                {label}
-                                {dropdown && <ChevronDown className="h-3 w-3 opacity-50" />}
-                    </Link>
-                        );
-                    })}
-                </nav>
+                                <Search className="h-4 w-4 shrink-0 text-[var(--color-text-muted)] transition-opacity" style={{ opacity: searchOpen ? 1 : 0 }} />
+                                {searchOpen && (
+                                    <>
+                                        <input
+                                            placeholder="Search global community…"
+                                            aria-label="Search"
+                                            className="w-full bg-transparent text-[13px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
+                                            autoFocus
+                                            onBlur={() => setTimeout(() => setSearchOpen(false), 100)}
+                                        />
+                                        <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] px-1 text-[10px] font-semibold text-[var(--color-text-muted)] xl:block">⌘K</kbd>
+                                    </>
+                                )}
+                            </button>
+                        </div>
 
-                {/* Right cluster */}
-                <div className="ml-auto flex items-center gap-1.5">
-                    {/* Search */}
-                    <div className="hidden items-center gap-2 rounded-full border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface-secondary,#f4f4f5)] px-3 py-1.5 min-[1100px]:flex lg:w-[240px]">
-                        <Search className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
-                        <input
-                            placeholder="Search global community…"
-                            aria-label="Search"
-                            className="w-full bg-transparent text-[13px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
-                        />
-                        <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] px-1 text-[10px] font-semibold text-[var(--color-text-muted)] xl:block">⌘K</kbd>
-                    </div>
+                        {/* Create */}
+                        <CreateMenuDropdown variant="compact" />
 
-                    {/* Create */}
-                    <CreateMenuDropdown variant="compact" />
-
-                    {/* AI */}
-                    <button
-                        onClick={() => openAssistant()}
-                        aria-label="AI assistant"
-                        className="hidden h-9 w-9 shrink-0 place-items-center rounded-full text-[#fd5000] hover:bg-[#fd5000]/10 sm:grid"
-                    >
-                        <Sparkles className="h-[18px] w-[18px]" />
-                    </button>
-
-                    {/* Notifications */}
-                    <Link
-                        href="/notifications"
-                        aria-label={`Notifications${unreadNotifications > 0 ? ` (${unreadNotifications} unread)` : ""}`}
-                        className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                    >
-                        <Bell className="h-[18px] w-[18px]" />
-                        {unreadNotifications > 0 && (
-                            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-[#fd5000] px-1 text-[9px] font-black text-white ring-2 ring-[var(--color-surface,#fff)]">
-                                {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                            </span>
-                        )}
-                    </Link>
-
-                    {/* Cart */}
-                    <Link
-                        href="/cart"
-                        aria-label="Cart"
-                        className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                    >
-                        <ShoppingCart className="h-[18px] w-[18px]" />
-                        {cartCount > 0 && (
-                            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-[#fd5000] px-1 text-[9px] font-black text-white ring-2 ring-[var(--color-surface,#fff)]">
-                                {cartCount > 9 ? "9+" : cartCount}
-                            </span>
-                        )}
-                    </Link>
-
-                    {/* Theme */}
-                    <div className="hidden sm:flex">
-                        <ThemeToggle />
-                    </div>
-
-                    {/* Avatar / Sign in */}
-                    {isAuthenticated === false ? (
-                        <Link
-                            href={loginHref}
-                            className="ml-0.5 shrink-0 rounded-full border border-[#fd5000]/30 bg-[#fd5000]/10 px-3 py-1.5 text-[12px] font-bold text-[#fd5000] transition-colors hover:bg-[#fd5000]/15"
+                        {/* AI */}
+                        <button
+                            onClick={() => openAssistant()}
+                            aria-label="AI assistant"
+                            className="hidden h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 sm:grid transition-colors"
                         >
-                            Sign in
+                            <Sparkles className="h-[18px] w-[18px]" />
+                        </button>
+
+                        {/* Notifications */}
+                        <Link
+                            href="/notifications"
+                            aria-label={`Notifications${unreadNotifications > 0 ? ` (${unreadNotifications} unread)` : ""}`}
+                            className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                        >
+                            <Bell className="h-[18px] w-[18px]" />
+                            {unreadNotifications > 0 && (
+                                <span className="absolute -right-0.5 -top-0.5 animate-breathe grid h-4 min-w-[16px] place-items-center rounded-full bg-[var(--color-accent)] px-1 text-[9px] font-black text-white ring-2 ring-[var(--color-surface)]">
+                                    {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                                </span>
+                            )}
                         </Link>
-                    ) : (
-                    <Link
-                        href={profileHref}
-                        aria-label="My profile"
-                        className="ml-0.5 shrink-0 rounded-full transition-opacity hover:opacity-80"
-                    >
-                        <UserAvatar profile={profile} size={32} />
-                    </Link>
-                    )}
-                </div>
+
+                        {/* Cart */}
+                        <Link
+                            href="/cart"
+                            aria-label="Cart"
+                            className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                        >
+                            <ShoppingCart className="h-[18px] w-[18px]" />
+                            {cartCount > 0 && (
+                                <span className="absolute -right-0.5 -top-0.5 animate-bounce grid h-4 min-w-[16px] place-items-center rounded-full bg-[var(--color-accent)] px-1 text-[9px] font-black text-white ring-2 ring-[var(--color-surface)]">
+                                    {cartCount > 9 ? "9+" : cartCount}
+                                </span>
+                            )}
+                        </Link>
+
+                        {/* Theme */}
+                        <div className="hidden sm:flex">
+                            <ThemeToggle />
+                        </div>
+
+                        {/* Avatar / Sign in */}
+                        {isAuthenticated === false ? (
+                            <Link
+                                href={loginHref}
+                                className="ml-0.5 shrink-0 rounded-full border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10 px-3 py-1.5 text-[12px] font-bold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/15"
+                            >
+                                Sign in
+                            </Link>
+                        ) : (
+                        <Link
+                            href={profileHref}
+                            aria-label="My profile"
+                            className="ml-0.5 shrink-0 rounded-full transition-opacity hover:opacity-80"
+                        >
+                            <UserAvatar profile={profile} size={32} />
+                        </Link>
+                        )}
+                    </div>
                 </header>
 
-            {/* ── Body row: sidebar + content ── */}
-            <div className="flex min-h-0 flex-1">
-                <Suspense fallback={null}>
-                    <HubPrimarySidebar
-                        collapsed={collapsed}
-                        onToggleCollapse={() => setCollapsed((c) => !c)}
-                        username={profile?.username ?? ""}
-                        unreadMessages={unreadMessages}
-                        mobileOpen={mobileNavOpen}
-                        onMobileClose={() => setMobileNavOpen(false)}
-                    />
-                </Suspense>
+                {/* ── Body row: sidebar + content ── */}
+                <div className="flex min-h-0 flex-1">
+                    <Suspense fallback={null}>
+                        <HubPrimarySidebar
+                            collapsed={collapsed}
+                            onToggleCollapse={handleToggleCollapse}
+                            username={profile?.username ?? ""}
+                            unreadMessages={unreadMessages}
+                            mobileOpen={mobileNavOpen}
+                            onMobileClose={() => setMobileNavOpen(false)}
+                        />
+                    </Suspense>
 
-                {/* Mobile overlay backdrop */}
-                {mobileNavOpen && (
-                    <div
-                        className="fixed inset-0 z-[98] bg-black/50 lg:hidden"
-                        onClick={() => setMobileNavOpen(false)}
-                        aria-hidden="true"
-                    />
-                )}
-
-                {/* Page content */}
-                <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isLiveStudio && "bg-[#f4f4f5]")}>
-                    {/* Mobile page title bar */}
-                    {!isLiveStudio && (
-                    <div className="flex h-11 items-center border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-4 lg:hidden">
-                        <h1 className="text-[14px] font-bold text-[var(--color-text-primary)]">{pageTitle}</h1>
-                    </div>
+                    {/* Mobile overlay backdrop */}
+                    {mobileNavOpen && (
+                        <div
+                            className="fixed inset-0 z-[98] bg-black/50 lg:hidden"
+                            onClick={() => setMobileNavOpen(false)}
+                            aria-hidden="true"
+                        />
                     )}
-                    <div className="flex-1 pb-14 lg:pb-0">{children}</div>
-                </main>
-            </div>
 
-            {/* ── Mobile bottom nav ── */}
-            <nav
-                className="fixed inset-x-0 bottom-0 z-[60] flex h-14 items-stretch justify-around border-t border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] lg:hidden"
-                style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-                aria-label="Mobile navigation"
-            >
-                {[
-                    { label: "Feed", href: "/c", auth: false, icon: Home },
-                    { label: "Live", href: "/c/live", auth: true, icon: Radio },
-                    { label: "Spaces", href: "/c/spaces", auth: true, icon: Layers },
-                    { label: "Messages", href: "/c/messages", auth: true, icon: MessageSquare },
-                    { label: "Missions", href: "/c/missions", auth: true, icon: Target },
-                ].map(({ label, href, auth, icon: Icon }) => {
-                    const navHref = isAuthenticated === false && auth ? buildHubLoginUrl(href) : href;
-                    const active = href === "/c" ? pathname === "/c" : pathname.startsWith(href);
+                    {/* Page content */}
+                    <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isFullscreen && "bg-[var(--color-bg)]")}>
+                        {/* Mobile page title bar */}
+                        {!isFullscreen && (
+                        <div className="flex h-11 items-center border-b border-[var(--color-border)]/30 bg-[var(--color-surface)]/80 backdrop-blur-xl px-4 lg:hidden">
+                            <h1 className="text-[14px] font-bold text-[var(--color-text-primary)]">{pageTitle}</h1>
+                        </div>
+                        )}
+                        <div className="flex-1 pb-14 lg:pb-0">{children}</div>
+                    </main>
+                </div>
+
+                {/* ── Mobile bottom nav (redesigned) ── */}
+                <nav
+                    className="fixed inset-x-0 bottom-0 z-[60] flex h-16 items-stretch justify-around border-t border-[var(--color-border)]/30 bg-[var(--color-surface)]/80 backdrop-blur-xl lg:hidden"
+                    style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+                    aria-label="Mobile navigation"
+                >
+                    {[
+                        { label: "Feed", href: "/c", auth: false, icon: Home },
+                        { label: "Live", href: "/c/live", auth: true, icon: Radio },
+                        { label: "Spaces", href: "/c/spaces", auth: true, icon: Layers },
+                        { label: "Messages", href: "/c/messages", auth: true, icon: MessageSquare },
+                        { label: "Missions", href: "/c/missions", auth: true, icon: Target },
+                    ].map(({ label, href, auth, icon: Icon }) => {
+                        const navHref = isAuthenticated === false && auth ? buildHubLoginUrl(href) : href;
+                        const active = href === "/c" ? pathname === "/c" : pathname.startsWith(href);
                         return (
                             <Link
                                 key={href}
-                            href={navHref}
+                                href={navHref}
                                 aria-label={label}
-                            className={cn(
-                                "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors",
-                                active ? "text-[#fd5000]" : "text-[var(--color-text-muted)]"
-                            )}
-                        >
-                            <Icon className="h-5 w-5" />
+                                className={cn(
+                                    "relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors",
+                                    active ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"
+                                )}
+                            >
+                                <div className="relative">
+                                    <Icon className="h-5 w-5" />
+                                </div>
                                 {label}
+                                {active && (
+                                    <span className="absolute -top-1 left-1/2 -translate-x-1/2 h-0.5 w-6 rounded-full bg-[var(--color-accent)] animate-in animate-scale-in" />
+                                )}
                             </Link>
                         );
                     })}
-                <button
-                    type="button"
-                    aria-label="Open full menu"
-                    onClick={() => setMobileNavOpen(true)}
-                    className={cn(
-                        "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors",
-                        mobileNavOpen ? "text-[#fd5000]" : "text-[var(--color-text-muted)]"
-                    )}
-                >
-                    <Menu className="h-5 w-5" />
-                    More
-                </button>
+                    <button
+                        type="button"
+                        aria-label="Open full menu"
+                        onClick={() => setMobileNavOpen(true)}
+                        className={cn(
+                            "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors",
+                            mobileNavOpen ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"
+                        )}
+                    >
+                        <Menu className="h-5 w-5" />
+                        More
+                    </button>
                 </nav>
-        </div>
+            </div>
+        </CallProvider>
     );
 }

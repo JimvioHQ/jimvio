@@ -14,6 +14,7 @@ import { isCallSignalingMessage } from "@/lib/community/message-signaling";
 import { uploadCommunityChatFile, type ChatAttachmentPayload } from "@/lib/community-chat-upload";
 import { createClient } from "@/lib/supabase/client";
 import { HubAvatar, HubBadge, HubLinkButton, HubSectionTitle } from "./hub-ui";
+import { useCall } from "@/components/community/call-context";
 import { ChatInputZone } from "@/components/community/chat/ChatInputZone";
 import { MAX_ATTACH, MAX_FILE_BYTES } from "@/types/chat";
 import { useAIStore } from "@/lib/store/use-ai-store";
@@ -97,6 +98,7 @@ function formatFileSize(bytes?: number) {
 }
 
 export function HubMessagesPage() {
+  const { startCall } = useCall();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [tabCounts, setTabCounts] = useState({ all: 0, unread: 0, groups: 0, spaces: 0 });
   const [loading, setLoading] = useState(true);
@@ -539,8 +541,28 @@ export function HubMessagesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <IconBtn icon={Phone} label="Audio call" />
-                  <IconBtn icon={Video} label="Video call" />
+                  <IconBtn 
+                    icon={Phone} 
+                    label="Audio call" 
+                    onClick={() => {
+                      if (activeThread.kind === "direct") {
+                        void startCall('audio', undefined, activeThread.id, activeThread.communitySlug);
+                      } else if (activeThread.kind === "group" && activeThread.roomId) {
+                        void startCall('audio', activeThread.roomId, undefined, activeThread.communitySlug);
+                      }
+                    }}
+                  />
+                  <IconBtn 
+                    icon={Video} 
+                    label="Video call" 
+                    onClick={() => {
+                      if (activeThread.kind === "direct") {
+                        void startCall('video', undefined, activeThread.id, activeThread.communitySlug);
+                      } else if (activeThread.kind === "group" && activeThread.roomId) {
+                        void startCall('video', activeThread.roomId, undefined, activeThread.communitySlug);
+                      }
+                    }}
+                  />
                   <IconBtn icon={Monitor} label="Screen share" />
                   <IconBtn icon={MoreHorizontal} label="More" />
                   {activeThread.kind === "group" && activeThread.href ? (
@@ -705,8 +727,32 @@ export function HubMessagesPage() {
           )}
 
           <div className="mx-4 mt-4 grid grid-cols-5 gap-1">
-            {[Phone, Video, Info, Bell, MoreHorizontal].map((Icon, i) => (
-              <button key={i} type="button" className="flex flex-col items-center gap-1 rounded-md border border-[var(--color-border)] p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]">
+            {[
+              { icon: Phone, label: "Audio call", action: () => {
+                if (activeThread.kind === "direct") {
+                  void startCall('audio', undefined, activeThread.id, activeThread.communitySlug);
+                } else if (activeThread.kind === "group" && activeThread.roomId) {
+                  void startCall('audio', activeThread.roomId, undefined, activeThread.communitySlug);
+                }
+              }},
+              { icon: Video, label: "Video call", action: () => {
+                if (activeThread.kind === "direct") {
+                  void startCall('video', undefined, activeThread.id, activeThread.communitySlug);
+                } else if (activeThread.kind === "group" && activeThread.roomId) {
+                  void startCall('video', activeThread.roomId, undefined, activeThread.communitySlug);
+                }
+              }},
+              { icon: Info, label: "Info", action: undefined },
+              { icon: Bell, label: "Mute", action: undefined },
+              { icon: MoreHorizontal, label: "More", action: undefined },
+            ].map(({ icon: Icon, label, action }, i) => (
+              <button 
+                key={i} 
+                type="button" 
+                onClick={action}
+                aria-label={label}
+                className="flex flex-col items-center gap-1 rounded-md border border-[var(--color-border)] p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]"
+              >
                 <Icon className="h-4 w-4" />
               </button>
             ))}
@@ -814,9 +860,9 @@ export function HubMessagesPage() {
   );
 }
 
-function IconBtn({ icon: Icon, label }: { icon: React.ComponentType<{ className?: string }>; label: string }) {
+function IconBtn({ icon: Icon, label, onClick }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick?: () => void }) {
   return (
-    <button type="button" aria-label={label} className="rounded-lg p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]">
+    <button type="button" aria-label={label} onClick={onClick} className="rounded-lg p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]">
       <Icon className="h-4 w-4" />
     </button>
   );

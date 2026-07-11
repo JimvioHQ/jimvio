@@ -189,7 +189,7 @@ export default async function PublicLayout({
           {children}
         </main>
 
-        <div style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div style={{ paddingBottom: "env(safe-area-inset-bottom)", background: "var(--color-bg)" }}>
           <Footer contact={platformSettings?.contact} />
         </div>
 

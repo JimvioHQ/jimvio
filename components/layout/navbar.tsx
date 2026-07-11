@@ -63,9 +63,7 @@ import { useCartStore } from "@/lib/store/use-cart-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { MarketingSettings, NavLinkConfig } from "@/lib/platform-settings-shared";
-import { NavbarSearch } from "@/components/layout/navbar-search";
 import { CurrencySelector } from "@/context/CurrencyContext";
-import { Input } from "@/components/ui/input";
 import JimvioLogo from "../ui/logo";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 
@@ -119,29 +117,26 @@ const ConsoleButton = React.forwardRef<
 >(({ children, href, onClick, className, active = false, orange = false, style, ...props }, ref) => {
 
   const cls = cn(
-    // base
-    "relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[13px] font-medium tracking-tight transition-all duration-150 active:scale-[0.97] select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-stone-400/60",
+    "relative inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium tracking-tight transition-all duration-150 select-none outline-none",
+    "after:absolute after:bottom-1 after:left-0 after:h-0.5 after:bg-[var(--color-accent)] after:transition-all after:duration-[1s] after:ease-out",
     active
       ? [
-        "bg-[var(--color-accent-light)] text-[var(--color-accent)] font-semibold",
-        "shadow-[inset_0_0_0_1px_var(--color-accent-subtle)]",
+        "text-[var(--color-accent)] font-bold",
       ]
       : orange
         ? [
-          // Light: tinted shadow ties the shadow to the hue
           "bg-[#fd5000] text-white hover:bg-[#e04700]",
           "shadow-[0_1px_3px_rgba(200,60,0,0.25),inset_0_0_0_1px_rgba(200,60,0,0.12)]",
           "hover:shadow-[0_2px_6px_rgba(200,60,0,0.35)]",
-          // Dark: lighter hover (not darker) so it reads as a lift, not a sink
           "dark:hover:bg-[#ff6520]",
           "dark:shadow-[0_1px_4px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,120,40,0.18)]",
           "dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.50)]",
+          "after:w-0",
         ]
         : [
-          // Light: rgba over stone avoids surface-color conflicts
-          "text-stone-500 hover:bg-black/[0.055] hover:text-stone-900",
-          // Dark: 7% white is the sweet spot on #1a1917
-          "dark:text-stone-400 dark:hover:bg-white/[0.07] dark:hover:text-stone-100",
+          "text-stone-500 dark:text-stone-400 after:w-0",
+          "hover:after:w-full hover:font-bold hover:text-stone-900",
+          "dark:hover:text-stone-100",
         ],
     className
   );
@@ -361,13 +356,14 @@ export function Navbar({ user, marketing }: NavbarProps) {
         className={cn(
           "pointer-events-auto relative mx-auto transition-all duration-300 flex flex-col",
           scrolled
-            ? "bg-white/90 dark:bg-[#0a0a0a]/90 backdrop-blur-2xl shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
-            : "bg-white/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl"
+            ? "bg-white/90 dark:bg-[#122019]/90 backdrop-blur-2xl shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
+            : "bg-white/70 dark:bg-[#122019]/70 backdrop-blur-xl"
         )}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10 pointer-events-none" />
         <div className="min-w-0 w-full overflow-x-hidden">
-          {/* top strip */}
+          {/* top strip — hidden on dashboard */}
+          {!pathname.startsWith("/dashboard") && (
           <motion.div
             style={{ height: topBarH, opacity: topBarOpacity }}
             className="hidden md:block dark:bg-black/20 border-b border-border"
@@ -389,12 +385,13 @@ export function Navbar({ user, marketing }: NavbarProps) {
               </div>
             </div>
           </motion.div>
+          )}
 
           {/* main bar */}
           <div className="flex items-center max-w-8xl mx-auto h-14 md:h-[62px] px-4 sm:px-8 gap-2 md:gap-4">
             {/* Logo */}
             <div className="shrink-0 mr-3 transition-transform active:scale-95">
-              <JimvioLogo href="/" size={isMobile ? "md" : "xl"} className="text-[36px] tracking-[0.03em]" />
+              <JimvioLogo href="/" size={isMobile ? "md" : "lg"} className="tracking-[0.03em]" />
             </div>
 
             {/* Desktop nav */}
@@ -419,7 +416,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
                             onMouseEnter={onMarketplaceEnter}
                             onMouseLeave={onMarketplaceLeave}
                           >
-                            <ShoppingBag className="h-3.5 w-3.5 text-[var(--color-accent)] shrink-0" />
                             Marketplace
                             <ChevronDown className={cn("h-3 w-3 text-stone-400 transition-transform duration-300", marketplaceOpen && "rotate-180")} />
                           </ConsoleButton>
@@ -486,10 +482,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       key={item.href}
                       href={item.href}
                       active={active}
-                      className="group px-3.5 py-2 text-[13px] font-semibold tracking-[0.01em]"
+                      className="px-3.5 py-2 text-[13px] font-semibold tracking-[0.01em]"
                     >
-                      <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
-                      <span>{item.label}</span>
+                      {item.label}
                     </ConsoleButton>
                   );
                 }
@@ -498,35 +493,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
             {/* Right side */}
             <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
-
-              {/* Desktop search */}
-              <div className="hidden min-[1100px]:block max-w-[260px] w-full shrink min-w-0">
-                <NavbarSearch
-                  searchQ={searchQ}
-                  setSearchQ={setSearchQ}
-                  placeholder={marketing.search_placeholder}
-                  variant="desktop"
-                  runSearch={runSearch}
-                  navLinks={navLinks}
-                />
-              </div>
-
-              {/* AI button */}
-              <ConsoleButton
-                orange
-                className="hidden min-[1200px]:flex shrink-0 px-3.5 py-2 text-[11px] uppercase tracking-widest"
-                onClick={() => openAssistant()}
-              >
-                <Sparkles className="h-3.5 w-3.5 fill-white stroke-none" />
-                <span>AI</span>
-              </ConsoleButton>
-
-              {/* Messages */}
-              {user && (
-                <ConsoleIconBtn href="/dashboard/messages" badge={chatCount} className="flex">
-                  <MessageSquare className="h-[18px] w-[18px]" strokeWidth={2.25} />
-                </ConsoleIconBtn>
-              )}
 
               {/* Cart */}
               <ConsoleIconBtn href="/cart" badge={cartCount}>
@@ -554,18 +520,18 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         </Avatar>
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-60 p-1.5 mt-2 rounded-sm border border-border bg-surface shadow-none outline-none">
-                      <div className="px-3 py-1.5 rounded-md mb-1.5 bg-stone-50 dark:bg-stone-900 border border-border">
+                    <DropdownMenuContent align="end" className="w-60 p-1.5 mt-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-lg outline-none">
+                      <div className="px-3 py-1.5 rounded-lg mb-1.5 bg-[var(--color-surface-secondary)] border border-[var(--color-border)]">
                         <div className="flex items-center gap-2.5">
-                          <Avatar className="h-8 w-8 ring-2 rounded-full ring-white shrink-0">
+                          <Avatar className="h-8 w-8 ring-2 rounded-full ring-[var(--color-border)] shrink-0">
                             <AvatarImage src={user.avatar_url ?? undefined} />
                             <AvatarFallback className="bg-gradient-to-br rounded-full from-orange-400 to-orange-600 text-white text-[10px] font-bold capitalize">
                               {user.full_name?.[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <p className="text-[13px] font-semibold text-stone-900 dark:text-white truncate leading-tight">{user.full_name}</p>
-                            <p className="text-[10px] text-stone-400 truncate">{user.email}</p>
+                            <p className="text-[13px] font-semibold text-[var(--color-text-primary)] truncate leading-tight">{user.full_name}</p>
+                            <p className="text-[10px] text-[var(--color-text-muted)] truncate">{user.email}</p>
                           </div>
                         </div>
                       </div>
@@ -575,32 +541,60 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         { href: "/dashboard/library", icon: Video, label: "Digital Library" },
                         { href: "/dashboard/settings", icon: Settings, label: "My Account" },
                       ].map((item) => (
-                        <DropdownMenuItem key={item.href} asChild className="p-0 focus:bg-transparent rounded-sm cursor-pointer">
+                        <DropdownMenuItem key={item.href} asChild className="p-0 focus:bg-transparent rounded-lg cursor-pointer">
                           <Link
                             href={item.href}
-                            className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors"
-                            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--color-surface-secondary)")}
-                            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
+                            className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors"
                           >
-                            <item.icon className="h-4 w-4 shrink-0" />
+                            <item.icon className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
                             {item.label}
                           </Link>
                         </DropdownMenuItem>
                       ))}
 
-                      <div className="h-px my-1 mx-1 bg-border/60" />
+                      <div className="h-px my-1 mx-1 bg-[var(--color-border)]" />
+
+                      <DropdownMenuItem asChild className="p-0 focus:bg-transparent rounded-lg cursor-pointer">
+                        <button onClick={() => setSearchOpen(true)} className="flex items-center gap-2.5 px-3 py-2.5 w-full rounded-lg text-[13px] font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors text-left">
+                          <Search className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
+                          Search
+                        </button>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem asChild className="p-0 focus:bg-transparent rounded-lg cursor-pointer">
+                        <button onClick={() => openAssistant()} className="flex items-center gap-2.5 px-3 py-2.5 w-full rounded-lg text-[13px] font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors text-left">
+                          <Sparkles className="h-4 w-4 shrink-0 text-[var(--color-accent)]" />
+                          AI Assistant
+                        </button>
+                      </DropdownMenuItem>
+
+                      {user && (
+                        <DropdownMenuItem asChild className="p-0 focus:bg-transparent rounded-lg cursor-pointer">
+                          <Link href="/dashboard/messages" className="flex items-center gap-2.5 px-3 py-2.5 w-full rounded-lg text-[13px] font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] transition-colors">
+                            <MessageSquare className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
+                            Messages
+                            {chatCount > 0 && (
+                              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-accent)] px-1.5 text-[10px] font-bold text-white">
+                                {chatCount > 99 ? "99+" : chatCount}
+                              </span>
+                            )}
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+
+                      <div className="h-px my-1 mx-1 bg-[var(--color-border)]" />
 
                       <DropdownMenuItem
                         onSelect={async () => { await signOut(); window.location.href = "/"; }}
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm text-[13px] font-semibold text-red-500 hover:bg-red-500/10 cursor-pointer focus:bg-transparent transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-semibold text-red-500 hover:bg-red-500/10 cursor-pointer focus:bg-transparent transition-colors"
                       >
                         <LogOut className="h-4 w-4 shrink-0" />
                         Logout
                       </DropdownMenuItem>
 
-                      <DropdownMenuItem className="min-[1280px]:hidden flex items-center justify-between px-3 py-2.5 rounded-sm text-[13px] font-semibold text-stone-600 dark:text-stone-300 focus:bg-transparent">
+                      <DropdownMenuItem className="min-[1280px]:hidden flex items-center justify-between px-3 py-2.5 rounded-lg text-[13px] font-semibold text-[var(--color-text-secondary)] focus:bg-transparent">
                         <div className="flex items-center gap-2.5">
-                          <Sun className="h-4 w-4 text-stone-400" />
+                          <Sun className="h-4 w-4 text-[var(--color-text-muted)]" />
                           Night Mode
                         </div>
                         <ThemeToggle />

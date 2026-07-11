@@ -161,7 +161,7 @@ function SocialBtn({
         "rounded-sm border-[1.5px] border-border bg-surface text-text-muted",
         "shadow-[var(--shadow-sm)]",
         "transition-all duration-[180ms]",
-        "hover:border-accent hover:bg-accent-light hover:text-accent hover:-translate-y-0.5",
+        "hover:border-accent hover:bg-accent hover:text-white hover:-translate-y-0.5",
         "hover:shadow-[var(--shadow-md)]",
         "active:scale-95"
       )}
@@ -181,7 +181,7 @@ function LinkColumn({
 }) {
   return (
     <div className="rounded-md border-0 border-border p-[18px] shadow-[var(--shadow-sm)]">
-      <h5 className="font-semibold text-stone-600 mb-3.5">{title}</h5>
+      <h5 className="font-semibold text-stone-600 mb-3.5 font-[family-name:var(--font-fraunces)]">{title}</h5>
       <ul className="flex flex-col gap-0.5">
         {links.map((link) => (
           <li key={link.label}>

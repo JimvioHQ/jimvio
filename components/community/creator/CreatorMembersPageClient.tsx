@@ -12,7 +12,7 @@ import { normalizeMemberRows, type MemberRow } from "@/lib/creator-member-rows";
 export type { MemberRow } from "@/lib/creator-member-rows";
 export { normalizeMemberRows } from "@/lib/creator-member-rows";
 
-const TABS = ["All", "Free", "Monthly", "Yearly", "Lifetime", "Banned"] as const;
+const TABS = ["All", "Free", "Paid", "Banned"] as const;
 
 export function CreatorMembersPageClient({
   communityId,
@@ -38,9 +38,7 @@ export function CreatorMembersPageClient({
       const st = (r.status || "").toLowerCase();
       if (tab === "Banned") return st === "banned";
       if (tab === "Free") return plan === "free";
-      if (tab === "Monthly") return plan === "monthly";
-      if (tab === "Yearly") return plan === "yearly";
-      if (tab === "Lifetime") return plan === "lifetime";
+      if (tab === "Paid") return plan !== "free" && plan !== "";
       return true;
     });
   }, [rows, q, tab]);
@@ -123,24 +121,24 @@ export function CreatorMembersPageClient({
       </div>
 
       <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2 flex-wrap">
           {TABS.map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
               className={cn(
-                "px-3 py-1.5 rounded-sm text-xs font-black",
+                "px-3 py-1.5 rounded-md text-xs font-black",
                 tab === t ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
               )}
             >
               {t}
             </button>
           ))}
+          <Input placeholder="Search name or email…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs rounded-md border-[var(--color-border)]" />
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Input placeholder="Search name or email…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs rounded-sm border-[var(--color-border)]" />
-          <Button type="button" variant="outline" className="rounded-sm border-[var(--color-border)] font-bold" onClick={exportCsv}>
+          <Button type="button" variant="outline" className="rounded-md border-[var(--color-border)] font-bold" onClick={exportCsv}>
             <Download className="h-4 w-4 mr-2" /> Export CSV
           </Button>
         </div>

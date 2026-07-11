@@ -51,6 +51,7 @@ export function CreatorSettingsClient({ communityId }: { communityId: string }) 
 
   const [isFree, setIsFree] = useState(true);
   const [monthly, setMonthly] = useState("");
+  const [weekly, setWeekly] = useState("");
   const [yearly, setYearly] = useState("");
   const [lifetime, setLifetime] = useState("");
   const [currency, setCurrency] = useState("USD");
@@ -84,6 +85,7 @@ export function CreatorSettingsClient({ communityId }: { communityId: string }) 
       setCoverUrl(c.cover_image || "");
       setIsFree(c.is_free || false);
       setMonthly(c.monthly_price?.toString() || "");
+      setWeekly(c.weekly_price?.toString() || "");
       setYearly(c.yearly_price?.toString() || "");
       setLifetime(c.lifetime_price?.toString() || "");
       setCurrency(c.currency || "USD");
@@ -118,11 +120,13 @@ export function CreatorSettingsClient({ communityId }: { communityId: string }) 
       };
 
       if (!isFree) {
-        updateData.monthly_price = parseFloat(monthly) || 0;
-        updateData.yearly_price = parseFloat(yearly) || 0;
+        updateData.weekly_price = parseFloat(weekly) || null;
+        updateData.monthly_price = parseFloat(monthly) || null;
+        updateData.yearly_price = parseFloat(yearly) || null;
         if (lifetime.trim()) updateData.lifetime_price = parseFloat(lifetime);
         else updateData.lifetime_price = null;
       } else {
+        updateData.weekly_price = null;
         updateData.monthly_price = null;
         updateData.yearly_price = null;
         updateData.lifetime_price = null;
@@ -294,7 +298,11 @@ export function CreatorSettingsClient({ communityId }: { communityId: string }) 
 
         {!isFree && (
           <div className="space-y-4 pt-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs font-bold text-[var(--color-text-muted)]">Weekly</label>
+                <Input value={weekly} onChange={(e) => setWeekly(e.target.value)} type="number" min="0" step="0.01" className="mt-1 rounded-sm" />
+              </div>
               <div>
                 <label className="text-xs font-bold text-[var(--color-text-muted)]">Monthly</label>
                 <Input value={monthly} onChange={(e) => setMonthly(e.target.value)} type="number" min="0" step="0.01" className="mt-1 rounded-sm" />

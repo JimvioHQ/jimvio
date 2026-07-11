@@ -23,6 +23,9 @@ type Props = {
   onSearchPick?: (term: string) => void;
 };
 
+const ACCENT = "#fd5000";
+const ACCENT_BG = "rgba(253,80,0,0.1)";
+
 const GROWTH_PATHS = [
   {
     title: "Earn commissions",
@@ -30,8 +33,8 @@ const GROWTH_PATHS = [
     href: "/affiliates",
     cta: "Start earning",
     icon: BadgeDollarSign,
-    color: "#16a34a",
-    bg: "rgba(22,163,74,0.1)",
+    color: ACCENT,
+    bg: ACCENT_BG,
   },
   {
     title: "Join UGC campaigns",
@@ -39,8 +42,8 @@ const GROWTH_PATHS = [
     href: "/ugc",
     cta: "Browse campaigns",
     icon: Clapperboard,
-    color: "#7c3aed",
-    bg: "rgba(124,58,237,0.1)",
+    color: ACCENT,
+    bg: ACCENT_BG,
   },
   {
     title: "Open your store",
@@ -48,8 +51,8 @@ const GROWTH_PATHS = [
     href: "/dashboard/activate/vendor",
     cta: "Sell on Jimvio",
     icon: Store,
-    color: "#fd5000",
-    bg: "rgba(253,80,0,0.1)",
+    color: ACCENT,
+    bg: ACCENT_BG,
   },
   {
     title: "Join communities",
@@ -57,8 +60,8 @@ const GROWTH_PATHS = [
     href: "/communities",
     cta: "Explore groups",
     icon: Users,
-    color: "#2563eb",
-    bg: "rgba(37,99,235,0.1)",
+    color: ACCENT,
+    bg: ACCENT_BG,
   },
 ] as const;
 
@@ -144,24 +147,22 @@ export function MarketplaceEngagementHub({
 
   return (
     <section
-      className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]"
-      style={{ boxShadow: "var(--shadow-sm)" }}
+      className="overflow-hidden rounded-2xl"
       aria-label="Grow and discover on Jimvio"
     >
       <div
-        className="flex flex-col gap-1 border-b border-[var(--color-border)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
-        style={{ background: "var(--color-surface-secondary)" }}
+        className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"
       >
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
             More than a marketplace
           </p>
-          <h3 className="text-sm font-black text-[var(--color-text-primary)] sm:text-[15px]">
+          <h3 className="text-3xl font-medium text-[var(--color-text-primary)]">
             Shop, earn, create &amp; sell — all in one place
           </h3>
         </div>
         {listingCount > 0 && (
-          <p className="text-[11px] font-medium text-[var(--color-text-muted)]">
+          <p className="text-sm font-medium tracking-wide text-[var(--color-text-muted)]">
             <span className="font-bold text-[var(--color-text-primary)]">{listingCount.toLocaleString()}</span>{" "}
             listings to explore
           </p>
@@ -174,8 +175,8 @@ export function MarketplaceEngagementHub({
             key={path.href}
             href={path.href}
             className={cn(
-              "group flex min-h-[108px] flex-col rounded-xl border border-[var(--color-border)] p-3 transition-all",
-              "hover:border-[var(--color-border-strong)] hover:shadow-sm active:scale-[0.98]",
+              "group flex min-h-[108px] flex-col rounded-xl p-3 transition-all",
+               "hover:shadow-sm active:scale-[0.98]",
             )}
             style={{ background: "var(--color-surface)" }}
           >
@@ -202,7 +203,7 @@ export function MarketplaceEngagementHub({
         ))}
       </div>
 
-      <div className="border-t border-[var(--color-border)] px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
+      <div className="px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="text-[11px] font-semibold text-[var(--color-text-muted)]">Quick discovery</p>
           <button
@@ -214,7 +215,7 @@ export function MarketplaceEngagementHub({
                   : "Recommend physical products trending on Jimvio that I can buy or promote.",
               )
             }
-            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold text-white transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-normal tracking-wider text-white transition-opacity hover:opacity-90"
             style={{ background: "var(--color-accent)" }}
           >
             <Sparkles className="size-3" />

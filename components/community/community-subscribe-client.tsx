@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 /* ─── Types ─── */
-type PlanKey = "monthly" | "yearly" | "lifetime";
+type PlanKey = "weekly" | "monthly" | "yearly" | "lifetime";
 
 type CommunitySub = {
   id: string;
@@ -26,6 +26,7 @@ type CommunitySub = {
   tagline: string | null;
   avatar_url: string | null;
   is_free: boolean | null;
+  weekly_price: number | string | null;
   monthly_price: number | string | null;
   yearly_price: number | string | null;
   lifetime_price: number | string | null;
@@ -89,9 +90,12 @@ export function CommunitySubscribeClient({
   const router = useRouter();
   const { formatMoney, userCurrency: currentCurrency } = useCurrency();
 
-  const [plan, setPlan] = useState<PlanKey>(
-    initialPlan === "yearly" || initialPlan === "lifetime" ? initialPlan : "monthly",
-  );
+  const [plan, setPlan] = useState<PlanKey>(() => {
+    if (initialPlan === "weekly") return "weekly";
+    if (initialPlan === "yearly") return "yearly";
+    if (initialPlan === "lifetime") return "lifetime";
+    return "monthly";
+  });
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [payment, setPayment] = useState<
     "pesapal" | "nowpayments" | "flutterwave" | "paypal" | "pawapay" | "binancepay" | null
@@ -102,21 +106,25 @@ export function CommunitySubscribeClient({
   const [afripayPhone, setAfripayPhone] = useState(profilePhone || "");
   const [flutterwaveMethod, setFlutterwaveMethod] = useState<"card" | "momo">("card");
 
+  const weekly = Number(community.weekly_price ?? 0);
   const monthly = Number(community.monthly_price ?? 0);
   const yearly = Number(community.yearly_price ?? 0);
   const lifetime = Number(community.lifetime_price ?? 0);
   const currency = (community.currency || "USD").toUpperCase();
   const initial = community.name?.[0]?.toUpperCase() ?? "?";
 
-  const amount = useMemo(
-    () => (plan === "monthly" ? monthly : plan === "yearly" ? yearly : lifetime),
-    [plan, monthly, yearly, lifetime],
-  );
+  const amount = useMemo(() => {
+    if (plan === "weekly") return weekly;
+    if (plan === "monthly") return monthly;
+    if (plan === "yearly") return yearly;
+    return lifetime;
+  }, [plan, weekly, monthly, yearly, lifetime]);
 
   const billingLabel =
-    plan === "monthly" ? "Billed every month"
-      : plan === "yearly" ? "Billed annually"
-        : "One-time payment";
+    plan === "weekly" ? "Billed every week"
+      : plan === "monthly" ? "Billed every month"
+        : plan === "yearly" ? "Billed annually"
+          : "One-time payment";
 
   const yearlySaving =
     monthly > 0 && yearly > 0
@@ -356,9 +364,14 @@ export function CommunitySubscribeClient({
                 {/* ── Step 1: Plan ── */}
                 {currentStep === 1 && (
                   <div className="flex flex-col gap-3 pb-4">
+                    {weekly > 0 && (
+                      <PlanRow pKey="weekly" label="Weekly" price={weekly} desc="Billed every week" />
+                    )}
                     <PlanRow pKey="monthly" label="Monthly" price={monthly} desc="Billed every month — cancel anytime" />
                     <PlanRow pKey="yearly" label="Yearly" price={yearly} desc="Billed once a year" />
-                    <PlanRow pKey="lifetime" label="Lifetime" price={lifetime} desc="Pay once, access forever" />
+                    {lifetime > 0 && (
+                      <PlanRow pKey="lifetime" label="Lifetime" price={lifetime} desc="Pay once, access forever" />
+                    )}
                   </div>
                 )}
 

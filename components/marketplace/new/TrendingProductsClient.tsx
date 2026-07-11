@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Flame, Sparkles,
-  TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star,
+  TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star, ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -67,9 +67,11 @@ function reportError(
 export function TrendingProductsClient({
   products,
   type = "physical",
+  loading = false,
 }: {
   products: Product[];
   type?: "physical" | "digital";
+  loading?: boolean;
 }) {
   const TABS = type === "digital" ? DIGITAL_TABS : PHYSICAL_TABS;
   const [activeTab, setActiveTab] = useState(0);
@@ -121,7 +123,6 @@ export function TrendingProductsClient({
           className="rounded-xl border border-dashed px-6 py-16 text-center"
           style={{ borderColor: "var(--color-border)", background: "var(--color-surface-secondary)" }}
         >
-          <div className="mb-2 text-2xl">🛍️</div>
           <p className="text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
             Nothing here yet
           </p>
@@ -130,13 +131,29 @@ export function TrendingProductsClient({
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
-          {filtered.map((p) => (
-            <ProductCard
-              key={p.id}
-              p={p}
-            />
-          ))}
+        <div className="relative">
+          <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7", loading && "opacity-40 transition-opacity duration-200")}>
+            {filtered.map((p) => (
+              <ProductCard
+                key={p.id}
+                p={p}
+              />
+            ))}
+          </div>
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold"
+                style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+              >
+                <div
+                  className="size-3 animate-spin rounded-full border-2 border-transparent"
+                  style={{ borderTopColor: "var(--color-accent)", borderRightColor: "var(--color-accent)" }}
+                />
+                Loading page…
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -201,14 +218,14 @@ function ProductCard({
 
   const activeVariants = variants.filter((v) => v.is_active);
   const activeVariantsCount = activeVariants.length;
-  const defaultVariant = activeVariantsCount === 1 ? activeVariants[0] : null;
+  const defaultVariant = activeVariantsCount > 0 ? activeVariants[0] : null;
 
   const initialColor = (() => {
     if (defaultVariant) {
       const c = getColorValue(getOptions(defaultVariant));
       if (c) return c;
     }
-    if (activeVariantsCount <= 1 && colorVariants[0])
+    if (colorVariants.length > 0)
       return getColorValue(getOptions(colorVariants[0]));
     return null;
   })();
@@ -218,7 +235,7 @@ function ProductCard({
       const s = getOptions(defaultVariant)[sizeKey];
       if (s) return s;
     }
-    return activeVariantsCount <= 1 ? sizeOptions[0] ?? null : null;
+    return sizeOptions[0] ?? null;
   })();
 
   const [selectedColor, setSelectedColor] = useState<string | null>(initialColor);
@@ -236,7 +253,7 @@ function ProductCard({
     return colorMatch && sizeMatch && v.is_active;
   }) ?? null;
 
-  if (!activeVariant && activeVariantsCount === 1) activeVariant = defaultVariant;
+  if (!activeVariant && activeVariantsCount > 0) activeVariant = defaultVariant;
 
   const sizeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -349,7 +366,7 @@ function ProductCard({
       {/* ── Image ── */}
       <div className="relative z-[2] overflow-hidden pointer-events-none">
         <div
-          className="relative flex aspect-square w-full items-center justify-center overflow-hidden p-2.5 sm:p-3"
+          className="relative aspect-square w-full overflow-hidden"
           style={{ background: "var(--color-surface-secondary)" }}
         >
           <ProductCardVideoMedia
@@ -360,10 +377,8 @@ function ProductCard({
             previewImages={previewImages}
             hovered={hovered}
             useNextImage={false}
-            layout="fit"
-            imageFit="contain"
+            layout="fill"
             imageClassName={cn(
-              "max-h-full max-w-full",
               previewImages.length <= 1 &&
                 "transition-transform duration-300 ease-out group-hover:scale-[1.02]",
             )}
@@ -424,15 +439,6 @@ function ProductCard({
             )}
             {adding ? "Adding…" : addError ? "Failed" : added ? "Added!" : outOfStock ? "Out of Stock" : "Add to Cart"}
           </button>
-          <Link
-            href={`/marketplace/${p.slug}`}
-            className="pointer-events-auto relative z-10 grid size-7 shrink-0 place-items-center rounded-lg text-white transition-colors hover:bg-white/20"
-            style={{ background: "rgba(255,255,255,.15)" }}
-            aria-label="Quick view"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Eye className="size-3.5" />
-          </Link>
         </div>
       </div>
 
@@ -456,6 +462,7 @@ function ProductCard({
               {formatMoney(effectiveCompareAt, currency)}
             </span>
           )}
+          <ArrowRight className="size-3.5" strokeWidth={2.5} style={{ color: "var(--color-accent)" }} />
         </div>
 
         {hasColors && (

@@ -119,30 +119,63 @@ const ACTIONS = [
 ];
 
 export function WhatToDoToday() {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
   return (
-    <section className={`${section} py-10 sm:py-14`}>
+    <section className={`${section} py-12 sm:py-16`}>
       <div className={shell}>
-        <SectionTitle sub="Pick what you're here for.">What do you want to do today?</SectionTitle>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-6">
-          {ACTIONS.map((a) => (
-            <div key={a.title} className={`flex h-full flex-col p-3 sm:p-5 ${cardBase}`}>
-              <span
-                className="mb-3 grid size-9 place-items-center rounded-xl sm:mb-4 sm:size-11"
-                style={iconTintStyle(a.color)}
-              >
-                <a.icon className="size-4 sm:size-5" strokeWidth={2.2} />
-              </span>
-              <h3 className="text-[12px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[15px]">{a.title}</h3>
-              <p className="mt-1 flex-1 text-[11px] leading-snug text-[var(--color-text-muted)] sm:text-[13px]">{a.desc}</p>
+        <SectionTitle sub="Jimvio is an all-in-one ecosystem for digital products, community memberships, and brand deals. Select a lane to begin.">
+          How would you like to start?
+        </SectionTitle>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
+          {ACTIONS.map((a, i) => {
+            const isHovered = hoveredIdx === i;
+            return (
               <Link
+                key={a.title}
                 href={a.href}
-                className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-bold transition-opacity hover:opacity-80 sm:mt-4 sm:gap-1 sm:text-[13px]"
-                style={{ color: a.color }}
+                onMouseEnter={() => setHoveredIdx(i)}
+                onMouseLeave={() => setHoveredIdx(null)}
+                className="group relative flex h-full flex-col p-4 sm:p-5 rounded-2xl border bg-[var(--color-surface)] transition-all duration-300 active:scale-[0.98] select-none text-left"
+                style={{
+                  transform: isHovered ? "translateY(-4px)" : "translateY(0px)",
+                  borderColor: isHovered ? `${a.color}40` : "var(--color-border)",
+                  boxShadow: isHovered 
+                    ? `0 14px 30px ${a.color}15, 0 1px 4px ${a.color}05` 
+                    : "0 2px 10px rgba(0,0,0,0.03)",
+                }}
               >
-                {a.cta} <ArrowRight className="size-3 sm:size-3.5" />
+                <span
+                  className="mb-3.5 grid size-9 place-items-center rounded-xl transition-all duration-300 sm:mb-5 sm:size-11"
+                  style={{
+                    background: isHovered ? `${a.color}25` : `${a.color}14`,
+                    color: a.color,
+                    transform: isHovered ? "scale(1.05) rotate(2deg)" : "scale(1) rotate(0)",
+                  }}
+                >
+                  <a.icon className="size-4 sm:size-5" strokeWidth={2.2} />
+                </span>
+                <h3 className="text-[13px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[15px]">
+                  {a.title}
+                </h3>
+                <p className="mt-1.5 flex-1 text-[11px] leading-relaxed text-[var(--color-text-muted)] sm:text-[13px]">
+                  {a.desc}
+                </p>
+                <span
+                  className="mt-3 inline-flex items-center gap-0.5 text-[11px] font-black transition-all sm:mt-4 sm:gap-1 sm:text-[13px]"
+                  style={{ color: a.color }}
+                >
+                  {a.cta}
+                  <ArrowRight 
+                    className="size-3 transition-transform sm:size-3.5" 
+                    style={{
+                      transform: isHovered ? "translateX(3px)" : "translateX(0)",
+                    }}
+                  />
+                </span>
               </Link>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -311,20 +344,33 @@ const JOURNEYS = [
 ] as const;
 
 export function ChooseYourJourney() {
+  const [hoveredJourneyIdx, setHoveredJourneyIdx] = useState<number | null>(null);
+
   return (
-    <section className={`border-t border-[var(--color-border)] ${section} py-10 sm:py-14`}>
+    <section className={`border-t border-[var(--color-border)] ${section} py-12 sm:py-16`}>
       <div className={shell}>
         <SectionTitle sub="One account — sell, earn, create, or buy depending on what you need right now.">
           Choose Your Journey
         </SectionTitle>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-          {JOURNEYS.map((j) => (
-            <Link
-              key={j.role}
-              href={j.href}
-              className="group relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] sm:p-5"
-            >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {JOURNEYS.map((j, i) => {
+            const isHovered = hoveredJourneyIdx === i;
+            return (
+              <Link
+                key={j.role}
+                href={j.href}
+                onMouseEnter={() => setHoveredJourneyIdx(i)}
+                onMouseLeave={() => setHoveredJourneyIdx(null)}
+                className="group relative flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-[var(--color-surface)] p-4 transition-all duration-300 sm:p-5"
+                style={{
+                  transform: isHovered ? "translateY(-4px)" : "translateY(0px)",
+                  borderColor: isHovered ? `${j.color}40` : "var(--color-border)",
+                  boxShadow: isHovered 
+                    ? `0 16px 36px ${j.color}15, 0 1px 4px ${j.color}05` 
+                    : "0 2px 12px rgba(0,0,0,0.03)",
+                }}
+              >
               <span
                 className="absolute bottom-0 left-0 top-0 w-1 rounded-r-full transition-all duration-200 group-hover:w-1.5"
                 style={{ background: j.color }}
@@ -388,7 +434,8 @@ export function ChooseYourJourney() {
                 </span>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
@@ -553,13 +600,13 @@ export function HowJimvioWorks() {
                 className={cn(
                   "relative flex h-full cursor-pointer flex-col rounded-2xl border bg-[var(--color-surface)] p-4 transition-all duration-300 sm:p-5",
                   active === index
-                    ? "-translate-y-0.5 border-transparent shadow-[0_14px_36px_rgba(0,0,0,0.08)]"
+                    ? "-translate-y-1 border-transparent shadow-[0_16px_40px_rgba(0,0,0,0.08)]"
                     : "border-[var(--color-border)] opacity-75 hover:opacity-100",
                 )}
                 style={
                   active === index
                     ? {
-                        boxShadow: `0 14px 36px ${s.color}20`,
+                        boxShadow: `0 16px 40px ${s.color}25`,
                         borderColor: `${s.color}35`,
                       }
                     : undefined

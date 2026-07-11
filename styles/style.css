@@ -171,35 +171,44 @@
   }
 
   .dark {
-    /* Whop-inspired Premium Dark Palette */
-    --color-bg: #0a0a0a;
-    --color-surface: #111111;
-    --color-surface-secondary: #1a1a1a;
-    --color-border: #222222;
-    --color-border-strong: #333333;
-    --color-text-primary: #ededed;
-    --color-text-secondary: #a8a8a8;
-    --color-text-muted: #6a6a6a;
-    --color-bg-dark: #050505;
-    --color-bg-darker: #000000;
+    /* Forest-Ink Premium Dark Palette */
+    --color-paper: #F3EFE4;
+    --color-ink: #122019;
+    --color-ink-deep: #0a1411;
+    --color-paper-dim: #eae6d8;
+    --color-paper-dark: #2a3330;
+    --color-accent: #FD5000;
+    --color-accent-soft: #ff7a2e;
+    --color-ink-muted: #6b7a72;
+    --color-ink-subtle: #88958c;
 
-    --color-accent: #fd5000;
+    --color-bg: var(--color-ink);
+    --color-surface: var(--color-paper-dark);
+    --color-surface-secondary: #1f332d;
+    --color-border: #3a4a42;
+    --color-border-strong: #4a5a52;
+    --color-text-primary: var(--color-paper);
+    --color-text-secondary: var(--color-paper-dim);
+    --color-text-muted: var(--color-ink-subtle);
+    --color-bg-dark: var(--color-ink-deep);
+    --color-bg-darker: #050a07;
+    --color-accent: #FD5000;
     --color-accent-hover: #ff6a1a;
-    --color-accent-light: #200d00;
-    --color-accent-subtle: #180a00;
+    --color-accent-light: #2a0e00;
+    --color-accent-subtle: #1f0a00;
 
     --color-danger: #f07070;
     --color-danger-light: #2a1010;
 
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5), 0 1px 4px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-xl: 0 20px 64px rgba(0, 0, 0, 0.7), 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 20px 64px rgba(0, 0, 0, 0.8), 0 4px 16px rgba(0, 0, 0, 0.5);
     --shadow-glow: 0 0 0 3px rgba(253, 80, 0, 0.2);
 
-    --glass-bg: rgba(17, 17, 17, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.06);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --glass-bg: rgba(24, 40, 33, 0.85);
+    --glass-border: rgba(243, 238, 228, 0.06);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     --glass-blur: 24px;
   }
 
@@ -305,7 +314,7 @@
     background: #bbb;
   }
 
-  ::selection {
+  .dark ::selection {
     background: var(--color-accent);
     color: white;
   }

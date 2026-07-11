@@ -332,7 +332,8 @@ export function JimvioAIPanel({
         <JimvioAIMascot
           size="xs"
           showRings={false}
-          className={cn("shrink-0", compact ? "h-10 w-10" : "h-12 w-12 sm:h-16 sm:w-16")}
+          motionless
+          className={cn("shrink-0", compact ? "h-9 w-9" : "h-12 w-12 sm:h-16 sm:w-16")}
         />
       </div>
 
@@ -370,7 +371,7 @@ export function JimvioAIPanel({
           type="button"
           onClick={() => ask()}
           className={cn(
-            "inline-flex h-10 w-full cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-lg text-[12px] font-bold text-white transition-opacity hover:opacity-90 sm:h-11 sm:text-[13px]",
+            "mt-2 inline-flex h-10 w-full cursor-pointer touch-manipulation items-center justify-center gap-2 rounded-lg text-[12px] font-bold text-white transition-opacity hover:opacity-90 sm:h-11 sm:text-[13px]",
             compact ? "flex" : "sm:hidden"
           )}
           style={{ background: ORANGE }}

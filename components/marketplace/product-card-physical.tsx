@@ -217,7 +217,7 @@ export function ProductCardPhysical({
         className={cn(
           "group relative flex flex-col h-full",
           "bg-[var(--color-surface)]",
-          "rounded-2xl overflow-hidden",
+          "rounded-xl overflow-hidden",
           "transition-[transform,box-shadow] duration-300 ease-out",
           "hover:-translate-y-0.5",
           outOfStock && "opacity-70",

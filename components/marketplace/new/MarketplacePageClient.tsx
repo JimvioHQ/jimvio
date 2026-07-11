@@ -13,9 +13,8 @@ import { FlashDealsClient } from "./FlashDealsClient";
 import { TrendingProductsClient } from "./TrendingProductsClient";
 import { FlashDealsCountdown } from "./FlashDealsCountdown";
 import { MarketplaceEngagementHub } from "./MarketplaceEngagementHub";
-import { HeroBannerView } from "./HeroBannerView";
+import { ProductTestimonialsCarousel } from "./ProductTestimonialsCarousel";
 import { MarketplaceTrustStrip } from "./MarketplaceTrustStrip";
-import type { HeroProduct } from "@/types";
 import { useMarketplace } from "./marketplace-context";
 import type { DbProduct } from "@/lib/utils";
 import { isRenderableUrl } from "@/lib/utils";
@@ -26,6 +25,7 @@ import {
   getMarketplaceTypeFilter,
   type MarketplacePageBundle,
   type MarketplaceProductType,
+  type TopReviewedProduct,
 } from "@/lib/marketplace/fetch-page-data";
 import { DEFAULT_FILTERS } from "@/lib/utils";
 import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
@@ -100,8 +100,9 @@ type Props = {
   initialType: ProductType;
   initialBundles: Record<ProductType, MarketplacePageBundle>;
   initialStats: Stats;
-  heroPhysical: HeroProduct[] | null;
-  heroDigital: HeroProduct[] | null;
+  heroPhysical: unknown[] | null;
+  heroDigital: unknown[] | null;
+  testimonials: Record<ProductType, TopReviewedProduct[]>;
 };
 
 // ─── CategoryCard ─────────────────────────────────────────────────────────────
@@ -128,28 +129,37 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
 
   if (!imgSrc) return null;
 
+  const count = c.product_count
+    ? c.product_count >= 1000
+      ? `${(c.product_count / 1000).toFixed(1).replace(/\.0$/, "")}K+`
+      : `${c.product_count}+`
+    : "0+";
+
   return (
     <Link
       href={`/marketplace?type=${type}&category=${c.slug}`}
-      className="group relative mx-auto flex w-[84%] max-w-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)]/50 bg-[var(--color-surface)] text-center shadow-[0_2px_8px_rgba(0,0,0,0.05)] transition-all duration-[250ms] ease-out hover:scale-[1.03] hover:border-[var(--color-border)] hover:shadow-[0_14px_36px_rgba(0,0,0,0.14)] md:w-full md:rounded-[18px] md:shadow-[0_2px_10px_rgba(0,0,0,0.06)]"
+      className="group relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-56 sm:h-64 lg:h-72 rounded-2xl overflow-hidden border border-white/10 bg-[#122019] hover:border-[#FD5000]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#FD5000]/5"
+      aria-label={`Browse ${c.name}`}
     >
-      <div className="relative aspect-[5/3] w-full overflow-hidden md:aspect-[4/3]">
-        <img
-          src={imgSrc}
-          alt={c.name}
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-[250ms] ease-out group-hover:scale-[1.04]"
-          onError={() => {
-            setFallbackIdx((i) => (i + 1 < fallbacks.length ? i + 1 : i));
-          }}
-        />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent opacity-60 transition-opacity duration-[250ms] group-hover:opacity-80" />
-      </div>
-
-      <div className="w-full bg-[var(--color-surface)] px-2 py-1.5 md:px-3 md:py-3">
-        <div className="line-clamp-2 text-center text-[10px] font-bold leading-tight text-[var(--color-text-primary)] md:text-[12px] md:leading-snug">
-          {c.name}
+      <img
+        src={imgSrc}
+        alt={c.name}
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-40 group-hover:scale-105 transition-all duration-700"
+        onError={() => {
+          setFallbackIdx((i) => (i + 1 < fallbacks.length ? i + 1 : i));
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#122019] via-[#122019]/40 to-transparent" />
+      <div className="relative h-full p-4 lg:p-6 flex flex-col justify-end">
+        <div>
+          <h3 className="font-display font-semibold text-lg lg:text-xl tracking-tight text-[#F3EFE4] group-hover:text-[#FD5000] transition-colors">{c.name}</h3>
+          <p className="mt-0.5 font-mono text-xs text-[#F3EFE4]/40">{count}</p>
+        </div>
+        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-body text-[#F3EFE4]/60 group-hover:text-[#F3EFE4]/90 transition-colors">
+          <span>Browse</span>
+          <span aria-hidden="true">→</span>
         </div>
       </div>
     </Link>
@@ -193,8 +203,7 @@ export function MarketplacePageClient({
   initialType,
   initialBundles,
   initialStats,
-  heroPhysical,
-  heroDigital,
+  testimonials,
 }: Props) {
   const supabase = createClient();
   const startingBundle = initialBundles[initialType];
@@ -823,46 +832,38 @@ export function MarketplacePageClient({
 
       {/* Main content below search */}
       <div className="flex min-w-0 flex-col gap-3 overflow-x-hidden lg:col-start-2 lg:row-start-2">
-        <HeroBannerView physical={heroPhysical} digital={heroDigital} initialType={type} />
+        <ProductTestimonialsCarousel
+          products={testimonials[type] ?? []}
+          type={type}
+        />
 
         <div className="w-full min-w-0">
         <MarketplaceTrustStrip stats={stats} listingCount={listingCount} />
         </div>
 
         {/* ── Flash Deals — skeleton only this section while loading ── */}
-        <section
-          id="flash-deals-section"
-          className="overflow-hidden rounded-2xl"
-          style={{
-            border: "1px solid var(--color-border)",
-            background: "var(--color-surface)",
-            boxShadow: "var(--shadow-sm)",
-          }}
-        >
-          <div
-            className="flex items-center justify-between px-4 py-2 text-white"
-            style={{
-              background: "linear-gradient(90deg, var(--color-accent) 0%, #ff8c00 100%)",
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <Zap className="size-4 fill-current" />
-              <span className="font-bold">Flash Deals</span>
-              <span className="hidden text-xs text-white/80 sm:inline">
-                Limited time offers – Don&apos;t miss out!
-              </span>
+        <section id="flash-deals-section">
+          <div className="flex flex-col px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Zap className="size-4" style={{ color: "var(--color-accent)" }} />
+                <h2 className="text-base font-bold text-[var(--color-text-primary)]">Flash Deals</h2>
+              </div>
+              <div className="flex items-center gap-4">
+                <FlashDealsCountdown />
+                <Link
+                  href="/marketplace/flash-deals"
+                  className="font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e]"
+                >
+                  View All Deals
+                </Link>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <FlashDealsCountdown />
-              <Link
-                href="/marketplace/flash-deals"
-                className="flex items-center gap-1 text-xs font-semibold text-white/90 transition-colors hover:text-white"
-              >
-                View All Deals <ChevronRight className="size-3.5" />
-              </Link>
-            </div>
+            <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
+              Limited time offers – Don&apos;t miss out!
+            </p>
           </div>
-          <div className="p-2">
+          <div className="px-4 pb-4">
             {loading && filteredDeals.length === 0 ? (
               <SkeletonDeals />
             ) : filteredDeals.length > 0 ? (
@@ -882,20 +883,39 @@ export function MarketplacePageClient({
 
         {/* ── Shop by Category — always rendered ── */}
         {displayCategories.length > 0 && (
-          <section>
-            <div className="mb-3 flex items-center gap-2">
-              <h2 className="text-lg font-black text-[var(--color-text-primary)]">Shop by Category</h2>
-              <button
-                className="text-xs font-semibold"
-                style={{ color: "var(--color-accent)" }}
-              >
-                Explore top categories
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3.5 lg:grid-cols-4 xl:grid-cols-7">
-              {displayCategories.map((c) => (
-                <CategoryCard key={c.id} c={c} type={type} />
-              ))}
+          <section className="py-12 sm:py-16">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+                <div>
+                  <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em]" style={{ color: "var(--color-accent)" }}>
+                    Marketplace
+                  </span>
+                  <h2 className="mt-2 font-['var(--font-fraunces)'] text-[30px] font-bold leading-[1.1] tracking-tight text-[var(--color-text-primary)] sm:text-[38px] lg:text-[44px]">
+                    Shop by Category
+                  </h2>
+                </div>
+                <p className="text-sm sm:text-base text-[var(--color-text-muted)] sm:mb-2">
+                  Explore top categories
+                </p>
+              </div>
+
+              <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+                <div className="flex gap-3 min-w-max">
+                  {displayCategories.map((c) => (
+                    <CategoryCard key={c.id} c={c} type={type} />
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-5 text-center sm:hidden">
+                <Link
+                  href="/marketplace"
+                  className="font-mono text-sm transition-colors hover:text-[#ff7a2e]"
+                  style={{ color: "var(--color-accent)" }}
+                >
+                  All products →
+                </Link>
+              </div>
             </div>
           </section>
         )}

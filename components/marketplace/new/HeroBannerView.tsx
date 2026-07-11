@@ -292,6 +292,7 @@ type Props = {
   physical: BannerHeroProduct[] | null;
   digital: BannerHeroProduct[] | null;
   initialType?: "physical" | "digital";
+  listingCount?: number;
 };
 
 function FeaturedProductStage({

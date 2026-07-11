@@ -533,7 +533,7 @@ function Thumbnail({
                             ? "2px solid #fd5000"
                             : "2px solid var(--color-text-primary)"
                         : "2px solid var(--color-border)",
-                    background: isVideo ? "#0a0a0c" : "var(--color-surface)",
+                    background: isVideo ? "var(--color-bg-darker, #0a1410)" : "var(--color-surface)",
                     opacity: active ? 1 : 0.55,
                 }}
         >
@@ -780,7 +780,7 @@ export function ImageGallery({
                     )}
                     style={{
                         aspectRatio: "1 / 1",
-                        background: mainVideo ? "#0a0a0c" : "var(--color-surface)",
+                        background: mainVideo ? "var(--color-bg-darker, #0a1410)" : "var(--color-surface)",
                         border: mainVideo ? "1px solid rgba(255,255,255,0.08)" : "1px solid var(--color-border)",
                         borderRadius: "12px",
                         isolation: "isolate",
@@ -820,7 +820,7 @@ export function ImageGallery({
                         <>
                             {!imageLoaded && !mediaError && <ImageSkeleton />}
                             {mediaError ? (
-                                <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-3 bg-[#0a0a0c] px-4 text-center">
+                                <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-3 bg-[var(--color-bg-darker,#0a1410)] px-4 text-center">
                                     <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
                                         <Film className="h-6 w-6 text-[#fd5000]" />
                                     </span>

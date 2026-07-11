@@ -249,7 +249,7 @@ export function ProductCardClient({
         onMouseLeave={() => setHovered(false)}
         className={cn(
           "product-tap-nav group relative flex flex-col h-full",
-          "rounded-[18px] overflow-hidden",
+          "rounded-xl overflow-hidden",
           "bg-white dark:bg-[#121212]",
           "border transition-[transform,box-shadow] duration-150 ease-out",
           inCart

@@ -3,6 +3,18 @@
 @tailwind utilities;
 
 @layer utilities {
+  .font-display {
+    font-family: var(--font-fraunces), serif;
+  }
+  .font-body {
+    font-family: var(--font-dm-sans), sans-serif;
+  }
+  .font-mono {
+    font-family: var(--font-jetbrains-mono), monospace;
+  }
+}
+
+@layer utilities {
   .product-grid {
     @apply grid grid-cols-2 gap-3 sm:gap-4;
   }
@@ -42,6 +54,7 @@
 @layer base {
   :root {
     --color-bg: #ffffff;
+    --color-bg-elevated: #ffffff;
     --color-surface: #ffffff;
     --color-surface-secondary: #f9f9f9;
     --color-border: #e8e8e8;
@@ -51,10 +64,17 @@
     --color-accent-hover: #e04700;
     --color-accent-light: #fff3ee;
     --color-accent-subtle: #ffe8de;
+    --color-accent-soft: #ffab91;
     --card: oklch(1 0 0);
     --color-text-primary: #11181c;
     --color-text-secondary: #3c4248;
     --color-text-muted: #889096;
+
+    /* Feature palette */
+    --color-sage: #43a047;
+    --color-amber: #ffa726;
+    --color-ocean: #29b6f6;
+    --color-berry: #ab47bc;
 
     --color-success: #30a46c;
     --color-success-light: #e9f9ef;
@@ -63,18 +83,22 @@
     --color-danger: #e5484d;
     --color-danger-light: #ffefef;
 
-    /* Whop-style soft ambient shadows */
+    /* Depth-aware shadows */
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
     --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
     --shadow-xl: 0 20px 64px rgba(0, 0, 0, 0.1), 0 4px 16px rgba(0, 0, 0, 0.05);
     --shadow-glow: 0 0 0 3px rgba(253, 80, 0, 0.12);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.08);
 
-    /* Whop-style rounded radii */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
+    /* Nuanced radii */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    --radius-3xl: 32px;
     --radius-full: 9999px;
 
     --space-1: 0.25rem;
@@ -97,36 +121,64 @@
     --glass-blur: 24px;
   }
 
-  .dark {
-    /* Whop-inspired Premium Dark Palette */
-    --color-bg: #0a0a0a;
-    --color-surface: #111111;
-    --color-surface-secondary: #1a1a1a;
-    --color-border: #222222;
-    --color-border-strong: #333333;
-    --color-text-primary: #ededed;
-    --color-text-secondary: #a8a8a8;
-    --color-text-muted: #6a6a6a;
-    --color-bg-dark: #050505;
-    --color-bg-darker: #000000;
-    --card: oklch(0.145 0 0);
-    --color-accent: #fd5000;
+.dark {
+    /* Forest-Ink Premium Dark Palette */
+    --color-paper: #F3EFE4;
+    --color-ink: #122019;
+    --color-ink-deep: #0a1411;
+    --color-paper-dim: #eae6d8;
+    --color-paper-dark: #2a3330;
+    --color-accent: #FD5000;
+    --color-accent-soft: #ff7a2e;
+    --color-ink-muted: #6b7a72;
+    --color-ink-subtle: #88958c;
+
+    --color-bg: var(--color-ink);
+    --color-bg-elevated: #1a2924;
+    --color-surface: var(--color-paper-dark);
+    --color-surface-secondary: #1f332d;
+    --color-border: #3a4a42;
+    --color-border-strong: #4a5a52;
+    --color-text-primary: var(--color-paper);
+    --color-text-secondary: var(--color-paper-dim);
+    --color-text-muted: var(--color-ink-subtle);
+    --color-bg-dark: var(--color-ink-deep);
+    --color-bg-darker: #050a07;
+    --color-accent: #FD5000;
     --color-accent-hover: #ff6a1a;
-    --color-accent-light: #200d00;
-    --color-accent-subtle: #180a00;
+    --color-accent-light: #2a0e00;
+    --color-accent-subtle: #1f0a00;
+
+    /* Feature palette */
+    --color-sage: #81c784;      /* growth, earnings, wallet */
+    --color-amber: #ffb74d;     /* events, courses */
+    --color-ocean: #4fc3f7;     /* live, streaming */
+    --color-berry: #ce93d8;     /* creator, missions */
 
     --color-danger: #f07070;
     --color-danger-light: #2a1010;
 
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5), 0 1px 4px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-xl: 0 20px 64px rgba(0, 0, 0, 0.7), 0 4px 16px rgba(0, 0, 0, 0.4);
+    /* Depth-aware shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 20px 64px rgba(0, 0, 0, 0.8), 0 4px 16px rgba(0, 0, 0, 0.5);
     --shadow-glow: 0 0 0 3px rgba(253, 80, 0, 0.2);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-elevated: 0 4px 12px rgba(0, 0, 0, 0.5);
 
-    --glass-bg: rgba(17, 17, 17, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.06);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    /* Nuanced radii */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+    --radius-3xl: 32px;
+    --radius-full: 9999px;
+
+    --glass-bg: rgba(24, 40, 33, 0.85);
+    --glass-border: rgba(243, 238, 228, 0.06);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
     --glass-blur: 24px;
   }
 
@@ -183,7 +235,7 @@
     font-optical-sizing: auto;
     font-weight: 400;
     font-style: normal;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.02em;
     font-family: var(--font-dm-sans), sans-serif;
   }
 
@@ -227,7 +279,7 @@
     background: #bbb;
   }
 
-  ::selection {
+  .dark ::selection {
     background: var(--color-accent);
     color: white;
   }

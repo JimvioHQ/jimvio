@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import { type DbProduct, getImage, getDiscount, getEffectiveCompareAtPrice } from "@/lib/utils";
 
@@ -74,14 +75,9 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
   return (
     <Link
       href={`/marketplace/${d.slug}`}
-      className="product-tap-nav group relative flex w-full min-w-0 flex-col rounded-xl border border-border bg-card p-2 transition-[transform,box-shadow] duration-150 ease-out hover:shadow-[var(--shadow-card)] sm:p-2.5"
+      className="product-tap-nav group relative flex w-full min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card transition-[transform,box-shadow] duration-150 ease-out hover:shadow-[var(--shadow-card)]"
     >
-      {discount && (
-        <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-1 py-0.5 text-[8px] font-bold leading-none text-primary-foreground md:text-[9px]">
-          {discount}
-        </span>
-      )}
-      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted/50">
+      <div className="relative aspect-square w-full overflow-hidden bg-muted/50">
         <img
           src={getImage(d.images)}
           alt={d.name}
@@ -92,26 +88,34 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
           className="h-full w-full object-cover object-center"
         />
       </div>
-      <h4
-        className="mt-0.5 line-clamp-2 overflow-hidden text-ellipsis break-words text-[12px] font-semibold leading-[1.3] min-h-[31.2px] max-h-[31.2px] md:text-[13px] md:leading-[1.35] md:min-h-[35.1px] md:max-h-[35.1px]"
-      >
-        {d.name}
-      </h4>
-      <div className="mt-0.5 flex items-baseline gap-0.5 leading-none">
-        <span
-          className="text-[10px] font-bold leading-none md:text-[12px]"
-          style={{ color: "#FF5A1F" }}
-        >
-          {formatMoney(d.price, d.currency)}
+      {discount && (
+        <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-1 py-0.5 text-[8px] font-bold leading-none text-primary-foreground md:text-[9px]">
+          {discount}
         </span>
-        {compareAtPrice && (
+      )}
+      <div className="flex flex-1 flex-col p-2 sm:p-2.5">
+        <h4
+          className="line-clamp-2 overflow-hidden text-ellipsis break-words text-[12px] font-semibold leading-[1.3] min-h-[31.2px] max-h-[31.2px] md:text-[13px] md:leading-[1.35] md:min-h-[35.1px] md:max-h-[35.1px]"
+        >
+          {d.name}
+        </h4>
+        <div className="mt-auto flex items-baseline gap-0.5 leading-none pt-1">
           <span
-            className="text-[8px] font-medium leading-none line-through opacity-70 md:text-[9px]"
-            style={{ color: "#9CA3AF" }}
+            className="text-[10px] font-bold leading-none md:text-[12px]"
+            style={{ color: "#FF5A1F" }}
           >
-            {formatMoney(compareAtPrice, d.currency)}
+            {formatMoney(d.price, d.currency)}
           </span>
-        )}
+          {compareAtPrice && (
+            <span
+              className="text-[8px] font-medium leading-none line-through opacity-70 md:text-[9px]"
+              style={{ color: "#9CA3AF" }}
+            >
+              {formatMoney(compareAtPrice, d.currency)}
+            </span>
+          )}
+          <ArrowRight className="size-2.5 ml-0.5" strokeWidth={2.5} style={{ color: "#FF5A1F" }} />
+        </div>
       </div>
     </Link>
   );

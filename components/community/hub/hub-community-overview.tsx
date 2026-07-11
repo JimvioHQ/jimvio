@@ -19,6 +19,13 @@ import {
   DollarSign,
   MoreHorizontal,
   Play,
+  MessageSquare,
+  Heart,
+  BarChart3,
+  Clock,
+  MapPin,
+  Award,
+  CheckCircle2,
 } from "lucide-react";
 import { useWorkspace } from "@/components/community/workspace-context";
 import {
@@ -63,9 +70,9 @@ export function HubCommunityOverview({
   ];
 
   const level = points?.level ?? 1;
-  const communityLevel = overview?.progressBreakdown.communityLevel ?? level;
-  const communityProgress = overview?.progressBreakdown.communityProgress ?? 0;
-  const memberTopPercent = overview?.progressBreakdown.memberTopPercent ?? 1;
+  const communityLevel = overview?.progressBreakdown?.communityLevel ?? level;
+  const communityProgress = overview?.progressBreakdown?.communityProgress ?? 0;
+  const memberTopPercent = overview?.progressBreakdown?.memberTopPercent ?? 1;
   const userXp = points?.total_points ?? 0;
   const userLevelStart = points?.level_start_xp ?? 0;
   const userLevelNext = points?.next_level_xp ?? userLevelStart + 500;
@@ -74,28 +81,27 @@ export function HubCommunityOverview({
   const userLevelProgress = Math.min(100, Math.round((userXpInLevel / userXpSpan) * 100));
 
   return (
-    <div className="grid min-h-0 gap-4 xl:grid-cols-[1fr_300px]">
+    <div className="grid min-h-0 gap-6 xl:grid-cols-[1fr_320px]">
       {/* ── Main column ── */}
-      <div className="min-w-0 space-y-4">
+      <div className="min-w-0 space-y-6">
         {/* Hero banner */}
-        <HubCard className="overflow-hidden !p-0">
-          <div className="relative min-h-[160px] bg-gradient-to-br from-zinc-900 via-zinc-800 to-[#fd5000]/50 sm:min-h-[200px]">
-            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-            <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
-              <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/60">
-                {communityName}
-              </p>
-              <h1 className="mt-1 font-black uppercase tracking-wide text-white text-2xl sm:text-4xl">
-                Create · Grow · Earn
-              </h1>
-            </div>
+        <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur hover-lift"
+             style={{ background: "linear-gradient(135deg, var(--color-berry)/10, var(--color-ocean)/10)" }}>
+          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/60">
+              {communityName}
+            </p>
+            <h1 className="mt-1 font-black uppercase tracking-wide text-white text-2xl sm:text-4xl">
+              Create · Grow · Earn
+            </h1>
           </div>
-        </HubCard>
+        </div>
 
         {/* Community header card */}
-        <HubCard>
-          <div className="flex flex-col gap-3">
+        <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+          <div className="flex flex-col gap-4">
             {/* Top row — identity left, invite + menu right */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 flex-wrap items-center gap-3">
@@ -103,27 +109,28 @@ export function HubCommunityOverview({
                   <img
                     src={avatarUrl}
                     alt={communityName}
-                    className="h-12 w-12 shrink-0 rounded-md object-cover"
+                    className="h-12 w-12 shrink-0 rounded-xl object-cover ring-2 ring-[var(--color-accent)]/30"
                   />
                 ) : (
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-[#fd5000] text-lg font-black text-white">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-hover)] text-[14px] font-black text-white">
                     {communityName[0]}
                   </div>
                 )}
-                <h2 className="text-[16px] font-black">{communityName}</h2>
-                <ShieldCheck className="h-4 w-4 shrink-0 text-sky-500" />
+                <h2 className="text-[18px] font-black text-[var(--color-text-primary)]">{communityName}</h2>
+                <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" />
                 <HubBadge variant="orange">Private Community</HubBadge>
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
-                <HubLinkButton href={`${base}/members`} variant="primary">
+                <HubLinkButton href={`${base}/members`} variant="primary" size="sm">
+                  <UserPlus className="mr-1 h-3.5 w-3.5" />
                   Invite People
                 </HubLinkButton>
                 <span className="h-5 w-px shrink-0 bg-[var(--color-border)]" aria-hidden />
                 <button
                   type="button"
                   aria-label="Community options"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
@@ -148,339 +155,428 @@ export function HubCommunityOverview({
             <div className="h-px bg-[var(--color-border)]" aria-hidden />
 
             {/* Community level + progress */}
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex rounded-md bg-[#fd5000] px-2.5 py-1 text-[10px] font-bold text-white">
-                    Level {communityLevel}
-                  </span>
-                  <span className="text-[10px] font-semibold text-[var(--color-text-primary)]">
-                    {communityProgress}% community progress
-                  </span>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full"
+                       style={{ background: "linear-gradient(135deg, var(--color-berry), var(--color-amber))" }}>
+                    <Trophy className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">Community Level</p>
+                    <p className="text-[20px] font-black text-[var(--color-text-primary)]">{communityLevel}</p>
+                  </div>
                 </div>
-                <span className="text-[10px] text-[var(--color-text-muted)]">
-                  Top {memberTopPercent}% in community
-                </span>
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">Overall Progress</p>
+                  <p className="text-[20px] font-black text-[var(--color-accent)]">{communityProgress}%</p>
+                </div>
               </div>
               <HubProgressBar value={communityProgress} max={100} />
-              <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[var(--color-text-muted)]">
-                <span>
-                  {communityProgress}% to community Level {communityLevel + 1}
-                </span>
-                <span>
-                  Your Level {level} · {userLevelProgress}% ({userXpInLevel.toLocaleString()} /{" "}
-                  {userXpSpan.toLocaleString()} XP)
-                </span>
+              <p className="text-[10px] text-[var(--color-text-muted)]">Top {memberTopPercent}% of members</p>
+            </div>
+
+            {/* Your level + dual progress bars */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full"
+                       style={{ background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))" }}>
+                    <Star className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">Your Level</p>
+                    <p className="text-[20px] font-black text-[var(--color-text-primary)]">{level}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">XP in this level</p>
+                  <p className="text-[20px] font-black text-[var(--color-text-primary)]">{userXpInLevel.toLocaleString()} / {userXpSpan.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2 text-[10px]">
+                  <span className="font-semibold text-[var(--color-text-muted)]">Community Level</span>
+                  <span className="font-semibold text-[var(--color-sage)]">{communityProgress}%</span>
+                </div>
+                <HubProgressBar value={communityProgress} max={100} />
+
+                <div className="flex items-center justify-between gap-2 text-[10px]">
+                  <span className="font-semibold text-[var(--color-text-muted)]">Personal Level</span>
+                  <span className="font-semibold text-[var(--color-accent)]">{userLevelProgress}%</span>
+                </div>
+                <HubProgressBar value={userLevelProgress} max={100} />
               </div>
             </div>
           </div>
-        </HubCard>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-          <HubStatCard
-            label="Members Online"
-            value={(overview?.membersOnline ?? 0).toLocaleString()}
-            delta={overview?.membersOnlineDelta ?? undefined}
-            icon={<Users className="h-4 w-4" />}
-            accent="#22c55e"
-          />
-          <HubStatCard
-            label="Live Now"
-            value={String(overview?.liveNow ?? 0)}
-            delta={overview?.liveNowDelta ?? undefined}
-            icon={<Radio className="h-4 w-4" />}
-            accent="#ef4444"
-          />
-          <HubStatCard
-            label="Voice Rooms"
-            value={String(overview?.voiceRooms ?? 0)}
-            delta={overview?.voiceRoomsDelta ?? undefined}
-            icon={<Mic className="h-4 w-4" />}
-            accent="#8b5cf6"
-          />
-          <HubStatCard
-            label="Courses"
-            value={String(overview?.courseCount ?? 0)}
-            delta={overview?.courseCountDelta ?? undefined}
-            icon={<GraduationCap className="h-4 w-4" />}
-          />
-          <HubStatCard
-            label="Total Earned"
-            value={`$${(overview?.totalEarned ?? 0).toLocaleString()}`}
-            delta={overview?.totalEarnedDelta ?? undefined}
-            icon={<DollarSign className="h-4 w-4" />}
-            accent="#fd5000"
-          />
-        </div>
+          <div className="h-px bg-[var(--color-border)]" aria-hidden />
 
-        {/* Quick actions */}
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {QUICK_LINKS.map(({ icon: Icon, label, href }) => (
-            <Link
-              key={label}
-              href={href}
-              className="flex flex-col items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-center transition hover:border-[#fd5000]/30 hover:bg-[#fd5000]/5"
-            >
-              <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#fd5000]/10 text-[#fd5000]">
-                <Icon className="h-4 w-4" />
-              </div>
-              <span className="text-[10px] font-semibold leading-tight">{label}</span>
-            </Link>
-          ))}
-        </div>
-
-        {/* About · Progress · Rules */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          <HubCard>
-            <HubSectionTitle title="About" />
-            <p className="text-[12px] leading-relaxed text-[var(--color-text-secondary)]">
-              {overview?.description ??
-                `Welcome to ${communityName}! Connect with creators, join live sessions, complete missions, and grow together.`}
-            </p>
-            <Link href={`${base}/members`} className="mt-2 inline-block text-[11px] font-semibold text-[#fd5000]">
-              Learn more about us →
-            </Link>
-          </HubCard>
-
-          <HubCard>
-            <HubSectionTitle title="Community Progress" />
-            <div className="grid grid-cols-2 gap-2 text-center">
-              {[
-                { label: "Community Level", value: overview?.progressBreakdown.communityLevel ?? level },
-                { label: "Progress", value: `${overview?.progressBreakdown.communityProgress ?? 0}%` },
-                { label: "Challenges", value: overview?.progressBreakdown.challenges ?? 0 },
-                { label: "Top %", value: `${overview?.progressBreakdown.memberTopPercent ?? 1}%` },
-              ].map(({ label, value }) => (
-                <div key={label} className="rounded-md bg-[var(--color-surface-secondary)] p-2">
-                  <p className="text-[15px] font-black">{value}</p>
-                  <p className="text-[9px] text-[var(--color-text-muted)]">{label}</p>
+          {/* Quick actions grid */}
+          <div className="grid grid-cols-3 gap-3">
+            {QUICK_LINKS.map((link) => (
+              <Link
+                key={link.label}
+                href={link.href}
+                className="relative group flex flex-col items-center gap-1.5 rounded-xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-3 transition-all hover:border-[var(--color-accent)]/30 hover:bg-[var(--color-surface)]"
+              >
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg"
+                     style={{ background: `var(--color-${link.icon === Radio ? "ocean" : link.icon === Calendar ? "amber" : link.icon === Trophy ? "berry" : link.icon === FileText ? "sage" : link.icon === Wrench ? "orange" : "accent"})/15`, color: `var(--color-${link.icon === Radio ? "ocean" : link.icon === Calendar ? "amber" : link.icon === Trophy ? "berry" : link.icon === FileText ? "sage" : link.icon === Wrench ? "orange" : "accent"})` }}>
+                  <link.icon className="h-4 w-4" />
                 </div>
-              ))}
-            </div>
-            <Link href={`${base}/leaderboard`} className="mt-2 inline-block text-[11px] font-semibold text-[#fd5000]">
-              View full progress →
-            </Link>
-          </HubCard>
-
-          <HubCard>
-            <HubSectionTitle title="Community Rules" />
-            <ol className="space-y-1.5">
-              {(overview?.rules ?? []).slice(0, 5).map((rule, i) => (
-                <li key={rule} className="flex gap-2 text-[11px] text-[var(--color-text-secondary)]">
-                  <span className="font-bold text-[#fd5000]">{i + 1}.</span>
-                  <span>{rule}</span>
-                </li>
-              ))}
-            </ol>
-          </HubCard>
+                <span className="text-[11px] font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">
+                  {link.label}
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
 
-        {/* Courses */}
-        {(overview?.courses.length ?? 0) > 0 && (
-          <HubCard>
-            <div className="mb-3 flex items-center justify-between">
-              <HubSectionTitle title="Courses" />
-              <Link href={`${base}/courses`} className="text-[11px] font-semibold text-[#fd5000]">
-                View all
-              </Link>
+        {/* Stats row — "Mood board" style cards */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 animate-in stagger-children">
+          <FeatureStatCard label="Members Online" value={overview?.onlineNow ?? 0} delta={overview?.onlineDelta ?? null} icon={Users} color="sage" />
+          <FeatureStatCard label="Live Now" value={overview?.liveSessions ?? 0} delta={overview?.liveDelta ?? null} icon={Radio} color="ocean" />
+          <FeatureStatCard label="Voice Rooms" value={overview?.voiceRooms ?? 0} delta={overview?.voiceDelta ?? null} icon={Mic} color="berry" />
+          <FeatureStatCard label="Active Communities" value={overview?.activeCommunities ?? 0} delta={overview?.communityDelta ?? null} icon={Users} color="amber" />
+        </div>
+
+        {/* Creator challenge */}
+        {overview?.challenge && (
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-secondary)] p-4 hover-lift animate-in animate-fade-in-up"
+               style={{ background: "linear-gradient(135deg, var(--color-accent)/5, var(--color-accent-hover)/5)" }}>
+            <div className="absolute inset-0 -z-10 opacity-20" style={{ background: "radial-gradient(circle at 80% 20%, var(--color-accent)/30, transparent 60%)" }} />
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: "var(--color-accent)/15", color: "var(--color-accent)" }}>
+                <Flame className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[12px] font-bold text-[var(--color-text-primary)]">Creator Challenge</p>
+                  <span className="text-[11px] font-bold text-[var(--color-accent)]">
+                    {overview.challenge.completed}/{overview.challenge.target}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--color-text-secondary)]">{overview.challenge.title}</p>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
+                  <div className="h-full rounded-full transition-all duration-500 ease-out animate-in animate-fade-in-right"
+                       style={{ width: `${challengePct}%`, background: "linear-gradient(90deg, var(--color-sage), var(--color-accent))" }} />
+                </div>
+              </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {overview!.courses.map((c) => (
-                <Link
-                  key={c.id}
-                  href={c.href}
-                  className="overflow-hidden rounded-md border border-[var(--color-border)] transition hover:border-[#fd5000]/30"
-                >
-                  <div
-                    className="h-24 bg-gradient-to-br from-[#fd5000]/25 to-zinc-800 bg-cover bg-center"
-                    style={c.cover_image ? { backgroundImage: `url(${c.cover_image})` } : undefined}
-                  />
-                  <div className="p-2.5">
-                    <p className="text-[12px] font-bold">{c.title}</p>
-                    <p className="text-[10px] capitalize text-[var(--color-text-muted)]">
-                      {c.difficulty} · {c.total_lessons} lessons
-                    </p>
-                    <HubProgressBar value={c.progress} max={100} className="mt-2" />
-                    <p className="mt-1 text-[9px] text-[var(--color-text-muted)]">{c.progress}% complete</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </HubCard>
+          </div>
         )}
 
-        {/* Activity + Popular */}
-        <div className="grid gap-4 lg:grid-cols-2">
-          <HubCard>
-            <HubSectionTitle title="Recent Activity in Spaces" />
-            {(overview?.recentActivity.length ?? 0) === 0 ? (
-              <p className="text-[11px] text-[var(--color-text-muted)]">No recent activity yet.</p>
-            ) : (
-              <ul className="space-y-2">
-                {overview!.recentActivity.map((item) => (
-                  <li key={item.id}>
-                    <Link href={item.href} className="block rounded-md p-2 hover:bg-[var(--color-surface-secondary)]">
-                      <p className="text-[11px] font-medium leading-snug">{item.text}</p>
-                      <p className="text-[9px] text-[var(--color-text-muted)]">
-                        {formatDistanceToNow(new Date(item.time), { addSuffix: true })}
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </HubCard>
-
-          <HubCard>
-            <HubSectionTitle title="Popular This Week" />
-            {(overview?.popularThisWeek.length ?? 0) === 0 ? (
-              <p className="text-[11px] text-[var(--color-text-muted)]">Nothing trending yet.</p>
-            ) : (
-              <ul className="space-y-2">
-                {overview!.popularThisWeek.map((item) => (
-                  <li key={item.id}>
-                    <Link href={item.href} className="flex items-center justify-between rounded-md p-2 hover:bg-[var(--color-surface-secondary)]">
-                      <div>
-                        <p className="text-[11px] font-bold">{item.title}</p>
-                        <p className="text-[9px] text-[var(--color-text-muted)]">{item.meta}</p>
-                      </div>
-                      <Flame className="h-4 w-4 text-orange-400" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </HubCard>
-        </div>
-      </div>
-
-      {/* ── Right sidebar ── */}
-      <aside className="hidden min-w-0 space-y-4 xl:block">
-        <HubCard>
-          <HubSectionTitle title="Community Stats" badge="This Week" />
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: "Messages", value: (overview?.messagesThisWeek ?? 0).toLocaleString(), delta: null },
-              { label: "Members Online", value: (overview?.membersOnline ?? 0).toLocaleString(), delta: overview?.membersOnlineDelta ?? null },
-              { label: "Voice Rooms", value: String(overview?.voiceRooms ?? 0), delta: overview?.voiceRoomsDelta ?? null },
-              { label: "Courses", value: String(overview?.courseCount ?? 0), delta: overview?.courseCountDelta ?? null },
-            ].map(({ label, value, delta }) => (
-              <div key={label} className="rounded-md bg-[var(--color-surface-secondary)] p-2.5">
-                <p className="text-[10px] text-[var(--color-text-muted)]">{label}</p>
-                <p className="text-[16px] font-black leading-tight text-[var(--color-text-primary)]">{value}</p>
-                {delta && <p className="text-[10px] font-semibold text-emerald-600">{delta}</p>}
+        {/* About / Progress / Rules cards */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+            <h3 className="mb-2 text-[13px] font-black text-[var(--color-text-primary)]">About this Community</h3>
+            <p className="text-[11px] text-[var(--color-text-secondary)]">
+              {overview?.description ??
+                `Welcome to ${communityName}! This is a space for creators to share, learn, and grow together. Participate in live sessions, complete courses, and earn rewards.`}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+            <h3 className="mb-2 text-[13px] font-black text-[var(--color-text-primary)]">Community Progress</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--color-text-muted)]">Level progress</span>
+                <span className="font-semibold text-[var(--color-text-primary)]">{communityProgress}%</span>
               </div>
-            ))}
+              <HubProgressBar value={communityProgress} max={100} />
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--color-text-muted)]">Your contribution</span>
+                <span className="font-semibold text-[var(--color-accent)]">Top {memberTopPercent}%</span>
+              </div>
+            </div>
           </div>
-          <div className="mt-3 flex h-20 items-end gap-1">
-            {[40, 55, 35, 70, 50, 65, 80].map((h, i) => (
-              <div
-                key={i}
-                className="flex-1 rounded-t bg-[#fd5000]/20"
-                style={{ height: `${h}%` }}
-              />
-            ))}
+          <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+            <h3 className="mb-2 text-[13px] font-black text-[var(--color-text-primary)]">Community Rules</h3>
+            <ul className="space-y-1.5 text-[11px] text-[var(--color-text-secondary)]">
+              <li className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" /> Be respectful and constructive</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" /> No spam, self-promotion without permission</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" /> Keep discussions on-topic per space</li>
+              <li className="flex items-start gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" /> Report violations to moderators</li>
+            </ul>
           </div>
-          <div className="mt-2 flex flex-wrap gap-3 text-[9px] text-[var(--color-text-muted)]">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#fd5000]" /> Members</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Engagement</span>
-          </div>
-        </HubCard>
+        </div>
 
-        <HubCard>
-          <HubSectionTitle title="AI Community Insights" />
-          <div className="space-y-2 text-[11px] text-[var(--color-text-secondary)]">
-            <p className="flex gap-2">
-              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#fd5000]" />
-              Engagement peaks in the evenings — great time to go live.
-            </p>
-            <p className="flex gap-2">
-              <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
-              {(overview?.membersOnline ?? 0).toLocaleString()} members active now across spaces.
-            </p>
+        {/* Courses section */}
+        <div className="space-y-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-[13px] font-black uppercase tracking-wider text-[var(--color-text-primary)]">Courses</h3>
+            <Link href={`${base}/courses`} className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline">View all</Link>
           </div>
-          <input
-            readOnly
-            placeholder="Ask AI anything…"
-            className="mt-3 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[11px] placeholder:text-[var(--color-text-muted)]"
-          />
-        </HubCard>
-
-        <HubCard>
-          <HubSectionTitle title="Active Now" />
-          {(overview?.activeMembers.length ?? 0) === 0 ? (
-            <p className="text-[11px] text-[var(--color-text-muted)]">No one active right now.</p>
-          ) : (
-            overview!.activeMembers.map((u) => (
-              <div key={u.id} className="flex items-center justify-between border-t border-[var(--color-border)] py-2 first:border-0">
-                <div className="flex items-center gap-2">
-                  <HubAvatar name={u.name} src={u.avatar_url} size={32} live />
-                  <div>
-                    <p className="text-[11px] font-semibold">{u.name}</p>
-                    <p className="text-[9px] text-emerald-600">{u.status}</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {overview?.courses?.slice(0, 2).map((course) => (
+              <Link key={course.id} href={`${base}/courses/${course.id}`} className="group">
+                <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur hover-lift hover:border-[var(--color-accent)]/30">
+                  <div className="relative aspect-video overflow-hidden">
+                    {course.cover_image ? (
+                      <img src={course.cover_image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+                        <GraduationCap className="h-10 w-10 text-white/20" />
+                      </div>
+                    )}
+                    {course.status === "completed" && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                        <CheckCircle2 className="h-8 w-8 text-emerald-400" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-3 left-3 right-3">
+                      <HubProgressBar value={course.progress} max={100} />
+                    </div>
+                  </div>
+                  <div className="p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">{course.community_name}</p>
+                    <h3 className="mt-1 truncate text-[14px] font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)]">{course.title}</h3>
+                    <div className="mt-2 flex items-center gap-3 text-[11px] font-semibold text-[var(--color-text-muted)]">
+                      <span className="flex items-center gap-1"><GraduationCap className="h-3 w-3" /> {course.total_lessons} lessons</span>
+                      <span className="flex items-center gap-1">
+                        {course.difficulty === "beginner" ? <HubBadge variant="default">{course.difficulty}</HubBadge> :
+                         course.difficulty === "intermediate" ? <HubBadge variant="orange">{course.difficulty}</HubBadge> :
+                         <HubBadge variant="live">{course.difficulty}</HubBadge>}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <HubBadge variant="live">Active</HubBadge>
-              </div>
-            ))
-          )}
-        </HubCard>
+              </Link>
+            ))}
+          </div>
+        </div>
 
-        <HubCard>
-          <HubSectionTitle title="Upcoming Events" />
-          {(overview?.upcomingEvents.length ?? 0) === 0 ? (
-            <p className="text-[11px] text-[var(--color-text-muted)]">No upcoming events.</p>
-          ) : (
-            overview!.upcomingEvents.map((ev) => (
-              <div key={ev.id} className="flex items-center justify-between border-t border-[var(--color-border)] py-2 first:border-0">
-                <div>
-                  <p className="text-[11px] font-bold">{ev.title}</p>
-                  <p className="text-[9px] text-[var(--color-text-muted)]">
-                    {format(new Date(ev.start_date), "MMM d · h:mm a")}
-                  </p>
+        {/* Recent Activity + Popular This Week */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Recent Activity</h3>
+              <HubBadge variant="default">Recent</HubBadge>
+            </div>
+            <div className="space-y-2">
+              {overview?.recentActivity?.slice(0, 4).map((a) => (
+                <div key={a.id} className="flex items-center gap-2 py-1 hover-lift rounded-lg px-2 transition-colors"
+                     style={{ background: "transparent" }}>
+                  <HubAvatar name={a.name} src={a.avatar_url} size={28} live={a.live} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-semibold text-[var(--color-text-primary)]">{a.name}</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                      {a.live ? "Live now" : "Posted recently"}
+                    </p>
+                  </div>
+                  {a.live && <HubBadge variant="live">LIVE</HubBadge>}
                 </div>
-                <HubLinkButton href={ev.href} className="!px-2 !py-1 !text-[10px]">
-                  Join
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Popular This Week</h3>
+              <HubBadge variant="orange">Trending</HubBadge>
+            </div>
+            <div className="space-y-2">
+              {overview?.popularThisWeek?.slice(0, 4).map((p) => (
+                <div key={p.id} className="flex items-center gap-2 py-1 hover-lift rounded-lg px-2 transition-colors"
+                     style={{ background: "transparent" }}>
+                  <HubAvatar name={p.name} src={p.avatar_url} size={24} live={p.live} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-semibold text-[var(--color-text-primary)]">{p.name}</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                      {p.posts_this_week} posts · {p.engagement} engagement
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right sidebar content */}
+        <div className="hidden w-[300px] shrink-0 space-y-4 lg:block">
+          {/* Live Now card */}
+          {overview?.featuredLive && (
+            <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 bg-gradient-to-br from-zinc-900/50 to-zinc-950/50 hover-lift"
+                 style={{ background: "linear-gradient(135deg, var(--color-berry)/10, var(--color-ocean)/10)" }}>
+              <div className="relative h-36 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Play className="h-10 w-10 text-white/60" fill="white" />
+                </div>
+                <HubBadge variant="live" className="absolute left-3 top-3">LIVE</HubBadge>
+                {overview.featuredLive.watchingLabel && (
+                  <span className="absolute bottom-3 right-3 rounded-lg bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">
+                    {overview.featuredLive.watchingLabel}
+                  </span>
+                )}
+              </div>
+              <div className="p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <Radio className="h-4 w-4 animate-pulse" style={{ color: "var(--color-accent)" }} />
+                  <span className="text-[12px] font-black text-[var(--color-text-primary)]">Live Now</span>
+                </div>
+                <p className="text-[13px] font-bold leading-snug text-[var(--color-text-primary)]">{overview.featuredLive.title}</p>
+                <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">{overview.featuredLive.hostName}</p>
+                <HubLinkButton href={overview.featuredLive.href} className="mt-3 w-full">Join Live</HubLinkButton>
+              </div>
+            </div>
+          )}
+
+          {/* Creator Insights */}
+          {overview?.insights && (
+            <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Creator Insights</h3>
+                <HubBadge variant="default">This month</HubBadge>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Posts", value: overview.insights.postCount30d, icon: MessageSquare, color: "sage" },
+                  { label: "Engagement", value: overview.insights.engagement30d, icon: Heart, color: "ocean" },
+                  { label: "Communities", value: overview.insights.communitiesJoined, icon: Users, color: "amber" },
+                  { label: "Live rooms", value: overview?.liveSessions ?? 0, icon: Radio, color: "berry" },
+                ].map(({ label, value, icon: Icon, color }) => (
+                  <div key={label} className="relative rounded-xl p-3 hover-lift"
+                       style={{ background: `var(--color-${color})/5`, border: "1px solid var(--color-border)/20" }}>
+                    <div className="flex items-center justify-between mb-1">
+                      <Icon className="h-3.5 w-3.5" style={{ color: `var(--color-${color})` }} />
+                    </div>
+                    <p className="text-[10px] text-[var(--color-text-muted)]">{label}</p>
+                    <p className="text-[18px] font-black text-[var(--color-text-primary)]">{value.toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* AI Assistant */}
+          <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--color-berry)/15", color: "var(--color-berry)" }}>
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[12px] font-bold text-[var(--color-text-primary)]">AI Assistant</p>
+                <p className="text-[10px] font-semibold text-emerald-500">Beta</p>
+              </div>
+            </div>
+            <ul className="space-y-1.5 text-[11px] text-[var(--color-text-secondary)]">
+              <li>• Your audience is most active during evenings.</li>
+              <li>• Post clips today to boost reach.</li>
+            </ul>
+            <input
+              placeholder="Ask AI anything…"
+              className="mt-3 w-full rounded-lg border border-[var(--color-border)]/30 bg-[var(--color-surface-secondary)]/50 px-3 py-2 text-[12px] placeholder:text-[var(--color-text-muted)] outline-none focus:border-[var(--color-accent)]/40 focus:bg-[var(--color-surface)]"
+              style={{ color: "var(--color-text-primary)" }}
+            />
+          </div>
+
+          {/* Activity feed */}
+          {overview?.activity?.length && (
+            <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Activity</h3>
+                <HubBadge variant="default">Recent</HubBadge>
+              </div>
+              <div className="space-y-2">
+                {overview.activity.slice(0, 4).map((a) => (
+                  <div key={a.id} className="flex items-center gap-2 py-1 hover-lift rounded-lg px-2 transition-colors"
+                       style={{ background: "transparent" }}>
+                    <HubAvatar name={a.name} src={a.avatar_url} size={24} live={a.live} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[11px] font-semibold text-[var(--color-text-primary)]">{a.name}</p>
+                      <p className="text-[10px] text-[var(--color-text-muted)]">
+                        {a.live ? "Live now" : "Posted recently"}
+                      </p>
+                    </div>
+                    {a.live && <HubBadge variant="live">LIVE</HubBadge>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Earnings Overview */}
+          {overview?.earnings && (
+            <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 hover-lift"
+                 style={{ background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))" }}>
+              <div className="absolute inset-0 -z-10 opacity-10" style={{ background: "radial-gradient(circle at 20% 80%, var(--color-berry), transparent 50%)" }} />
+              <div className="p-4 text-white">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15">
+                    <DollarSign className="h-4 w-4" />
+                  </div>
+                  <p className="text-[12px] font-bold">Earnings Overview</p>
+                </div>
+                <p className="mb-2 text-[28px] font-black tracking-tight">{formatMoney(overview.earnings.total, overview.earnings.currency)}</p>
+                {overview.earnings.monthChangePct != null && (
+                  <p className="mb-3 text-[11px] text-white/80">
+                    {overview.earnings.monthChangePct >= 0 ? "+" : ""}
+                    {overview.earnings.monthChangePct.toFixed(1)}% this month
+                  </p>
+                )}
+                <HubLinkButton
+                  href="/dashboard/earnings"
+                  variant="secondary"
+                  className="w-full !rounded-lg !border-white/25 !bg-white/15 !text-white hover:!bg-white/25"
+                >
+                  View Payouts
                 </HubLinkButton>
               </div>
-            ))
+            </div>
           )}
-        </HubCard>
 
-        <HubCard>
-          <HubSectionTitle title="Top Contributors" />
-          {(overview?.topContributors.length ?? 0) === 0 ? (
-            <p className="text-[11px] text-[var(--color-text-muted)]">No contributors yet.</p>
-          ) : (
-            overview!.topContributors.map((u, i) => (
-              <div key={u.id} className="flex items-center gap-2 border-t border-[var(--color-border)] py-2 first:border-0">
-                <span className="w-4 text-[10px] font-bold text-[var(--color-text-muted)]">{i + 1}</span>
-                <HubAvatar name={u.name} src={u.avatar_url} size={28} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[11px] font-semibold">{u.name}</p>
-                  <p className="text-[9px] text-[var(--color-text-muted)]">{u.points.toLocaleString()} XP</p>
+          {/* Top Missions */}
+          {overview?.challenge && (
+            <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
+              <h3 className="mb-3 text-[13px] font-black text-[var(--color-text-primary)]">Top Missions</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] font-semibold text-[var(--color-text-primary)]">{overview.challenge.title}</p>
+                  <span className="text-[10px] font-bold text-emerald-500">{challengePct}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
+                  <div className="h-full rounded-full transition-all duration-500"
+                       style={{ width: `${challengePct}%`, background: "linear-gradient(90deg, var(--color-sage), var(--color-accent))" }} />
                 </div>
               </div>
-            ))
-          )}
-        </HubCard>
-
-        {(overview?.liveNow ?? 0) > 0 && (
-          <HubCard className="!p-0 overflow-hidden">
-            <div className="relative aspect-video bg-zinc-900">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Play className="h-10 w-10 text-white/80" />
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 p-2">
-                <p className="text-[10px] font-bold text-white">Live in {communityName}</p>
-                <p className="text-[9px] text-white/70">{overview?.liveNow} rooms active</p>
-              </div>
-              <HubBadge variant="live" className="absolute left-2 top-2">LIVE</HubBadge>
             </div>
-          </HubCard>
-        )}
-      </aside>
+          )}
+        </div>
+      </div>
     </div>
   );
+}
+
+function FeatureStatCard({ label, value, delta, icon: Icon, color }: { label: string; value: string | number; delta?: string | null; icon: typeof Users; color: string }) {
+  const colorVar = `var(--color-${color})`;
+  return (
+    <div className="relative group hover-lift animate-in animate-fade-in-up rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)] p-4 transition-all duration-300"
+         style={{ background: `linear-gradient(135deg, var(--color-surface), var(--color-surface-secondary))` }}>
+      <div className="absolute inset-0 -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl"
+           style={{ background: `radial-gradient(circle at top right, ${colorVar}15, transparent 60%)` }} />
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>{label}</p>
+          <p className="mt-1 text-[20px] font-black tracking-tight" style={{ color: "var(--color-text-primary)" }}>{value}</p>
+          {delta && (
+            <p className="mt-1 text-[10px] font-semibold text-emerald-500 flex items-center gap-0.5">
+              <TrendingUp className="h-3 w-3" /> {delta}
+            </p>
+          )}
+        </div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+             style={{ background: `${colorVar}15`, color: colorVar }}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }

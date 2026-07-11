@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Layers, Loader2, Search, Users, ChevronRight } from "lucide-react";
-import { HubCard, HubLinkButton } from "@/components/community/hub/hub-ui";
+import { Layers, Loader2, Search, Users, ChevronRight, Hash, Globe, Lock } from "lucide-react";
+import { HubCard, HubLinkButton, HubBadge, HubStatCard } from "@/components/community/hub/hub-ui";
+import { cn } from "@/lib/utils";
 
 type HubSpace = {
   id: string;
@@ -14,6 +15,7 @@ type HubSpace = {
   community_slug: string;
   room_count: number;
   member_count: number;
+  access_type: "free" | "paid" | "premium";
   href: string;
 };
 
@@ -49,13 +51,28 @@ export default function HubSpacesPage() {
     [spaces, searchQuery]
   );
 
+  const stats = useMemo(() => ({
+    total: spaces.length,
+    members: spaces.reduce((sum, s) => sum + s.member_count, 0),
+    rooms: spaces.reduce((sum, s) => sum + s.room_count, 0),
+    free: spaces.filter(s => s.access_type === "free").length,
+    paid: spaces.filter(s => s.access_type === "paid").length,
+    premium: spaces.filter(s => s.access_type === "premium").length,
+  }), [spaces]);
+
   return (
-    <div className="min-h-full bg-[var(--color-bg,#f4f4f5)]">
-      <div className="mx-auto max-w-[960px] space-y-4 p-4 lg:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="min-h-full bg-[var(--color-bg)]"
+         style={{
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+         }}>
+      <div className="mx-auto flex max-w-[1000px] flex-col gap-6 p-4 lg:p-6">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3 animate-in animate-fade-in-up">
           <div>
-            <h1 className="flex items-center gap-2 text-xl font-black tracking-tight">
-              <Layers className="h-5 w-5 text-[#fd5000]" />
+            <h1 className="flex items-center gap-2 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-berry)]/15 text-[var(--color-berry)]">
+                <Layers className="h-5 w-5" />
+              </div>
               Spaces
             </h1>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
@@ -67,55 +84,99 @@ export default function HubSpacesPage() {
           </HubLinkButton>
         </div>
 
-        <div className="relative">
+        {/* Stats row */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 animate-in stagger-children">
+          <HubStatCard label="Total" value={stats.total} icon={Layers} color="amber" />
+          <HubStatCard label="Members" value={stats.members.toLocaleString()} icon={Users} color="sage" />
+          <HubStatCard label="Rooms" value={stats.rooms} icon={Hash} color="ocean" />
+          <HubStatCard label="Free / Paid / Premium" value={`${stats.free} / ${stats.paid} / ${stats.premium}`} icon={Globe} color="berry" />
+        </div>
+
+        {/* Search */}
+        <div className="relative animate-in animate-slide-in-down">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
           <input
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search spaces or communities…"
-            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-2.5 pl-10 pr-4 text-[13px] focus:border-[#fd5000]/40 focus:outline-none"
+            className="w-full rounded-xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur py-2.5 pl-10 pr-4 text-[13px] transition-colors focus:border-[var(--color-accent)]/40 focus:outline-none focus:bg-[var(--color-surface)]"
           />
         </div>
 
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
           </div>
         ) : filtered.length === 0 ? (
-          <HubCard className="py-12 text-center">
-            <Layers className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
-            <p className="text-[14px] font-bold">No spaces yet</p>
+          <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-8 text-center animate-in animate-fade-in">
+            <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+              <Layers className="h-7 w-7 text-[var(--color-accent)]" />
+            </div>
+            <p className="text-[14px] font-bold text-[var(--color-text-primary)]">No spaces found</p>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Join a community to access its spaces and rooms.
+              {searchQuery
+                ? "Try adjusting your search"
+                : "You haven't joined any spaces yet. Join a community to access its spaces and rooms."}
             </p>
-            <HubLinkButton href="/communities" className="mt-4">
-              Browse communities
-            </HubLinkButton>
-          </HubCard>
+            {!searchQuery && (
+              <HubLinkButton href="/communities" className="mt-4">
+                Browse communities
+              </HubLinkButton>
+            )}
+          </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in stagger-children">
             {filtered.map((space) => (
               <Link key={space.id} href={space.href}>
-                <HubCard className="group h-full transition hover:border-[#fd5000]/30 hover:shadow-md">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-[14px] font-bold group-hover:text-[#fd5000]">{space.name}</p>
-                      <p className="text-[11px] text-[var(--color-text-muted)]">{space.community_name}</p>
+                <div className={cn(
+                  "group relative overflow-hidden rounded-2xl border transition-all duration-300 hover-lift",
+                  space.access_type === "free"
+                    ? "border-[var(--color-sage)]/30 bg-gradient-to-br from-[var(--color-sage)]/5 to-transparent"
+                    : space.access_type === "paid"
+                    ? "border-[var(--color-amber)]/30 bg-gradient-to-br from-[var(--color-amber)]/5 to-transparent"
+                    : "border-[var(--color-berry)]/30 bg-gradient-to-br from-[var(--color-berry)]/5 to-transparent"
+                )}>
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="truncate text-[14px] font-black group-hover:text-[var(--color-accent)] transition-colors">{space.name}</p>
+                          {space.access_type === "paid" && (
+                            <HubBadge variant="amber">Paid</HubBadge>
+                          )}
+                          {space.access_type === "premium" && (
+                            <HubBadge variant="berry">Premium</HubBadge>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">{space.community_name}</p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)] transition-colors" />
                     </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-zinc-300 group-hover:text-[#fd5000]" />
+                    {space.description && (
+                      <p className="mt-2 line-clamp-2 text-[12px] text-[var(--color-text-secondary)]">{space.description}</p>
+                    )}
+                    <div className="mt-3 flex items-center gap-4 text-[10px] font-semibold text-[var(--color-text-muted)]">
+                      <span className="inline-flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {space.member_count.toLocaleString()} members
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Hash className="h-3 w-3" />
+                        {space.room_count} rooms
+                      </span>
+                    </div>
                   </div>
-                  {space.description && (
-                    <p className="mt-2 line-clamp-2 text-[12px] text-[var(--color-text-secondary)]">{space.description}</p>
-                  )}
-                  <div className="mt-3 flex items-center gap-4 text-[10px] font-semibold text-[var(--color-text-muted)]">
-                    <span className="inline-flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {space.member_count.toLocaleString()} members
-                    </span>
-                    <span>{space.room_count} rooms</span>
-                  </div>
-                </HubCard>
+                  {/* Access type indicator */}
+                  <div className="absolute bottom-0 left-0 right-0 h-1.5"
+                       style={{
+                         background: space.access_type === "free"
+                           ? "linear-gradient(90deg, var(--color-sage), var(--color-accent))"
+                           : space.access_type === "paid"
+                           ? "linear-gradient(90deg, var(--color-amber), var(--color-accent))"
+                           : "linear-gradient(90deg, var(--color-berry), var(--color-ocean))",
+                       }} />
+                </div>
               </Link>
             ))}
           </div>

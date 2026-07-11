@@ -43,7 +43,7 @@ export function JimvioLogo({
       {variant === "full" && (
         <span
           className={cn(
-            "font-semibold tracking-tight select-none truncate text-[var(--color-text-primary)]",
+            "font-semibold tracking-tight select-none truncate text-[var(--color-text-primary)] font-[family-name:var(--font-fraunces)]",
             text
           )}
         >

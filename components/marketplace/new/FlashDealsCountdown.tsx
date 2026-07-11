@@ -21,10 +21,10 @@ export function FlashDealsCountdown() {
   }, []);
 
   return (
-    <span className="hidden items-center gap-1.5 text-xs font-semibold text-white sm:flex">
+    <span className="hidden items-center gap-1.5 text-xs tracking-tight text-white sm:flex">
       Time Left:
       {[t.h, t.m, t.s].map((v, i) => (
-        <span key={i} className="rounded bg-black/25 px-1.5 py-0.5 tabular-nums">
+        <span key={i} className="tabular-nums">
           {pad(v)}
         </span>
       ))}

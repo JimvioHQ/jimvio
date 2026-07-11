@@ -157,6 +157,7 @@ type ShellProps = {
     name: string;
     slug: string;
     avatar_url: string | null;
+    cover_image: string | null;
     member_count: number | null;
     owner_id: string;
   };
@@ -194,10 +195,12 @@ export function WorkspaceShell({
      ownerId: community.owner_id,
      memberCount: community.member_count ?? 0,
      avatarUrl: community.avatar_url,
+     coverImage: community.cover_image,
      userId,
      currentUserId: userId,
      view: pathname.includes('/workspace/chats') || pathname === `/c/${community.slug}/workspace` ? 'member' : 'member', // Simplified for now
      isAdmin: membership?.role === 'admin' || membership?.role === 'moderator' || community.owner_id === userId,
+     isOwner: community.owner_id === userId || membership?.role === 'owner',
      profile,
      membership,
      spacesWithRooms,

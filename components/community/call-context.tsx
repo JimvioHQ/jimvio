@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Phone, Video, X } from "lucide-react";
-import { useWorkspace } from "@/components/community/workspace-context";
+import { useWorkspace, WorkspaceContext } from "@/components/community/workspace-context";
 
 type CallType = 'audio' | 'video' | 'call_signal';
 
@@ -16,6 +16,7 @@ interface IncomingCall {
   sender: any;
   roomId?: string;
   convId?: string;
+  communitySlug?: string;
 }
 
 const CallContext = createContext<{
@@ -23,7 +24,7 @@ const CallContext = createContext<{
   setCallType: (t: 'audio' | 'video' | null) => void;
   incomingCall: IncomingCall | null;
   setIncomingCall: (c: IncomingCall | null) => void;
-  startCall: (type: 'audio' | 'video', roomId?: string, convId?: string) => Promise<void>;
+  startCall: (type: 'audio' | 'video', roomId?: string, convId?: string, communitySlug?: string) => Promise<void>;
   endCall: () => void;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
@@ -38,7 +39,8 @@ export function useCall() {
 }
 
 export function CallProvider({ children }: CallProviderProps) {
-  const { communityId, userId, slug } = useWorkspace();
+  const workspace = useContext(WorkspaceContext);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
   const [callType, setCallType] = useState<'audio' | 'video' | null>(null);
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -50,6 +52,19 @@ export function CallProvider({ children }: CallProviderProps) {
 
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
   const callingToneRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (!workspace?.userId) {
+      supabase.auth.getUser().then((res: any) => {
+        const user = res.data?.user;
+        if (user) setAuthUserId(user.id);
+      });
+    }
+  }, [workspace?.userId, supabase.auth]);
+
+  const userId = workspace?.userId || authUserId;
+  const communityId = workspace?.communityId;
+  const slug = workspace?.slug;
 
   useEffect(() => {
     // Create Audio elements for tones
@@ -76,39 +91,31 @@ export function CallProvider({ children }: CallProviderProps) {
 
   // Global call listener
   useEffect(() => {
-     if (!userId || !communityId) return;
+     if (!userId) return;
      
-     // Listen for ANY message_type 'call_start' or 'call_signal' in the community
-     // This is a broad listener that works if the user is anywhere in the community workspace
-     const ch = supabase.channel(`community_calls:${communityId}`)
-       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_messages', filter: `community_id=eq.${communityId}` },
-         async (payload:any) => {
-           if (payload.new.message_type === 'call_start' && payload.new.sender_id !== userId) {
-             const { data: prof } = await supabase.from('profiles').select('full_name, avatar_url, username').eq('id', payload.new.sender_id).single();
-             setIncomingCall({
-               type: payload.new.body === 'video' ? 'video' : 'audio',
-               sender: prof,
-               roomId: payload.new.room_id
-             });
-           } else if (payload.new.message_type === 'call_signal' && payload.new.sender_id !== userId) {
-             handleCallSignal(JSON.parse(payload.new.body));
-           }
-         }
-       )
+     const uniqueSuffix = Math.random().toString(36).substring(2, 9);
+
+     // Listen for inbox messages (direct message calls) globally
+     const inboxCh = supabase.channel(`inbox_calls:${userId}-${uniqueSuffix}`)
        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_inbox_messages' },
          async (payload:any) => {
            // We need to verify if this inbox message belongs to a conversation involving the current user
            const { data: conv } = await supabase.from('community_inbox_conversations')
-             .select('user_low, user_high')
+             .select('user_low, user_high, community_id')
              .eq('id', payload.new.conversation_id)
              .single();
            
            if (conv && (conv.user_low === userId || conv.user_high === userId) && payload.new.message_type === 'call_start' && payload.new.sender_id !== userId) {
-             const { data: prof } = await supabase.from('profiles').select('full_name, avatar_url, username').eq('id', payload.new.sender_id).single();
+             const [profRes, commRes] = await Promise.all([
+               supabase.from('profiles').select('full_name, avatar_url, username').eq('id', payload.new.sender_id).single(),
+               conv.community_id ? supabase.from('communities').select('slug').eq('id', conv.community_id).single() : Promise.resolve({ data: null })
+             ]);
+             
              setIncomingCall({
                type: payload.new.body === 'video' ? 'video' : 'audio',
-               sender: prof,
-               convId: payload.new.conversation_id
+               sender: profRes.data,
+               convId: payload.new.conversation_id,
+               communitySlug: commRes.data?.slug ?? undefined
              });
            } else if (conv && (conv.user_low === userId || conv.user_high === userId) && payload.new.message_type === 'call_signal' && payload.new.sender_id !== userId) {
              handleCallSignal(JSON.parse(payload.new.body));
@@ -117,13 +124,47 @@ export function CallProvider({ children }: CallProviderProps) {
        )
        .subscribe();
 
-     return () => { supabase.removeChannel(ch); };
+     // Listen for room calls inside the active community (if any)
+     let roomCh: any = null;
+     if (communityId) {
+       roomCh = supabase.channel(`community_calls:${communityId}-${uniqueSuffix}`)
+         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'community_messages', filter: `community_id=eq.${communityId}` },
+           async (payload:any) => {
+             if (payload.new.message_type === 'call_start' && payload.new.sender_id !== userId) {
+               const [profRes, commRes] = await Promise.all([
+                 supabase.from('profiles').select('full_name, avatar_url, username').eq('id', payload.new.sender_id).single(),
+                 supabase.from('communities').select('slug').eq('id', communityId).single()
+               ]);
+               setIncomingCall({
+                 type: payload.new.body === 'video' ? 'video' : 'audio',
+                 sender: profRes.data,
+                 roomId: payload.new.room_id,
+                 communitySlug: commRes.data?.slug ?? undefined
+               });
+             } else if (payload.new.message_type === 'call_signal' && payload.new.sender_id !== userId) {
+               handleCallSignal(JSON.parse(payload.new.body));
+             }
+           }
+         )
+         .subscribe();
+     }
+
+     return () => { 
+       supabase.removeChannel(inboxCh); 
+       if (roomCh) supabase.removeChannel(roomCh);
+     };
   }, [userId, communityId]);
 
-  async function sendSignal(type: string, bodyContent: any, targetRoom?: string, targetConv?: string) {
-    const endpoint = targetConv 
-      ? `/api/communities/${slug}/inbox/${targetConv}/messages`
-      : `/api/messages/${targetRoom}`;
+  async function sendSignal(type: string, bodyContent: any, targetRoom?: string, targetConv?: string, targetSlug?: string) {
+    let endpoint = "";
+    if (targetConv) {
+      const currentSlug = targetSlug || slug;
+      endpoint = currentSlug 
+        ? `/api/communities/${currentSlug}/inbox/${targetConv}/messages`
+        : `/api/c/messages/${targetConv}`;
+    } else {
+      endpoint = `/api/messages/${targetRoom}`;
+    }
     
     await fetch(endpoint, {
       method: "POST",
@@ -135,7 +176,7 @@ export function CallProvider({ children }: CallProviderProps) {
     });
   }
 
-  async function initWebRTC(type: 'audio'|'video', isInitiator: boolean, rId?: string, cId?: string) {
+  async function initWebRTC(type: 'audio'|'video', isInitiator: boolean, rId?: string, cId?: string, targetSlug?: string) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === 'video' });
       setLocalStream(stream);
@@ -146,13 +187,13 @@ export function CallProvider({ children }: CallProviderProps) {
       stream.getTracks().forEach(t => pc.addTrack(t, stream));
       pc.ontrack = (ev) => setRemoteStream(ev.streams[0]);
       pc.onicecandidate = (ev) => {
-        if (ev.candidate) sendSignal('call_signal', { ice: ev.candidate }, rId, cId);
+        if (ev.candidate) sendSignal('call_signal', { ice: ev.candidate }, rId, cId, targetSlug);
       };
 
       if (isInitiator) {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        sendSignal('call_signal', { sdp: offer }, rId, cId);
+        sendSignal('call_signal', { sdp: offer }, rId, cId, targetSlug);
       }
     } catch (err) {
       console.error("WebRTC Init Error:", err);
@@ -173,7 +214,7 @@ export function CallProvider({ children }: CallProviderProps) {
         if (signal.sdp.type === 'offer') {
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          sendSignal('call_signal', { sdp: answer }, incomingCall?.roomId, incomingCall?.convId);
+          sendSignal('call_signal', { sdp: answer }, incomingCall?.roomId, incomingCall?.convId, incomingCall?.communitySlug);
         }
       } else if (signal.ice) {
         if (pc.remoteDescription) {
@@ -185,11 +226,11 @@ export function CallProvider({ children }: CallProviderProps) {
     } catch (e) { console.error("Signal Error:", e); }
   }
 
-  async function startCall(type: 'audio' | 'video', rId?: string, cId?: string) {
+  async function startCall(type: 'audio' | 'video', rId?: string, cId?: string, targetSlug?: string) {
     setCallType(type);
     iceQueueRef.current = [];
-    await sendSignal('call_start', type, rId, cId);
-    await initWebRTC(type, true, rId, cId);
+    await sendSignal('call_start', type, rId, cId, targetSlug);
+    await initWebRTC(type, true, rId, cId, targetSlug);
   }
 
   function endCall() {
@@ -231,9 +272,10 @@ export function CallProvider({ children }: CallProviderProps) {
                     const type = incomingCall.type;
                     const rId = incomingCall.roomId;
                     const cId = incomingCall.convId;
+                    const cSlug = incomingCall.communitySlug;
                     setIncomingCall(null); 
                     setCallType(type);
-                    initWebRTC(type, false, rId, cId); 
+                    initWebRTC(type, false, rId, cId, cSlug); 
                   }} 
                   className="w-16 h-16 rounded-sm bg-[#00a884] flex items-center justify-center hover:bg-[#008069] transition-all active:scale-95 shadow-none animate-bounce"
                 >
@@ -283,4 +325,3 @@ export function CallProvider({ children }: CallProviderProps) {
     </CallContext.Provider>
   );
 }
-

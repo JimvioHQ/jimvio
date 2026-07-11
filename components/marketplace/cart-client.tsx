@@ -17,7 +17,7 @@ import {
   Tag,
   ChevronRight,
   Lock,
-  Package,
+  User,
   CreditCard,
   Globe,
   Shield,
@@ -170,12 +170,12 @@ function QtyInput({
   };
 
   return (
-    <div className="inline-flex items-center border border-gray-300 rounded overflow-hidden bg-white">
+    <div className="inline-flex items-center border border-[var(--color-border)] rounded overflow-hidden bg-[var(--color-surface)]">
       <button
         onClick={() => value > 1 && onChange(value - 1)}
         disabled={value <= 1 || loading}
         aria-label="Decrease quantity"
-        className="h-7 w-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+        className="h-7 w-7 flex items-center justify-center text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] disabled:text-[var(--color-text-muted)] disabled:cursor-not-allowed transition-colors"
       >
         <Minus className="h-3 w-3" />
       </button>
@@ -188,13 +188,13 @@ function QtyInput({
         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
         disabled={loading}
         aria-label="Quantity"
-        className="w-8 h-7 text-center text-[13px] font-medium text-gray-900 bg-transparent outline-none border-x border-gray-300 tabular-nums"
+        className="w-8 h-7 text-center text-[13px] font-medium text-[var(--color-text-primary)] bg-transparent outline-none border-x border-[var(--color-border)] tabular-nums"
       />
       <button
         onClick={() => (!max || value < max) && onChange(value + 1)}
         disabled={(max ? value >= max : false) || loading}
         aria-label="Increase quantity"
-        className="h-7 w-7 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+        className="h-7 w-7 flex items-center justify-center text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] disabled:text-[var(--color-text-muted)] disabled:cursor-not-allowed transition-colors"
       >
         <Plus className="h-3 w-3" />
       </button>
@@ -221,7 +221,7 @@ function OrangeCheckbox({
           "h-[18px] w-[18px] rounded flex items-center justify-center border-2 transition-colors shrink-0",
           checked
             ? "bg-[#F97316] border-[#F97316]"
-            : "bg-white border-gray-300 hover:border-[#F97316]"
+            : "bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 hover:border-[#F97316]"
         )}
       >
         {checked && (
@@ -230,7 +230,7 @@ function OrangeCheckbox({
           </svg>
         )}
       </span>
-      {label && <span className="text-sm text-gray-600">{label}</span>}
+      {label && <span className="text-sm text-gray-600 dark:text-zinc-400">{label}</span>}
     </label>
   );
 }
@@ -412,13 +412,13 @@ export function CartClient({ initialItems }: CartClientProps) {
   if (items.length === 0) {
     return (
       <div className="max-w-md mx-auto py-20 text-center">
-        <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-orange-50 flex items-center justify-center">
+        <div className="h-20 w-20 mx-auto mb-6 rounded-full bg-orange-50 dark:bg-orange-950/20 flex items-center justify-center">
           <ShoppingCart className="h-9 w-9 text-[#F97316]" strokeWidth={1.5} />
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-zinc-100 mb-2">
           Your cart is empty
         </h2>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-gray-500 dark:text-zinc-400 mb-6">
           Add items to your cart to checkout.
         </p>
         <Button
@@ -437,21 +437,21 @@ export function CartClient({ initialItems }: CartClientProps) {
       {/* ── Page header ── */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-full bg-orange-50 border border-orange-100 flex items-center justify-center">
+          <div className="h-11 w-11 rounded-full bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 flex items-center justify-center">
             <ShoppingCart className="h-5 w-5 text-[#F97316]" strokeWidth={1.8} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 leading-tight">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-zinc-100 leading-tight">
               Shopping Cart
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 dark:text-zinc-400">
               {totalUnits} {totalUnits === 1 ? "item" : "items"} &bull; Ready for checkout
             </p>
           </div>
         </div>
         <Link
           href="/marketplace"
-          className="hidden sm:inline-flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 hover:border-gray-400 rounded-sm px-3.5 py-2 hover:bg-gray-50 transition-colors"
+          className="hidden sm:inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-zinc-300 border border-gray-300 dark:border-zinc-700 hover:border-gray-400 dark:hover:border-zinc-600 rounded-sm px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           Continue Shopping
@@ -465,25 +465,25 @@ export function CartClient({ initialItems }: CartClientProps) {
         <div className="space-y-4">
 
           {/* Table header */}
-          <div className="bg-white border border-gray-200 rounded-md overflow-hidden shadow-sm">
-            <div className="hidden md:grid grid-cols-[auto_1fr_140px_90px_110px_90px_80px] gap-2 items-center px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md overflow-hidden shadow-sm">
+            <div className="hidden md:grid grid-cols-[auto_1fr_140px_90px_110px_90px_80px] gap-2 items-center px-4 py-3 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
               <div className="w-5" />
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <span className="text-xs font-semibold text-gray-600 dark:text-zinc-400 uppercase tracking-wide">
                 Products
               </span>
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <span className="text-xs font-semibold text-gray-600 dark:text-zinc-400 uppercase tracking-wide">
                 Variant
               </span>
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              <span className="text-xs font-semibold text-gray-600 dark:text-zinc-400 uppercase tracking-wide">
                 Weight
               </span>
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide text-center">
+              <span className="text-xs font-semibold text-gray-600 dark:text-zinc-400 uppercase tracking-wide text-center">
                 Quantity
               </span>
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide text-right">
+              <span className="text-xs font-semibold text-gray-600 dark:text-zinc-400 uppercase tracking-wide text-right">
                 Price
               </span>
-              <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide text-center">
+              <span className="text-xs font-semibold text-gray-600 dark:text-zinc-400 uppercase tracking-wide text-center">
                 Action
               </span>
             </div>
@@ -504,19 +504,19 @@ export function CartClient({ initialItems }: CartClientProps) {
                     transition={{ duration: 0.18 }}
                   >
                     {/* Supplier row */}
-                    <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-200">
-                      <Package className="h-3.5 w-3.5 text-[#F97316] shrink-0" />
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-[var(--color-surface)] border-b border-[var(--color-border)]">
+                      <User className="h-3.5 w-3.5 text-[#F97316] shrink-0" />
                       <Link
                         href={`/vendors/${vendor?.business_slug ?? "#"}`}
-                        className="text-sm font-medium text-gray-700 hover:text-[#F97316] transition-colors truncate"
+                        className="text-sm font-medium text-gray-700 dark:text-zinc-300 hover:text-[#F97316] dark:hover:text-[#F97316] transition-colors truncate"
                       >
-                        Supplier:{" "}
-                        <span className="font-semibold">
+                        Supplier
+                        <span className="font-semibold text-gray-900 dark:text-zinc-100">
                           {vendor?.business_name || "Marketplace"}
                         </span>
                       </Link>
                       {isVerified && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 rounded-full px-2 py-0.5">
                           <ShieldCheck className="h-3 w-3" />
                           Verified
                         </span>
@@ -554,7 +554,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.18 }}
                             className={cn(
-                              "overflow-hidden border-b border-gray-100 last:border-b-0",
+                              "overflow-hidden border-b border-gray-100 dark:border-zinc-800/60 last:border-b-0",
                               isRemoving && "opacity-50 pointer-events-none"
                             )}
                           >
@@ -570,7 +570,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                               <div className="flex items-center gap-3 min-w-0">
                                 <Link
                                   href={slug ? `/marketplace/${slug}` : "#"}
-                                  className="relative h-16 w-16 shrink-0 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden"
+                                  className="relative h-16 w-16 shrink-0 bg-gray-50 dark:bg-zinc-800/40 rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden"
                                 >
                                   {image && !imageErrors[item.id] ? (
                                     <Image
@@ -588,18 +588,18 @@ export function CartClient({ initialItems }: CartClientProps) {
                                     />
                                   ) : (
                                     <div className="w-full h-full flex items-center justify-center">
-                                      <ShoppingCart className="h-5 w-5 text-gray-300" strokeWidth={1.5} />
+                                      <ShoppingCart className="h-5 w-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
                                     </div>
                                   )}
                                 </Link>
                                 <div className="min-w-0">
                                   <Link
                                     href={slug ? `/marketplace/${slug}` : "#"}
-                                    className="text-sm font-medium text-gray-900 hover:text-[#F97316] line-clamp-2 leading-snug transition-colors"
+                                    className="text-sm font-medium text-gray-900 dark:text-zinc-100 hover:text-[#F97316] dark:hover:text-[#F97316] line-clamp-2 leading-snug transition-colors"
                                   >
                                     {name}
                                   </Link>
-                                  <p className="text-[11px] text-gray-400 mt-0.5">
+                                  <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">
                                     SKU:{" "}
                                     {item.source_metadata?.sku as string ||
                                       item.product_id.slice(0, 14).toUpperCase()}
@@ -610,17 +610,17 @@ export function CartClient({ initialItems }: CartClientProps) {
                               {/* Variant */}
                               <div>
                                 {variantLabel ? (
-                                  <div className="inline-flex items-center gap-1 border border-gray-300 rounded text-xs text-gray-700 px-2.5 py-1.5 bg-white min-w-0 max-w-[130px]">
+                                  <div className="inline-flex items-center gap-1 border border-gray-300 dark:border-zinc-700 rounded text-xs text-gray-700 dark:text-zinc-300 px-2.5 py-1.5 bg-white dark:bg-zinc-900 min-w-0 max-w-[130px]">
                                     <span className="truncate">{variantLabel}</span>
-                                    <ChevronRight className="h-3 w-3 rotate-90 shrink-0 text-gray-400" />
+                                    <ChevronRight className="h-3 w-3 rotate-90 shrink-0 text-gray-400 dark:text-zinc-500" />
                                   </div>
                                 ) : (
-                                  <span className="text-xs text-gray-400">—</span>
+                                  <span className="text-xs text-gray-400 dark:text-zinc-500">—</span>
                                 )}
                               </div>
 
                               {/* Weight */}
-                              <div className="text-sm text-gray-600 tabular-nums">
+                              <div className="text-sm text-gray-600 dark:text-zinc-400 tabular-nums">
                                 {(item.source_metadata?.weight as string) || "—"}
                               </div>
 
@@ -640,14 +640,14 @@ export function CartClient({ initialItems }: CartClientProps) {
                               </div>
 
                               {/* Price */}
-                              <div className="text-sm font-semibold text-gray-900 text-right tabular-nums">
+                              <div className="text-sm font-semibold text-gray-900 dark:text-zinc-100 text-right tabular-nums">
                                 {formatMoney(lineTotal, currency)}
                               </div>
 
                               {/* Actions */}
                               <div className="flex items-center justify-center gap-2">
                                 <button
-                                  className="h-7 w-7 flex items-center justify-center rounded text-gray-400 hover:text-[#F97316] hover:bg-orange-50 transition-colors"
+                                  className="h-7 w-7 flex items-center justify-center rounded text-gray-400 dark:text-zinc-500 hover:text-[#F97316] dark:hover:text-[#F97316] hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-colors"
                                   aria-label="Save for later"
                                   title="Save for later"
                                 >
@@ -656,7 +656,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                                 <button
                                   onClick={() => handleRemove(item.id)}
                                   disabled={isRemoving}
-                                  className="h-7 w-7 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                                  className="h-7 w-7 flex items-center justify-center rounded text-gray-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors disabled:opacity-50"
                                   aria-label="Remove item"
                                   title="Remove"
                                 >
@@ -679,7 +679,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                               </div>
                               <Link
                                 href={slug ? `/marketplace/${slug}` : "#"}
-                                className="relative h-[72px] w-[72px] shrink-0 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden"
+                                className="relative h-[72px] w-[72px] shrink-0 bg-gray-50 dark:bg-zinc-800/40 rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden"
                               >
                                 {image && !imageErrors[item.id] ? (
                                   <Image
@@ -697,21 +697,21 @@ export function CartClient({ initialItems }: CartClientProps) {
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center">
-                                    <ShoppingCart className="h-5 w-5 text-gray-300" strokeWidth={1.5} />
+                                    <ShoppingCart className="h-5 w-5 text-gray-300 dark:text-zinc-600" strokeWidth={1.5} />
                                   </div>
                                 )}
                               </Link>
                               <div className="flex-1 min-w-0">
                                 <Link
                                   href={slug ? `/marketplace/${slug}` : "#"}
-                                  className="text-sm font-medium text-gray-900 hover:text-[#F97316] line-clamp-2"
+                                  className="text-sm font-medium text-gray-900 dark:text-zinc-100 hover:text-[#F97316] dark:hover:text-[#F97316] line-clamp-2"
                                 >
                                   {name}
                                 </Link>
                                 {variantLabel && (
-                                  <p className="text-xs text-gray-500 mt-0.5">{variantLabel}</p>
+                                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{variantLabel}</p>
                                 )}
-                                <p className="text-xs text-gray-400 mt-0.5">
+                                <p className="text-xs text-gray-400 dark:text-zinc-500 mt-0.5">
                                   {formatMoney(item.unit_price_at_add, currency)} each
                                 </p>
                                 <div className="flex items-center justify-between mt-2">
@@ -723,13 +723,13 @@ export function CartClient({ initialItems }: CartClientProps) {
                                     }
                                   />
                                   <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold tabular-nums text-gray-900">
+                                    <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
                                       {formatMoney(lineTotal, currency)}
                                     </span>
                                     <button
                                       onClick={() => handleRemove(item.id)}
                                       disabled={isRemoving}
-                                      className="h-7 w-7 flex items-center justify-center text-gray-400 hover:text-red-500 disabled:opacity-50"
+                                      className="h-7 w-7 flex items-center justify-center text-gray-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50"
                                     >
                                       {isRemoving ? (
                                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -749,26 +749,26 @@ export function CartClient({ initialItems }: CartClientProps) {
                 );
               })}
             </AnimatePresence>
-            <div className="bg-white border-t my-3 border-gray-200 rounded-none">
-              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100">
+            <div className="border-t my-3 border-[var(--color-border)] rounded-none">
+              <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-[var(--color-border)]">
                 {[
                   {
-                    icon: <Shield className="h-5 w-5 text-[#F97316]" />,
+                    icon: <Shield className="h-5 w-5" style={{ color: "var(--color-accent)" }} />,
                     title: "Buyer Protection",
                     sub: "Shop with confidence",
                   },
                   {
-                    icon: <Lock className="h-5 w-5 text-blue-500" />,
+                    icon: <Lock className="h-5 w-5" style={{ color: "var(--color-info)" }} />,
                     title: "Secure Payment",
                     sub: "100% safe & secure",
                   },
                   {
-                    icon: <Globe className="h-5 w-5 text-sky-500" />,
+                    icon: <Globe className="h-5 w-5" style={{ color: "var(--color-success)" }} />,
                     title: "Worldwide Shipping",
                     sub: "Fast & reliable delivery",
                   },
                   {
-                    icon: <ShieldCheck className="h-5 w-5 text-emerald-500" />,
+                    icon: <ShieldCheck className="h-5 w-5" style={{ color: "var(--color-success)" }} />,
                     title: "Escrow Protected",
                     sub: "Your money is safe",
                   },
@@ -779,10 +779,12 @@ export function CartClient({ initialItems }: CartClientProps) {
                   >
                     <div className="shrink-0">{b.icon}</div>
                     <div>
-                      <p className="text-[13px] font-semibold text-gray-800">
+                      <p className="text-[13px] font-semibold" style={{ color: "var(--color-text-primary)" }}>
                         {b.title}
                       </p>
-                      <p className="text-[11px] text-gray-500">{b.sub}</p>
+                      <p className="text-[11px]" style={{ color: "var(--color-text-muted)" }}>
+                        {b.sub}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -792,7 +794,7 @@ export function CartClient({ initialItems }: CartClientProps) {
           {/* Mobile continue shopping */}
           <Link
             href="/marketplace"
-            className="sm:hidden inline-flex items-center gap-1 text-sm text-gray-600 hover:text-[#F97316] transition-colors"
+            className="sm:hidden inline-flex items-center gap-1 text-sm text-gray-600 dark:text-zinc-400 hover:text-[#F97316] dark:hover:text-[#F97316] transition-colors"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
             Continue shopping
@@ -801,30 +803,35 @@ export function CartClient({ initialItems }: CartClientProps) {
 
         {/* ── Right: Order summary sidebar ── */}
         <aside className="lg:sticky lg:top-[calc(var(--navbar-height,64px)+16px)] space-y-3">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="px-4 py-3.5 border-b border-gray-100">
-              <h2 className="text-base font-bold text-gray-900">
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg shadow-sm overflow-hidden">
+            <div className="px-4 py-3.5 border-b border-[var(--color-border)]">
+              <h2 className="text-base font-bold" style={{ color: "var(--color-text-primary)" }}>
                 Order Summary
               </h2>
             </div>
 
             {/* Discount code */}
-            <div className="border-b border-gray-100">
-              <button
-                onClick={() => setDiscountExpanded((v) => !v)}
-                className="w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-gray-50 transition-colors"
-              >
-                <span className="flex items-center gap-2 text-[#F97316] font-medium">
-                  <Tag className="h-4 w-4" />
-                  Add discount code
-                </span>
-                <ChevronRight
-                  className={cn(
-                    "h-4 w-4 text-gray-400 transition-transform",
-                    discountExpanded && "rotate-90"
-                  )}
-                />
-              </button>
+            <div className="border-b border-[var(--color-border)]">
+<button
+                  onClick={() => setDiscountExpanded((v) => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 text-sm transition-colors"
+                  style={{
+                    background: "var(--color-surface)",
+                    borderBottom: "1px solid var(--color-border)",
+                  }}
+>
+                  <span className="flex items-center gap-2 text-[#F97316] font-medium">
+                    <Tag className="h-4 w-4" />
+                    Add discount code
+                  </span>
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 transition-transform",
+                      discountExpanded && "rotate-90"
+                    )}
+                    style={{ color: "var(--color-text-muted)" }}
+                  />
+                </button>
               {discountExpanded && (
                 <div className="px-4 pb-3 flex gap-2">
                   <input
@@ -832,7 +839,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                     value={discountCode}
                     onChange={(e) => setDiscountCode(e.target.value)}
                     placeholder="Enter code"
-                    className="flex-1 h-9 border border-gray-300 rounded text-sm px-3 outline-none focus:border-[#F97316] transition-colors"
+                    className="flex-1 h-9 border border-gray-300 dark:border-zinc-700 rounded text-sm px-3 bg-transparent text-gray-900 dark:text-zinc-100 outline-none focus:border-[#F97316] transition-colors"
                   />
                   <button className="h-9 px-3 rounded bg-[#F97316] text-white text-sm font-semibold hover:bg-[#EA6C0A] transition-colors">
                     Apply
@@ -844,37 +851,37 @@ export function CartClient({ initialItems }: CartClientProps) {
             {/* Line items */}
             <div className="px-4 py-3.5 space-y-2.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">
+                <span style={{ color: "var(--color-text-muted)" }}>
                   Subtotal ({selectedUnits || totalUnits}{" "}
                   {(selectedUnits || totalUnits) === 1 ? "item" : "items"})
                 </span>
-                <span className="font-semibold text-gray-900 tabular-nums">
+                <span className="font-semibold tabular-nums" style={{ color: "var(--color-text-primary)" }}>
                   {totalsLabel}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Shipping</span>
-                <span className="text-gray-400 text-xs self-center">
+                <span style={{ color: "var(--color-text-muted)" }}>Shipping</span>
+                <span className="text-xs self-center" style={{ color: "var(--color-text-muted)" }}>
                   Calculated at checkout
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Tax</span>
-                <span className="text-gray-400 text-xs self-center">
+                <span style={{ color: "var(--color-text-muted)" }}>Tax</span>
+                <span className="text-xs self-center" style={{ color: "var(--color-text-muted)" }}>
                   Calculated at checkout
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="flex items-center gap-1 text-gray-500">
+                <span className="flex items-center gap-1" style={{ color: "var(--color-text-muted)" }}>
                   Buyer Protection Included
-                  <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                  <Info className="h-3.5 w-3.5 cursor-help" style={{ color: "var(--color-text-muted)" }} />
                 </span>
-                <span className="font-medium sr-only text-gray-700 tabular-nums">
+                <span className="font-medium sr-only tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
                   ${ESCROW_FEE.toFixed(2)}
                 </span>
               </div>
               {hasMixedCurrencies && (
-                <p className="text-xs text-gray-400 leading-relaxed pt-1">
+                <p className="text-xs leading-relaxed pt-1" style={{ color: "var(--color-text-muted)" }}>
                   Cart contains items in multiple currencies. Each vendor's
                   order is processed separately.
                 </p>
@@ -882,8 +889,8 @@ export function CartClient({ initialItems }: CartClientProps) {
             </div>
 
             {/* Total */}
-            <div className="px-4 py-3 border-t border-gray-100 flex justify-between items-baseline">
-              <span className="text-sm font-semibold text-gray-700">
+            <div className="px-4 py-3 border-t border-[var(--color-border)] flex justify-between items-baseline">
+              <span className="text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
                 Total
               </span>
               <span className="text-xl font-bold text-[#F97316] tabular-nums">
@@ -910,16 +917,16 @@ export function CartClient({ initialItems }: CartClientProps) {
                   </span>
                 )}
               </Button>
-              <p className="mt-2.5 flex items-start gap-1.5 text-[11px] text-gray-400 leading-relaxed">
-                <Shield className="h-3 w-3 mt-0.5 text-[#F97316] shrink-0" />
+              <p className="mt-2.5 flex items-start gap-1.5 text-[11px] leading-relaxed" style={{ color: "var(--color-text-muted)" }}>
+                <Shield className="h-3 w-3 mt-0.5 shrink-0" style={{ color: "var(--color-accent)" }} />
                 Your order is protected until delivery is confirmed.
               </p>
             </div>
 
             {/* Commission notice */}
-            <div className="mx-4 mb-4 hidden  items-start gap-2.5 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5">
+            <div className="mx-4 mb-4 hidden items-start gap-2.5 bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 rounded-lg px-3 py-2.5">
               <Gift className="h-4 w-4 text-[#F97316] shrink-0 mt-0.5" />
-              <p className="text-[12px] text-gray-700 leading-relaxed">
+              <p className="text-[12px] text-gray-700 dark:text-zinc-300 leading-relaxed">
                 You will earn{" "}
                 <span className="font-semibold text-[#F97316]">
                   {formatMoney(commission, displayCurrency)}
@@ -930,11 +937,11 @@ export function CartClient({ initialItems }: CartClientProps) {
           </div>
 
           {/* Help links */}
-          <div className="px-1 text-xs text-gray-400 space-y-1.5">
+          <div className="px-1 text-xs text-gray-400 dark:text-zinc-500 space-y-1.5">
             <p>
               <Link
                 href="/help/returns"
-                className="hover:text-[#F97316] hover:underline transition-colors"
+                className="hover:text-[#F97316] dark:hover:text-[#F97316] hover:underline transition-colors"
               >
                 Return policy
               </Link>
@@ -942,7 +949,7 @@ export function CartClient({ initialItems }: CartClientProps) {
             <p>
               <Link
                 href="/help/shipping"
-                className="hover:text-[#F97316] hover:underline transition-colors"
+                className="hover:text-[#F97316] dark:hover:text-[#F97316] hover:underline transition-colors"
               >
                 Shipping information
               </Link>
@@ -950,7 +957,7 @@ export function CartClient({ initialItems }: CartClientProps) {
             <p>
               <Link
                 href="/support"
-                className="hover:text-[#F97316] hover:underline transition-colors"
+                className="hover:text-[#F97316] dark:hover:text-[#F97316] hover:underline transition-colors"
               >
                 Contact support
               </Link>
@@ -960,8 +967,8 @@ export function CartClient({ initialItems }: CartClientProps) {
       </div>
 
       {/* ── Sticky bottom bar ── */}
-      <div className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-3">
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-[var(--color-surface)] border-t border-[var(--color-border)] shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center gap-3 border-t border-[var(--color-border)]">
           {/* Select all */}
           <OrangeCheckbox
             checked={allSelected}
@@ -970,9 +977,9 @@ export function CartClient({ initialItems }: CartClientProps) {
           />
 
           {/* Selected count */}
-          <span className="text-sm text-gray-500">
+          <span className="text-sm" style={{ color: "var(--color-text-muted)" }}>
             Selected:{" "}
-            <span className="font-semibold text-[#F97316]">
+            <span className="font-semibold" style={{ color: "var(--color-accent)" }}>
               {selectedIds.size}{" "}
               {selectedIds.size === 1 ? "item" : "items"}
             </span>
@@ -982,8 +989,8 @@ export function CartClient({ initialItems }: CartClientProps) {
 
           {/* Subtotal */}
           <div className="text-sm">
-            <span className="text-gray-500 mr-1">Subtotal:</span>
-            <span className="font-bold text-gray-900 tabular-nums text-base">
+            <span className="mr-1" style={{ color: "var(--color-text-muted)" }}>Subtotal:</span>
+            <span className="font-bold tabular-nums text-base" style={{ color: "var(--color-text-primary)" }}>
               {totalsLabel}
             </span>
           </div>
@@ -993,19 +1000,48 @@ export function CartClient({ initialItems }: CartClientProps) {
             <button
               onClick={handleRemoveSelected}
               disabled={selectedIds.size === 0}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 rounded-sm px-3.5 py-2 hover:bg-gray-50 hover:text-red-500 hover:border-red-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm border rounded-sm px-3.5 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                color: "var(--color-text-muted)",
+                borderColor: "var(--color-border)",
+                backgroundColor: "transparent",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "var(--color-danger)";
+                e.currentTarget.style.borderColor = "var(--color-danger)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "var(--color-text-muted)";
+                e.currentTarget.style.borderColor = "var(--color-border)";
+              }}
             >
               <Trash2 className="h-3.5 w-3.5" />
               Remove Selected
             </button>
-            <button className="hidden sm:inline-flex items-center gap-1.5 text-sm text-gray-600 border border-gray-300 rounded-sm px-3.5 py-2 hover:bg-gray-50 transition-colors">
+            <button className="hidden sm:inline-flex items-center gap-1.5 text-sm border rounded-sm px-3.5 py-2 transition-colors"
+              style={{
+                color: "var(--color-text-muted)",
+                borderColor: "var(--color-border)",
+                backgroundColor: "transparent",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "var(--color-surface-secondary)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+              }}
+            >
               <Bookmark className="h-3.5 w-3.5" />
               Save For Later
             </button>
             <Button
               onClick={handleProceedToCheckout}
               disabled={proceedingCheckout || selectedIds.size === 0}
-              className="h-9 px-5 bg-[#F97316] hover:bg-[#EA6C0A] text-white font-semibold text-sm rounded-sm disabled:opacity-60 transition-colors"
+              className="h-9 px-5 font-semibold text-sm rounded-sm disabled:opacity-60 transition-colors"
+              style={{
+                backgroundColor: "var(--color-accent)",
+                color: "white",
+              }}
             >
               {proceedingCheckout ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -4,6 +4,7 @@ import { MarketplacePageClient } from "@/components/marketplace/new/MarketplaceP
 import { fetchHeroProducts } from "@/components/marketplace/new/HeroBanner";
 import {
   fetchMarketplacePageBundle,
+  fetchTopReviewedProducts,
   type MarketplacePageBundle,
   type MarketplaceProductType,
 } from "@/lib/marketplace/fetch-page-data";
@@ -50,11 +51,13 @@ export async function MarketplacePage({
 
   const supabase = await createClient();
 
-  const [physicalBundle, digitalBundle, hero, stats] = await Promise.all([
+  const [physicalBundle, digitalBundle, hero, stats, physicalTestimonials, digitalTestimonials] = await Promise.all([
     fetchMarketplacePageBundle(supabase, "physical"),
     fetchMarketplacePageBundle(supabase, "digital"),
     fetchHeroProducts(supabase),
     fetchMarketplaceStats(supabase),
+    fetchTopReviewedProducts(supabase, "physical", 6),
+    fetchTopReviewedProducts(supabase, "digital", 6),
   ]);
 
   const initialBundles: Record<MarketplaceProductType, MarketplacePageBundle> = {
@@ -62,17 +65,23 @@ export async function MarketplacePage({
     digital: digitalBundle,
   };
 
+  const testimonials: Record<MarketplaceProductType, Awaited<ReturnType<typeof fetchTopReviewedProducts>>> = {
+    physical: physicalTestimonials,
+    digital: digitalTestimonials,
+  };
+
   return (
-    <div className="min-w-0">
+    <div className="min-w-0" style={{ minHeight: "calc(100dvh - var(--navbar-height, 64px))" }}>
       <MarketplaceProvider>
-        <div className="mx-auto flex w-full max-w-8xl min-w-0 gap-4 px-4 py-4 sm:px-6">
-          <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3">
+        <div className="mx-auto flex h-full w-full max-w-8xl min-w-0 gap-4 overflow-hidden px-4 pb-4 sm:px-6">
+          <div className="flex min-w-0 w-full max-w-full flex-1 flex-col gap-3 overflow-hidden">
             <MarketplacePageClient
               initialType={initialType}
               initialBundles={initialBundles}
               initialStats={stats}
               heroPhysical={hero.physical ?? []}
               heroDigital={hero.digital ?? []}
+              testimonials={testimonials}
             />
           </div>
         </div>

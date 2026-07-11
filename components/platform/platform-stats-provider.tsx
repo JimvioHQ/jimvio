@@ -248,7 +248,7 @@ export function PlatformStatsRotatingBadge({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-white px-3 py-1.5 shadow-[0_1px_4px_rgba(0,0,0,0.04)]",
+        "inline-flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 shadow-[0_1px_4px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_4px_rgba(0,0,0,0.25)]",
         className,
       )}
     >

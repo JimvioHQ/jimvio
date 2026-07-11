@@ -3105,7 +3105,6 @@ export function HomepageRedesign({
             <FeaturedUGCCampaigns campaigns={campaigns} />
             <FeaturedCommunities communities={communities} />
 
-            <PlatformOverviewBar />
             <ChooseYourJourney />
             <HowJimvioWorks />
             <OnePlatformOpportunities />

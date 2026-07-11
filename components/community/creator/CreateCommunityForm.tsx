@@ -51,6 +51,7 @@ interface FieldErrors {
   slug?: string;
   tagline?: string;
   description?: string;
+  weekly?: string;
   monthly?: string;
   yearly?: string;
   lifetime?: string;
@@ -63,6 +64,7 @@ interface FormFields {
   tagline: string;
   description: string;
   isFree: boolean;
+  weekly: string;
   monthly: string;
   yearly: string;
   lifetime: string;
@@ -88,11 +90,13 @@ function validateStep(step: number, f: FormFields): FieldErrors {
   }
 
   if (step === 2 && !f.isFree) {
+    const w = f.weekly.trim() ? parseFloat(f.weekly) : null;
     const m = parseFloat(f.monthly);
     const y = parseFloat(f.yearly);
     const l = f.lifetime.trim() ? parseFloat(f.lifetime) : null;
     const t = parseInt(f.trialDays, 10);
 
+    if (w !== null && (!Number.isFinite(w) || w <= 0)) errors.weekly = "Must be greater than 0, or leave empty";
     if (!f.monthly.trim() || !Number.isFinite(m) || m <= 0) errors.monthly = "Required, must be greater than 0";
     if (!f.yearly.trim() || !Number.isFinite(y) || y <= 0) errors.yearly = "Required, must be greater than 0";
     else if (Number.isFinite(m) && m > 0 && y > m * 12) errors.yearly = "Should not exceed monthly × 12";
@@ -264,6 +268,7 @@ export function CreateCommunityForm() {
 
   // Step 2 — Pricing
   const [isFree, setIsFree] = useState(true);
+  const [weekly, setWeekly] = useState("");
   const [monthly, setMonthly] = useState("");
   const [yearly, setYearly] = useState("");
   const [lifetime, setLifetime] = useState("");
@@ -297,7 +302,7 @@ export function CreateCommunityForm() {
   }, [slug]);
 
   // ── Derived ──────────────────────────────────────────────────────────────
-  const fields: FormFields = { name, slug, tagline, description: longDescription, isFree, monthly, yearly, lifetime, trialDays };
+  const fields: FormFields = { name, slug, tagline, description: longDescription, isFree, weekly, monthly, yearly, lifetime, trialDays };
 
   const yearlySave = useMemo(() => {
     const m = parseFloat(monthly), y = parseFloat(yearly);
@@ -325,7 +330,7 @@ export function CreateCommunityForm() {
   function goNext() {
     const stepFields: Record<number, string[]> = {
       0: ["name", "slug", "tagline", "description"],
-      2: ["monthly", "yearly", "lifetime", "trial"],
+      2: ["weekly", "monthly", "yearly", "lifetime", "trial"],
     };
     if (stepFields[step]) {
       setTouched(prev => {
@@ -371,6 +376,7 @@ export function CreateCommunityForm() {
         platform_commission_rate: 15,
       };
       if (!isFree) {
+        if (weekly.trim()) body.weekly_price = parseFloat(weekly);
         body.monthly_price = parseFloat(monthly);
         body.yearly_price = parseFloat(yearly);
         if (lifetime.trim()) body.lifetime_price = parseFloat(lifetime);
@@ -778,7 +784,21 @@ export function CreateCommunityForm() {
                   </div>
                 </Field>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
+                  <Field
+                    label="Weekly"
+                    optional
+                    error={touched.has("weekly") ? currentErrors.weekly : undefined}
+                  >
+                    <PriceInput
+                      currency={currency}
+                      value={weekly}
+                      onChange={setWeekly}
+                      onBlur={() => touch("weekly")}
+                      error={touched.has("weekly") ? !!currentErrors.weekly : false}
+                      placeholder="9.99"
+                    />
+                  </Field>
                   <Field
                     label="Monthly"
                     required
@@ -908,7 +928,7 @@ export function CreateCommunityForm() {
               <SummaryRow label="Tags" value={tags.length ? tags.map((t) => `#${t}`).join(" ") : "None"} editable onEdit={() => goToStep(1)} />
               <SummaryRow
                 label="Membership"
-                value={isFree ? "Free" : `${monthly}/mo · ${yearly}/yr ${currency}${lifetime ? ` · ${lifetime} lifetime` : ""}`}
+                value={isFree ? "Free" : `${weekly ? `${weekly}/wk · ` : ""}${monthly}/mo · ${yearly}/yr ${currency}${lifetime ? ` · ${lifetime} lifetime` : ""}`}
                 editable
                 onEdit={() => goToStep(2)}
               />
