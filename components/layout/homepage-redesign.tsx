@@ -1711,6 +1711,7 @@ interface HomepageRedesignProps {
     campaigns?: SharedCampaignRow[];
     communities?: Community[];
     products?: any[];
+    trendingProductsTotal?: number;
     creators?: any[];
     platform?: {
         totalUsers: number;
@@ -3087,6 +3088,7 @@ export function HomepageRedesign({
     campaigns = [],
     communities = [],
     products = [],
+    trendingProductsTotal,
     creators = [],
     platform,
     stats,
@@ -3101,7 +3103,7 @@ export function HomepageRedesign({
             <TrustedStrip />
 
             {/* Live marketplace proof — show real products, campaigns, and communities before the feature map */}
-            <TrendingProductsRow products={products} />
+            <TrendingProductsRow products={products} total={trendingProductsTotal} />
             <FeaturedUGCCampaigns campaigns={campaigns} />
             <FeaturedCommunities communities={communities} />
 

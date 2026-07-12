@@ -25,6 +25,10 @@ import { HealthScoreBadge } from "./health-score-badge";
 import { OpportunityScoreBadge } from "./opportunity-score-badge";
 import { ProfitDisplay } from "./profit-display";
 import { ImportSettingsPanel } from "./import-settings-panel";
+import { AutoPublishBadge } from "./auto-publish-badge";
+import { AutoPublishChecklist } from "./auto-publish-checklist";
+import { ForcePublishDialog } from "./force-publish-dialog";
+import { evaluateAutoPublish } from "@/lib/cj/import-intelligence/auto-publish-engine";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -70,7 +74,9 @@ export function PreviewDrawer({
   const [activeImage, setActiveImage] = useState(0);
   const [activeVideo, setActiveVideo] = useState(0);
   const [videoError, setVideoError] = useState(false);
+  const [forceOpen, setForceOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const autoPublish = intel.autoPublish ?? evaluateAutoPublish(product);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -387,6 +393,29 @@ export function PreviewDrawer({
               </div>
             )}
 
+            {/* Auto Publish Intelligence */}
+            <div className="rounded-sm border border-[var(--color-border)] p-3 space-y-2">
+              <h3 className="text-[12px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+                Auto Publish
+              </h3>
+              <AutoPublishBadge status={autoPublish.status} score={autoPublish.score} />
+              <AutoPublishChecklist checks={autoPublish.checks} />
+              {autoPublish.pendingEnrichment.length > 0 && (
+                <ul className="space-y-0.5 text-[11px] text-sky-700">
+                  {autoPublish.pendingEnrichment.map((r) => (
+                    <li key={r}>⏳ {r}</li>
+                  ))}
+                </ul>
+              )}
+              {autoPublish.failures.length > 0 && (
+                <ul className="space-y-0.5 text-[11px] text-amber-700">
+                  {autoPublish.failures.map((r) => (
+                    <li key={r}>• {r}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             {/* Import settings */}
             <ImportSettingsPanel
               settings={importSettings}
@@ -415,6 +444,19 @@ export function PreviewDrawer({
                 {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Re-sync from CJ
               </button>
+              <button
+                type="button"
+                onClick={() => setForceOpen(true)}
+                className="w-full h-10 rounded-sm border border-violet-200 bg-violet-50 text-violet-800 text-[13px] font-semibold"
+              >
+                Force Publish (Admin)
+              </button>
+              <ForcePublishDialog
+                productId={intel.importedProductId}
+                productName={product.productNameEn}
+                open={forceOpen}
+                onClose={() => setForceOpen(false)}
+              />
             </>
           ) : (
             <div className="flex gap-2">

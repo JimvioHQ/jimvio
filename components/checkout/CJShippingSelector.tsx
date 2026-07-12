@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import {
   Loader2, AlertCircle, Check, Globe, AlertTriangle,
-  Clock, ArrowUpDown,
+  Clock, ArrowUpDown, Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CJShippingOption } from "@/types";
@@ -34,10 +34,11 @@ export function CJShippingSelector({
   // Loading
   if (loading) {
     return (
-      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] py-10">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
-          <p className="text-[12.5px] text-[var(--color-text-muted)]">
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] py-12">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-pulse rounded-full bg-[var(--color-border)]" />
+          <Loader2 className="h-5 w-5 animate-spin text-[var(--color-accent)]" />
+          <p className="text-[12.5px] font-medium text-[var(--color-text-muted)]">
             Calculating shipping rates…
           </p>
           <p className="text-[11px] text-[var(--color-text-muted)]/70">
@@ -56,7 +57,7 @@ export function CJShippingSelector({
           <AlertCircle className="h-4 w-4 text-rose-600 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-[13px] font-semibold text-rose-700 dark:text-rose-300">
-              Couldn't load shipping rates
+              Couldn&apos;t load shipping rates
             </p>
             <p className="text-[12px] text-rose-600/80 dark:text-rose-400/80 mt-0.5">
               Please try again in a moment. If the problem continues, contact support.
@@ -87,7 +88,7 @@ export function CJShippingSelector({
               No shipping options available
             </p>
             <p className="text-[12px] text-[var(--color-text-muted)] mt-1 leading-relaxed">
-              We couldn't find any shipping methods for your destination. Try a different address, or contact support if this looks wrong.
+              We couldn&apos;t find any shipping methods for your destination. Try a different address, or contact support if this looks wrong.
             </p>
             {onRetry && (
               <button
@@ -133,7 +134,94 @@ export function CJShippingSelector({
   };
 
   return (
-    <div className="rounded-md border border-[var(--color-border)] overflow-hidden bg-[var(--color-surface)]">
+    <div className="overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] max-lg:border-0 max-lg:bg-transparent max-lg:overflow-visible lg:overflow-hidden">
+      {/* Mobile premium cards */}
+      <div className="space-y-3 max-lg:space-y-3 lg:hidden" role="radiogroup" aria-label="Shipping method">
+        {sorted.map((opt) => {
+          const isSelected = selected?.optionId === opt.optionId;
+          const isCheapest = opt.priceUSD === cheapestPrice && cheapestPrice >= 0;
+          const optDays = parseInt(opt.arrivalDays?.split(/[-–]/)[0] ?? "999", 10) || 999;
+          const isFastest = optDays === fastestDays;
+          const isFree = opt.priceUSD === 0;
+          const methodName = sanitizeShippingMethodName(opt.name);
+
+          return (
+            <button
+              key={opt.optionId}
+              type="button"
+              role="radio"
+              aria-checked={isSelected}
+              onClick={() => onSelect(opt)}
+              className={cn(
+                "w-full rounded-2xl border-2 p-4 text-left transition-[transform,border-color,background-color,box-shadow] duration-200 active:scale-[0.99]",
+                isSelected
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent-light)]/55 shadow-[0_6px_24px_rgba(253,80,0,0.14)] ring-2 ring-[var(--color-accent)]/15"
+                  : "border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_2px_10px_rgba(0,0,0,0.04)]",
+              )}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={cn(
+                    "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                    isSelected
+                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
+                      : "border-[var(--color-border-strong)] bg-[var(--color-surface)]",
+                  )}
+                  aria-hidden
+                >
+                  {isSelected && <Check className="h-4 w-4 text-white" strokeWidth={3} />}
+                </div>
+
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-accent)]/15 bg-[var(--color-accent-light)]">
+                  <Truck className="h-5 w-5 text-[var(--color-accent)]" strokeWidth={2} />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[15px] font-semibold leading-snug text-[var(--color-text-primary)]">
+                      {methodName}
+                    </span>
+                    {isCheapest && options.length > 1 && <Badge tone="emerald">Cheapest</Badge>}
+                    {isFastest && options.length > 1 && !isCheapest && <Badge tone="blue">Fastest</Badge>}
+                  </div>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-secondary)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-text-secondary)]">
+                      <Clock className="h-3 w-3 shrink-0" />
+                      {opt.arrivalDays ? `${opt.arrivalDays} days` : "Varies"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-blue-200/80 bg-blue-50/80 px-2.5 py-1 text-[11px] font-semibold text-blue-700 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300">
+                      <Globe className="h-3 w-3 shrink-0" />
+                      Full tracking
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3.5 flex items-center justify-between border-t border-[var(--color-border)]/80 pt-3">
+                <span className="text-[12px] font-medium text-[var(--color-text-muted)]">
+                  {isSelected ? "Selected" : "Tap to select"}
+                </span>
+                {isFree ? (
+                  <span className="text-[16px] font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">Free</span>
+                ) : (
+                  <span className="text-[16px] font-bold tabular-nums tracking-[-0.02em] text-[var(--color-text-primary)]">
+                    {formatMoney(opt.priceUSD, "USD")}
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 px-4 py-3 text-[11px] text-[var(--color-text-muted)] lg:hidden">
+        <span>
+          <strong className="text-[var(--color-text-primary)]">{options.length}</strong> shipping {options.length === 1 ? "option" : "options"} · Prices in USD
+        </span>
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden lg:block">
       <div className="grid grid-cols-[1fr_120px_80px_110px_44px] gap-2 px-4 py-2.5 bg-[var(--color-surface-secondary)] border-b border-[var(--color-border)] text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
         <SortHeader
           label="Shipping method"
@@ -176,11 +264,11 @@ export function CJShippingSelector({
               aria-checked={isSelected}
               onClick={() => onSelect(opt)}
               className={cn(
-                "w-full grid grid-cols-[1fr_120px_80px_110px_44px] gap-2 px-4 py-3.5 text-left transition-colors",
+                "w-full grid grid-cols-[1fr_120px_80px_110px_44px] gap-2 px-4 py-3.5 text-left transition-[background-color,transform] duration-200",
                 !isLast && "border-b border-[var(--color-border)]",
                 isSelected
-                  ? "bg-orange-50/60 dark:bg-orange-950/20"
-                  : "bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)]/60"
+                  ? "bg-[var(--color-accent-light)]/50"
+                  : "bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)]/60 hover:scale-[1.002]",
               )}
             >
               {/* Method name + badges */}
@@ -235,9 +323,9 @@ export function CJShippingSelector({
               {/* Radio indicator */}
               <div className="flex items-center justify-end">
                 <div className={cn(
-                  "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                  "flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
                   isSelected
-                    ? "border-orange-500 bg-orange-500"
+                    ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
                     : "border-[var(--color-border-strong)] bg-transparent"
                 )}>
                   {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
@@ -249,11 +337,12 @@ export function CJShippingSelector({
       </div>
 
       {/* Footer info — appears under the table */}
-      <div className="px-4 py-2.5 bg-[var(--color-surface-secondary)]/60 border-t border-[var(--color-border)] flex items-center justify-between gap-3 text-[10.5px] text-[var(--color-text-muted)]">
+      <div className="px-4 py-2.5 bg-[var(--color-surface-secondary)]/60 border-t border-[var(--color-border)] flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-[10.5px] text-[var(--color-text-muted)]">
         <span>
           <strong className="text-[var(--color-text-primary)]">{options.length}</strong> shipping {options.length === 1 ? "option" : "options"} available
         </span>
         <span>Prices in USD · converted at checkout</span>
+      </div>
       </div>
     </div>
   );
@@ -262,7 +351,7 @@ export function CJShippingSelector({
 // ─── Sortable column header ─────────────────────────────────────────────────
 
 function SortHeader({
-  label, active, dir, onClick, align = "left",
+  label, active, dir: _dir, onClick, align = "left",
 }: {
   label: string;
   active: boolean;

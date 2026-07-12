@@ -6,6 +6,7 @@ import { Package, AlertTriangle, TrendingDown, Loader2, ArrowRight, Zap, ShieldC
 import { GlassCard, GlassPill } from "@/components/ui/glass";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { lookupVendorsByUserId } from "@/lib/vendor/lookup";
 import { cn } from "@/lib/utils";
 
 export default function InventoryPage() {
@@ -21,7 +22,8 @@ export default function InventoryPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: vend } = await supabase.from("vendors").select("id").eq("user_id", user.id).maybeSingle();
+      const vendorLookup = await lookupVendorsByUserId(supabase, user.id, "id");
+      const vend = vendorLookup.ok ? vendorLookup.vendor : null;
       setVendor(vend ?? null);
 
       if (vend) {
@@ -75,7 +77,7 @@ export default function InventoryPage() {
             <p className="text-stone-400 dark:text-text-muted text-[13px] font-medium leading-relaxed">Please register as a vendor to manage your product inventory.</p>
           </div>
           <Button asChild className="w-full h-12 rounded-sm bg-stone-900 dark:bg-white dark:bg-surface text-white dark:text-stone-900 dark:text-white hover:bg-black dark:hover:bg-stone-100 font-bold active:scale-95 transition-all text-[11px] capitalize border-none">
-             <Link href="/dashboard/roles">Activate Vendor Role</Link>
+             <Link href="/dashboard/activate/vendor">Activate Vendor Role</Link>
           </Button>
         </div>
       </div>

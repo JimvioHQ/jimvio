@@ -1,4 +1,4 @@
-// 'use client';
+import { CampaignDetailView } from "@/components/ugc/campaign-detail/CampaignDetailView";
 
 // import { useEffect, useState } from 'react';
 // import { useParams } from 'next/navigation';

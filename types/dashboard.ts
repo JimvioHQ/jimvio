@@ -67,4 +67,12 @@ export interface QuickAction {
   sub: string;
   accentColor: string;
   bgColor: string;
+  href?: string;
+}
+
+export interface EarningsDataset {
+  label: string;
+  data: number[];
+  color: string;
+  amount: string;
 }

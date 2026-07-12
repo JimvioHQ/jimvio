@@ -1,4 +1,5 @@
 import { getCategoryImageSrc } from "./category-images";
+import { dedupeCategories } from "./category-dedup";
 import { isRenderableUrl } from "@/lib/utils";
 
 export type CuratedCategory = {
@@ -209,9 +210,10 @@ export function resolveShopCategories(
 ): CategoryRow[] {
   const catalog = type === "physical" ? PHYSICAL_CATEGORY_CATALOG : DIGITAL_CATEGORY_CATALOG;
   const usedDbIds = new Set<string>();
+  const dedupedDb = dedupeCategories(dbCategories);
 
   return catalog.map((curated) => {
-    const match = dbCategories.find(
+    const match = dedupedDb.find(
       (db) => !usedDbIds.has(db.id) && matchesCurated(db, curated),
     );
     if (match) usedDbIds.add(match.id);

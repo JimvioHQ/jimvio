@@ -314,18 +314,25 @@ type GalleryMedia =
     | { type: "image"; url: string };
 
 function buildGalleryMedia(images: string[], videos: string[] = []): GalleryMedia[] {
-    const poster = images[0];
-    const videoItems: GalleryMedia[] = videos
-        .map((url) => normalizeVideoUrl(url.trim()))
-        .filter((url) => isPlayableVideoUrl(url))
-        .map((url) => ({
-            type: "video" as const,
-            url,
-            poster,
-            playback: resolveVideoPlayback(url),
-        }));
-    const imageItems: GalleryMedia[] = images.map((url) => ({ type: "image", url }));
-    return [...videoItems, ...imageItems];
+  const seenImages = new Set<string>();
+  const uniqueImages = images.filter((url) => {
+    const key = url.toLowerCase();
+    if (seenImages.has(key)) return false;
+    seenImages.add(key);
+    return true;
+  });
+  const poster = uniqueImages[0];
+  const videoItems: GalleryMedia[] = videos
+    .map((url) => normalizeVideoUrl(url.trim()))
+    .filter((url) => isPlayableVideoUrl(url))
+    .map((url) => ({
+      type: "video" as const,
+      url,
+      poster,
+      playback: resolveVideoPlayback(url),
+    }));
+  const imageItems: GalleryMedia[] = uniqueImages.map((url) => ({ type: "image", url }));
+  return [...videoItems, ...imageItems];
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -524,8 +531,9 @@ function Thumbnail({
             onClick={onClick}
             aria-label={isVideo ? `View product video ${index + 1}` : `View image ${index + 1}`}
             className={cn(
-                "relative flex-shrink-0 w-[64px] h-[64px] rounded-lg overflow-hidden transition-all duration-200 outline-none",
-                "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
+                "relative flex-shrink-0 w-[68px] h-[68px] rounded-xl overflow-hidden transition-[opacity,transform,border-color] duration-200 outline-none",
+                "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2",
+                !active && "hover:scale-[1.02] hover:opacity-80",
             )}
                 style={{
                     border: active
@@ -782,7 +790,7 @@ export function ImageGallery({
                         aspectRatio: "1 / 1",
                         background: mainVideo ? "var(--color-bg-darker, #0a1410)" : "var(--color-surface)",
                         border: mainVideo ? "1px solid rgba(255,255,255,0.08)" : "1px solid var(--color-border)",
-                        borderRadius: "12px",
+                        borderRadius: "14px",
                         isolation: "isolate",
                         cursor: showZoom ? (zoom.active ? "none" : "crosshair") : "default",
                         touchAction: "manipulation",
@@ -883,7 +891,7 @@ export function ImageGallery({
                                     setMediaError(true);
                                     setImageLoaded(true);
                                 }}
-                                className="absolute inset-0 z-[1] h-full w-full object-contain p-4 sm:p-6 transition-opacity duration-300"
+                                className="absolute inset-0 z-[1] h-full w-full object-contain p-4 sm:p-5 transition-opacity duration-300 [image-rendering:auto]"
                                 style={{
                                     opacity: zoom.active ? 0 : mediaError ? 0 : imageLoaded ? 1 : 0.01,
                                 }}

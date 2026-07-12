@@ -103,12 +103,22 @@ export function ProductCardPhysical({
   }, [p.id, initialInCart]);
 
   /* ── Cart helpers ── */
-  const doAddToCart = async (vendorId: string, variantId: string | null) => {
+  const doAddToCart = async (
+    vendorId: string,
+    variantId: string | null,
+    allowPendingVariant = false,
+  ) => {
     try {
       if (variantId) setLoadingVariantId(variantId);
       else setLoading(true);
 
-      const result = await addToCart(p.id, vendorId, 1, variantId);
+      const result = await addToCart(
+        p.id,
+        vendorId,
+        1,
+        variantId,
+        allowPendingVariant ? { allowPendingVariant: true } : undefined,
+      );
       if (result.success) {
         setInCart(true);
         incrementCartCount(1);
@@ -153,35 +163,7 @@ export function ProductCardPhysical({
     const vendorId = p.vendors?.id;
     if (!vendorId) { toast.error("Cannot find vendor."); return; }
 
-    /* CJ variant path */
-    if (p.source === "cj") {
-      try {
-        setLoading(true);
-        let list = variants;
-        if (list === null) {
-          const res = await getProductVariants(p.id);
-          list = res.variants ?? [];
-          console.log(res.variants);
-
-          setVariants(list);
-        }
-        if (list.length > 1) {
-          setVariantPickerOpen(true);
-          setLoading(false);
-          return;
-        }
-        const variantId = list.length === 1 ? list[0].id : null;
-        await doAddToCart(vendorId, variantId);
-        return;
-      } catch (err) {
-        console.error(err);
-        toast.error("Couldn't load product options");
-        setLoading(false);
-        return;
-      }
-    }
-
-    await doAddToCart(vendorId, null);
+    await doAddToCart(vendorId, null, true);
   };
 
   /* ── Chat ── */

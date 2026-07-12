@@ -238,9 +238,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { User, Mail, Phone, MapPin, Building2, AlertCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { cn, getInputValidationClasses } from "@/lib/utils";
+import { User, Mail, Phone, MapPin, Building2 } from "lucide-react";
 import CustomSelect from "../ui/select-2";
 import { FieldInput } from "../ui/field-input";
 import { Field, FieldError, FieldLabel } from "../ui/field";
@@ -270,6 +268,8 @@ type Props = {
   values: ShippingFormValues;
   onChange: (patch: Partial<ShippingFormValues>) => void;
   hideAddress?: boolean;
+  /** When true, show all validation errors (e.g. after submit attempt). */
+  showAllErrors?: boolean;
 };
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -279,7 +279,7 @@ type FieldKey = keyof ShippingFormValues;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[\d\s\-().]{7,20}$/;
 
-function validate(
+export function validateShippingForm(
   values: ShippingFormValues,
   hideAddress: boolean
 ): Partial<Record<FieldKey, string>> {
@@ -302,18 +302,18 @@ function validate(
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ShippingForm({ values, onChange, hideAddress = false }: Props) {
+export default function ShippingForm({ values, onChange, hideAddress = false, showAllErrors = false }: Props) {
   const [touched, setTouched] = useState<Partial<Record<FieldKey, boolean>>>({});
 
-  const errors = validate(values, hideAddress);
+  const errors = validateShippingForm(values, hideAddress);
 
   function touch(key: FieldKey) {
     setTouched((t) => ({ ...t, [key]: true }));
   }
 
-  // Only surface an error once the field has been blurred
+  // Surface errors after blur or after a submit attempt
   function err(key: FieldKey): string | undefined {
-    return touched[key] ? errors[key] : undefined;
+    return touched[key] || showAllErrors ? errors[key] : undefined;
   }
 
   function handleChange(key: FieldKey) {
@@ -329,9 +329,9 @@ export default function ShippingForm({ values, onChange, hideAddress = false }: 
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 min-w-0 w-full max-lg:space-y-5">
       {/* Name */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="First name" icon={<User />} required error={err("firstName")}>
           <FieldInput
             value={values.firstName}
@@ -339,6 +339,7 @@ export default function ShippingForm({ values, onChange, hideAddress = false }: 
             onBlur={() => touch("firstName")}
             placeholder="John"
             hasError={!!err("firstName")}
+            autoComplete="given-name"
           />
         </Field>
 
@@ -348,12 +349,13 @@ export default function ShippingForm({ values, onChange, hideAddress = false }: 
             onChange={handleChange("lastName")}
             onBlur={() => touch("lastName")}
             placeholder="Doe"
+            autoComplete="family-name"
           />
         </Field>
       </div>
 
       {/* Contact */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Email" icon={<Mail />} required error={err("email")}>
           <FieldInput
             type="email"
@@ -362,6 +364,7 @@ export default function ShippingForm({ values, onChange, hideAddress = false }: 
             onBlur={() => touch("email")}
             placeholder="john@email.com"
             hasError={!!err("email")}
+            autoComplete="email"
           />
         </Field>
 
@@ -373,6 +376,7 @@ export default function ShippingForm({ values, onChange, hideAddress = false }: 
             onBlur={() => touch("phone")}
             placeholder="+250 700 000 000"
             hasError={!!err("phone")}
+            autoComplete="tel"
           />
         </Field>
       </div>
@@ -386,6 +390,7 @@ export default function ShippingForm({ values, onChange, hideAddress = false }: 
               onBlur={() => touch("address1")}
               placeholder="123 Main Street"
               hasError={!!err("address1")}
+              autoComplete="address-line1"
             />
           </Field>
 
@@ -395,10 +400,11 @@ export default function ShippingForm({ values, onChange, hideAddress = false }: 
               onChange={handleChange("address2")}
               onBlur={() => touch("address2")}
               placeholder="Apt 4B"
+              autoComplete="address-line2"
             />
           </Field>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Country uses CustomSelect — it has its own trigger, no icon wrapper needed */}
             <div>
               <FieldLabel label="Country" required />
@@ -419,6 +425,7 @@ export default function ShippingForm({ values, onChange, hideAddress = false }: 
                 onBlur={() => touch("city")}
                 placeholder="Kigali"
                 hasError={!!err("city")}
+                autoComplete="address-level2"
               />
             </Field>
           </div>
@@ -429,6 +436,7 @@ export default function ShippingForm({ values, onChange, hideAddress = false }: 
               onChange={handleChange("zip")}
               onBlur={() => touch("zip")}
               placeholder="00000"
+              autoComplete="postal-code"
             />
           </Field>
         </>

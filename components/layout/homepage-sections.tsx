@@ -21,6 +21,8 @@ import {
   AnimatedPlatformStatValue,
   PlatformStatsRotatingBadge,
 } from "@/components/platform/platform-stats-provider";
+import { HomepageTrendingProductsClient } from "@/components/layout/homepage-trending-products-client";
+import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
 import { PLATFORM_STATS } from "@/lib/platform-stats";
 
 const TakeJimvioPhonesClient = dynamic(
@@ -113,7 +115,7 @@ const ACTIONS = [
   { icon: ShoppingBag, title: "Buy Products", desc: "Browse what's selling and order when you find a fit.", cta: "Go to marketplace", href: "/marketplace", color: ORANGE },
   { icon: Store, title: "Sell Products", desc: "List inventory and manage orders from your dashboard.", cta: "Open dashboard", href: "/dashboard", color: BLUE },
   { icon: DollarSign, title: "Earn Commissions", desc: "Share links and get a cut when someone checks out.", cta: "See affiliate program", href: "/affiliates", color: GREEN },
-  { icon: Megaphone, title: "Create Campaigns", desc: "Post a brief and pay creators for content.", cta: "New campaign", href: "/dashboard/campaigns/new", color: PURPLE },
+  { icon: Megaphone, title: "Create Campaigns", desc: "Post a brief and pay creators for content.", cta: "New campaign", href: "/dashboard/vendor/campaigns/new", color: PURPLE },
   { icon: Target, title: "Join Campaigns", desc: "Apply to brand briefs and get paid per post or view.", cta: "Browse campaigns", href: "/ugc", color: BLUE },
   { icon: Users, title: "Build Communities", desc: "Start a group around your niche and charge if you want.", cta: "Create community", href: "/communities", color: YELLOW },
 ];
@@ -319,7 +321,7 @@ const JOURNEYS = [
     tagline: "Launch campaigns, brief creators, and track performance from one hub.",
     items: ["Campaign builder", "Creator matching", "ROI tracking"],
     cta: "Launch a campaign",
-    href: "/dashboard/campaigns/new",
+    href: "/dashboard/vendor/campaigns/new",
   },
   {
     role: "Creator",
@@ -693,126 +695,14 @@ function truncateLabel(text: string, max: number) {
   return `${t.slice(0, max - 1).trim()}…`;
 }
 
-function productTypeLabel(type?: string | null) {
-  return type === "physical" ? "Physical" : "Digital";
-}
-
-export function TrendingProductsRow({ products = [] }: { products: any[] }) {
-  const { formatMoney } = useCurrency();
+export function TrendingProductsRow({
+  products = [],
+  total,
+}: {
+  products?: TrendingProductCardProduct[];
+  total?: number;
+}) {
   if (!products.length) return null;
-
-  const cards = products.map((p) => {
-    const sold = p.sale_count ?? p.sold_count ?? 0;
-    const shortName = truncateLabel(p.name, 42);
-    const desktopName = truncateLabel(p.name, 48);
-    const compareAt = p.compare_at_price ?? null;
-    const hasDiscount =
-      compareAt != null && Number(compareAt) > Number(p.price ?? 0);
-    const discountPct = hasDiscount
-      ? Math.round((1 - Number(p.price) / Number(compareAt)) * 100)
-      : 0;
-    const rating = Number(p.rating ?? 0);
-    const typeLabel = productTypeLabel(p.product_type);
-
-    return (
-      <Link
-        key={p.id}
-        href={`/marketplace/${p.slug}`}
-        title={p.name}
-        className={cn(
-          "flex h-full min-h-[72px] items-center gap-2.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-transform active:scale-[0.98] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]",
-          "lg:min-h-0 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-hidden lg:p-0",
-          "lg:transition-all lg:hover:-translate-y-0.5 lg:hover:shadow-lg lg:active:scale-100",
-        )}
-      >
-        {/* ── Mobile: compact horizontal row (unchanged) ── */}
-        <div className="flex min-w-0 flex-1 items-center gap-2.5 lg:hidden">
-          <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-surface-secondary)] p-1">
-            <img
-              src={getImage(p.images)}
-              alt={p.name}
-              className="max-h-full max-w-full object-contain"
-              loading="lazy"
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h4 className="line-clamp-2 text-[11px] font-bold leading-snug text-[var(--color-text-primary)]">
-              {shortName}
-            </h4>
-            <div className="mt-1 text-[12px] font-black leading-none" style={{ color: GREEN }}>
-              {formatMoney(p.price, p.currency)}
-            </div>
-            <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
-              {fmtCount(sold)} sold
-            </p>
-          </div>
-        </div>
-
-        {/* ── Desktop: compact vertical product card ── */}
-        <div className="hidden lg:flex lg:flex-col lg:h-full">
-          <div className="relative h-28 w-full shrink-0 overflow-hidden bg-[var(--color-surface-secondary)]">
-            <img
-              src={getImage(p.images)}
-              alt={p.name}
-              className="size-full object-cover"
-              loading="lazy"
-            />
-            {hasDiscount && discountPct > 0 && (
-              <span className="absolute left-2 top-2 rounded-full bg-[#ef4444] px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm">
-                -{discountPct}%
-              </span>
-            )}
-            {p.affiliate_enabled && (
-              <span
-                className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm"
-                style={{ background: GREEN }}
-              >
-                Earn
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-1 flex-col gap-1 p-2.5">
-            <div className="flex items-center justify-between gap-1">
-              <span
-                className="rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide"
-                style={{ background: `${ORANGE}14`, color: ORANGE }}
-              >
-                {typeLabel}
-              </span>
-              {rating > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[var(--color-text-secondary)]">
-                  <Star className="size-2.5 fill-amber-400 text-amber-400" />
-                  {rating.toFixed(1)}
-                </span>
-              )}
-            </div>
-
-            <h4 className="line-clamp-2 text-[12px] font-bold leading-snug text-[var(--color-text-primary)]">
-              {desktopName}
-            </h4>
-
-            <div className="mt-auto flex items-center justify-between gap-1.5 pt-1">
-              <div className="min-w-0">
-                <div className="text-[13px] font-black leading-none" style={{ color: GREEN }}>
-                  {formatMoney(p.price, p.currency)}
-                </div>
-                <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
-                  {hasDiscount && (
-                    <span className="mr-1 line-through">
-                      {formatMoney(compareAt, p.currency)}
-                    </span>
-                  )}
-                  {fmtCount(sold)} sold
-                </p>
-              </div>
-              <ArrowRight className="size-3.5 shrink-0" style={{ color: ORANGE }} />
-            </div>
-          </div>
-        </div>
-      </Link>
-    );
-  });
 
   return (
     <section className={`${sectionAlt} py-12 sm:py-16`}>
@@ -823,12 +713,10 @@ export function TrendingProductsRow({ products = [] }: { products: any[] }) {
             Explore All <ArrowRight className="size-3" />
           </Link>
         </div>
-        <HomepageShowcaseLayout
-          cardMinWidth={172}
-          desktopCols="lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
-        >
-          {cards}
-        </HomepageShowcaseLayout>
+        <HomepageTrendingProductsClient
+          initialProducts={products}
+          initialTotal={total ?? products.length}
+        />
       </div>
     </section>
   );
@@ -1102,7 +990,7 @@ const OPPS = [
   { title: "Marketplace", color: ORANGE, items: ["Checked suppliers", "Shipping options", "Card & wallet pay"], href: "/marketplace", cta: "Browse" },
   { title: "Affiliate program", color: GREEN, items: ["Up to 30% per sale", "Click tracking", "Wallet payouts"], href: "/affiliates", cta: "How it works" },
   { title: "Vendor center", color: BLUE, items: ["Your own storefront", "Product uploads", "Order inbox"], href: "/dashboard", cta: "Open store" },
-  { title: "Brand campaigns", color: PURPLE, items: ["Post a brief", "Pick creators", "See submissions"], href: "/dashboard/campaigns/new", cta: "Start campaign" },
+  { title: "Brand campaigns", color: PURPLE, items: ["Post a brief", "Pick creators", "See submissions"], href: "/dashboard/vendor/campaigns/new", cta: "Start campaign" },
   { title: "UGC campaigns", color: PURPLE, items: ["Paid per view", "Brand briefs", "Content approvals"], href: "/ugc", cta: "View open briefs" },
   { title: "Communities", color: BLUE, items: ["Free or paid", "Live rooms", "Courses & events"], href: "/communities", cta: "Find a group" },
 ];
@@ -1143,7 +1031,7 @@ export function OnePlatformOpportunities() {
 const AI_TOOLS = [
   { icon: Search, title: "Product finder", desc: "Search the catalog and filter by what's moving.", href: "/marketplace" },
   { icon: Wand2, title: "Content drafts", desc: "Rough out captions and scripts before you post.", href: "/ugc" },
-  { icon: Bot, title: "Campaign setup", desc: "Walk through budget, brief, and payout rules.", href: "/dashboard/campaigns/new" },
+  { icon: Bot, title: "Campaign setup", desc: "Walk through budget, brief, and payout rules.", href: "/dashboard/vendor/campaigns/new" },
   { icon: Users, title: "Creator search", desc: "Find people who already post in your category.", href: "/ugc" },
   { icon: LineChart, title: "Sales snapshot", desc: "See clicks, orders, and what's lagging.", href: "/dashboard" },
   { icon: Store, title: "Listing helper", desc: "Tidy titles, prices, and stock on your store.", href: "/dashboard" },
@@ -1521,14 +1409,14 @@ const ONBOARD_BRANDS: OnboardStep[] = [
     desc: "Budget, audience, platforms, and payout model.",
     detail: "Decide per-view or fixed pay, which platforms you need, and how much budget to allocate.",
     minute: "5–12 min",
-    href: "/dashboard/campaigns/new",
+    href: "/dashboard/vendor/campaigns/new",
   },
   {
     title: "Launch a campaign",
     desc: "Write the brief and publish.",
     detail: "Add examples, hashtags, and deliverables so creators know exactly what to submit.",
     minute: "12–20 min",
-    href: "/dashboard/campaigns/new",
+    href: "/dashboard/vendor/campaigns/new",
   },
   {
     title: "Review submissions",
@@ -1542,7 +1430,7 @@ const ONBOARD_BRANDS: OnboardStep[] = [
     desc: "Increase budget or spin up another campaign.",
     detail: "Double down on creators and formats that perform. Clone a winning campaign to move faster.",
     minute: "26–30 min",
-    href: "/dashboard/campaigns/new",
+    href: "/dashboard/vendor/campaigns/new",
   },
 ];
 

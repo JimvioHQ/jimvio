@@ -21,6 +21,10 @@ import type { CJOrderParams } from "@/lib/cj/webhoo-subscription";
 import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
 import { mapCjFulfillmentToOrderStatus } from "@/lib/payments/order-payment-utils";
 import type { OrderStatusValue } from "@/lib/payments/record-status-change";
+import {
+  scheduleFromWebhookFields,
+  scheduleProductRemoval,
+} from "@/lib/cj/premium-intelligence/cj-watcher";
 
 function createClient() {
     return createSupabaseClient(
@@ -275,24 +279,40 @@ async function resolveVariantRow(
     return resolveVariantByCjVid(supabase, vid, { variantSku, pid });
 }
 
-async function archiveProduct(
+async function markCjCatalogUnavailable(
     supabase: SupabaseClient,
     pid: string
 ): Promise<void> {
     const productId = await resolveProductId(supabase, pid);
 
     if (!productId) {
-        console.warn(`[CJ webhook] archiveProduct: no product found for pid=${pid}`);
+        console.warn(`[CJ webhook] markCjCatalogUnavailable: no product found for pid=${pid}`);
         return;
     }
 
+    const { data: existing } = await supabase
+        .from("products")
+        .select("source_metadata")
+        .eq("id", productId)
+        .maybeSingle();
+
+    const meta = (existing?.source_metadata as Record<string, unknown> | null) ?? {};
+    const now = new Date().toISOString();
+
     const { error } = await supabase
         .from("products")
-        .update({ status: "archived", is_active: false })
+        .update({
+            source_metadata: {
+                ...meta,
+                cj_catalog_removed: true,
+                cj_catalog_removed_at: now,
+            },
+            updated_at: now,
+        })
         .eq("id", productId);
 
     if (error) {
-        console.error(`[CJ webhook] Failed to archive product ${pid}:`, error.message);
+        console.error(`[CJ webhook] Failed to mark product unavailable ${pid}:`, error.message);
     }
 }
 
@@ -528,7 +548,8 @@ export async function POST(req: Request): Promise<Response> {
             }
 
             if (payload.messageType === "DELETE") {
-                await archiveProduct(supabase, params.pid);
+                await markCjCatalogUnavailable(supabase, params.pid);
+                await scheduleProductRemoval(params.pid).catch(() => {});
                 console.log(`[CJ webhook] PRODUCT archived pid=${params.pid}`);
                 return Response.json({ ok: true, event: "PRODUCT_DELETE" });
             }
@@ -575,6 +596,9 @@ export async function POST(req: Request): Promise<Response> {
             console.log(
                 `[CJ webhook] PRODUCT upsert ok pid=${params.pid} productId=${productId}`
             );
+
+            await scheduleFromWebhookFields(params.pid, params.fields).catch(() => {});
+
             return Response.json({
                 ok: true,
                 event: `PRODUCT_${payload.messageType}`,

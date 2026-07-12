@@ -37,10 +37,6 @@ function randomBetween(min: number, max: number) {
   return min + Math.random() * (max - min);
 }
 
-function randomInt(min: number, max: number) {
-  return min + Math.floor(Math.random() * (max - min + 1));
-}
-
 type PlatformStatsContextValue = {
   stats: PlatformStatsSnapshot;
 };
@@ -50,62 +46,7 @@ const PlatformStatsContext = createContext<PlatformStatsContextValue | null>(
 );
 
 export function PlatformStatsProvider({ children }: { children: ReactNode }) {
-  const [stats, setStats] = useState<PlatformStatsSnapshot>(() => ({
-    ...PLATFORM_STATS,
-  }));
-
-  useEffect(() => {
-    let userTimeout: ReturnType<typeof setTimeout>;
-    let businessTimeout: ReturnType<typeof setTimeout>;
-    let productTimeout: ReturnType<typeof setTimeout>;
-    let cancelled = false;
-
-    const scheduleUsers = () => {
-      userTimeout = setTimeout(() => {
-        if (cancelled) return;
-        setStats((current) => ({
-          ...current,
-          users: current.users + randomInt(1, 3),
-        }));
-        scheduleUsers();
-      }, randomBetween(30_000, 90_000));
-    };
-
-    const scheduleBusinesses = () => {
-      businessTimeout = setTimeout(() => {
-        if (cancelled) return;
-        setStats((current) => ({
-          ...current,
-          businesses: current.businesses + 1,
-        }));
-        scheduleBusinesses();
-      }, randomBetween(180_000, 300_000));
-    };
-
-    const scheduleProducts = () => {
-      productTimeout = setTimeout(() => {
-        if (cancelled) return;
-        setStats((current) => ({
-          ...current,
-          products: current.products + randomInt(1, 5),
-        }));
-        scheduleProducts();
-      }, randomBetween(120_000, 240_000));
-    };
-
-    scheduleUsers();
-    scheduleBusinesses();
-    scheduleProducts();
-
-    return () => {
-      cancelled = true;
-      clearTimeout(userTimeout);
-      clearTimeout(businessTimeout);
-      clearTimeout(productTimeout);
-    };
-  }, []);
-
-  const value = useMemo(() => ({ stats }), [stats]);
+  const value = useMemo(() => ({ stats: { ...PLATFORM_STATS } }), []);
 
   return (
     <PlatformStatsContext.Provider value={value}>

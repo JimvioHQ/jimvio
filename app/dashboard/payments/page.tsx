@@ -485,6 +485,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCurrency } from "@/context/CurrencyContext";
 import { createClient } from "@/lib/supabase/client";
+import { lookupVendorsByUserId } from "@/lib/vendor/lookup";
 import { normalizeVendorPayoutMethod } from "@/lib/payout-method";
 import { cn } from "@/lib/utils";
 
@@ -554,8 +555,12 @@ export default function PaymentsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: vendor } = await supabase
-         .from("vendors").select("payout_method, payout_account").eq("user_id", user.id).single();
+      const vendorLookup = await lookupVendorsByUserId(
+         supabase,
+         user.id,
+         "payout_method, payout_account"
+      );
+      const vendor = vendorLookup.ok ? vendorLookup.vendor : null;
 
       await supabase.from("payouts").insert({
          user_id: user.id,

@@ -1,5 +1,11 @@
 /** Shared types for CJ Product Import Intelligence */
 
+import type {
+  AutoPublishCheckItem,
+  AutoPublishDecision,
+  AutoPublishStatus,
+} from "./auto-publish-engine";
+
 export type CatalogTier = "ELITE" | "PREMIUM" | "STANDARD" | "PENDING" | "HIDDEN";
 
 export type CatalogBadgeId =
@@ -79,6 +85,29 @@ export interface EnrichedProduct extends CJProduct {
   intelligence: ProductIntelligence;
 }
 
+export interface AutoPublishState {
+  ready: boolean;
+  score: number;
+  status: AutoPublishStatus;
+  failures: string[];
+  pendingEnrichment: string[];
+  checks: AutoPublishCheckItem[];
+  decision: AutoPublishDecision;
+  lastCheck?: string;
+  adminOverride?: boolean;
+  /** v3 intelligence (optional — additive) */
+  qualityConfidence?: "very_high" | "high" | "medium" | "low";
+  qualityExplanation?: string;
+  supplierReputation?: {
+    score: number;
+    label: string;
+    blacklisted: boolean;
+  };
+  duplicateBlocked?: boolean;
+  duplicateRefPid?: string;
+  publishPriority?: number;
+}
+
 export interface ProductIntelligence {
   healthScore: number;
   healthLabel: HealthLabel;
@@ -100,6 +129,8 @@ export interface ProductIntelligence {
   qualityScores: QualityScoreBreakdown;
   enrichmentStatus?: "pending" | "processing" | "complete" | "failed" | "dead_letter";
   confidenceScore?: number;
+  /** Auto Publish Engine — recalculated when product data changes */
+  autoPublish?: AutoPublishState;
 }
 
 export type OpportunityLevel =
@@ -183,6 +214,23 @@ export interface IntelligenceFilters {
   minOpportunityScore: number;
   // Misc
   hideImported: boolean;
+  isDraft: boolean;
+  isHidden: boolean;
+  // Auto Publish Engine filters
+  autoPublishReady: boolean;
+  autoPublishPending: boolean;
+  autoPublishRequirementsMissing: boolean;
+  autoPublishAdminOverride: boolean;
+  isPublished: boolean;
+  missingVideo: boolean;
+  missingSupplier: boolean;
+  missingImages: boolean;
+  missingDescription: boolean;
+  missingShipping: boolean;
+  missingVariants: boolean;
+  missingStock: boolean;
+  missingTrending: boolean;
+  publishQueueStatus?: "pending" | "processing" | "failed";
 }
 
 export interface ImportSettings {

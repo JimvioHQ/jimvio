@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const PRODUCT_SUGGESTIONS = [
   "Wireless Earbuds",
@@ -53,7 +54,10 @@ type Props = {
   onFocus: () => void;
   onBlur: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onClear?: () => void;
+  loading?: boolean;
   type: "physical" | "digital";
+  inputId?: string;
 };
 
 export function MarketplaceSearchBar({
@@ -62,7 +66,10 @@ export function MarketplaceSearchBar({
   onFocus,
   onBlur,
   onKeyDown,
+  onClear,
+  loading = false,
   type,
+  inputId = "marketplace-search-input",
 }: Props) {
   const [focused, setFocused] = useState(false);
   const [index, setIndex] = useState(0);
@@ -71,6 +78,7 @@ export function MarketplaceSearchBar({
   const suggestions = useMemo(() => buildSuggestions(type), [type]);
   const current = suggestions[index % suggestions.length];
   const showRotating = value.length === 0 && !focused;
+  const showClear = value.length > 0 && Boolean(onClear) && !loading;
 
   useEffect(() => {
     setIndex(0);
@@ -91,7 +99,8 @@ export function MarketplaceSearchBar({
   return (
     <div className="relative min-w-0 flex-1">
       <input
-        type="text"
+        id={inputId}
+        type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => {
@@ -104,12 +113,20 @@ export function MarketplaceSearchBar({
         }}
         onKeyDown={onKeyDown}
         placeholder=" "
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
         aria-label={
           type === "digital"
             ? "Search digital products"
             : "Search physical products"
         }
-        className="relative z-10 min-w-0 w-full bg-transparent text-sm text-[var(--color-text-primary)] outline-none"
+        aria-busy={loading}
+        className={cn(
+          "relative z-10 min-w-0 w-full bg-transparent text-sm font-medium text-[var(--color-text-primary)] outline-none",
+          "placeholder:text-transparent",
+          "focus-visible:ring-0",
+        )}
       />
 
       {showRotating && (
@@ -138,11 +155,37 @@ export function MarketplaceSearchBar({
           </span>
         </div>
       )}
+
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-20 flex items-center gap-1">
+        {loading && (
+          <Loader2
+            className="size-4 animate-spin text-[var(--color-accent)]"
+            aria-hidden
+          />
+        )}
+        {showClear && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onClear}
+            className={cn(
+              "pointer-events-auto grid size-7 place-items-center rounded-lg text-[var(--color-text-muted)]",
+              "transition-[transform,background-color,color] duration-200",
+              "hover:scale-105 hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35",
+            )}
+            aria-label="Clear search"
+          >
+            <X className="size-3.5" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
-export function MarketplaceSearchIcon({ active }: { active: boolean }) {
+export function MarketplaceSearchIcon({ active, loading }: { active: boolean; loading?: boolean }) {
   const [pulse, setPulse] = useState(false);
 
   useEffect(() => {
@@ -153,22 +196,27 @@ export function MarketplaceSearchIcon({ active }: { active: boolean }) {
     return () => clearInterval(id);
   }, []);
 
+  if (loading) {
+    return <Loader2 className="size-4 shrink-0 animate-spin text-[var(--color-accent)]" />;
+  }
+
   return (
     <Search
-      className={`size-4 shrink-0 text-[var(--color-text-muted)] transition-transform duration-300 ${
-        active ? "animate-pulse" : pulse ? "scale-110" : "scale-100"
-      }`}
+      className={cn(
+        "size-4 shrink-0 text-[var(--color-text-muted)] transition-transform duration-300",
+        active ? "text-[var(--color-accent)]" : pulse ? "scale-110" : "scale-100",
+      )}
       style={{ willChange: "transform" }}
     />
   );
 }
 
 export function marketplaceSearchBarClassName(focused: boolean) {
-  return [
-    "flex items-center gap-2 rounded-sm border px-3 py-2 shadow-sm transition-all duration-300 sm:gap-3 sm:px-4",
-    "bg-[var(--color-surface)]/90 backdrop-blur-md",
+  return cn(
+    "flex items-center gap-2 rounded-xl border px-3 py-2 shadow-sm transition-[border-color,box-shadow] duration-300 sm:gap-3 sm:px-4",
+    "bg-[var(--color-surface)]/95 backdrop-blur-md",
     focused
-      ? "border-[var(--color-accent)]/50 shadow-[0_0_0_3px_rgba(253,80,0,0.12),0_8px_24px_rgba(0,0,0,0.06)]"
+      ? "border-[var(--color-accent)]/50 shadow-[0_0_0_3px_rgba(253,80,0,0.1),0_8px_24px_rgba(0,0,0,0.06)]"
       : "border-[var(--color-border)] hover:border-[var(--color-border-strong,var(--color-border))]",
-  ].join(" ");
+  );
 }

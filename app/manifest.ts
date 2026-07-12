@@ -31,6 +31,12 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "any",
       },
       {
+        src: "/icons/icon-384.png",
+        sizes: "384x384",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
         src: "/icons/maskable-192.png",
         sizes: "192x192",
         type: "image/png",
@@ -41,6 +47,18 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
+      },
+      {
+        src: "/icons/monochrome-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "monochrome",
+      },
+      {
+        src: "/icons/monochrome-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "monochrome",
       },
     ],
     shortcuts: [

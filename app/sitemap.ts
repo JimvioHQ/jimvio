@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getAdminDB } from "@/services/base";
 import { SITE } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 3600;
 
 const STATIC_ROUTES: Array<{
@@ -53,7 +54,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .eq("status", "active")
       .is("deleted_at", null)
       .order("updated_at", { ascending: false })
-      .limit(5000),
+      .limit(1000),
     admin
       .from("communities")
       .select("slug, updated_at")

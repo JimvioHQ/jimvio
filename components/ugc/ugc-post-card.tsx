@@ -183,9 +183,9 @@ function ProductStrip({ tags }: { tags: Array<{ products: UGCPostProduct }> }) {
 // CAPTION WITH HASHTAG LINKS
 // ─────────────────────────────────────────────────────────────
 function Caption({ text }: { text: string | null }) {
+  const [expanded, setExpanded] = useState(false);
   if (!text) return null;
   const MAX = 200;
-  const [expanded, setExpanded] = useState(false);
   const shown = expanded ? text : text.slice(0, MAX);
   const parts = shown.split(/(\#\w+)/g);
   return (

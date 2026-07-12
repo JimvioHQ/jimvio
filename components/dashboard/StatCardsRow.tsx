@@ -1,9 +1,10 @@
+import { memo } from "react";
 import { ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { Sparkline } from "@/components/dashboard/Sparkline";
 import type { StatCard } from "@/types/dashboard";
 import { cn } from "@/lib/utils";
 
-export function StatCardsRow({ cards }: { cards: StatCard[] }) {
+export const StatCardsRow = memo(function StatCardsRow({ cards }: { cards: StatCard[] }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => (
@@ -41,4 +42,4 @@ export function StatCardsRow({ cards }: { cards: StatCard[] }) {
       ))}
     </div>
   );
-}
+});

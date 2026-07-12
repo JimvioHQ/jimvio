@@ -25,7 +25,7 @@ import {
   YAxis,
 } from "recharts";
 import { useCurrency } from "@/context/CurrencyContext";
-import type { EarningsDataset } from "@/components/dashboard/EarningsOverview";
+import type { EarningsDataset } from "@/types/dashboard";
 import type { Product } from "@/types/dashboard";
 import { cn } from "@/lib/utils";
 

@@ -58,7 +58,7 @@ export interface ProductCardVideoMediaProps {
 
 const VISIBILITY_THRESHOLD = 0.2;
 const VISIBILITY_THRESHOLDS = [0, 0.1, 0.2, 0.35, 0.5, 0.75, 1];
-const CROSSFADE_MS = 300;
+const CROSSFADE_MS = 300; // 250–350ms opacity crossfade
 const TOUCH_HOLD_MS = 180;
 
 export function ProductCardVideoMedia({
@@ -122,13 +122,20 @@ export function ProductCardVideoMedia({
   }, []);
 
   const handlePreviewStart = useCallback(() => {
-    setSlideIndex(0);
     setPreviewActive(true);
-    preloadPreviewImages(slideshowImages.slice(1));
+    preloadPreviewImages(slideshowImages.slice(0, 2));
     clearSlideTimer();
-    slideTimerRef.current = setInterval(() => {
-      setSlideIndex((i) => (i + 1) % slideshowImages.length);
-    }, ImagePreviewEngine.slideIntervalMs);
+    if (slideshowImages.length > 1) {
+      setSlideIndex(1);
+    } else {
+      setSlideIndex(0);
+    }
+    // Rotate only when 3+ images; 2-image products stay on image[1] while hovered.
+    if (slideshowImages.length > 2) {
+      slideTimerRef.current = setInterval(() => {
+        setSlideIndex((i) => (i + 1) % slideshowImages.length);
+      }, ImagePreviewEngine.slideIntervalMs);
+    }
   }, [slideshowImages, clearSlideTimer]);
 
   const handlePreviewStop = useCallback(() => {
@@ -152,6 +159,11 @@ export function ProductCardVideoMedia({
       motionMq.removeEventListener("change", syncMotion);
     };
   }, []);
+
+  useEffect(() => {
+    if (slideshowImages.length < 2) return;
+    preloadPreviewImages(slideshowImages.slice(0, 2));
+  }, [slideshowImages]);
 
   useEffect(() => {
     if (!enableImagePreview) return;

@@ -5,8 +5,8 @@ import { AnimatedPlatformStatValue } from "@/components/platform/platform-stats-
 
 export function CheckoutFooter() {
     return (
-        <div className="fixed bottom-0 inset-x-0 z-30 bg-slate-900 text-white">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between gap-4 text-[12px]">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-slate-900/95 text-white backdrop-blur-md">
+            <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 text-[12px] sm:px-6 lg:px-8">
 
                 <div className="flex items-center gap-3 min-w-0">
                     <div className="w-7 h-7 rounded-md bg-emerald-500/20 flex items-center justify-center shrink-0">

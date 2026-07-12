@@ -1,6 +1,12 @@
 {
   "regions": ["fra1"],
 
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--max-old-space-size=4096"
+    }
+  },
+
   "crons": [
     {
       "path": "/api/cron/shopify-sync",
@@ -12,11 +18,27 @@
     },
     {
       "path": "/api/cron/cj-enrichment",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/2 * * * *"
     },
     {
       "path": "/api/cron/cj-intelligence-daily",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/cj-marketplace-maintenance",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/cj-stock-health",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/cj-supplier-health",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/cj-catalog-cleanup",
+      "schedule": "0 5 * * *"
     },
     {
       "path": "/api/ugc/views/sync",

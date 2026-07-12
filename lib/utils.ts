@@ -384,10 +384,12 @@ export type AppliedFilters = {
   minRating: number;
 };
 
+export const SELECT_CATEGORY_LABEL = "Select category";
+
 export const DEFAULT_FILTERS: AppliedFilters = {
   search: "",
   productType: "physical",
-  category: "Trending Now",
+  category: "",
   shippingFrom: [],
   deliveryTimes: [],
   priceRange: [0, 5000],
@@ -408,7 +410,8 @@ export function filterListings<T extends FilterableListing>(
     if (item.type !== filters.productType) return false;
     if (query && !item.name.toLowerCase().includes(query)) return false;
     if (
-      filters.category !== "Trending Now" &&
+      filters.category &&
+      filters.category !== SELECT_CATEGORY_LABEL &&
       item.category !== filters.category
     ) {
       return false;
@@ -468,7 +471,11 @@ export function normalizeImages(input: unknown): string[] {
       }
       return "";
     })
-    .filter(isRenderableUrl);
+    .filter(isRenderableUrl)
+    .filter((url, index, all) => {
+      const key = url.toLowerCase();
+      return all.findIndex((u) => u.toLowerCase() === key) === index;
+    });
 }
 
 export function isRenderableUrl(s: unknown): s is string {

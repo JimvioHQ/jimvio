@@ -116,11 +116,13 @@ export default async function CheckoutPage(props: {
     order_id?: string;
     order?: string;
     method?: string;
+    direct?: string;
   }>;
 }) {
   const searchParams = await props.searchParams;
   const orderId = searchParams.order_id ?? searchParams.order ?? null;
   const preferredMethod = searchParams.method ?? null;
+  const isDirectCheckout = searchParams.direct === "1";
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   const supabase = await createClient();
@@ -136,13 +138,15 @@ export default async function CheckoutPage(props: {
     redirect("/cart");
   }
 
-  // ── Sync the order to current cart state ───────────────────────────────────
-  // This handles the case where user modified cart in another tab after
-  // clicking "Proceed to checkout". Updates items, totals, resets shipping.
-  const syncResult = await syncOrderWithCart(orderId);
+  // ── Sync the order to current cart state (cart checkout only) ───────────────
+  // Buy Now uses a standalone checkout session and must not be synced to cart.
+  let syncResult: Awaited<ReturnType<typeof syncOrderWithCart>> | null = null;
+  if (!isDirectCheckout) {
+    syncResult = await syncOrderWithCart(orderId);
 
-  if (!syncResult.ok) {
-    redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, syncResult.error);
+    if (!syncResult.ok) {
+      redirectWithError(CHECKOUT_ERRORS.SYNC_FAILED, syncResult.error);
+    }
   }
 
   const { data: rawOrder, error: orderError } = await supabase
@@ -189,8 +193,8 @@ export default async function CheckoutPage(props: {
           profile={profile}
           mode={isCommunity ? "community" : "cart"}
           preferredMethod={preferredMethod}
-          cartWasUpdated={syncResult.changed}
-          changes={syncResult.changes}
+          cartWasUpdated={!isDirectCheckout && (syncResult?.changed ?? false)}
+          changes={!isDirectCheckout ? syncResult?.changes : undefined}
         />
       </div>
     </div>

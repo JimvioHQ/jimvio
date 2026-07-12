@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { memo, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -33,6 +33,7 @@ import { useAIStore } from "@/lib/store/use-ai-store";
 import { JimvioAIMascot } from "@/components/ui/jimvio-ai-mascot";
 import { useIsMobile, usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { PlatformStatsRotatingBadge, usePlatformStats } from "@/components/platform/platform-stats-provider";
+import { cn } from "@/lib/utils";
 import {
   formatPlatformStat,
   getPlatformStatsLaunchSnapshot,
@@ -74,7 +75,7 @@ function HeroRotatingPhrase() {
     <span className="relative block w-full min-w-0 max-w-full">
       <span
         aria-hidden
-        className="invisible block break-words leading-[1.12] [overflow-wrap:anywhere] md:whitespace-nowrap"
+        className="invisible block break-words leading-[1.08] [overflow-wrap:anywhere] md:whitespace-nowrap"
         style={{ color: ORANGE }}
       >
         {LONGEST_HERO_PHRASE}
@@ -99,7 +100,7 @@ function HeroRotatingPhrase() {
                 : { y: -18, opacity: 0, filter: "blur(10px)" }
             }
             transition={{ duration: 0.48, ease: PHRASE_EASE }}
-            className="block w-full min-w-0 max-w-full break-words leading-[1.12] [overflow-wrap:anywhere] md:whitespace-nowrap"
+            className="block w-full min-w-0 max-w-full break-words leading-[1.08] [overflow-wrap:anywhere] md:whitespace-nowrap"
             style={{ color: ORANGE }}
           >
             {HERO_PHRASES[index]}
@@ -107,6 +108,52 @@ function HeroRotatingPhrase() {
         </AnimatePresence>
       </span>
     </span>
+  );
+}
+
+function HeroPrimaryCTA() {
+  const [pending, setPending] = React.useState(false);
+
+  return (
+    <Link
+      href="/register"
+      onClick={() => setPending(true)}
+      aria-busy={pending}
+      className={cn(
+        "group relative inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full px-6 text-[13px] font-bold text-white sm:h-[48px] sm:w-auto sm:px-7 sm:text-[14px]",
+        "shadow-[0_8px_24px_rgba(253,80,0,0.26)] transition-[transform,box-shadow,opacity] duration-200 ease-out will-change-transform",
+        "hover:scale-[1.02] hover:shadow-[0_12px_32px_rgba(253,80,0,0.34)] active:scale-[0.98]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/45 focus-visible:ring-offset-2",
+        pending && "pointer-events-none opacity-85",
+      )}
+      style={{ background: ORANGE }}
+    >
+      <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/16 to-transparent opacity-80" aria-hidden />
+      <span className="relative flex items-center gap-2">
+        {pending ? (
+          <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden />
+        ) : null}
+        Start earning for Free
+        <ArrowRight className="size-4 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5" />
+      </span>
+    </Link>
+  );
+}
+
+function HeroSecondaryCTA() {
+  return (
+    <Link
+      href="/marketplace"
+      className={cn(
+        "group inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-6 text-[13px] font-bold text-[var(--color-text-primary)] sm:h-[48px] sm:w-auto sm:px-7 sm:text-[14px]",
+        "shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-[transform,box-shadow,background-color,border-color] duration-200 ease-out will-change-transform",
+        "hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] hover:shadow-[0_6px_20px_rgba(15,23,42,0.06)] active:scale-[0.99]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text-muted)]/30 focus-visible:ring-offset-2",
+      )}
+    >
+      Browse Marketplace
+      <ArrowRight className="size-4 shrink-0 opacity-55 transition-[transform,opacity] duration-200 group-hover:translate-x-0.5 group-hover:opacity-80" />
+    </Link>
   );
 }
 
@@ -137,7 +184,7 @@ function HeroLiveTicker({ onlineCount }: { onlineCount: number }) {
 
   return (
     <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
-      <div className="flex h-10 w-full items-center overflow-hidden bg-[#fd5000]">
+      <div className="flex h-11 w-full items-center overflow-hidden bg-[#fd5000] sm:h-10">
         <div className="flex h-full shrink-0 items-center pl-2 sm:pl-3">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-[#E53935] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_10px_rgba(229,57,53,0.38)]">
             <motion.span
@@ -190,7 +237,7 @@ function HeroPartnerStrip() {
   return (
     <div className="bg-[var(--color-surface)] py-5 sm:py-6">
       <div className="mx-auto max-w-8xl px-4 sm:px-6">
-        <p className="mb-4 text-center text-[11px] font-medium text-[var(--color-text-muted)] sm:text-[12px]">
+        <p className="mb-5 text-center text-[11px] font-medium tracking-[0.01em] text-[var(--color-text-muted)] sm:mb-5 sm:text-[12px]">
           Trusted by {formatPlatformStat("users", getPlatformStatsLaunchSnapshot().users)} creators and businesses worldwide
         </p>
 
@@ -205,7 +252,7 @@ function HeroPartnerStrip() {
           />
 
           <div
-            className="flex w-max items-center gap-10 motion-reduce:animate-none sm:gap-14"
+            className="flex w-max items-center gap-12 motion-reduce:animate-none sm:gap-16"
             style={{ animation: "hero-partner-marquee 42s linear infinite" }}
           >
             {items.map((logo, i) => {
@@ -216,13 +263,13 @@ function HeroPartnerStrip() {
                     key={`${logo.alt}-${i}`}
                     src={logo.src}
                     alt={logo.alt}
-                    className={`${logo.h} w-auto shrink-0 object-contain opacity-70 dark:opacity-80 dark:brightness-0 dark:invert`}
+                    className={`${logo.h} w-auto shrink-0 object-contain opacity-60 transition-opacity duration-200 hover:opacity-80 dark:opacity-70 dark:brightness-0 dark:invert dark:hover:opacity-90`}
                   />
                 );
               }
 
               return (
-                <span key={`${logo.id}-${i}`} className="inline-flex shrink-0 items-center">
+                <span key={`${logo.id}-${i}`} className="inline-flex shrink-0 items-center opacity-75">
                   {logo.node}
                 </span>
               );
@@ -376,7 +423,7 @@ function HeroAISparkles({ reduced }: { reduced: boolean }) {
       setTimeout(() => {
         setSparkles((prev) => prev.filter((s) => s.id !== next.id));
       }, 900);
-    }, 1800);
+    }, 2400);
 
     return () => clearInterval(interval);
   }, [reduced]);
@@ -452,10 +499,10 @@ function HeroAIDescriptionTypewriter() {
   }, [reduced]);
 
   const textClass =
-    "m-0 w-full break-words text-[14px] font-medium leading-[1.6] tracking-[0.01em] text-[#4B5563] [overflow-wrap:break-word] lg:text-[16px] lg:leading-[1.8]";
+    "m-0 w-full break-words text-[14px] font-medium leading-[1.65] tracking-[0.01em] text-[#4B5563] [overflow-wrap:break-word] lg:text-[15px] lg:leading-[1.75] lg:max-w-[18.5rem]";
 
   return (
-    <div className="relative w-full min-w-0 max-w-[90vw] lg:w-[280px] lg:max-w-[280px]">
+    <div className="relative w-full min-w-0 max-w-[90vw] lg:w-[18.5rem] lg:max-w-[18.5rem]">
       <p aria-hidden className={`invisible ${textClass}`}>
         {AI_DESCRIPTION}
       </p>
@@ -464,32 +511,56 @@ function HeroAIDescriptionTypewriter() {
   );
 }
 
-function HeroAILogo() {
+const HeroAILogo = memo(function HeroAILogo() {
   const reduced = usePrefersReducedMotion();
 
   return (
     <div className="relative inline-flex flex-row items-center gap-3 sm:gap-4">
-      <motion.span
-        className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-xl text-white shadow-[0_6px_20px_rgba(253,80,0,0.24)] sm:size-11"
-        style={{
-          background: "linear-gradient(135deg, #fd5000 0%, #ff8c42 35%, #ff5e8a 65%, #c850c0 85%, #fd5000 100%)",
-          backgroundSize: "220% 220%",
-        }}
-        animate={
-          reduced
-            ? undefined
-            : { backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }
-        }
-        transition={reduced ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
-      >
+      <div className="relative grid size-9 shrink-0 place-items-center sm:size-11">
+        {!reduced && (
+          <motion.span
+            className="pointer-events-none absolute -inset-[5px] rounded-[14px] sm:-inset-[6px] sm:rounded-[17px]"
+            style={{
+              background:
+                "conic-gradient(from 0deg, transparent 0deg, rgba(253,80,0,0.5) 32deg, rgba(255,140,66,0.28) 48deg, transparent 68deg, transparent 360deg)",
+              WebkitMask:
+                "radial-gradient(farthest-side, transparent calc(100% - 1.25px), #000 calc(100% - 1.25px))",
+              mask:
+                "radial-gradient(farthest-side, transparent calc(100% - 1.25px), #000 calc(100% - 1.25px))",
+              willChange: "transform",
+            }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+            aria-hidden
+          />
+        )}
+
         <motion.span
-          className="pointer-events-none absolute inset-0 rounded-xl bg-[#fd5000]/45 blur-lg"
-          animate={reduced ? undefined : { opacity: [0.2, 0.55, 0.2] }}
-          transition={reduced ? undefined : { duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
-          aria-hidden
-        />
-        <Sparkles className="relative z-10 size-4 sm:size-5" strokeWidth={2.1} />
-      </motion.span>
+          className="relative z-10 grid size-full place-items-center overflow-hidden rounded-xl text-white shadow-[0_6px_20px_rgba(253,80,0,0.24)] sm:rounded-[13px]"
+          style={{
+            background: "linear-gradient(135deg, #fd5000 0%, #ff8c42 35%, #ff5e8a 65%, #c850c0 85%, #fd5000 100%)",
+            backgroundSize: "220% 220%",
+          }}
+          animate={
+            reduced
+              ? undefined
+              : { backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }
+          }
+          transition={reduced ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <motion.span
+            className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[#fd5000]/45 blur-lg"
+            animate={reduced ? undefined : { opacity: [0.2, 0.55, 0.2] }}
+            transition={reduced ? undefined : { duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+            aria-hidden
+          />
+          <Sparkles
+            className="relative z-10 size-[18px] sm:size-[22px]"
+            strokeWidth={2.25}
+            style={{ shapeRendering: "geometricPrecision" }}
+          />
+        </motion.span>
+      </div>
 
       <h2
         className="relative m-0 whitespace-nowrap text-[18px] font-black leading-none tracking-[-0.03em] text-[var(--color-text-primary)] sm:text-[28px] lg:text-[30px]"
@@ -506,7 +577,7 @@ function HeroAILogo() {
       </h2>
     </div>
   );
-}
+});
 
 const HERO_AI_CTA_SPARKLES = [
   { left: "7%", top: "20%", size: 2.5, delay: 0 },
@@ -532,7 +603,7 @@ function HeroAICTAButton({ onClick }: { onClick: () => void }) {
         tap: { scale: 0.98 },
       }}
       transition={{ type: "spring", stiffness: 460, damping: 30 }}
-      className="relative inline-flex h-[56px] w-full min-w-[min(100%,360px)] max-w-[400px] items-center justify-center gap-2.5 overflow-visible rounded-full px-7 text-[14px] font-bold text-white sm:text-[15px]"
+      className="relative inline-flex h-[56px] w-full min-w-[min(100%,360px)] max-w-[400px] items-center justify-center gap-2.5 overflow-visible rounded-full px-7 text-[14px] font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 focus-visible:ring-offset-2 sm:text-[15px]"
     >
       {/* Ambient glow — soft pulse + hover boost */}
       <motion.span
@@ -661,8 +732,8 @@ function HeroAIFeatureCard({
     <motion.button
       type="button"
       onClick={() => onSelect(query)}
-      className="group relative flex h-[50px] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-0.5 py-1 text-center shadow-[var(--shadow-sm)] transition-[border-color,box-shadow] duration-[250ms] sm:h-[48px] sm:flex-row sm:gap-2.5 sm:rounded-lg sm:px-3.5 sm:py-1.5 sm:text-left sm:hover:border-[#fd5000]/35 sm:hover:shadow-[0_8px_24px_rgba(253,80,0,0.12)]"
-      whileHover={isMobile || reduced ? undefined : { y: -6 }}
+      className="group relative flex h-[50px] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-0.5 py-1 text-center shadow-[var(--shadow-sm)] transition-[border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/35 focus-visible:ring-offset-2 sm:h-[48px] sm:flex-row sm:gap-2.5 sm:rounded-lg sm:px-4 sm:py-2 sm:text-left sm:shadow-[0_2px_8px_rgba(15,23,42,0.05)] sm:hover:border-[#fd5000]/35 sm:hover:shadow-[0_8px_24px_rgba(253,80,0,0.12)]"
+      whileHover={isMobile || reduced ? undefined : { y: -4, scale: 1.01 }}
       transition={{ type: "spring", stiffness: 420, damping: 28 }}
     >
       <span
@@ -988,8 +1059,8 @@ function HeroPremiumBackground({ reduced }: { reduced: boolean }) {
       <div className="absolute inset-0 bg-[var(--color-bg)]" />
       <div className="absolute inset-0 bg-[var(--color-surface)]/80" />
 
-      <div className="absolute -right-[12%] top-[6%] h-[min(480px,58vw)] w-[min(480px,58vw)] rounded-full bg-[rgba(255,90,31,0.04)] blur-[120px]" />
-      <div className="absolute right-[2%] top-[22%] h-[min(340px,42vw)] w-[min(340px,42vw)] rounded-full bg-[rgba(255,120,80,0.03)] blur-[100px]" />
+      <div className="absolute -right-[12%] top-[6%] h-[min(460px,56vw)] w-[min(460px,56vw)] rounded-full bg-[rgba(255,90,31,0.035)] blur-[128px]" />
+      <div className="absolute right-[2%] top-[22%] h-[min(320px,40vw)] w-[min(320px,40vw)] rounded-full bg-[rgba(255,120,80,0.025)] blur-[108px]" />
 
       <motion.div
         className="absolute -right-[14%] top-[12%] h-[min(520px,62vw)] w-[min(520px,62vw)] rounded-full opacity-40 blur-[140px]"
@@ -1078,7 +1149,7 @@ function HeroPremiumBackground({ reduced }: { reduced: boolean }) {
       </div>
 
       <div
-        className="absolute inset-0 opacity-[0.012] mix-blend-soft-light"
+        className="absolute inset-0 opacity-[0.01] mix-blend-soft-light"
         style={{ backgroundImage: HERO_NOISE_TEXTURE }}
       />
 
@@ -1100,7 +1171,7 @@ export function Hero() {
 
   return (
     <div className="w-full max-w-[100dvw] overflow-x-hidden bg-[var(--color-surface)]">
-      <section className="relative w-full overflow-visible bg-[var(--color-surface)] pt-4 pb-5 sm:pt-6 sm:pb-8">
+      <section className="relative w-full overflow-visible bg-[var(--color-surface)] pt-5 pb-6 sm:pt-8 sm:pb-10">
         <HeroPremiumBackground reduced={reduced} />
 
         <div className="relative z-10 mx-auto w-full min-w-0 max-w-5xl px-4 sm:px-6">

@@ -1,30 +1,23 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, Sparkles, Paperclip } from "lucide-react";
+import { Search, Paperclip } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { AISourcingAssistant } from "./ai-sourcing-assistant";
+import { useAIStore } from "@/lib/store/use-ai-store";
 
 export function HeroSearch() {
   const router = useRouter();
+  const openAssistant = useAIStore((s) => s.openAssistant);
   const [q, setQ] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-  const [isAIMode, setIsAIMode] = useState(false);
-  const [initialAIQuery, setInitialAIQuery] = useState("");
   const [results, setResults] = useState<{ products: any[]; vendors: any[]; categories: any[] }>({
     products: [],
     vendors: [],
     categories: [],
   });
-  const [portalReady, setPortalReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setPortalReady(true);
-  }, []);
 
   useEffect(() => {
     if (q.length < 2) {
@@ -54,32 +47,26 @@ export function HeroSearch() {
   };
 
   const openAI = (text = q) => {
-    setInitialAIQuery(text);
-    setIsAIMode(true);
+    openAssistant(text.trim() || undefined);
     setIsFocused(false);
   };
 
   return (
     <div ref={containerRef} className="w-full relative">
-      {/* ── Search bar — matches HTML prototype search-wrap / search-bar ── */}
-      <div
-        className="px-[52px] py-3 border-b border-black/[.07] dark:border-white/[.06] bg-white dark:bg-surface"
-      >
+      <div className="px-[52px] py-3 border-b border-black/[.07] dark:border-white/[.06] bg-white dark:bg-surface">
         <div
           className={cn(
             "flex items-center h-[52px] rounded-sm transition-all duration-200 overflow-hidden",
             "bg-[#f5f4f1] dark:bg-bg",
             isFocused
               ? "border border-[#fd5000]/60 shadow-[0_0_0_4px_rgba(253,80,0,0.1)]"
-              : "border border-black/10 dark:border-white/10"
+              : "border border-black/10 dark:border-white/10",
           )}
         >
-          {/* Search icon */}
           <div className="pl-[22px] pr-[10px] shrink-0">
             <Search className="h-[15px] w-[15px] text-[#b0a898] dark:text-[#a89f93]" strokeWidth={2.5} />
           </div>
 
-          {/* Input */}
           <input
             type="text"
             value={q}
@@ -92,7 +79,6 @@ export function HeroSearch() {
             }}
           />
 
-          {/* AI button */}
           <button
             type="button"
             onClick={() => openAI()}
@@ -104,15 +90,12 @@ export function HeroSearch() {
             AI
           </button>
 
-          {/* Divider */}
           <div className="w-px h-5 bg-black/10 dark:bg-white/10 shrink-0" />
 
-          {/* Attachment / extra icon */}
           <div className="px-2 shrink-0">
             <Paperclip className="h-[15px] w-[15px] text-[#b0a898] dark:text-[#a89f93]" strokeWidth={2} />
           </div>
 
-          {/* Explore button */}
           <button
             type="button"
             onClick={() => handleSearch()}
@@ -122,7 +105,6 @@ export function HeroSearch() {
           </button>
         </div>
 
-        {/* Dropdown */}
         <AnimatePresence>
           {q.length >= 2 && isFocused && (
             <motion.div
@@ -162,14 +144,6 @@ export function HeroSearch() {
           )}
         </AnimatePresence>
       </div>
-
-      {/* AI overlay portal */}
-      {portalReady &&
-        createPortal(
-          <AnimatePresence>{isAIMode && <AISourcingAssistant />}</AnimatePresence>,
-          document.body
-        )}
     </div>
   );
 }
-

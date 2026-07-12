@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
 import { requireAdmin } from "@/lib/auth/api-helpers";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getSchemaHealth } from "@/lib/cj/premium-intelligence/schema-health";
 import {
   getCatalogPage,
@@ -11,7 +10,9 @@ import {
 import { buildLiteEnrichedFromRaw } from "@/lib/cj/premium-intelligence/score-product";
 import { getCached, setCached } from "@/lib/cj/premium-intelligence/catalog-cache";
 import { timedQuery } from "@/lib/cj/premium-intelligence/query-timing";
+import { parseCatalogFiltersFromParams } from "@/lib/cj/premium-intelligence/catalog-filter-index";
 import type { CatalogTier } from "@/lib/cj/premium-intelligence/types";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -44,6 +45,7 @@ export async function GET(req: NextRequest): Promise<Response> {
         .split(",")
         .filter((t) => VALID_TIERS.includes(t as CatalogTier)) as CatalogTier[])
     : undefined;
+  const filters = parseCatalogFiltersFromParams(sp);
 
   try {
     const health = await getSchemaHealth();
@@ -81,6 +83,7 @@ export async function GET(req: NextRequest): Promise<Response> {
           tiers,
           sort: sort === "curated" ? "curated" : sort,
           cursor,
+          filters,
         })
       ),
       getTierCounts(),
@@ -131,6 +134,7 @@ export async function GET(req: NextRequest): Promise<Response> {
       lastSyncAt: lastSyncAt ?? null,
       nextCursor: pageResult.nextCursor ?? null,
       needsSync: false,
+      serverFiltered: true,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Catalog load failed";

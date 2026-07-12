@@ -705,28 +705,29 @@ function OptionButton({
             onClick={onClick}
             className={cn(
                 "relative shrink-0 inline-flex items-center gap-1.5",
-                "h-9 px-3.5 rounded-lg text-[12px] font-medium",
-                "border transition-all duration-150 select-none",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-1",
+                "h-10 px-3.5 rounded-xl text-[12px] font-medium",
+                "border transition-[transform,border-color,background-color,box-shadow] duration-200 select-none",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
+                !disabled && !selected && "hover:scale-[1.02] active:scale-[0.98]",
                 // Selected — solid fill + glow ring, unmistakable
                 selected && [
-                    "border-foreground bg-foreground text-background pl-2.5",
-                    "shadow-[0_0_0_3px_hsl(var(--foreground)/0.12)]",
+                    "border-[var(--color-accent)] bg-[var(--color-accent)] text-white pl-2.5",
+                    "shadow-[0_0_0_3px_rgba(253,80,0,0.12)]",
                 ],
                 // Available, in combo
                 !selected && !disabled && !warn && [
-                    "border-border bg-background text-foreground",
-                    "hover:border-foreground/50 hover:bg-muted/40 cursor-pointer",
+                    "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)]",
+                    "hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-surface-secondary)] cursor-pointer",
                 ],
                 // Available but not in current combo — dashed border hint
                 !selected && warn && [
-                    "border-dashed border-border/70 bg-background text-muted-foreground",
-                    "hover:border-foreground/40 hover:text-foreground cursor-pointer",
+                    "border-dashed border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]",
+                    "hover:border-[var(--color-accent)]/35 hover:text-[var(--color-text-primary)] cursor-pointer",
                 ],
                 // Disabled / out of stock
                 disabled && [
-                    "border-border/50 bg-muted/30 text-muted-foreground/50",
-                    "cursor-not-allowed line-through decoration-muted-foreground/40",
+                    "border-[var(--color-border)]/60 bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]/50",
+                    "cursor-not-allowed line-through decoration-[var(--color-text-muted)]/40",
                 ],
             )}
         >
@@ -796,21 +797,21 @@ function ColorSwatch({
             disabled={disabled}
             onClick={onClick}
             className={cn(
-                "relative h-8 w-8 rounded-full transition-all duration-150 overflow-hidden",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2",
+                "relative h-9 w-9 overflow-hidden rounded-full transition-[transform,box-shadow] duration-200",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
                 // Selected ring
-                selected && "ring-2 ring-foreground ring-offset-2 scale-110",
+                selected && "scale-110 ring-2 ring-[var(--color-accent)] ring-offset-2",
                 // Available, in combo
                 !selected && !disabled && !warn && [
-                    "ring-1 ring-border/60 hover:ring-foreground/50 hover:scale-105 cursor-pointer",
+                    "cursor-pointer ring-1 ring-[var(--color-border)] hover:scale-105 hover:ring-[var(--color-accent)]/50",
                 ],
                 // Available, warn (out of current combo)
                 !selected && warn && [
-                    "ring-1 ring-dashed ring-border/50 opacity-60",
-                    "hover:ring-foreground/40 hover:opacity-90 hover:scale-105 cursor-pointer",
+                    "cursor-pointer opacity-60 ring-1 ring-dashed ring-[var(--color-border)]",
+                    "hover:scale-105 hover:opacity-90 hover:ring-[var(--color-accent)]/40",
                 ],
                 // Disabled
-                disabled && "opacity-35 cursor-not-allowed ring-1 ring-border/40",
+                disabled && "cursor-not-allowed opacity-35 ring-1 ring-[var(--color-border)]",
             )}
             style={
                 imageUrl

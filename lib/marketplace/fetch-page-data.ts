@@ -1,10 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DbProduct } from "@/lib/utils";
 import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos";
+import { getMarketplaceVisibilitySets } from "@/lib/cj/premium-intelligence/marketplace-filter";
 import {
-  filterProductsForCustomers,
-  getCustomerVisibleCjPids,
-} from "@/lib/cj/premium-intelligence/marketplace-filter";
+  dedupeProductsById,
+  dedupeProductsByIdentity,
+  ensureNonEmptyCollection,
+  HOMEPAGE_FLASH_DEALS_LIMIT,
+  resolveMarketplaceFlashDeals,
+  resolveMarketplaceProductPool,
+  sortByHomepagePriority,
+} from "@/lib/marketplace/homepage-ranking";
+import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
 import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
 
 export type MarketplaceProductType = "physical" | "digital";
@@ -71,24 +78,28 @@ export function getMarketplaceTypeFilter(
 
 const PRODUCT_SELECT = `
   id, name, slug, price, currency, compare_at_price, images, product_type,
-  status, is_flash_deal, discount_label, shipping_from,
+  status, is_active, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, view_count, sale_count,
   sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
+  created_at, auto_unpublished, deleted_at, sku,
+  source, source_metadata, published_by_admin_override,
   vendors(id, verification_status)
 `;
 
-async function fetchCategoriesForType(
+const POOL_FETCH_LIMIT = 200;
+
+export async function fetchCategoriesForType(
   supabase: SupabaseLike,
   typeFilter: readonly string[],
 ): Promise<MarketplaceCategory[]> {
-  const { data: catIds } = await supabase
+  const { data: catIds, count: productCount } = await supabase
     .from("products")
-    .select("category_id")
+    .select("category_id", { count: "estimated", head: false })
     .eq("status", "active")
     .eq("is_active", true)
     .is("deleted_at", null)
     .in("product_type", [...typeFilter])
-    .not("category_id", "is", null);
+    .limit(5000);
 
   const ids = [
     ...new Set(
@@ -98,87 +109,154 @@ async function fetchCategoriesForType(
     ),
   ] as string[];
 
-  if (ids.length === 0) return [];
+  let catRows: MarketplaceCategory[] = [];
 
-  const { data: catRows } = await supabase
-    .from("product_categories")
-    .select("id, name, slug, product_count, image_url, tint_color")
-    .eq("is_active", true)
-    .eq("visible", true)
-    .is("parent_id", null)
-    .in("id", ids)
-    .order("product_count", { ascending: false })
-    .limit(40);
+  if (ids.length > 0) {
+    const { data } = await supabase
+      .from("product_categories")
+      .select("id, name, slug, product_count, image_url, tint_color")
+      .eq("is_active", true)
+      .eq("visible", true)
+      .is("parent_id", null)
+      .in("id", ids)
+      .order("product_count", { ascending: false })
+      .limit(40);
+    catRows = (data ?? []) as MarketplaceCategory[];
+  }
 
-  return (catRows ?? []) as MarketplaceCategory[];
+  if (catRows.length === 0 && (productCount ?? 0) > 0) {
+    const { data: fallbackCats } = await supabase
+      .from("product_categories")
+      .select("id, name, slug, product_count, image_url, tint_color")
+      .eq("is_active", true)
+      .eq("visible", true)
+      .is("parent_id", null)
+      .order("product_count", { ascending: false })
+      .limit(40);
+    catRows = (fallbackCats ?? []) as MarketplaceCategory[];
+  }
+
+  if (catRows.length === 0 && (productCount ?? 0) > 0) {
+    const type = typeFilter.includes("physical") ? "physical" : "digital";
+    return resolveShopCategories(type, []);
+  }
+
+  return catRows;
 }
 
-/** Fetch flash deals, trending page, categories, and count for a product type — all in parallel. */
+async function fetchMarketplaceProductPool(
+  supabase: SupabaseLike,
+  typeFilter: readonly string[],
+  visibilitySets: Awaited<ReturnType<typeof getMarketplaceVisibilitySets>>,
+): Promise<{ pool: DbProduct[]; listingCount: number }> {
+  let offset = 0;
+  let listingCount = 0;
+  const rawRows: DbProduct[] = [];
+
+  while (true) {
+    const { data, count } = await supabase
+      .from("products")
+      .select(PRODUCT_SELECT, { count: offset === 0 ? "estimated" : undefined, head: false })
+      .eq("status", "active")
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .in("product_type", [...typeFilter])
+      .order("created_at", { ascending: false })
+      .range(offset, offset + POOL_FETCH_LIMIT - 1);
+
+    if (offset === 0) listingCount = count ?? 0;
+
+    const batch = (data ?? []) as DbProduct[];
+    rawRows.push(...batch);
+
+    if (batch.length < POOL_FETCH_LIMIT) break;
+    if (listingCount > 0 && rawRows.length >= listingCount) break;
+    offset += POOL_FETCH_LIMIT;
+  }
+
+  let pool = resolveMarketplaceProductPool(
+    dedupeProductsByIdentity(rawRows),
+    visibilitySets,
+    listingCount,
+  );
+
+  if (pool.length === 0 && listingCount > 0) {
+    const { data: fallback } = await supabase
+      .from("products")
+      .select(PRODUCT_SELECT)
+      .eq("status", "active")
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .in("product_type", [...typeFilter])
+      .order("created_at", { ascending: false })
+      .limit(Math.max(listingCount, HOMEPAGE_FLASH_DEALS_LIMIT, 48));
+
+    pool = resolveMarketplaceProductPool(
+      dedupeProductsByIdentity((fallback ?? []) as DbProduct[]),
+      visibilitySets,
+      listingCount,
+    );
+  }
+
+  return { pool, listingCount };
+}
+
+/** Fetch flash deals, trending page, categories, and count for a product type — optimized queries. */
 export async function fetchMarketplacePageBundle(
   supabase: SupabaseLike,
   type: MarketplaceProductType,
   options?: { page?: number; pageSize?: number },
 ): Promise<MarketplacePageBundle> {
   const typeFilter = getMarketplaceTypeFilter(type);
-  const page = options?.page ?? 1;
   const pageSize = options?.pageSize ?? MARKETPLACE_PAGE_SIZE;
-  const offset = (page - 1) * pageSize;
 
-  const visibleCjPids = await getCustomerVisibleCjPids();
+  const visibilitySets = await getMarketplaceVisibilitySets();
 
-  const [{ data: deals }, { data: trend }, { count }, categories] =
-    await Promise.all([
-      supabase
-        .from("products")
-        .select(PRODUCT_SELECT)
-        .eq("status", "active")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .in("product_type", [...typeFilter])
-        .or("is_flash_deal.eq.true,compare_at_price.not.is.null")
-        .order("is_flash_deal", { ascending: false })
-        .order("view_count", { ascending: false })
-        .limit(12),
+  const [{ pool, listingCount }, categories] = await Promise.all([
+    fetchMarketplaceProductPool(supabase, typeFilter, visibilitySets),
+    fetchCategoriesForType(supabase, typeFilter),
+  ]);
 
-      supabase
-        .from("products")
-        .select(PRODUCT_SELECT)
-        .eq("status", "active")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .in("product_type", [...typeFilter])
-        .order("view_count", { ascending: false })
-        .range(offset, offset + pageSize - 1),
+  let flashDeals = resolveMarketplaceFlashDeals(pool, listingCount);
+  const flashIds = new Set(flashDeals.map((p) => p.id));
+  const trendingPool =
+    pool.filter((p) => !flashIds.has(p.id)).length > 0
+      ? pool.filter((p) => !flashIds.has(p.id))
+      : pool;
+  const rankedTrending = dedupeProductsByIdentity(
+    sortByHomepagePriority(trendingPool),
+  );
+  let trendingProducts = rankedTrending.slice(0, Math.max(pageSize, listingCount));
 
-      supabase
-        .from("products")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "active")
-        .eq("is_active", true)
-        .is("deleted_at", null)
-        .in("product_type", [...typeFilter]),
+  trendingProducts = ensureNonEmptyCollection(
+    trendingProducts,
+    trendingPool,
+    (items) =>
+      dedupeProductsByIdentity(
+        sortByHomepagePriority(items).slice(0, Math.max(pageSize, listingCount)),
+      ),
+    Math.max(pageSize, listingCount),
+    listingCount,
+  );
 
-      fetchCategoriesForType(supabase, typeFilter),
-    ]);
+  if (trendingProducts.length < listingCount && rankedTrending.length > trendingProducts.length) {
+    const used = new Set([...flashIds, ...trendingProducts.map((p) => p.id)]);
+    const fill = rankedTrending
+      .filter((p) => !used.has(p.id))
+      .slice(0, listingCount - trendingProducts.length);
+    trendingProducts = dedupeProductsByIdentity([...trendingProducts, ...fill]);
+  }
 
-  const dealList = filterProductsForCustomers(
-    (deals ?? []) as DbProduct[],
-    visibleCjPids
-  ) as DbProduct[];
-  const trendList = filterProductsForCustomers(
-    (trend ?? []) as DbProduct[],
-    visibleCjPids
-  ) as DbProduct[];
   const videoMap = await fetchProductVideosMap(
     supabase,
-    [...dealList, ...trendList].map((p) => p.id),
+    dedupeProductsById([...flashDeals, ...trendingProducts]).map((p) => p.id),
   );
 
   return {
-    flashDeals: attachProductVideos(dealList, videoMap),
-    trending: attachProductVideos(trendList, videoMap),
+    flashDeals: attachProductVideos(flashDeals, videoMap),
+    trending: attachProductVideos(trendingProducts, videoMap),
     categories,
-    listingCount: count ?? 0,
+    listingCount,
   };
 }
 

@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { getAdminDB, getDB } from "./base";
 
 // ─────────────────────────────────────────────────────────────
@@ -139,7 +140,7 @@ export async function getVendorClipsWithDetails(vendorId: string, limit = 50) {
 /**
  * Top creators from DB — ranked by earnings, with profile data.
  */
-export async function getTopCreators(limit = 6) {
+async function fetchTopCreators(limit: number) {
   const admin = getAdminDB();
 
   const { data: byEarnings } = await admin
@@ -166,7 +167,9 @@ export async function getTopCreators(limit = 6) {
   const { data: clipRows } = await admin
     .from("ugc_submissions")
     .select("influencer_id, total_views_earned, total_earnings")
-    .eq("status", "approved");
+    .eq("status", "approved")
+    .order("total_views_earned", { ascending: false })
+    .limit(500);
 
   if (!clipRows?.length) return [];
 
@@ -208,6 +211,14 @@ export async function getTopCreators(limit = 6) {
     total_followers: Number(inf.total_followers ?? 0),
     total_views: viewsByInfluencer.get(inf.id) ?? 0,
   }));
+}
+
+export async function getTopCreators(limit = 6) {
+  return unstable_cache(
+    () => fetchTopCreators(limit),
+    [`top-creators-v2-${limit}`],
+    { revalidate: 180 },
+  )();
 }
 
 /** 

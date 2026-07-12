@@ -9,7 +9,8 @@ export type UGCSubmissionStatus = 'pending' | 'approved' | 'rejected' | 'removed
 export type UGCPlatform          = 'tiktok' | 'instagram' | 'youtube' | 'x';
 export type UGCMediaType         = 'image' | 'video' | 'file';
 export type UGCMediaUsage        = 'banner' | 'example' | 'ad_creative';
-export type UGCParticipationStatus = 'invited' | 'accepted' | 'rejected' | 'banned';
+export type UGCParticipationStatus = 'invited' | 'accepted' | 'rejected' | 'banned' | 'pending' | 'waitlisted' | 'withdrawn';
+export type UGCJoinMode = 'instant' | 'application' | 'invite_only' | 'hybrid';
 export type UGCPayoutStatus      = 'pending' | 'approved' | 'paid';
 export type UGCPlatformFormat    = 'reels' | 'tiktok_video' | 'youtube_short' | 'post' | 'story';
 
@@ -65,12 +66,22 @@ export interface UGCCampaign {
   created_at: string;
   updated_at: string;
 
+  join_mode?: UGCJoinMode;
+  join_config?: Record<string, unknown> | null;
+  max_participants?: number | null;
+
   // Joined / Nested
   media?: UGCCampaignMedia[];
   vendor?: {
     business_name: string;
     business_logo: string | null;
     business_slug: string;
+    business_description?: string | null;
+    business_country?: string | null;
+    business_type?: string | null;
+    created_at?: string | null;
+    rating?: number | null;
+    follower_count?: number | null;
   };
 }
 
@@ -144,6 +155,13 @@ export interface UGCParticipant {
   influencer_id: string;
   status: UGCParticipationStatus;
   joined_at: string;
+  application_message?: string | null;
+  application_data?: Record<string, unknown> | null;
+  eligibility_score?: number | null;
+  terms_accepted_at?: string | null;
+  reviewed_at?: string | null;
+  review_feedback?: string | null;
+  withdrawn_at?: string | null;
 }
 
 export interface UGCPayout {

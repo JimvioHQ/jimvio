@@ -56,7 +56,7 @@ export default function PublicUGCSubmitPage() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push(`/dashboard/ugc/${id}`);
+        router.push(`/ugc/${id}`);
       }, 2000);
       
     } catch (err: any) {

@@ -64,6 +64,26 @@ export interface CjProductIntelligenceRow {
   trending: boolean;
   badges: Array<{ id: string; emoji: string; label: string }>;
   scored_at: string | null;
+  auto_publish_ready: boolean;
+  auto_publish_score: number;
+  auto_publish_status: string;
+  auto_publish_failures: string[];
+  pending_enrichment_reasons: string[];
+  last_auto_publish_check: string | null;
+  auto_publish_ready_at?: string | null;
+  is_published_active?: boolean;
+  linked_product_id?: string | null;
+  is_admin_override?: boolean;
+  auto_unpublish_reason?: string | null;
+  publish_tier?: string | null;
+  publish_priority?: number | null;
+  quality_confidence?: string | null;
+  quality_explanation?: string | null;
+  supplier_reputation_score?: number | null;
+  duplicate_blocked?: boolean | null;
+  duplicate_ref_pid?: string | null;
+  duplicate_similarity?: number | null;
+  last_scanned_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -75,6 +95,7 @@ export interface CatalogListParams {
   tiers?: CatalogTier[];
   sort?: "curated" | "health" | "margin" | "orders" | "newest";
   cursor?: string | null;
+  filters?: import("./catalog-filter-index").CatalogFilterIndex;
 }
 
 export interface CatalogCursor {

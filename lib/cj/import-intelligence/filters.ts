@@ -33,6 +33,8 @@ import {
 } from "./quick-filter-intelligence";
 import { filterBySmartSearch } from "./search";
 import { productHasVideo } from "./product-utils";
+import { attachAutoPublish } from "./auto-publish-engine";
+import { passesAutoPublishFilters, countAutoPublishFilters } from "./auto-publish-filters";
 
 const DEFAULT_MAX_DELIVERY_DAYS = 30;
 
@@ -93,6 +95,22 @@ export const DEFAULT_INTELLIGENCE_FILTERS: IntelligenceFilters = {
   minHealthScore: 0,
   minOpportunityScore: 0,
   hideImported: false,
+  isDraft: false,
+  isHidden: false,
+  autoPublishReady: false,
+  autoPublishPending: false,
+  autoPublishRequirementsMissing: false,
+  autoPublishAdminOverride: false,
+  isPublished: false,
+  missingVideo: false,
+  missingSupplier: false,
+  missingImages: false,
+  missingDescription: false,
+  missingShipping: false,
+  missingVariants: false,
+  missingStock: false,
+  missingTrending: false,
+  publishQueueStatus: undefined,
 };
 
 export function enrichProduct(
@@ -158,7 +176,7 @@ export function enrichProduct(
   });
   base.intelligence.catalogBadges = computeCatalogBadges(base);
 
-  return base;
+  return attachAutoPublish(base);
 }
 
 export function enrichProductBatch(
@@ -282,6 +300,8 @@ export function applyIntelligenceFilters(
     if (!options?.skipQuick && !passesQuickFilters(p, filters, trendingCtx, thresholds))
       return false;
 
+    if (!passesAutoPublishFilters(p, filters)) return false;
+
     return true;
   });
 }
@@ -318,6 +338,10 @@ export function intelligenceFilterCount(filters: IntelligenceFilters): number {
   if (filters.minHealthScore > 0) count++;
   if (filters.minOpportunityScore > 0) count++;
   if (filters.hideImported) count++;
+  if (filters.isPublished) count++;
+  if (filters.isDraft) count++;
+  if (filters.isHidden) count++;
+  count += countAutoPublishFilters(filters);
   return count;
 }
 

@@ -3,14 +3,6 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
-const AISourcingAssistant = dynamic(
-  () =>
-    import("@/components/marketplace/ai-sourcing-assistant").then((m) => ({
-      default: m.AISourcingAssistant,
-    })),
-  { ssr: false },
-);
-
 const ProductChatWidgetLoader = dynamic(
   () =>
     import("@/components/marketplace/product-chat-widget-loader").then((m) => ({
@@ -36,7 +28,6 @@ export function DeferredPublicWidgets() {
 
   return (
     <>
-      <AISourcingAssistant />
       <ProductChatWidgetLoader />
     </>
   );

@@ -737,7 +737,7 @@ interface HubSidebarProps {
 // ── Nav items ─────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
     { id: "feed", label: "Feed", href: "/c", icon: Icons.Feed },
-    { id: "explore", label: "Explore", href: "/communities", icon: Icons.Explore },
+    { id: "explore", label: "Explore", href: "/communities/explore", icon: Icons.Explore },
     { id: "live", label: "Live", href: "/c/live", icon: Icons.Live, badgeKey: "live" },
     { id: "spaces", label: "Spaces", href: "/c/spaces", icon: Icons.Spaces },
     { id: "messages", label: "Messages", href: "/c/messages", icon: Icons.Messages, badgeKey: "messages" },
@@ -1160,7 +1160,7 @@ function SidebarContent({
 
                     {/* Discover link */}
                     <Link
-                        href="/communities"
+                        href="/communities/explore"
                         title={collapsed ? "Discover communities" : undefined}
                         style={{
                             display: "flex", alignItems: "center", gap: 10,

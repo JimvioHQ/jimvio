@@ -28,7 +28,11 @@ import { Button } from "@/components/ui/button";
 import {
   updateCartItemQuantity,
   removeFromCart,
+  getProductVariants,
+  updateCartItemVariant,
 } from "@/lib/actions/marketplace";
+import { isPendingVariantSelection } from "@/lib/cart/pending-variant";
+import { VariantPickerDialog, type Variant } from "@/components/marketplace/variant-picker-dialog";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
   formatAggregatedCartTotalInDisplayCurrency,
@@ -153,6 +157,7 @@ function QtyInput({
   onChange: (n: number) => void;
 }) {
   const [local, setLocal] = useState(value.toString());
+  const lockRef = useRef(false);
 
   useEffect(() => {
     if (!loading) setLocal(value.toString());
@@ -169,15 +174,34 @@ function QtyInput({
     else setLocal(value.toString());
   };
 
+  const step = (delta: number) => {
+    if (loading || lockRef.current) return;
+    lockRef.current = true;
+    const next = value + delta;
+    if (next < 1) {
+      lockRef.current = false;
+      return;
+    }
+    if (max && next > max) {
+      lockRef.current = false;
+      return;
+    }
+    onChange(next);
+    window.setTimeout(() => {
+      lockRef.current = false;
+    }, 280);
+  };
+
   return (
     <div className="inline-flex items-center border border-[var(--color-border)] rounded overflow-hidden bg-[var(--color-surface)]">
       <button
-        onClick={() => value > 1 && onChange(value - 1)}
+        type="button"
+        onClick={() => step(-1)}
         disabled={value <= 1 || loading}
         aria-label="Decrease quantity"
         className="h-7 w-7 flex items-center justify-center text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] disabled:text-[var(--color-text-muted)] disabled:cursor-not-allowed transition-colors"
       >
-        <Minus className="h-3 w-3" />
+        <Minus className="h-3.5 w-3.5" />
       </button>
       <input
         type="text"
@@ -191,12 +215,13 @@ function QtyInput({
         className="w-8 h-7 text-center text-[13px] font-medium text-[var(--color-text-primary)] bg-transparent outline-none border-x border-[var(--color-border)] tabular-nums"
       />
       <button
-        onClick={() => (!max || value < max) && onChange(value + 1)}
+        type="button"
+        onClick={() => step(1)}
         disabled={(max ? value >= max : false) || loading}
         aria-label="Increase quantity"
         className="h-7 w-7 flex items-center justify-center text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] disabled:text-[var(--color-text-muted)] disabled:cursor-not-allowed transition-colors"
       >
-        <Plus className="h-3 w-3" />
+        <Plus className="h-3.5 w-3.5" />
       </button>
     </div>
   );
@@ -214,24 +239,72 @@ function OrangeCheckbox({
   label?: string;
 }) {
   return (
-    <label className="flex items-center gap-2 cursor-pointer select-none">
+    <label className="flex cursor-pointer select-none items-center gap-2">
       <span
+        role="checkbox"
+        aria-checked={checked}
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === " " || e.key === "Enter") {
+            e.preventDefault();
+            onChange(!checked);
+          }
+        }}
         onClick={() => onChange(!checked)}
         className={cn(
-          "h-[18px] w-[18px] rounded flex items-center justify-center border-2 transition-colors shrink-0",
+          "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md border-2 transition-[transform,border-color,background-color] duration-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2",
           checked
             ? "bg-[#F97316] border-[#F97316]"
             : "bg-white dark:bg-zinc-800 border-gray-300 dark:border-zinc-700 hover:border-[#F97316]"
         )}
       >
         {checked && (
-          <svg viewBox="0 0 10 8" className="h-2.5 w-2.5 fill-white">
+          <svg viewBox="0 0 10 8" className="h-2.5 w-2.5 fill-white" aria-hidden>
             <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </span>
       {label && <span className="text-sm text-gray-600 dark:text-zinc-400">{label}</span>}
     </label>
+  );
+}
+
+/* ─── Empty cart ─────────────────────────────────────────────────────────── */
+
+function EmptyCartIllustration() {
+  return (
+    <div className="relative mx-auto mb-8 h-36 w-36" aria-hidden>
+      <div className="absolute inset-0 rounded-full bg-[var(--color-accent-light)] opacity-80" />
+      <div className="absolute inset-3 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_12px_40px_rgba(0,0,0,0.06)]" />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <ShoppingCart className="h-12 w-12 text-[var(--color-accent)]" strokeWidth={1.5} />
+      </div>
+      <div className="absolute -right-1 top-6 grid h-10 w-10 place-items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
+        <Package className="h-4 w-4 text-[var(--color-text-muted)]" />
+      </div>
+      <div className="absolute -left-1 bottom-5 grid h-9 w-9 place-items-center rounded-full bg-emerald-500/10">
+        <ShieldCheck className="h-4 w-4 text-emerald-600" />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Cart skeleton ──────────────────────────────────────────────────────── */
+
+function CartItemSkeleton() {
+  return (
+    <div className="animate-pulse border-b border-[var(--color-border)] px-4 py-4 last:border-b-0">
+      <div className="flex gap-3">
+        <div className="h-[18px] w-[18px] rounded-md bg-[var(--color-surface-secondary)]" />
+        <div className="h-16 w-16 shrink-0 rounded-xl bg-[var(--color-surface-secondary)]" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="h-4 w-3/4 rounded bg-[var(--color-surface-secondary)]" />
+          <div className="h-3 w-1/3 rounded bg-[var(--color-surface-secondary)]" />
+          <div className="h-10 w-28 rounded-xl bg-[var(--color-surface-secondary)]" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -252,6 +325,11 @@ export function CartClient({ initialItems }: CartClientProps) {
   const [proceedingCheckout, setProceedingCheckout] = useState(false);
   const [discountExpanded, setDiscountExpanded] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
+  const [variantPickerItem, setVariantPickerItem] = useState<CartItem | null>(null);
+  const [pickerVariants, setPickerVariants] = useState<Variant[]>([]);
+  const [loadingVariantId, setLoadingVariantId] = useState<string | null>(null);
+  const [openingVariantPicker, setOpeningVariantPicker] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const hasMountedRef = useRef(false);
 
   /* Sync external prop changes after mount */
@@ -260,7 +338,10 @@ export function CartClient({ initialItems }: CartClientProps) {
       hasMountedRef.current = true;
       return;
     }
+    setIsSyncing(true);
     setItems(initialItems ?? []);
+    const t = window.setTimeout(() => setIsSyncing(false), 180);
+    return () => window.clearTimeout(t);
   }, [initialItems]);
 
   /* Handle checkout error params */
@@ -315,6 +396,11 @@ export function CartClient({ initialItems }: CartClientProps) {
     [items]
   );
 
+  const hasPendingVariants = useMemo(
+    () => items.some(isPendingVariantSelection),
+    [items]
+  );
+
   const allSelected =
     items.length > 0 && selectedIds.size === items.length;
 
@@ -335,6 +421,8 @@ export function CartClient({ initialItems }: CartClientProps) {
   /* Checkout */
   const handleProceedToCheckout = async () => {
     if (proceedingCheckout || items.length === 0) return;
+    if (hasPendingVariants) return;
+
     setProceedingCheckout(true);
     try {
       const result = await proceedToCheckout();
@@ -351,9 +439,44 @@ export function CartClient({ initialItems }: CartClientProps) {
     }
   };
 
+  const openVariantPicker = async (item: CartItem) => {
+    setOpeningVariantPicker(true);
+    setVariantPickerItem(item);
+    try {
+      const res = await getProductVariants(item.product_id);
+      setPickerVariants((res.variants ?? []) as Variant[]);
+    } catch (err) {
+      console.error(err);
+      setVariantPickerItem(null);
+    } finally {
+      setOpeningVariantPicker(false);
+    }
+  };
+
+  const handleVariantSelect = async (variantId: string) => {
+    if (!variantPickerItem) return;
+    setLoadingVariantId(variantId);
+    try {
+      const res = await updateCartItemVariant(variantPickerItem.id, variantId);
+      if (!res.success) {
+        toast.error(res.error || "Couldn't update options");
+        return;
+      }
+      setVariantPickerItem(null);
+      setPickerVariants([]);
+      window.dispatchEvent(new CustomEvent("cart-updated"));
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong");
+    } finally {
+      setLoadingVariantId(null);
+    }
+  };
+
   /* Quantity update */
   const handleUpdateQuantity = async (itemId: string, newQty: number) => {
-    if (newQty < 1) return;
+    if (newQty < 1 || loadingItems.includes(itemId)) return;
     setLoadingItems((p) => [...p, itemId]);
     setItems((prev) =>
       prev.map((i) => (i.id === itemId ? { ...i, quantity: newQty } : i))
@@ -423,17 +546,28 @@ export function CartClient({ initialItems }: CartClientProps) {
         </p>
         <Button
           asChild
-          className="h-10 px-6 rounded-md text-sm bg-[#F97316] text-white hover:bg-[#EA6C0A] font-semibold"
+          className={cn(
+            "h-11 rounded-xl px-8 text-sm font-semibold text-white",
+            "bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90",
+            "shadow-[0_4px_14px_rgba(253,80,0,0.22)] transition-[transform,box-shadow] duration-200",
+            "hover:scale-[1.02] active:scale-[0.98]",
+            "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+          )}
         >
-          <Link href="/marketplace">Browse Marketplace</Link>
+          <Link href="/marketplace">Continue Shopping</Link>
         </Button>
-      </div>
+      </motion.div>
     );
   }
 
   /* ── Main layout ── */
   return (
-    <div className="pb-24">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="pb-28 max-lg:pb-32 lg:pb-24"
+    >
       {/* ── Page header ── */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -488,6 +622,12 @@ export function CartClient({ initialItems }: CartClientProps) {
               </span>
             </div>
 
+            {isSyncing ? (
+              <>
+                <CartItemSkeleton />
+                <CartItemSkeleton />
+              </>
+            ) : (
             <AnimatePresence mode="popLayout" initial={false}>
               {[...vendorGroups.entries()].map(([vendorId, vendorItems]) => {
                 const vendor = vendorItems[0]?.vendors;
@@ -542,6 +682,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                           (variant?.options
                             ? Object.values(variant.options).join(" / ")
                             : null);
+                        const needsOptions = isPendingVariantSelection(item);
                         const lineTotal =
                           Number(item.unit_price_at_add) *
                           Number(item.quantity);
@@ -559,7 +700,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                             )}
                           >
                             {/* Desktop row */}
-                            <div className="hidden md:grid grid-cols-[auto_1fr_140px_90px_110px_90px_80px] gap-2 items-center px-4 py-4">
+                            <div className="hidden lg:grid grid-cols-[auto_1fr_140px_90px_110px_90px_80px] gap-2 items-center px-4 py-4">
                               {/* Checkbox */}
                               <OrangeCheckbox
                                 checked={isSelected}
@@ -567,7 +708,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                               />
 
                               {/* Product */}
-                              <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex min-w-0 items-center gap-3">
                                 <Link
                                   href={slug ? `/marketplace/${slug}` : "#"}
                                   className="relative h-16 w-16 shrink-0 bg-gray-50 dark:bg-zinc-800/40 rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden"
@@ -578,7 +719,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                                       alt={name}
                                       fill
                                       sizes="64px"
-                                      className="object-cover"
+                                      className="object-cover [image-rendering:auto]"
                                       onError={() =>
                                         setImageErrors((p) => ({
                                           ...p,
@@ -601,8 +742,10 @@ export function CartClient({ initialItems }: CartClientProps) {
                                   </Link>
                                   <p className="text-[11px] text-gray-400 dark:text-zinc-500 mt-0.5">
                                     SKU:{" "}
-                                    {item.source_metadata?.sku as string ||
-                                      item.product_id.slice(0, 14).toUpperCase()}
+                                    <span className="font-medium text-[var(--color-text-secondary)]">
+                                      {(item.source_metadata?.sku as string) ||
+                                        item.product_id.slice(0, 14).toUpperCase()}
+                                    </span>
                                   </p>
                                 </div>
                               </div>
@@ -626,17 +769,13 @@ export function CartClient({ initialItems }: CartClientProps) {
 
                               {/* Quantity */}
                               <div className="flex justify-center">
-                                {isLoading ? (
-                                  <Loader2 className="h-4 w-4 animate-spin text-[#F97316]" />
-                                ) : (
-                                  <QtyInput
-                                    value={item.quantity}
-                                    loading={isLoading}
-                                    onChange={(q) =>
-                                      handleUpdateQuantity(item.id, q)
-                                    }
-                                  />
-                                )}
+                                <QtyInput
+                                  value={item.quantity}
+                                  loading={isLoading}
+                                  onChange={(q) =>
+                                    handleUpdateQuantity(item.id, q)
+                                  }
+                                />
                               </div>
 
                               {/* Price */}
@@ -645,7 +784,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                               </div>
 
                               {/* Actions */}
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex items-center justify-center gap-1.5">
                                 <button
                                   className="h-7 w-7 flex items-center justify-center rounded text-gray-400 dark:text-zinc-500 hover:text-[#F97316] dark:hover:text-[#F97316] hover:bg-orange-50 dark:hover:bg-orange-950/20 transition-colors"
                                   aria-label="Save for later"
@@ -654,6 +793,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                                   <Bookmark className="h-4 w-4" />
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => handleRemove(item.id)}
                                   disabled={isRemoving}
                                   className="h-7 w-7 flex items-center justify-center rounded text-gray-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors disabled:opacity-50"
@@ -718,23 +858,22 @@ export function CartClient({ initialItems }: CartClientProps) {
                                   <QtyInput
                                     value={item.quantity}
                                     loading={isLoading}
-                                    onChange={(q) =>
-                                      handleUpdateQuantity(item.id, q)
-                                    }
+                                    onChange={(q) => handleUpdateQuantity(item.id, q)}
                                   />
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-zinc-100">
                                       {formatMoney(lineTotal, currency)}
                                     </span>
                                     <button
+                                      type="button"
                                       onClick={() => handleRemove(item.id)}
                                       disabled={isRemoving}
                                       className="h-7 w-7 flex items-center justify-center text-gray-400 dark:text-zinc-500 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50"
                                     >
                                       {isRemoving ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        <Loader2 className="h-4 w-4 animate-spin" />
                                       ) : (
-                                        <Trash2 className="h-3.5 w-3.5" />
+                                        <Trash2 className="h-4 w-4" />
                                       )}
                                     </button>
                                   </div>
@@ -775,7 +914,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                 ].map((b) => (
                   <div
                     key={b.title}
-                    className="flex items-center gap-3 px-4 py-3.5"
+                    className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--color-surface-secondary)]"
                   >
                     <div className="shrink-0">{b.icon}</div>
                     <div>
@@ -833,7 +972,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                   />
                 </button>
               {discountExpanded && (
-                <div className="px-4 pb-3 flex gap-2">
+                <div className="flex gap-2 px-4 pb-3">
                   <input
                     type="text"
                     value={discountCode}
@@ -841,7 +980,10 @@ export function CartClient({ initialItems }: CartClientProps) {
                     placeholder="Enter code"
                     className="flex-1 h-9 border border-gray-300 dark:border-zinc-700 rounded text-sm px-3 bg-transparent text-gray-900 dark:text-zinc-100 outline-none focus:border-[#F97316] transition-colors"
                   />
-                  <button className="h-9 px-3 rounded bg-[#F97316] text-white text-sm font-semibold hover:bg-[#EA6C0A] transition-colors">
+                  <button
+                    type="button"
+                    className="h-10 rounded-xl bg-[var(--color-accent)] px-3.5 text-sm font-semibold text-white transition-[transform,background-color] duration-200 hover:bg-[var(--color-accent)]/90 active:scale-[0.98]"
+                  >
                     Apply
                   </button>
                 </div>
@@ -893,17 +1035,29 @@ export function CartClient({ initialItems }: CartClientProps) {
               <span className="text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
                 Total
               </span>
-              <span className="text-xl font-bold text-[#F97316] tabular-nums">
+              <span className="text-xl font-extrabold tabular-nums tracking-[-0.02em] text-[var(--color-accent)]">
                 {totalsLabel}
               </span>
             </div>
 
             {/* Checkout button */}
             <div className="px-4 pb-6">
+              {hasPendingVariants && (
+                <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] leading-relaxed text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                  Please choose your product options before checkout.
+                </div>
+              )}
               <Button
                 onClick={handleProceedToCheckout}
-                disabled={proceedingCheckout || items.length === 0}
-                className="w-full rounded-md h-11 bg-[#F97316] hover:bg-[#EA6C0A] text-white font-semibold text-sm disabled:opacity-60 transition-colors"
+                disabled={proceedingCheckout || items.length === 0 || hasPendingVariants}
+                className={cn(
+                  "h-11 w-full rounded-xl border-none text-sm font-semibold text-white",
+                  "bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90",
+                  "shadow-[0_4px_14px_rgba(253,80,0,0.22)] transition-[transform,box-shadow,opacity] duration-200",
+                  "hover:scale-[1.01] active:scale-[0.99]",
+                  "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+                  "disabled:opacity-60 disabled:hover:scale-100",
+                )}
               >
                 {proceedingCheckout ? (
                   <span className="inline-flex items-center gap-2">
@@ -984,8 +1138,9 @@ export function CartClient({ initialItems }: CartClientProps) {
               {selectedIds.size === 1 ? "item" : "items"}
             </span>
           </span>
+          </div>
 
-          <div className="flex-1" />
+          <div className="hidden flex-1 sm:block" />
 
           {/* Subtotal */}
           <div className="text-sm">
@@ -996,8 +1151,9 @@ export function CartClient({ initialItems }: CartClientProps) {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <button
+              type="button"
               onClick={handleRemoveSelected}
               disabled={selectedIds.size === 0}
               className="inline-flex items-center gap-1.5 text-sm border rounded-sm px-3.5 py-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
@@ -1053,8 +1209,27 @@ export function CartClient({ initialItems }: CartClientProps) {
               )}
             </Button>
           </div>
+          </div>
         </div>
       </div>
-    </div>
+
+      <VariantPickerDialog
+        open={Boolean(variantPickerItem)}
+        onClose={() => {
+          setVariantPickerItem(null);
+          setPickerVariants([]);
+        }}
+        onSelect={handleVariantSelect}
+        variants={pickerVariants}
+        productName={variantPickerItem?.products?.name ?? "Product"}
+        productImage={
+          variantPickerItem?.products?.images?.[0] ??
+          variantPickerItem?.product_variants?.image_url ??
+          null
+        }
+        currency={variantPickerItem?.currency_at_add ?? "RWF"}
+        loadingVariantId={loadingVariantId}
+      />
+    </motion.div>
   );
 }

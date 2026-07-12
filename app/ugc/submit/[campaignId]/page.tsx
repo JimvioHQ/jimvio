@@ -80,7 +80,7 @@ export default function SubmitPage() {
           </p>
           <div className="flex gap-3 justify-center">
             <Link
-              href="/dashboard/submissions"
+              href="/ugc"
               className="px-5 py-2 rounded-xl bg-[var(--color-accent)] text-[var(--color-text-primary)] text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors"
             >
               View My Submissions

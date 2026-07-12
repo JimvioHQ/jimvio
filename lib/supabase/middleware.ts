@@ -19,10 +19,35 @@ function isGuestOnlyAuthPath(pathname: string): boolean {
   );
 }
 
+function hasSupabaseSession(request: NextRequest): boolean {
+  return request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   try {
+    const pathname = request.nextUrl.pathname;
+    const protectedPaths = ["/dashboard", "/admin", "/settings"];
+    const isProtected =
+      protectedPaths.some((p) => pathname.startsWith(p)) || isHubAuthRequired(pathname);
+    const hasSession = hasSupabaseSession(request);
+    const isGuestAuth = isGuestOnlyAuthPath(pathname);
+    const maintenance = await getMaintenanceModeEnabled();
+
+    // Anonymous public traffic — skip Supabase client + auth work entirely.
+    if (!maintenance && !hasSession && !isProtected && !isGuestAuth) {
+      return supabaseResponse;
+    }
+
+    // Maintenance wall for anonymous visitors (no auth client needed).
+    if (maintenance && !isMaintenanceExemptPath(pathname) && !hasSession) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/maintenance";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -44,16 +69,20 @@ export async function updateSession(request: NextRequest) {
       }
     );
 
-    const pathname = request.nextUrl.pathname;
-    const protectedPaths = ["/dashboard", "/admin", "/settings"];
-    const isProtected =
-      protectedPaths.some((p) => pathname.startsWith(p)) || isHubAuthRequired(pathname);
+    let cachedUser: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] | null = null;
+    let userResolved = false;
 
-    const hasSession = request.cookies.getAll().some(c => c.name.startsWith("sb-"));
-    const maintenance = await getMaintenanceModeEnabled();
+    const resolveUser = async () => {
+      if (!userResolved) {
+        const { data: { user } } = await supabase.auth.getUser();
+        cachedUser = user;
+        userResolved = true;
+      }
+      return cachedUser;
+    };
 
     if (maintenance && !isMaintenanceExemptPath(pathname)) {
-      const { data: { user: maintenanceUser } } = await supabase.auth.getUser();
+      const maintenanceUser = await resolveUser();
 
       if (maintenanceUser) {
         const isAdmin = await userIsPlatformAdmin(
@@ -78,9 +107,9 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url);
       }
     }
-    
-    if (isProtected || hasSession || isGuestOnlyAuthPath(pathname)) {
-      const { data: { user } } = await supabase.auth.getUser();
+
+    if (isProtected || hasSession || isGuestAuth) {
+      const user = await resolveUser();
 
       if (user && process.env.SUPABASE_SERVICE_ROLE_KEY) {
         const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
@@ -98,23 +127,26 @@ export async function updateSession(request: NextRequest) {
           return NextResponse.redirect(url);
         }
 
-        const metaSession = extractSessionMeta(request.headers);
-        const banned = await isSessionRevoked(user.id, metaSession).catch((err) => {
-          console.error("[middleware] session ban check failed:", err);
-          return false;
-        });
+        // Session revocation only on protected / auth-gated routes (avoids DB hit on every public page view).
+        if (isProtected || isGuestAuth) {
+          const metaSession = extractSessionMeta(request.headers);
+          const banned = await isSessionRevoked(user.id, metaSession).catch((err) => {
+            console.error("[middleware] session ban check failed:", err);
+            return false;
+          });
 
-        if (banned) {
-          await supabase.auth.signOut();
-          const url = request.nextUrl.clone();
-          url.pathname = "/login";
-          url.searchParams.set("error", "session_revoked");
-          url.searchParams.set("redirect", request.nextUrl.pathname);
-          return NextResponse.redirect(url);
+          if (banned) {
+            await supabase.auth.signOut();
+            const url = request.nextUrl.clone();
+            url.pathname = "/login";
+            url.searchParams.set("error", "session_revoked");
+            url.searchParams.set("redirect", request.nextUrl.pathname);
+            return NextResponse.redirect(url);
+          }
         }
       }
 
-      if (user && isGuestOnlyAuthPath(pathname)) {
+      if (user && isGuestAuth) {
         const next =
           request.nextUrl.searchParams.get("next") ??
           request.nextUrl.searchParams.get("redirect");

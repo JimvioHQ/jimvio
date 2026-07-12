@@ -5,45 +5,30 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  TrendingUp,
-  Link2,
-  Megaphone,
-  Target,
-  Wallet,
   Package,
   Truck,
   Heart,
-  BookOpen,
   Globe,
   Users,
   MessageSquare,
   Bell,
-  FileText,
-  Video,
   BarChart3,
-  Zap,
   Store,
   DollarSign,
   Settings,
-  Shield,
-  HelpCircle,
   ChevronLeft,
   ChevronRight,
-  ChevronDown,
-  Eye,
-  EyeOff,
-  ArrowUpRight,
   X,
-  FolderSymlink,
+  Boxes,
+  Monitor,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { motion, AnimatePresence } from "framer-motion";
-import { useCurrency } from "@/context/CurrencyContext";
-import { getUserBalance } from "@/lib/actions/wallet";
 import { createClient } from "@/lib/supabase/client";
 import { subscribePostgresChanges, unsubscribeRealtime } from "@/lib/supabase/realtime-subscribe";
+import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,16 +41,11 @@ export type DashboardRole =
 
 interface NavItem {
   label: string;
-  href: string;
+  href?: string;
   icon: React.ElementType;
   badge?: string;
-  requiredRole?: DashboardRole;
-}
-
-interface NavSection {
-  key: string;
-  title: string;
-  items: NavItem[];
+  onClick?: () => void;
+  activeMatch?: (pathname: string) => boolean;
 }
 
 interface SidebarProps {
@@ -83,106 +63,57 @@ interface SidebarProps {
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
-const SECTIONS: NavSection[] = [
+const NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   {
-    key: "earn",
-    title: "Earn",
-    items: [
-      { label: "Earnings", href: "/dashboard/earnings", icon: TrendingUp },
-      { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-      { label: "Affiliate links", href: "/dashboard/links", icon: Link2, requiredRole: "affiliate" },
-      { label: "Campaigns", href: "/dashboard/vendor/campaigns", icon: Megaphone, badge: "New" },
-      { label: "Creator missions", href: "/ugc", icon: Target },
-      { label: "Withdrawals", href: "/dashboard/withdrawals", icon: Wallet },
-    ],
+    label: "Marketplace",
+    href: "/marketplace",
+    icon: Package,
+    activeMatch: (p) => p.startsWith("/marketplace"),
+  },
+  { label: "Products", href: "/dashboard/products", icon: Package },
+  { label: "Orders", href: "/dashboard/orders", icon: Truck },
+  { label: "Customers", href: "/dashboard/vendor/orders", icon: Users },
+  { label: "Revenue", href: "/dashboard/payments", icon: DollarSign },
+  { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { label: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
+  { label: "Store", href: "/dashboard/vendor/store", icon: Store },
+  {
+    label: "Seller Hub",
+    href: "/dashboard/vendor/store",
+    icon: Boxes,
+    activeMatch: (p) => p.startsWith("/dashboard/vendor"),
   },
   {
-    key: "marketplace",
-    title: "Marketplace",
-    items: [
-      { label: "Browse products", href: "/marketplace", icon: Package },
-      { label: "Orders", href: "/dashboard/orders", icon: Truck },
-      { label: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
-      { label: "Digital library", href: "/dashboard/library", icon: BookOpen },
-    ],
+    label: "Communities",
+    href: "/dashboard/communities",
+    icon: Globe,
+    activeMatch: (p) =>
+      p.startsWith("/dashboard/communities") || p.startsWith("/communities"),
   },
-  {
-    key: "communities",
-    title: "Communities",
-    items: [
-      { label: "Explore", href: "/communities", icon: Globe },
-      { label: "My communities", href: "/dashboard/communities", icon: Users },
-      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-      { label: "Notifications", href: "/dashboard/notifications", icon: Bell },
-    ],
-  },
-  {
-    key: "creator",
-    title: "Creator hub",
-    items: [
-      { label: "Studio", href: "/dashboard/influencer", icon: LayoutDashboard, requiredRole: "influencer" },
-      { label: "My clips", href: "/dashboard/influencer/videos", icon: Video, requiredRole: "influencer" },
-      { label: "Submissions", href: "/dashboard/submissions", icon: FileText, requiredRole: "influencer" },
-      { label: "Analytics", href: "/dashboard/influencer/analytics", icon: BarChart3, requiredRole: "influencer" },
-      { label: "Explore missions", href: "/ugc", icon: Zap },
-    ],
-  },
-  {
-    key: "seller",
-    title: "Seller hub",
-    items: [
-      { label: "My store", href: "/dashboard/vendor/store", icon: Store, requiredRole: "vendor" },
-      { label: "Products", href: "/dashboard/products", icon: Package, requiredRole: "vendor" },
-      { label: "Orders", href: "/dashboard/vendor/orders", icon: Truck, requiredRole: "vendor" },
-      { label: "Revenue", href: "/dashboard/payments", icon: DollarSign, requiredRole: "vendor" },
-      { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, requiredRole: "vendor" },
-      { label: "Customers", href: "/dashboard/customers", icon: Users, requiredRole: "vendor" },
-    ],
-  },
-  {
-    key: "affiliate",
-    title: "Affiliate",
-    items: [
-      { label: "My links", href: "/dashboard/links", icon: FolderSymlink, requiredRole: "affiliate" },
-      { label: "Products", href: "/dashboard/affiliate/products", icon: Megaphone, requiredRole: "affiliate" },
-      { label: "Earnings", href: "/dashboard/earnings", icon: DollarSign, requiredRole: "affiliate" },
-      { label: "Analytics", href: "/dashboard/affiliate/analytics", icon: BarChart3, requiredRole: "affiliate" },
-    ],
-  },
-  {
-    key: "account",
-    title: "Account",
-    items: [
-      { label: "Settings", href: "/dashboard/settings", icon: Settings },
-      { label: "Security", href: "/dashboard/security", icon: Shield },
-      { label: "Help center", href: "/support", icon: HelpCircle },
-    ],
-  },
+  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
+  { label: "Notifications", href: "/dashboard/notifications", icon: Bell },
+  { label: "Account", href: "/dashboard/settings", icon: Settings },
+  { label: "Jimvio OS", icon: Monitor },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function activateHref(role: DashboardRole): string {
-  return role === "influencer"
-    ? "/dashboard/activate/creator"
-    : `/dashboard/activate/${role}`;
-}
-
 function BadgePill({ label }: { label: string }) {
-  const isNumeric = /^\d+$/.test(label);
+  const isNumeric = /^\d+$/.test(label) || label.endsWith("+");
   return (
     <span
       className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
       style={
         isNumeric
           ? {
-            backgroundColor: "var(--color-surface-secondary)",
-            color: "var(--color-text-muted)",
-          }
+              backgroundColor: "var(--color-surface-secondary)",
+              color: "var(--color-text-muted)",
+            }
           : {
-            backgroundColor: "var(--color-accent-subtle)",
-            color: "var(--color-accent)",
-          }
+              backgroundColor: "var(--color-accent-subtle)",
+              color: "var(--color-accent)",
+            }
       }
     >
       {label}
@@ -193,21 +124,14 @@ function BadgePill({ label }: { label: string }) {
 // ─── Sidebar inner content ────────────────────────────────────────────────────
 
 function SidebarContent({
-  user,
-  activeRoles,
   collapsed,
   onCollapsedChange,
   onMobileClose,
-}: Omit<SidebarProps, "mobileOpen">) {
+}: Omit<SidebarProps, "mobileOpen" | "user" | "activeRoles">) {
   const pathname = usePathname();
-  const { formatMoney } = useCurrency();
-  const [balance, setBalance] = React.useState({ available: 0, pending: 0 });
-  const [balanceHidden, setBalanceHidden] = React.useState(true);
+  const openOs = useJimvioOsStore((s) => s.openOs);
   const [unreadNotifications, setUnreadNotifications] = React.useState(0);
   const [unreadMessages, setUnreadMessages] = React.useState(0);
-  const [openSections, setOpenSections] = React.useState<Set<string>>(
-    new Set(["earn", "marketplace", "communities"])
-  );
 
   React.useEffect(() => {
     let cancelled = false;
@@ -215,20 +139,17 @@ function SidebarContent({
     let channel: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
     const channelPrefix = "sidebar-notifications";
 
-    async function refreshBadges() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || cancelled) return;
-
+    async function refreshBadges(userId: string) {
       const [{ count: notifCount }, { count: msgCount }] = await Promise.all([
         supabase
           .from("notifications")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .eq("is_read", false),
         supabase
           .from("notifications")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .eq("type", "message")
           .eq("is_read", false),
       ]);
@@ -239,10 +160,12 @@ function SidebarContent({
     }
 
     async function setup() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user || cancelled) return;
 
-      void refreshBadges();
+      await refreshBadges(user.id);
 
       channel = await subscribePostgresChanges(
         supabase,
@@ -253,8 +176,10 @@ function SidebarContent({
           table: "notifications",
           filter: `user_id=eq.${user.id}`,
         },
-        () => { void refreshBadges(); },
-        () => cancelled,
+        () => {
+          void refreshBadges(user.id);
+        },
+        () => cancelled
       );
     }
 
@@ -276,63 +201,108 @@ function SidebarContent({
     return fallback;
   }
 
-  React.useEffect(() => {
-    async function load() {
-      const res = await getUserBalance();
-      if (res.success)
-        setBalance({ available: res.available, pending: res.pending });
+  function isActive(item: NavItem): boolean {
+    if (item.activeMatch) return item.activeMatch(pathname);
+    if (!item.href) return false;
+    if (item.href === "/dashboard") return pathname === "/dashboard";
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
+
+  function handleItemClick(item: NavItem) {
+    if (item.label === "Jimvio OS") {
+      openOs();
+      onMobileClose?.();
+      return;
     }
-    load();
-    const t = setInterval(load, 120_000);
-    return () => clearInterval(t);
-  }, []);
-
-  function toggleSection(key: string) {
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
+    onMobileClose?.();
   }
 
-  function hasRole(r: DashboardRole) {
-    return activeRoles.includes("admin") || activeRoles.includes(r);
-  }
+  function renderNavItem(item: NavItem, compact = false) {
+    const active = isActive(item);
+    const Icon = item.icon;
+    const badge = badgeForItem(item.label, item.badge);
+    const isOs = item.label === "Jimvio OS";
 
-  function resolveHref(item: NavItem): string {
-    if (!item.requiredRole || item.requiredRole === "buyer") return item.href;
-    return hasRole(item.requiredRole) ? item.href : activateHref(item.requiredRole);
-  }
-
-  function isLocked(item: NavItem): boolean {
-    return (
-      !!item.requiredRole &&
-      item.requiredRole !== "buyer" &&
-      !hasRole(item.requiredRole)
+    const content = (
+      <>
+        {active && !compact && (
+          <span
+            className="absolute left-0 inset-y-[20%] w-[3px] rounded-r-full"
+            style={{ backgroundColor: "var(--color-accent)" }}
+          />
+        )}
+        <Icon
+          className={cn("flex-shrink-0", compact ? "h-4 w-4" : "h-3.5 w-3.5")}
+          style={{
+            color: active ? "var(--color-accent)" : "var(--color-text-muted)",
+          }}
+        />
+        {!compact && (
+          <>
+            <span className="flex-1 truncate">{item.label}</span>
+            {badge && <BadgePill label={badge} />}
+          </>
+        )}
+      </>
     );
-  }
 
-  function isActive(href: string): boolean {
-    if (href === "/dashboard") return pathname === "/dashboard";
-    return pathname === href || pathname.startsWith(`${href}/`);
+    const style = {
+      borderRadius: "var(--radius-sm)",
+      backgroundColor: active ? "var(--color-accent-light)" : "transparent",
+      color: active ? "var(--color-accent)" : "var(--color-text-secondary)",
+      fontWeight: active ? 600 : 500,
+    };
+
+    if (isOs || item.onClick) {
+      return (
+        <button
+          key={item.label}
+          type="button"
+          onClick={() => {
+            item.onClick?.();
+            handleItemClick(item);
+          }}
+          title={compact ? item.label : undefined}
+          className={cn(
+            "relative flex items-center gap-2.5 text-[13px] font-medium w-full text-left",
+            compact ? "w-9 h-9 justify-center" : "px-2.5 py-2"
+          )}
+          style={style}
+        >
+          {content}
+        </button>
+      );
+    }
+
+    return (
+      <Link
+        key={item.label}
+        href={item.href!}
+        onClick={() => onMobileClose?.()}
+        title={compact ? item.label : undefined}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "relative flex items-center gap-2.5 text-[13px] font-medium",
+          compact ? "w-9 h-9 justify-center" : "px-2.5 py-2"
+        )}
+        style={style}
+      >
+        {content}
+      </Link>
+    );
   }
 
   // ── Collapsed icon-only rail ───────────────────────────────────────────────
   if (collapsed) {
-    const collapsedItems: NavItem[] = [
-      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Earnings", href: "/dashboard/earnings", icon: TrendingUp },
-      { label: "Affiliate links", href: "/dashboard/links", icon: Link2 },
-      { label: "Campaigns", href: "/dashboard/vendor/campaigns", icon: Megaphone, badge: "New" },
-      { label: "Browse products", href: "/marketplace", icon: Package },
-      { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: badgeForItem("Messages") },
-      { label: "Notifications", href: "/dashboard/notifications", icon: Bell, badge: badgeForItem("Notifications") },
-      { label: "Settings", href: "/dashboard/settings", icon: Settings },
-    ];
+    const collapsedItems = NAV_ITEMS.filter(
+      (item) =>
+        !["Customers", "Revenue", "Analytics", "Wishlist", "Store", "Seller Hub", "Account"].includes(
+          item.label
+        )
+    );
 
     return (
       <div className="flex flex-col h-full">
-        {/* Logo */}
         <div
           className="flex justify-center items-center h-14 flex-shrink-0"
           style={{ borderBottom: "1px solid var(--color-border)" }}
@@ -350,64 +320,8 @@ function SidebarContent({
           </button>
         </div>
 
-        {/* Wallet icon */}
-        <div
-          className="flex justify-center py-3 flex-shrink-0"
-          style={{ borderBottom: "1px solid var(--color-border)" }}
-        >
-          <Link
-            href="/dashboard/wallet"
-            title="My wallet"
-            className="w-9 h-9 flex items-center justify-center"
-            style={{
-              borderRadius: "var(--radius-md)",
-              backgroundColor: "var(--color-accent-light)",
-              border: "1px solid var(--color-accent-subtle)",
-              color: "var(--color-accent)",
-            }}
-          >
-            <Wallet className="h-4 w-4" />
-          </Link>
-        </div>
-
-        {/* Nav icons */}
-        <nav
-          className="flex-1 flex flex-col items-center gap-1 py-3 overflow-y-auto no-scrollbar"
-        >
-          {collapsedItems.map((item) => {
-            const active = isActive(item.href);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={resolveHref(item)}
-                title={item.label}
-                className="relative w-9 h-9 flex items-center justify-center"
-                style={{
-                  borderRadius: "var(--radius-sm)",
-                  backgroundColor: active ? "var(--color-accent-light)" : "transparent",
-                  color: active ? "var(--color-accent)" : "var(--color-text-muted)",
-                }}
-              >
-                <Icon className="h-4 w-4" />
-                {item.badge && (
-                  <span
-                    className="absolute top-0.5 right-0.5 flex items-center justify-center rounded-full font-bold"
-                    style={{
-                      width: /^\d/.test(item.badge) ? "1rem" : "0.5rem",
-                      height: /^\d/.test(item.badge) ? "1rem" : "0.5rem",
-                      fontSize: "8px",
-                      backgroundColor: "var(--color-accent)",
-                      color: "white",
-                      border: "2px solid var(--color-bg)",
-                    }}
-                  >
-                    {/^\d/.test(item.badge) ? item.badge : ""}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 flex flex-col items-center gap-1 py-3 overflow-y-auto no-scrollbar">
+          {collapsedItems.map((item) => renderNavItem(item, true))}
         </nav>
 
         {/* Profile icon */}
@@ -452,20 +366,12 @@ function SidebarContent({
 
   // ── Expanded sidebar ───────────────────────────────────────────────────────
   return (
-    <div
-      className="flex flex-col h-full"
-      style={{ backgroundColor: "var(--color-bg)" }}
-    >
-      {/* Logo bar */}
+    <div className="flex flex-col h-full" style={{ backgroundColor: "var(--color-bg)" }}>
       <div
         className="flex items-center justify-between px-4 h-14 flex-shrink-0"
         style={{ borderBottom: "1px solid var(--color-border)" }}
       >
-        <Link
-          href="/"
-          onClick={onMobileClose}
-          className="flex items-center gap-2 min-w-0"
-        >
+        <Link href="/" onClick={onMobileClose} className="flex items-center gap-2 min-w-0">
           <div
             className="w-7 h-7 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
             style={{
@@ -516,75 +422,8 @@ function SidebarContent({
         </div>
       </div>
 
-      {/* Wallet widget */}
-      <div className="px-3 pt-3 pb-2 flex-shrink-0">
-        <Link
-          href="/dashboard/wallet"
-          onClick={onMobileClose}
-          className="block group"
-          style={{
-            padding: "0.75rem",
-            borderRadius: "var(--radius-md)",
-            backgroundColor: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            boxShadow: "var(--shadow-sm)",
-          }}
-        >
-          {/* Widget header */}
-          <div className="flex items-center justify-between mb-2">
-            <div
-              className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              <Wallet
-                className="h-3 w-3"
-                style={{ color: "var(--color-accent)" }}
-              />
-              Balance
-            </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setBalanceHidden((v) => !v);
-              }}
-              aria-label={balanceHidden ? "Show balance" : "Hide balance"}
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              {balanceHidden
-                ? <EyeOff className="h-3 w-3" />
-                : <Eye className="h-3 w-3" />}
-            </button>
-          </div>
-
-          {/* Amount */}
-          <p
-            className="text-[17px] font-semibold tabular-nums leading-none mb-1.5"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            {balanceHidden ? "••••••" : formatMoney(balance.available, "USD")}
-          </p>
-
-          {/* Pending row */}
-          <div className="flex items-center justify-between">
-            <span
-              className="text-[11px]"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              {balanceHidden ? "•••" : formatMoney(balance.pending, "USD")} pending
-            </span>
-            <ArrowUpRight
-              className="h-3 w-3"
-              style={{ color: "var(--color-text-muted)" }}
-            />
-          </div>
-        </Link>
-      </div>
-
-      {/* Navigation */}
       <nav
-        className="flex-1 overflow-y-auto px-2.5 py-1 no-scrollbar"
+        className="flex-1 overflow-y-auto px-2.5 py-3 no-scrollbar"
         aria-label="Dashboard navigation"
       >
         {/* Dashboard standalone link */}
@@ -769,11 +608,10 @@ export function Sidebar({
   mobileOpen,
   onMobileClose,
 }: SidebarProps) {
-  const sharedProps = { user, activeRoles, collapsed, onCollapsedChange, onMobileClose };
+  const sharedProps = { collapsed, onCollapsedChange, onMobileClose };
 
   return (
     <>
-      {/* Desktop sidebar */}
       <motion.aside
         initial={false}
         animate={{ width: collapsed ? "3.5rem" : "14rem" }}
@@ -787,7 +625,6 @@ export function Sidebar({
         <SidebarContent {...sharedProps} />
       </motion.aside>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>

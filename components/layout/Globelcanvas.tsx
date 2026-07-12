@@ -537,7 +537,10 @@ function GlobeView({
   const { data: liveGlobeData } = useSWR<{
     events: any[];
     stats: { totalUsers: number; totalOrders: number; activeCountries: number };
-  }>("/api/globe-data", fetcher, { refreshInterval: 60000 });
+  }>("/api/globe-data", fetcher, {
+    revalidateOnFocus: true,
+    dedupingInterval: 300_000,
+  });
 
   const dynamicCards = useMemo(() => {
     if (!liveGlobeData || !liveGlobeData.events || liveGlobeData.events.length === 0) {

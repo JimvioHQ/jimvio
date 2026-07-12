@@ -18,11 +18,14 @@ import {
 } from "@/lib/cj/import-intelligence/product-utils";
 import { HealthScoreCircle } from "./health-score-circle";
 import { CatalogBadgesRow } from "./catalog-badges-row";
+import { AutoPublishBadge } from "./auto-publish-badge";
+import { AutoPublishChecklist } from "./auto-publish-checklist";
+import { evaluateAutoPublish } from "@/lib/cj/import-intelligence/auto-publish-engine";
 import { CATALOG_TIER_STYLES } from "@/lib/cj/import-intelligence/quality-engine";
 import { cn } from "@/lib/utils";
 
 export const CARD_WIDTH = 210;
-export const CARD_HEIGHT = 320;
+export const CARD_HEIGHT = 368;
 export const GRID_GAP = 12;
 
 export const IntelligenceProductCard = memo(function IntelligenceProductCard({
@@ -62,12 +65,13 @@ export const IntelligenceProductCard = memo(function IntelligenceProductCard({
     enriched && product.reviewCount != null && product.reviewCount > 0
       ? product.reviewCount
       : product.listedNum;
+  const autoPublish = intel.autoPublish ?? evaluateAutoPublish(product);
 
   return (
     <article
       data-cj-pid={product.pid}
       className={cn(
-        "group flex h-[320px] w-full max-w-[210px] flex-col overflow-hidden rounded-[14px] border bg-white mx-auto",
+        "group flex h-[368px] w-full max-w-[210px] flex-col overflow-hidden rounded-[14px] border bg-white mx-auto",
         "shadow-[0_1px_3px_rgba(17,24,39,0.06)] transition-all duration-200",
         "hover:border-[#FF5A1F]/35 hover:shadow-[0_8px_28px_rgba(17,24,39,0.1)]",
         selected
@@ -166,7 +170,15 @@ export const IntelligenceProductCard = memo(function IntelligenceProductCard({
           )}
         </div>
 
-        <div className="mt-1.5 grid flex-1 grid-cols-3 gap-x-2 gap-y-1 text-[9.5px]">
+        <div className="mt-1 space-y-1">
+          <AutoPublishBadge
+            status={autoPublish.status}
+            score={autoPublish.score}
+          />
+          <AutoPublishChecklist checks={autoPublish.checks} compact />
+        </div>
+
+        <div className="mt-1 grid flex-1 grid-cols-3 gap-x-2 gap-y-0.5 text-[9px]">
           <Metric
             label="Profit"
             value={`$${profit.estimatedProfit.toFixed(0)}`}

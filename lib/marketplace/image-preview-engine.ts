@@ -5,6 +5,8 @@
 
 const SLIDE_INTERVAL_MS = 1000;
 
+const preloadedUrls = new Set<string>();
+
 export interface ImagePreviewCallbacks {
   onStart: () => void;
   onStop: () => void;
@@ -61,10 +63,12 @@ export class ImagePreviewEngine {
   static slideIntervalMs = SLIDE_INTERVAL_MS;
 }
 
-/** Preload secondary images without blocking the main thread. */
+/** Preload images once — cached URLs are skipped on subsequent hovers. */
 export function preloadPreviewImages(urls: string[]) {
   if (typeof window === "undefined") return;
   for (const src of urls) {
+    if (!src || preloadedUrls.has(src)) continue;
+    preloadedUrls.add(src);
     const img = new window.Image();
     img.decoding = "async";
     img.src = src;

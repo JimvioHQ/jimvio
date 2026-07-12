@@ -2,7 +2,7 @@ import {
     getServiceClient,
     getCJToken,
     getCJVendorId,
-    cjFetch,
+    cjFetchWithRetry,
 } from "@/lib/cj/client";
 import {
     type CJProduct,
@@ -17,7 +17,7 @@ import {
     fetchCJVariantStockMap,
     syncProductInventoryFromVariants,
 } from "@/lib/cj/sync-inventory";
-import { mergeProductVideoUrls, normalizeCjVideoUrls } from "@/lib/cj/product-videos";
+import { mergeProductVideoUrls, normalizeCjVideoUrls, extractVideosFromHtml } from "@/lib/cj/product-videos";
 import { fetchCjProductVideoUrls } from "@/lib/cj/fetch-product-videos";
 import { normalizeCjVid } from "@/lib/cj/variant-vid";
 import { requireAdmin } from "@/lib/auth/api-helpers";
@@ -174,10 +174,12 @@ export async function POST(req: Request): Promise<Response> {
             getCJVendorId(supabase),
         ]);
 
-        // ── Step 1: Fetch full product detail from CJ ─────────────────────
-        const detail = await cjFetch<CJDetailResponse>(
+        // ── Step 1: Fetch full product detail from CJ (retry on 429/5xx) ──
+        const detail = await cjFetchWithRetry<CJDetailResponse>(
             `/product/query?pid=${encodeURIComponent(pid)}&features=enable_inventory,enable_video`,
-            token
+            token,
+            {},
+            { maxRetries: 6, baseDelayMs: 1500 },
         );
 
         if (!detail.data?.pid) {
@@ -200,6 +202,12 @@ export async function POST(req: Request): Promise<Response> {
             detail.data.productKeySet ??
             [];
 
+        const detailVideos = mergeProductVideoUrls(
+            normalizeCjVideoUrls(detail.data.productVideo),
+            normalizeCjVideoUrls(detail.data.videoList),
+            detail.data.description ? extractVideosFromHtml(detail.data.description) : [],
+        );
+
         const { videos: resolvedVideos } = await fetchCjProductVideoUrls(
             token,
             pid,
@@ -209,6 +217,7 @@ export async function POST(req: Request): Promise<Response> {
                 description: detail.data.description,
                 bigImage: detail.data.bigImage,
             },
+            { skipVideoApi: detailVideos.length > 0 },
         );
 
         const cjProduct = detailToCJProduct(detail.data, resolvedVideos);
@@ -268,14 +277,14 @@ export async function POST(req: Request): Promise<Response> {
                     `[CJ import] Variant upsert failed for ${productId}:`,
                     variantErr
                 );
-                return Response.json(
-                    {
-                        success: false,
-                        productId,
-                        error: `Product saved but variants failed: ${variantErr}`,
-                    },
-                    { status: 500 }
-                );
+                // Product row saved — manual import succeeds as draft even if variants fail
+                return Response.json({
+                    success: true,
+                    productId,
+                    variantsImported: 0,
+                    videosImported: resolvedVideos.length,
+                    warning: `Product saved but variants failed: ${variantErr}`,
+                });
             }
 
             const productStock = await syncProductInventoryFromVariants(supabase, productId);
@@ -293,11 +302,18 @@ export async function POST(req: Request): Promise<Response> {
 
         // ✅ Fix: moved subscribe outside the variants block
         // Previously skipped entirely if variants array was empty
-        await subscribeCJProducts({
-            accessToken: token,
-            productIds: [cjProduct.pid],
-            subscribeAll: false,
-        });
+        try {
+            await subscribeCJProducts({
+                accessToken: token,
+                productIds: [cjProduct.pid],
+                subscribeAll: false,
+            });
+        } catch (err) {
+            console.warn(
+                `[CJ import] Webhook subscribe failed for ${pid}:`,
+                err instanceof Error ? err.message : err
+            );
+        }
 
         // ── Step 5: Record the CJ → internal product mapping ─────────────
         await supabase

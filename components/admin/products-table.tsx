@@ -852,11 +852,12 @@
 
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { MoveProductDialog } from "@/components/admin/MoveProductDialog";
+import { BulkPublishDialog, type BulkPublishProduct } from "@/components/admin/products/bulk-publish-dialog";
 import { EmptyState, Th, StatusPill } from "@/components/ui/admin";
 import { formatAdminMoney } from "@/lib/admin/format-money";
 import { publishAdminProduct } from "@/lib/actions/admin-products";
@@ -1038,12 +1039,13 @@ function ConfirmDeleteDialog({
     );
 }
 
-function BulkActionBar({ count, onClear, onMoveSuccess, onDeleteRequest, selectedIds }: {
+function BulkActionBar({ count, onClear, onMoveSuccess, onDeleteRequest, onPublishRequest, selectedIds }: {
     count: number;
     selectedIds: string[];
     onClear: () => void;
     onMoveSuccess: () => void;
     onDeleteRequest: () => void;
+    onPublishRequest: () => void;
 }) {
     if (count === 0) return null;
     return (
@@ -1056,6 +1058,12 @@ function BulkActionBar({ count, onClear, onMoveSuccess, onDeleteRequest, selecte
                 <span><strong>{count}</strong> product{count !== 1 ? "s" : ""} selected</span>
             </div>
             <div className="flex items-center gap-2">
+                <button
+                    onClick={onPublishRequest}
+                    className="h-[30px] px-3 rounded-md bg-emerald-500 hover:bg-emerald-600 border border-emerald-400 text-white text-[12px] font-bold inline-flex items-center gap-1.5"
+                >
+                    <Rocket size={12} /> Publish Selected
+                </button>
                 <MoveProductDialog
                     productIds={selectedIds}
                     currentVendorName="Various vendors"
@@ -1345,8 +1353,58 @@ function Pagination({ page, pageSize, total, buildUrl, onPageSizeChange }: {
     );
 }
 
+function SelectionHelpers({
+    pageCount,
+    totalMatching,
+    selectMode,
+    loadingAll,
+    onSelectPage,
+    onSelectAllMatching,
+    onClear,
+}: {
+    pageCount: number;
+    totalMatching: number;
+    selectMode: "none" | "page" | "all";
+    loadingAll: boolean;
+    onSelectPage: () => void;
+    onSelectAllMatching: () => void;
+    onClear: () => void;
+}) {
+    if (totalMatching === 0) return null;
+    return (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 text-[12px] text-[var(--color-text-muted)] border-b border-[var(--color-border)]/60 bg-[var(--color-surface-secondary)]/30">
+            <span className="font-semibold text-[var(--color-text-secondary)]">Select:</span>
+            <button
+                type="button"
+                onClick={onSelectPage}
+                className={`hover:text-[var(--color-accent)] ${selectMode === "page" ? "text-[var(--color-accent)] font-semibold" : ""}`}
+            >
+                Select page ({pageCount})
+            </button>
+            {totalMatching > pageCount && (
+                <>
+                    <span aria-hidden="true">·</span>
+                    <button
+                        type="button"
+                        onClick={onSelectAllMatching}
+                        disabled={loadingAll}
+                        className={`hover:text-[var(--color-accent)] disabled:opacity-50 ${selectMode === "all" ? "text-[var(--color-accent)] font-semibold" : ""}`}
+                    >
+                        {loadingAll ? "Loading…" : `Select all matching (${totalMatching})`}
+                    </button>
+                </>
+            )}
+            <span aria-hidden="true">·</span>
+            <button type="button" onClick={onClear} className="hover:text-[var(--color-text-primary)]">
+                Unselect all
+            </button>
+        </div>
+    );
+}
+
 export function ProductsTable({
     products, total, page, pageSize, sort, order, query, searchParams,
+    onBulkPublished,
 }: {
     products: any[];
     total: number;
@@ -1356,9 +1414,34 @@ export function ProductsTable({
     order: string;
     query?: string;
     searchParams: Record<string, string | undefined>;
+    onBulkPublished?: (publishedIds: string[]) => void;
 }) {
     const router = useRouter();
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [selectMode, setSelectMode] = useState<"none" | "page" | "all">("none");
+    const [allMatchingProducts, setAllMatchingProducts] = useState<BulkPublishProduct[]>([]);
+    const [loadingAllMatching, setLoadingAllMatching] = useState(false);
+    const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+
+    const filterKey = useMemo(
+        () => JSON.stringify({
+            q: query ?? "",
+            status: searchParams.status ?? "all",
+            source: searchParams.source ?? "all",
+            featured: searchParams.featured ?? "",
+        }),
+        [query, searchParams.status, searchParams.source, searchParams.featured]
+    );
+
+    const publishFilters = useMemo(
+        () => ({
+            q: query ?? "",
+            status: searchParams.status ?? "all",
+            source: searchParams.source ?? "all",
+            featured: searchParams.featured === "1" ? "1" : "",
+        }),
+        [query, searchParams.status, searchParams.source, searchParams.featured]
+    );
 
     const [deleteDialog, setDeleteDialog] = useState<{
         open: boolean;
@@ -1367,13 +1450,50 @@ export function ProductsTable({
         loading: boolean;
     }>({ open: false, ids: [], loading: false });
 
-    useEffect(() => { setSelectedIds(new Set()); }, [products]);
+    useEffect(() => {
+        setSelectedIds(new Set());
+        setSelectMode("none");
+        setAllMatchingProducts([]);
+    }, [filterKey]);
 
     const pageIds = products.map((p) => p.id);
     const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
     const someSelected = pageIds.some((id) => selectedIds.has(id));
 
+    const fetchAllMatching = useCallback(async (): Promise<BulkPublishProduct[]> => {
+        const res = await fetch("/api/admin/products/bulk-publish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ selectAll: true, dryRun: true, filters: publishFilters }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error ?? "Could not load matching products");
+        return (data.products ?? []) as BulkPublishProduct[];
+    }, [publishFilters]);
+
+    function selectPage() {
+        setSelectMode("page");
+        setAllMatchingProducts([]);
+        setSelectedIds(new Set(pageIds));
+    }
+
+    async function selectAllMatching() {
+        setLoadingAllMatching(true);
+        try {
+            const rows = await fetchAllMatching();
+            setAllMatchingProducts(rows);
+            setSelectMode("all");
+            setSelectedIds(new Set(rows.map((r) => r.id)));
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Could not select all matching");
+        } finally {
+            setLoadingAllMatching(false);
+        }
+    }
+
     function toggleOne(id: string) {
+        setSelectMode("none");
+        setAllMatchingProducts([]);
         setSelectedIds((prev) => {
             const next = new Set(prev);
             next.has(id) ? next.delete(id) : next.add(id);
@@ -1382,15 +1502,64 @@ export function ProductsTable({
     }
 
     function toggleAll() {
-        setSelectedIds((prev) => {
-            const next = new Set(prev);
-            if (allSelected) pageIds.forEach((id) => next.delete(id));
-            else pageIds.forEach((id) => next.add(id));
-            return next;
-        });
+        if (allSelected) {
+            clearSelection();
+        } else {
+            selectPage();
+        }
     }
 
-    function clearSelection() { setSelectedIds(new Set()); }
+    function clearSelection() {
+        setSelectedIds(new Set());
+        setSelectMode("none");
+        setAllMatchingProducts([]);
+    }
+
+    const selectedProductsForPublish = useMemo((): BulkPublishProduct[] => {
+        if (selectMode === "all" && allMatchingProducts.length > 0) {
+            return allMatchingProducts.filter((p) => selectedIds.has(p.id));
+        }
+        return products
+            .filter((p) => selectedIds.has(p.id))
+            .map((p) => ({
+                id: p.id,
+                name: p.name,
+                status: p.status,
+                images: p.images,
+            }));
+    }, [selectMode, allMatchingProducts, products, selectedIds]);
+
+    function requestPublishBulk() {
+        if (selectedIds.size === 0) return;
+        setPublishDialogOpen(true);
+    }
+
+    const handlePublishComplete = useCallback(
+        (summary: { published: number; skipped: number; failed: number; publishedIds: string[] }) => {
+            if (summary.published > 0 && summary.failed === 0 && summary.skipped === 0) {
+                toast.success(`Published ${summary.published} product${summary.published !== 1 ? "s" : ""} successfully`);
+            } else if (summary.published > 0) {
+                toast.warning(
+                    `Published ${summary.published}, skipped ${summary.skipped}, failed ${summary.failed}`
+                );
+            } else if (summary.failed > 0) {
+                toast.error(`Publish failed for ${summary.failed} product${summary.failed !== 1 ? "s" : ""}`);
+            } else {
+                toast.info("No draft products to publish in selection");
+            }
+
+            if (summary.publishedIds.length > 0) {
+                onBulkPublished?.(summary.publishedIds);
+                setAllMatchingProducts((prev) =>
+                    prev.map((p) =>
+                        summary.publishedIds.includes(p.id) ? { ...p, status: "active" } : p
+                    )
+                );
+            }
+            clearSelection();
+        },
+        [onBulkPublished]
+    );
 
     function requestDeleteOne(id: string, name: string) {
         setDeleteDialog({ open: true, ids: [id], productName: name, loading: false });
@@ -1474,15 +1643,32 @@ export function ProductsTable({
                 loading={deleteDialog.loading}
             />
 
+            <BulkPublishDialog
+                open={publishDialogOpen}
+                products={selectedProductsForPublish}
+                onClose={() => setPublishDialogOpen(false)}
+                onComplete={handlePublishComplete}
+            />
+
             <BulkActionBar
                 count={selectedIds.size}
                 selectedIds={[...selectedIds]}
                 onClear={clearSelection}
                 onMoveSuccess={clearSelection}
                 onDeleteRequest={requestDeleteBulk}
+                onPublishRequest={requestPublishBulk}
             />
 
             <div className={`bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] overflow-hidden ${hasBulk ? "rounded-b-2xl border-t-0" : "rounded-2xl"}`}>
+                <SelectionHelpers
+                    pageCount={pageIds.length}
+                    totalMatching={total}
+                    selectMode={selectMode}
+                    loadingAll={loadingAllMatching}
+                    onSelectPage={selectPage}
+                    onSelectAllMatching={() => void selectAllMatching()}
+                    onClear={clearSelection}
+                />
                 <div className="overflow-x-auto">
                     <table className="w-full text-[12.5px]">
                         <thead className="bg-[var(--color-surface-secondary)]/50">

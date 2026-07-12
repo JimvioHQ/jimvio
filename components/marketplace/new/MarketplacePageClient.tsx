@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Zap, ChevronRight, ArrowRight,
-  Sparkles, Camera,
+  Sparkles, Camera, Search,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchProductVideosMap, attachProductVideos } from "@/lib/product-videos";
@@ -17,10 +17,10 @@ import { ProductTestimonialsCarousel } from "./ProductTestimonialsCarousel";
 import { MarketplaceTrustStrip } from "./MarketplaceTrustStrip";
 import { useMarketplace } from "./marketplace-context";
 import type { DbProduct } from "@/lib/utils";
-import { isRenderableUrl } from "@/lib/utils";
+import { isRenderableUrl, SELECT_CATEGORY_LABEL } from "@/lib/utils";
 import { Sidebar } from "./Sidebar";
 import { MarketplacePagination } from "./MarketplacePagination";
-import { MARKETPLACE_PAGE_SIZE, parseMarketplacePage } from "@/lib/marketplace/constants";
+import { MARKETPLACE_PAGE_SIZE } from "@/lib/marketplace/constants";
 import {
   getMarketplaceTypeFilter,
   type MarketplacePageBundle,
@@ -29,14 +29,19 @@ import {
 } from "@/lib/marketplace/fetch-page-data";
 import { DEFAULT_FILTERS } from "@/lib/utils";
 import { resolveShopCategories } from "@/lib/marketplace/category-catalog";
+import { dedupeProductsByIdentity, resolveMarketplaceFlashDeals, HOMEPAGE_FLASH_DEALS_LIMIT } from "@/lib/marketplace/homepage-ranking";
 import { getCategoryImageFallbacks } from "@/lib/marketplace/category-images";
 import {
   MarketplaceSearchBar,
   MarketplaceSearchIcon,
   marketplaceSearchBarClassName,
 } from "./MarketplaceSearchBar";
-import { MarketplaceSearchPopover } from "./MarketplaceSearchPopover";
+import {
+  MarketplaceSearchPopover,
+  type MarketplaceSearchPopoverHandle,
+} from "./MarketplaceSearchPopover";
 import Link from "next/link";
+import { PersonalizedMarketplaceFeed } from "./personalized/PersonalizedMarketplaceFeed";
 
 type ProductType = MarketplaceProductType;
 
@@ -49,11 +54,9 @@ function parseUrlType(raw: string | null, fallback: ProductType): ProductType {
 function isDefaultBrowseState(
   filters: typeof DEFAULT_FILTERS & { shippingFrom: string[] },
   debouncedSearch: string,
-  page: number,
 ) {
   return (
     !debouncedSearch &&
-    page === 1 &&
     filters.category === DEFAULT_FILTERS.category &&
     filters.shippingFrom.length === 0 &&
     filters.deliveryTimes.length === 0 &&
@@ -74,8 +77,8 @@ function applyBundleToState(
     setListingCount: (v: number) => void;
   },
 ) {
-  setters.setFlashDeals(bundle.flashDeals);
-  setters.setTrending(bundle.trending);
+  setters.setFlashDeals(dedupeProductsByIdentity(bundle.flashDeals));
+  setters.setTrending(dedupeProductsByIdentity(bundle.trending));
   setters.setCategories(bundle.categories);
   setters.setCategoriesType(productType);
   setters.setListingCount(bundle.listingCount);
@@ -121,10 +124,12 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
     return mapped;
   }, [c.image_url, c.name, c.slug, type]);
   const [fallbackIdx, setFallbackIdx] = useState(0);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const imgSrc = fallbacks[fallbackIdx] ?? fallbacks[0];
 
   useEffect(() => {
     setFallbackIdx(0);
+    setImgLoaded(false);
   }, [c.id, c.image_url, c.name, c.slug]);
 
   if (!imgSrc) return null;
@@ -171,13 +176,19 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
 
 function SkeletonDeals() {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
       {Array.from({ length: 6 }).map((_, i) => (
         <div
           key={i}
-          className="h-44 animate-pulse rounded-xl"
-          style={{ background: "var(--color-surface-secondary)" }}
-        />
+          className="overflow-hidden rounded-xl border border-[var(--color-border)]"
+          style={{ background: "var(--color-surface)" }}
+        >
+          <div className="aspect-square animate-pulse" style={{ background: "var(--color-surface-secondary)" }} />
+          <div className="space-y-2 p-2.5">
+            <div className="h-3 w-full animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
+            <div className="h-3 w-2/3 animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -185,13 +196,20 @@ function SkeletonDeals() {
 
 function SkeletonGrid() {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
       {Array.from({ length: 10 }).map((_, i) => (
         <div
           key={i}
-          className="h-52 animate-pulse rounded-xl"
-          style={{ background: "var(--color-surface-secondary)" }}
-        />
+          className="overflow-hidden rounded-xl border border-[var(--color-border)]"
+          style={{ background: "var(--color-surface)" }}
+        >
+          <div className="aspect-square animate-pulse" style={{ background: "var(--color-surface-secondary)" }} />
+          <div className="space-y-2 p-2.5">
+            <div className="h-3 w-full animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
+            <div className="h-3 w-4/5 animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
+            <div className="h-4 w-1/2 animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -221,9 +239,23 @@ export function MarketplacePageClient({
     setType(urlType);
   }, [urlType]);
 
-  const cacheRef = useRef<Record<ProductType, MarketplacePageBundle>>(initialBundles);
+  const cacheRef = useRef<Record<ProductType, MarketplacePageBundle>>({
+    physical: {
+      ...initialBundles.physical,
+      flashDeals: dedupeProductsByIdentity(initialBundles.physical.flashDeals),
+      trending: dedupeProductsByIdentity(initialBundles.physical.trending),
+    },
+    digital: {
+      ...initialBundles.digital,
+      flashDeals: dedupeProductsByIdentity(initialBundles.digital.flashDeals),
+      trending: dedupeProductsByIdentity(initialBundles.digital.trending),
+    },
+  });
   const loadGenRef = useRef(0);
   const skipInitialFetchRef = useRef(true);
+  const hydrateAllRef = useRef<string | null>(null);
+  const prefetchRef = useRef<Map<string, DbProduct[]>>(new Map());
+  const prefetchingRef = useRef<Set<string>>(new Set());
 
   function applyCachedType(t: ProductType) {
     const cached = cacheRef.current[t];
@@ -239,15 +271,20 @@ export function MarketplacePageClient({
   }
 
   function handleTypeChange(t: ProductType) {
+    loadGenRef.current += 1;
     setType(t);
-    setCategory("Trending Now");
+    setCategory("");
     clearFilters();
-    setCurrentPage(1);
     setSearch("");
     setDebouncedSearch("");
+    setNewProductIds(new Set());
+    prefetchRef.current.clear();
+    prefetchingRef.current.clear();
+    hydrateAllRef.current = null;
     applyCachedType(t);
     setLoading(false);
     setProductsLoading(false);
+    setLoadingMore(false);
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("type", t);
@@ -258,16 +295,19 @@ export function MarketplacePageClient({
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(() =>
-    parseMarketplacePage(searchParams.get("page")),
+  const [flashDeals, setFlashDeals] = useState<DbProduct[]>(() =>
+    dedupeProductsByIdentity(startingBundle.flashDeals),
   );
-  const [flashDeals, setFlashDeals] = useState<DbProduct[]>(startingBundle.flashDeals);
-  const [trending, setTrending] = useState<DbProduct[]>(startingBundle.trending);
+  const [trending, setTrending] = useState<DbProduct[]>(() =>
+    dedupeProductsByIdentity(startingBundle.trending),
+  );
   const [categories, setCategories] = useState<DbCategory[]>(startingBundle.categories);
   const [categoriesType, setCategoriesType] = useState<ProductType>(initialType);
   const [stats, setStats] = useState<Stats>(initialStats);
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [newProductIds, setNewProductIds] = useState<Set<string>>(() => new Set());
   const [listingCount, setListingCount] = useState(startingBundle.listingCount);
   const [isMobile, setIsMobile] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -279,7 +319,6 @@ export function MarketplacePageClient({
     type: urlType,
     filtersKey,
     debouncedSearch: "",
-    currentPage: parseMarketplacePage(searchParams.get("page")),
   });
 
   useEffect(() => {
@@ -300,20 +339,140 @@ export function MarketplacePageClient({
     };
   }, []);
 
-  useEffect(() => {
-    const page = parseMarketplacePage(searchParams.get("page"));
-    setCurrentPage(page);
-  }, [searchParams]);
+  const buildPrefetchKey = useCallback(
+    (offset: number) => `${type}:${filtersKey}:${offset}`,
+    [type, filtersKey],
+  );
 
-  function goToPage(page: number) {
-    const next = Math.max(1, page);
-    setCurrentPage(next);
-    const params = new URLSearchParams(searchParams.toString());
-    if (next <= 1) params.delete("page");
-    else params.set("page", String(next));
-    router.replace(`/marketplace?${params.toString()}`, { scroll: false });
-    document.getElementById("marketplace-products")?.scrollIntoView({ behavior: "smooth" });
-  }
+  const fetchTrendingSlice = useCallback(
+    async (offset: number, generation: number): Promise<DbProduct[] | null> => {
+      const typeFilter = getMarketplaceTypeFilter(type);
+
+      const hasShipping = filters.shippingFrom.length > 0;
+      const hasDelivery = filters.deliveryTimes.length > 0;
+      const hasPriceMax = filters.priceRange[1] < 5000;
+      const hasPriceMin = filters.priceRange[0] > 0;
+      const hasRating = filters.minRating > 0;
+      const hasCategory =
+        filters.category &&
+        filters.category !== "" &&
+        filters.category !== SELECT_CATEGORY_LABEL;
+
+      let categoryId: string | null = null;
+      if (hasCategory) {
+        const { data: catRow } = await supabaseRef.current
+          .from("product_categories")
+          .select("id")
+          .ilike("name", filters.category)
+          .single();
+        if (generation !== loadGenRef.current) return null;
+        categoryId = catRow?.id ?? null;
+      }
+
+      function applyFilters(q: any): any {
+        if (hasShipping) q = q.in("shipping_from", filters.shippingFrom);
+        if (hasDelivery) q = q.in("delivery_time", filters.deliveryTimes);
+        if (hasPriceMax) q = q.lte("price", filters.priceRange[1]);
+        if (hasPriceMin) q = q.gte("price", filters.priceRange[0]);
+        if (hasRating) q = q.gte("rating", filters.minRating);
+        if (categoryId) q = q.eq("category_id", categoryId);
+        return q;
+      }
+
+      const { data: trend } = await applyFilters(
+        supabaseRef.current
+          .from("products")
+          .select(`
+              id, name, slug, price, currency, compare_at_price, images, product_type,
+              status, is_flash_deal, discount_label, shipping_from,
+              delivery_time, affiliate_commission_rate, sale_count,
+              rating, review_count, is_free_shipping, vendor_id, category_id, sku,
+              source, source_metadata,
+              vendors(id, verification_status)
+            `)
+          .eq("status", "active")
+          .eq("is_active", true)
+          .is("deleted_at", null)
+          .in("product_type", [...typeFilter])
+          .order("view_count", { ascending: false })
+          .range(offset, offset + MARKETPLACE_PAGE_SIZE - 1),
+      );
+
+      if (generation !== loadGenRef.current) return null;
+
+      const trendList = (trend ?? []) as DbProduct[];
+      const videoMap = await fetchProductVideosMap(
+        supabaseRef.current,
+        trendList.map((p) => p.id),
+      );
+      if (generation !== loadGenRef.current) return null;
+
+      return attachProductVideos(trendList, videoMap);
+    },
+    [type, filters],
+  );
+
+  const prefetchNextPage = useCallback(
+    async (offset: number) => {
+      if (debouncedSearch || offset >= listingCount) return;
+
+      const key = buildPrefetchKey(offset);
+      if (prefetchRef.current.has(key) || prefetchingRef.current.has(key)) return;
+
+      prefetchingRef.current.add(key);
+      const generation = loadGenRef.current;
+      const products = await fetchTrendingSlice(offset, generation);
+      prefetchingRef.current.delete(key);
+
+      if (products && generation === loadGenRef.current) {
+        prefetchRef.current.set(key, products);
+      }
+    },
+    [buildPrefetchKey, debouncedSearch, fetchTrendingSlice, listingCount],
+  );
+
+  const loadMore = useCallback(async () => {
+    if (loadingMore || debouncedSearch || trending.length >= listingCount) return;
+
+    const offset = trending.length;
+    const key = buildPrefetchKey(offset);
+
+    setLoadingMore(true);
+    setNewProductIds(new Set());
+
+    const generation = loadGenRef.current;
+    let nextBatch = prefetchRef.current.get(key);
+
+    if (nextBatch) {
+      prefetchRef.current.delete(key);
+    } else {
+      nextBatch = (await fetchTrendingSlice(offset, generation)) ?? undefined;
+    }
+
+    if (!nextBatch || generation !== loadGenRef.current) {
+      setLoadingMore(false);
+      return;
+    }
+
+    const seen = new Set(trending.map((p) => p.id));
+    const toAdd = nextBatch.filter((p) => !seen.has(p.id));
+
+    if (toAdd.length > 0) {
+      setNewProductIds(new Set(toAdd.map((p) => p.id)));
+      setTrending((prev) => dedupeProductsByIdentity([...prev, ...toAdd]));
+    }
+
+    setLoadingMore(false);
+    void prefetchNextPage(offset + MARKETPLACE_PAGE_SIZE);
+  }, [
+    buildPrefetchKey,
+    debouncedSearch,
+    fetchTrendingSlice,
+    listingCount,
+    loadingMore,
+    prefetchNextPage,
+    trending.length,
+  ]);
 
   // Apply ?category=slug from URL (e.g. category cards)
   useEffect(() => {
@@ -339,7 +498,7 @@ export function MarketplacePageClient({
   useEffect(() => {
     if (skipInitialFetchRef.current) {
       skipInitialFetchRef.current = false;
-      loadDepsRef.current = { type, filtersKey, debouncedSearch, currentPage };
+      loadDepsRef.current = { type, filtersKey, debouncedSearch };
       if (urlType !== initialType) {
         applyCachedType(urlType);
       }
@@ -351,23 +510,36 @@ export function MarketplacePageClient({
       prev.filtersKey !== filtersKey ||
       prev.debouncedSearch !== debouncedSearch;
     const typeChanged = prev.type !== type;
-    const onlyPageChanged =
-      !filterOrSearchChanged &&
-      !typeChanged &&
-      prev.currentPage !== currentPage;
 
-    const effectivePage = filterOrSearchChanged || typeChanged ? 1 : currentPage;
-
-    if ((filterOrSearchChanged || typeChanged) && currentPage !== 1) {
-      setCurrentPage(1);
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("page");
-      router.replace(`/marketplace?${params.toString()}`, { scroll: false });
+    if (filterOrSearchChanged || typeChanged) {
+      prefetchRef.current.clear();
+      prefetchingRef.current.clear();
+      hydrateAllRef.current = null;
+      setNewProductIds(new Set());
+      setLoadingMore(false);
     }
 
-    loadDepsRef.current = { type, filtersKey, debouncedSearch, currentPage: effectivePage };
+    loadDepsRef.current = { type, filtersKey, debouncedSearch };
 
-    const defaultBrowse = isDefaultBrowseState(filters, debouncedSearch, effectivePage);
+    const defaultBrowse = isDefaultBrowseState(filters, debouncedSearch);
+    const searchCleared = Boolean(prev.debouncedSearch) && !debouncedSearch;
+    let hadActiveFilters = false;
+    try {
+      hadActiveFilters = !isDefaultBrowseState(
+        JSON.parse(prev.filtersKey) as typeof DEFAULT_FILTERS & { shippingFrom: string[] },
+        prev.debouncedSearch,
+      );
+    } catch {
+      hadActiveFilters = false;
+    }
+    const filtersClearedToDefault = hadActiveFilters && defaultBrowse && !debouncedSearch;
+
+    if ((searchCleared || filtersClearedToDefault) && cacheRef.current[type]) {
+      applyCachedType(type);
+      setLoading(false);
+      setProductsLoading(false);
+      return;
+    }
 
     if (typeChanged && defaultBrowse && !debouncedSearch && cacheRef.current[type]) {
       applyCachedType(type);
@@ -382,15 +554,17 @@ export function MarketplacePageClient({
     async function load() {
       const showSectionSkeleton =
         !defaultBrowse || !cacheRef.current[type]?.trending?.length;
-      if (onlyPageChanged) setProductsLoading(true);
-      else if (showSectionSkeleton) setLoading(true);
+      if (showSectionSkeleton) setLoading(true);
 
       const hasShipping = filters.shippingFrom.length > 0;
       const hasDelivery = filters.deliveryTimes.length > 0;
       const hasPriceMax = filters.priceRange[1] < 5000;
       const hasPriceMin = filters.priceRange[0] > 0;
       const hasRating = filters.minRating > 0;
-      const hasCategory = filters.category && filters.category !== "Trending Now";
+      const hasCategory =
+        filters.category &&
+        filters.category !== "" &&
+        filters.category !== SELECT_CATEGORY_LABEL;
 
       let categoryId: string | null = null;
       if (hasCategory) {
@@ -413,59 +587,7 @@ export function MarketplacePageClient({
         return q;
       }
 
-      const offset = (effectivePage - 1) * MARKETPLACE_PAGE_SIZE;
       const skipTrending = Boolean(debouncedSearch);
-
-      if (onlyPageChanged && !skipTrending) {
-        const [{ data: trend }, { count }] = await Promise.all([
-          applyFilters(
-            supabaseRef.current
-              .from("products")
-              .select(`
-              id, name, slug, price, currency, compare_at_price, images, product_type,
-              status, is_flash_deal, discount_label, shipping_from,
-              delivery_time, affiliate_commission_rate, sale_count,
-              rating, review_count, is_free_shipping, vendor_id, category_id,
-              vendors(id, verification_status)
-            `)
-              .eq("status", "active")
-              .eq("is_active", true)
-              .is("deleted_at", null)
-              .in("product_type", [...typeFilter])
-              .order("view_count", { ascending: false })
-              .range(offset, offset + MARKETPLACE_PAGE_SIZE - 1),
-          ),
-          applyFilters(
-            supabaseRef.current
-              .from("products")
-              .select("*", { count: "exact", head: true })
-              .eq("status", "active")
-              .eq("is_active", true)
-              .is("deleted_at", null)
-              .in("product_type", [...typeFilter]),
-          ),
-        ]);
-
-        if (loadGeneration !== loadGenRef.current) return;
-
-        const trendList = (trend ?? []) as DbProduct[];
-        const videoMap = await fetchProductVideosMap(
-          supabaseRef.current,
-          trendList.map((p) => p.id),
-        );
-        if (loadGeneration !== loadGenRef.current) return;
-
-        const nextTrending = attachProductVideos(trendList, videoMap);
-        setTrending(nextTrending);
-        setListingCount(count ?? 0);
-        setProductsLoading(false);
-        return;
-      }
-
-      if (onlyPageChanged && skipTrending) {
-        setProductsLoading(false);
-        return;
-      }
 
       const [{ data: catIds }, { data: deals }, { data: trend }, { count }] =
         await Promise.all([
@@ -498,23 +620,26 @@ export function MarketplacePageClient({
               .limit(12),
           ),
 
-          applyFilters(
-            supabaseRef.current
-              .from("products")
-              .select(`
+          skipTrending
+            ? Promise.resolve({ data: null })
+            : applyFilters(
+                supabaseRef.current
+                  .from("products")
+                  .select(`
               id, name, slug, price, currency, compare_at_price, images, product_type,
               status, is_flash_deal, discount_label, shipping_from,
               delivery_time, affiliate_commission_rate, sale_count,
-              rating, review_count, is_free_shipping, vendor_id, category_id,
+              rating, review_count, is_free_shipping, vendor_id, category_id, sku,
+              source, source_metadata,
               vendors(id, verification_status)
             `)
-              .eq("status", "active")
-              .eq("is_active", true)
-              .is("deleted_at", null)
-              .in("product_type", [...typeFilter])
-              .order("view_count", { ascending: false })
-              .range(offset, offset + MARKETPLACE_PAGE_SIZE - 1),
-          ),
+                  .eq("status", "active")
+                  .eq("is_active", true)
+                  .is("deleted_at", null)
+                  .in("product_type", [...typeFilter])
+                  .order("view_count", { ascending: false })
+                  .range(0, MARKETPLACE_PAGE_SIZE - 1),
+              ),
 
           applyFilters(
             supabaseRef.current
@@ -552,16 +677,38 @@ export function MarketplacePageClient({
         nextCategories = (catRows ?? []) as DbCategory[];
       }
 
-      const dealList = (deals ?? []) as DbProduct[];
-      const trendList = (trend ?? []) as DbProduct[];
+      if (nextCategories.length === 0 && (count ?? 0) > 0) {
+        const { data: fallbackCats } = await supabaseRef.current
+          .from("product_categories")
+          .select("id, name, slug, product_count, image_url, tint_color")
+          .eq("is_active", true)
+          .eq("visible", true)
+          .is("parent_id", null)
+          .order("product_count", { ascending: false })
+          .limit(40);
+        if (loadGeneration !== loadGenRef.current) return;
+        nextCategories = (fallbackCats ?? []) as DbCategory[];
+        if (nextCategories.length === 0) {
+          nextCategories = resolveShopCategories(type, []) as DbCategory[];
+        }
+      }
+
+      const dealList = dedupeProductsByIdentity((deals ?? []) as DbProduct[]);
+      const trendList = dedupeProductsByIdentity((trend ?? []) as DbProduct[]);
+      const dealPool = dedupeProductsByIdentity([...dealList, ...trendList]);
+      const resolvedDeals = resolveMarketplaceFlashDeals(
+        dealPool,
+        count ?? 0,
+        HOMEPAGE_FLASH_DEALS_LIMIT,
+      );
       const videoMap = await fetchProductVideosMap(
         supabaseRef.current,
-        [...dealList, ...trendList].map((p) => p.id),
+        [...resolvedDeals, ...trendList].map((p) => p.id),
       );
 
       if (loadGeneration !== loadGenRef.current) return;
 
-      const nextDeals = attachProductVideos(dealList, videoMap);
+      const nextDeals = attachProductVideos(resolvedDeals, videoMap);
       const nextTrending = attachProductVideos(trendList, videoMap);
       const nextCount = count ?? 0;
 
@@ -587,16 +734,19 @@ export function MarketplacePageClient({
     }
 
     load();
-  }, [type, filtersKey, currentPage, debouncedSearch, filters, router, searchParams, urlType, initialType]);
+  }, [type, filtersKey, debouncedSearch, urlType, initialType]);
 
   useEffect(() => {
     if (!debouncedSearch) {
       setSearchExactMatch(true);
-      if (isDefaultBrowseState(filters, "", currentPage) && cacheRef.current[type]) {
-        applyCachedType(type);
-      }
       return;
     }
+
+    prefetchRef.current.clear();
+    prefetchingRef.current.clear();
+    hydrateAllRef.current = null;
+    setNewProductIds(new Set());
+    setLoadingMore(false);
 
     let cancelled = false;
     const searchGeneration = ++loadGenRef.current;
@@ -607,6 +757,7 @@ export function MarketplacePageClient({
         const res = await fetch(
           `/api/marketplace/search?q=${encodeURIComponent(debouncedSearch)}&type=${type}&limit=40`,
         );
+        if (!res.ok) throw new Error("Search failed");
         const data = await res.json();
         if (cancelled || searchGeneration !== loadGenRef.current) return;
 
@@ -623,7 +774,9 @@ export function MarketplacePageClient({
           supabaseRef.current,
           combined.map((p: DbProduct) => p.id),
         );
-        setTrending(attachProductVideos(combined, videoMap));
+        if (cancelled || searchGeneration !== loadGenRef.current) return;
+
+        setTrending(dedupeProductsByIdentity(attachProductVideos(combined, videoMap)));
         setSearchExactMatch(Boolean(data.exactMatch));
         setListingCount(combined.length);
       } catch {
@@ -638,17 +791,64 @@ export function MarketplacePageClient({
     };
   }, [debouncedSearch, type]);
 
-  const totalPages = Math.max(1, Math.ceil(listingCount / MARKETPLACE_PAGE_SIZE));
-
+  // Hydrate any remaining published products if SSR bundle was partial.
   useEffect(() => {
-    if (listingCount > 0 && currentPage > totalPages) {
-      goToPage(totalPages);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only clamp when result set shrinks
-  }, [listingCount, totalPages]);
+    if (debouncedSearch || !isDefaultBrowseState(filters, debouncedSearch)) return;
 
-  // Flash deals stay unfiltered during search (section unchanged)
-  const filteredDeals = flashDeals;
+    const hydrateKey = `${type}:${filtersKey}`;
+    if (hydrateAllRef.current === hydrateKey) return;
+
+    const cached = cacheRef.current[type];
+    if (!cached || cached.trending.length >= cached.listingCount) {
+      hydrateAllRef.current = hydrateKey;
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      let offset = cached.trending.length;
+      const target = cached.listingCount;
+
+      while (!cancelled && offset < target) {
+        const generation = loadGenRef.current;
+        const batch = await fetchTrendingSlice(offset, generation);
+        if (!batch?.length || cancelled || generation !== loadGenRef.current) break;
+
+        setTrending((prev) => {
+          const merged = dedupeProductsByIdentity([...prev, ...batch]);
+          offset = merged.length;
+          return merged;
+        });
+
+        if (batch.length < MARKETPLACE_PAGE_SIZE) break;
+      }
+
+      if (!cancelled) {
+        hydrateAllRef.current = hydrateKey;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [type, filtersKey, debouncedSearch, fetchTrendingSlice]);
+
+  // Flash deals — unique IDs only (server bundle already ranked)
+  const displayTrending = useMemo(
+    () => dedupeProductsByIdentity(trending),
+    [trending],
+  );
+
+  const displayFlashDeals = useMemo(() => {
+    const deals = dedupeProductsByIdentity(flashDeals);
+    if (deals.length > 0 || listingCount === 0) return deals;
+    return resolveMarketplaceFlashDeals(
+      displayTrending,
+      listingCount,
+      HOMEPAGE_FLASH_DEALS_LIMIT,
+    );
+  }, [flashDeals, displayTrending, listingCount]);
 
   const shopCategories = useMemo(
     () => resolveShopCategories(type, categoriesType === type ? categories : []),
@@ -666,8 +866,11 @@ export function MarketplacePageClient({
   );
 
   const RECENT_KEY = "marketplace_recent_searches_v1";
-  const recentSearches = useMemo(() => {
-    if (typeof window === "undefined") return [] as string[];
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const searchPopoverRef = useRef<MarketplaceSearchPopoverHandle>(null);
+
+  function readRecentSearches(): string[] {
+    if (typeof window === "undefined") return [];
     try {
       const raw = window.localStorage.getItem(RECENT_KEY);
       const parsed = raw ? (JSON.parse(raw) as unknown) : [];
@@ -676,6 +879,10 @@ export function MarketplacePageClient({
     } catch {
       return [];
     }
+  }
+
+  useEffect(() => {
+    if (searchFocused) setRecentSearches(readRecentSearches());
   }, [searchFocused]);
 
   function pushRecent(term: string) {
@@ -688,6 +895,17 @@ export function MarketplacePageClient({
       const list = Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
       const next = [t, ...list.filter((x) => String(x).toLowerCase() !== t.toLowerCase())].slice(0, 12);
       window.localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+      setRecentSearches(next.slice(0, 8));
+    } catch {
+      // ignore
+    }
+  }
+
+  function clearRecentHistory() {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(RECENT_KEY);
+      setRecentSearches([]);
     } catch {
       // ignore
     }
@@ -700,6 +918,15 @@ export function MarketplacePageClient({
     setSearch(t);
     setDebouncedSearch(t);
     setSearchFocused(false);
+  }
+
+  function applyCategoryFilter(categoryName: string) {
+    const name = categoryName.trim();
+    if (!name) return;
+    setSearch("");
+    setDebouncedSearch("");
+    setSearchFocused(false);
+    setCategory(name);
   }
 
   function clearSearch() {
@@ -723,26 +950,30 @@ export function MarketplacePageClient({
       .slice(0, 5);
   }, [shopCategories]);
 
-  const showSearchPopover = searchFocused && (q.length > 0 || recentSearches.length > 0);
+  const showSearchPopover = searchFocused;
+  const searchPending = productsLoading && search.trim() === debouncedSearch && debouncedSearch.length > 0;
 
   return (
-    <div className="grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-x-4 lg:gap-y-3">
-      {/* Sidebar — sticky while scrolling product feed */}
-      <div className="hidden lg:col-start-1 lg:row-start-1 lg:row-span-2 lg:block lg:self-start lg:sticky lg:top-[calc(var(--navbar-height,64px)+0.75rem)] lg:z-20 lg:max-h-[calc(100dvh-var(--navbar-height,64px)-1.5rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:pr-0.5 [scrollbar-width:thin]">
-        <Sidebar type={type} />
+    <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:gap-4">
+      {/* Sidebar — fixed in viewport while product grid scrolls */}
+      <div className="hidden lg:block lg:w-[15rem] lg:shrink-0">
+        <div className="sticky top-[calc(var(--navbar-height,64px)+0.75rem)] z-20 max-h-[calc(100dvh-var(--navbar-height,64px)-1.5rem)] overflow-y-auto overflow-x-hidden overscroll-contain pr-0.5 [scrollbar-width:thin]">
+          <Sidebar type={type} />
+        </div>
       </div>
 
+      <div className="flex min-w-0 flex-1 flex-col gap-3 lg:gap-4">
       {/* Search — aligns top with Categories */}
-      <div className="min-w-0 lg:col-start-2 lg:row-start-1">
+      <div className="min-w-0">
         <div className="flex flex-col gap-2 relative">
           <div className={marketplaceSearchBarClassName(searchFocused)}>
             <button
               type="button"
               aria-label="Search marketplace"
               onClick={() => submitSearch()}
-              className="grid size-7 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)]"
+              className="grid size-8 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35"
             >
-              <MarketplaceSearchIcon active={q.length > 0} />
+              <MarketplaceSearchIcon active={q.length > 0} loading={searchPending} />
             </button>
             <MarketplaceSearchBar
               value={search}
@@ -751,11 +982,17 @@ export function MarketplacePageClient({
                 if (!v.trim()) setDebouncedSearch("");
               }}
               type={type}
+              loading={searchPending}
+              onClear={clearSearch}
               onFocus={() => setSearchFocused(true)}
-              onBlur={() => setTimeout(() => setSearchFocused(false), 120)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
               onKeyDown={(e) => {
+                if (showSearchPopover && searchPopoverRef.current?.onKeyDown(e)) return;
                 if (e.key === "Enter") submitSearch();
-                if (e.key === "Escape") (e.target as HTMLInputElement)?.blur();
+                if (e.key === "Escape") {
+                  setSearchFocused(false);
+                  (e.target as HTMLInputElement)?.blur();
+                }
               }}
             />
 
@@ -801,6 +1038,7 @@ export function MarketplacePageClient({
           </div>
 
           <MarketplaceSearchPopover
+            ref={searchPopoverRef}
             query={search}
             type={type}
             open={showSearchPopover}
@@ -808,7 +1046,9 @@ export function MarketplacePageClient({
             popularSearches={POPULAR_SEARCHES}
             trendingCategories={trendingCategorySuggestions}
             onPick={(term) => applySearch(term)}
+            onCategoryPick={applyCategoryFilter}
             onSubmit={submitSearch}
+            onClearRecent={clearRecentHistory}
           />
 
           <div className="flex items-center justify-center gap-2 sm:hidden">
@@ -841,6 +1081,16 @@ export function MarketplacePageClient({
         <MarketplaceTrustStrip stats={stats} listingCount={listingCount} />
         </div>
 
+        {isDefaultBrowseState(filters, debouncedSearch) && (
+          <PersonalizedMarketplaceFeed
+            catalog={displayTrending}
+            flashDeals={displayFlashDeals}
+            newProductIds={newProductIds}
+            productType={type}
+            loading={loading && trending.length === 0}
+          />
+        )}
+
         {/* ── Flash Deals — skeleton only this section while loading ── */}
         <section id="flash-deals-section">
           <div className="flex flex-col px-4 py-3">
@@ -866,18 +1116,9 @@ export function MarketplacePageClient({
           <div className="px-4 pb-4">
             {loading && filteredDeals.length === 0 ? (
               <SkeletonDeals />
-            ) : filteredDeals.length > 0 ? (
-              <FlashDealsClient deals={filteredDeals} />
-            ) : trending.length > 0 ? (
-              <FlashDealsClient deals={trending.slice(0, 12)} />
-            ) : (
-              <p
-                className="py-6 text-center text-xs"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                No deals available right now — check back soon
-              </p>
-            )}
+            ) : displayFlashDeals.length > 0 ? (
+              <FlashDealsClient deals={displayFlashDeals} />
+            ) : null}
           </div>
         </section>
 
@@ -922,11 +1163,13 @@ export function MarketplacePageClient({
 
         {/* ── Trending Products — skeleton only this section while loading ── */}
         <section id="marketplace-products">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-black text-[var(--color-text-primary)]">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <h2 className="text-lg font-black tracking-[-0.02em] text-[var(--color-text-primary)]">
               {debouncedSearch
                 ? `Results for: ${debouncedSearch}`
-                : filters.category && filters.category !== "Trending Now"
+                : filters.category &&
+                    filters.category !== "" &&
+                    filters.category !== SELECT_CATEGORY_LABEL
                   ? filters.category
                   : `Trending ${type === "digital" ? "Digital " : ""}Products`}
             </h2>
@@ -939,10 +1182,12 @@ export function MarketplacePageClient({
               >
                 ✕ Clear search
               </button>
-            ) : filters.category && filters.category !== "Trending Now" ? (
+            ) : filters.category &&
+                filters.category !== "" &&
+                filters.category !== SELECT_CATEGORY_LABEL ? (
               <button
                 type="button"
-                onClick={() => setCategory("Trending Now")}
+                onClick={() => setCategory("")}
                 className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
                 style={{ background: "var(--color-accent)" }}
               >
@@ -964,38 +1209,59 @@ export function MarketplacePageClient({
               No exact matches found — showing similar products
             </p>
           )}
-          {(loading || productsLoading) && trending.length === 0 ? (
+          {(loading || productsLoading) && displayTrending.length === 0 ? (
             <SkeletonGrid />
-          ) : trending.length === 0 ? (
+          ) : displayTrending.length === 0 ? (
             <div
-              className="rounded-xl border-dashed px-6 py-12 text-center"
+              className="rounded-2xl border border-dashed px-6 py-14 text-center"
               style={{
-                border: "1px dashed var(--color-border)",
+                borderColor: "var(--color-border)",
                 background: "var(--color-surface-secondary)",
+                animation: "fadeInUp 280ms ease-out",
               }}
             >
-              <p
-                className="text-sm font-semibold"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
-                No products match your filters
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-accent-light)]">
+                <Search className="size-6 text-[var(--color-accent)]" />
+              </div>
+              <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
+                {debouncedSearch ? `No products found for “${debouncedSearch}”` : "No products match your filters"}
               </p>
-              <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
+              <p className="mt-2 text-xs text-[var(--color-text-muted)]">
                 {debouncedSearch
-                  ? "Try a different keyword or clear search to browse all products"
-                  : "Try adjusting or clearing your filters"}
+                  ? "Try another keyword or clear search to browse all products."
+                  : "Try adjusting or clearing your filters."}
               </p>
+              {debouncedSearch && (
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  {POPULAR_SEARCHES.map((term) => (
+                    <button
+                      key={term}
+                      type="button"
+                      onClick={() => applySearch(term)}
+                      className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-primary)] transition-[transform,border-color] duration-200 hover:scale-[1.02] hover:border-[var(--color-accent)]/40"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <>
-              <TrendingProductsClient key={type} products={trending} type={type} />
+              <TrendingProductsClient
+                key={type}
+                products={displayTrending}
+                type={type}
+                newProductIds={newProductIds}
+                loadingMore={loadingMore}
+              />
               {!debouncedSearch && (
                 <MarketplacePagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
+                  hasMore={displayTrending.length < listingCount}
+                  loading={loadingMore}
+                  onLoadMore={loadMore}
                   total={listingCount}
                   pageSize={MARKETPLACE_PAGE_SIZE}
-                  onPageChange={goToPage}
                 />
               )}
             </>
@@ -1005,8 +1271,9 @@ export function MarketplacePageClient({
         <MarketplaceEngagementHub
           productType={type}
           listingCount={listingCount}
-          onSearchPick={setSearch}
+          onSearchPick={applySearch}
         />
+      </div>
       </div>
     </div>
   );

@@ -11,8 +11,8 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { Slider } from "@/components/ui/slider";
 import CustomSelect from "@/components/ui/select-2";
 import { useMarketplace } from "./marketplace-context";
-import type { DeliveryTime } from "@/lib/utils";
-import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
+import { SELECT_CATEGORY_LABEL, type DeliveryTime } from "@/lib/utils";
+import { JIMVIO_ORANGE, resolveShopCategories } from "@/lib/marketplace/category-catalog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -176,7 +176,8 @@ function CheckRow({
     <button
       type="button"
       onClick={onToggle}
-      className="flex w-full items-center justify-between rounded-md px-1.5 py-1 text-xs transition-colors hover:bg-[var(--color-surface-secondary)]"
+      aria-pressed={checked}
+      className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-1"
       style={{ color: "var(--color-text-secondary)" }}
     >
       <span className="flex items-center gap-1.5">
@@ -246,22 +247,53 @@ export function Sidebar({ type = "physical" }: Props) {
 
       const ids = [...new Set((catIds ?? []).map((r: any) => r.category_id).filter(Boolean))];
 
-      if (ids.length === 0) {
-        setSidebarCategories([]);
-        setLoadingCats(false);
-        return;
+      let categories: SidebarCategory[] = [];
+
+      if (ids.length > 0) {
+        const { data } = await supabase
+          .from("product_categories")
+          .select("name, slug, product_count, icon")
+          .eq("is_active", true)
+          .eq("visible", true)
+          .is("parent_id", null)
+          .in("id", ids)
+          .order("product_count", { ascending: false })
+          .limit(14);
+
+        if (data) categories = data as SidebarCategory[];
       }
 
-      const { data } = await supabase
-        .from("product_categories")
-        .select("name, slug, product_count, icon")
-        .eq("is_active", true)
-        .is("parent_id", null)
-        .in("id", ids)
-        .order("product_count", { ascending: false })
-        .limit(14);
+      if (categories.length === 0) {
+        const { count } = await supabase
+          .from("products")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "active")
+          .eq("is_active", true)
+          .is("deleted_at", null)
+          .in("product_type", typeFilter as any[]);
 
-      if (data) setSidebarCategories(data as SidebarCategory[]);
+        if ((count ?? 0) > 0) {
+          const { data: fallback } = await supabase
+            .from("product_categories")
+            .select("name, slug, product_count, icon")
+            .eq("is_active", true)
+            .eq("visible", true)
+            .is("parent_id", null)
+            .order("product_count", { ascending: false })
+            .limit(14);
+          if (fallback?.length) categories = fallback as SidebarCategory[];
+          else {
+            categories = resolveShopCategories(type, []).map((c) => ({
+              name: c.name,
+              slug: c.slug,
+              product_count: c.product_count,
+              icon: null,
+            }));
+          }
+        }
+      }
+
+      setSidebarCategories(categories);
       setLoadingCats(false);
     }
     load();
@@ -271,11 +303,12 @@ export function Sidebar({ type = "physical" }: Props) {
   useEffect(() => {
     if (loadingCats) return;
     const valid = new Set([
-      "Trending Now",
+      "",
+      SELECT_CATEGORY_LABEL,
       ...sidebarCategories.map((c) => c.name),
     ]);
     if (filters.category && !valid.has(filters.category)) {
-      setCategory("Trending Now");
+      setCategory("");
     }
   }, [type, loadingCats, sidebarCategories, filters.category, setCategory]);
 
@@ -330,15 +363,12 @@ export function Sidebar({ type = "physical" }: Props) {
     })
     .filter((d) => d.count !== "");
 
-  const allCategories = [
-    { name: "Trending Now", slug: "trending", product_count: null, icon: "Flame" },
-    ...sidebarCategories,
-  ];
+  const allCategories = [...sidebarCategories];
 
   return (
     <aside className="flex w-full shrink-0 flex-col gap-0 self-start">
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3.5">
 
         {/* ── Categories ── */}
         <div className="rounded-md p-3">
@@ -353,7 +383,7 @@ export function Sidebar({ type = "physical" }: Props) {
               </span>
             </span>
             <button
-              onClick={() => setCategory("Trending Now")}
+              onClick={() => setCategory("")}
               className="text-[10px] font-semibold"
               style={{ color: "var(--color-accent)" }}
             >
@@ -366,13 +396,16 @@ export function Sidebar({ type = "physical" }: Props) {
           ) : (
             <div>
               <CustomSelect
-                options={allCategories.map((c) => ({
-                  label: c.product_count ? `${c.name} (${fmtCount(c.product_count)})` : c.name,
-                  value: c.name,
-                }))}
-                value={filters.category ?? null}
+                options={[
+                  { label: "All", value: "" },
+                  ...allCategories.map((c) => ({
+                    label: c.product_count ? `${c.name} (${fmtCount(c.product_count)})` : c.name,
+                    value: c.name,
+                  })),
+                ]}
+                value={filters.category || ""}
                 onChange={(v) => setCategory(v)}
-                placeholder="Select category"
+                placeholder="All"
                 searchable
                 isClearable
                 className="h-10"
@@ -498,7 +531,7 @@ export function Sidebar({ type = "physical" }: Props) {
 
         {/* ── AI Shopping Assistant ── */}
         <div
-          className="rounded-md p-3"
+          className="rounded-xl p-3.5"
           style={{
             background: JIMVIO_ORANGE.gradient135,
             boxShadow: type === "digital" ? JIMVIO_ORANGE.glow : undefined,
@@ -523,7 +556,7 @@ export function Sidebar({ type = "physical" }: Props) {
             className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 ring-1 ring-white/10 focus-within:ring-white/30 transition-all"
             onSubmit={(e) => {
               e.preventDefault();
-              if (aiQuery.trim()) { setCategory("Trending Now"); setAiQuery(""); }
+              if (aiQuery.trim()) { setCategory(""); setAiQuery(""); }
             }}
           >
             <input
@@ -547,7 +580,7 @@ export function Sidebar({ type = "physical" }: Props) {
               <button
                 key={t}
                 type="button"
-                onClick={() => setCategory("Trending Now")}
+                onClick={() => setCategory("")}
                 className="rounded-full bg-white/15 px-2 py-0.5 text-white transition-colors hover:bg-white/30"
               >
                 {t}
@@ -558,7 +591,7 @@ export function Sidebar({ type = "physical" }: Props) {
 
         {/* ── Elite Club ── */}
         <div
-          className="rounded-md p-3"
+          className="rounded-xl p-3.5"
           style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
         >
           <div className="mb-2 flex items-center gap-1.5">

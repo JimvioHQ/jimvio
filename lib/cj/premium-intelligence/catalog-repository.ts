@@ -1,6 +1,21 @@
 import { getCached, setCached } from "./catalog-cache";
 import { timedQuery } from "./query-timing";
 import { getCatalogDB } from "./db";
+import {
+  applyIntelFiltersStandalone,
+  getAutoPublishQueuePids,
+  getRawSearchPids,
+  getWarehouseFilterPids,
+  type CatalogFilterIndex,
+} from "./catalog-filter-index";
+import { searchIndexPids } from "./search-index";
+import { rawRowToCJProduct } from "./map-to-cj-product";
+import {
+  calculateSupplierScore,
+  calculateTrendScore,
+  productHasVideo,
+} from "../import-intelligence/product-utils";
+import { QUICK_FILTER_DEFAULTS } from "../import-intelligence/quick-filter-intelligence";
 import type {
   CatalogCursor,
   CatalogListParams,
@@ -46,6 +61,12 @@ export function makePendingIntelligence(pid: string): CjProductIntelligenceRow {
     trending: false,
     badges: [],
     scored_at: null,
+    auto_publish_ready: false,
+    auto_publish_score: 0,
+    auto_publish_status: "PENDING_ENRICHMENT",
+    auto_publish_failures: [],
+    pending_enrichment_reasons: [],
+    last_auto_publish_check: null,
     created_at: now,
     updated_at: now,
   };
@@ -67,7 +88,71 @@ export async function upsertRawProducts(
   if (error) throw new Error(error.message);
 
   await ensureIntelligenceRows(rows.map((r) => r.pid));
+  await patchListIntelSignalsFromRaw(rows, false);
   return rows.length;
+}
+
+/** Seed trending / supplier / video signals from CJ list payload. */
+async function patchListIntelSignalsFromRaw(
+  rows: Array<Omit<CjRawProductRow, "created_at" | "updated_at" | "list_synced_at">>,
+  fullReplace = false
+): Promise<void> {
+  if (rows.length === 0) return;
+  const db = getCatalogDB();
+  const updates: Array<Record<string, unknown>> = [];
+
+  for (const row of rows) {
+    const cj = rawRowToCJProduct(row as CjRawProductRow);
+    const trendScore = calculateTrendScore(cj);
+    const isTrending =
+      trendScore >= QUICK_FILTER_DEFAULTS.trendingMinAbsoluteScore && trendScore > 0;
+    const supplierVerified =
+      calculateSupplierScore(cj) >= 75 ||
+      cj.verifiedWarehouse === 1 ||
+      cj.supplierVerified === true;
+    const hasVideo = productHasVideo(cj);
+
+    const entry: Record<string, unknown> = {
+      pid: row.pid,
+      trending: isTrending,
+      supplier_verified: supplierVerified,
+      ...(cj.verifiedWarehouse != null ? { verified_warehouse: cj.verifiedWarehouse } : {}),
+      updated_at: new Date().toISOString(),
+    };
+    if (fullReplace || hasVideo) entry.has_video = hasVideo;
+    updates.push(entry);
+  }
+
+  const BATCH = 50;
+  for (let i = 0; i < updates.length; i += BATCH) {
+    await Promise.all(
+      updates.slice(i, i + BATCH).map(({ pid, ...patch }) =>
+        db.from("cj_product_intelligence").update(patch).eq("pid", pid)
+      )
+    );
+  }
+}
+
+/** Rotate through raw catalog rows and sync filter signals into intelligence. */
+export async function backfillIntelFilterSignals(
+  limit = 250,
+  offset = 0
+): Promise<number> {
+  if (limit <= 0) return 0;
+  const db = getCatalogDB();
+  const from = Math.max(0, offset);
+  const to = from + limit - 1;
+
+  const { data: rawRows, error: rawError } = await db
+    .from("cj_raw_products")
+    .select("*")
+    .order("orders", { ascending: false })
+    .range(from, to);
+
+  if (rawError || !rawRows?.length) return 0;
+
+  await patchListIntelSignalsFromRaw(rawRows, true);
+  return rawRows.length;
 }
 
 export async function ensureIntelligenceRows(pids: string[]): Promise<void> {
@@ -77,6 +162,8 @@ export async function ensureIntelligenceRows(pids: string[]): Promise<void> {
     pid,
     enrichment_status: "pending" as const,
     catalog_tier: "PENDING" as const,
+    auto_publish_status: "PENDING_ENRICHMENT" as const,
+    auto_publish_ready: false,
   }));
 
   const BATCH = 500;
@@ -151,7 +238,7 @@ export async function enqueueEnrichment(
   return pids.length;
 }
 
-/** Enqueue all products not complete/dead_letter in intelligence table. */
+/** Enqueue all products not complete in intelligence table. */
 export async function enqueueMissingEnrichment(): Promise<number> {
   const db = getCatalogDB();
   let enqueued = 0;
@@ -162,7 +249,8 @@ export async function enqueueMissingEnrichment(): Promise<number> {
     const { data, error } = await db
       .from("cj_product_intelligence")
       .select("pid")
-      .in("enrichment_status", ["pending", "failed"])
+      .in("enrichment_status", ["pending", "failed", "dead_letter", "processing"])
+      .order("pid")
       .range(offset, offset + pageSize - 1);
 
     if (error) throw new Error(error.message);
@@ -178,6 +266,68 @@ export async function enqueueMissingEnrichment(): Promise<number> {
   return enqueued;
 }
 
+/** Reset intelligence rows incorrectly marked REQUIREMENTS_MISSING before enrichment. */
+export async function realignPendingEnrichmentStatus(limit = 500): Promise<number> {
+  const db = getCatalogDB();
+  const { data } = await db
+    .from("cj_product_intelligence")
+    .select("pid")
+    .neq("enrichment_status", "complete")
+    .eq("auto_publish_status", "REQUIREMENTS_MISSING")
+    .limit(limit);
+
+  if (!data?.length) return 0;
+
+  const pids = data.map((r) => r.pid as string);
+  const { error } = await db
+    .from("cj_product_intelligence")
+    .update({
+      auto_publish_status: "PENDING_ENRICHMENT",
+      auto_publish_ready: false,
+      updated_at: new Date().toISOString(),
+    })
+    .in("pid", pids);
+
+  if (error) throw new Error(error.message);
+  return pids.length;
+}
+
+const STUCK_ENRICHMENT_MS = 15 * 60_000;
+
+/** Reset enrichment jobs stuck in processing state. */
+export async function resetStuckEnrichmentJobs(): Promise<number> {
+  const db = getCatalogDB();
+  const cutoff = new Date(Date.now() - STUCK_ENRICHMENT_MS).toISOString();
+  let reset = 0;
+
+  const { data: intelRows } = await db
+    .from("cj_product_intelligence")
+    .update({
+      enrichment_status: "pending",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("enrichment_status", "processing")
+    .lt("updated_at", cutoff)
+    .select("pid");
+
+  reset += intelRows?.length ?? 0;
+
+  const { data: queueRows } = await db
+    .from("cj_enrichment_queue")
+    .update({
+      status: "pending",
+      next_attempt_at: new Date().toISOString(),
+      last_error: "Reset from stuck processing",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("status", "processing")
+    .lt("updated_at", cutoff)
+    .select("pid");
+
+  reset += queueRows?.length ?? 0;
+  return reset;
+}
+
 export async function getTierCounts(): Promise<Record<CatalogTier, number>> {
   const cached = getCached<Record<CatalogTier, number>>("tier-counts");
   if (cached) return cached;
@@ -188,7 +338,7 @@ export async function getTierCounts(): Promise<Record<CatalogTier, number>> {
       TIER_ORDER.map(async (tier) => {
         const { count } = await db
           .from("cj_product_intelligence")
-          .select("pid", { count: "exact", head: true })
+          .select("pid", { count: "estimated", head: true })
           .eq("catalog_tier", tier);
         return [tier, count ?? 0] as const;
       })
@@ -231,6 +381,57 @@ const DEFAULT_VISIBLE_TIERS: CatalogTier[] = [
   "PENDING",
 ];
 
+function hasWarehouseFilters(filters: CatalogFilterIndex): boolean {
+  return Boolean(filters.usWarehouse || filters.euWarehouse || filters.ukWarehouse);
+}
+
+/** Narrow tier scope — status/attribute filters search the full catalog tier set. */
+function hasCatalogWideIntelFilters(filters: CatalogFilterIndex): boolean {
+  return Boolean(
+    filters.hasVideo ||
+      filters.verifiedSupplier ||
+      filters.trending ||
+      filters.fastShipping ||
+      filters.minImages ||
+      filters.hasDescription ||
+      filters.minHealthScore ||
+      filters.minMargin ||
+      filters.missingVideo ||
+      filters.missingSupplier ||
+      filters.missingShipping ||
+      filters.missingImages ||
+      filters.missingDescription ||
+      filters.missingVariants ||
+      filters.missingStock ||
+      filters.missingTrending
+  );
+}
+
+function resolveCatalogTiers(
+  filters: CatalogFilterIndex,
+  paramTiers?: CatalogTier[]
+): CatalogTier[] {
+  if (filters.isHidden) return ["HIDDEN"];
+  if (
+    filters.isDraft ||
+    filters.isPublished ||
+    filters.autoPublishReady ||
+    filters.autoPublishPending ||
+    filters.autoPublishRequirementsMissing ||
+    filters.autoPublishAdminOverride ||
+    filters.publishQueueStatus
+  ) {
+    return TIER_ORDER;
+  }
+  if (hasCatalogWideIntelFilters(filters)) {
+    return TIER_ORDER;
+  }
+  if (paramTiers?.length) return paramTiers;
+  return DEFAULT_VISIBLE_TIERS;
+}
+
+const INTEL_SORT_COLUMNS = "pid, health_score, margin_percent, created_at";
+
 export async function getCatalogPage(
   params: CatalogListParams
 ): Promise<CatalogListResult> {
@@ -238,79 +439,144 @@ export async function getCatalogPage(
     const db = getCatalogDB();
     const pageSize = Math.min(100, Math.max(1, params.pageSize));
     const page = Math.max(1, params.page);
-    const tiers = params.tiers?.length ? params.tiers : DEFAULT_VISIBLE_TIERS;
-    const cursor = parseCursor(params.cursor);
     const sortKey = params.sort ?? "curated";
+    const filters: CatalogFilterIndex = params.filters ?? {};
+    const tiers = resolveCatalogTiers(filters, params.tiers);
+    const cursor = parseCursor(params.cursor);
 
-    let query = db
-      .from("cj_raw_products")
-      .select("*, cj_product_intelligence!inner(*)", {
-        count: page === 1 && !cursor ? "exact" : undefined,
-      });
+    let pidFilter: string[] | null = null;
 
-    if (params.search?.trim()) {
-      query = query.ilike("title", `%${params.search.trim()}%`);
+    if (filters.publishQueueStatus) {
+      pidFilter = await getAutoPublishQueuePids(filters.publishQueueStatus);
+      if (pidFilter.length === 0) {
+        return { products: [], total: 0, nextCursor: null };
+      }
     }
 
-    query = query.in("cj_product_intelligence.catalog_tier", tiers);
+    if (hasWarehouseFilters(filters)) {
+      const warehousePids = await getWarehouseFilterPids(filters);
+      if (warehousePids.length === 0) {
+        return { products: [], total: 0, nextCursor: null };
+      }
+      pidFilter = pidFilter
+        ? pidFilter.filter((p) => warehousePids.includes(p))
+        : warehousePids;
+      if (pidFilter.length === 0) {
+        return { products: [], total: 0, nextCursor: null };
+      }
+    }
+
+    if (params.search?.trim()) {
+      const term = params.search.trim();
+      const indexPids = await searchIndexPids(term, 1000);
+      const searchPids =
+        indexPids.length > 0 ? indexPids : await getRawSearchPids(term, 1000);
+      if (searchPids.length === 0) {
+        return { products: [], total: 0, nextCursor: null };
+      }
+      pidFilter = pidFilter
+        ? pidFilter.filter((p) => searchPids.includes(p))
+        : searchPids;
+      if (pidFilter.length === 0) {
+        return { products: [], total: 0, nextCursor: null };
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const applyIntelListFilters = (query: any) => {
+      let q = query.in("catalog_tier", tiers);
+      q = applyIntelFiltersStandalone(q, filters);
+      if (pidFilter) {
+        q = q.in("pid", pidFilter.slice(0, 5000));
+      }
+      return q;
+    };
+
+    let totalCount = -1;
+    if (page === 1 && !cursor) {
+      let countQuery = db
+        .from("cj_product_intelligence")
+        .select("pid", { count: "exact", head: true });
+      countQuery = applyIntelListFilters(countQuery);
+      const { count: exactCount, error: countError } = await countQuery;
+      if (countError) throw new Error(countError.message);
+      totalCount = exactCount ?? 0;
+    }
+
+    let intelQuery = db
+      .from("cj_product_intelligence")
+      .select(INTEL_SORT_COLUMNS);
+    intelQuery = applyIntelListFilters(intelQuery);
 
     if (cursor) {
-      query = query.or(
-        `orders.lt.${cursor.orders},and(orders.eq.${cursor.orders},pid.lt.${cursor.pid})`
+      intelQuery = intelQuery.or(
+        `health_score.lt.${cursor.health_score ?? 0},and(health_score.eq.${cursor.health_score ?? 0},pid.lt.${cursor.pid})`
       );
     }
 
     switch (sortKey) {
       case "health":
       case "curated":
-        query = query
-          .order("health_score", {
-            ascending: false,
-            foreignTable: "cj_product_intelligence",
-          })
+        intelQuery = intelQuery
+          .order("health_score", { ascending: false })
           .order("pid", { ascending: false });
         break;
       case "margin":
-        query = query
-          .order("margin_percent", {
-            ascending: false,
-            nullsFirst: false,
-            foreignTable: "cj_product_intelligence",
-          })
+        intelQuery = intelQuery
+          .order("margin_percent", { ascending: false, nullsFirst: false })
           .order("pid", { ascending: false });
         break;
       case "newest":
-        query = query.order("created_at", { ascending: false }).order("pid", {
-          ascending: false,
-        });
+        intelQuery = intelQuery
+          .order("created_at", { ascending: false })
+          .order("pid", { ascending: false });
         break;
       default:
-        query = query.order("orders", { ascending: false }).order("pid", {
-          ascending: false,
-        });
+        intelQuery = intelQuery.order("pid", { ascending: false });
+        break;
     }
 
     if (cursor) {
-      query = query.limit(pageSize);
+      intelQuery = intelQuery.limit(pageSize);
     } else {
       const from = (page - 1) * pageSize;
-      query = query.range(from, from + pageSize - 1);
+      intelQuery = intelQuery.range(from, from + pageSize - 1);
     }
 
-    const { data, count, error } = await query;
+    const { data: sortRows, error } = await intelQuery;
     if (error) throw new Error(error.message);
 
-    const products = (data ?? []).map((row: Record<string, unknown>) => {
-      const raw = row as unknown as CjRawProductRow;
-      const intelJoin = row.cj_product_intelligence;
-      const intel = Array.isArray(intelJoin) ? intelJoin[0] : intelJoin;
-      return {
-        ...raw,
-        intelligence:
-          (intel as CjProductIntelligenceRow | null) ??
-          makePendingIntelligence(raw.pid),
-      };
-    });
+    const sortedPids = (sortRows ?? []).map((r) => r.pid as string);
+    if (sortedPids.length === 0) {
+      return { products: [], total: totalCount >= 0 ? totalCount : 0, nextCursor: null };
+    }
+
+    const [{ data: intelRows, error: intelError }, { data: rawRows, error: rawError }] =
+      await Promise.all([
+        db.from("cj_product_intelligence").select("*").in("pid", sortedPids),
+        db.from("cj_raw_products").select("*").in("pid", sortedPids),
+      ]);
+
+    if (intelError) throw new Error(intelError.message);
+    if (rawError) throw new Error(rawError.message);
+
+    const rawMap = new Map(
+      (rawRows ?? []).map((r) => [r.pid as string, r as CjRawProductRow])
+    );
+    const intelMap = new Map(
+      (intelRows ?? []).map((r) => [r.pid as string, r as CjProductIntelligenceRow])
+    );
+
+    const products = sortedPids
+      .map((pid) => {
+        const raw = rawMap.get(pid);
+        if (!raw) return null;
+        return {
+          ...raw,
+          intelligence: intelMap.get(pid) ?? makePendingIntelligence(pid),
+        };
+      })
+      .filter(Boolean) as Array<CjRawProductRow & { intelligence: CjProductIntelligenceRow }>;
 
     const last = products[products.length - 1];
     const nextCursor =
@@ -320,7 +586,7 @@ export async function getCatalogPage(
 
     return {
       products,
-      total: count ?? -1,
+      total: totalCount >= 0 ? totalCount : -1,
       nextCursor,
     };
   });
@@ -436,18 +702,40 @@ export async function getLastEnrichmentAt(): Promise<string | null> {
   return data?.finished_at ?? null;
 }
 
-export async function pollEnrichmentJobs(limit = 15) {
+export async function pollEnrichmentJobs(limit = 15, afterPid?: string) {
   const db = getCatalogDB();
-  const { data, error } = await db
+  let query = db
     .from("cj_enrichment_queue")
-    .select("*")
+    .select("pid, priority, next_attempt_at, status, attempts, last_error")
     .in("status", ["pending", "failed"])
     .lte("next_attempt_at", new Date().toISOString())
     .order("priority", { ascending: false })
     .order("next_attempt_at", { ascending: true })
-    .limit(limit);
+    .order("pid", { ascending: true });
+
+  if (afterPid) {
+    query = query.gt("pid", afterPid);
+  }
+
+  query = query.limit(limit);
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+/** Claim a queue job — returns false if another worker already claimed it. */
+export async function claimEnrichmentJob(pid: string): Promise<boolean> {
+  const db = getCatalogDB();
+  const now = new Date().toISOString();
+  const { data, error } = await db
+    .from("cj_enrichment_queue")
+    .update({ status: "processing", updated_at: now })
+    .eq("pid", pid)
+    .in("status", ["pending", "failed"])
+    .select("pid")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return Boolean(data);
 }
 
 export async function markQueueJob(
@@ -462,7 +750,9 @@ export async function getRawProduct(pid: string): Promise<CjRawProductRow | null
   const db = getCatalogDB();
   const { data, error } = await db
     .from("cj_raw_products")
-    .select("*")
+    .select(
+      "pid, name, sku, price, stock, warehouse, orders, is_video, raw_payload, list_synced_at, updated_at"
+    )
     .eq("pid", pid)
     .maybeSingle();
   if (error) throw new Error(error.message);

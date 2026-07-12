@@ -67,7 +67,6 @@ export async function createShortVideo(formData: {
       return { error: `Database Error: ${error.message}. Ensure the 'external_link' and 'video_type' columns exist in your Supabase project.` };
     }
 
-    revalidatePath("/dashboard/influencer/videos");
     revalidatePath("/shorts");
     return { success: true, videoId: data.id };
   } catch (err: any) {
@@ -123,7 +122,7 @@ export async function updateShortVideo(videoId: string, updates: {
     .eq("user_id", user.id);  // RLS guard at query level too
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/influencer/videos");
+  revalidatePath("/shorts");
   return { success: true };
 }
 
@@ -140,7 +139,7 @@ export async function deleteShortVideo(videoId: string) {
     .eq("user_id", user.id);
 
   if (error) return { error: error.message };
-  revalidatePath("/dashboard/influencer/videos");
+  revalidatePath("/shorts");
   return { success: true };
 }
 

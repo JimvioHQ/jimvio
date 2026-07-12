@@ -8,7 +8,7 @@ type FeaturesRow = {
 };
 
 let cachedMaintenance: { value: boolean; expiresAt: number } | null = null;
-const CACHE_MS = 15_000;
+const CACHE_MS = 60_000;
 
 export function isAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;

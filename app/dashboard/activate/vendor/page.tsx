@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { lookupVendorsByUserId } from "@/lib/vendor/lookup";
 import { useUserStore } from "@/lib/store/use-user-store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -96,17 +97,31 @@ export default function ActivateVendorPage() {
          const { data: { user } } = await supabase.auth.getUser();
          if (!user) { router.push("/login"); return; }
 
-         const { data: v } = await supabase
-            .from("vendors")
-            .select("id, business_name, business_slug, verification_status, verification_notes, created_at")
-            .eq("user_id", user.id).maybeSingle();
-         setVendor(v ?? null);
+         const vendorLookup = await lookupVendorsByUserId(
+            supabase,
+            user.id,
+            "id, business_name, business_slug, verification_status, verification_notes, created_at"
+         );
+         const v = vendorLookup.ok ? vendorLookup.vendor : null;
+         setVendor(
+            v
+               ? {
+                    id: v.id,
+                    business_name: v.business_name,
+                    business_slug: v.business_slug,
+                    verification_status: v.verification_status ?? "pending",
+                    verification_notes: v.verification_notes,
+                    created_at: v.created_at,
+                 }
+               : null
+         );
 
          if (v) {
             const { data: full } = await supabase
                .from("vendors")
                .select("business_phone, business_address, business_country, business_description, business_email, website, tax_id, business_type, product_categories")
-               .eq("id", v.id).maybeSingle();
+               .eq("id", v.id)
+               .maybeSingle();
             if (full) {
                const f = full as Record<string, string | null>;
                setForm(prev => ({

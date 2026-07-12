@@ -5,30 +5,23 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   ChevronDown,
-  Clapperboard,
-  DollarSign,
   Globe,
-  Home,
+  LayoutDashboard,
   Plus,
   Search,
-  ShoppingBag,
   ShoppingCart,
-  Users,
 } from "lucide-react";
 import JimvioLogo from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { CurrencySelector } from "@/context/CurrencyContext";
 import { useCartStore } from "@/lib/store/use-cart-store";
+import {
+  isDashboardActive,
+  isPrimaryNavActive,
+  PRIMARY_NAV_ITEMS,
+} from "@/lib/navigation/primary-nav";
 import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/utils";
-
-const PRIMARY_NAV = [
-  { label: "Home", href: "/c", icon: Home },
-  { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, dropdown: true },
-  { label: "Communities", href: "/communities", icon: Users },
-  { label: "Affiliates", href: "/affiliates", icon: DollarSign },
-  { label: "UGC & Clipping", href: "/ugc", icon: Clapperboard },
-] as const;
 
 type AppTopNavProps = {
   showUtilityBar?: boolean;
@@ -58,6 +51,7 @@ function UserAvatar({
       )}
     >
       {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- user avatar from auth provider
         <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
       ) : (
         <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-500 to-orange-400 text-xs font-semibold text-white">
@@ -68,11 +62,6 @@ function UserAvatar({
   );
 }
 
-function isNavActive(pathname: string, href: string): boolean {
-  if (href === "/c") return pathname === "/c" || pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
 export function AppTopNav({
   showUtilityBar = false,
   activeNav,
@@ -81,6 +70,7 @@ export function AppTopNav({
 }: AppTopNavProps) {
   const pathname = usePathname();
   const { cartCount } = useCartStore();
+  const dashboardActive = isDashboardActive(pathname);
 
   return (
     <>
@@ -107,63 +97,66 @@ export function AppTopNav({
         </div>
       )}
 
-      <header className="z-30 flex h-16 shrink-0 items-center gap-3 border-b border-gray-200 bg-white px-4 sm:px-6">
-        <Link href="/c" className="shrink-0" aria-label="Jimvio home">
+      <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-gray-200 bg-white px-3 sm:gap-x-3 sm:px-5 lg:px-6">
+        <Link href="/" className="shrink-0" aria-label="Jimvio home">
           <JimvioLogo href={undefined} size="md" />
         </Link>
 
-        <nav className="ml-4 hidden items-center gap-1 min-[1150px]:flex">
-          {PRIMARY_NAV.map((item) => {
-            const { label, href, icon: Icon } = item;
-            const dropdown = "dropdown" in item ? item.dropdown : false;
-            const active = activeNav === label || isNavActive(pathname, href);
+        <nav
+          aria-label="Primary"
+          className="hidden min-w-0 items-center justify-center gap-0.5 overflow-hidden min-[1060px]:flex min-[1060px]:flex-nowrap"
+        >
+          {PRIMARY_NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const dropdown = item.dropdown ?? false;
+            const active = isPrimaryNavActive(pathname, item, activeNav);
             return (
               <Link
-                key={href}
-                href={href}
+                key={item.href}
+                href={item.href}
                 className={cn(
-                  "relative inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors",
+                  "relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors xl:px-2.5 xl:text-[13px]",
                   active
-                    ? "text-orange-500 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-orange-500"
+                    ? "text-orange-500 after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-orange-500 xl:after:left-2.5 xl:after:right-2.5"
                     : "text-gray-600 hover:text-gray-900"
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-                {dropdown && <ChevronDown className="h-3 w-3 opacity-50" />}
+                <Icon className="h-3.5 w-3.5 shrink-0" />
+                <span className="whitespace-nowrap">{item.label}</span>
+                {dropdown && <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />}
               </Link>
             );
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
-          <div className="hidden items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 min-[1100px]:flex lg:w-56 xl:w-64">
-            <Search className="h-4 w-4 shrink-0 text-gray-400" />
+        <div className="col-start-3 flex shrink-0 items-center justify-end gap-1 sm:gap-1.5">
+          <div className="hidden h-9 w-[132px] items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 min-[1060px]:flex xl:w-[152px]">
+            <Search className="h-3.5 w-3.5 shrink-0 text-gray-400" />
             <input
               placeholder="Search..."
               aria-label="Search"
-              className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+              className="min-w-0 flex-1 bg-transparent text-[12px] text-gray-900 outline-none placeholder:text-gray-400"
             />
-            <kbd className="hidden shrink-0 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-400 xl:block">
+            <kbd className="hidden shrink-0 rounded border border-gray-200 bg-white px-1 py-px text-[9px] font-medium text-gray-400 2xl:inline">
               ⌘K
             </kbd>
           </div>
 
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-orange-500 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-orange-500 px-2.5 text-[12px] font-semibold text-white transition-colors hover:bg-orange-600 sm:gap-1.5 sm:px-3"
           >
-            <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Create</span>
-            <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+            <Plus className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden whitespace-nowrap sm:inline">Create</span>
+            <ChevronDown className="hidden h-3 w-3 shrink-0 opacity-80 sm:block" />
           </button>
 
           <Link
             href="/notifications"
             aria-label="Notifications"
-            className="relative grid h-9 w-9 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
+            className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
           >
-            <Bell className="h-[18px] w-[18px]" />
+            <Bell className="h-[17px] w-[17px]" />
             {notificationCount > 0 && (
               <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-red-500 px-1 text-[9px] font-semibold text-white">
                 {notificationCount > 9 ? "9+" : notificationCount}
@@ -174,9 +167,9 @@ export function AppTopNav({
           <Link
             href="/cart"
             aria-label="Cart"
-            className="relative grid h-9 w-9 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
+            className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
           >
-            <ShoppingCart className="h-[18px] w-[18px]" />
+            <ShoppingCart className="h-[17px] w-[17px]" />
             {cartCount > 0 && (
               <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-orange-500 px-1 text-[9px] font-semibold text-white">
                 {cartCount > 9 ? "9+" : cartCount}
@@ -187,7 +180,22 @@ export function AppTopNav({
           <ThemeToggle />
 
           {user && (
-            <Link href="/c/profile" aria-label="Profile">
+            <Link
+              href="/dashboard"
+              className={cn(
+                "inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors sm:px-3 sm:text-xs",
+                dashboardActive
+                  ? "border-orange-500 bg-orange-50 text-orange-600"
+                  : "border-gray-200 text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600"
+              )}
+            >
+              <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
+              <span className="whitespace-nowrap">Dashboard</span>
+            </Link>
+          )}
+
+          {user && (
+            <Link href="/c/profile" aria-label="Profile" className="shrink-0">
               <UserAvatar name={user.name} avatarUrl={user.avatarUrl} isPremium={user.isPremium} />
             </Link>
           )}

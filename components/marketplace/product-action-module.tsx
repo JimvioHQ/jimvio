@@ -356,7 +356,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ShoppingCart, Loader2, CheckCircle2, Heart, MessageSquare,
   Zap, Gift, FolderOpen, AlertCircle, ShoppingBag, ArrowRight,
@@ -401,6 +401,8 @@ interface ProductActionModuleProps {
   selectedVariantId?: string | null;
   /** True when variants exist but the selected one has no stock */
   selectedVariantOutOfStock?: boolean;
+  /** True when the product has variants that must be chosen before checkout */
+  requiresVariantSelection?: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -412,6 +414,7 @@ export function ProductActionModule({
   className,
   selectedVariantId = null,
   selectedVariantOutOfStock = false,
+  requiresVariantSelection = false,
 }: ProductActionModuleProps) {
   const isDigital = product.is_digital ?? false;
   const isFree = product.price === 0;
@@ -431,6 +434,10 @@ export function ProductActionModule({
   const [ownershipChecked, setOwnershipChecked] = useState(false);
   const router = useRouter();
   const { incrementCartCount } = useCartStore();
+  const buyNowInFlightRef = useRef(false);
+
+  const BUY_NOW_ERROR =
+    "Something went wrong while preparing your checkout. Please try again.";
 
   useEffect(() => {
     setAdded(false);
@@ -509,7 +516,14 @@ export function ProductActionModule({
   }
 
   async function handleBuyNow() {
-    if (!product.vendor_id) return;
+    if (!product.vendor_id || buyNowInFlightRef.current) return;
+
+    if (requiresVariantSelection && !selectedVariantId) {
+      toast.info("Please select your options first");
+      return;
+    }
+
+    buyNowInFlightRef.current = true;
     setBuyNowLoading(true);
 
     try {
@@ -521,17 +535,23 @@ export function ProductActionModule({
       );
 
       if (result.success && result.orderId) {
-        router.push(`/checkout?order_id=${result.orderId}`);
-      } else if (result.error === "Authentication required") {
-        redirectToLogin();
-      } else {
-        toast.error(result.error ?? "Failed to process checkout");
-        setBuyNowLoading(false);
+        router.push(`/checkout?order_id=${result.orderId}&direct=1`);
+        return;
       }
+
+      if (result.error === "Authentication required") {
+        redirectToLogin();
+        return;
+      }
+
+      toast.error(BUY_NOW_ERROR);
+      setBuyNowLoading(false);
     } catch (err) {
       console.error("Buy now failed:", err);
-      toast.error("Something went wrong. Please try again.");
+      toast.error(BUY_NOW_ERROR);
       setBuyNowLoading(false);
+    } finally {
+      buyNowInFlightRef.current = false;
     }
   }
 
@@ -556,7 +576,7 @@ export function ProductActionModule({
   }
 
   const isOutOfStock = selectedVariantOutOfStock;
-  const noVariantSelected = selectedVariantId === null && selectedVariantOutOfStock;
+  const noVariantSelected = requiresVariantSelection && !selectedVariantId;
   const isDisabled = loading || added || isOutOfStock || noVariantSelected || (isFreeDigital && !ownershipChecked);
   const isBuyNowDisabled = buyNowLoading || isOutOfStock || noVariantSelected || (isFreeDigital && !ownershipChecked);
 
@@ -587,16 +607,18 @@ export function ProductActionModule({
   // ─── Color variants ────────────────────────────────────────────────────────
 
   const cartBtnColors = cn(
-    "transition-all duration-200",
+    "transition-[transform,background-color,box-shadow] duration-200 will-change-transform",
+    "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2",
+    "active:scale-[0.98]",
     isOutOfStock
       ? "bg-muted text-muted-foreground cursor-not-allowed"
       : added
-        ? "bg-emerald-600 hover:bg-emerald-600 text-white"
+        ? "bg-emerald-600 hover:bg-emerald-600 text-white shadow-[0_4px_14px_rgba(16,185,129,0.25)]"
         : isFree
-          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+          ? "bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-[0_4px_14px_rgba(16,185,129,0.2)]"
           : isDigital
-            ? "bg-sky-600 hover:bg-sky-700 text-white"
-            : "bg-foreground hover:bg-foreground/90",
+            ? "bg-sky-600 hover:bg-sky-700 text-white hover:shadow-[0_4px_14px_rgba(14,165,233,0.2)]"
+            : "bg-[var(--color-accent)] hover:bg-[var(--color-accent)]/90 text-white hover:shadow-[0_4px_14px_rgba(253,80,0,0.22)]",
   );
 
   // ─── Render ───────────────────────────────────────────────────────────────────
@@ -643,7 +665,8 @@ export function ProductActionModule({
               onClick={handleAddToCart}
               disabled={isDisabled}
               className={cn(
-                "flex-1 h-[42px] font-medium text-[13px] rounded-xl border-none gap-2",
+                "flex-1 h-11 font-semibold text-[13px] rounded-xl border-none gap-2",
+                !isDisabled && !added && "hover:scale-[1.01]",
                 cartBtnColors,
               )}
             >
@@ -659,8 +682,13 @@ export function ProductActionModule({
               disabled={isBuyNowDisabled}
               variant="outline"
               className={cn(
-                "w-full h-10 font-medium text-[13px] rounded-xl gap-2",
-                "border-border hover:bg-accent transition-colors",
+                "w-full h-11 font-semibold text-[13px] rounded-xl gap-2",
+                "border-[var(--color-border)] bg-[var(--color-surface)]",
+                "transition-[transform,background-color,border-color,box-shadow] duration-200",
+                "hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)]",
+                "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2",
+                "active:scale-[0.99]",
+                "disabled:hover:scale-100 disabled:hover:bg-[var(--color-surface)]",
               )}
             >
               {buyNowLoading ? (
@@ -668,7 +696,7 @@ export function ProductActionModule({
               ) : (
                 <ShoppingBag className="h-4 w-4" />
               )}
-              {buyNowLoading ? "Processing…" : "Buy now"}
+              {buyNowLoading ? "Processing…" : noVariantSelected ? "Select options" : "Buy now"}
             </Button>
           )}
 
@@ -696,9 +724,12 @@ export function ProductActionModule({
         <ProductChatTrigger
           variant="outline"
           className={cn(
-            "h-10 text-[12px] font-medium rounded-xl gap-1.5",
-            "border-border text-muted-foreground",
-            "hover:border-foreground/30 hover:text-white transition-colors",
+            "h-11 text-[12px] font-medium rounded-xl gap-1.5",
+            "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]",
+            "transition-[transform,background-color,border-color,color] duration-200",
+            "hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+            "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2",
+            "active:scale-[0.99]",
           )}
           vendor={vendor ?? undefined}
           product={{ ...product, images: product.images }}
@@ -714,10 +745,13 @@ export function ProductActionModule({
           disabled={wishlistLoading}
           onClick={handleToggleWishlist}
           className={cn(
-            "h-10 text-[12px] font-medium rounded-xl gap-1.5 border transition-colors",
+            "h-11 text-[12px] font-medium rounded-xl gap-1.5 border transition-[transform,background-color,border-color] duration-200",
+            "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-2",
+            "active:scale-[0.99]",
+            !wishlistLoading && "hover:scale-[1.01]",
             inWishlist
-              ? "border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-500/20"
-              : "border-border text-muted-foreground hover:border-foreground/30 hover:text-white",
+              ? "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
+              : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
           )}
         >
           {wishlistLoading ? (

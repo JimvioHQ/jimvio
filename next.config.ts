@@ -65,6 +65,7 @@ let nextConfig: NextConfig = {
   },
 
   experimental: {
+    webpackMemoryOptimizations: true,
     serverActions: {
       allowedOrigins: ["localhost:3000", "localhost", "jimvio.com", "www.jimvio.com"],
     },

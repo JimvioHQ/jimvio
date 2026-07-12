@@ -5,6 +5,9 @@ import { finishSyncRun, startSyncRun } from "./catalog-repository";
 import { rawRowToCJProduct } from "./map-to-cj-product";
 import { scoreEnrichedProduct } from "./score-product";
 import { enrichProduct } from "../import-intelligence/filters";
+import { calculateTrendScore, calculateSupplierScore } from "../import-intelligence/product-utils";
+import { QUICK_FILTER_DEFAULTS } from "../import-intelligence/quick-filter-intelligence";
+import { attachAutoPublish, evaluateAutoPublish, toAutoPublishDbPayload } from "../import-intelligence/auto-publish-engine";
 import type { EnrichedProduct } from "../import-intelligence/types";
 
 /** 6-hour refresh: stock, shipping, price from list sync + re-enqueue stale */
@@ -31,6 +34,7 @@ export async function runDailyScoreRecalc(): Promise<{ rescored: number }> {
   if (error) throw new Error(error.message);
 
   let rescored = 0;
+  const readyPids: string[] = [];
   for (const row of rows ?? []) {
     const raw = Array.isArray(row.cj_raw_products)
       ? row.cj_raw_products[0]
@@ -67,8 +71,13 @@ export async function runDailyScoreRecalc(): Promise<{ rescored: number }> {
     };
 
     const enriched = enrichProduct(cj, {});
-    enriched.intelligence.trending = row.trending;
     const scored = scoreEnrichedProduct(enriched, "complete");
+    const trendScoreRaw = calculateTrendScore(cj);
+    const isTrending =
+      trendScoreRaw >= QUICK_FILTER_DEFAULTS.trendingMinAbsoluteScore &&
+      trendScoreRaw > 0;
+    const withAutoPublish = attachAutoPublish(enriched);
+    const autoPayload = toAutoPublishDbPayload(evaluateAutoPublish(withAutoPublish));
 
     await db
       .from("cj_product_intelligence")
@@ -79,12 +88,24 @@ export async function runDailyScoreRecalc(): Promise<{ rescored: number }> {
         margin_percent: enriched.intelligence.profit.marginPercent,
         quality_scores: scored.qualityScores,
         opportunity_score: scored.opportunityScore,
-        trending: scored.trending,
+        trending: isTrending,
+        supplier_verified:
+          Boolean(row.supplier_verified) || calculateSupplierScore(cj) >= 75,
         scored_at: new Date().toISOString(),
+        ...autoPayload,
       })
       .eq("pid", row.pid);
 
+    if (autoPayload.auto_publish_ready && autoPayload.auto_publish_status === "READY") {
+      readyPids.push(row.pid as string);
+    }
+
     rescored++;
+  }
+
+  if (readyPids.length > 0) {
+    const { queueReadyProductsFromIntel } = await import("./auto-publish-queue");
+    await queueReadyProductsFromIntel(Math.min(readyPids.length, 200)).catch(() => {});
   }
 
   await finishSyncRun(runId, {

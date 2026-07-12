@@ -348,6 +348,15 @@ export default function BrandCampaignDetailPage() {
            <div className="lg:col-span-4 space-y-6">
               
               <Link
+                href={`/dashboard/vendor/campaigns/${id}/applications`}
+                className="group flex flex-col rounded-[32px] border border-zinc-100 bg-white p-6 shadow-sm transition-all hover:border-orange-200 dark:border-border dark:bg-surface"
+              >
+                <span className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Creator Applications</span>
+                <p className="text-xl font-black text-zinc-900 dark:text-white">Review applications</p>
+                <p className="mt-1 text-sm font-medium text-zinc-500">Approve, waitlist, or reject creators</p>
+              </Link>
+
+              <Link
                 href={`/dashboard/vendor/campaigns/${id}/submissions`}
                 className="group flex flex-col p-8 rounded-[40px] bg-white dark:bg-surface text-zinc-950 shadow-2xl relative overflow-hidden transition-all hover:scale-[1.02] active:scale-95"
               >

@@ -5,8 +5,9 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  currentPage: number;
-  totalPages: number;
+  hasMore: boolean;
+  loading: boolean;
+  onLoadMore: () => void;
   total: number;
   pageSize: number;
   onPageChange: (page: number) => void;
@@ -116,8 +117,9 @@ function PageButton({
 }
 
 export function MarketplacePagination({
-  currentPage,
-  totalPages,
+  hasMore,
+  loading,
+  onLoadMore,
   total,
   pageSize,
   onPageChange,
@@ -211,7 +213,10 @@ export function MarketplacePagination({
               />
             ),
           )}
-        </div>
+        </button>
+      </div>
+    );
+  }
 
         <NavButton
           ariaLabel="Next page"
@@ -223,8 +228,13 @@ export function MarketplacePagination({
         </NavButton>
       </nav>
 
-      <p className="text-[11px] font-medium text-[var(--color-text-muted)]/80 tabular-nums">
-        Page {currentPage} of {totalPages}
+  return (
+    <div className="flex justify-center border-t border-[var(--color-border)] pt-8 pb-2">
+      <p className="flex items-center gap-2 text-center text-sm font-medium text-[var(--color-text-muted)]">
+        <span className="text-[var(--color-accent)]" aria-hidden>
+          ✓
+        </span>
+        You&apos;ve reached the end of the marketplace.
       </p>
     </div>
   );
