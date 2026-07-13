@@ -7,7 +7,7 @@ import {
   Radio, Users, Heart, Share2, Monitor, Mic, MicOff, Video, VideoOff,
   ScreenShare, ScreenShareOff, MessageSquare, Square,
   Loader2, Smile, Send, Wifi, LogIn, Link2, Copy, Check, UserPlus,
-  X, AlertTriangle, CheckCircle2, Info,
+  X, AlertTriangle, CheckCircle2, Info, ArrowLeft,
   Flame, HelpCircle, BarChart3, ChevronDown, RotateCcw, MoreHorizontal,
   Zap, WifiOff, Settings, Archive, Trash2, Pin, Bell,
 } from "lucide-react";
@@ -18,6 +18,7 @@ import { normalizeHubLiveDashboard, getMockSessionById } from "@/lib/community/h
 import { LiveSessionsList } from "./live-sessions-list";
 import { StartLiveDialog } from "./start-live-dialog";
 import { toast } from "sonner";
+
 
 /* ── Helpers ── */
 function formatElapsed(seconds: number) {
@@ -48,7 +49,8 @@ function formatMoney(n: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 }
 
-/* ── Confirm dialog ── */
+
+/* ── Confirm dialog (used for destructive actions like ending the room) ── */
 function ConfirmDialog({
   open, title, description, confirmLabel, danger = true, onConfirm, onCancel,
 }: {
@@ -64,24 +66,24 @@ function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={onCancel}>
       <div
-        className="w-full max-w-[360px] animate-in zoom-in-95 slide-in-from-bottom-4 duration-200 rounded-2xl border border-white/10 bg-[#1a1a1a] p-5 shadow-2xl"
+        className="w-full max-w-[360px] animate-in zoom-in-95 slide-in-from-bottom-4 duration-200 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3">
-          <span className={cn("flex h-9 w-9 items-center justify-center rounded-full", danger ? "bg-red-500/20 text-red-400" : "bg-[#fd5000]/20 text-[#fd5000]")}>
+          <span className={cn("flex h-9 w-9 items-center justify-center rounded-full", danger ? "bg-red-500/20 text-red-400" : "bg-[var(--color-accent)]/20 text-[var(--color-accent)]")}>
             <AlertTriangle className="h-4.5 w-4.5" />
           </span>
-          <h3 className="text-[14px] font-black text-white">{title}</h3>
+          <h3 className="text-[14px] font-black text-[var(--color-text-primary)]">{title}</h3>
         </div>
-        <p className="mt-3 text-[12px] leading-relaxed text-zinc-400">{description}</p>
+        <p className="mt-3 text-[12px] leading-relaxed text-[var(--color-text-secondary)]">{description}</p>
         <div className="mt-5 flex justify-end gap-2.5">
-          <button type="button" onClick={onCancel} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[12px] font-semibold text-zinc-300 transition hover:bg-white/10">
+          <button type="button" onClick={onCancel} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-2 text-[12px] font-semibold text-[var(--color-text-secondary)] transition hover:bg-[var(--color-border)]">
             Cancel
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={cn("rounded-xl px-4 py-2 text-[12px] font-bold text-white transition", danger ? "bg-red-600 hover:bg-red-500" : "bg-[#fd5000] hover:bg-[#e04800]")}
+            className={cn("rounded-xl px-4 py-2 text-[12px] font-bold text-white transition", danger ? "bg-red-600 hover:bg-red-500" : "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]")}
           >
             {confirmLabel}
           </button>
@@ -91,8 +93,9 @@ function ConfirmDialog({
   );
 }
 
+
 /* ── Live indicator ── */
-function LiveIndicator({ label = "LIVE", className }: { label?: string; className?: string }) {
+export function LiveIndicator({ label = "LIVE", className }: { label?: string; className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-1.5 rounded-full bg-red-600/20 px-2.5 py-1 text-[10px] font-mono font-medium text-red-400 backdrop-blur-sm", className)}>
       <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
@@ -101,19 +104,21 @@ function LiveIndicator({ label = "LIVE", className }: { label?: string; classNam
   );
 }
 
+
 /* ── Connection quality ── */
-function ConnectionQuality({ quality = "good" }: { quality?: "good" | "fair" | "poor" }) {
+export function ConnectionQuality({ quality = "good", className }: { quality?: "good" | "fair" | "poor"; className?: string }) {
   const colors = { good: "text-emerald-400", fair: "text-amber-400", poor: "text-red-400" };
   const labels = { good: "Excellent", fair: "Fair", poor: "Poor" };
   return (
-    <div className="flex items-center gap-1.5 rounded-full bg-white/5 px-2 py-1 text-[10px] font-mono">
+    <div className={cn("flex items-center gap-1.5 rounded-full bg-[var(--color-surface-secondary)] px-2 py-1 text-[10px] font-mono", className)}>
       <span className={cn("h-1.5 w-1.5 rounded-full", colors[quality])} />
       <span className={colors[quality]}>{labels[quality]}</span>
     </div>
   );
 }
 
-/* ── Page entry ── */
+
+/* ── Page ── */
 export function HubLivePage({
   sessionId,
   communitySlug,
@@ -127,6 +132,7 @@ export function HubLivePage({
     <HubLiveListingPage communitySlug={communitySlug} />
   );
 }
+
 
 /* ── Listing page (multi-session) ── */
 function HubLiveListingPage({ communitySlug }: { communitySlug?: string }) {
@@ -152,13 +158,13 @@ function HubLiveListingPage({ communitySlug }: { communitySlug?: string }) {
   );
 }
 
-/* ── Session page (broadcast studio) ── */
 function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; communitySlug?: string }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<LiveDashboard | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [chatInput, setChatInput] = useState("");
 
+  // Media/stage controls
   const [videoOn, setVideoOn] = useState(false);
   const [screenSharing, setScreenSharing] = useState(false);
   const [soundsOn, setSoundsOn] = useState(false);
@@ -178,6 +184,18 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
   const joinSession = async () => {
     setJoining(true);
     try {
+      // First check if we have access to this session's space
+      const checkRes = await fetch(`/api/c/live/${sessionId}/check-access`);
+      const checkData = await checkRes.json();
+      if (!checkRes.ok) {
+        if (checkRes.status === 403) {
+          toast.error(checkData.error || "You don't have access to this space. Upgrade your membership to join.");
+        } else {
+          toast.error(checkData.error || "Access check failed");
+        }
+        return;
+      }
+
       const res = await fetch(`/api/c/live/${sessionId}/join`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
@@ -203,6 +221,7 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
     }
   };
 
+  // Media refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const thumbVideoRef = useRef<HTMLVideoElement>(null);
   const screenRef = useRef<HTMLVideoElement>(null);
@@ -419,12 +438,12 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
 
   if (loading) {
     return (
-      <div className="flex min-h-[calc(100vh-56px)] flex-col items-center justify-center gap-4 bg-[#0a0a0a]">
+      <div className="flex min-h-[calc(100vh-56px)] flex-col items-center justify-center gap-4 bg-[var(--color-bg)]">
         <div className="relative">
-          <Loader2 className="h-10 w-10 animate-spin text-[#fd5000]" />
-          <div className="absolute inset-0 h-10 w-10 animate-pulse rounded-full bg-[#fd5000]/10" />
+          <Loader2 className="h-10 w-10 animate-spin text-[var(--color-accent)]" />
+          <div className="absolute inset-0 h-10 w-10 animate-pulse rounded-full bg-[var(--color-accent)]/10" />
         </div>
-        <p className="text-[13px] font-semibold text-zinc-500">Loading live session…</p>
+        <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">Loading live session…</p>
       </div>
     );
   }
@@ -434,45 +453,45 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
   const hasSession = Boolean(data?.session.roomId) && !roomEnded;
 
   return (
-    <div className="flex h-[calc(100vh-56px)] flex-col bg-[#0a0a0a] lg:flex-row">
+    <div className="flex h-[calc(100vh-56px)] flex-col bg-[var(--color-bg)] lg:flex-row">
       {/* ═══ TOP SESSION BAR (mobile only) ═══ */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-[#121212] px-4 py-2.5 lg:hidden">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)]/30 bg-[var(--color-surface)]/80 px-4 py-2.5 lg:hidden">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <LiveIndicator className="shrink-0" />
-            <p className="truncate text-[13px] font-bold text-white">{session.title}</p>
+            <p className="truncate text-[13px] font-bold text-[var(--color-text-primary)]">{session.title}</p>
           </div>
-          <p className="mt-0.5 text-[10px] text-zinc-500">{session.host} · {formatOnlineDuration(elapsed)}</p>
+          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">{session.host} · {formatOnlineDuration(elapsed)}</p>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="flex -space-x-1.5">
             {speakers.slice(0, 3).map((s) => (
-              <HubAvatar key={s.id} name={s.name} src={s.avatar_url} size={22} className="ring-2 ring-[#121212]" />
+              <HubAvatar key={s.id} name={s.name} src={s.avatar_url} size={22} className="ring-2 ring-[var(--color-bg)]" />
             ))}
           </div>
-          <span className="text-[10px] font-semibold text-zinc-400">{formatCount(analytics?.viewers ?? 0)}</span>
+          <span className="text-[10px] font-semibold text-[var(--color-text-muted)]">{formatCount(analytics?.viewers ?? 0)}</span>
         </div>
       </div>
 
       {/* ═══ LEFT: VIDEO / STREAM SURFACE ═══ */}
       <div
-        className="relative flex h-[45vh] shrink-0 flex-col bg-zinc-900 lg:h-auto lg:flex-1"
+        className="relative flex h-[45vh] shrink-0 flex-col bg-[var(--color-bg)] lg:h-auto lg:flex-1"
         onMouseEnter={() => setHoveringVideo(true)}
         onMouseLeave={() => setHoveringVideo(false)}
       >
         {!joined ? (
           /* ── Join overlay ── */
           <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-surface-secondary)] via-[var(--color-bg)] to-black" />
             <div className="relative z-10 flex flex-col items-center px-6 text-center">
-              <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-[#fd5000]/10">
-                <Radio className="h-10 w-10 text-[#fd5000]" />
+              <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--color-accent)]/10">
+                <Radio className="h-10 w-10 text-[var(--color-accent)]" />
               </div>
-              <h2 className="text-[22px] font-black text-white">{session.title}</h2>
-              <p className="mt-2 text-[14px] text-zinc-400">
-                <span className="font-semibold text-white">{session.host}</span> is live
+              <h2 className="text-[22px] font-black text-[var(--color-text-primary)]">{session.title}</h2>
+              <p className="mt-2 text-[14px] text-[var(--color-text-muted)]">
+                <span className="font-semibold text-[var(--color-text-primary)]">{session.host}</span> is live
               </p>
-              <div className="mt-4 flex items-center gap-4 text-[12px] text-zinc-500">
+              <div className="mt-4 flex items-center gap-4 text-[12px] text-[var(--color-text-muted)]">
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{formatCount(analytics?.viewers ?? 0)} watching</span>
                 <span className="flex items-center gap-1"><Wifi className="h-3.5 w-3.5" />Live</span>
               </div>
@@ -480,7 +499,7 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
                 type="button"
                 onClick={joinSession}
                 disabled={joining}
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#fd5000] px-6 py-3 text-[13px] font-bold text-white transition hover:bg-[#e04800] disabled:opacity-50"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--color-accent)] px-6 py-3 text-[13px] font-bold text-white transition hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
               >
                 {joining ? (
                   <>
@@ -492,19 +511,19 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
                   </>
                 )}
               </button>
-              <p className="mt-4 text-[11px] text-zinc-600">By joining, you agree to the community guidelines</p>
+              <p className="mt-4 text-[11px] text-[var(--color-text-muted)]">By joining, you agree to the community guidelines</p>
             </div>
           </div>
         ) : roomEnded ? (
           /* ── Room ended ── */
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center px-6">
-              <Square className="mx-auto mb-4 h-16 w-16 text-zinc-600" />
-              <h3 className="text-[18px] font-black text-white">Session Ended</h3>
-              <p className="mt-2 text-zinc-500">This live room has been closed by the host</p>
+              <Square className="mx-auto mb-4 h-16 w-16 text-[var(--color-text-muted)]" />
+              <h3 className="text-[18px] font-black text-[var(--color-text-primary)]">Session Ended</h3>
+              <p className="mt-2 text-[var(--color-text-muted)]">This live room has been closed by the host</p>
               <button
                 onClick={() => { window.location.href = communitySlug ? `/c/${communitySlug}/live` : "/c/live"; }}
-                className="mt-6 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-[12px] font-semibold text-zinc-300 transition hover:bg-white/10"
+                className="mt-6 inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 px-4 py-2 text-[12px] font-semibold text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface)]"
               >
                 <ArrowLeft className="h-4 w-4" /> Back to Live
               </button>
@@ -539,7 +558,7 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
               {videoOn && !screenSharing && cameraStreamRef.current && (
                 <video
                   ref={thumbVideoRef}
-                  className="absolute bottom-4 right-4 z-10 h-24 w-32 rounded-lg border-2 border-white/20 object-cover"
+                  className="absolute bottom-4 right-4 z-10 h-24 w-32 rounded-lg border-2 border-[var(--color-border-strong)] object-cover"
                   autoPlay
                   playsInline
                   muted
@@ -547,7 +566,7 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
               )}
 
               {/* Gradient overlay for bottom UI legibility */}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0a1510]/80 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--color-bg)]/80 to-transparent" />
 
               {/* REC + duration + viewer count - bottom-left */}
               <div className="absolute bottom-4 left-4 flex items-center gap-3">
@@ -557,10 +576,10 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
                     REC
                   </span>
                 )}
-                <span className="rounded-full bg-[#122019]/70 px-2.5 py-1 text-[10px] font-mono text-zinc-500 backdrop-blur-sm">
+                <span className="rounded-full bg-[var(--color-surface-secondary)]/70 px-2.5 py-1 text-[10px] font-mono text-[var(--color-text-muted)] backdrop-blur-sm">
                   {formatElapsed(elapsed)}
                 </span>
-                <span className="rounded-full bg-[#122019]/70 px-2.5 py-1 text-[10px] font-mono text-zinc-500 backdrop-blur-sm">
+                <span className="rounded-full bg-[var(--color-surface-secondary)]/70 px-2.5 py-1 text-[10px] font-mono text-[var(--color-text-muted)] backdrop-blur-sm">
                   {analytics?.viewers ?? 0} watching
                 </span>
               </div>
@@ -632,7 +651,7 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
                   <div className="ml-auto">
                     {showEndRoomConfirm ? (
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-zinc-500">End for everyone?</span>
+                        <span className="text-[11px] text-[var(--color-text-muted)]">End for everyone?</span>
                         <button
                           onClick={endRoom}
                           className="rounded-lg bg-red-600 px-3 py-2 text-[11px] font-bold text-white hover:bg-red-700 transition-colors"
@@ -672,301 +691,298 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
             )}
           </div>
         )}
-      </div>
 
-        {/* Right panel (sidebar) - Chat, Participants, Q&A, Polls */}
-        <div className="lg:w-[340px] lg:flex-shrink-0 border-t lg:border-t-0 lg:border-l border-white/10">
-          <aside className="h-[40vh] lg:h-full">
+          <div className="lg:w-[340px] lg:flex-shrink-0 border-t lg:border-t-0 lg:border-l border-[var(--color-border)]/30">
             <div className="h-[40vh] lg:h-full">
-            {/* Session header */}
-            <div className="p-4 border-b border-white/10 bg-zinc-900/50">
-              <div className="flex items-center gap-2">
-                <span className="rounded bg-[#fd5000]/15 px-2 py-0.5 text-[10px] font-mono font-medium text-[#fd5000]">{session.tag ?? "Live"}</span>
-                <h3 className="truncate text-[14px] font-black text-white">{session.title}</h3>
+              {/* Session header */}
+              <div className="p-4 border-b border-[var(--color-border)]/30 bg-[var(--color-surface)]/50">
+                <div className="flex items-center gap-2">
+                  <span className="rounded bg-[var(--color-accent)]/15 px-2 py-0.5 text-[10px] font-mono font-medium text-[var(--color-accent)]">{session.tag ?? "Live"}</span>
+                  <h3 className="truncate text-[14px] font-black text-[var(--color-text-primary)]">{session.title}</h3>
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <HubAvatar name={session.host} size={24} />
+                  <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">{session.host}</span>
+                  <LiveIndicator label="LIVE" />
+                </div>
+                <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">{formatOnlineDuration(elapsed)}</p>
               </div>
-              <div className="mt-2 flex items-center gap-2">
-                <HubAvatar name={session.host} size={24} />
-                <span className="text-[13px] font-semibold text-white">{session.host}</span>
-                <LiveIndicator label="LIVE" />
+
+              {/* Tab bar */}
+              <div className="flex border-b border-[var(--color-border)]/30 bg-[var(--color-surface)]/50">
+                {([
+                  ["chat", "Chat", MessageSquare] as const,
+                  ["participants", "Participants", Users] as const,
+                  ["qa", "Q&A", HelpCircle] as const,
+                  ["polls", "Polls", BarChart3] as const,
+                ]).map(([key, label, Icon]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setActiveTab(key as "chat" | "participants" | "qa" | "polls")}
+                    className={cn(
+                      "flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 text-[10px] font-bold uppercase tracking-wider transition",
+                      activeTab === key
+                        ? "border-b-2 border-[var(--color-accent)] text-[var(--color-accent)]"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {label}
+                    {key === "chat" && (
+                      <span className="ml-0.5 rounded bg-[var(--color-surface-secondary)] px-1 py-0.5 text-[8px] font-bold text-[var(--color-text-muted)]">{data?.chatMessages.length ?? 0}</span>
+                    )}
+                  </button>
+                ))}
               </div>
-              <p className="mt-1 text-[11px] text-zinc-500">{formatOnlineDuration(elapsed)}</p>
-            </div>
 
-            {/* Tab bar */}
-            <div className="flex border-b border-white/10 bg-zinc-900/50">
-              {([
-                ["chat", "Chat", MessageSquare] as const,
-                ["participants", "Participants", Users] as const,
-                ["qa", "Q&A", HelpCircle] as const,
-                ["polls", "Polls", BarChart3] as const,
-              ]).map(([key, label, Icon]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setActiveTab(key)}
-                  className={cn(
-                    "flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 text-[10px] font-bold uppercase tracking-wider transition",
-                    activeTab === key
-                      ? "border-b-2 border-[#fd5000] text-[#fd5000]"
-                      : "text-zinc-500 hover:text-zinc-300"
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                  {key === "chat" && (
-                    <span className="ml-0.5 rounded bg-white/5 px-1 py-0.5 text-[8px] font-bold text-zinc-400">{data?.chatMessages.length ?? 0}</span>
-                  )}
-                </button>
-              ))}
-            </div>
+              {/* Chat tab */}
+              {activeTab === "chat" && (
+                <div className="flex flex-col h-[calc(100%-140px)]">
+                  <div className="flex-1 space-y-1.5 overflow-y-auto px-4 py-2.5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                    {(data?.chatMessages ?? []).length === 0 ? (
+                      <div className="flex flex-col items-center py-12 text-center">
+                        <MessageSquare className="mb-2 h-8 w-8 text-[var(--color-text-muted)]" />
+                        <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">No messages yet</p>
+                        <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Be the first to say something!</p>
+                      </div>
+                    ) : (
+                      data!.chatMessages.map((m, i) => (
+                        <div
+                          key={m.id}
+                          className="animate-in fade-in slide-in-from-bottom-1 duration-200 rounded-xl bg-[var(--color-surface-secondary)] px-3 py-2 transition hover:bg-[var(--color-border)]"
+                          style={{ animationDelay: `${Math.min(i * 20, 300)}ms` }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <HubAvatar name={m.sender_name} src={m.sender_avatar} size={20} />
+                            <p className="text-[11px] font-bold text-[var(--color-accent)]">{m.sender_name}</p>
+                            <span className="ml-auto text-[9px] text-[var(--color-text-muted)]">{formatTime(m.created_at)}</span>
+                          </div>
+                          <p className="mt-0.5 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">{m.body}</p>
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                if (!data) return;
+                                setData({
+                                  ...data,
+                                  chatMessages: data.chatMessages.map((msg) =>
+                                    msg.id === m.id ? { ...msg, reaction_count: msg.reaction_count + 1 } : msg
+                                  ),
+                                });
+                              }}
+                              className="inline-flex items-center gap-1 rounded-md bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[10px] text-[var(--color-text-muted)] transition hover:bg-red-500/10 hover:text-red-400"
+                            >
+                              <Heart className="h-3 w-3" />
+                              {Math.max(m.reaction_count, 0)}
+                            </button>
+                            {m.reaction_count >= 3 && <Flame className="h-3.5 w-3.5 text-orange-400" />}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
 
-            {/* Chat tab */}
-            {activeTab === "chat" && (
-              <div className="flex flex-col h-[calc(100%-140px)]">
-                <div className="flex-1 space-y-1.5 overflow-y-auto px-4 py-2.5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                  {(data?.chatMessages ?? []).length === 0 ? (
+                  {/* Message input */}
+                  <div className="border-t border-[var(--color-border)]/30 bg-[var(--color-bg)]/50 p-3">
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setShowEmojiPicker((v) => !v)}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] transition hover:bg-[var(--color-border)] hover:text-[var(--color-accent)]"
+                        >
+                          <Smile className="h-4.5 w-4.5" />
+                        </button>
+                        {showEmojiPicker && (
+                          <div className="absolute bottom-full left-0 mb-1.5 flex animate-in fade-in slide-in-from-bottom-1 gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-xl">
+                            {["😀", "😂", "❤️", "🔥", "👏", "🎉", "👍", "😍"].map((e) => (
+                              <button
+                                key={e}
+                                type="button"
+                                onClick={() => { setChatInput((prev) => prev + e); setShowEmojiPicker(false); }}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-[var(--color-border)] hover:scale-110"
+                              >
+                                {e}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") sendChatMessage(); }}
+                        placeholder="Say something…"
+                        className="min-w-0 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3.5 py-2 text-[13px] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] transition focus:border-[var(--color-accent)]/30 focus:bg-[var(--color-border)] focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={sendChatMessage}
+                        disabled={!chatInput.trim()}
+                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-accent)]/15 text-[var(--color-accent)] transition hover:bg-[var(--color-accent)]/25 disabled:opacity-30"
+                      >
+                        <Send className="h-4.5 w-4.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Participants tab */}
+              {activeTab === "participants" && (
+                <div className="flex-1 space-y-1 overflow-y-auto px-4 py-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                  {speakers.length === 0 ? (
                     <div className="flex flex-col items-center py-12 text-center">
-                      <MessageSquare className="mb-2 h-8 w-8 text-zinc-700" />
-                      <p className="text-[13px] font-semibold text-zinc-500">No messages yet</p>
-                      <p className="mt-1 text-[11px] text-zinc-600">Be the first to say something!</p>
+                      <Users className="mb-2 h-8 w-8 text-[var(--color-text-muted)]" />
+                      <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">No participants yet</p>
                     </div>
                   ) : (
-                    data!.chatMessages.map((m, i) => (
-                      <div
-                        key={m.id}
-                        className="animate-in fade-in slide-in-from-bottom-1 duration-200 rounded-xl bg-white/[0.03] px-3 py-2 transition hover:bg-white/[0.06]"
-                        style={{ animationDelay: `${Math.min(i * 20, 300)}ms` }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <HubAvatar name={m.sender_name} src={m.sender_avatar} size={20} />
-                          <p className="text-[11px] font-bold text-[#fd5000]">{m.sender_name}</p>
-                          <span className="ml-auto text-[9px] text-zinc-600">{formatTime(m.created_at)}</span>
+                    speakers.map((s) => (
+                      <div key={s.id} className="flex items-center gap-3 rounded-xl bg-[var(--color-surface-secondary)] px-3 py-2.5 transition hover:bg-[var(--color-border)]">
+                        <HubAvatar name={s.name} src={s.avatar_url} size={28} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-bold text-[var(--color-text-primary)]">{s.name}</p>
+                          <p className="text-[10px] text-[var(--color-text-muted)]">{s.role}</p>
                         </div>
-                        <p className="mt-0.5 text-[13px] leading-relaxed text-zinc-200">{m.body}</p>
-                        <div className="mt-1.5 flex items-center gap-2">
+                        {s.role === "Host" && (
+                          <span className="rounded bg-[var(--color-accent)]/10 px-2 py-0.5 text-[9px] font-bold text-[var(--color-accent)]">HOST</span>
+                        )}
+                        {s.role === "Speaker" && (
+                          <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-400">SPEAKER</span>
+                        )}
+                      </div>
+                    ))
+                  )}
+                  <div className="mt-3 flex items-center justify-between rounded-xl bg-[var(--color-surface-secondary)] px-3 py-2.5">
+                    <span className="text-[11px] font-semibold text-[var(--color-text-secondary)]">Viewers</span>
+                    <span className="text-[12px] font-bold text-[var(--color-text-primary)]">{formatCount(analytics?.viewers ?? 0)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Q&A tab */}
+              {activeTab === "qa" && (
+                <div className="flex-1 space-y-2 overflow-y-auto px-4 py-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                  {qaItems.length === 0 ? (
+                    <div className="flex flex-col items-center py-12 text-center">
+                      <HelpCircle className="mb-2 h-8 w-8 text-[var(--color-text-muted)]" />
+                      <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">No questions yet</p>
+                      <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Ask something in chat to get started</p>
+                    </div>
+                  ) : (
+                    qaItems.map((q) => (
+                      <div key={q.id} className="rounded-xl bg-[var(--color-surface-secondary)] px-3 py-2.5 transition hover:bg-[var(--color-border)]">
+                        <div className="flex items-start gap-2.5">
                           <button
-                            onClick={() => {
-                              if (!data) return;
-                              setData({
-                                ...data,
-                                chatMessages: data.chatMessages.map((msg) =>
-                                  msg.id === m.id ? { ...msg, reaction_count: msg.reaction_count + 1 } : msg
-                                ),
-                              });
-                            }}
-                            className="inline-flex items-center gap-1 rounded-md bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-500 transition hover:bg-red-500/10 hover:text-red-400"
+                            type="button"
+                            className="flex shrink-0 flex-col items-center gap-0.5 rounded-lg bg-[var(--color-surface-secondary)] px-1.5 py-1 text-[10px] font-bold text-[var(--color-text-muted)] transition hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)]"
                           >
-                            <Heart className="h-3 w-3" />
-                            {Math.max(m.reaction_count, 0)}
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>
+                            {q.votes}
                           </button>
-                          {m.reaction_count >= 3 && <Flame className="h-3.5 w-3.5 text-orange-400" />}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px] font-bold leading-snug text-[var(--color-text-primary)]">{q.question}</p>
+                            <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">Asked by {q.askedBy}</p>
+                            {q.answered && (
+                              <div className="mt-2 rounded-lg bg-emerald-500/10 px-2.5 py-1.5">
+                                <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Answered
+                                </div>
+                                <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--color-text-secondary)]">{q.answer}</p>
+                              </div>
+                            )}
+                            {!q.answered && (
+                              <span className="mt-1.5 inline-block rounded bg-[var(--color-surface-secondary)]/50 px-1.5 py-0.5 text-[9px] font-semibold text-[var(--color-text-muted)]">Awaiting answer</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))
                   )}
-                  <div ref={chatEndRef} />
                 </div>
+              )}
 
-                {/* Message input */}
-                <div className="border-t border-white/10 bg-[#0e0e0e] p-3">
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setShowEmojiPicker((v) => !v)}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-zinc-500 transition hover:bg-white/10 hover:text-[#fd5000]"
-                      >
-                        <Smile className="h-4.5 w-4.5" />
-                      </button>
-                      {showEmojiPicker && (
-                        <div className="absolute bottom-full left-0 mb-1.5 flex animate-in fade-in slide-in-from-bottom-1 gap-1 rounded-xl border border-white/10 bg-[#1a1a1a] p-2 shadow-xl">
-                          {["😀", "😂", "❤️", "🔥", "👏", "🎉", "👍", "😍"].map((e) => (
-                            <button
-                              key={e}
-                              type="button"
-                              onClick={() => { setChatInput((prev) => prev + e); setShowEmojiPicker(false); }}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-white/10 hover:scale-110"
-                            >
-                              {e}
-                            </button>
-                          ))}
-                        </div>
-                      )}
+              {/* Polls tab */}
+              {activeTab === "polls" && (
+                <div className="flex-1 space-y-2 overflow-y-auto px-4 py-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                  {polls.length === 0 ? (
+                    <div className="flex flex-col items-center py-12 text-center">
+                      <BarChart3 className="mb-2 h-8 w-8 text-[var(--color-text-muted)]" />
+                      <p className="text-[13px] font-semibold text-[var(--color-text-muted)]">No polls yet</p>
+                      <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">Create a poll to engage your audience</p>
                     </div>
-                    <input
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") sendChatMessage(); }}
-                      placeholder="Say something…"
-                      className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-[13px] text-white placeholder-zinc-600 transition focus:border-[#fd5000]/30 focus:bg-white/[0.07] focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={sendChatMessage}
-                      disabled={!chatInput.trim()}
-                      className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fd5000]/15 text-[#fd5000] transition hover:bg-[#fd5000]/25 disabled:opacity-30"
-                    >
-                      <Send className="h-4.5 w-4.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Participants tab */}
-            {activeTab === "participants" && (
-              <div className="flex-1 space-y-1 overflow-y-auto px-4 py-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                {speakers.length === 0 ? (
-                  <div className="flex flex-col items-center py-12 text-center">
-                    <Users className="mb-2 h-8 w-8 text-zinc-700" />
-                    <p className="text-[13px] font-semibold text-zinc-500">No participants yet</p>
-                  </div>
-                ) : (
-                  speakers.map((s) => (
-                    <div key={s.id} className="flex items-center gap-3 rounded-xl bg-white/[0.03] px-3 py-2.5 transition hover:bg-white/[0.06]">
-                      <HubAvatar name={s.name} src={s.avatar_url} size={28} />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-bold text-white">{s.name}</p>
-                        <p className="text-[10px] text-zinc-500">{s.role}</p>
-                      </div>
-                      {s.role === "Host" && (
-                        <span className="rounded bg-[#fd5000]/10 px-2 py-0.5 text-[9px] font-bold text-[#fd5000]">HOST</span>
-                      )}
-                      {s.role === "Speaker" && (
-                        <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold text-emerald-400">SPEAKER</span>
-                      )}
-                    </div>
-                  ))
-                )}
-                <div className="mt-3 flex items-center justify-between rounded-xl bg-white/[0.02] px-3 py-2.5">
-                  <span className="text-[11px] font-semibold text-zinc-400">Viewers</span>
-                  <span className="text-[12px] font-bold text-white">{formatCount(analytics?.viewers ?? 0)}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Q&A tab */}
-            {activeTab === "qa" && (
-              <div className="flex-1 space-y-2 overflow-y-auto px-4 py-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                {qaItems.length === 0 ? (
-                  <div className="flex flex-col items-center py-12 text-center">
-                    <HelpCircle className="mb-2 h-8 w-8 text-zinc-700" />
-                    <p className="text-[13px] font-semibold text-zinc-500">No questions yet</p>
-                    <p className="mt-1 text-[11px] text-zinc-600">Ask something in chat to get started</p>
-                  </div>
-                ) : (
-                  qaItems.map((q) => (
-                    <div key={q.id} className="rounded-xl bg-white/[0.03] px-3 py-2.5 transition hover:bg-white/[0.06]">
-                      <div className="flex items-start gap-2.5">
-                        <button
-                          type="button"
-                          className="flex shrink-0 flex-col items-center gap-0.5 rounded-lg bg-white/5 px-1.5 py-1 text-[10px] font-bold text-zinc-500 transition hover:bg-[#fd5000]/10 hover:text-[#fd5000]"
-                        >
-                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>
-                          {q.votes}
-                        </button>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[12px] font-bold leading-snug text-white">{q.question}</p>
-                          <p className="mt-1 text-[10px] text-zinc-500">Asked by {q.askedBy}</p>
-                          {q.answered && (
-                            <div className="mt-2 rounded-lg bg-emerald-500/10 px-2.5 py-1.5">
-                              <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Answered
-                              </div>
-                              <p className="mt-0.5 text-[11px] leading-relaxed text-zinc-300">{q.answer}</p>
-                            </div>
-                          )}
-                          {!q.answered && (
-                            <span className="mt-1.5 inline-block rounded bg-zinc-700/30 px-1.5 py-0.5 text-[9px] font-semibold text-zinc-500">Awaiting answer</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Polls tab */}
-            {activeTab === "polls" && (
-              <div className="flex-1 space-y-2 overflow-y-auto px-4 py-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                {polls.length === 0 ? (
-                  <div className="flex flex-col items-center py-12 text-center">
-                    <BarChart3 className="mb-2 h-8 w-8 text-zinc-700" />
-                    <p className="text-[13px] font-semibold text-zinc-500">No polls yet</p>
-                    <p className="mt-1 text-[11px] text-zinc-600">Create a poll to engage your audience</p>
-                  </div>
-                ) : (
-                  polls.map((poll) => {
-                    const totalVotes = poll.votes.reduce((a, b) => a + b, 0);
-                    return (
-                      <div key={poll.id} className="rounded-xl bg-white/[0.03] px-3 py-3">
-                        <div className="flex items-center gap-2">
-                          <p className="flex-1 text-[12px] font-bold text-white">{poll.question}</p>
-                          {poll.active && <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-bold text-emerald-400">ACTIVE</span>}
-                        </div>
-                        <div className="mt-2.5 space-y-1.5">
-                          {poll.options.map((opt, oi) => {
-                            const pct = totalVotes > 0 ? Math.round((poll.votes[oi] / totalVotes) * 100) : 0;
-                            return (
-                              <div key={oi}>
-                                <div className="flex items-center justify-between text-[11px]">
-                                  <span className="text-zinc-300">{opt}</span>
-                                  <span className="font-semibold text-zinc-500">{pct}%</span>
+                  ) : (
+                    polls.map((poll) => {
+                      const totalVotes = poll.votes.reduce((a, b) => a + b, 0);
+                      return (
+                        <div key={poll.id} className="rounded-xl bg-[var(--color-surface-secondary)] px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <p className="flex-1 text-[12px] font-bold text-[var(--color-text-primary)]">{poll.question}</p>
+                            {poll.active && <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-bold text-emerald-400">ACTIVE</span>}
+                          </div>
+                          <div className="mt-2.5 space-y-1.5">
+                            {poll.options.map((opt, oi) => {
+                              const pct = totalVotes > 0 ? Math.round((poll.votes[oi] / totalVotes) * 100) : 0;
+                              return (
+                                <div key={oi}>
+                                  <div className="flex items-center justify-between text-[11px]">
+                                    <span className="text-[var(--color-text-secondary)]">{opt}</span>
+                                    <span className="font-semibold text-[var(--color-text-muted)]">{pct}%</span>
+                                  </div>
+                                  <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
+                                    <div className="h-full rounded-full bg-[var(--color-accent)] transition-all" style={{ width: `${pct}%` }} />
+                                  </div>
                                 </div>
-                                <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-white/5">
-                                  <div className="h-full rounded-full bg-[#fd5000] transition-all" style={{ width: `${pct}%` }} />
-                                </div>
-                              </div>
-                            );
-                          })}
+                              );
+})}
+                          </div>
+                          <p className="mt-2 text-[10px] text-[var(--color-text-muted)]">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</p>
                         </div>
-                        <p className="mt-2 text-[10px] text-zinc-600">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</p>
-                      </div>
-                    );
-                  })
+                      );
+                    }))
+                  }
+                  </div>
                 )}
-              </div>
-            )}
 
-            {/* Collapsed chat preview when on non-chat tabs */}
+            {/* Collapsed chat preview (when on non-chat tabs) */}
             {activeTab !== "chat" && data && data.chatMessages.length > 0 && (
               <button
                 type="button"
                 onClick={() => setActiveTab("chat")}
-                className="mx-3 mb-1 flex items-center gap-2.5 rounded-xl bg-white/[0.03] px-3 py-2 transition hover:bg-white/[0.06]"
+                className="mx-3 mb-1 flex items-center gap-2.5 rounded-xl bg-[var(--color-surface-secondary)] px-3 py-2 transition hover:bg-[var(--color-border)]"
               >
                 <div className="flex -space-x-1">
                   <HubAvatar name={data.chatMessages[data.chatMessages.length - 1].sender_name} size={18} />
                 </div>
                 <div className="min-w-0 flex-1 truncate text-left">
-                  <span className="text-[11px] font-bold text-zinc-300">{data.chatMessages[data.chatMessages.length - 1].sender_name}</span>
-                  <span className="ml-1 text-[11px] text-zinc-500">{data.chatMessages[data.chatMessages.length - 1].body}</span>
+                  <span className="text-[11px] font-bold text-[var(--color-text-secondary)]">{data.chatMessages[data.chatMessages.length - 1].sender_name}</span>
+                  <span className="ml-1 text-[11px] text-[var(--color-text-muted)]">{data.chatMessages[data.chatMessages.length - 1].body}</span>
                 </div>
-                <span className="shrink-0 rounded bg-white/5 px-1.5 py-0.5 text-[9px] font-bold text-zinc-500">{data.chatMessages.length}</span>
+                <span className="shrink-0 rounded bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-text-muted)]">{data.chatMessages.length}</span>
               </button>
             )}
 
             {/* Message input (always visible when joined) */}
-            <div className="border-t border-white/10 bg-[#0e0e0e] p-3">
+            <div className="border-t border-[var(--color-border)]/30 bg-[var(--color-bg)]/50 p-3">
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <button
                     type="button"
                     onClick={() => setShowEmojiPicker((v) => !v)}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-zinc-500 transition hover:bg-white/10 hover:text-[#fd5000]"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] transition hover:bg-[var(--color-border)] hover:text-[var(--color-accent)]"
                   >
                     <Smile className="h-4.5 w-4.5" />
                   </button>
                   {showEmojiPicker && (
-                    <div className="absolute bottom-full left-0 mb-1.5 flex animate-in fade-in slide-in-from-bottom-1 gap-1 rounded-xl border border-white/10 bg-[#1a1a1a] p-2 shadow-xl">
+                    <div className="absolute bottom-full left-0 mb-1.5 flex animate-in fade-in slide-in-from-bottom-1 gap-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-xl">
                       {["😀", "😂", "❤️", "🔥", "👏", "🎉", "👍", "😍"].map((e) => (
                         <button
                           key={e}
                           type="button"
                           onClick={() => { setChatInput((prev) => prev + e); setShowEmojiPicker(false); }}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-white/10 hover:scale-110"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-lg transition hover:bg-[var(--color-border)] hover:scale-110"
                         >
                           {e}
                         </button>
@@ -979,23 +995,24 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") sendChatMessage(); }}
                   placeholder="Say something…"
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-[13px] text-white placeholder-zinc-600 transition focus:border-[#fd5000]/30 focus:bg-white/[0.07] focus:outline-none"
+                  className="min-w-0 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3.5 py-2 text-[13px] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] transition focus:border-[var(--color-accent)]/30 focus:bg-[var(--color-border)] focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={sendChatMessage}
                   disabled={!chatInput.trim()}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fd5000]/15 text-[#fd5000] transition hover:bg-[#fd5000]/25 disabled:opacity-30"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-accent)]/15 text-[var(--color-accent)] transition hover:bg-[var(--color-accent)]/25 disabled:opacity-30"
                 >
                   <Send className="h-4.5 w-4.5" />
                 </button>
-</div>
+              </div>
+            </div>
           </div>
         </div>
-            </aside>
-          </div>
+
+        {/* ═══ MOBILE BOTTOM CONTROLS ═══ */}
         {joined && (
-        <div className="flex items-center justify-center gap-2 border-t border-white/10 bg-[#121212] px-4 py-3 lg:hidden">
+        <div className="flex items-center justify-center gap-2 border-t border-[var(--color-border)]/30 bg-[var(--color-surface)]/80 backdrop-blur-xl px-4 py-3 lg:hidden">
           <MobileMediaButton icon={soundsOn ? Mic : MicOff} active={soundsOn} onClick={() => soundsOn ? stopMic() : startMic()} />
           <MobileMediaButton icon={videoOn ? Video : VideoOff} active={videoOn} onClick={() => videoOn ? stopCamera() : startCamera()} />
           <MobileMediaButton icon={screenSharing ? ScreenShareOff : Monitor} active={screenSharing} onClick={() => screenSharing ? stopScreenShare() : startScreenShare()} />
@@ -1016,30 +1033,30 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
         {showInviteDialog && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => { setShowInviteDialog(false); setInviteCopied(false); }}>
             <div
-              className="w-full max-w-[380px] animate-in zoom-in-95 slide-in-from-bottom-4 duration-200 rounded-2xl border border-white/10 bg-[#1a1a1a] p-5 shadow-2xl"
+              className="w-full max-w-[380px] animate-in zoom-in-95 slide-in-from-bottom-4 duration-200 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fd5000]/10">
-                    <Link2 className="h-4 w-4 text-[#fd5000]" />
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+                    <Link2 className="h-4 w-4 text-[var(--color-accent)]" />
                   </span>
-                  <h3 className="text-[14px] font-black text-white">Invite</h3>
+                  <h3 className="text-[14px] font-black text-[var(--color-text-primary)]">Invite</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => { setShowInviteDialog(false); setInviteCopied(false); }}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-white/10 hover:text-white"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-[var(--color-text-muted)] transition hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <p className="mt-3 text-[12px] text-zinc-400">Share this link with others to join the session</p>
+              <p className="mt-3 text-[12px] text-[var(--color-text-muted)]">Share this link with others to join the session</p>
               <div className="mt-3 flex items-center gap-2">
                 <input
                   readOnly
                   value={sessionUrl}
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-[12px] text-zinc-300 outline-none"
+                  className="min-w-0 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2.5 text-[12px] text-[var(--color-text-secondary)] outline-none"
                 />
                 <button
                   type="button"
@@ -1055,7 +1072,7 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
                   }}
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-xl transition",
-                    inviteCopied ? "bg-emerald-500/15 text-emerald-400" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
+                    inviteCopied ? "bg-emerald-500/15 text-emerald-400" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]"
                   )}
                 >
                   {inviteCopied ? <Check className="h-4.5 w-4.5" /> : <Copy className="h-4.5 w-4.5" />}
@@ -1074,10 +1091,12 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
           onCancel={() => setShowEndRoomConfirm(false)}
         />
       </div>
+    </div>
   );
 }
 
-/* ── Media control button ── */
+
+/* ── Media control button for the bottom bar ── */
 function MediaButton({ icon: Icon, active, onClick, label, shortcut }: { icon: React.ComponentType<{ className?: string }>; active: boolean; onClick: () => void; label: string; shortcut?: string }) {
   return (
     <button
@@ -1088,19 +1107,20 @@ function MediaButton({ icon: Icon, active, onClick, label, shortcut }: { icon: R
         "group relative flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-semibold transition-all",
         active
           ? "bg-emerald-500/15 text-emerald-400 shadow-sm shadow-emerald-500/10 hover:bg-emerald-500/25"
-          : "text-zinc-400 hover:bg-white/10 hover:text-white"
+          : "text-[var(--color-text-muted)] hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]"
       )}
     >
       <Icon className="h-4 w-4" />
       <span>{label}</span>
       {shortcut && (
-        <span className="ml-0.5 rounded bg-white/5 px-1 py-0.5 text-[8px] font-bold text-zinc-600 group-hover:text-zinc-400">
+        <span className="ml-0.5 rounded bg-[var(--color-surface-secondary)] px-1 py-0.5 text-[8px] font-bold text-[var(--color-text-muted)] group-hover:text-[var(--color-text-secondary)]">
           {shortcut}
         </span>
       )}
     </button>
   );
 }
+
 
 /* ── Mobile media control button ── */
 function MobileMediaButton({ icon: Icon, active, onClick }: { icon: React.ComponentType<{ className?: string }>; active: boolean; onClick: () => void }) {
@@ -1112,7 +1132,7 @@ function MobileMediaButton({ icon: Icon, active, onClick }: { icon: React.Compon
         "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
         active
           ? "bg-emerald-500/15 text-emerald-400"
-          : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"
+          : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]"
       )}
     >
       <Icon className="h-4.5 w-4.5" />

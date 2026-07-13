@@ -38,13 +38,13 @@ export function RegisterForm() {
   if (success) {
     return (
       <div className="w-full text-center animate-fade-in mt-16">
-        <div className="w-16 h-16 rounded-sm bg-green-50 flex items-center justify-center mx-auto mb-6 ring-4 ring-green-50">
-          <CheckCircle className="h-8 w-8 text-green-500" />
+        <div className="w-16 h-16 rounded-sm bg-[var(--color-success-light)] flex items-center justify-center mx-auto mb-6 ring-4 ring-[var(--color-success)]/20">
+          <CheckCircle className="h-8 w-8 text-[var(--color-success)]" />
         </div>
-        <h2 className="text-2xl font-black text-zinc-900 dark:text-white mb-2 tracking-tight">Check your email</h2>
-        <p className="text-[14px] font-medium text-zinc-500 mb-8 max-w-xs mx-auto">{success}</p>
+        <h2 className="text-2xl font-black text-[var(--color-text-primary)] mb-2 tracking-tight">Check your email</h2>
+        <p className="text-[14px] font-medium text-[var(--color-text-muted)] mb-8 max-w-xs mx-auto">{success}</p>
         <Link href="/login">
-          <Button className="w-full h-12 rounded-sm bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none transition-all">
+          <Button className="w-full h-12 rounded-sm bg-[var(--color-text-primary)] hover:bg-[var(--color-text-secondary)] text-[var(--color-bg)] font-bold text-[14px] shadow-none transition-all">
             Back to sign in
           </Button>
         </Link>
@@ -55,8 +55,8 @@ export function RegisterForm() {
   return (
     <div className="w-full">
       <div className="space-y-3 mb-10">
-        <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Create an account</h1>
-        <p className="text-[14px] font-medium text-zinc-500">
+        <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)]">Create an account</h1>
+        <p className="text-[14px] font-medium text-[var(--color-text-muted)]">
           Join Jimvio — completely free to sign up.
         </p>
       </div>
@@ -72,7 +72,7 @@ export function RegisterForm() {
             }
           })}
           disabled={pending}
-          className="w-full h-12 bg-white dark:bg-surface hover:bg-zinc-50 dark:hover:bg-zinc-900/50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-border shadow-none rounded-sm font-bold transition-all flex items-center justify-center gap-3"
+          className="w-full h-12 bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] shadow-none rounded-sm font-bold transition-all flex items-center justify-center gap-3"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -84,29 +84,29 @@ export function RegisterForm() {
         </Button>
 
         <div className="relative flex items-center py-2">
-          <div className="flex-grow border-t border-zinc-200 dark:border-border"></div>
-          <span className="flex-shrink-0 mx-4 text-[12px] font-medium text-zinc-500">or sign up with email</span>
-          <div className="flex-grow border-t border-zinc-200 dark:border-border"></div>
+          <div className="flex-grow border-t border-[var(--color-border)]"></div>
+          <span className="flex-shrink-0 mx-4 text-[12px] font-medium text-[var(--color-text-muted)]">or sign up with email</span>
+          <div className="flex-grow border-t border-[var(--color-border)]"></div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
-            <div role="alert" className="p-3.5 rounded-sm text-[13px] font-semibold bg-red-50 text-red-600 flex items-center justify-center text-center">
+            <div role="alert" className="p-3.5 rounded-sm text-[13px] font-semibold bg-[var(--color-danger-light)] text-[var(--color-danger)] flex items-center justify-center text-center">
               {error}
             </div>
           )}
 
           <div className="space-y-1.5">
-            <label htmlFor="full_name" className="block text-[13px] font-bold text-zinc-800 dark:text-text-secondary">
+            <label htmlFor="full_name" className="block text-[13px] font-bold text-[var(--color-text-primary)]">
               Full Name
             </label>
             <div className="relative group">
               <Input
-                icon={<User className="h-5 w-5  text-zinc-400 group-focus-within:text-orange-500 transition-colors pointer-events-none" />}
+                icon={<User className="h-5 w-5  text-[var(--color-text-muted)] group-focus-within:text-[var(--color-accent)] transition-colors pointer-events-none" />}
                 id="full_name"
                 name="full_name"
                 placeholder="Jane Doe"
-                className="pl-11 h-12 rounded-sm border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-none"
+                className="pl-11 h-12 rounded-sm border-[var(--color-border)] bg-[var(--color-surface)] text-[15px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)] transition-all shadow-none"
                 required
                 autoComplete="name"
                 disabled={pending}
@@ -115,17 +115,17 @@ export function RegisterForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-[13px] font-bold text-zinc-800 dark:text-text-secondary">
+            <label htmlFor="email" className="block text-[13px] font-bold text-[var(--color-text-primary)]">
               Email Address
             </label>
             <div className="relative group">
               <Input
-                icon={<Mail className=" h-5 w-5 text-zinc-400 group-focus-within:text-orange-500 transition-colors pointer-events-none" />}
+                icon={<Mail className=" h-5 w-5 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-accent)] transition-colors pointer-events-none" />}
                 id="email"
                 type="email"
                 name="email"
                 placeholder="you@example.com"
-                className="pl-11 h-12 rounded-sm border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-none"
+                className="pl-11 h-12 rounded-sm border-[var(--color-border)] bg-[var(--color-surface)] text-[15px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)] transition-all shadow-none"
                 required
                 autoComplete="email"
                 disabled={pending}
@@ -134,17 +134,17 @@ export function RegisterForm() {
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="password" className="block text-[13px] font-bold text-zinc-800 dark:text-text-secondary">
+            <label htmlFor="password" className="block text-[13px] font-bold text-[var(--color-text-primary)]">
               Password
             </label>
             <div className="relative group">
               <Input
-                icon={<Lock className="h-5 w-5 text-zinc-400 group-focus-within:text-orange-500 transition-colors pointer-events-none" />}
+                icon={<Lock className="h-5 w-5 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-accent)] transition-colors pointer-events-none" />}
                 id="password"
                 type={showPw ? "text" : "password"}
                 name="password"
                 placeholder="8+ characters minimum"
-                className="pl-11 pr-11 h-12 rounded-sm border-zinc-200 dark:border-border bg-white dark:bg-surface text-[15px] text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-none"
+                className="pl-11 pr-11 h-12 rounded-sm border-[var(--color-border)] bg-[var(--color-surface)] text-[15px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)] transition-all shadow-none"
                 required
                 minLength={8}
                 autoComplete="new-password"
@@ -153,7 +153,7 @@ export function RegisterForm() {
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 p-1 rounded-sm transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] p-1 rounded-sm transition-colors"
                 aria-label={showPw ? "Hide password" : "Show password"}
               >
                 {showPw ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -163,23 +163,23 @@ export function RegisterForm() {
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-sm bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none transition-all mt-6"
+            className="w-full h-12 rounded-sm bg-[var(--color-text-primary)] hover:bg-[var(--color-text-secondary)] text-[var(--color-bg)] font-bold text-[14px] shadow-none transition-all mt-6"
             disabled={pending}
           >
             {pending ? "Creating account…" : "Create account"}
           </Button>
 
-          <p className="text-[12px] text-zinc-500 text-center leading-relaxed font-medium mx-auto pt-2">
+          <p className="text-[12px] text-[var(--color-text-muted)] text-center leading-relaxed font-medium mx-auto pt-2">
             By joining, you agree to our{" "}
-            <Link href="/terms" className="text-zinc-700 dark:text-zinc-300 hover:text-orange-600 transition-colors underline underline-offset-2 decoration-zinc-300">Terms</Link> &{" "}
-            <Link href="/privacy" className="text-zinc-700 dark:text-zinc-300 hover:text-orange-600 transition-colors underline underline-offset-2 decoration-zinc-300">Privacy Policy</Link>.
+            <Link href="/terms" className="text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition-colors underline underline-offset-2 decoration-[var(--color-border)]">Terms</Link> &{" "}
+            <Link href="/privacy" className="text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition-colors underline underline-offset-2 decoration-[var(--color-border)]">Privacy Policy</Link>.
           </p>
         </form>
       </div>
 
-      <p className="text-center text-[13px] font-medium text-zinc-600 mt-8">
+      <p className="text-center text-[13px] font-medium text-[var(--color-text-muted)] mt-8">
         Already have an account?{" "}
-        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-bold text-orange-600 hover:text-orange-500 transition-colors">
+        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-bold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors">
           Sign in
         </Link>
       </p>

@@ -126,10 +126,10 @@ function CustomSelectInner<T extends string>(
             setOpenAbove(shouldFlip);
             if (menuPortalTarget) {
                 setMenuStyle({
-                    position: "absolute",
-                    top: shouldFlip ? "auto" : `${rect.bottom + window.scrollY + 4}px`,
-                    bottom: shouldFlip ? `${viewportHeight - rect.top - window.scrollY + 4}px` : "auto",
-                    left: `${rect.left + window.scrollX}px`,
+                    position: "fixed",
+                    top: shouldFlip ? "auto" : `${rect.bottom + 4}px`,
+                    bottom: shouldFlip ? `${viewportHeight - rect.top + 4}px` : "auto",
+                    left: `${rect.left}px`,
                     width: `${rect.width}px`,
                     zIndex: 9999,
                 });
@@ -302,14 +302,14 @@ function CustomSelectInner<T extends string>(
                                 )}
                                 style={{
                                     backgroundColor: isHighlighted && !option.disabled
-                                        ? "var(--color-accent-light)"
+                                        ? "var(--color-accent-subtle)"
                                         : isSelected
-                                            ? "var(--color-accent-subtle)"
+                                            ? "var(--color-accent-light)"
                                             : "transparent",
                                     color: isHighlighted || isSelected
                                         ? "var(--color-accent)"
                                         : "var(--color-text-secondary)",
-                                    fontWeight: isSelected ? 500 : 400,
+                                    fontWeight: isSelected ? 600 : 400,
                                 }}
                             >
                                 <div className="flex items-center justify-between">
@@ -354,12 +354,12 @@ function CustomSelectInner<T extends string>(
                     "bg-[var(--color-surface)] border border-[var(--color-border)]",
                     "text-[var(--color-text-primary)]",
                     "outline-none transition-all duration-150",
-                    // Hover — orange accent, only when idle
+                    // Hover — accent border, only when idle
                     !disabled && !error && "hover:border-[var(--color-border-strong)]",
                     // Open — acts like focus
-                    isOpen && !error && !disabled && "ring-2 ring-orange-500/20 border-orange-500",
+                    isOpen && !error && !disabled && "ring-2 ring-[var(--color-accent)]/20 border-[var(--color-accent)]",
                     // Focus ring (keyboard nav)
-                    !error && "focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500",
+                    !error && "focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)]",
                     // Error state
                     error && "border-red-500/60 focus:ring-2 focus:ring-red-500/40 focus:border-red-500/60",
                     error && isOpen && "ring-2 ring-red-500/40 border-red-500/60",

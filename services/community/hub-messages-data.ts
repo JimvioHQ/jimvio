@@ -142,10 +142,10 @@ export async function getHubMessageThreads(userId: string) {
       });
     }
 
-    const [{ data: rooms }, { data: spaces }] = await Promise.all([
+    const [{ data: rooms }, { data: rawSpaces }] = await Promise.all([
       supabase
         .from("rooms")
-        .select("id, name, community_id, communities(name, slug)")
+        .select("id, space_id, name, community_id, communities(name, slug)")
         .in("community_id", communityIds)
         .eq("room_type", "chat")
         .eq("is_active", true)
@@ -159,6 +159,9 @@ export async function getHubMessageThreads(userId: string) {
         .order("sort_order", { ascending: true })
         .limit(20),
     ]);
+
+    const chatSpaceIds = new Set((rooms ?? []).map((r) => r.space_id).filter(Boolean));
+    const spaces = (rawSpaces ?? []).filter((s) => chatSpaceIds.has(s.id));
 
     const roomIds = (rooms ?? []).map((r) => r.id);
     let roomLastMsg = new Map<string, { body: string; created_at: string; sender_id: string; message_type: string | null }>();

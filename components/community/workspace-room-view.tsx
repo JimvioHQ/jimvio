@@ -182,6 +182,7 @@ import { CourseRoom } from "@/components/community/rooms/CourseRoom";
 import { TasksRoom } from "@/components/community/rooms/TasksRoom";
 import { ResourcesRoom } from "@/components/community/rooms/ResourcesRoom";
 import { canAccessRoomNav } from "@/lib/community-workspace-access";
+import { useCall } from "@/components/community/call-context";
 import { ChatRoom } from "./chat/ChatRoom";
 
 export function WorkspaceRoomView() {
@@ -190,6 +191,7 @@ export function WorkspaceRoomView() {
   const searchParams = useSearchParams();
   const slug = typeof params.slug === "string" ? params.slug : Array.isArray(params.slug) ? params.slug[0] : "";
   const { spacesWithRooms, communityId, communityName, ownerId, userId, membership } = useWorkspace();
+  const { startCall } = useCall();
 
   const spaceId = searchParams.get("space") || "";
   const roomId = searchParams.get("room") || "";
@@ -208,14 +210,12 @@ export function WorkspaceRoomView() {
     return null;
   }, [spacesWithRooms, spaceId, roomId]);
 
-  const base = `/c/${slug}/workspace`;
-
   function closeRoomOverlay() {
-    router.push(base);
+    router.back();
   }
 
   // Loading or invalid state
-  if (!spaceId || !roomId) {
+  if (!roomId) {
     return (
       <div className="flex flex-1 items-center justify-center gap-2 text-[13px] text-[var(--color-text-muted)]">
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -225,6 +225,15 @@ export function WorkspaceRoomView() {
   }
 
   if (!resolved) {
+    // If spaces aren't loaded yet, show loading
+    if (spacesWithRooms.length === 0) {
+      return (
+        <div className="flex flex-1 items-center justify-center gap-2 text-[13px] text-[var(--color-text-muted)]">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading…
+        </div>
+      );
+    }
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
         <p className="text-[14px] font-medium text-[var(--color-text-primary)]">Room not found</p>
@@ -233,7 +242,7 @@ export function WorkspaceRoomView() {
         </p>
         <button
           type="button"
-          onClick={() => router.push(base)}
+          onClick={() => router.back()}
           className="inline-flex h-9 items-center gap-1 px-4 text-[13px] font-medium text-white"
           style={{
             background: "var(--color-accent)",
@@ -320,6 +329,8 @@ export function WorkspaceRoomView() {
       roomName={room.name}
       roomType={room.room_type}
       onClose={closeRoomOverlay}
+      onStartAudioCall={room.room_type === "chat" ? () => startCall("audio", room.id, undefined, slug) : undefined}
+      onStartVideoCall={room.room_type === "chat" ? () => startCall("video", room.id, undefined, slug) : undefined}
     >
       {roomInner}
     </WorkspaceRoomOverlay>

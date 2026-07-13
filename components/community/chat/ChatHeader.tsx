@@ -73,32 +73,6 @@ export function ChatHeader({
         </div>
       )}
 
-      {/* ── Minimal call buttons (hideHeader mode) ──────────────────── */}
-      {(activeConvId || roomName) && hideHeader && (
-        <div className="absolute right-4 top-2.5 z-30 flex items-center gap-2">
-          <button
-            onClick={onStartAudioCall}
-            aria-label="Audio call"
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-sm hover:scale-105 transition-all",
-              "bg-[var(--color-surface)] border border-[var(--color-border)]"
-            )}
-          >
-            <Phone className="h-4 w-4 text-[var(--color-accent)]" />
-          </button>
-          <button
-            onClick={onStartVideoCall}
-            aria-label="Video call"
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-sm hover:scale-105 transition-all",
-              "bg-[var(--color-surface)] border border-[var(--color-border)]"
-            )}
-          >
-            <Video className="h-4 w-4 text-[var(--color-accent)]" />
-          </button>
-        </div>
-      )}
-
       {/* ── Full header ─────────────────────────────────────────────── */}
       {!hideHeader && (
         <header

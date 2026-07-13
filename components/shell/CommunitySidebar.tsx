@@ -110,29 +110,29 @@ export function CommunitySidebar({
   }
 
   return (
-    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-gray-200 bg-white">
-      <div className="border-b border-gray-200 p-4">
+    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="border-b border-[var(--color-border)] p-4">
         <div className="mb-3 flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-100 text-sm font-semibold text-green-700">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent)]/10 text-sm font-semibold text-[var(--color-accent)]">
             {communityName.slice(0, 2).toUpperCase()}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
-              <p className="truncate text-sm font-semibold text-gray-900">{communityName}</p>
-              <svg className="h-3.5 w-3.5 shrink-0 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+              <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{communityName}</p>
+              <svg className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-xs text-gray-500">{visibility}</p>
-            <p className="text-xs text-gray-400">{membersOnline.toLocaleString()} online</p>
+            <p className="text-xs text-[var(--color-text-muted)]">{visibility}</p>
+            <p className="text-xs text-[var(--color-text-muted)]">{membersOnline.toLocaleString()} online</p>
           </div>
-          <button type="button" aria-label="Community settings" className="text-gray-400 hover:text-gray-600">
+          <button type="button" aria-label="Community settings" className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
             <Settings className="h-4 w-4" />
           </button>
         </div>
         <button
           type="button"
-          className="w-full rounded-lg bg-orange-500 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+          className="w-full rounded-lg bg-[var(--color-accent)] py-2 text-sm font-semibold text-[var(--color-bg)] transition-colors hover:bg-[var(--color-accent-hover)]"
         >
           Invite People
         </button>
@@ -148,12 +148,14 @@ export function CommunitySidebar({
                 href={href ? `${base}${href}` : base}
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-                  active ? "bg-orange-50 font-medium text-orange-500" : "text-gray-700 hover:bg-gray-50"
+                  active
+                    ? "bg-[var(--color-accent)]/10 font-medium text-[var(--color-accent)]"
+                    : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                 )}
               >
-                <Icon className={cn("h-4 w-4 shrink-0", active ? "text-orange-500" : "text-gray-500")} />
+                <Icon className={cn("h-4 w-4 shrink-0", active ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]")} />
                 <span className="truncate">{label}</span>
-                {dot && <span className="ml-auto h-2 w-2 rounded-full bg-orange-500" />}
+                {dot && <span className="ml-auto h-2 w-2 rounded-full bg-[var(--color-accent)]" />}
               </Link>
             );
           })}
@@ -162,7 +164,7 @@ export function CommunitySidebar({
         <button
           type="button"
           onClick={() => setSpacesOpen((o) => !o)}
-          className="mb-2 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wide text-gray-400"
+          className="mb-2 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]"
         >
           Spaces
           {spacesOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -177,18 +179,20 @@ export function CommunitySidebar({
                   href={`${base}${space.href.replace("/chat", "/chat")}`}
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-                    active ? "bg-orange-50 font-medium text-orange-500" : "text-gray-700 hover:bg-gray-50"
+                    active
+                      ? "bg-[var(--color-accent)]/10 font-medium text-[var(--color-accent)]"
+                      : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                   )}
                 >
-                  <MessageSquare className="h-4 w-4 shrink-0 text-gray-500" />
+                  <MessageSquare className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
                   <span className="truncate">{space.label}</span>
                   {space.live && (
-                    <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-white">
+                    <span className="ml-auto rounded-full bg-[var(--color-danger)] px-1.5 py-0.5 text-[9px] font-semibold uppercase text-white">
                       Live
                     </span>
                   )}
                   {!space.live && space.unread ? (
-                    <span className="ml-auto rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
+                    <span className="ml-auto rounded-full bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-text-secondary)]">
                       {space.unread}
                     </span>
                   ) : null}
@@ -201,7 +205,7 @@ export function CommunitySidebar({
         <button
           type="button"
           onClick={() => setToolsOpen((o) => !o)}
-          className="mb-2 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wide text-gray-400"
+          className="mb-2 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]"
         >
           Tools
           {toolsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -212,9 +216,9 @@ export function CommunitySidebar({
               <Link
                 key={label}
                 href={`${base}${href}`}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
               >
-                <Icon className="h-4 w-4 shrink-0 text-gray-500" />
+                <Icon className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
                 <span className="truncate">{label}</span>
               </Link>
             ))}

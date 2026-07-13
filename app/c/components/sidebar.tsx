@@ -943,8 +943,8 @@ function SidebarContent({
         justifyContent: collapsed ? "center" : "flex-start",
         borderRadius: "10px",
         marginBottom: 2,
-        color: active ? "var(--color-accent, #fd5000)" : "var(--color-text-secondary, #71717a)",
-        background: active ? "rgba(253,80,0,0.12)" : "transparent",
+        color: active ? "var(--color-text-primary, #ededed)" : "var(--color-text-secondary, #71717a)",
+        background: active ? "var(--color-surface-secondary, rgba(255,255,255,0.05))" : "transparent",
         textDecoration: "none",
         fontSize: 14,
         fontWeight: active ? 700 : 400,
@@ -961,7 +961,7 @@ function SidebarContent({
         borderRadius: "var(--radius-sm, 8px)",
         marginBottom: 2,
         color: active ? "var(--color-text-primary, #ededed)" : "var(--color-text-secondary, #a8a8a8)",
-        background: active ? "rgba(253,80,0,0.1)" : "transparent",
+        background: active ? "var(--color-surface-secondary, rgba(255,255,255,0.05))" : "transparent",
         textDecoration: "none",
         fontSize: 13,
         fontWeight: active ? 600 : 400,
@@ -1027,7 +1027,7 @@ function SidebarContent({
                                     <span style={{
                                         position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)",
                                         width: 3, height: 20, borderRadius: "0 2px 2px 0",
-                                        background: "var(--color-accent, #fd5000)",
+background: "var(--color-text-primary, #ededed)",
                                     }} />
                                 )}
                                 <span style={{ flexShrink: 0, position: "relative" }}>

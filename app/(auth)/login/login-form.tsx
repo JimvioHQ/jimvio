@@ -63,10 +63,10 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
   return (
     <div className="w-full">
       <div className="space-y-3 mb-10">
-        <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
+        <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)]">
           Welcome back
         </h1>
-        <p className="text-[14px] font-medium text-zinc-500">
+        <p className="text-[14px] font-medium text-[var(--color-text-muted)]">
           Sign in to your account to continue
         </p>
       </div>
@@ -99,7 +99,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
             })
           }
           disabled={pending}
-          className="w-full h-12 bg-white dark:bg-surface hover:bg-zinc-50 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-border shadow-none rounded-sm font-bold transition-all flex items-center justify-center gap-3"
+          className="w-full h-12 bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] shadow-none rounded-sm font-bold transition-all flex items-center justify-center gap-3"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -111,18 +111,18 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
         </Button>
 
         <div className="relative flex items-center py-2">
-          <div className="flex-grow border-t border-zinc-200 dark:border-border" />
-          <span className="flex-shrink-0 mx-4 text-[12px] font-medium text-zinc-500">
+          <div className="flex-grow border-t border-[var(--color-border)]" />
+          <span className="flex-shrink-0 mx-4 text-[12px] font-medium text-[var(--color-text-muted)]">
             or sign in with email
           </span>
-          <div className="flex-grow border-t border-zinc-200 dark:border-border" />
+          <div className="flex-grow border-t border-[var(--color-border)]" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (
             <div
               role="alert"
-              className="p-3.5 rounded-sm text-[13px] font-semibold bg-red-50 text-red-600 flex items-center justify-center text-center"
+              className="p-3.5 rounded-sm text-[13px] font-semibold bg-[var(--color-danger-light)] text-[var(--color-danger)] flex items-center justify-center text-center"
             >
               {error}
             </div>
@@ -141,7 +141,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
               <Link
                 href="/forgot-password"
                 aria-label="Forgot password?"
-                className="absolute right-0 z-50 -top-6 text-[13px] font-semibold text-orange-600 hover:text-orange-500 transition-colors"
+                className="absolute right-0 z-50 -top-6 text-[13px] font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
               >
                 Forgot password?
               </Link>
@@ -155,7 +155,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
               <button
                 type="button"
                 onClick={() => setShowPw((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 dark:text-zinc-300 p-1 rounded-sm transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] p-1 rounded-sm transition-colors"
                 aria-label={showPw ? "Hide password" : "Show password"}
               >
                 {showPw ? (
@@ -169,7 +169,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-sm bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px] shadow-none transition-all mt-2"
+            className="w-full h-12 rounded-sm bg-[var(--color-text-primary)] hover:bg-[var(--color-text-secondary)] text-[var(--color-bg)] font-bold text-[14px] shadow-none transition-all mt-2"
             disabled={pending}
           >
             {pending ? "Signing in…" : "Sign in"}
@@ -177,11 +177,11 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
         </form>
       </div>
 
-      <p className="text-center text-[13px] font-medium text-zinc-600 mt-8">
+      <p className="text-center text-[13px] font-medium text-[var(--color-text-muted)] mt-8">
         Don&apos;t have an account?{" "}
         <Link
           href={registerHref}
-          className="font-bold text-orange-600 hover:text-orange-500 transition-colors"
+          className="font-bold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
         >
           Create one
         </Link>

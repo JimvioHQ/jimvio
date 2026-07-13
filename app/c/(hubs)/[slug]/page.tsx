@@ -5,7 +5,7 @@ import {
   type CommunityDetailPayload,
   type MembershipPayload,
 } from "@/components/community/community-detail-view";
-import { CommunityOverviewPage } from "@/components/community/CommunityOverviewPage";
+import { CommunityOverviewPageClient } from "@/components/community/CommunityOverviewPageClient";
 import { loadCommunityWorkspace } from "@/lib/community/load-community-workspace";
 
 export const dynamic = "force-dynamic";
@@ -117,7 +117,7 @@ export default async function CommunitySlugPage({
 
   const payload = user ? await loadCommunityWorkspace(slug) : null;
   if (payload?.membership?.status === "active") {
-    return <CommunityOverviewPage slug={slug} />;
+    return <CommunityOverviewPageClient payload={payload} />;
   }
 
   const community = await loadPublicCommunity(slug);

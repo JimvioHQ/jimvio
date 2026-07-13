@@ -9,6 +9,7 @@ import {
   SharedCommunityCard,
   CommunityRow,
 } from "./community-card-shared";
+import { SectionHeading } from "../ui";
 
 const SHELL = "mx-auto w-full max-w-8xl px-4 sm:px-6";
 
@@ -138,7 +139,7 @@ function CommunitiesHero({
                   <span
                     className={cn(
                       community.is_free &&
-                        "font-medium text-emerald-600 dark:text-emerald-400"
+                      "font-medium text-emerald-600 dark:text-emerald-400"
                     )}
                   >
                     {price}
@@ -248,7 +249,7 @@ function SortMenu({
                 onChange(s.value);
                 setOpen(false);
               }}
-className={cn(
+              className={cn(
                 "w-full px-3.5 py-2 text-left text-[13px] font-medium transition-colors whitespace-nowrap rounded-sm",
                 s.value === value
                   ? "bg-[var(--color-success-light)] text-[var(--color-success)]"
@@ -409,9 +410,12 @@ export function CommunitiesDiscovery({
         <header className="mb-8 sm:mb-10">
           <div className="flex items-start justify-between gap-6">
             <div className="max-w-2xl">
-              <h1 className="text-[clamp(1.85rem,4vw,2.75rem)] font-semibold leading-[1.08] tracking-tight text-[var(--color-text-primary)]">
+              {/* <h1 className="text-[clamp(1.85rem,4vw,2.75rem)] font-semibold leading-[1.08] tracking-tight text-[var(--color-text-primary)]">
                 Communities
-              </h1>
+              </h1> */}
+              <SectionHeading>
+                Communities
+              </SectionHeading>
               <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-[var(--color-text-muted)]">
                 Paid memberships, free groups, and private hubs — browse by topic,
                 compare pricing, and join in one click.
@@ -428,7 +432,7 @@ export function CommunitiesDiscovery({
           </div>
         </header>
 
-<div className="sticky top-[var(--navbar-height,64px)] z-30 -mx-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
+        <div className="sticky top-[var(--navbar-height,64px)] z-30 -mx-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3 pb-0 pt-1">
             <nav
               aria-label="Filter by category"

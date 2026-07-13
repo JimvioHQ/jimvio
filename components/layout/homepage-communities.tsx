@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowRight, Users, MessageCircle, Zap, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { SectionHeading } from "../ui";
 
 const COMMUNITIES = [
   {
@@ -67,9 +68,12 @@ export function CommunitiesSection() {
               </span>
               Communities
             </span>
-            <h2 className="mt-3 font-['var(--font-fraunces)'] text-[30px] font-bold leading-[1.1] tracking-tight text-[#F3EFE4] sm:text-[38px] lg:text-[44px]">
+            <h2 className="mt-3 text-[30px] font-bold leading-[1.1] tracking-tight text-[#F3EFE4] sm:text-[38px] lg:text-[44px]">
               Where builders, creators & sellers grow together
             </h2>
+            {/* <SectionHeading>
+              Where builders, creators & sellers grow together
+            </SectionHeading> */}
             <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#a0ada5]">
               Join 17K+ members across 6 focused communities. Ask questions, share wins, find partners.
             </p>

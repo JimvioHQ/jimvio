@@ -37,7 +37,8 @@ export type SidebarItem =
   | "wallet"
   | "analytics"
   | "bookmarks"
-  | "profile";
+  | "profile"
+  | "dashboard";
 
 type NavItem = {
   id: SidebarItem;
@@ -59,11 +60,12 @@ const NAV_ITEMS: NavItem[] = [
   { id: "events", label: "Events", href: "/c/events", icon: Calendar, featureColor: "amber" },
   { id: "wallet", label: "Wallet", href: "/c/wallet", icon: Wallet, featureColor: "sage" },
   { id: "analytics", label: "Analytics", href: "/c/analytics", icon: BarChart3, featureColor: "ocean" },
+  { id: "dashboard", label: "Dashboard", href: "/c/dashboard", icon: BarChart3, featureColor: "ocean" },
   { id: "bookmarks", label: "Bookmarks", href: "/c/bookmarks", icon: Bookmark, featureColor: "sage" },
   { id: "profile", label: "My Profile", href: "/c/profile", icon: User, featureColor: "amber" },
 ];
 
-type CommunityRow = { id: string; name: string; slug: string; unread?: boolean };
+type CommunityRow = { id: string; name: string; slug: string; avatar_url?: string | null; unread?: boolean };
 
 type PrimarySidebarProps = {
   activeItem?: SidebarItem;
@@ -91,6 +93,7 @@ export function resolveSidebarActiveItem(pathname: string): SidebarItem {
   if (pathname.startsWith("/c/events")) return "events";
   if (pathname.startsWith("/c/wallet")) return "wallet";
   if (pathname.startsWith("/c/analytics")) return "analytics";
+  if (pathname.startsWith("/c/dashboard")) return "dashboard";
   if (pathname.startsWith("/c/bookmarks")) return "bookmarks";
   if (pathname.startsWith("/c/profile")) return "profile";
   if (pathname.startsWith("/communities")) return "explore";
@@ -101,20 +104,20 @@ export function resolveSidebarActiveItem(pathname: string): SidebarItem {
 function NavBadge({ badge }: { badge: NonNullable<NavItem["badge"]> }) {
   if (badge.type === "count") {
     return (
-      <span className="ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white bg-[var(--color-accent)]">
+      <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white bg-[var(--color-accent)] leading-none">
         {badge.value}
       </span>
     );
   }
   if (badge.type === "new") {
     return (
-      <span className="ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white bg-[var(--color-accent)]">
+      <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold text-white bg-[var(--color-accent)] leading-none">
         New
       </span>
     );
   }
   return (
-    <span className="ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase text-white bg-[var(--color-accent)] animate-pulse-glow">
+    <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold uppercase tracking-wider text-white bg-[var(--color-accent)] animate-pulse-glow leading-none">
       Live
     </span>
   );
@@ -198,7 +201,7 @@ export function PrimarySidebar({
   return (
       <aside
         className={cn(
-          "flex h-full shrink-0 flex-col transition-all duration-220 ease-[cubic-bezier(.4,0,.2,1)] group/sidebar bg-[var(--color-bg)] border-r border-[var(--color-border)]",
+          "flex h-full shrink-0 flex-col transition-all duration-220 ease-[cubic-bezier(.4,0,.2,1)] group/sidebar bg-[var(--color-bg)]",
           collapsed ? "w-16" : "w-[250px]",
           className
         )}
@@ -221,69 +224,70 @@ export function PrimarySidebar({
             {NAV_ITEMS.map((item, i) => {
               const active = item.id === resolvedActive;
               const Icon = item.icon;
-              const featureColor = item.featureColor ? `var(--color-${item.featureColor})` : undefined;
+              const noCollapsedBg = collapsed && pathname.startsWith("/c/messages");
               return collapsed ? (
                 <Link
                   key={item.id}
                   href={item.href}
-                  className={cn(
-                    "flex items-center justify-center rounded-lg px-0 py-2 text-sm transition-all duration-200",
-                    active ? "font-medium" : ""
-                  )}
+                  className="flex items-center justify-center rounded px-0 py-2 text-sm transition-all duration-200"
                   title={item.label}
                   style={{
-                    backgroundColor: active ? featureColor : "transparent",
-                    color: active ? "white" : "var(--color-text-secondary)",
+                    backgroundColor: active && !noCollapsedBg ? "var(--color-surface-secondary)" : "transparent",
+                    color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
                   }}
                 >
                   <div className="relative">
-                    <Icon className="h-5 w-5 shrink-0" style={{ color: active ? "white" : "var(--color-text-muted)" }} />
+                    <Icon className="h-5 w-5 shrink-0" style={{ color: active ? "var(--color-text-primary)" : "var(--color-text-muted)" }} />
                     {item.badge?.type === "live" && (
-                      <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full animate-breathe" style={{ backgroundColor: "var(--color-accent)" }} />
+                      <span className="absolute -right-0.5 -top-0.5 h-[10px] w-[10px] rounded-full animate-breathe ring-2 ring-[var(--color-bg)]" style={{ backgroundColor: "var(--color-accent)" }} />
                     )}
                     {item.badge?.type === "count" && (
-                      <span className="absolute -right-1 -top-1 h-4 min-w-[14px] flex items-center justify-center rounded-full px-1 text-[8px] font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+                      <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-2 ring-[var(--color-bg)] leading-none" style={{ backgroundColor: "var(--color-accent)" }}>
                         {item.badge.value}
                       </span>
                     )}
                     {item.badge?.type === "new" && (
-                      <span className="absolute -right-1 -top-1 h-4 min-w-[18px] flex items-center justify-center rounded-full px-1 text-[8px] font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+                      <span className="absolute -right-2.5 -top-1.5 flex h-[18px] min-w-[32px] items-center justify-center rounded-full px-1.5 text-[8px] font-bold text-white ring-2 ring-[var(--color-bg)] leading-none" style={{ backgroundColor: "var(--color-accent)" }}>
                         New
                       </span>
                     )}
                   </div>
                 </Link>
-              ) : (
+) : (
                 <div key={item.id} className={cn("flex items-center gap-0", i === 0 && "relative")}>
                   <Link
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-2.5 rounded-lg text-sm transition-all duration-200 flex-1 min-w-0 hover-lift",
+                      "flex items-center gap-2.5 rounded text-sm transition-all duration-200 flex-1 min-w-0",
                       active ? "font-medium" : ""
                     )}
                     style={{
-                      backgroundColor: active ? featureColor : "transparent",
-                      color: active ? "white" : "var(--color-text-secondary)",
+                      backgroundColor: active ? "var(--color-surface-secondary)" : "transparent",
+                      color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
                       padding: "0.5rem 0.75rem",
                     }}
                   >
-                    <Icon className="h-4 w-4 shrink-0" style={{ color: active ? "white" : "var(--color-text-muted)" }} />
+                    <Icon className="h-4 w-4 shrink-0" style={{ color: active ? "var(--color-text-primary)" : "var(--color-text-muted)" }} />
                     <span className="truncate">{item.label}</span>
                     {item.badge && <NavBadge badge={item.badge} />}
                   </Link>
-                  {i === 0 && (
-                    <button
-                      type="button"
-                      onClick={onToggleCollapse}
-                      className="flex items-center justify-center rounded-lg p-1.5 transition-colors shrink-0 opacity-0 group-hover/sidebar:opacity-100 transition-opacity text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                      title="Collapse sidebar"
-                    >
-                      <PanelLeftClose className="h-4 w-4" />
-                    </button>
-                  )}
                 </div>
               );
             })}
+
+            {/* Collapse toggle at bottom of nav */}
+            {!collapsed && (
+              <div className="flex justify-center pt-3">
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  className="flex items-center justify-center rounded p-1.5 transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                  title="Collapse sidebar"
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </button>
+              </div>
+            )}
           </nav>
 
           {/* ── Communities (expanded only) ── */}
@@ -303,11 +307,15 @@ export function PrimarySidebar({
                     <Link
                       key={c.id}
                       href={`/c/${c.slug}`}
-                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-200 hover-lift text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                      className="flex items-center gap-2.5 rounded px-3 py-2 text-sm transition-all duration-200 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
                     >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-semibold bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]">
-                        {c.name.slice(0, 2).toUpperCase()}
-                      </span>
+                      {c.avatar_url ? (
+                        <img src={c.avatar_url} alt={c.name} className="h-7 w-7 shrink-0 rounded object-cover" />
+                      ) : (
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[10px] font-semibold bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]">
+                          {c.name.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
                       <span className="truncate">{c.name}</span>
                       {c.unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full animate-breathe" style={{ backgroundColor: "var(--color-accent)" }} />}
                     </Link>
@@ -319,9 +327,9 @@ export function PrimarySidebar({
                   )}
                   <Link
                     href="/communities"
-                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs transition-all duration-200 hover-lift text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                    className="flex items-center gap-2.5 rounded px-3 py-2 text-xs transition-all duration-200 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
                   >
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-dashed border-[var(--color-border)] text-[var(--color-text-muted)]">
+                    <span className="flex h-7 w-7 items-center justify-center rounded border border-dashed border-[var(--color-border)] text-[var(--color-text-muted)]">
                       +
                     </span>
                     Discover communities
@@ -335,7 +343,7 @@ export function PrimarySidebar({
           {!collapsed && (
             <div className="mx-3 mb-3 rounded-2xl p-4 text-white hover-lift"
               style={{
-                background: "linear-gradient(135deg, var(--color-berry) 0%, var(--color-berry) 50%, var(--color-amber) 100%)",
+                background: "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 50%, var(--color-accent) 100%)",
                 backgroundSize: "200% 200%",
                 animation: "gradient-shift 4s ease infinite",
               }}
@@ -352,7 +360,7 @@ export function PrimarySidebar({
               <button
                 type="button"
                 className="w-full rounded-lg bg-white py-2 text-xs font-semibold transition-colors hover:opacity-90"
-                style={{ color: "var(--color-berry)" }}
+                style={{ color: "var(--color-accent)" }}
               >
                 Upgrade Now
               </button>

@@ -10,13 +10,13 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-dm-sans)', 'sans-serif'],
-        mono: ['var(--font-jetbrains-mono)', 'monospace'],
-        display: ['var(--font-fraunces)', 'serif'],
-        body: ['var(--font-dm-sans)', 'sans-serif'],
-        primary: ['var(--font-dm-sans)', 'sans-serif'],
-        secondary: ['var(--font-dm-sans)', 'sans-serif'],
-        outfit: ['var(--font-dm-sans)', 'sans-serif'],
+        sans: ['var(--font-family-body)', 'sans-serif'],
+        mono: ['var(--font-family-mono)', 'monospace'],
+        display: ['var(--font-family-display)', 'sans-serif'],
+        body: ['var(--font-family-body)', 'sans-serif'],
+        primary: ['var(--font-family-body)', 'sans-serif'],
+        secondary: ['var(--font-family-body)', 'sans-serif'],
+        outfit: ['var(--font-family-display)', 'sans-serif'],
       },
       colors: {
         bg: "var(--color-bg)",

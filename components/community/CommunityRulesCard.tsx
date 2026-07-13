@@ -17,18 +17,18 @@ export function CommunityRulesCard() {
   const rules = overview?.rules && overview.rules.length > 0 ? overview.rules : DEFAULT_RULES;
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-950 p-4 flex flex-col justify-between">
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex flex-col justify-between">
       <div>
-        <h3 className="mb-3 text-sm font-bold text-gray-900 dark:text-white">Community Rules</h3>
+        <h3 className="mb-3 text-sm font-bold text-[var(--color-text-primary)]">Community Rules</h3>
         <ul className="mb-4 space-y-2">
           {rules.slice(0, 3).map((rule) => (
-            <li key={rule} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
-              <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gray-400" />
+            <li key={rule} className="flex items-start gap-2 text-xs text-[var(--color-text-secondary)]">
+              <Shield className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
               {rule}
             </li>
           ))}
           {rules.length > 3 && (
-            <li className="text-[11px] text-gray-400 italic pl-5">
+            <li className="text-[11px] text-[var(--color-text-muted)] italic pl-5">
               + {rules.length - 3} more rules
             </li>
           )}
@@ -37,7 +37,7 @@ export function CommunityRulesCard() {
       <div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <button type="button" className="text-xs font-semibold text-orange-500 hover:underline hover:text-orange-600 outline-none">
+            <button type="button" className="text-xs font-semibold text-[var(--color-accent)] hover:underline hover:text-[var(--color-accent-hover)] outline-none">
               View all rules
             </button>
           </DialogTrigger>
@@ -50,7 +50,7 @@ export function CommunityRulesCard() {
               <ol className="space-y-2.5">
                 {rules.map((rule, idx) => (
                   <li key={rule} className="flex items-start gap-3 text-xs text-[var(--color-text-secondary)] bg-[var(--color-surface-secondary)] p-3 rounded-lg border border-[var(--color-border)]">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-950/40 text-[10px] font-bold text-orange-600 dark:text-orange-400 shrink-0">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-accent)]/10 text-[10px] font-bold text-[var(--color-accent)] shrink-0">
                       {idx + 1}
                     </span>
                     <span className="leading-normal">{rule}</span>

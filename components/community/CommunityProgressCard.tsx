@@ -22,20 +22,20 @@ export function CommunityProgressCard() {
   ];
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-950 p-4 flex flex-col justify-between">
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex flex-col justify-between">
       <div>
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900 dark:text-white">Community Progress</h3>
-          <span className="text-xs font-bold text-orange-500">Level {level}</span>
+          <h3 className="text-sm font-bold text-[var(--color-text-primary)]">Community Progress</h3>
+          <span className="text-xs font-bold text-[var(--color-accent)]">Level {level}</span>
         </div>
-        <div className="mb-3 h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-white/5">
-          <div className="h-full rounded-full bg-orange-500" style={{ width: `${pct}%` }} />
+        <div className="mb-3 h-2 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
+          <div className="h-full rounded-full bg-[var(--color-accent)]" style={{ width: `${pct}%` }} />
         </div>
         <div className="mb-4 grid grid-cols-4 gap-2">
           {stats.map((s) => (
-            <div key={s.label} className="rounded-lg bg-gray-50 dark:bg-white/5 p-2 text-center">
-              <p className="text-sm font-bold text-gray-900 dark:text-white">{s.value}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400">{s.label}</p>
+            <div key={s.label} className="rounded-lg bg-[var(--color-surface-secondary)] p-2 text-center">
+              <p className="text-sm font-bold text-[var(--color-text-primary)]">{s.value}</p>
+              <p className="text-[10px] text-[var(--color-text-muted)]">{s.label}</p>
             </div>
           ))}
         </div>
@@ -44,7 +44,7 @@ export function CommunityProgressCard() {
         <button
           type="button"
           onClick={() => router.push(`/c/${slug}/missions`)}
-          className="w-full rounded-lg border border-gray-200 dark:border-white/10 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 outline-none"
+          className="w-full rounded-lg border border-[var(--color-border)] py-2 text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] outline-none"
         >
           View full progress
         </button>

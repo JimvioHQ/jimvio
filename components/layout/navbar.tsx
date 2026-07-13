@@ -610,13 +610,13 @@ export function Navbar({ user, marketing }: NavbarProps) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 ) : (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Link href="/login" className="h-9 px-4 flex items-center rounded-sm text-[12px] font-bold text-stone-600 dark:text-stone-300 border border-border bg-white dark:bg-stone-900 hover:bg-stone-50 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-white transition-all whitespace-nowrap">
-                      Log In
-                    </Link>
-                    <Link href="/register" className="h-9 px-4 flex items-center rounded-sm text-[12px] font-black uppercase tracking-widest bg-orange-500 text-white hover:bg-orange-600 transition-all active:scale-95 shrink-0 whitespace-nowrap">
-                      Join Free
-                    </Link>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <a href="/login" className="px-3.5 py-2 text-[var(--color-text-primary)]/70 hover:text-[var(--color-text-primary)] transition-colors duration-300 font-body text-sm">
+                      Sign in
+                    </a>
+                    <a href="/register" className="px-5 py-2.5 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] font-body font-semibold text-sm hover:bg-[var(--color-accent-hover)] transition-colors duration-300 shadow-lg shadow-[var(--color-accent)]/15">
+                      Get started
+                    </a>
                   </div>
                 )}
               </div>

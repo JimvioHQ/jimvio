@@ -8,13 +8,36 @@ import NextTopLoader from "nextjs-toploader";
 import "../styles/globals.css";
 import { constructMetadata } from "@/lib/seo";
 import { JimvioJsonLd } from "@/components/seo/JimvioJsonLd";
-import { DM_Sans, JetBrains_Mono, Fraunces, IBM_Plex_Mono } from "next/font/google";
+
 import { Analytics } from "@vercel/analytics/next"
 import { ReferralTracker } from "@/components/affiliate/referral-tracker";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { PlatformStatsProvider } from "@/components/platform/platform-stats-provider";
 import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
+
+import { Outfit, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-family-display",
+  display: "swap",
+});
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-family-body",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-family-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = constructMetadata();
 
@@ -28,45 +51,17 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["200", "400", "600", "700"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-});
-
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-ibm-plex-mono",
-  display: "swap",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["300", "400", "600", "800"],
-  variable: "--font-fraunces",
-  display: "swap",
-});
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
-      className={`${dmSans.variable} ${jetbrainsMono.variable} ${ibmPlexMono.variable} ${fraunces.variable}`}
+      className={`${outfit.variable} ${plusJakarta.variable} ${jetbrainsMono.variable}`}
     >
       <body
         suppressHydrationWarning
-        className="antialiased min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-200"
+        className={`${plusJakarta.variable} antialiased min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-200`}
       >
         <JimvioJsonLd />
         <ThemeProvider>
@@ -90,7 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             toastOptions={{
               style: {
                 borderRadius: "10px",
-                fontFamily: "var(--font-dm-sans), sans-serif",
+                fontFamily: "var(--font-family-body), sans-serif",
                 fontWeight: 600,
                 border: "1px solid var(--color-border)",
                 background: "var(--color-surface)",

@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.json({ sessions: [] });
+    return NextResponse.json({ sessions: [], membership: null });
   }
 
   const { searchParams } = new URL(request.url);
@@ -85,19 +85,64 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get("status");
   const limit = parseInt(searchParams.get("limit") || "20");
 
+  // Auto-detect global mode: no communityId provided (and not space-only query)
+  const isGlobal = !communityId && !spaceId;
+
+  // Global mode: fetch from all user's communities
+  if (isGlobal) {
+    const { data: memberships } = await supabase
+      .from("community_memberships")
+      .select("community_id, role, status, plan_type, space_access")
+      .eq("user_id", user.id)
+      .eq("status", "active");
+
+    const communityIds = (memberships || []).map(m => m.community_id);
+    
+    if (communityIds.length === 0) {
+      return NextResponse.json({ sessions: [], membership: null });
+    }
+
+    let query = supabase
+      .from("live_sessions")
+      .select(`
+        *,
+        space:spaces!space_id (id, name, slug, access_type),
+        host:profiles!host_id (id, full_name, avatar_url, username)
+      `)
+      .in("community_id", communityIds)
+      .order("started_at", { ascending: false })
+      .limit(limit);
+
+    if (status) {
+      query = query.eq("status", status);
+    }
+
+    const { data: sessions, error } = await query;
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Use the first membership as primary membership for the response
+    const primaryMembership = memberships[0] || null;
+
+    return NextResponse.json({ sessions: sessions || [], membership: primaryMembership });
+  }
+
+  // Community-specific mode (original behavior)
   if (!communityId) {
     return NextResponse.json({ error: "communityId required" }, { status: 400 });
   }
 
   const { data: membership } = await supabase
     .from("community_memberships")
-    .select("status, role")
+    .select("status, role, plan_type, space_access")
     .eq("community_id", communityId)
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (!membership || membership.status !== "active") {
-    return NextResponse.json({ sessions: [] });
+    return NextResponse.json({ sessions: [], membership: null });
   }
 
   let query = supabase
@@ -125,5 +170,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ sessions: sessions || [] });
+  return NextResponse.json({ sessions: sessions || [], membership });
 }

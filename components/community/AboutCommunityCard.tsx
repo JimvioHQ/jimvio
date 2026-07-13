@@ -18,16 +18,16 @@ export function AboutCommunityCard() {
     "A community for UGC creators, traders, and digital entrepreneurs. Learn, collaborate, and earn together through live sessions, missions, and shared resources.";
 
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-950 p-4 flex flex-col justify-between">
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 flex flex-col justify-between">
       <div>
-        <h3 className="mb-2 text-sm font-bold text-gray-900 dark:text-white">About {communityName}</h3>
-        <p className="mb-3 text-xs leading-relaxed text-gray-600 dark:text-gray-400 line-clamp-3">
+        <h3 className="mb-2 text-sm font-bold text-[var(--color-text-primary)]">About {communityName}</h3>
+        <p className="mb-3 text-xs leading-relaxed text-[var(--color-text-secondary)] line-clamp-3">
           {description}
         </p>
         <ul className="mb-4 space-y-1.5">
           {DEFAULT_FEATURES.map((f) => (
-            <li key={f} className="flex items-start gap-2 text-xs text-gray-700 dark:text-gray-300">
-              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-500" />
+            <li key={f} className="flex items-start gap-2 text-xs text-[var(--color-text-secondary)]">
+              <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-success)]" />
               {f}
             </li>
           ))}
@@ -36,7 +36,7 @@ export function AboutCommunityCard() {
       <div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <button type="button" className="text-xs font-semibold text-orange-500 hover:underline hover:text-orange-600 outline-none">
+            <button type="button" className="text-xs font-semibold text-[var(--color-accent)] hover:underline hover:text-[var(--color-accent-hover)] outline-none">
               Learn about us
             </button>
           </DialogTrigger>
@@ -54,7 +54,7 @@ export function AboutCommunityCard() {
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {DEFAULT_FEATURES.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-xs text-[var(--color-text-secondary)] bg-[var(--color-surface-secondary)] p-2.5 rounded-lg border border-[var(--color-border)]">
-                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-500" />
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-success)]" />
                     <span>{f}</span>
                   </li>
                 ))}

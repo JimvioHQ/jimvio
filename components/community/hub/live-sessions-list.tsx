@@ -1,11 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import {
-  Radio, Users, Lock, Globe, Plus, LogIn, Clock,
+  Radio, Users, Lock, Globe, Plus, LogIn, Clock, Shield,
 } from "lucide-react";
 import { LiveIndicator } from "./hub-ui";
-import { HubAvatar, HubBadge } from "./hub-ui";
+import { HubAvatar } from "./hub-ui";
+import { canAccessSpace, type MembershipLite } from "@/lib/community-workspace-access";
+
+type SessionWithSpace = {
+  id: string;
+  title: string;
+  host: string;
+  host_avatar: string | null;
+  space_id: string;
+  space_name: string;
+  space_access_type: string;
+  community_slug: string;
+  viewer_count: number;
+  status: "live" | "upcoming" | "ended";
+  privacy: "public" | "private";
+  started_at: string;
+};
+
+type MembershipData = {
+  role?: string;
+  plan_type: string | null;
+  status: string;
+  space_access?: string[] | null;
+} | null;
 
 export function LiveSessionsList({
   communitySlug,
@@ -14,15 +38,23 @@ export function LiveSessionsList({
 }: {
   communitySlug?: string;
   onStartLive?: () => void;
-  onJoinSession?: (session: LiveSessionItem) => void;
+  onJoinSession?: (session: SessionWithSpace) => void;
 }) {
-  const [liveSessions, setLiveSessions] = useState<LiveSessionItem[]>([]);
-  const [upcomingSessions, setUpcomingSessions] = useState<LiveSessionItem[]>([]);
+  const [liveSessions, setLiveSessions] = useState<SessionWithSpace[]>([]);
+  const [upcomingSessions, setUpcomingSessions] = useState<SessionWithSpace[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [membership, setMembership] = useState<MembershipData>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSessions();
+    const getUser = async () => {
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setUserId(user.id);
+    };
+    getUser();
   }, [communitySlug]);
 
   const fetchSessions = async () => {
@@ -31,9 +63,11 @@ export function LiveSessionsList({
       const url = communitySlug ? `/api/c/live?communityId=${communitySlug}` : `/api/c/live`;
       const res = await fetch(url);
       if (res.ok) {
-        const { sessions } = await res.json();
-        const live = sessions.filter((s: LiveSessionItem) => s.status === "live");
-        const upcoming = sessions.filter((s: LiveSessionItem) => s.status === "scheduled");
+        const data = await res.json();
+        const sessions = data.sessions || [];
+        setMembership(data.membership || null);
+        const live = sessions.filter((s: SessionWithSpace) => s.status === "live");
+        const upcoming = sessions.filter((s: SessionWithSpace) => s.status === "scheduled");
         setLiveSessions(live);
         setUpcomingSessions(upcoming);
       } else {
@@ -45,6 +79,17 @@ export function LiveSessionsList({
       setLoading(false);
     }
   };
+
+  const hasSpaceAccess = (spaceAccessType: string, spaceId: string): boolean => {
+    return canAccessSpace(spaceAccessType, membership, undefined, userId || undefined, spaceId);
+  };
+
+  const filterAccessibleSessions = (sessions: SessionWithSpace[]) => {
+    return sessions.filter(s => hasSpaceAccess(s.space_access_type, s.space_id));
+  };
+
+  const accessibleLive = filterAccessibleSessions(liveSessions);
+  const accessibleUpcoming = filterAccessibleSessions(upcomingSessions);
 
   return (
     <div className="flex min-h-[calc(100vh-56px)] flex-col bg-[#0a0a0a]">
@@ -64,7 +109,7 @@ export function LiveSessionsList({
           </div>
           <div>
             <h1 className="text-[15px] font-black text-white">Live Sessions</h1>
-            <p className="text-[11px] text-zinc-500">{liveSessions.length} active now</p>
+            <p className="text-[11px] text-zinc-500">{accessibleLive.length} active now</p>
           </div>
         </div>
         {onStartLive && (
@@ -95,7 +140,7 @@ export function LiveSessionsList({
             <p className="text-[16px] font-bold text-white">Failed to load</p>
             <p className="mt-1.5 max-w-[300px] text-[13px] text-zinc-500">{error}</p>
           </div>
-        ) : liveSessions.length === 0 && upcomingSessions.length === 0 ? (
+        ) : accessibleLive.length === 0 && accessibleUpcoming.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/5">
               <Radio className="h-8 w-8 text-white/20" />
@@ -103,21 +148,21 @@ export function LiveSessionsList({
             <p className="text-[16px] font-bold text-white">No live sessions</p>
             <p className="mt-1.5 max-w-[300px] text-[13px] text-zinc-500">
               {onStartLive
-                ? "Start a live session in any space to go live"
+                ? "Start a live session in any space you have access to"
                 : "No one is live right now. Check back later!"}
             </p>
           </div>
         ) : (
           <div className="mx-auto max-w-4xl space-y-8">
             {/* Live sessions */}
-            {liveSessions.length > 0 && (
+            {accessibleLive.length > 0 && (
               <section>
                 <div className="mb-3 flex items-center gap-2">
                   <LiveIndicator label="LIVE NOW" className="text-[10px]" />
-                  <h2 className="text-[12px] font-black uppercase tracking-widest text-zinc-400">{liveSessions.length} {liveSessions.length === 1 ? "session" : "sessions"} active</h2>
+                  <h2 className="text-[12px] font-black uppercase tracking-widest text-zinc-400">{accessibleLive.length} {accessibleLive.length === 1 ? "session" : "sessions"} active</h2>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {liveSessions.map((s) => (
+                  {accessibleLive.map((s) => (
                     <SessionCard key={s.id} session={s} onJoin={onJoinSession} />
                   ))}
                 </div>
@@ -125,18 +170,31 @@ export function LiveSessionsList({
             )}
 
             {/* Upcoming sessions */}
-            {upcomingSessions.length > 0 && (
+            {accessibleUpcoming.length > 0 && (
               <section>
                 <div className="mb-3 flex items-center gap-2">
                   <Clock className="h-3.5 w-3.5 text-zinc-500" />
                   <h2 className="text-[12px] font-black uppercase tracking-widest text-zinc-500">Upcoming</h2>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {upcomingSessions.map((s) => (
+                  {accessibleUpcoming.map((s) => (
                     <SessionCard key={s.id} session={s} onJoin={onJoinSession} />
                   ))}
                 </div>
               </section>
+            )}
+
+            {/* Locked sessions notice */}
+            {(liveSessions.length > accessibleLive.length || upcomingSessions.length > accessibleUpcoming.length) && (
+              <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4">
+                <div className="flex items-center gap-2 text-yellow-400">
+                  <Shield className="h-4 w-4" />
+                  <span className="text-sm font-semibold">Some sessions are locked</span>
+                </div>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {liveSessions.length - accessibleLive.length + upcomingSessions.length - accessibleUpcoming.length} session(s) require paid or premium access to their spaces.
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -149,11 +207,12 @@ function SessionCard({
   session,
   onJoin,
 }: {
-  session: LiveSessionItem;
-  onJoin?: (session: LiveSessionItem) => void;
+  session: SessionWithSpace;
+  onJoin?: (session: SessionWithSpace) => void;
 }) {
   const startedAt = new Date(session.started_at);
   const isLive = session.status === "live";
+  const isLocked = session.space_access_type !== "free";
 
   return (
     <div
@@ -175,6 +234,14 @@ function SessionCard({
           <Globe className="h-3.5 w-3.5 text-zinc-600" />
         )}
       </div>
+
+      {/* Space access badge */}
+      {isLocked && (
+        <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-zinc-800/50 px-2 py-0.5">
+          <Shield className="h-3 w-3 text-zinc-500" />
+          <span className="text-[9px] font-medium text-zinc-400 capitalize">{session.space_access_type}</span>
+        </div>
+      )}
 
       {/* Thumbnail area */}
       <div className="relative mb-3 aspect-video rounded-xl overflow-hidden bg-zinc-900/50">

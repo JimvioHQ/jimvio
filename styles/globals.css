@@ -65,6 +65,7 @@
     --color-accent-light: #fff3ee;
     --color-accent-subtle: #ffe8de;
     --color-accent-soft: #ffab91;
+    --color-accent-foreground: #ffffff;
     --card: oklch(1 0 0);
     --color-text-primary: #11181c;
     --color-text-secondary: #3c4248;
@@ -135,7 +136,7 @@
 
     --color-bg: var(--color-ink);
     --color-bg-elevated: #1a2924;
-    --color-surface: var(--color-paper-dark);
+    --color-surface: var(--color-ink);
     --color-surface-secondary: #1f332d;
     --color-border: #3a4a42;
     --color-border-strong: #4a5a52;
@@ -148,6 +149,7 @@
     --color-accent-hover: #ff6a1a;
     --color-accent-light: #2a0e00;
     --color-accent-subtle: #1f0a00;
+    --color-accent-foreground: #ffffff;
 
     /* Feature palette */
     --color-sage: #81c784;      /* growth, earnings, wallet */
@@ -279,10 +281,10 @@
     background: #bbb;
   }
 
-  .dark ::selection {
-    background: var(--color-accent);
-    color: white;
-  }
+  ::selection {
+  background: rgba(253, 80, 0, 0.22);
+  color: #F3EFE4;
+}
 
   /* Smooth page transitions via Next.js */
   [data-nextjs-scroll-focus-boundary] {

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Radio, X, Globe, Lock, Loader2, Zap, Mic, Video, Users, ChevronRight, Check } from "lucide-react";
+import { Radio, X, Globe, Lock, Loader2, Zap, Mic, Video, Users, ChevronRight, Check, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { canAccessSpace, type MembershipLite } from "@/lib/community-workspace-access";
 
-type SpaceOption = { id: string; name: string; access_type: string };
+type SpaceOption = { id: string; name: string; access_type: string; community_id: string };
 
 export function StartLiveDialog({
   open,
@@ -21,27 +22,76 @@ export function StartLiveDialog({
   const [spaceId, setSpaceId] = useState<string>("");
   const [privacy, setPrivacy] = useState<"public" | "private">("public");
   const [spaces, setSpaces] = useState<SpaceOption[]>([]);
+  const [accessibleSpaces, setAccessibleSpaces] = useState<SpaceOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState<"details" | "preview">("details");
+  const [membership, setMembership] = useState<MembershipLite>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     fetchSpaces();
     setActiveStep("details");
+    // Get current user ID and membership
+    const getUser = async () => {
+      const supabase = (await import("@/lib/supabase/client")).createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+        // Fetch membership for access control
+        const { data } = await supabase
+          .from("community_memberships")
+          .select("role, plan_type, status, space_access")
+          .eq("user_id", user.id)
+          .eq("communities.slug", communitySlug || "")
+          .single();
+        if (data) setMembership(data);
+      }
+    };
+    getUser();
   }, [open, communitySlug]);
 
   const fetchSpaces = async () => {
-    if (!communitySlug) return;
+    if (!communitySlug) {
+      // Global mode: fetch spaces from all user's communities
+      try {
+        setLoading(true);
+        const res = await fetch("/api/c/spaces");
+        if (res.ok) {
+          const { spaces } = await res.json();
+          const allSpaces = spaces || [];
+          setSpaces(allSpaces);
+          const accessible = allSpaces.filter(sp => 
+            canAccessSpace(sp.access_type, membership, undefined, userId || undefined, sp.id)
+          );
+          setAccessibleSpaces(accessible);
+          if (accessible.length > 0 && !spaceId) {
+            setSpaceId(accessible[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch spaces:", err);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
     try {
       setLoading(true);
       const res = await fetch(`/api/c/${communitySlug}/spaces`);
       if (res.ok) {
         const { data } = await res.json();
-        setSpaces(data || []);
-        if (data?.length > 0 && !spaceId) {
-          setSpaceId(data[0].id);
+        const allSpaces = data || [];
+        setSpaces(allSpaces);
+        const accessible = allSpaces.filter(sp => 
+          canAccessSpace(sp.access_type, membership, undefined, userId || undefined, sp.id)
+        );
+        setAccessibleSpaces(accessible);
+        if (accessible.length > 0 && !spaceId) {
+          setSpaceId(accessible[0].id);
         }
       }
     } catch (err) {
@@ -86,7 +136,7 @@ export function StartLiveDialog({
 
   if (!open) return null;
 
-  const selectedSpace = spaces.find((s) => s.id === spaceId);
+  const selectedSpace = accessibleSpaces.find((s) => s.id === spaceId);
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
@@ -160,14 +210,14 @@ export function StartLiveDialog({
                     value={spaceId}
                     onChange={(e) => setSpaceId(e.target.value)}
                     className="mt-1.5 w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-[13px] text-white transition focus:border-[#fd5000]/30 focus:bg-white/[0.07] focus:outline-none"
-                    disabled={spaces.length === 0}
+                    disabled={accessibleSpaces.length === 0}
                   >
-                    {spaces.map((sp) => (
+                    {accessibleSpaces.map((sp) => (
                       <option key={sp.id} value={sp.id} className="bg-[#1a1a1a]">
                         {sp.name} {sp.access_type !== "free" && `(${sp.access_type})`}
                       </option>
                     ))}
-                    {spaces.length === 0 && <option value="" disabled>No accessible spaces</option>}
+                    {accessibleSpaces.length === 0 && <option value="" disabled>No accessible spaces</option>}
                   </select>
                 )}
               </div>

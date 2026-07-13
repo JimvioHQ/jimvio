@@ -185,6 +185,7 @@ export function CurrencySelector({
 
   return (
     <CustomSelect
+      menuPortalTarget={typeof document !== "undefined" ? document.body : null}
       className={cn(
         "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]",
         className

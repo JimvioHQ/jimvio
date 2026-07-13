@@ -37,6 +37,7 @@ export type LiveSessionItem = {
   host_avatar: string | null;
   space_id: string;
   space_name: string;
+  space_access_type: string;
   community_slug: string;
   viewer_count: number;
   status: "live" | "upcoming" | "ended";

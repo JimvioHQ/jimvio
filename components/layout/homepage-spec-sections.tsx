@@ -20,26 +20,26 @@ import type { DbProduct } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { CommunitiesSection } from "./homepage-communities";
 
-/* ─── Design Tokens ─── */
-const FOREST = "#122019";
-const PAPER = "#F3EFE4";
-const ACCENT = "#FD5000";
-const ACCENT_RGB = "253,80,0";
-
+/* ─── Design Tokens ─── Design Tokens (CSS Variables for Theme Support) ─── */
 const shell = "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8";
-const sectionBg = "bg-[#122019]";
-const sectionAlt = "bg-[#0f1a14]";
-const paperSurface = "bg-[#F3EFE4]";
-const paperSurfaceLight = "bg-[#f7f4ea]";
-const accent = "text-[#FD5000]";
-const accentBg = "bg-[#FD5000]";
-const textPaper = "text-[#F3EFE4]";
-const textMuted = "text-[#a0ada5]";
-const textDim = "text-[#7a8a80]";
+const sectionBg = "bg-[var(--color-bg)]";
+const sectionAlt = "bg-[var(--color-bg-elevated)]";
+const paperSurface = "bg-[var(--color-surface)]";
+const paperSurfaceLight = "bg-[var(--color-surface-secondary)]";
+const accent = "text-[var(--color-accent)]";
+const accentBg = "bg-[var(--color-accent)]";
+const textPaper = "text-[var(--color-text-primary)]";
+const textMuted = "text-[var(--color-text-muted)]";
+const textDim = "text-[var(--color-text-muted)]";
+const textSecondary = "text-[var(--color-text-secondary)]";
+const borderColor = "border-[var(--color-border)]";
+const borderStrong = "border-[var(--color-border-strong)]";
+const accentSubtle = "bg-[var(--color-accent-subtle)]";
+const accentLight = "bg-[var(--color-accent-light)]";
 
 function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-[#FD5000]/25 bg-[#FD5000]/8 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#FD5000]">
+    <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-accent)]/25 bg-[var(--color-accent)]/8 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-accent)]">
       {children}
     </span>
   );
@@ -48,7 +48,7 @@ function SectionEyebrow({ children }: { children: React.ReactNode }) {
 function SectionHeading({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <h2 className={cn(
-      "font-['var(--font-fraunces)'] text-[30px] font-bold leading-[1.1] tracking-tight text-[#F3EFE4] sm:text-[38px] lg:text-[44px]",
+      "text-[30px] font-bold leading-[1.1] tracking-tight text-[var(--color-text-primary)] sm:text-[38px] lg:text-[44px]",
       className
     )}>
       {children}
@@ -71,19 +71,19 @@ function StatNumber({ children, className }: { children: React.ReactNode; classN
 function SignalRingVisual() {
   return (
     <div aria-hidden className="relative flex size-48 items-center justify-center sm:size-56">
-      <div className="absolute inset-0 rounded-full border border-[#FD5000]/10" />
-      <div className="absolute inset-4 rounded-full border border-[#FD5000]/15" />
-      <div className="absolute inset-8 rounded-full border border-[#FD5000]/20" />
-      <div className="absolute inset-12 rounded-full border border-[#FD5000]/25" />
-      <div className="absolute inset-16 rounded-full border border-[#FD5000]/30" />
-      <div className="absolute inset-[72px] rounded-full border border-[#FD5000]/40" />
-      <div className="absolute flex size-16 items-center justify-center rounded-full bg-[#FD5000]/10">
-        <Zap className="h-7 w-7 text-[#FD5000]" />
+      <div className="absolute inset-0 rounded-full border border-[var(--color-accent)]/10" />
+      <div className="absolute inset-4 rounded-full border border-[var(--color-accent)]/15" />
+      <div className="absolute inset-8 rounded-full border border-[var(--color-accent)]/20" />
+      <div className="absolute inset-12 rounded-full border border-[var(--color-accent)]/25" />
+      <div className="absolute inset-16 rounded-full border border-[var(--color-accent)]/30" />
+      <div className="absolute inset-[72px] rounded-full border border-[var(--color-accent)]/40" />
+      <div className="absolute flex size-16 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+        <Zap className="h-7 w-7 text-[var(--color-accent)]" />
       </div>
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="absolute inset-0 animate-ping rounded-full border border-[#FD5000]/20"
+          className="absolute inset-0 animate-ping rounded-full border border-[var(--color-accent)]/20"
           style={{ animationDuration: `${2 + i * 0.5}s`, animationDelay: `${i * 0.4}s` }}
         />
       ))}
@@ -94,32 +94,32 @@ function SignalRingVisual() {
 export function HeroSection() {
   return (
     <section className={cn(sectionBg, "relative overflow-hidden pt-12 pb-10 sm:pb-14 lg:pt-16 lg:pb-16")}>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(253,80,0,0.06)_0%,transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--color-accent)_0.06_0%,transparent_70%)]" />
       <div className={shell}>
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="relative z-10">
-            <h1 className="font-['var(--font-fraunces)'] text-8xl font-black leading-[1.05] tracking-tight text-[#F3EFE4]">
+            <h1 className="text-6xl font-semibold leading-[1.05] tracking-tight text-[var(--color-text-primary)]">
               Shop live.
               <br />
-              <span className="text-[#FD5000]">Sell live.</span>
+              <span className="text-[var(--color-accent)]">Sell live.</span>
               <br />
               <span className="whitespace-nowrap">Get paid same day.</span>
             </h1>
 
-            <p className={cn("mt-4 max-w-lg text-[15px] leading-relaxed", textMuted)}>
+            <p className={cn("mt-4 max-w-lg text-[15px] leading-relaxed", "text-[var(--color-text-muted)]")}>
               Build your income ecosystem with Jimvio. Discover affiliate opportunities, create UGC content, sell in the marketplace, and grow with a community built for creators and entrepreneurs.
             </p>
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/marketplace"
-                className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full bg-[#FD5000] text-[#122019] font-body font-semibold text-base hover:bg-[#ff7a2e] transition-all duration-300 shadow-2xl shadow-[#FD5000]/20 hover:-translate-y-0.5"
+                className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] font-body font-semibold text-base hover:bg-[var(--color-accent-hover)] transition-all duration-300 shadow-2xl shadow-[var(--color-accent)]/20 hover:-translate-y-0.5"
               >
                 Start shopping <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
               </Link>
               <Link
                 href="/vendor/register"
-                className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full border border-[#F3EFE4]/15 text-[#F3EFE4] font-body font-medium text-base hover:bg-[#F3EFE4]/5 hover:border-[#F3EFE4]/25 transition-all duration-300"
+                className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full border border-[var(--color-text-primary)]/15 text-[var(--color-text-primary)] font-body font-medium text-base hover:bg-[var(--color-text-primary)]/5 hover:border-[var(--color-text-primary)]/25 transition-all duration-300"
               >
                 Open your shop
               </Link>
@@ -159,13 +159,13 @@ export function PulseSection() {
       <div className="relative overflow-hidden">
         <div className="flex animate-marquee gap-8 whitespace-nowrap" style={{ animation: "marquee 40s linear infinite" }}>
           {doubled.map((item, i) => (
-            <span key={i} className="font-mono text-[12px] text-[#a0ada5]">
+            <span key={i} className="font-mono text-[12px] text-[var(--color-text-muted)]">
               {item.text}
             </span>
           ))}
         </div>
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[#122019] to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#122019] to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-[var(--color-bg)] to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[var(--color-bg)] to-transparent" />
       </div>
       <style>{`
         @keyframes marquee {
@@ -197,13 +197,13 @@ export function TrustStrip() {
     <section className={cn(sectionAlt, "py-6")}>
       <div className={shell}>
         <div className="flex flex-col items-center gap-4">
-<p className="font-sans text-[13px] font-medium tracking-wider text-[#a0ada5]">
+<p className="font-sans text-[13px] font-medium tracking-wider text-[var(--color-text-muted)]">
   Trusted by industry leaders
 </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             {TRUST_LOGOS.map((m) =>
               m.text ? (
-                <span key={m.name} className="rounded-md border border-[#F3EFE4]/10 bg-[#122019] px-2.5 py-1 text-[10px] font-bold text-[#a0ada5]">
+                <span key={m.name} className="rounded-md border border-[var(--color-text-primary)]/10 bg-[var(--color-bg)] px-2.5 py-1 text-[10px] font-bold text-[var(--color-text-muted)]">
                   {m.name}
                 </span>
               ) : (
@@ -292,7 +292,7 @@ function CountdownTimer({ endsIn }: { endsIn: number }) {
   const m = Math.floor((time % 3600) / 60);
   const s = time % 60;
   return (
-    <span className="font-['var(--font-ibm-plex-mono)'] text-[11px] font-bold tabular-nums text-[#FD5000]">
+    <span className="font-['var(--font-ibm-plex-mono)'] text-[11px] font-bold tabular-nums text-[var(--color-accent)]">
       {String(h).padStart(2, "0")}:{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}
     </span>
   );
@@ -327,11 +327,11 @@ export function FlashDealsSection() {
     <section id="flash-deals" aria-label="Flash deals" className="mx-auto max-w-7xl px-6 mt-10 pb-24">
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div className="flex-1 min-w-0">
-          <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#FD5000] font-medium">Marketplace</span>
-          <h2 className="font-display text-4xl font-semibold tracking-[-0.04em] text-[#F3EFE4] mt-2 lg:text-5xl">Flash Deals</h2>
-          <p className="mt-2 font-body text-sm text-[#F3EFE4]/50">Limited time offers – Don't miss out!</p>
+          <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-accent)] font-medium">Marketplace</span>
+          <h2 className="font-display text-4xl font-semibold tracking-[-0.04em] text-[var(--color-text-primary)] mt-2 lg:text-5xl">Flash Deals</h2>
+          <p className="mt-2 font-body text-sm text-[var(--color-text-muted)]">Limited time offers – Don't miss out!</p>
         </div>
-        <a href="#marketplace" className="flex-shrink-0 font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e]">View all deals →</a>
+        <a href="#marketplace" className="flex-shrink-0 font-mono text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]">View all deals →</a>
       </div>
 
       <div className="flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 scroll-smooth" role="list" aria-label="Flash deal items">
@@ -339,36 +339,36 @@ export function FlashDealsSection() {
           <article
             key={item.rank}
             role="listitem"
-            className="group w-[300px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-[#152822] transition-all duration-300 hover:-translate-y-1 hover:border-[#FD5000]/30 hover:shadow-2xl hover:shadow-[#FD5000]/5 lg:w-[340px]"
+            className="group w-[300px] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--color-text-primary)]/10 bg-[var(--color-surface-secondary)] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-accent)]/30 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5 lg:w-[340px]"
           >
             <div className="relative h-56 overflow-hidden">
               <img src={item.image} alt={item.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
-              <span className="absolute left-3 top-3 rounded-md bg-[#FD5000] px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-[#122019] shadow-lg">{item.rank}</span>
-              <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full border border-white/10 bg-[#122019]/80 px-2.5 py-1 font-mono text-[10px] tracking-wide text-[#F3EFE4] shadow-lg backdrop-blur-md">
-                <Zap size={10} className="text-[#FD5000]" /> Ends in {times[i]}
+              <span className="absolute left-3 top-3 rounded-md bg-[var(--color-accent)] px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-[var(--color-bg)] shadow-lg">{item.rank}</span>
+              <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full border border-[var(--color-text-primary)]/10 bg-[var(--color-bg)]/80 px-2.5 py-1 font-mono text-[10px] tracking-wide text-[var(--color-text-primary)] shadow-lg backdrop-blur-md">
+                <Zap size={10} className="text-[var(--color-accent)]" /> Ends in {times[i]}
               </span>
             </div>
 
             <div className="p-5">
-              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[#FD5000]">{item.category}</span>
-              <h3 className="mt-1 font-display text-xl font-semibold leading-snug tracking-tight text-[#F3EFE4]">{item.title}</h3>
+              <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-[var(--color-accent)]">{item.category}</span>
+              <h3 className="mt-1 font-display text-xl font-semibold leading-snug tracking-tight text-[var(--color-text-primary)]">{item.title}</h3>
 
               <div className="mb-4 mt-4">
-                <div className="mb-1.5 flex justify-between font-body text-[11px] text-[#F3EFE4]/40">
-                  <span>Claimed: <strong className="text-[#F3EFE4]/70">{item.total - item.available}</strong></span>
-                  <span>Available: <strong className="text-[#F3EFE4]/70">{item.available}</strong></span>
+                <div className="mb-1.5 flex justify-between font-body text-[11px] text-[var(--color-text-muted)]">
+                  <span>Claimed: <strong className="text-[var(--color-text-secondary)]">{item.total - item.available}</strong></span>
+                  <span>Available: <strong className="text-[var(--color-text-secondary)]">{item.available}</strong></span>
                 </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#F3EFE4]/5">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-text-primary)]/5">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-[#FD5000] to-[#ff7a2e]"
+                    className="h-full rounded-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-hover)]"
                     style={{ width: `${(1 - item.available / item.total) * 100}%` }}
                   />
                 </div>
               </div>
 
               <div className="flex items-end justify-between">
-                <span className="font-display text-2xl font-semibold text-[#F3EFE4]">{item.price}</span>
-                <a href="#" className="flex items-center gap-1.5 font-body text-sm font-semibold text-[#FD5000] transition-colors hover:text-[#ff7a2e]">
+                <span className="font-display text-2xl font-semibold text-[var(--color-text-primary)]">{item.price}</span>
+                <a href="#" className="flex items-center gap-1.5 font-body text-sm font-semibold text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]">
                   Claim <Clock size={14} />
                 </a>
               </div>
@@ -406,43 +406,43 @@ function LiveCard({ session }: { session: LiveSession }) {
   return (
     <Link
       href={isLive ? `/live/${session.id}` : "#"}
-      className={`relative group rounded-3xl overflow-hidden border ${isLive ? 'border-[#FD5000]/30' : 'border-[#F3EFE4]/6'} bg-[#152822] hover:border-[#FD5000]/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#FD5000]/5`}
+      className={`relative group rounded-3xl overflow-hidden border ${isLive ? 'border-[var(--color-accent)]/30' : 'border-[var(--color-text-primary)]/6'} bg-[var(--color-surface-secondary)] hover:border-[var(--color-accent)]/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5`}
     >
       <div className="relative h-72 lg:h-80">
         <img src={session.image} alt={session.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-50 group-hover:scale-[1.02] transition duration-700" loading="lazy" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#122019] via-[#122019]/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/30 to-transparent" />
 
         <div className="absolute top-5 left-5 flex items-center gap-2">
-          <span className={`flex h-2.5 w-2.5 rounded-full ${isLive ? 'bg-[#FD5000] animate-pulse' : 'bg-[#F3EFE4]/30'}`} aria-hidden="true" />
-          <span className="font-mono text-[10px] tracking-[0.1em] uppercase px-2.5 py-1 rounded-md backdrop-blur-sm bg-[#122019]/80 text-[#F3EFE4]/90 border border-[#F3EFE4]/8 font-medium">
+          <span className={`flex h-2.5 w-2.5 rounded-full ${isLive ? 'bg-[var(--color-accent)] animate-pulse' : 'bg-[var(--color-text-primary)]/30'}`} aria-hidden="true" />
+          <span className="font-mono text-[10px] tracking-[0.1em] uppercase px-2.5 py-1 rounded-md backdrop-blur-sm bg-[var(--color-bg)]/80 text-[var(--color-text-primary)]/90 border border-[var(--color-text-primary)]/8 font-medium">
             {isLive ? 'Live now' : 'Next up'}
           </span>
         </div>
 
         <div className="absolute top-5 right-5">
           {isLive ? (
-            <span className="font-mono text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#122019]/80 backdrop-blur-sm border border-[#F3EFE4]/8 text-[#F3EFE4]/80">
-              <Users size={12} className="text-[#FD5000]" /> {session.viewers} watching
+            <span className="font-mono text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--color-bg)]/80 backdrop-blur-sm border border-[var(--color-text-primary)]/8 text-[var(--color-text-primary)]/80">
+              <Users size={12} className="text-[var(--color-accent)]" /> {session.viewers} watching
             </span>
           ) : (
-            <span className="font-mono text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#122019]/80 backdrop-blur-sm border border-[#F3EFE4]/8 text-[#F3EFE4]/80">
+            <span className="font-mono text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--color-bg)]/80 backdrop-blur-sm border border-[var(--color-text-primary)]/8 text-[var(--color-text-primary)]/80">
               <Clock size={12} className="text-amber-400" /> {session.next}
             </span>
           )}
         </div>
 
         <div className="absolute bottom-6 left-6 right-6">
-          <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[#FD5000]">{session.category}</span>
-          <h3 className="font-display font-semibold text-2xl lg:text-3xl tracking-tight text-[#F3EFE4] mt-1">{session.host}</h3>
-          <p className="mt-1 text-[#F3EFE4]/60 text-sm font-body">{session.title}</p>
+          <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[var(--color-accent)]">{session.category}</span>
+          <h3 className="font-display font-semibold text-2xl lg:text-3xl tracking-tight text-[var(--color-text-primary)] mt-1">{session.host}</h3>
+          <p className="mt-1 text-[var(--color-text-primary)]/60 text-sm font-body">{session.title}</p>
         </div>
       </div>
 
       <div className="p-5 flex items-center justify-between">
-        <div className="font-body text-sm text-[#F3EFE4]/60">
-          Host: <strong className="text-[#F3EFE4]/90">{session.host}</strong>
+        <div className="font-body text-sm text-[var(--color-text-primary)]/60">
+          Host: <strong className="text-[var(--color-text-primary)]/90">{session.host}</strong>
         </div>
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-body font-semibold bg-[#FD5000] text-[#122019] hover:bg-[#ff7a2e] transition-colors shadow-lg shadow-[#FD5000]/15">
+        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-body font-semibold bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-hover)] transition-colors shadow-lg shadow-[var(--color-accent)]/15">
           {isLive ? 'Join session' : 'Set reminder'} <Play size={14} strokeWidth={2.5} />
         </span>
       </div>
@@ -459,13 +459,13 @@ export function LiveShoppingSpotlight() {
       <div className={shell}>
         <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4">
           <div>
-            <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[#FD5000]">{hasLive ? "Live Now" : "Upcoming"}</span>
+            <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[var(--color-accent)]">{hasLive ? "Live Now" : "Upcoming"}</span>
             <SectionHeading className="mt-2">Live Shopping</SectionHeading>
-            <p className={cn("mt-1.5 max-w-md text-sm leading-relaxed", textMuted)}>
+            <p className={cn("mt-1.5 max-w-md text-sm leading-relaxed", "text-[var(--color-text-muted)]")}>
               Watch hosts demo products in real time. Ask questions, buy instantly.
             </p>
           </div>
-          <Link href="/live" className="font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e]">
+          <Link href="/live" className="font-mono text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]">
             Browse all sessions →
           </Link>
         </div>
@@ -474,8 +474,8 @@ export function LiveShoppingSpotlight() {
           {sessions.length > 0 ? sessions.map((s) => (
             <LiveCard key={s.id} session={s} />
           )) : (
-            <div className={cn("col-span-full rounded-2xl border border-[#F3EFE4]/8 p-8 text-center", textMuted)}>
-              <p className="mb-1 text-sm font-semibold text-[#F3EFE4]">No live sessions right now</p>
+            <div className={cn("col-span-full rounded-2xl border border-[var(--color-text-primary)]/8 p-8 text-center", "text-[var(--color-text-muted)]")}>
+              <p className="mb-1 text-sm font-semibold text-[var(--color-text-primary)]">No live sessions right now</p>
               <p className="text-[13px]">Next live: Fashion Try-On — Tomorrow 4PM</p>
             </div>
           )}
@@ -508,18 +508,18 @@ function CategoryCard({ cat }: { cat: typeof CATEGORIES[0] }) {
   return (
     <a
       href={cat.href}
-      className="group relative h-72 lg:h-80 rounded-2xl overflow-hidden border border-white/10 bg-[#122019] hover:border-[#FD5000]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#FD5000]/5"
+      className="group relative h-72 lg:h-80 rounded-2xl overflow-hidden border border-[var(--color-text-primary)]/10 bg-[var(--color-bg)] hover:border-[var(--color-accent)]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5"
       aria-label={`Browse ${cat.name}`}
     >
       <img src={cat.image} alt={cat.name} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-40 group-hover:scale-105 transition-all duration-700" loading="lazy" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#122019] via-[#122019]/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/40 to-transparent" />
 
       <div className="relative h-full p-6 lg:p-7 flex flex-col justify-end">
         <div>
-          <h3 className="font-display font-semibold text-2xl lg:text-3xl tracking-tight text-[#F3EFE4] group-hover:text-[#FD5000] transition-colors">{cat.name}</h3>
-          <p className="mt-1 font-mono text-sm text-[#F3EFE4]/40">{cat.count}</p>
+          <h3 className="font-display font-semibold text-2xl lg:text-3xl tracking-tight text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{cat.name}</h3>
+          <p className="mt-1 font-mono text-sm text-[var(--color-text-primary)]/40">{cat.count}</p>
         </div>
-        <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between text-sm font-body text-[#F3EFE4]/60 group-hover:text-[#F3EFE4]/90 transition-colors">
+        <div className="mt-4 pt-4 border-t border-[var(--color-text-primary)]/10 flex items-center justify-between text-sm font-body text-[var(--color-text-primary)]/60 group-hover:text-[var(--color-text-primary)]/90 transition-colors">
           <span>Browse</span>
           <span aria-hidden="true">→</span>
         </div>
@@ -533,16 +533,16 @@ export function CategoryBrowse() {
     <section className={cn(sectionBg, "py-12 sm:py-16")}>
       <div className={shell}>
         <div className="mb-8 flex items-end justify-between">
-          <div>
-            <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[#FD5000]">Marketplace</span>
+<div>
+            <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[var(--color-accent)]">Marketplace</span>
             <SectionHeading className="mt-2">Browse by Category</SectionHeading>
-            <p className={cn("mt-1.5 max-w-md text-sm leading-relaxed", textMuted)}>
+            <p className={cn("mt-1.5 max-w-md text-sm leading-relaxed", "text-[var(--color-text-muted)]")}>
               Find exactly what you need — from electronics to fashion and everything between.
             </p>
           </div>
           <Link
             href="/marketplace"
-            className="hidden font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e] sm:inline"
+            className="hidden font-mono text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)] sm:inline"
           >
             All products →
           </Link>
@@ -555,7 +555,7 @@ export function CategoryBrowse() {
         </div>
 
         <div className="mt-5 text-center sm:hidden">
-          <Link href="/marketplace" className="font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e]">
+          <Link href="/marketplace" className="font-mono text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]">
             All products →
           </Link>
         </div>
@@ -590,42 +590,42 @@ function CreatorCard({ creator }: { creator: Creator }) {
    return (
      <Link
        href={creator.href}
-       className="group flex flex-col gap-5 rounded-2xl bg-[#122019] p-6 transition-all duration-300 hover:-translate-y-0.5 min-h-[300px]"
+       className="group flex flex-col gap-5 rounded-2xl bg-[var(--color-bg)] p-6 transition-all duration-300 hover:-translate-y-0.5 min-h-[300px]"
      >
        <div className="flex items-center gap-4">
-         <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/15 text-2xl font-bold text-[#FD5000]">
+         <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/15 text-2xl font-bold text-[var(--color-accent)]">
            {creator.avatar}
          </span>
          <div>
-           <h3 className="text-2xl text-[#F3EFE4] leading-tight">{creator.name}</h3>
-           <p className="text-base text-[#7a8a80]">{creator.role}</p>
+           <h3 className="text-2xl text-[var(--color-text-primary)] leading-tight">{creator.name}</h3>
+           <p className="text-base text-[var(--color-text-muted)]">{creator.role}</p>
          </div>
        </div>
        <div>
-         <p className="text-[11px] text-[#a0ada5]">{creator.statLabel}</p>
-         <p className="font-mono text-2xl font-bold text-[#FD5000]">{creator.statValue}</p>
+         <p className="text-[11px] text-[var(--color-text-muted)]">{creator.statLabel}</p>
+         <p className="font-mono text-2xl font-bold text-[var(--color-accent)]">{creator.statValue}</p>
        </div>
-       <p className="flex-1 text-[13px] leading-relaxed text-[#a0ada5]">{creator.tagline}</p>
-       <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#FD5000] transition-all group-hover:gap-1.5">
+       <p className="flex-1 text-[13px] leading-relaxed text-[var(--color-text-muted)]">{creator.tagline}</p>
+       <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)] transition-all group-hover:gap-1.5">
          View profile <ArrowRight className="h-3 w-3" />
        </span>
      </Link>
    );
-}
+ }
 
 export function CreatorShowcase() {
   return (
-    <section className={cn(sectionAlt, "py-12 sm:py-16")}>
+    <section className={cn(sectionBg, "py-12 sm:py-16")}>
       <div className={shell}>
         <div className="mb-8 flex flex-wrap items-baseline justify-between gap-4">
           <div>
-            <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[#FD5000]">Creators</span>
+            <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[var(--color-accent)]">Creators</span>
             <SectionHeading className="mt-2">Built for creators who ship</SectionHeading>
-            <p className={cn("mt-1.5 max-w-lg text-sm leading-relaxed", textMuted)}>
+            <p className={cn("mt-1.5 max-w-lg text-sm leading-relaxed", "text-[var(--color-text-muted)]")}>
               Whether you teach, build communities, or sell digital — these are real people earning on Jimvio today.
             </p>
           </div>
-          <Link href="/creators" className="font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e]">
+          <Link href="/creators" className="font-mono text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]">
             Meet more creators →
           </Link>
         </div>
@@ -669,24 +669,24 @@ export function HowJimvioWorks() {
   return (
     <section id="how-it-works" aria-label="How Jimvio works" className="mx-auto max-w-7xl px-6 pb-24">
       <div className="mb-10">
-        <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#FD5000] font-medium">How it works</span>
-        <h2 className="font-display font-semibold text-4xl lg:text-[3.5rem] tracking-[-0.045em] text-[#F3EFE4] mt-2">Three steps. No friction.</h2>
-        <p className="mt-3 text-[#F3EFE4]/50 font-body text-base max-w-xl">Not a sign-up funnel — it's how people actually move through Jimvio.</p>
+        <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-accent)] font-medium">How it works</span>
+        <h2 className="font-display font-semibold text-4xl lg:text-[3.5rem] tracking-[-0.045em] text-[var(--color-text-primary)] mt-2">Three steps. No friction.</h2>
+        <p className="mt-3 text-[var(--color-text-primary)]/50 font-body text-base max-w-xl">Not a sign-up funnel — it's how people actually move through Jimvio.</p>
       </div>
 
       <div className="relative">
         {/* Connecting line for desktop */}
-        <div aria-hidden="true" className="hidden lg:block absolute top-16 left-[calc(33.33%-1rem)] w-[calc(33.33%+2rem)] h-px bg-gradient-to-r from-[#FD5000]/30 via-[#FD5000]/10 to-transparent" />
+        <div aria-hidden="true" className="hidden lg:block absolute top-16 left-[calc(33.33%-1rem)] w-[calc(33.33%+2rem)] h-px bg-gradient-to-r from-[var(--color-accent)]/30 via-[var(--color-accent)]/10 to-transparent" />
 
         <div className="grid lg:grid-cols-3 gap-5">
           {steps.map((step) => (
-            <article key={step.num} className="relative rounded-2xl bg-gradient-to-br from-[#152822] to-[#122019] border border-white/10 p-8 lg:p-9 hover:border-[#FD5000]/20 transition-all duration-300 hover:-translate-y-1">
-              <span className="font-mono text-5xl font-bold text-[#FD5000]/10 tracking-tighter select-none">{step.num}</span>
-              <h3 className="font-display font-semibold text-2xl tracking-tight text-[#F3EFE4] mt-3">{step.title}</h3>
-              <p className="mt-3 text-[#F3EFE4]/60 font-body text-sm leading-relaxed">{step.desc}</p>
-              <div className="mt-6 pt-5 border-t border-[#F3EFE4]/5 flex items-center justify-between">
-                <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[#FD5000]/70">{step.meta}</span>
-                <ArrowDownRight size={16} className="text-[#FD5000]/30" />
+            <article key={step.num} className="relative rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-8 lg:p-9 hover:border-[var(--color-accent)]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]">
+              <span className="font-mono text-5xl font-bold text-[var(--color-accent)]/30 tracking-tighter select-none">{step.num}</span>
+              <h3 className="font-display font-semibold text-2xl tracking-tight text-[var(--color-text-primary)] mt-3">{step.title}</h3>
+              <p className="mt-3 text-[var(--color-text-primary)]/60 font-body text-sm leading-relaxed">{step.desc}</p>
+              <div className="mt-6 pt-5 border-t border-[var(--color-text-primary)]/5 flex items-center justify-between">
+                <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[var(--color-accent)]">{step.meta}</span>
+                <ArrowDownRight size={16} className="text-[var(--color-accent)]" />
               </div>
             </article>
           ))}
@@ -711,11 +711,11 @@ export function FeaturedUGCCampaigns() {
     <section className={cn(sectionBg, "py-12 sm:py-16")}>
       <div className={shell}>
         <div className="mb-9">
-          <span className="font-['var(--font-ibm-plex-mono)'] text-[10px] font-medium uppercase tracking-[0.2em] text-[#FD5000]">
+          <span className="font-['var(--font-ibm-plex-mono)'] text-[10px] font-medium uppercase tracking-[0.2em] text-[var(--color-accent)]">
             Clipping
           </span>
           <SectionHeading className="mt-2">Featured UGC Campaigns.</SectionHeading>
-          <p className={cn("mt-3 max-w-xl text-base leading-relaxed", textMuted)}>
+          <p className={cn("mt-3 max-w-xl text-base leading-relaxed", "text-[var(--color-text-muted)]")}>
             The campaigns running right now — real reward pools, real clips posted, real payouts.
           </p>
         </div>
@@ -725,7 +725,7 @@ export function FeaturedUGCCampaigns() {
             <Link
               key={c.title}
               href="/ugc"
-              className="group relative overflow-hidden rounded-3xl border border-[#F3EFE4]/20 bg-[#122019] transition-all duration-300 hover:-translate-y-1.5 hover:border-[#FD5000]/25 hover:shadow-2xl hover:shadow-[#FD5000]/5"
+              className="group relative overflow-hidden rounded-3xl border border-[var(--color-text-primary)]/20 bg-[var(--color-bg)] transition-all duration-300 hover:-translate-y-1.5 hover:border-[var(--color-accent)]/25 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5"
             >
               <div className="relative h-60 overflow-hidden">
                 <img
@@ -738,24 +738,24 @@ export function FeaturedUGCCampaigns() {
                   <span className={cn(
                     "font-body text-[10px] tracking-wide",
                     c.status === "Trending"
-                      ? "rounded-md bg-[#FD5000] px-2 py-0.5 font-bold text-[#122019]"
-                      : "rounded-md border border-[#F3EFE4]/8 bg-[#122019]/80 px-2 py-0.5 text-[#F3EFE4]/80 backdrop-blur-sm"
+                      ? "rounded-md bg-[var(--color-accent)] px-2 py-0.5 font-bold text-[var(--color-bg)]"
+                      : "rounded-md border border-[var(--color-text-primary)]/8 bg-[var(--color-bg)]/80 px-2 py-0.5 text-[var(--color-text-primary)]/80 backdrop-blur-sm"
                   )}>
                     {c.status}
                   </span>
                 </div>
                 <div className="absolute right-4 top-4">
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#122019]/80 px-2.5 py-1 backdrop-blur-sm">
-                    <span className="font-mono text-sm font-bold text-[#F3EFE4]">{c.clips}</span>
-                    <span className="font-['var(--font-ibm-plex-mono)'] text-[9px] tracking-wide text-[#F3EFE4]/40">clips</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-bg)]/80 px-2.5 py-1 backdrop-blur-sm">
+                    <span className="font-mono text-sm font-bold text-[var(--color-text-primary)]">{c.clips}</span>
+                    <span className="font-['var(--font-ibm-plex-mono)'] text-[9px] tracking-wide text-[var(--color-text-primary)]/40">clips</span>
                   </span>
                 </div>
-                <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#122019] via-[#122019]/20 to-transparent" />
+                <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/20 to-transparent" />
                 <div className="absolute bottom-5 left-5 right-5">
-                  <h3 className="font-['var(--font-fraunces)'] text-2xl font-semibold tracking-tight text-[#F3EFE4]">
+                  <h3 className="font-['var(--font-fraunces)'] text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
                     {c.title}
                   </h3>
-                  <p className="font-['var(--font-ibm-plex-mono)'] text-[10px] uppercase tracking-[0.1em] text-[#FD5000]/60">
+                  <p className="font-['var(--font-ibm-plex-mono)'] text-[10px] uppercase tracking-[0.1em] text-[var(--color-accent)]/60">
                     {c.subtitle}
                   </p>
                 </div>
@@ -763,21 +763,21 @@ export function FeaturedUGCCampaigns() {
 
               <div className="p-6">
                 <div className="mb-5 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-[#F3EFE4]/5 bg-[#152822] p-3 text-center">
-                    <span className="font-mono text-xl font-semibold text-[#FD5000]">{c.pool}</span>
-                    <span className="mt-0.5 block font-mono text-[9px] tracking-wide text-[#F3EFE4]/30">Reward pool</span>
+                  <div className="rounded-2xl border border-[var(--color-text-primary)]/5 bg-[var(--color-surface-secondary)] p-3 text-center">
+                    <span className="font-mono text-xl font-semibold text-[var(--color-accent)]">{c.pool}</span>
+                    <span className="mt-0.5 block font-mono text-[9px] tracking-wide text-[var(--color-text-primary)]/30">Reward pool</span>
                   </div>
-                  <div className="rounded-2xl border border-[#F3EFE4]/5 bg-[#152822] p-3 text-center">
-                    <span className="font-mono text-xl font-semibold text-[#F3EFE4]">{c.rewardPerView}</span>
-                    <span className="mt-0.5 block font-mono text-[9px] tracking-wide text-[#F3EFE4]/30">Per view</span>
+                  <div className="rounded-2xl border border-[var(--color-text-primary)]/5 bg-[var(--color-surface-secondary)] p-3 text-center">
+                    <span className="font-mono text-xl font-semibold text-[var(--color-text-primary)]">{c.rewardPerView}</span>
+                    <span className="mt-0.5 block font-mono text-[9px] tracking-wide text-[var(--color-text-primary)]/30">Per view</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-[#F3EFE4]/5 pt-4">
+                <div className="flex items-center justify-between border-t border-[var(--color-text-primary)]/5 pt-4">
                   <span className="inline-flex items-center gap-1.5 text-xs font-body font-medium text-emerald-400">
                     <TrendingUp className="h-3.5 w-3.5" /> {c.trend}
                   </span>
-                  <span className="inline-flex items-center gap-1.5 text-sm font-body font-semibold text-[#FD5000] transition-transform group-hover:translate-x-1">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-body font-semibold text-[var(--color-accent)] transition-transform group-hover:translate-x-1">
                     Join <ArrowRight className="h-3.5 w-3.5" />
                   </span>
                 </div>
@@ -820,29 +820,29 @@ const QUOTES = [
 
 export function SocialProof() {
   return (
-    <section className={cn(sectionAlt, "py-12 sm:py-16")}>
+    <section className={cn(sectionBg, "py-12 sm:py-16")}>
       <div className={shell}>
         <div className="mb-8">
-          <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[#FD5000]">Real stories</span>
+          <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[var(--color-accent)]">Real stories</span>
           <SectionHeading className="mt-2">Trusted by buyers, vendors, and creators</SectionHeading>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           {QUOTES.map((q) => (
-            <div key={q.name} className="group flex flex-col rounded-2xl bg-[#122019] p-5 sm:p-6 transition-all duration-300 hover:-translate-y-0.5">
-              <div className="mb-4 flex flex-col items-center gap-3 text-center sm:flex-row sm:text-left">
-                <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/15 text-xl font-bold text-[#FD5000]">
-                  {q.avatar}
-                </span>
+            <div key={q.name} className="group flex flex-col rounded-2xl bg-[var(--color-surface)] p-5 sm:p-6 transition-all duration-300 hover:-translate-y-0.5">
+              <div className="mb-4 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#FD5000]/10 flex items-center justify-center shrink-0">
+                  <span className="text-xl font-bold text-[#FD5000]">{q.avatar}</span>
+                </div>
                 <div>
-                  <p className="text-2xl text-[#F3EFE4] leading-tight">{q.name}</p>
-                  <p className="text-base font-light uppercase text-[#FD5000] font-mono">{q.role}</p>
+                  <p className="text-2xl text-[var(--color-text-primary)] leading-tight">{q.name}</p>
+                  <p className="text-base font-light uppercase text-[var(--color-accent)] font-mono">{q.role}</p>
                 </div>
               </div>
               <div className="mb-3">
-                <span className="text-xl font-semibold text-[#a0ada5]">{q.stat}</span>
+                <span className="text-xl font-semibold text-[var(--color-text-muted)]">{q.stat}</span>
               </div>
-              <blockquote className="flex-1 text-[13px] leading-relaxed text-[#a0ada5]">
+              <blockquote className="flex-1 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
                 &ldquo;{q.quote}&rdquo;
               </blockquote>
             </div>
@@ -862,74 +862,59 @@ export function PlatformSection() {
      <section className={cn(sectionBg, "py-16 sm:py-20")}>
        <div className={shell}>
           <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[#FD5000]">PLATFORM</span>
+            <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[var(--color-accent)]">PLATFORM</span>
             <SectionHeading className="mt-2">
               Everything in one place.
             </SectionHeading>
-           <p className={cn("mt-4 max-w-2xl text-base leading-relaxed sm:text-lg", textMuted)}>
-             Marketplace, live shopping, creators, payouts, security — not separate apps.
+           <p className={cn("mt-4 max-w-2xl text-base leading-relaxed sm:text-lg", "text-[var(--color-text-muted)]")}>
+              Marketplace, live shopping, creators, payouts, security — not separate apps.
            </p>
-         </div>
+          </div>
 
-         <div className="mt-10 grid gap-4 sm:grid-cols-3">
-           <Link
-             href="/marketplace"
-             className="group flex flex-col gap-3 rounded-2xl border border-[#F3EFE4]/10 bg-[#122019] p-6 transition-all hover:border-[#FD5000]/30 hover:-translate-y-0.5"
-           >
-             <div className="flex items-center gap-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/10">
-                  <ShoppingBag className="h-[18px] w-[18px] text-[#FD5000]" />
-                </div>
-               <div>
-                 <h3 className="text-[15px] font-normal text-[#F3EFE4]">Marketplace</h3>
-                 <p className="mt-0.5 text-[12px] text-[#a0ada5]">Browse products from verified vendors worldwide.</p>
-               </div>
-             </div>
-             <span className="inline-flex items-center gap-1 text-[12px] font-normal text-[#FD5000] tracking-wide whitespace-nowrap transition-all group-hover:gap-1.5">
-               Browse now <ArrowRight className="h-3.5 w-3.5" />
-             </span>
-           </Link>
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            <Link
+              href="/marketplace"
+              className="group flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/50 hover:border-[var(--color-accent)]/20 hover:bg-[var(--color-bg)] transition-all hover:-translate-y-0.5"
+            >
+              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                <ShoppingBag size={18} className="text-[var(--color-accent)]" />
+              </div>
+              <div className="text-left pt-1">
+                <h3 className="font-body font-semibold text-[var(--color-text-primary)]">Marketplace</h3>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Browse products from verified vendors worldwide.</p>
+              </div>
+            </Link>
 
-           <Link
-             href="/live"
-             className="group flex flex-col gap-3 rounded-2xl border border-[#F3EFE4]/10 bg-[#122019] p-6 transition-all hover:border-[#FD5000]/30 hover:-translate-y-0.5"
-           >
-             <div className="flex items-center gap-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/10">
-                  <Video className="h-[18px] w-[18px] text-[#FD5000]" />
-                </div>
-               <div>
-                 <h3 className="text-[15px] font-normal text-[#F3EFE4]">Live Shopping</h3>
-                 <p className="mt-0.5 text-[12px] text-[#a0ada5]">Watch hosts demo products in real time and buy instantly.</p>
-               </div>
-             </div>
-             <span className="inline-flex items-center gap-1 text-[12px] font-normal text-[#FD5000] tracking-wide whitespace-nowrap transition-all group-hover:gap-1.5">
-               Watch now <ArrowRight className="h-3.5 w-3.5" />
-             </span>
-           </Link>
+            <Link
+              href="/live"
+              className="group flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/50 hover:border-[var(--color-accent)]/20 hover:bg-[var(--color-bg)] transition-all hover:-translate-y-0.5"
+            >
+              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                <Video size={18} className="text-[var(--color-accent)]" />
+              </div>
+              <div className="text-left pt-1">
+                <h3 className="font-body font-semibold text-[var(--color-text-primary)]">Live Shopping</h3>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Watch hosts demo products in real time and buy instantly.</p>
+              </div>
+            </Link>
 
-           <Link
-             href="/creators"
-             className="group flex flex-col gap-3 rounded-2xl border border-[#F3EFE4]/10 bg-[#122019] p-6 transition-all hover:border-[#FD5000]/30 hover:-translate-y-0.5"
-           >
-             <div className="flex items-center gap-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/10">
-                  <Users className="h-[18px] w-[18px] text-[#FD5000]" />
-                </div>
-               <div>
-                 <h3 className="text-[15px] font-normal text-[#F3EFE4]">Creators</h3>
-                 <p className="mt-0.5 text-[12px] text-[#a0ada5]">Join brand campaigns and get paid to create content.</p>
-               </div>
-             </div>
-             <span className="inline-flex items-center gap-1 text-[12px] font-normal text-[#FD5000] tracking-wide whitespace-nowrap transition-all group-hover:gap-1.5">
-               Get started <ArrowRight className="h-3.5 w-3.5" />
-             </span>
-           </Link>
-         </div>
-       </div>
-     </section>
-   );
-}
+            <Link
+              href="/creators"
+              className="group flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/50 hover:border-[var(--color-accent)]/20 hover:bg-[var(--color-bg)] transition-all hover:-translate-y-0.5"
+            >
+              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                <Users size={18} className="text-[var(--color-accent)]" />
+              </div>
+              <div className="text-left pt-1">
+                <h3 className="font-body font-semibold text-[var(--color-text-primary)]">Creators</h3>
+                <p className="mt-1 text-sm text-[var(--color-text-muted)]">Join brand campaigns and get paid to create content.</p>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+ }
 
 /* ═══════════════════════════════════════════════
    12. SECURITY & PAYMENTS
@@ -946,65 +931,54 @@ export function SecurityPayments() {
   return (
     <section className={cn(sectionBg, "py-12 sm:py-16")}>
       <div className={shell}>
-        <div className="rounded-3xl border border-[#F3EFE4]/15 bg-[#122019] p-8 lg:p-10">
-          <h2 className="font-['var(--font-fraunces)'] text-3xl font-semibold tracking-tight text-[#F3EFE4] lg:text-4xl mb-4">
+        <div className="rounded-3xl border border-white/10 dark:border-white/10 bg-[var(--color-bg)] p-8 lg:p-10">
+          <h2 className="text-3xl font-semibold tracking-tight text-[var(--color-text-primary)] lg:text-4xl mb-4">
             Shop with confidence
           </h2>
-          <p className="text-[#F3EFE4]/50 text-base lg:text-lg mb-10 max-w-2xl">
+          <p className="text-[var(--color-text-primary)]/50 text-base lg:text-lg mb-10 max-w-2xl">
             Your security is our priority. Every transaction is protected from checkout to delivery.
           </p>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Secure Payment */}
-            <div className="flex flex-col items-center text-center gap-4 p-4 rounded-2xl border border-white/10 bg-[#122019]/50 hover:border-[#FD5000]/20 transition-all">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/10">
-                <Shield className="h-[20px] w-[20px] text-[#FD5000]" />
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Two-factor login */}
+            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[#F3EFE4]/10 bg-[#122019]/50 hover:border-[#FD5000]/20 transition-all">
+              <div className="w-10 h-10 rounded-full bg-[#FD5000]/10 flex items-center justify-center shrink-0">
+                <Fingerprint size={18} className="text-[#FD5000]" />
               </div>
               <div>
-                <h3 className="font-body font-semibold text-[#F3EFE4]">Secure Payment</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#F3EFE4]/50">100% safe & secure</p>
+                <h3 className="font-body font-semibold text-[#F3EFE4]">Two-factor login</h3>
+                <p className="text-sm text-[#F3EFE4]/50 font-body mt-1 leading-relaxed">TOTP + backup codes — enabled on every account by default. No exceptions.</p>
               </div>
             </div>
 
             {/* Buyer Protection */}
-            <div className="flex flex-col items-center text-center gap-4 p-4 rounded-2xl border border-white/10 bg-[#122019]/50 hover:border-[#FD5000]/20 transition-all">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/10">
-                <ShieldCheck className="h-[20px] w-[20px] text-[#FD5000]" />
+            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[#F3EFE4]/10 bg-[#122019]/50 hover:border-[#FD5000]/20 transition-all">
+              <div className="w-10 h-10 rounded-full bg-[#FD5000]/10 flex items-center justify-center shrink-0">
+                <Lock size={18} className="text-[#FD5000]" />
               </div>
               <div>
-                <h3 className="font-body font-semibold text-[#F3EFE4]">Buyer Protection</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#F3EFE4]/50">Money-back guarantee</p>
+                <h3 className="font-body font-semibold text-[#F3EFE4]">Buyer protection</h3>
+                <p className="text-sm text-[#F3EFE4]/50 font-body mt-1 leading-relaxed">Every order is tracked. Refunds within 24 hours if delivery fails.</p>
               </div>
             </div>
 
             {/* Worldwide Shipping */}
-            <div className="flex flex-col items-center text-center gap-4 p-4 rounded-2xl border border-white/10 bg-[#122019]/50 hover:border-[#FD5000]/20 transition-all">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/10">
-                <Truck className="h-[20px] w-[20px] text-[#FD5000]" />
+            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[#F3EFE4]/10 bg-[#122019]/50 hover:border-[#FD5000]/20 transition-all">
+              <div className="w-10 h-10 rounded-full bg-[#FD5000]/10 flex items-center justify-center shrink-0">
+                <Truck size={18} className="text-[#FD5000]" />
               </div>
               <div>
                 <h3 className="font-body font-semibold text-[#F3EFE4]">Worldwide Shipping</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#F3EFE4]/50">Fast & reliable delivery</p>
-              </div>
-            </div>
-
-            {/* Escrow Protected */}
-            <div className="flex flex-col items-center text-center gap-4 p-4 rounded-2xl border border-white/10 bg-[#122019]/50 hover:border-[#FD5000]/20 transition-all">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/10">
-                <Lock className="h-[20px] w-[20px] text-[#FD5000]" />
-              </div>
-              <div>
-                <h3 className="font-body font-semibold text-[#F3EFE4]">Escrow Protected</h3>
-                <p className="mt-1 text-sm leading-relaxed text-[#F3EFE4]/50">Funds held until delivery</p>
+                <p className="text-sm text-[#F3EFE4]/50 font-body mt-1 leading-relaxed">Fast & reliable delivery</p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 border-t border-[#F3EFE4]/15 pt-6 mt-8">
+          <div className="flex flex-wrap gap-3 border-t border-[#F3EFE4]/30 pt-6 mt-8">
             {PAYMENT_PROVIDERS.map((p) => (
               <span
                 key={p.name}
-                className="inline-flex items-center justify-center rounded-full bg-[#122019]/60 p-2 backdrop-blur-sm"
+                className="inline-flex items-center justify-center rounded-full bg-[var(--color-bg)]/60 p-2 backdrop-blur-sm"
               >
                 <Image
                   src={p.logo}
@@ -1051,29 +1025,31 @@ export function CommonQuestions() {
               key={i}
               onClick={() => setOpen(open === i ? null : i)}
               className={`w-full text-left rounded-2xl border p-6 lg:p-7 transition-all duration-300 hover:-translate-y-0.5 ${
-                open === i ? 'bg-[#152822] border-[#FD5000]/30 shadow-2xl shadow-[#FD5000]/5' : 'bg-[#122019]/60 border-white/10 hover:border-white/20'
+                open === i
+                  ? 'bg-[var(--color-surface-secondary)] border-[var(--color-accent)]/30 shadow-2xl shadow-[var(--color-accent)]/5'
+                  : 'bg-[var(--color-bg)]/60 border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
               }`}
               aria-expanded={open === i}
             >
               <div className="flex items-start justify-between gap-4">
-                <h3 className="font-display font-semibold text-lg lg:text-xl tracking-tight text-[#F3EFE4]">{item.q}</h3>
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border transition-colors duration-300 ${open === i ? 'bg-[#FD5000] border-[#FD5000] text-[#122019]' : 'bg-[#122019] border-white/20 text-[#F3EFE4]/50'}`}>
+                <h3 className="font-display font-semibold text-lg lg:text-xl tracking-tight text-[var(--color-text-primary)]">{item.q}</h3>
+                <span className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border transition-colors duration-300 ${open === i ? 'bg-[var(--color-accent)] border-[var(--color-accent)] text-[var(--color-bg)]' : 'bg-[var(--color-bg)] border-[var(--color-text-primary)]/20 text-[var(--color-text-primary)]/50'}`}>
                   {open === i ? <Minus size={14} strokeWidth={2.5} /> : <Plus size={14} strokeWidth={2.5} />}
                 </span>
               </div>
               <div
                 className={`overflow-hidden transition-all duration-500 ease-out ${open === i ? 'max-h-[300px] mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
               >
-                <p className="text-[#F3EFE4]/60 font-body text-sm lg:text-base leading-[1.8]">{item.a}</p>
+                <p className="text-[var(--color-accent)] font-body text-sm lg:text-base leading-[1.8]">{item.a}</p>
               </div>
             </button>
           ))}
         </div>
 
-        <a href="#" className="block rounded-2xl bg-gradient-to-br from-[#152822] to-[#122019] border border-white/10 p-7 hover:border-[#FD5000]/25 hover:-translate-y-1 transition-all duration-300">
-          <h3 className="font-display font-semibold text-2xl tracking-tight text-[#F3EFE4]">Still have questions?</h3>
-          <p className="mt-3 text-[#F3EFE4]/50 font-body text-sm leading-relaxed">Contact support — real people, not chatbots. Average response: under 10 minutes during business hours.</p>
-          <span className="mt-5 inline-flex items-center gap-2 text-sm font-body font-semibold text-[#FD5000]">Contact support →</span>
+        <a href="#" className="block rounded-2xl bg-gradient-to-br from-[var(--color-surface-secondary)] to-[var(--color-bg)] border border-[var(--color-text-primary)]/10 p-7 hover:border-[var(--color-accent)]/25 hover:-translate-y-1 transition-all duration-300">
+          <h3 className="font-display font-semibold text-2xl tracking-tight text-[var(--color-text-primary)]">Still have questions?</h3>
+          <p className="mt-3 text-[var(--color-text-primary)]/50 font-body text-sm leading-relaxed">Contact support — real people, not chatbots. Average response: under 10 minutes during business hours.</p>
+          <span className="mt-5 inline-flex items-center gap-2 text-sm font-body font-semibold text-[var(--color-accent)]">Contact support →</span>
         </a>
       </div>
     </section>
@@ -1086,12 +1062,12 @@ export function CommonQuestions() {
 
 export function FooterCTA() {
    return (
-     <section className={cn(sectionAlt, "py-16 sm:py-20")}>
+     <section className={cn(sectionBg, "py-16 sm:py-20")}>
        <div className={shell}>
          <div className="max-w-3xl">
-           <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[#FD5000]">Get started</span>
+           <span className="inline-flex items-center gap-2 text-[11px] font-normal uppercase tracking-[0.12em] text-[var(--color-accent)]">Get started</span>
            <SectionHeading className="mt-2">Choose your lane</SectionHeading>
-           <p className={cn("mt-2 max-w-md text-sm leading-relaxed", textMuted)}>
+           <p className={cn("mt-2 max-w-md text-sm leading-relaxed", "text-[var(--color-text-muted)]")}>
              One account. Three ways to use it. Pick the path that fits what you need right now.
            </p>
          </div>
@@ -1099,48 +1075,48 @@ export function FooterCTA() {
          <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-3">
            <Link
              href="/marketplace"
-             className="group flex flex-col items-center gap-3 rounded-2xl bg-[#122019] p-6 text-center transition-all hover:-translate-y-0.5"
+             className="group flex flex-col items-center gap-3 rounded-2xl bg-[var(--color-bg-elevated)] p-6 text-center transition-all hover:-translate-y-0.5"
            >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/10">
-                <ShoppingBag className="h-[18px] w-[18px] text-[#FD5000]" />
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+                <ShoppingBag className="h-[18px] w-[18px] text-[var(--color-accent)]" />
               </div>
              <div>
-               <h3 className="text-[15px] font-normal text-[#F3EFE4]">Shop Jimvio</h3>
-               <p className="mt-1 text-[12px] text-[#a0ada5]">Browse products from verified vendors worldwide.</p>
+               <h3 className="text-[15px] font-normal text-[var(--color-text-primary)]">Shop Jimvio</h3>
+               <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">Browse products from verified vendors worldwide.</p>
              </div>
-             <span className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FD5000] transition-all group-hover:gap-1.5">
+             <span className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)] transition-all group-hover:gap-1.5">
                Start shopping <ArrowRight className="h-3.5 w-3.5" />
              </span>
            </Link>
 
            <Link
              href="/vendor/register"
-             className="group flex flex-col items-center gap-3 rounded-2xl bg-[#122019] p-6 text-center transition-all hover:-translate-y-0.5"
+             className="group flex flex-col items-center gap-3 rounded-2xl bg-[var(--color-bg-elevated)] p-6 text-center transition-all hover:-translate-y-0.5"
            >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/10">
-                <Store className="h-[18px] w-[18px] text-[#FD5000]" />
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+                <Store className="h-[18px] w-[18px] text-[var(--color-accent)]" />
               </div>
              <div>
-               <h3 className="text-[15px] font-normal text-[#F3EFE4]">Sell on Jimvio</h3>
-               <p className="mt-1 text-[12px] text-[#a0ada5]">List products, manage orders, get paid same day.</p>
+               <h3 className="text-[15px] font-normal text-[var(--color-text-primary)]">Sell on Jimvio</h3>
+               <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">List products, manage orders, get paid same day.</p>
              </div>
-             <span className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FD5000] transition-all group-hover:gap-1.5">
+             <span className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)] transition-all group-hover:gap-1.5">
                Open your shop <ArrowRight className="h-3.5 w-3.5" />
              </span>
            </Link>
 
            <Link
              href="/ugc"
-             className="group flex flex-col items-center gap-3 rounded-2xl bg-[#122019] p-6 text-center transition-all hover:-translate-y-0.5"
+             className="group flex flex-col items-center gap-3 rounded-2xl bg-[var(--color-bg)] p-6 text-center transition-all hover:-translate-y-0.5"
            >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#FD5000]/10">
-                <Clapperboard className="h-[18px] w-[18px] text-[#FD5000]" />
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+                <Clapperboard className="h-[18px] w-[18px] text-[var(--color-accent)]" />
               </div>
              <div>
-               <h3 className="text-[15px] font-normal text-[#F3EFE4]">Create on Jimvio</h3>
-               <p className="mt-1 text-[12px] text-[#a0ada5]">Join brand campaigns and get paid to create content.</p>
+               <h3 className="text-[15px] font-normal text-[var(--color-text-primary)]">Create on Jimvio</h3>
+               <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">Join brand campaigns and get paid to create content.</p>
              </div>
-             <span className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FD5000] transition-all group-hover:gap-1.5">
+             <span className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)] transition-all group-hover:gap-1.5">
                Browse campaigns <ArrowRight className="h-3.5 w-3.5" />
              </span>
            </Link>
@@ -1148,7 +1124,7 @@ export function FooterCTA() {
        </div>
      </section>
    );
-}
+ }
 
 /* ═══════════════════════════════════════════════
    REVEAL — scroll-triggered fade-up

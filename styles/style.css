@@ -314,10 +314,10 @@
     background: #bbb;
   }
 
-  .dark ::selection {
-    background: var(--color-accent);
-    color: white;
-  }
+  ::selection {
+  background: rgba(253, 80, 0, 0.22);
+  color: #F3EFE4;
+}
 
   /* Smooth page transitions via Next.js */
   [data-nextjs-scroll-focus-boundary] {

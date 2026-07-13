@@ -1,4 +1,9 @@
-﻿import { createClient, getCachedUser } from "@/lib/supabase/server";
+﻿
+import { Suspense } from "react";
+import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
+import { DeferredPublicWidgets } from "@/components/layout/deferred-public-widgets";
+import { createClient, getCachedUser } from "@/lib/supabase/server";
 import {
   getResolvedPlatformSettings,
   PLATFORM_SETTINGS_DEFAULTS,

@@ -22,12 +22,12 @@ export function RightRailCard({
   padding = true,
 }: RightRailCardProps) {
   return (
-    <div className={cn("rounded-xl border border-gray-200 bg-white shadow-sm", padding && "p-4", className)}>
+    <div className={cn("rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm", padding && "p-4", className)}>
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{title}</h3>
           {badge && (
-            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-500">
+            <span className="rounded-full bg-[var(--color-accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--color-accent)]">
               {badge}
             </span>
           )}
@@ -35,7 +35,7 @@ export function RightRailCard({
         <div className="flex items-center gap-2">
           {headerExtra}
           {action && (
-            <Link href={action.href} className="text-xs font-medium text-orange-500 hover:underline">
+            <Link href={action.href} className="text-xs font-medium text-[var(--color-accent)] hover:underline">
               {action.label}
             </Link>
           )}

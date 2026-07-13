@@ -138,7 +138,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
     const manuallyToggled = useRef(false);
 
-    const FULLSCREEN_ROUTES = ["/c/live", "/c/events", "/c/spaces"];
+    const FULLSCREEN_ROUTES = ["/c/live", "/c/events", "/c/spaces", "/c/messages"];
 
     function isFullscreenRoute(p: string) {
         return FULLSCREEN_ROUTES.some((route) => p.startsWith(route));
@@ -241,7 +241,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
 
                 {/* ── Main header (glassmorphism) ── */}
-                <header className="z-30 flex h-[56px] shrink-0 items-center gap-3 border-b border-[var(--color-border)]/30 bg-[var(--color-surface)]/80 backdrop-blur-xl px-3 sm:px-6">
+                <header className="z-30 flex h-[56px] shrink-0 items-center gap-3 bg-[var(--color-surface)]/80 backdrop-blur-xl px-3 sm:px-6">
                     {/* Mobile hamburger */}
                     <button
                         onClick={() => setMobileNavOpen((o) => !o)}
@@ -271,7 +271,6 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                                             : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                                     )}
                                 >
-                                    <Icon className="h-3.5 w-3.5" style={{ color: active ? "white" : "var(--color-accent)" }} />
                                     {label}
                                     {dropdown && <ChevronDown className="h-3 w-3 opacity-60" />}
                                 </Link>
@@ -286,20 +285,20 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                             <button
                                 onClick={() => setSearchOpen(true)}
                                 aria-label="Search"
-                                className="group flex items-center gap-2 rounded-full border border-[var(--color-border)]/30 bg-[var(--color-surface-secondary)]/50 px-3 py-1.5 pr-8 transition-all duration-300 min-w-[60px]"
-                                style={{ width: searchOpen ? "240px" : "48px" }}
+                                className="flex items-center rounded-full border border-[var(--color-border)]/30 bg-[var(--color-surface-secondary)]/50 px-3 py-1.5 transition-all duration-200 hover:bg-[var(--color-surface-secondary)] hover:border-[var(--color-border)]"
+                                style={{ width: searchOpen ? "220px" : "36px", justifyContent: searchOpen ? "flex-start" : "center" }}
                             >
-                                <Search className="h-4 w-4 shrink-0 text-[var(--color-text-muted)] transition-opacity" style={{ opacity: searchOpen ? 1 : 0 }} />
+                                <Search className="h-4 w-4 shrink-0 text-[var(--color-text-muted)]" />
                                 {searchOpen && (
                                     <>
                                         <input
                                             placeholder="Search global community…"
                                             aria-label="Search"
-                                            className="w-full bg-transparent text-[13px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
+                                            className="w-full bg-transparent text-[13px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] ml-2"
                                             autoFocus
                                             onBlur={() => setTimeout(() => setSearchOpen(false), 100)}
                                         />
-                                        <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] px-1 text-[10px] font-semibold text-[var(--color-text-muted)] xl:block">⌘K</kbd>
+                                        <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] px-1 text-[10px] font-semibold text-[var(--color-text-muted)] xl:block ml-2">⌘K</kbd>
                                     </>
                                 )}
                             </button>
@@ -393,20 +392,20 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     )}
 
                     {/* Page content */}
-                    <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isFullscreen && "bg-[var(--color-bg)]")}>
+                    <main className={cn("flex min-h-0 flex-1 flex-col overflow-hidden", isFullscreen && "bg-[var(--color-bg)]")}>
                         {/* Mobile page title bar */}
                         {!isFullscreen && (
-                        <div className="flex h-11 items-center border-b border-[var(--color-border)]/30 bg-[var(--color-surface)]/80 backdrop-blur-xl px-4 lg:hidden">
+                        <div className="flex h-11 items-center bg-[var(--color-surface)]/80 backdrop-blur-xl px-4 lg:hidden shrink-0">
                             <h1 className="text-[14px] font-bold text-[var(--color-text-primary)]">{pageTitle}</h1>
                         </div>
                         )}
-                        <div className="flex-1 pb-14 lg:pb-0">{children}</div>
+                        <div className="flex flex-1 min-h-0 flex-col pb-14 lg:pb-0">{children}</div>
                     </main>
                 </div>
 
                 {/* ── Mobile bottom nav (redesigned) ── */}
                 <nav
-                    className="fixed inset-x-0 bottom-0 z-[60] flex h-16 items-stretch justify-around border-t border-[var(--color-border)]/30 bg-[var(--color-surface)]/80 backdrop-blur-xl lg:hidden"
+                    className="fixed inset-x-0 bottom-0 z-[60] flex h-16 items-stretch justify-around bg-[var(--color-surface)]/80 backdrop-blur-xl lg:hidden"
                     style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
                     aria-label="Mobile navigation"
                 >
