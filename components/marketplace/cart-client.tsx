@@ -23,6 +23,7 @@ import {
   Shield,
   Gift,
   Info,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -556,7 +557,7 @@ export function CartClient({ initialItems }: CartClientProps) {
         >
           <Link href="/marketplace">Continue Shopping</Link>
         </Button>
-      </motion.div>
+      </div>
     );
   }
 
@@ -585,7 +586,9 @@ export function CartClient({ initialItems }: CartClientProps) {
         </div>
         <Link
           href="/marketplace"
-          className="hidden sm:inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-zinc-300 border border-gray-300 dark:border-zinc-700 hover:border-gray-400 dark:hover:border-zinc-600 rounded-sm px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+          className="hidden sm:inline-flex items-center gap-1.5 text-sm text-gray-600 
+          dark:text-zinc-300 border border-gray-300 dark:border-zinc-700 
+          hover:border-gray-400 dark:hover:border-zinc-600 rounded-sm px-3.5 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           Continue Shopping
@@ -628,6 +631,7 @@ export function CartClient({ initialItems }: CartClientProps) {
                 <CartItemSkeleton />
               </>
             ) : (
+            <>
             <AnimatePresence mode="popLayout" initial={false}>
               {[...vendorGroups.entries()].map(([vendorId, vendorItems]) => {
                 const vendor = vendorItems[0]?.vendors;
@@ -929,6 +933,8 @@ export function CartClient({ initialItems }: CartClientProps) {
                 ))}
               </div>
             </div>
+            </>
+            )}
           </div>
           {/* Mobile continue shopping */}
           <Link
@@ -1138,7 +1144,6 @@ export function CartClient({ initialItems }: CartClientProps) {
               {selectedIds.size === 1 ? "item" : "items"}
             </span>
           </span>
-          </div>
 
           <div className="hidden flex-1 sm:block" />
 
@@ -1208,7 +1213,6 @@ export function CartClient({ initialItems }: CartClientProps) {
                 </span>
               )}
             </Button>
-          </div>
           </div>
         </div>
       </div>

@@ -8,7 +8,7 @@ import {
   getResolvedPlatformSettings,
   PLATFORM_SETTINGS_DEFAULTS,
 } from "@/lib/platform-settings";
-import { PublicLayoutShell } from "@/components/layout/public-layout-shell";
+import { PublicLayoutShell, NavbarSkeleton } from "@/components/layout/public-layout-shell";
 
 export default async function PublicLayout({
   children,

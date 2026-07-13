@@ -146,7 +146,7 @@ function formatDuration(secs: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-const formatDuration = formatDuration;
+
 
 /* ─────────────────────────────────────────────────────────────
    Sub-components
@@ -802,6 +802,8 @@ export const LiveDashboardScreen: React.FC<{
                       )}
                     </div>
                     </aside>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -887,11 +889,19 @@ export const LiveDashboardScreen: React.FC<{
         />
       </div>
     </div>
+    </div>
   );
 }
 
 /* ── Media control button for the bottom bar ── */
-function MediaButton({ icon: Icon, active, onClick, label, shortcut }: { icon: React.ComponentType<{ className?: string }>; active: boolean; onClick: () => void; label: string; shortcut?: string }) {
+interface MediaButtonProps {
+  icon: React.ComponentType<{ className?: string }>;
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  shortcut?: string;
+}
+function MediaButton({ icon: Icon, active, onClick, label, shortcut }: MediaButtonProps) {
   return (
     <button
       type="button"
@@ -916,7 +926,12 @@ function MediaButton({ icon: Icon, active, onClick, label, shortcut }: { icon: R
 }
 
 /* ── Mobile media control button ── */
-function MobileMediaButton({ icon: Icon, active, onClick }: { icon: React.ComponentType<{ className?: string }>; active: boolean; onClick: () => void }) {
+interface MobileMediaButtonProps {
+  icon: React.ComponentType<{ className?: string }>;
+  active: boolean;
+  onClick: () => void;
+}
+function MobileMediaButton({ icon: Icon, active, onClick }: MobileMediaButtonProps) {
   return (
     <button
       type="button"

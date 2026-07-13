@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import {
   Radio, Mic, Video, Monitor, Users, Settings, BarChart3, 
-  Plus, Trash2, Edit, Copy, ExternalLink, AlertTriangle,
+  Plus, Trash2, Edit, ExternalLink, AlertTriangle,
   Clock, Share2, Download, MoreHorizontal, X
 } from "lucide-react";
-import { HubAvatar } from "./hub-ui";
 import { formatElapsed, formatCount, formatMoney } from "@/lib/community/hub-live-page";
+import { Key, Lock, Shield, Copy, DollarSign } from "lucide-react";
 
 type LiveSession = {
   id: string;
@@ -610,6 +610,3 @@ function CreateSessionDialog({ open, onClose, communitySlug, onSuccess }: { open
     </div>
   );
 }
-
-import { Key, Lock, Shield, Copy, DollarSign } from "lucide-react";
-import { formatElapsed } from "@/lib/community/hub-live-page";

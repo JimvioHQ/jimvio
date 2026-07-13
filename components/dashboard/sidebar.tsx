@@ -97,6 +97,57 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Jimvio OS", icon: Monitor },
 ];
 
+// ─── Section types & config ────────────────────────────────────────────────────
+
+interface Section {
+  key: string;
+  title: string;
+  items: NavItem[];
+}
+
+function resolveHref(item: NavItem): string {
+  return item.href ?? "#";
+}
+
+function isLocked(_item: NavItem): boolean {
+  return false;
+}
+
+const SECTIONS: Section[] = [
+  {
+    key: "commerce",
+    title: "Commerce",
+    items: NAV_ITEMS.filter((i) =>
+      [
+        "Dashboard",
+        "Marketplace",
+        "Products",
+        "Orders",
+        "Customers",
+        "Revenue",
+        "Analytics",
+        "Wishlist",
+        "Store",
+        "Seller Hub",
+      ].includes(i.label)
+    ),
+  },
+  {
+    key: "community",
+    title: "Community",
+    items: NAV_ITEMS.filter((i) =>
+      ["Communities", "Messages", "Notifications"].includes(i.label)
+    ),
+  },
+  {
+    key: "account",
+    title: "Account",
+    items: NAV_ITEMS.filter((i) =>
+      ["Account", "Jimvio OS"].includes(i.label)
+    ),
+  },
+];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function BadgePill({ label }: { label: string }) {
@@ -127,11 +178,25 @@ function SidebarContent({
   collapsed,
   onCollapsedChange,
   onMobileClose,
-}: Omit<SidebarProps, "mobileOpen" | "user" | "activeRoles">) {
+  user,
+  activeRoles,
+}: SidebarProps) {
   const pathname = usePathname();
   const openOs = useJimvioOsStore((s) => s.openOs);
   const [unreadNotifications, setUnreadNotifications] = React.useState(0);
   const [unreadMessages, setUnreadMessages] = React.useState(0);
+  const [openSections, setOpenSections] = React.useState<Set<string>>(
+    new Set(["commerce", "community", "account"])
+  );
+
+  function toggleSection(key: string) {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   React.useEffect(() => {
     let cancelled = false;
@@ -251,6 +316,7 @@ function SidebarContent({
       backgroundColor: active ? "var(--color-accent-light)" : "transparent",
       color: active ? "var(--color-accent)" : "var(--color-text-secondary)",
       fontWeight: active ? 600 : 500,
+      transition: "background-color 0.12s, color 0.12s",
     };
 
     if (isOs || item.onClick) {
@@ -283,7 +349,8 @@ function SidebarContent({
         aria-current={active ? "page" : undefined}
         className={cn(
           "relative flex items-center gap-2.5 text-[13px] font-medium",
-          compact ? "w-9 h-9 justify-center" : "px-2.5 py-2"
+          compact ? "w-9 h-9 justify-center" : "px-2.5 py-2",
+          !active && "hover:bg-[var(--color-surface-secondary)]"
         )}
         style={style}
       >
@@ -303,16 +370,13 @@ function SidebarContent({
 
     return (
       <div className="flex flex-col h-full">
-        <div
-          className="flex justify-center items-center h-14 flex-shrink-0"
-          style={{ borderBottom: "1px solid var(--color-border)" }}
-        >
+        <div className="flex justify-center items-center h-14 flex-shrink-0">
           <button
             onClick={() => onCollapsedChange(false)}
             aria-label="Expand sidebar"
-            className="w-8 h-8 flex items-center justify-center text-white font-semibold text-sm"
+            className="w-8 h-8 flex items-center justify-center text-white font-semibold text-sm transition-transform hover:scale-105 active:scale-95"
             style={{
-              borderRadius: "var(--radius-sm)",
+              borderRadius: "var(--radius-md)",
               backgroundColor: "var(--color-accent)",
             }}
           >
@@ -320,42 +384,42 @@ function SidebarContent({
           </button>
         </div>
 
-        <nav className="flex-1 flex flex-col items-center gap-1 py-3 overflow-y-auto no-scrollbar">
-          {collapsedItems.map((item) => renderNavItem(item, true))}
+        <nav className="flex-1 flex flex-col items-center gap-1 py-2 overflow-y-auto no-scrollbar">
+          {collapsedItems.map((item) => {
+            const badge = badgeForItem(item.label, item.badge);
+            return (
+              <div key={item.label} className="relative">
+                {renderNavItem(item, true)}
+                {badge && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
+                    style={{ backgroundColor: "var(--color-accent)" }}
+                  />
+                )}
+              </div>
+            );
+          })}
         </nav>
 
-        {/* Profile icon */}
-        <div
-          className="flex justify-center py-2 flex-shrink-0"
-          style={{ borderTop: "1px solid var(--color-border)" }}
-        >
+        {/* Profile icon + expand */}
+        <div className="flex flex-col items-center gap-2 py-2 flex-shrink-0">
           <Link
             href="/dashboard/settings"
             title="Settings"
             className="w-9 h-9 flex items-center justify-center"
           >
-            <Avatar className="h-7 w-7 rounded-lg shrink-0 ring-2 ring-[var(--color-border)]">
+            <Avatar className="h-7 w-7 rounded-lg shrink-0 transition-opacity hover:opacity-80">
               <AvatarImage src={user.avatar_url ?? undefined} className="rounded-lg object-cover" />
               <AvatarFallback className="rounded-lg bg-[var(--color-accent)] text-white text-[9px] font-bold">
                 {user.full_name?.[0] || user.email?.[0] || "U"}
               </AvatarFallback>
             </Avatar>
           </Link>
-        </div>
-
-        {/* Expand button */}
-        <div
-          className="flex justify-center py-3 flex-shrink-0"
-        >
           <button
             onClick={() => onCollapsedChange(false)}
             aria-label="Expand sidebar"
-            className="w-7 h-7 flex items-center justify-center"
-            style={{
-              borderRadius: "var(--radius-sm)",
-              border: "1px solid var(--color-border-strong)",
-              color: "var(--color-text-muted)",
-            }}
+            className="w-6 h-6 flex items-center justify-center transition-colors hover:bg-[var(--color-surface-secondary)] active:scale-95"
+            style={{ borderRadius: "var(--radius-sm)", color: "var(--color-text-muted)" }}
           >
             <ChevronRight className="h-3 w-3" />
           </button>
@@ -367,15 +431,12 @@ function SidebarContent({
   // ── Expanded sidebar ───────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: "var(--color-bg)" }}>
-      <div
-        className="flex items-center justify-between px-4 h-14 flex-shrink-0"
-        style={{ borderBottom: "1px solid var(--color-border)" }}
-      >
-        <Link href="/" onClick={onMobileClose} className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center justify-between px-4 h-14 flex-shrink-0">
+        <Link href="/" onClick={onMobileClose} className="flex items-center gap-2.5 min-w-0">
           <div
-            className="w-7 h-7 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0"
+            className="w-7 h-7 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 transition-transform hover:scale-105"
             style={{
-              borderRadius: "var(--radius-sm)",
+              borderRadius: "var(--radius-md)",
               backgroundColor: "var(--color-accent)",
             }}
           >
@@ -395,12 +456,8 @@ function SidebarContent({
             type="button"
             onClick={() => onCollapsedChange(true)}
             aria-label="Collapse sidebar"
-            className="hidden lg:flex w-6 h-6 items-center justify-center"
-            style={{
-              borderRadius: "var(--radius-sm)",
-              border: "1px solid var(--color-border-strong)",
-              color: "var(--color-text-muted)",
-            }}
+            className="hidden lg:flex w-6 h-6 items-center justify-center transition-colors hover:bg-[var(--color-surface-secondary)] active:scale-95"
+            style={{ borderRadius: "var(--radius-sm)", color: "var(--color-text-muted)" }}
           >
             <ChevronLeft className="h-3 w-3" />
           </button>
@@ -409,12 +466,8 @@ function SidebarContent({
               type="button"
               onClick={onMobileClose}
               aria-label="Close sidebar"
-              className="lg:hidden w-6 h-6 flex items-center justify-center"
-              style={{
-                borderRadius: "var(--radius-sm)",
-                border: "1px solid var(--color-border-strong)",
-                color: "var(--color-text-muted)",
-              }}
+              className="lg:hidden w-6 h-6 flex items-center justify-center transition-colors hover:bg-[var(--color-surface-secondary)] active:scale-95"
+              style={{ borderRadius: "var(--radius-sm)", color: "var(--color-text-muted)" }}
             >
               <X className="h-3 w-3" />
             </button>
@@ -423,62 +476,32 @@ function SidebarContent({
       </div>
 
       <nav
-        className="flex-1 overflow-y-auto px-2.5 py-3 no-scrollbar"
+        className="flex-1 overflow-y-auto px-2.5 py-2 no-scrollbar"
         aria-label="Dashboard navigation"
       >
-        {/* Dashboard standalone link */}
-        <Link
-          href="/dashboard"
-          onClick={onMobileClose}
-          className="relative flex items-center gap-2.5 px-2.5 py-2 mb-1 text-[13px]"
-          style={{
-            borderRadius: "var(--radius-sm)",
-            backgroundColor: isActive("/dashboard")
-              ? "var(--color-surface-secondary)"
-              : "transparent",
-            color: isActive("/dashboard")
-              ? "var(--color-accent)"
-              : "var(--color-text-secondary)",
-            fontWeight: isActive("/dashboard") ? 600 : 500,
-          }}
-        >
-          {isActive("/dashboard") && (
-            <span
-              className="absolute left-0 inset-y-[20%] w-[3px] rounded-r-full"
-              style={{ backgroundColor: "var(--color-accent)" }}
-            />
-          )}
-          <LayoutDashboard
-            className="h-3.5 w-3.5 flex-shrink-0"
-            style={{
-              color: isActive("/dashboard")
-                ? "var(--color-accent)"
-                : "var(--color-text-muted)",
-            }}
-          />
-          Dashboard
-        </Link>
-
         {/* Sections */}
         {SECTIONS.map((section) => {
           const isOpen = openSections.has(section.key);
           return (
             <React.Fragment key={section.key}>
-              <div className="mb-0.5">
+              <div className="mb-px">
                 {/* Section header */}
                 <button
                   type="button"
                   onClick={() => toggleSection(section.key)}
-                  className="w-full flex items-center gap-2 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider"
-                  style={{
-                    borderRadius: "var(--radius-sm)",
-                    color: "var(--color-text-muted)",
-                  }}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-colors",
+                    "hover:bg-[var(--color-surface-secondary)]"
+                  )}
+                  style={{ borderRadius: "var(--radius-sm)", color: "var(--color-text-muted)" }}
                 >
                   <span className="flex-1 text-left">{section.title}</span>
-                  {isOpen
-                    ? <ChevronDown className="h-3 w-3" />
-                    : <ChevronRight className="h-3 w-3" />}
+                  <motion.div
+                    animate={{ rotate: isOpen ? 0 : -90 }}
+                    transition={{ duration: 0.18, ease: "easeInOut" }}
+                  >
+                    <ChevronDown className="h-3 w-3" />
+                  </motion.div>
                 </button>
 
                 {/* Section items */}
@@ -492,7 +515,7 @@ function SidebarContent({
                       transition={{ duration: 0.18, ease: "easeInOut" }}
                       className="overflow-hidden"
                     >
-                      <ul className="space-y-px mt-0.5">
+                      <ul className="space-y-px mt-px">
                         {section.items.map((item) => {
                           const href = resolveHref(item);
                           const active = isActive(item.href);
@@ -506,13 +529,14 @@ function SidebarContent({
                                 onClick={onMobileClose}
                                 aria-current={active ? "page" : undefined}
                                 className={cn(
-                                  "relative flex items-center gap-2.5 px-2.5 py-2 text-[13px]",
-                                  locked && "opacity-40"
+                                  "relative flex items-center gap-2.5 px-2.5 py-2 text-[13px] transition-all duration-150",
+                                  locked && "opacity-40",
+                                  !active && "hover:bg-[var(--color-surface-secondary)]"
                                 )}
                                 style={{
                                   borderRadius: "var(--radius-sm)",
                                   backgroundColor: active
-                                    ? "var(--color-surface-secondary)"
+                                    ? "var(--color-accent-light)"
                                     : "transparent",
                                   color: active
                                     ? "var(--color-accent)"
@@ -527,7 +551,7 @@ function SidebarContent({
                                   />
                                 )}
                                 <Icon
-                                  className="h-3.5 w-3.5 flex-shrink-0"
+                                  className="h-4 w-4 flex-shrink-0"
                                   style={{
                                     color: active
                                       ? "var(--color-accent)"
@@ -562,13 +586,10 @@ function SidebarContent({
       </nav>
 
       {/* Profile footer */}
-      <div
-        className="flex-shrink-0 px-3 py-3"
-        style={{ borderTop: "1px solid var(--color-border)" }}
-      >
+      <div className="flex-shrink-0 px-2.5 py-2.5">
         <div className="flex items-center gap-2.5">
           <Link href="/dashboard/settings" onClick={onMobileClose}>
-            <Avatar className="h-8 w-8 rounded-lg shrink-0 ring-2 ring-[var(--color-border)]">
+            <Avatar className="h-8 w-8 rounded-lg shrink-0 transition-opacity hover:opacity-80">
               <AvatarImage src={user.avatar_url ?? undefined} className="rounded-lg object-cover" />
               <AvatarFallback className="rounded-lg bg-[var(--color-accent)] text-white text-[11px] font-bold">
                 {user.full_name?.[0] || user.email?.[0] || "U"}
@@ -584,12 +605,18 @@ function SidebarContent({
                 {user.full_name?.split(" ")[0] || "Account"}
               </p>
             </Link>
-            <p
-              className="text-[11px] truncate leading-tight mt-px"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              {user.email}
-            </p>
+            <div className="flex items-center gap-1.5 mt-px">
+              <p className="text-[11px] truncate leading-tight" style={{ color: "var(--color-text-muted)" }}>
+                {user.email}
+              </p>
+              {activeRoles.length > 0 && (
+                <span className="text-[9px] font-semibold uppercase tracking-wider shrink-0 px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: "var(--color-accent-subtle)", color: "var(--color-accent)" }}
+                >
+                  {activeRoles[0]}
+                </span>
+              )}
+            </div>
           </div>
           <SignOutButton />
         </div>
@@ -608,7 +635,7 @@ export function Sidebar({
   mobileOpen,
   onMobileClose,
 }: SidebarProps) {
-  const sharedProps = { collapsed, onCollapsedChange, onMobileClose };
+  const sharedProps = { collapsed, onCollapsedChange, onMobileClose, user };
 
   return (
     <>
@@ -619,7 +646,7 @@ export function Sidebar({
         className="hidden lg:flex flex-col sticky top-0 h-screen z-40 overflow-hidden"
         style={{
           backgroundColor: "var(--color-bg)",
-          borderRight: "1px solid var(--color-border)",
+          boxShadow: "1px 0 0 0 var(--color-border), 4px 0 12px -8px rgba(0,0,0,0.08)",
         }}
       >
         <SidebarContent {...sharedProps} />
@@ -648,7 +675,7 @@ export function Sidebar({
               className="fixed inset-y-0 left-0 z-50 lg:hidden flex flex-col w-[min(14rem,88vw)]"
               style={{
                 backgroundColor: "var(--color-bg)",
-                borderRight: "1px solid var(--color-border)",
+                boxShadow: "4px 0 16px -8px rgba(0,0,0,0.15)",
               }}
             >
               <SidebarContent {...sharedProps} collapsed={false} />

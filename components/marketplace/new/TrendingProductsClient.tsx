@@ -760,7 +760,6 @@ function ProductCard({
             </span>
           )}
         </div>
-        </div>
       </div>
 
     </div>

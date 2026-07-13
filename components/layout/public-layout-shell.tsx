@@ -20,7 +20,7 @@ type PublicLayoutShellProps = {
   contact: Parameters<typeof Footer>[0]["contact"];
 };
 
-function NavbarSkeleton() {
+export function NavbarSkeleton() {
   return (
     <div
       aria-hidden="true"

@@ -12,7 +12,6 @@ type Props = {
   pageSize: number;
   onPageChange: (page: number) => void;
   itemLabel?: string;
-  loading?: boolean;
 };
 
 const ELLIPSIS = "ellipsis" as const;
@@ -118,13 +117,12 @@ function PageButton({
 
 export function MarketplacePagination({
   hasMore,
-  loading,
+  loading = false,
   onLoadMore,
   total,
   pageSize,
   onPageChange,
   itemLabel = "products",
-  loading = false,
 }: Props) {
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const mqRef = useRef<MediaQueryList | null>(null);
@@ -213,11 +211,7 @@ export function MarketplacePagination({
               />
             ),
           )}
-        </button>
-      </div>
-    );
-  }
-
+        </div>
         <NavButton
           ariaLabel="Next page"
           disabled={currentPage >= totalPages || loading}
@@ -227,15 +221,6 @@ export function MarketplacePagination({
           <ChevronRight className="size-4 shrink-0" aria-hidden />
         </NavButton>
       </nav>
-
-  return (
-    <div className="flex justify-center border-t border-[var(--color-border)] pt-8 pb-2">
-      <p className="flex items-center gap-2 text-center text-sm font-medium text-[var(--color-text-muted)]">
-        <span className="text-[var(--color-accent)]" aria-hidden>
-          ✓
-        </span>
-        You&apos;ve reached the end of the marketplace.
-      </p>
     </div>
   );
 }

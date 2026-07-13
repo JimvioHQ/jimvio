@@ -246,24 +246,25 @@ export function HubMessagesPage() {
   }, []);
 
   async function handleFiles(files: FileList | null) {
-    if (!files?.length || !activeThread) return;
-    setUploading(true);
-    try {
-      const roomKey = activeThread.roomId ?? activeThread.id;
-      for (const file of Array.from(files)) {
-        if (file.size > MAX_FILE_BYTES) {
-          toast.error(`${file.name} is too large (max 15 MB)`);
-          continue;
-        }
-        const up = await uploadCommunityChatFile(activeThread.communityId, roomKey, file);
-        setPendingMain((p) => (p.length >= MAX_ATTACH ? p : [...p, up]));
+  if (!files?.length || !activeThread) return;
+  const thread = activeThread; // now typed as `Thread`, not `Thread | null`
+  setUploading(true);
+  try {
+    const roomKey = thread.roomId ?? thread.id;
+    for (const file of Array.from(files)) {
+      if (file.size > MAX_FILE_BYTES) {
+        toast.error(`${file.name} is too large (max 15 MB)`);
+        continue;
       }
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to upload file");
-    } finally {
-      setUploading(false);
+      const up = await uploadCommunityChatFile(thread.communityId, roomKey, file);
+      setPendingMain((p) => (p.length >= MAX_ATTACH ? p : [...p, up]));
     }
+  } catch (e: unknown) {
+    toast.error(e instanceof Error ? e.message : "Failed to upload file");
+  } finally {
+    setUploading(false);
   }
+}
 
   async function startVoiceRecording() {
     if (voiceRecording || sending || uploading) return;
@@ -908,8 +909,8 @@ export function HubMessagesPage() {
                   <p className="text-[12px] text-[var(--color-text-muted)]">
                     Open this space in the community to participate.
                   </p>
-                  {activeThread.href && (
-                    <HubLinkButton href={activeThread.href!} className="mt-2">Open space</HubLinkButton>
+                  {activeThread && activeThread?.href && (
+                    <HubLinkButton href={activeThread?.href ?? "#"} className="mt-2">Open space</HubLinkButton>
                   )}
                 </div>
               )}
@@ -1366,7 +1367,7 @@ function MessageBubble({
         {/* Image / video attachment */}
         {msg.attachments.length > 0 && msg.attachments[0]?.mime?.startsWith("image/") && (
           <div className="mt-2 overflow-hidden rounded-xl border border-[var(--color-border)] bg-black/5 cursor-pointer"
-            onClick={() => setLightboxSrc(msg.attachments[0].url)}
+            onClick={() => setLightboxSrc(msg.attachments[0].url ?? null)}
           >
             <img
               src={msg.attachments[0].url}

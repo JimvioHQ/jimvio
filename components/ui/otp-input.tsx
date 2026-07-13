@@ -176,7 +176,7 @@ const OtpInput = forwardRef<OtpInputHandle, OtpInputProps>(function OtpInput(
               }`,
               background: filled
                 ? "var(--color-surface)"
-                : "var(--color-surface-secondary)",
+                : "var(--color-surface)",
               color: "var(--color-text-primary)",
               caretColor: "var(--color-accent)",
               boxShadow: invalid
