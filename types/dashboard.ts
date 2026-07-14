@@ -39,6 +39,8 @@ export interface Product {
   price: string;
   commission: string;
   sold: string;
+  saleCount?: number;
+  priceValue?: number;
   imageUrl?: string | null;
   imageColor: string;
 }

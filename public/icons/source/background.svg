@@ -1,4 +1,3 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
-  <!-- Extended bleed prevents black seams under Android adaptive masks -->
-  <rect x="-120" y="-120" width="1240" height="1240" fill="#FB4C07"/>
+  <rect width="1000" height="1000" rx="220" fill="#fd5000"/>
 </svg>

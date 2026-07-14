@@ -1,6 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
-import { Zap, Clock, TrendingUp, Package, Percent, ArrowRight } from "lucide-react";
+import {  Zap, Clock, TrendingUp, Package, Percent, ArrowRight  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getProducts } from "@/services/db";
@@ -122,7 +123,7 @@ export default async function FlashDealsPage() {
           <div className="relative z-10">
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white dark:bg-surface/5 backdrop-blur-md p-6 rounded-sm border border-white/10 text-center">
-                <Package className="h-8 w-8 text-[var(--color-accent)] mx-auto mb-2" />
+                <VscPackage className="h-8 w-8 text-[var(--color-accent)] mx-auto mb-2" />
                 <p className="text-white font-black text-2xl">40+</p>
                 <p className="text-[10px] text-white/40 capitalize font-black">Containers/Month</p>
               </div>

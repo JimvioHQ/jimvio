@@ -24,21 +24,12 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn, getInitials } from "@/lib/utils";
+import { SidebarBadgeDot } from "@/components/ui/sidebar";
 
 export type SidebarItem =
-  | "feed"
-  | "explore"
-  | "live"
-  | "spaces"
-  | "messages"
-  | "missions"
-  | "courses"
-  | "events"
-  | "wallet"
-  | "analytics"
-  | "bookmarks"
-  | "profile"
-  | "dashboard";
+  | "feed" | "explore" | "live" | "spaces" | "messages"
+  | "missions" | "courses" | "events" | "wallet" | "analytics"
+  | "bookmarks" | "profile" | "dashboard";
 
 type NavItem = {
   id: SidebarItem;
@@ -198,231 +189,233 @@ export function PrimarySidebar({
   const xpPct = Math.round((profile.xp / profile.xpGoal) * 100);
   const xpRemaining = profile.xpGoal - profile.xp;
 
-  return (
-      <aside
-        className={cn(
-          "flex h-full shrink-0 flex-col transition-all duration-220 ease-[cubic-bezier(.4,0,.2,1)] group/sidebar bg-[var(--color-bg)]",
-          collapsed ? "w-16" : "w-[250px]",
-          className
-        )}
+  function renderCollapsedItem(item: NavItem) {
+    const active = item.id === resolvedActive;
+    const noCollapsedBg = collapsed && pathname.startsWith("/c/messages");
+    return (
+      <Link
+        key={item.id}
+        href={item.href}
+        className="flex items-center justify-center rounded px-0 py-2 text-sm transition-all duration-200"
+        title={item.label}
+        style={{
+          backgroundColor: active && !noCollapsedBg ? "var(--color-surface-secondary)" : "transparent",
+          color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+        }}
       >
-        {/* ── Scrollable area ── */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
-          <nav className={cn(collapsed ? "px-2 pt-1" : "px-3 pt-1")}>
-            {collapsed && (
-              <div className="flex justify-center mb-3 pt-1 opacity-0 group-hover/sidebar:opacity-100 transition-opacity">
-                <button
-                  type="button"
-                  onClick={onToggleCollapse}
-                  className="flex items-center justify-center rounded-lg p-1.5 transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                  title="Expand sidebar"
-                >
-                  <PanelLeftOpen className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-            {NAV_ITEMS.map((item, i) => {
-              const active = item.id === resolvedActive;
-              const Icon = item.icon;
-              const noCollapsedBg = collapsed && pathname.startsWith("/c/messages");
-              return collapsed ? (
-                <Link
-                  key={item.id}
-                  href={item.href}
-                  className="flex items-center justify-center rounded px-0 py-2 text-sm transition-all duration-200"
-                  title={item.label}
-                  style={{
-                    backgroundColor: active && !noCollapsedBg ? "var(--color-surface-secondary)" : "transparent",
-                    color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-                  }}
-                >
-                  <div className="relative">
-                    <Icon className="h-5 w-5 shrink-0" style={{ color: active ? "var(--color-text-primary)" : "var(--color-text-muted)" }} />
-                    {item.badge?.type === "live" && (
-                      <span className="absolute -right-0.5 -top-0.5 h-[10px] w-[10px] rounded-full animate-breathe ring-2 ring-[var(--color-bg)]" style={{ backgroundColor: "var(--color-accent)" }} />
-                    )}
-                    {item.badge?.type === "count" && (
-                      <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-2 ring-[var(--color-bg)] leading-none" style={{ backgroundColor: "var(--color-accent)" }}>
-                        {item.badge.value}
-                      </span>
-                    )}
-                    {item.badge?.type === "new" && (
-                      <span className="absolute -right-2.5 -top-1.5 flex h-[18px] min-w-[32px] items-center justify-center rounded-full px-1.5 text-[8px] font-bold text-white ring-2 ring-[var(--color-bg)] leading-none" style={{ backgroundColor: "var(--color-accent)" }}>
-                        New
-                      </span>
-                    )}
-                  </div>
-                </Link>
-) : (
-                <div key={item.id} className={cn("flex items-center gap-0", i === 0 && "relative")}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded text-sm transition-all duration-200 flex-1 min-w-0",
-                      active ? "font-medium" : ""
-                    )}
-                    style={{
-                      backgroundColor: active ? "var(--color-surface-secondary)" : "transparent",
-                      color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-                      padding: "0.5rem 0.75rem",
-                    }}
-                  >
-                    <Icon className="h-4 w-4 shrink-0" style={{ color: active ? "var(--color-text-primary)" : "var(--color-text-muted)" }} />
-                    <span className="truncate">{item.label}</span>
-                    {item.badge && <NavBadge badge={item.badge} />}
-                  </Link>
-                </div>
-              );
-            })}
+        <div className="relative">
+          <item.icon className="h-5 w-5 shrink-0" style={{ color: active ? "var(--color-text-primary)" : "var(--color-text-muted)" }} />
+          {item.badge?.type === "count" && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-2 ring-[var(--color-bg)] leading-none"
+              style={{ backgroundColor: "var(--color-accent)" }}>
+              {item.badge.value}
+            </span>
+          )}
+          {item.badge?.type === "new" && (
+            <span className="absolute -right-2.5 -top-1.5 flex h-[18px] min-w-[32px] items-center justify-center rounded-full px-1.5 text-[8px] font-bold text-white ring-2 ring-[var(--color-bg)] leading-none"
+              style={{ backgroundColor: "var(--color-accent)" }}>
+              New
+            </span>
+          )}
+          <SidebarBadgeDot show={item.badge?.type === "live"} />
+        </div>
+      </Link>
+    );
+  }
 
-            {/* Collapse toggle at bottom of nav */}
-            {!collapsed && (
-              <div className="flex justify-center pt-3">
-                <button
-                  type="button"
-                  onClick={onToggleCollapse}
-                  className="flex items-center justify-center rounded p-1.5 transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                  title="Collapse sidebar"
-                >
-                  <PanelLeftClose className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </nav>
+  function renderExpandedItem(item: NavItem, i: number) {
+    const active = item.id === resolvedActive;
+    return (
+      <div key={item.id} className={cn("flex items-center gap-0", i === 0 && "relative")}>
+        <Link
+          href={item.href}
+          className={cn(
+            "flex items-center gap-2.5 rounded text-sm transition-all duration-200 flex-1 min-w-0",
+            active ? "font-medium" : ""
+          )}
+          style={{
+            backgroundColor: active ? "var(--color-surface-secondary)" : "transparent",
+            color: active ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+            padding: "0.5rem 0.75rem",
+          }}
+        >
+          <item.icon className="h-4 w-4 shrink-0" style={{ color: active ? "var(--color-text-primary)" : "var(--color-text-muted)" }} />
+          <span className="truncate">{item.label}</span>
+          {item.badge && <NavBadge badge={item.badge} />}
+        </Link>
+      </div>
+    );
+  }
 
-          {/* ── Communities (expanded only) ── */}
-          {!collapsed && (
-            <div className="px-3 pb-3">
+  return (
+    <aside
+      className={cn(
+        "flex h-full shrink-0 flex-col transition-all duration-220 ease-[cubic-bezier(.4,0,.2,1)] group/sidebar bg-[var(--color-bg)]",
+        collapsed ? "w-16" : "w-[250px]",
+        className
+      )}
+    >
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <nav className={cn(collapsed ? "px-2 pt-1" : "px-3 pt-1")}>
+          {collapsed && (
+            <div className="flex justify-center mb-3 pt-1 opacity-0 group-hover/sidebar:opacity-100 transition-opacity">
               <button
                 type="button"
-                onClick={() => setCommunitiesOpen((o) => !o)}
-                className="mb-2 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+                onClick={onToggleCollapse}
+                className="flex items-center justify-center rounded-lg p-1.5 transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                title="Expand sidebar"
               >
-                My Communities
-                {communitiesOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                <PanelLeftOpen className="h-4 w-4" />
               </button>
-              {communitiesOpen && (
-                <div className="space-y-0.5 animate-in animate-fade-in">
-                  {(communities.length ? communities : []).map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/c/${c.slug}`}
-                      className="flex items-center gap-2.5 rounded px-3 py-2 text-sm transition-all duration-200 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
-                    >
-                      {c.avatar_url ? (
-                        <img src={c.avatar_url} alt={c.name} className="h-7 w-7 shrink-0 rounded object-cover" />
-                      ) : (
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[10px] font-semibold bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]">
-                          {c.name.slice(0, 2).toUpperCase()}
-                        </span>
-                      )}
-                      <span className="truncate">{c.name}</span>
-                      {c.unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full animate-breathe" style={{ backgroundColor: "var(--color-accent)" }} />}
-                    </Link>
-                  ))}
-                  {communities.length === 0 && (
-                    <div className="px-3 py-2 text-center text-[11px] text-[var(--color-text-muted)]">
-                      No communities yet
-                    </div>
-                  )}
+            </div>
+          )}
+          {NAV_ITEMS.map((item, i) => (
+            collapsed ? renderCollapsedItem(item) : renderExpandedItem(item, i)
+          ))}
+
+          {!collapsed && (
+            <div className="flex justify-center pt-3">
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="flex items-center justify-center rounded p-1.5 transition-colors text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                title="Collapse sidebar"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </nav>
+
+        {!collapsed && (
+          <div className="px-3 pb-3">
+            <button
+              type="button"
+              onClick={() => setCommunitiesOpen((o) => !o)}
+              className="mb-2 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+            >
+              My Communities
+              {communitiesOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+            {communitiesOpen && (
+              <div className="space-y-0.5 animate-in animate-fade-in">
+                {(communities.length ? communities : []).map((c) => (
                   <Link
-                    href="/communities"
-                    className="flex items-center gap-2.5 rounded px-3 py-2 text-xs transition-all duration-200 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
+                    key={c.id}
+                    href={`/c/${c.slug}`}
+                    className="flex items-center gap-2.5 rounded px-3 py-2 text-sm transition-all duration-200 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
                   >
-                    <span className="flex h-7 w-7 items-center justify-center rounded border border-dashed border-[var(--color-border)] text-[var(--color-text-muted)]">
-                      +
-                    </span>
-                    Discover communities
+                    {c.avatar_url ? (
+                      <img src={c.avatar_url} alt={c.name} className="h-7 w-7 shrink-0 rounded object-cover" />
+                    ) : (
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-[10px] font-semibold bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]">
+                        {c.name.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="truncate">{c.name}</span>
+                    {c.unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full animate-breathe" style={{ backgroundColor: "var(--color-accent)" }} />}
                   </Link>
-                </div>
+                ))}
+                {communities.length === 0 && (
+                  <div className="px-3 py-2 text-center text-[11px] text-[var(--color-text-muted)]">
+                    No communities yet
+                  </div>
+                )}
+                <Link
+                  href="/communities"
+                  className="flex items-center gap-2.5 rounded px-3 py-2 text-xs transition-all duration-200 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded border border-dashed border-[var(--color-border)] text-[var(--color-text-muted)]">
+                    +
+                  </span>
+                  Discover communities
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!collapsed && (
+          <div className="mx-3 mb-3 rounded-2xl p-4 text-white hover-lift"
+            style={{
+              background: "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 50%, var(--color-accent) 100%)",
+              backgroundSize: "200% 200%",
+              animation: "gradient-shift 4s ease infinite",
+            }}
+          >
+            <div className="mb-2 flex items-center gap-2">
+              <Crown className="h-4 w-4" />
+              <span className="text-sm font-semibold">Go Premium</span>
+            </div>
+            <ul className="mb-3 space-y-1 text-xs" style={{ color: "rgba(255,255,255,0.9)" }}>
+              <li>• Unlimited live sessions</li>
+              <li>• Advanced analytics</li>
+              <li>• Priority support</li>
+            </ul>
+            <button
+              type="button"
+              className="w-full rounded-lg bg-white py-2 text-xs font-semibold transition-colors hover:opacity-90"
+              style={{ color: "var(--color-accent)" }}
+            >
+              Upgrade Now
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="shrink-0">
+        <div className={cn(collapsed ? "p-3" : "p-3")}>
+          {collapsed ? (
+            <div className="flex justify-center">
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt={profile.name} className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--color-accent)]/30" />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold text-white"
+                  style={{ background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))" }}>
+                  {getInitials(profile.name)}
+                </span>
               )}
             </div>
-          )}
-
-          {/* ── Premium upsell (expanded only) ── */}
-          {!collapsed && (
-            <div className="mx-3 mb-3 rounded-2xl p-4 text-white hover-lift"
-              style={{
-                background: "linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 50%, var(--color-accent) 100%)",
-                backgroundSize: "200% 200%",
-                animation: "gradient-shift 4s ease infinite",
-              }}
-            >
-              <div className="mb-2 flex items-center gap-2">
-                <Crown className="h-4 w-4" />
-                <span className="text-sm font-semibold">Go Premium</span>
-              </div>
-              <ul className="mb-3 space-y-1 text-xs" style={{ color: "rgba(255,255,255,0.9)" }}>
-                <li>• Unlimited live sessions</li>
-                <li>• Advanced analytics</li>
-                <li>• Priority support</li>
-              </ul>
-              <button
-                type="button"
-                className="w-full rounded-lg bg-white py-2 text-xs font-semibold transition-colors hover:opacity-90"
-                style={{ color: "var(--color-accent)" }}
-              >
-                Upgrade Now
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* ── Profile section ── */}
-        <div className="shrink-0">
-          <div className={cn(collapsed ? "p-3" : "p-3")}>
-            {collapsed ? (
-              <div className="flex justify-center">
-                {profile.avatarUrl ? (
-                  <img src={profile.avatarUrl} alt={profile.name} className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--color-accent)]/30" />
-                ) : (
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold text-white"
-                    style={{ background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))" }}>
-                    {getInitials(profile.name)}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2.5">
-                {profile.avatarUrl ? (
-                  <img src={profile.avatarUrl} alt={profile.name} className="h-8 w-8 rounded-full object-cover ring-2 ring-[var(--color-accent)]/30" />
-                ) : (
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white"
-                    style={{ background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))" }}>
-                    {getInitials(profile.name)}
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1">
-                    <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{profile.name}</p>
-                    {profile.verified && (
-                      <svg className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    )}
-                  </div>
-                  <p className="text-[11px] truncate text-[var(--color-text-muted)]">Level {profile.level} {profile.role}</p>
+          ) : (
+            <div className="flex items-center gap-2.5">
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt={profile.name} className="h-8 w-8 rounded-full object-cover ring-2 ring-[var(--color-accent)]/30" />
+              ) : (
+                <span className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white"
+                  style={{ background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))" }}>
+                  {getInitials(profile.name)}
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1">
+                  <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{profile.name}</p>
+                  {profile.verified && (
+                    <svg className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
                 </div>
+                <p className="text-[11px] truncate text-[var(--color-text-muted)]">Level {profile.level} {profile.role}</p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
+      </div>
 
-        {/* ── Footer: XP bar (expanded only) ── */}
-        {!collapsed && (
-          <div className="shrink-0 p-3" style={{ borderTop: "1px solid var(--color-border)" }}>
-            <div className="mb-1.5 flex items-center justify-between text-xs">
-              <span className="text-[var(--color-text-muted)]">XP Progress</span>
-              <span className="font-medium text-[var(--color-text-primary)]">
-                {profile.xp.toLocaleString()} / {profile.xpGoal.toLocaleString()}
-              </span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
-              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${xpPct}%`, backgroundColor: "var(--color-accent)" }} />
-            </div>
-            <p className="mt-1.5 text-[11px] text-[var(--color-text-muted)]">Next reward in {xpRemaining.toLocaleString()} XP</p>
+      {!collapsed && (
+        <div className="shrink-0 p-3" style={{ borderTop: "1px solid var(--color-border)" }}>
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="text-[var(--color-text-muted)]">XP Progress</span>
+            <span className="font-medium text-[var(--color-text-primary)]">
+              {profile.xp.toLocaleString()} / {profile.xpGoal.toLocaleString()}
+            </span>
           </div>
-        )}
-      </aside>
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${xpPct}%`, backgroundColor: "var(--color-accent)" }} />
+          </div>
+          <p className="mt-1.5 text-[11px] text-[var(--color-text-muted)]">Next reward in {xpRemaining.toLocaleString()} XP</p>
+        </div>
+      )}
+    </aside>
   );
 }

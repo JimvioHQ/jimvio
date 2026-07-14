@@ -5,7 +5,7 @@ import { Tile } from "@/components/ui/admin-server";
 import {
   Package, Star, CheckCircle2, FileEdit, AlertTriangle,
 } from "lucide-react";
-import { ProductsTable } from "@/components/admin/products-table";
+import { AdminProductsTable } from "@/components/admin/products-table";
 
 type StatsSnapshot = {
   catalogCount: number;
@@ -121,7 +121,7 @@ export function AdminProductsWorkspace({
         />
       </div>
 
-      <ProductsTable
+      <AdminProductsTable
         products={rows}
         total={total}
         page={page}

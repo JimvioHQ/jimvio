@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, ArrowUpRight, Package } from "lucide-react";
+import {  ShoppingBag, ArrowUpRight, Package  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -100,7 +101,7 @@ export default function PublicOrdersPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] py-16 text-center">
-            <Package className="mx-auto mb-4 h-10 w-10 text-[var(--color-text-muted)]" />
+            <VscPackage className="mx-auto mb-4 h-10 w-10 text-[var(--color-text-muted)]" />
             <p className="font-medium text-[var(--color-text-primary)]">No orders here</p>
             <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
               {tab === "all"

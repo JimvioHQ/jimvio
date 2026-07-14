@@ -39,6 +39,13 @@
   ],
   "exclude": [
     "node_modules",
-    "scripts"
+    "scripts",
+    "tests",
+    "playwright-report",
+    "test-results",
+    ".next",
+    "temp_ts_parse.js",
+    "tsc-errors.txt",
+    "tsc-output.txt"
   ]
 }

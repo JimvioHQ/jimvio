@@ -158,10 +158,10 @@ function HeroSecondaryCTA() {
 }
 
 const TRUST_BADGES = [
-  { icon: Users, label: "10k+ Creators", color: "#fd5000" },
-  { icon: Globe, label: "500+ Communities", color: "#16a34a" },
-  { icon: ShieldCheck, label: "100+ Partner Brands", color: "#2563eb" },
-  { icon: Package, label: "5,000+ Products", color: "#ca8a04" },
+  { icon: Users, label: "10k+ Creators", color: ORANGE },
+  { icon: Globe, label: "500+ Communities", color: ORANGE },
+  { icon: ShieldCheck, label: "100+ Partner Brands", color: ORANGE },
+  { icon: Package, label: "5,000+ Products", color: ORANGE },
 ] as const;
 
 const PARTNER_LOGOS = [
@@ -772,9 +772,9 @@ function CreatorWorkspaceShowcase() {
   const [activeTab, setActiveTab] = useState<"all" | "community" | "shop" | "ugc">("all");
   const [earnings, setEarnings] = useState(14258.90);
   const [recentOrders, setRecentOrders] = useState([
-    { id: 1, text: "LUT Pack V2 sale", amount: "+$29.00", time: "Just now", icon: Tag, color: "#fd5000" },
-    { id: 2, text: "Community monthly sub", amount: "+$49.00", time: "2 min ago", icon: Users, color: "#16a34a" },
-    { id: 3, text: "Aura Cosmetics UGC payout", amount: "+$350.00", time: "15 min ago", icon: Award, color: "#2563eb" },
+    { id: 1, text: "LUT Pack V2 sale", amount: "+$29.00", time: "Just now", icon: Tag, color: ORANGE },
+    { id: 2, text: "Community monthly sub", amount: "+$49.00", time: "2 min ago", icon: Users, color: ORANGE },
+    { id: 3, text: "Aura Cosmetics UGC payout", amount: "+$350.00", time: "15 min ago", icon: Award, color: ORANGE },
   ]);
 
   // Live earnings ticker
@@ -790,7 +790,7 @@ function CreatorWorkspaceShowcase() {
     const products = ["Digital Planner", "LUT Pack V2", "eBook: Brand Deals", "Creator Hub VIP"];
     const prices = ["+$19.00", "+$29.00", "+$39.00", "+$49.00"];
     const icons = [Tag, Tag, BookOpen, Users];
-    const colors = ["#fd5000", "#fd5000", "#ca8a04", "#16a34a"];
+    const colors = [ORANGE, ORANGE, ORANGE, ORANGE];
 
     const interval = setInterval(() => {
       const idx = Math.floor(Math.random() * products.length);
@@ -933,15 +933,15 @@ function CreatorWorkspaceShowcase() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-gray-900 dark:text-white">Community (2.1k members)</span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-950 px-2 py-0.5 text-[9px] font-bold text-red-600">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fd5000]/15 dark:bg-[#fd5000]/20 px-2 py-0.5 text-[9px] font-bold text-[#fd5000]">
                   <span className="relative size-1.5 flex shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full size-1.5 bg-red-600"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#fd5000] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full size-1.5 bg-[#fd5000]"></span>
                   </span>
                   LIVE
                 </span>
               </div>
-              <div className="rounded-xl overflow-hidden bg-gradient-to-r from-orange-400 to-rose-400 h-16 w-full relative flex items-end p-2 mb-3">
+              <div className="rounded-xl overflow-hidden bg-gradient-to-r from-[#fd5000] to-[#ff8c42] h-16 w-full relative flex items-end p-2 mb-3">
                 <div className="text-white font-black text-xs drop-shadow-md">The Creative Guild</div>
               </div>
               <div className="space-y-1.5">
@@ -956,7 +956,7 @@ function CreatorWorkspaceShowcase() {
                       <span>{channel.name}</span>
                     </div>
                     {channel.count > 0 && (
-                      <span className="bg-orange-500 text-white rounded-full px-1.5 py-0.2 text-[9px] font-bold">
+                      <span className="bg-[#fd5000] text-white rounded-full px-1.5 py-0.2 text-[9px] font-bold">
                         {channel.count}
                       </span>
                     )}
@@ -1006,7 +1006,7 @@ function CreatorWorkspaceShowcase() {
           </motion.div>
         )}
 
-        {/* UGC Brand Campaigns */}
+{/* UGC Brand Campaigns */}
         {(activeTab === "all" || activeTab === "ugc") && (
           <motion.div
             layout
@@ -1015,11 +1015,11 @@ function CreatorWorkspaceShowcase() {
             className="p-4 rounded-2xl border border-gray-200/50 dark:border-white/10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm flex flex-col justify-between"
           >
             <div>
-              <div className="text-xs font-bold text-gray-900 dark:text-white mb-2">UGC &amp; Brand Partnerships</div>
+              <div className="text-xs font-bold text-gray-900 dark:text-white mb-2">UGC & Brand Partnerships</div>
               <div className="border border-gray-100 dark:border-white/5 rounded-xl p-3 bg-gray-50/50 dark:bg-zinc-800/50 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Aura Cosmetics Review</span>
-                  <span className="rounded-full bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 text-[8px] font-bold text-emerald-600 uppercase">
+                  <span className="rounded-full bg-[#fd5000]/15 dark:bg-[#fd5000]/20 px-2 py-0.5 text-[8px] font-bold text-[#fd5000] uppercase">
                     Approved
                   </span>
                 </div>
@@ -1059,18 +1059,18 @@ function HeroPremiumBackground({ reduced }: { reduced: boolean }) {
       <div className="absolute inset-0 bg-[var(--color-bg)]" />
       <div className="absolute inset-0 bg-[var(--color-surface)]/80" />
 
-      <div className="absolute -right-[12%] top-[6%] h-[min(460px,56vw)] w-[min(460px,56vw)] rounded-full bg-[rgba(255,90,31,0.035)] blur-[128px]" />
-      <div className="absolute right-[2%] top-[22%] h-[min(320px,40vw)] w-[min(320px,40vw)] rounded-full bg-[rgba(255,120,80,0.025)] blur-[108px]" />
+      <div className="absolute -right-[12%] top-[6%] h-[min(460px,56vw)] w-[min(460px,56vw)] rounded-full bg-[rgba(253,80,0,0.035)] blur-[128px]" />
+      <div className="absolute right-[2%] top-[22%] h-[min(320px,40vw)] w-[min(320px,40vw)] rounded-full bg-[rgba(253,140,66,0.025)] blur-[108px]" />
 
       <motion.div
         className="absolute -right-[14%] top-[12%] h-[min(520px,62vw)] w-[min(520px,62vw)] rounded-full opacity-40 blur-[140px]"
-        style={{ background: "rgba(255,90,31,0.04)" }}
+        style={{ background: "rgba(253,80,0,0.04)" }}
         animate={reduced ? undefined : { x: [0, -18, 12, 0], y: [0, -12, 10, 0] }}
         transition={auroraTransition}
       />
       <motion.div
         className="absolute right-[0%] top-[24%] h-[min(420px,50vw)] w-[min(420px,50vw)] rounded-full opacity-35 blur-[130px]"
-        style={{ background: "rgba(255,120,80,0.03)" }}
+        style={{ background: "rgba(253,140,66,0.03)" }}
         animate={reduced ? undefined : { x: [0, -14, 10, 0], y: [0, 10, -8, 0] }}
         transition={{ ...auroraTransition, duration: 38 }}
       />
@@ -1079,7 +1079,7 @@ function HeroPremiumBackground({ reduced }: { reduced: boolean }) {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 88% 34%, rgba(255,90,31,0.04) 0%, transparent 46%)",
+            "radial-gradient(ellipse at 88% 34%, rgba(253,80,0,0.04) 0%, transparent 46%)",
         }}
       />
 
@@ -1087,7 +1087,7 @@ function HeroPremiumBackground({ reduced }: { reduced: boolean }) {
         className="absolute right-[2%] top-[10%] hidden h-[min(500px,58vw)] w-[min(500px,58vw)] rounded-full lg:block"
         style={{
           background:
-            "radial-gradient(circle, rgba(255,90,31,0.04) 0%, rgba(255,120,80,0.03) 42%, transparent 74%)",
+            "radial-gradient(circle, rgba(253,80,0,0.04) 0%, rgba(253,140,66,0.03) 42%, transparent 74%)",
           filter: "blur(90px)",
         }}
         animate={reduced ? undefined : { opacity: [0.45, 0.62, 0.45], scale: [0.99, 1.01, 0.99] }}

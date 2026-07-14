@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
   Gauge,
   UsersRound,
@@ -95,6 +96,9 @@ export function AdminSidebar({
   badges = {},
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { resolvedTheme } = useTheme();
+  const isLight = resolvedTheme === "light";
+  const sidebarBg = isLight ? "var(--color-ink-deep)" : "var(--color-surface)";
 
   const initials =
     user.full_name
@@ -335,10 +339,10 @@ export function AdminSidebar({
       {/* Desktop */}
       <aside className={cn(
         "hidden lg:flex flex-col h-screen sticky top-0",
-        "border-r border-[var(--color-border)] bg-[var(--color-surface)]",
+        "border-r border-[var(--color-border)]",
         "transition-[width] duration-300 ease-[cubic-bezier(.4,0,.2,1)] z-40 overflow-hidden",
         collapsed ? "w-[3.75rem]" : "w-[15rem]"
-      )}>
+      )} style={{ backgroundColor: sidebarBg }} suppressHydrationWarning>
         {content}
       </aside>
 
@@ -352,10 +356,9 @@ export function AdminSidebar({
           />
           <aside className={cn(
             "fixed inset-y-0 left-0 flex flex-col z-50 lg:hidden overflow-hidden",
-            "w-[min(16rem,88vw)] bg-[var(--color-surface)]",
             "border-r border-[var(--color-border)] shadow-xl",
             "animate-in slide-in-from-left duration-200"
-          )}>
+          )} style={{ width: "min(16rem,88vw)", backgroundColor: sidebarBg }} suppressHydrationWarning>
             {content}
           </aside>
         </>

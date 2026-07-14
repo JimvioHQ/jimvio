@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Send, Image as ImageIcon, Paperclip, Package, Quote, Smile, X } from "lucide-react";
+import {  Send, Image as ImageIcon, Paperclip, Package, Quote, Smile, X  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { EMOJI_LIST } from "./message-bubble";
@@ -164,7 +165,7 @@ export function ChatInput({
           </Button>
           {onShareProduct && (
             <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-sm shrink-0" onClick={onShareProduct}>
-              <Package className="h-4 w-4" />
+              <VscPackage className="h-4 w-4" />
             </Button>
           )}
           {onRequestQuote && (

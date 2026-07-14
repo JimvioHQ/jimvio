@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { Check, Package, CreditCard, Settings, Truck, Home, Copy } from "lucide-react";
+import {  Check, Package, CreditCard, Settings, Truck, Home, Copy  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { sanitizeTrackingStatus } from "@/lib/cj/customer-facing";

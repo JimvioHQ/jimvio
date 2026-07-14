@@ -1,7 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DbProduct } from "@/lib/utils";
 import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos";
-import { getMarketplaceVisibilitySets, getCustomerVisibleCjPids } from "@/lib/cj/premium-intelligence/marketplace-filter";
+import {
+  getMarketplaceVisibilitySets,
+  getCustomerVisibleCjPids,
+  filterProductsForCustomers,
+} from "@/lib/cj/premium-intelligence/marketplace-filter";
 import {
   dedupeProductsById,
   dedupeProductsByIdentity,

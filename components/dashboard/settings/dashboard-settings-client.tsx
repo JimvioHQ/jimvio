@@ -21,6 +21,13 @@ import {
   Trash2,
   Plug,
   Image as ImageIcon,
+  ChevronLeft,
+  Save,
+  Settings,
+  CreditCard,
+  Key,
+  Wifi,
+  Palette,
 } from "lucide-react";
 import { StyledTextarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -157,6 +164,22 @@ const defaultInfluencer = {
   social_platforms: "{}",
 };
 
+const TABS_CONFIG = [
+  { value: "profile", label: "Profile", icon: User, always: true },
+  { value: "vendor", label: "Business", icon: Store, condition: "vendor" },
+  { value: "preferences", label: "Preferences", icon: Settings, always: true },
+  { value: "roles", label: "Roles", icon: Sparkles, always: true },
+  { value: "affiliate", label: "Affiliate", icon: Link2, condition: "hasAffiliate" },
+  { value: "creator", label: "Creator", icon: Video, condition: "hasInfluencer" },
+  { value: "notifications", label: "Notifications", icon: Bell, always: true },
+  { value: "privacy", label: "Privacy", icon: Shield, always: true },
+] as const;
+
+const tabTriggerClass =
+  "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium shadow-none transition-all " +
+  "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]/60 hover:text-[var(--color-text-primary)] " +
+  "data-[state=active]:border-[var(--color-accent)] data-[state=active]:bg-[var(--color-accent-light)]/40 data-[state=active]:text-[var(--color-text-primary)]";
+
 function CharCount({ value, max }: { value: string; max: number }) {
   const len = value.length;
   const pct = len / max;
@@ -217,10 +240,37 @@ function SaveRow({
   );
 }
 
-const tabTriggerClass =
-  "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium shadow-none transition-all " +
-  "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]/60 hover:text-[var(--color-text-primary)] " +
-  "data-[state=active]:border-[var(--color-accent)] data-[state=active]:bg-[var(--color-accent-light)]/40 data-[state=active]:text-[var(--color-text-primary)]";
+function SectionCard({ title, children, icon }: { title: string; children: React.ReactNode; icon?: React.ReactNode }) {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-2 pb-3 border-b border-[var(--color-border)]">
+        {icon && <span className="text-[var(--color-accent)]">{icon}</span>}
+        <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{title}</h3>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function FieldWithError({
+  label,
+  error,
+  hint,
+  required,
+  children,
+}: {
+  label: string;
+  error?: FieldError;
+  hint?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Field label={label} hint={hint} required={required} error={error}>
+      {children}
+    </Field>
+  );
+}
 
 export default function DashboardSettingsClient() {
   const [isPending, startTransition] = useTransition();
@@ -256,6 +306,8 @@ export default function DashboardSettingsClient() {
     marketing: false,
   });
 
+  const [activeTab, setActiveTab] = useState("profile");
+
   const showToast = (msg: string, type: "ok" | "err") => setToast({ msg, type });
 
   useEffect(() => {
@@ -287,7 +339,7 @@ export default function DashboardSettingsClient() {
         supabase.from("profiles").select("*").eq("id", user.id).single(),
         supabase.from("vendors").select("*").eq("user_id", user.id).single(),
         supabase.from("affiliates").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("influencers").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("influencers").select("*").eq("id", user.id).maybeSingle(),
         supabase.from("user_roles").select("role, is_active").eq("user_id", user.id),
       ]);
 
@@ -428,10 +480,7 @@ export default function DashboardSettingsClient() {
       const r = await requestEmailChange(newEmail);
       if (!r.success) showToast(r.error, "err");
       else {
-        showToast(
-          r.data?.message ?? "Confirmation email sent",
-          "ok"
-        );
+        showToast(r.data?.message ?? "Confirmation email sent", "ok");
         setNewEmail("");
       }
     });
@@ -606,6 +655,14 @@ export default function DashboardSettingsClient() {
   const hasAffiliate = Boolean(affiliate) || activeRoles.includes("affiliate");
   const hasInfluencer = Boolean(influencer) || activeRoles.includes("influencer");
 
+  const visibleTabs = TABS_CONFIG.filter((tab) => {
+    if (tab.always) return true;
+    if (tab.condition === "vendor") return Boolean(vendor);
+    if (tab.condition === "hasAffiliate") return hasAffiliate;
+    if (tab.condition === "hasInfluencer") return hasInfluencer;
+    return false;
+  });
+
   return (
     <>
       {toast && (
@@ -616,69 +673,62 @@ export default function DashboardSettingsClient() {
         />
       )}
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <div className="overflow-hidden rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]">
-          <AccountSettingsHeader
-            title="Settings"
-            description="Manage your profile, business, roles, and preferences."
-            email={userEmail}
-          />
-
-          <div className="flex items-center justify-between gap-2 border-t border-[var(--color-border)]/60 bg-[var(--color-surface-secondary)]/25">
-            <TabsList className="h-auto flex-1 justify-start gap-0 overflow-x-auto rounded-none bg-transparent p-0 scrollbar-none">
-              <TabsTrigger value="profile" className={tabTriggerClass}>
-                <User className="size-4 shrink-0" />
-                Profile
-              </TabsTrigger>
-              {vendor ? (
-                <TabsTrigger value="vendor" className={tabTriggerClass}>
-                  <Store className="size-4 shrink-0" />
-                  Business
-                </TabsTrigger>
-              ) : null}
-              <TabsTrigger value="preferences" className={tabTriggerClass}>
-                <Globe className="size-4 shrink-0" />
-                Preferences
-              </TabsTrigger>
-              <TabsTrigger value="roles" className={tabTriggerClass}>
-                <Sparkles className="size-4 shrink-0" />
-                Roles
-              </TabsTrigger>
-              {hasAffiliate ? (
-                <TabsTrigger value="affiliate" className={tabTriggerClass}>
-                  <Link2 className="size-4 shrink-0" />
-                  Affiliate
-                </TabsTrigger>
-              ) : null}
-              {hasInfluencer ? (
-                <TabsTrigger value="creator" className={tabTriggerClass}>
-                  <Video className="size-4 shrink-0" />
-                  Creator
-                </TabsTrigger>
-              ) : null}
-              <TabsTrigger value="notifications" className={tabTriggerClass}>
-                <Bell className="size-4 shrink-0" />
-                Notifications
-              </TabsTrigger>
-              <TabsTrigger value="privacy" className={tabTriggerClass}>
-                <Shield className="size-4 shrink-0" />
-                Privacy
-              </TabsTrigger>
-            </TabsList>
-
-            <Link
-              href="/dashboard/security"
-              className="mr-3 inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-all hover:text-[var(--color-text-primary)] hover:ring-[var(--color-border-strong)]"
-            >
-              <Shield className="size-4" />
-              Security
-            </Link>
+      <div className="flex gap-6">
+        {/* Sidebar Navigation */}
+        <aside className="hidden lg:block w-56 flex-shrink-0">
+          <div className="rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] overflow-hidden">
+            <div className="px-4 py-4 border-b border-[var(--color-border)]/60">
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
+                Settings
+              </p>
+            </div>
+            <nav className="p-2 space-y-1">
+              {visibleTabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  onClick={() => setActiveTab(tab.value)}
+                  className={cn(
+                    "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                    activeTab === tab.value
+                      ? "bg-[var(--color-accent-light)]/40 text-[var(--color-accent)]"
+                      : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                  )}
+                >
+                  <tab.icon className="size-4 shrink-0" />
+                  {tab.label}
+                </button>
+              ))}
+              <hr className="my-2 border-[var(--color-border)]/60" />
+              <Link
+                href="/dashboard/security"
+                className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--color-text-muted)] transition-all hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+              >
+                <Shield className="size-4" />
+                Security
+              </Link>
+            </nav>
           </div>
+        </aside>
+
+        {/* Mobile Tab Bar */}
+        <div className="lg:hidden">
+          <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList className="h-auto flex-1 justify-start gap-0 overflow-x-auto rounded-none bg-transparent p-0 scrollbar-none">
+              {visibleTabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} className={tabTriggerClass}>
+                  <tab.icon className="size-4 shrink-0" />
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
         </div>
 
-        <div className="rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] p-4 sm:p-6">
-          {/* Profile tab - abbreviated in file; includes city/country/email */}
-          <TabsContent value="profile" className="mt-0 space-y-6">
+        {/* Content Panel */}
+        <div className="flex-1 min-w-0">
+          <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsContent value="profile" className="mt-0 space-y-6">
+            {/* Avatar & Identity */}
             <div className="flex flex-wrap items-center gap-4 rounded-xl bg-[var(--color-surface-secondary)]/40 p-4 ring-1 ring-[var(--color-border)]">
               <div className="group relative">
                 <div className="h-16 w-16 overflow-hidden rounded-full ring-2 ring-[var(--color-border)]">
@@ -711,100 +761,118 @@ export default function DashboardSettingsClient() {
               </div>
             </div>
 
-            <Divider label="Identity" />
-            <Grid cols={2}>
-              <Field label="Full name" required error={profileErrors.full_name ?? ""}>
-                <FieldInput
-                  value={profile.full_name}
-                  onChange={(e) => updateProfile("full_name", e.target.value)}
-                  onBlur={() => touchProfile("full_name")}
-                  placeholder="Jane Doe"
-                  hasError={!!profileErrors.full_name}
-                />
-              </Field>
-              <Field label="Username" error={profileErrors.username ?? ""} hint="optional">
-                <FieldInput
-                  value={profile.username}
-                  onChange={(e) =>
-                    updateProfile("username", e.target.value.toLowerCase())
-                  }
-                  onBlur={() => touchProfile("username")}
-                  placeholder="jane_doe"
-                  hasError={!!profileErrors.username}
-                />
-              </Field>
-            </Grid>
+            <SectionCard title="Identity" icon={<User className="size-4" />}>
+              <Grid cols={2}>
+                <FieldWithError
+                  label="Full name"
+                  error={profileErrors.full_name ?? ""}
+                  required
+                >
+                  <FieldInput
+                    value={profile.full_name}
+                    onChange={(e) => updateProfile("full_name", e.target.value)}
+                    onBlur={() => touchProfile("full_name")}
+                    placeholder="Jane Doe"
+                    hasError={!!profileErrors.full_name}
+                  />
+                </FieldWithError>
+                <FieldWithError
+                  label="Username"
+                  error={profileErrors.username ?? ""}
+                  hint="optional"
+                >
+                  <FieldInput
+                    value={profile.username}
+                    onChange={(e) =>
+                      updateProfile("username", e.target.value.toLowerCase())
+                    }
+                    onBlur={() => touchProfile("username")}
+                    placeholder="jane_doe"
+                    hasError={!!profileErrors.username}
+                  />
+                </FieldWithError>
+              </Grid>
 
-            <Field label="Bio" error={profileErrors.bio ?? ""} hint="optional">
-              <div className="relative">
-                <StyledTextarea
-                  value={profile.bio}
-                  onChange={(e) => updateProfile("bio", e.target.value)}
-                  onBlur={() => touchProfile("bio")}
-                  placeholder="Tell us about yourself…"
-                  maxLength={300}
-                  error={profileTouched.bio ? profileErrors.bio : null}
-                />
-                <div className="absolute bottom-2.5 right-3">
-                  <CharCount value={profile.bio} max={300} />
+              <FieldWithError label="Bio" error={profileErrors.bio ?? ""} hint="optional">
+                <div className="relative">
+                  <StyledTextarea
+                    value={profile.bio}
+                    onChange={(e) => updateProfile("bio", e.target.value)}
+                    onBlur={() => touchProfile("bio")}
+                    placeholder="Tell us about yourself…"
+                    maxLength={300}
+                    error={profileTouched.bio ? profileErrors.bio : null}
+                  />
+                  <div className="absolute bottom-2.5 right-3">
+                    <CharCount value={profile.bio} max={300} />
+                  </div>
                 </div>
-              </div>
-            </Field>
+              </FieldWithError>
 
-            <Grid cols={2}>
-              <Field label="Website" error={profileErrors.website ?? ""} hint="optional">
-                <FieldInput
-                  value={profile.website}
-                  onChange={(e) => updateProfile("website", e.target.value)}
-                  onBlur={() => touchProfile("website")}
-                  placeholder="https://yoursite.com"
-                  hasError={!!profileErrors.website}
-                />
-              </Field>
-              <Field label="Phone" error={profileErrors.phone ?? ""} hint="optional">
-                <FieldInput
-                  value={profile.phone}
-                  onChange={(e) => updateProfile("phone", e.target.value)}
-                  onBlur={() => touchProfile("phone")}
-                  placeholder="+250 7XX XXX XXX"
-                  hasError={!!profileErrors.phone}
-                />
-              </Field>
-              <Field label="City" hint="optional">
-                <FieldInput
-                  value={profile.city}
-                  onChange={(e) => updateProfile("city", e.target.value)}
-                  placeholder="Kigali"
-                />
-              </Field>
-              <Field label="Country">
-                <FieldInput
-                  value={profile.country}
-                  onChange={(e) => updateProfile("country", e.target.value.toUpperCase())}
-                  placeholder="RW"
-                />
-              </Field>
-            </Grid>
+              <Grid cols={2}>
+                <FieldWithError
+                  label="Website"
+                  error={profileErrors.website ?? ""}
+                  hint="optional"
+                >
+                  <FieldInput
+                    value={profile.website}
+                    onChange={(e) => updateProfile("website", e.target.value)}
+                    onBlur={() => touchProfile("website")}
+                    placeholder="https://yoursite.com"
+                    hasError={!!profileErrors.website}
+                  />
+                </FieldWithError>
+                <FieldWithError
+                  label="Phone"
+                  error={profileErrors.phone ?? ""}
+                  hint="optional"
+                >
+                  <FieldInput
+                    value={profile.phone}
+                    onChange={(e) => updateProfile("phone", e.target.value)}
+                    onBlur={() => touchProfile("phone")}
+                    placeholder="+250 7XX XXX XXX"
+                    hasError={!!profileErrors.phone}
+                  />
+                </FieldWithError>
+                <FieldWithError label="City" hint="optional">
+                  <FieldInput
+                    value={profile.city}
+                    onChange={(e) => updateProfile("city", e.target.value)}
+                    placeholder="Kigali"
+                  />
+                </FieldWithError>
+                <FieldWithError label="Country">
+                  <FieldInput
+                    value={profile.country}
+                    onChange={(e) => updateProfile("country", e.target.value.toUpperCase())}
+                    placeholder="RW"
+                  />
+                </FieldWithError>
+              </Grid>
+            </SectionCard>
 
-            <Divider label="Change email" />
-            <Grid cols={2}>
-              <Field label="New email address">
-                <FieldInput
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="new@email.com"
-                />
-              </Field>
-              <div className="flex items-end">
-                <BrandBtn onClick={handleEmailChange} disabled={isPending || !newEmail.trim()}>
-                  Send confirmation
-                </BrandBtn>
-              </div>
-            </Grid>
-            <p className="text-[11px] text-[var(--color-text-muted)]">
-              We&apos;ll email a confirmation link to the new address before it takes effect.
-            </p>
+            <SectionCard title="Change email" icon={<Mail className="size-4" />}>
+              <Grid cols={2}>
+                <FieldWithError label="New email address" required>
+                  <FieldInput
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="new@email.com"
+                  />
+                </FieldWithError>
+                <div className="flex items-end">
+                  <BrandBtn onClick={handleEmailChange} disabled={isPending || !newEmail.trim()}>
+                    Send confirmation
+                  </BrandBtn>
+                </div>
+              </Grid>
+              <p className="text-[11px] text-[var(--color-text-muted)]">
+                We&apos;ll email a confirmation link to the new address before it takes effect.
+              </p>
+            </SectionCard>
 
             {profileHasErrors ? (
               <ValidationBanner message="Please fix the errors above before saving." />
@@ -813,9 +881,10 @@ export default function DashboardSettingsClient() {
             <SaveRow onSave={saveProfile} pending={isPending} label="Save profile" />
           </TabsContent>
 
-          {/* Vendor tab - with banner, phone, tax, policies, integrations */}
+          {/* Vendor tab */}
           {vendor ? (
             <TabsContent value="vendor" className="mt-0 space-y-6">
+              {/* Store Header with Banner */}
               <div className="relative h-28 overflow-hidden rounded-xl ring-1 ring-[var(--color-border)] bg-[var(--color-surface-secondary)]">
                 {vendor.business_banner ? (
                   <CloudinaryImage
@@ -868,202 +937,224 @@ export default function DashboardSettingsClient() {
                 </div>
               </div>
 
-              <Divider label="Business details" />
-              <Grid cols={2}>
-                <Field label="Store name" required error={vendorTouched.business_name ? vendorErrors.business_name : null}>
-                  <FieldInput
-                    value={vendor.business_name}
-                    onChange={(e) => updateVendor("business_name", e.target.value)}
-                    onBlur={() => touchVendor("business_name")}
-                    hasError={!!vendorErrors.business_name}
-                  />
-                </Field>
-                <Field label="Support email" required error={vendorTouched.business_email ? vendorErrors.business_email : null}>
-                  <FieldInput
-                    type="email"
-                    value={vendor.business_email}
-                    onChange={(e) => updateVendor("business_email", e.target.value)}
-                    onBlur={() => touchVendor("business_email")}
-                    hasError={!!vendorErrors.business_email}
-                  />
-                </Field>
-                <Field label="Business phone" hint="optional">
-                  <FieldInput
-                    value={vendor.business_phone}
-                    onChange={(e) => updateVendor("business_phone", e.target.value)}
-                    placeholder="+250 ..."
-                  />
-                </Field>
-                <Field label="Store website" hint="optional">
-                  <FieldInput
-                    value={vendor.website}
-                    onChange={(e) => updateVendor("website", e.target.value)}
-                    placeholder="https://"
-                  />
-                </Field>
-                <Field label="Tax ID / TIN" hint="optional">
-                  <FieldInput
-                    value={vendor.tax_id}
-                    onChange={(e) => updateVendor("tax_id", e.target.value)}
-                  />
-                </Field>
-                <Field label="Business country">
-                  <FieldInput
-                    value={vendor.business_country}
-                    onChange={(e) => updateVendor("business_country", e.target.value.toUpperCase())}
-                  />
-                </Field>
-              </Grid>
+              <SectionCard title="Business details" icon={<Store className="size-4" />}>
+                <Grid cols={2}>
+                  <FieldWithError
+                    label="Store name"
+                    required
+                    error={vendorTouched.business_name ? vendorErrors.business_name : null}
+                  >
+                    <FieldInput
+                      value={vendor.business_name}
+                      onChange={(e) => updateVendor("business_name", e.target.value)}
+                      onBlur={() => touchVendor("business_name")}
+                      hasError={!!vendorErrors.business_name}
+                    />
+                  </FieldWithError>
+                  <FieldWithError
+                    label="Support email"
+                    required
+                    error={vendorTouched.business_email ? vendorErrors.business_email : null}
+                  >
+                    <FieldInput
+                      type="email"
+                      value={vendor.business_email}
+                      onChange={(e) => updateVendor("business_email", e.target.value)}
+                      onBlur={() => touchVendor("business_email")}
+                      hasError={!!vendorErrors.business_email}
+                    />
+                  </FieldWithError>
+                  <FieldWithError label="Business phone" hint="optional">
+                    <FieldInput
+                      value={vendor.business_phone}
+                      onChange={(e) => updateVendor("business_phone", e.target.value)}
+                      placeholder="+250 ..."
+                    />
+                  </FieldWithError>
+                  <FieldWithError label="Store website" hint="optional">
+                    <FieldInput
+                      value={vendor.website}
+                      onChange={(e) => updateVendor("website", e.target.value)}
+                      placeholder="https://"
+                    />
+                  </FieldWithError>
+                  <FieldWithError label="Tax ID / TIN" hint="optional">
+                    <FieldInput
+                      value={vendor.tax_id}
+                      onChange={(e) => updateVendor("tax_id", e.target.value)}
+                    />
+                  </FieldWithError>
+                  <FieldWithError label="Business country">
+                    <FieldInput
+                      value={vendor.business_country}
+                      onChange={(e) => updateVendor("business_country", e.target.value.toUpperCase())}
+                    />
+                  </FieldWithError>
+                </Grid>
 
-              <Field label="Description" hint="optional">
-                <StyledTextarea
-                  value={vendor.business_description}
-                  onChange={(e) => updateVendor("business_description", e.target.value)}
-                  maxLength={500}
+                <FieldWithError label="Description" hint="optional">
+                  <StyledTextarea
+                    value={vendor.business_description}
+                    onChange={(e) => updateVendor("business_description", e.target.value)}
+                    maxLength={500}
+                  />
+                </FieldWithError>
+
+                <FieldWithError label="Business address" hint="optional">
+                  <FieldInput
+                    value={vendor.business_address}
+                    onChange={(e) => updateVendor("business_address", e.target.value)}
+                  />
+                </FieldWithError>
+              </SectionCard>
+
+              <SectionCard title="Payout" icon={<CreditCard className="size-4" />}>
+                <Grid cols={2}>
+                  <FieldWithError label="Payment method">
+                    <CustomSelect
+                      options={[
+                        { value: "bank", label: "Bank transfer" },
+                        { value: "momo", label: "Mobile money" },
+                        { value: "paypal", label: "PayPal" },
+                      ]}
+                      value={vendor.payout_method}
+                      onChange={(v) => updateVendor("payout_method", v)}
+                      className="w-full"
+                    />
+                  </FieldWithError>
+                  <FieldWithError
+                    label="Account number / ID"
+                    error={vendorTouched.payout_account ? vendorErrors.payout_account : null}
+                  >
+                    <FieldInput
+                      value={vendor.payout_account}
+                      onChange={(e) => updateVendor("payout_account", e.target.value)}
+                      onBlur={() => touchVendor("payout_account")}
+                      hasError={!!vendorErrors.payout_account}
+                    />
+                  </FieldWithError>
+                </Grid>
+              </SectionCard>
+
+              <SectionCard title="Store policies" icon={<ImageIcon className="size-4" />}>
+                <FieldWithError label="Shipping policy" hint="Shown to buyers when relevant">
+                  <StyledTextarea
+                    value={vendorPolicies.shipping_policy}
+                    onChange={(e) =>
+                      setVendorPolicies((p) => ({ ...p, shipping_policy: e.target.value }))
+                    }
+                    placeholder="Delivery times, regions served…"
+                    maxLength={2000}
+                  />
+                </FieldWithError>
+                <FieldWithError label="Return & refund policy">
+                  <StyledTextarea
+                    value={vendorPolicies.return_policy}
+                    onChange={(e) =>
+                      setVendorPolicies((p) => ({ ...p, return_policy: e.target.value }))
+                    }
+                    placeholder="Return window, conditions…"
+                    maxLength={2000}
+                  />
+                </FieldWithError>
+              </SectionCard>
+
+              <SectionCard title="Affiliate program" icon={<Link2 className="size-4" />}>
+                <Toggle
+                  checked={vendor.affiliate_enabled}
+                  onChange={(v) => updateVendor("affiliate_enabled", v)}
+                  label="Enable affiliates"
+                  description="Allow partners to earn commission promoting your products"
                 />
-              </Field>
+                {vendor.affiliate_enabled ? (
+                  <FieldWithError
+                    label="Base commission rate (%)"
+                    error={vendorTouched.affiliate_commission_rate ? vendorErrors.affiliate_commission_rate : null}
+                  >
+                    <FieldInput
+                      type="number"
+                      value={vendor.affiliate_commission_rate}
+                      onChange={(e) => updateVendor("affiliate_commission_rate", e.target.value)}
+                      min={1}
+                      max={100}
+                      className="max-w-[140px]"
+                    />
+                  </FieldWithError>
+                ) : null}
+              </SectionCard>
 
-              <Field label="Business address" hint="optional">
-                <FieldInput
-                  value={vendor.business_address}
-                  onChange={(e) => updateVendor("business_address", e.target.value)}
-                />
-              </Field>
-
-              <Divider label="Payout" />
-              <Grid cols={2}>
-                <Field label="Payment method">
-                  <CustomSelect
-                    options={[
-                      { value: "bank", label: "Bank transfer" },
-                      { value: "momo", label: "Mobile money" },
-                      { value: "paypal", label: "PayPal" },
-                    ]}
-                    value={vendor.payout_method}
-                    onChange={(v) => updateVendor("payout_method", v)}
-                    className="w-full"
-                  />
-                </Field>
-                <Field label="Account number / ID" error={vendorTouched.payout_account ? vendorErrors.payout_account : null}>
-                  <FieldInput
-                    value={vendor.payout_account}
-                    onChange={(e) => updateVendor("payout_account", e.target.value)}
-                    onBlur={() => touchVendor("payout_account")}
-                    hasError={!!vendorErrors.payout_account}
-                  />
-                </Field>
-              </Grid>
-
-              <Divider label="Store policies" />
-              <Field label="Shipping policy" hint="Shown to buyers when relevant">
-                <StyledTextarea
-                  value={vendorPolicies.shipping_policy}
-                  onChange={(e) =>
-                    setVendorPolicies((p) => ({ ...p, shipping_policy: e.target.value }))
-                  }
-                  placeholder="Delivery times, regions served…"
-                  maxLength={2000}
-                />
-              </Field>
-              <Field label="Return & refund policy">
-                <StyledTextarea
-                  value={vendorPolicies.return_policy}
-                  onChange={(e) =>
-                    setVendorPolicies((p) => ({ ...p, return_policy: e.target.value }))
-                  }
-                  placeholder="Return window, conditions…"
-                  maxLength={2000}
-                />
-              </Field>
-
-              <Divider label="Affiliate program" />
-              <Toggle
-                checked={vendor.affiliate_enabled}
-                onChange={(v) => updateVendor("affiliate_enabled", v)}
-                label="Enable affiliates"
-                description="Allow partners to earn commission promoting your products"
-              />
-              {vendor.affiliate_enabled ? (
-                <Field label="Base commission rate (%)" error={vendorTouched.affiliate_commission_rate ? vendorErrors.affiliate_commission_rate : null}>
-                  <FieldInput
-                    type="number"
-                    value={vendor.affiliate_commission_rate}
-                    onChange={(e) => updateVendor("affiliate_commission_rate", e.target.value)}
-                    min={1}
-                    max={100}
-                    className="max-w-[140px]"
-                  />
-                </Field>
-              ) : null}
-
-              <Divider label="Integrations" />
-              <div className="rounded-xl border border-[var(--color-border)] p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <Plug className="size-5 text-[var(--color-accent)]" />
-                  <div>
-                    <p className="text-sm font-medium">Shopify store</p>
-                    <p className="text-[12px] text-[var(--color-text-muted)]">
-                      Connect your Shopify catalog to Jimvio
-                    </p>
+              <SectionCard title="Integrations" icon={<Plug className="size-4" />}>
+                <div className="rounded-xl border border-[var(--color-border)] p-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <Plug className="size-5 text-[var(--color-accent)]" />
+                    <div>
+                      <p className="text-sm font-medium">Shopify store</p>
+                      <p className="text-[12px] text-[var(--color-text-muted)]">
+                        Connect your Shopify catalog to Jimvio
+                      </p>
+                    </div>
                   </div>
+                  <Link href="/vendor/shopify">
+                    <BrandBtn variant="secondary" size="sm">
+                      Connect
+                    </BrandBtn>
+                  </Link>
                 </div>
-                <Link href="/vendor/shopify">
-                  <BrandBtn variant="secondary" size="sm">
-                    Connect
-                  </BrandBtn>
-                </Link>
-              </div>
+              </SectionCard>
 
-              {vendorHasErrors ? (
+              {vendorHasErrors && (
                 <ValidationBanner message="Please fix all required fields before saving." />
-              ) : null}
+              )}
 
               <SaveRow onSave={saveVendor} pending={isPending} label="Save business" />
             </TabsContent>
           ) : null}
 
+          {/* Preferences tab */}
           <TabsContent value="preferences" className="mt-0 space-y-6">
-            <Divider label="Display & locale" />
-            <Grid cols={2}>
-              <Field label="Language">
-                <CustomSelect
-                  options={[
-                    { value: "en", label: "English" },
-                    { value: "fr", label: "French" },
-                    { value: "rw", label: "Kinyarwanda" },
-                  ]}
-                  value={profile.language}
-                  onChange={(v) => updateProfile("language", v)}
-                  className="w-full"
-                />
-              </Field>
-              <Field label="Timezone">
-                <CustomSelect
-                  options={[
-                    { value: "Africa/Kigali", label: "Africa/Kigali" },
-                    { value: "Africa/Nairobi", label: "Africa/Nairobi" },
-                    { value: "UTC", label: "UTC" },
-                  ]}
-                  value={profile.timezone}
-                  onChange={(v) => updateProfile("timezone", v)}
-                  className="w-full"
-                />
-              </Field>
-              <Field label="Preferred currency">
-                <CustomSelect
-                  options={Object.keys(SUPPORTED_CURRENCIES).map((c) => ({
-                    value: c,
-                    label: c,
-                  }))}
-                  value={preferredCurrency}
-                  onChange={setPreferredCurrency}
-                  className="w-full"
-                />
-              </Field>
-            </Grid>
+            <SectionCard title="Display & locale" icon={<Globe className="size-4" />}>
+              <Grid cols={2}>
+                <FieldWithError label="Language">
+                  <CustomSelect
+                    options={[
+                      { value: "en", label: "English" },
+                      { value: "fr", label: "French" },
+                      { value: "rw", label: "Kinyarwanda" },
+                    ]}
+                    value={profile.language}
+                    onChange={(v) => updateProfile("language", v)}
+                    className="w-full"
+                  />
+                </FieldWithError>
+                <FieldWithError label="Timezone">
+                  <CustomSelect
+                    options={[
+                      { value: "Africa/Kigali", label: "Africa/Kigali" },
+                      { value: "Africa/Nairobi", label: "Africa/Nairobi" },
+                      { value: "UTC", label: "UTC" },
+                    ]}
+                    value={profile.timezone}
+                    onChange={(v) => updateProfile("timezone", v)}
+                    className="w-full"
+                  />
+                </FieldWithError>
+                <FieldWithError label="Preferred currency">
+                  <CustomSelect
+                    options={Object.keys(SUPPORTED_CURRENCIES).map((c) => ({
+                      value: c,
+                      label: c,
+                    }))}
+                    value={preferredCurrency}
+                    onChange={setPreferredCurrency}
+                    className="w-full"
+                  />
+                </FieldWithError>
+              </Grid>
+            </SectionCard>
             <SaveRow onSave={savePreferences} pending={isPending} label="Save preferences" />
           </TabsContent>
 
+          {/* Roles tab */}
           <TabsContent value="roles" className="mt-0 space-y-4">
             <p className="text-[13px] text-[var(--color-text-muted)]">
               Activate roles to unlock earning tools. Vendor onboarding uses a separate application flow.
@@ -1076,6 +1167,7 @@ export default function DashboardSettingsClient() {
                   active: Boolean(vendor) || activeRoles.includes("vendor"),
                   href: "/dashboard/activate/vendor",
                   desc: "Sell products on the marketplace",
+                  icon: Store,
                 },
                 {
                   id: "affiliate",
@@ -1083,6 +1175,7 @@ export default function DashboardSettingsClient() {
                   active: hasAffiliate,
                   action: () => handleActivateRole("affiliate"),
                   desc: "Earn commission on referrals",
+                  icon: Link2,
                 },
                 {
                   id: "influencer",
@@ -1090,6 +1183,7 @@ export default function DashboardSettingsClient() {
                   active: hasInfluencer,
                   action: () => handleActivateRole("influencer"),
                   desc: "UGC missions and brand campaigns",
+                  icon: Video,
                 },
               ].map((role) => (
                 <div
@@ -1097,7 +1191,10 @@ export default function DashboardSettingsClient() {
                   className="rounded-xl border border-[var(--color-border)] p-4 space-y-3"
                 >
                   <div className="flex items-center justify-between">
-                    <p className="font-semibold text-sm">{role.label}</p>
+                    <div className="flex items-center gap-2">
+                      <role.icon className="size-4 text-[var(--color-accent)]" />
+                      <p className="font-semibold text-sm">{role.label}</p>
+                    </div>
                     <span
                       className={cn(
                         "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
@@ -1127,6 +1224,7 @@ export default function DashboardSettingsClient() {
             </div>
           </TabsContent>
 
+          {/* Affiliate tab */}
           {hasAffiliate ? (
             <TabsContent value="affiliate" className="mt-0 space-y-6">
               {!affiliate ? (
@@ -1140,56 +1238,61 @@ export default function DashboardSettingsClient() {
                 </div>
               ) : (
                 <>
-              <Divider label="Affiliate profile" />
-              <Field label="Bio" hint="optional">
-                <StyledTextarea
-                  value={affiliate.bio}
-                  onChange={(e) => setAffiliate((a) => (a ? { ...a, bio: e.target.value } : a))}
-                  maxLength={500}
-                />
-              </Field>
-              <Field label="Website" hint="optional">
-                <FieldInput
-                  value={affiliate.website}
-                  onChange={(e) => setAffiliate((a) => (a ? { ...a, website: e.target.value } : a))}
-                />
-              </Field>
-              <Field label="Niche tags" hint="Comma-separated">
-                <FieldInput
-                  value={affiliate.niche}
-                  onChange={(e) => setAffiliate((a) => (a ? { ...a, niche: e.target.value } : a))}
-                  placeholder="fashion, tech"
-                />
-              </Field>
-              <Divider label="Payout" />
-              <Grid cols={2}>
-                <Field label="Method">
-                  <CustomSelect
-                    options={[
-                      { value: "bank", label: "Bank" },
-                      { value: "momo", label: "Mobile money" },
-                      { value: "paypal", label: "PayPal" },
-                    ]}
-                    value={affiliate.payout_method}
-                    onChange={(v) => setAffiliate((a) => (a ? { ...a, payout_method: v } : a))}
-                    className="w-full"
-                  />
-                </Field>
-                <Field label="Account">
-                  <FieldInput
-                    value={affiliate.payout_account}
-                    onChange={(e) =>
-                      setAffiliate((a) => (a ? { ...a, payout_account: e.target.value } : a))
-                    }
-                  />
-                </Field>
-              </Grid>
-              <SaveRow onSave={saveAffiliate} pending={isPending} label="Save affiliate" />
+                  <SectionCard title="Affiliate profile" icon={<Link2 className="size-4" />}>
+                    <FieldWithError label="Bio" hint="optional">
+                      <StyledTextarea
+                        value={affiliate.bio}
+                        onChange={(e) => setAffiliate((a) => (a ? { ...a, bio: e.target.value } : a))}
+                        maxLength={500}
+                      />
+                    </FieldWithError>
+                    <FieldWithError label="Website" hint="optional">
+                      <FieldInput
+                        value={affiliate.website}
+                        onChange={(e) => setAffiliate((a) => (a ? { ...a, website: e.target.value } : a))}
+                      />
+                    </FieldWithError>
+                    <FieldWithError label="Niche tags" hint="Comma-separated">
+                      <FieldInput
+                        value={affiliate.niche}
+                        onChange={(e) => setAffiliate((a) => (a ? { ...a, niche: e.target.value } : a))}
+                        placeholder="fashion, tech"
+                      />
+                    </FieldWithError>
+                  </SectionCard>
+
+                  <SectionCard title="Payout" icon={<CreditCard className="size-4" />}>
+                    <Grid cols={2}>
+                      <FieldWithError label="Method">
+                        <CustomSelect
+                          options={[
+                            { value: "bank", label: "Bank" },
+                            { value: "momo", label: "Mobile money" },
+                            { value: "paypal", label: "PayPal" },
+                          ]}
+                          value={affiliate.payout_method}
+                          onChange={(v) => setAffiliate((a) => (a ? { ...a, payout_method: v } : a))}
+                          className="w-full"
+                        />
+                      </FieldWithError>
+                      <FieldWithError label="Account">
+                        <FieldInput
+                          value={affiliate.payout_account}
+                          onChange={(e) =>
+                            setAffiliate((a) => (a ? { ...a, payout_account: e.target.value } : a))
+                          }
+                        />
+                      </FieldWithError>
+                    </Grid>
+                  </SectionCard>
+
+                  <SaveRow onSave={saveAffiliate} pending={isPending} label="Save affiliate" />
                 </>
               )}
             </TabsContent>
           ) : null}
 
+          {/* Creator tab */}
           {hasInfluencer ? (
             <TabsContent value="creator" className="mt-0 space-y-6">
               {!influencer ? (
@@ -1203,92 +1306,101 @@ export default function DashboardSettingsClient() {
                 </div>
               ) : (
                 <>
-              <Divider label="Creator profile" />
-              <Field label="Display name">
-                <FieldInput
-                  value={influencer.display_name}
-                  onChange={(e) =>
-                    setInfluencer((i) => (i ? { ...i, display_name: e.target.value } : i))
-                  }
-                />
-              </Field>
-              <Field label="Bio">
-                <StyledTextarea
-                  value={influencer.bio}
-                  onChange={(e) => setInfluencer((i) => (i ? { ...i, bio: e.target.value } : i))}
-                  maxLength={500}
-                />
-              </Field>
-              <Field label="Niche" hint="Comma-separated">
-                <FieldInput
-                  value={influencer.niche}
-                  onChange={(e) => setInfluencer((i) => (i ? { ...i, niche: e.target.value } : i))}
-                />
-              </Field>
-              <Field label="Social platforms" hint='JSON e.g. {"instagram":"@you"}'>
-                <StyledTextarea
-                  value={influencer.social_platforms}
-                  onChange={(e) =>
-                    setInfluencer((i) => (i ? { ...i, social_platforms: e.target.value } : i))
-                  }
-                  className="font-mono text-[12px]"
-                />
-              </Field>
-              <SaveRow onSave={saveInfluencer} pending={isPending} label="Save creator profile" />
+                  <SectionCard title="Creator profile" icon={<Video className="size-4" />}>
+                    <FieldWithError label="Display name" required>
+                      <FieldInput
+                        value={influencer.display_name}
+                        onChange={(e) =>
+                          setInfluencer((i) => (i ? { ...i, display_name: e.target.value } : i))
+                        }
+                      />
+                    </FieldWithError>
+                    <FieldWithError label="Bio">
+                      <StyledTextarea
+                        value={influencer.bio}
+                        onChange={(e) => setInfluencer((i) => (i ? { ...i, bio: e.target.value } : i))}
+                        maxLength={500}
+                      />
+                    </FieldWithError>
+                    <FieldWithError label="Niche" hint="Comma-separated">
+                      <FieldInput
+                        value={influencer.niche}
+                        onChange={(e) => setInfluencer((i) => (i ? { ...i, niche: e.target.value } : i))}
+                      />
+                    </FieldWithError>
+                    <FieldWithError label="Social platforms" hint='JSON e.g. {"instagram":"@you"}'>
+                      <StyledTextarea
+                        value={influencer.social_platforms}
+                        onChange={(e) =>
+                          setInfluencer((i) => (i ? { ...i, social_platforms: e.target.value } : i))
+                        }
+                        className="font-mono text-[12px]"
+                      />
+                    </FieldWithError>
+                  </SectionCard>
+
+                  <SaveRow onSave={saveInfluencer} pending={isPending} label="Save creator profile" />
                 </>
               )}
             </TabsContent>
           ) : null}
 
+          {/* Notifications tab */}
           <TabsContent value="notifications" className="mt-0 space-y-6">
-            <div className="overflow-hidden rounded-xl ring-1 ring-[var(--color-border)] divide-y divide-[var(--color-border)]">
-              {[
-                { key: "new_sales", label: "New sales", desc: "When a customer buys your products" },
-                { key: "affiliate_activity", label: "Affiliate activity", desc: "Commission and referral events" },
-                { key: "withdrawals", label: "Withdrawals", desc: "Payout processed notifications" },
-                { key: "messages", label: "Messages", desc: "New direct messages" },
-                { key: "system_updates", label: "System updates", desc: "Critical account alerts" },
-                { key: "marketing", label: "Marketing", desc: "Product news and promotions" },
-              ].map((item) => (
-                <div key={item.key} className="px-4 py-3">
-                  <Toggle
-                    checked={notifications[item.key as keyof typeof notifications]}
-                    onChange={(v) =>
-                      setNotifications((n) => ({ ...n, [item.key]: v }))
-                    }
-                    label={item.label}
-                    description={item.desc}
-                  />
-                </div>
-              ))}
-            </div>
+            <SectionCard title="Notification preferences" icon={<Bell className="size-4" />}>
+              <div className="overflow-hidden rounded-xl ring-1 ring-[var(--color-border)] divide-y divide-[var(--color-border)]">
+                {[
+                  { key: "new_sales", label: "New sales", desc: "When a customer buys your products" },
+                  { key: "affiliate_activity", label: "Affiliate activity", desc: "Commission and referral events" },
+                  { key: "withdrawals", label: "Withdrawals", desc: "Payout processed notifications" },
+                  { key: "messages", label: "Messages", desc: "New direct messages" },
+                  { key: "system_updates", label: "System updates", desc: "Critical account alerts" },
+                  { key: "marketing", label: "Marketing", desc: "Product news and promotions" },
+                ].map((item) => (
+                  <div key={item.key} className="px-4 py-3">
+                    <Toggle
+                      checked={notifications[item.key as keyof typeof notifications]}
+                      onChange={(v) =>
+                        setNotifications((n) => ({ ...n, [item.key]: v }))
+                      }
+                      label={item.label}
+                      description={item.desc}
+                    />
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
             <SaveRow onSave={saveNotifications} pending={isPending} label="Save preferences" />
           </TabsContent>
 
+          {/* Privacy tab */}
           <TabsContent value="privacy" className="mt-0 space-y-6">
-            <Divider label="Your data" />
-            <p className="text-[13px] text-[var(--color-text-muted)]">
-              Download a JSON copy of your profile, roles, and recent orders.
-            </p>
-            <BrandBtn onClick={handleExportData} disabled={isPending} icon={<Download className="size-4" />}>
-              Export my data
-            </BrandBtn>
+            <SectionCard title="Your data" icon={<Download className="size-4" />}>
+              <p className="text-[13px] text-[var(--color-text-muted)]">
+                Download a JSON copy of your profile, roles, and recent orders.
+              </p>
+              <BrandBtn onClick={handleExportData} disabled={isPending} icon={<Download className="size-4" />}>
+                Export my data
+              </BrandBtn>
+            </SectionCard>
 
-            <Divider label="Account status" />
-            <p className="text-[13px] text-[var(--color-text-muted)]">
-              Deactivating hides your account from the platform. Contact support to restore access.
-            </p>
-            <BrandBtn
-              variant="ghost"
-              onClick={handleDeactivate}
-              disabled={isPending}
-              icon={<Trash2 className="size-4" />}
-            >
-              Deactivate account
-            </BrandBtn>
+            <SectionCard title="Account status" icon={<Trash2 className="size-4" />}>
+              <p className="text-[13px] text-[var(--color-text-muted)]">
+                Deactivating hides your account from the platform. Contact support to restore access.
+              </p>
+              <BrandBtn
+                variant="ghost"
+                onClick={handleDeactivate}
+                disabled={isPending}
+                icon={<Trash2 className="size-4" />}
+              >
+                Deactivate account
+              </BrandBtn>
+            </SectionCard>
           </TabsContent>
+          </Tabs>
         </div>
-      </Tabs>
+      </div>
     </>
   );
 }

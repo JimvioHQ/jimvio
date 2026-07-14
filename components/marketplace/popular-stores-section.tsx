@@ -2,7 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { Star, Store, ChevronRight, Package, ShieldCheck } from "lucide-react";
+import {  Star, Store, ChevronRight, Package, ShieldCheck  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { cn } from "@/lib/utils";
@@ -126,7 +127,7 @@ export function PopularStoresSection({ stores, className }: PopularStoresSection
                           <img src={pr.images[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover/product:scale-110" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Package className="h-5 w-5 text-stone-300 dark:text-stone-600" />
+                            <VscPackage className="h-5 w-5 text-stone-300 dark:text-stone-600" />
                           </div>
                         )}
                         {/* Name overlay */}

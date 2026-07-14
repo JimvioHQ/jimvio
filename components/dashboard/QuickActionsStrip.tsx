@@ -20,9 +20,60 @@ const ICONS: Record<string, React.ReactNode> = {
 
 export const QuickActionsStrip = memo(function QuickActionsStrip({
   actions,
+  compact = false,
 }: {
   actions: QuickAction[];
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <section aria-label="Quick actions">
+        <p className="mb-3 text-[13px] font-semibold text-[var(--color-text-primary)]">
+          Quick Actions
+        </p>
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {actions.map((action) => {
+            const className =
+              "group flex shrink-0 items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 text-left transition-all duration-200 hover:bg-[var(--color-surface-secondary)]";
+
+            const inner = (
+              <>
+                <div
+                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md"
+                  style={{ background: action.bgColor, color: action.accentColor }}
+                >
+                  {ICONS[action.label]}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] font-semibold leading-tight text-[var(--color-text-primary)]">
+                    {action.label}
+                  </p>
+                  <p className="truncate text-[10px] leading-tight text-[var(--color-text-muted)]">
+                    {action.sub}
+                  </p>
+                </div>
+              </>
+            );
+
+            if (action.href) {
+              return (
+                <Link key={action.label} href={action.href} className={className}>
+                  {inner}
+                </Link>
+              );
+            }
+
+            return (
+              <button key={action.label} type="button" className={className}>
+                {inner}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section aria-label="Quick actions">
       <p className="mb-3 text-[13px] font-semibold text-[var(--color-text-primary)]">

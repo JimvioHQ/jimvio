@@ -4,7 +4,8 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Pencil, Package, Truck, ChevronRight, Loader2 } from "lucide-react";
+import {  ChevronLeft, Pencil, Package, Truck, ChevronRight, Loader2  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 
 import { CheckoutFooter } from "./CheckoutFooter";
 import { OrderSummaryCard } from "./OrderSummaryCard";
@@ -388,7 +389,7 @@ export function CheckoutExperience({
       return (
          <div className="min-h-[60vh] flex items-center justify-center p-12">
             <div className="text-center max-w-sm">
-               <Package className="h-12 w-12 text-[var(--color-text-muted)]/30 mx-auto mb-4" />
+               <VscPackage className="h-12 w-12 text-[var(--color-text-muted)]/30 mx-auto mb-4" />
                <h2 className="text-lg font-semibold mb-2">Your cart is empty</h2>
                <Link href="/marketplace" className="inline-flex items-center gap-1.5 h-11 px-5 rounded-xl bg-orange-500 text-white font-semibold">
                   Browse marketplace
@@ -430,7 +431,7 @@ export function CheckoutExperience({
 
                      {stage !== "shipping" && !isAllDigital && !isCommunity && (
                         <CompletedSummaryPill
-                           icon={<Package className="h-4 w-4 text-[var(--color-accent)]" />}
+                           icon={<VscPackage className="h-4 w-4 text-[var(--color-accent)]" />}
                            title={`${shipping.firstName} ${shipping.lastName}`}
                            subtitle={`${shipping.email} · ${shipping.address1}, ${shipping.city}`}
                            onEdit={() => setStage("shipping")}

@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Package, Loader2, Bitcoin, Copy } from "lucide-react";
+import {  Package, Loader2, Bitcoin, Copy  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
 
@@ -153,7 +154,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
               {order.order_items.map((item) => (
                 <div key={item.id} className="flex justify-between items-center">
                   <div className="flex items-center gap-3">
-                    <Package className="h-8 w-8 text-zinc-300" />
+                    <VscPackage className="h-8 w-8 text-zinc-300" />
                     <div>
                       <p className="font-medium text-zinc-900 dark:text-white">{item.product_name}</p>
                       <p className="text-xs text-zinc-500">Qty: {item.quantity}</p>

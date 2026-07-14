@@ -1,6 +1,7 @@
 "use client";
 
-import { Package, ShieldCheck, Lock, BadgeCheck } from "lucide-react";
+import {  Package, ShieldCheck, Lock, BadgeCheck  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { useCurrency } from "@/context/CurrencyContext";
 
 export type OrderSummaryItem = {
@@ -40,7 +41,7 @@ export function OrderSummary({
               {item.product_image ? (
                 <img src={item.product_image} alt="" className="h-full w-full object-cover" />
               ) : (
-                <Package className="h-6 w-6 text-[var(--color-text-muted)]" />
+                <VscPackage className="h-6 w-6 text-[var(--color-text-muted)]" />
               )}
             </div>
             <div className="min-w-0 flex-1">

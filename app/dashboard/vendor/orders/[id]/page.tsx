@@ -4,7 +4,8 @@ export const dynamic = "force-dynamic";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Package, Clock, CheckCircle, CheckCircle2, Truck, ShoppingBag, XCircle, User, Mail, Phone, MapPin, Zap, ExternalLink, Activity, Globe, ShieldCheck, Loader2 } from "lucide-react";
+import {  ArrowLeft, Package, Clock, CheckCircle, CheckCircle2, Truck, ShoppingBag, XCircle, User, Mail, Phone, MapPin, Zap, ExternalLink, Activity, Globe, ShieldCheck, Loader2  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { Button } from "@/components/ui/button";
 import { GlassCard, GlassPill, GlassAmbientGlow } from "@/components/ui/glass";
 import { Badge } from "@/components/ui/badge";
@@ -219,7 +220,7 @@ export default function VendorOrderDetailPage() {
             <GlassCard className="rounded-[32px] border-white bg-white dark:bg-surface/60 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-stone-100 dark:border-border flex items-center justify-between">
                 <h3 className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">Order Items</h3>
-                <Package className="h-5 w-5 text-stone-200" />
+                <VscPackage className="h-5 w-5 text-stone-200" />
               </div>
               <div className="divide-y divide-stone-50">
                 {vendorItems.map((item: any) => (
@@ -228,7 +229,7 @@ export default function VendorOrderDetailPage() {
                       {item.product_image ? (
                         <img src={item.product_image} alt="" className="h-full w-full rounded-lg object-cover" />
                       ) : (
-                        <div className="h-full w-full rounded-lg bg-stone-50 dark:bg-surface/50 flex items-center justify-center"><Package className="h-5 w-5 text-stone-100" /></div>
+                        <div className="h-full w-full rounded-lg bg-stone-50 dark:bg-surface/50 flex items-center justify-center"><VscPackage className="h-5 w-5 text-stone-100" /></div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

@@ -278,6 +278,7 @@ function CustomSelectInner<T extends string>(
                 role="listbox"
                 className="overflow-y-auto py-1 max-h-60"
                 style={{ scrollbarWidth: "thin" }}
+                onMouseDown={(e) => e.stopPropagation()}
             >
                 {filteredOptions.length > 0 ? (
                     filteredOptions.map((option, index) => {
@@ -292,7 +293,10 @@ function CustomSelectInner<T extends string>(
                                 aria-selected={isSelected}
                                 aria-disabled={option.disabled}
                                 ref={(el) => { optionRefs.current[index] = el; }}
-                                onClick={() => !option.disabled && handleSelect(option.value)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!option.disabled) handleSelect(option.value);
+                                }}
                                 onMouseEnter={() => !option.disabled && setHighlightIndex(index)}
                                 onMouseLeave={() => setHighlightIndex(-1)}
                                 className={cn(
@@ -353,16 +357,14 @@ function CustomSelectInner<T extends string>(
                     `text-${textSize} font-medium`,
                     "bg-[var(--color-surface)] border border-[var(--color-border)]",
                     "text-[var(--color-text-primary)]",
-                    "outline-none transition-all duration-150",
+                    "transition-all duration-150",
                     // Hover — accent border, only when idle
                     !disabled && !error && "hover:border-[var(--color-border-strong)]",
-                    // Open — acts like focus
-                    isOpen && !error && !disabled && "ring-2 ring-[var(--color-accent)]/20 border-[var(--color-accent)]",
-                    // Focus ring (keyboard nav)
-                    !error && "focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)]",
+                    // Open state
+                    isOpen && !error && !disabled && "border-[var(--color-accent)]",
                     // Error state
-                    error && "border-red-500/60 focus:ring-2 focus:ring-red-500/40 focus:border-red-500/60",
-                    error && isOpen && "ring-2 ring-red-500/40 border-red-500/60",
+                    error && "border-red-500/60",
+                    error && isOpen && "border-red-500/60",
                     // Disabled state
                     disabled && "cursor-not-allowed opacity-50 bg-[var(--color-surface-secondary)] hover:border-[var(--color-border)]",
                     className,

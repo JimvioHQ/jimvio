@@ -3,7 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Package, Megaphone, Users, ShieldCheck } from "lucide-react";
+import {  Package, Megaphone, Users, ShieldCheck  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import type { ParsedCampaign, ParsedCommunity, ParsedProduct } from "@/lib/ai/chat-shared";
 import { JIMVIO_ORANGE } from "@/lib/ai/chat-shared";
 
@@ -43,7 +44,7 @@ export function AiRecommendationCards({ products, campaigns, communities, onClos
                     unoptimized
                   />
                 ) : (
-                  <Package className="size-7 text-[var(--color-text-muted)]" />
+                  <VscPackage className="size-7 text-[var(--color-text-muted)]" />
                 )}
               </div>
               <div className="mb-1 flex items-center gap-1">

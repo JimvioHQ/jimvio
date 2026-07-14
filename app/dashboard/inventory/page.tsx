@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Package, AlertTriangle, TrendingDown, Loader2, ArrowRight, Zap, ShieldCheck, Activity, Search, ArrowLeft, MoreVertical, Plus } from "lucide-react";
+import {  Package, AlertTriangle, TrendingDown, Loader2, ArrowRight, Zap, ShieldCheck, Activity, Search, ArrowLeft, MoreVertical, Plus  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { GlassCard, GlassPill } from "@/components/ui/glass";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -161,7 +162,7 @@ export default function InventoryPage() {
                {products.length === 0 ? (
                   <div className="py-20 text-center space-y-4">
                      <div className="w-12 h-12 bg-surface dark:bg-surface-secondary rounded-sm flex items-center justify-center mx-auto border border-border">
-                        <Package className="h-6 w-6 text-stone-300 dark:text-stone-700" />
+                        <VscPackage className="h-6 w-6 text-stone-300 dark:text-stone-700" />
                      </div>
                      <p className="text-[12px] font-bold text-stone-400 dark:text-text-muted uppercase tracking-widest">No inventory items found</p>
                   </div>

@@ -10,7 +10,8 @@ import React, {
   type ReactNode,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Globe, Package, Store, Users, type LucideIcon } from "lucide-react";
+import {  Globe, Package, Store, Users, type LucideIcon  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import {
   PLATFORM_STAT_KEYS,
   PLATFORM_STAT_META,

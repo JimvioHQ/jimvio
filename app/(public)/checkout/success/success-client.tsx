@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, Mail, Package, Bell, ArrowRight } from "lucide-react";
+import {  CheckCircle2, Mail, Package, Bell, ArrowRight  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { Button } from "@/components/ui/button";
 import { StatusPill, ProviderLogo } from "@/components/ui/admin";
 import { formatDisplayMoney, cn } from "@/lib/utils";

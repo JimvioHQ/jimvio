@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Package, X, Search } from "lucide-react";
+import {  Package, X, Search  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
@@ -78,7 +79,7 @@ export function ProductShareModal({
       <div className="bg-[var(--color-surface)] rounded-sm shadow-none max-w-md w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">
           <h3 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-            <Package className="h-5 w-5 text-[var(--color-accent)]" /> Share product
+            <VscPackage className="h-5 w-5 text-[var(--color-accent)]" /> Share product
           </h3>
           <button type="button" onClick={onClose} className="p-2 rounded-sm hover:bg-[var(--color-surface-secondary)]">
             <X className="h-4 w-4" />

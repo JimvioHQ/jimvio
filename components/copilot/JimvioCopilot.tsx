@@ -186,7 +186,7 @@ export function JimvioCopilot() {
           </span>
           <div className="min-w-0">
             <h2 className="truncate text-[14px] font-bold text-[var(--color-text-primary)]">
-              Jimvio Copilot
+              Jimvio AI
             </h2>
             <div className="flex flex-wrap items-center gap-2">
               <CopilotStatusDot status={status} />

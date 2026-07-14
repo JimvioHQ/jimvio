@@ -428,10 +428,11 @@ function MobilePreferencesMenu() {
                             </div>
                         </div>
                         <CurrencySelector
+                            disablePortal
                             className={cn(
-                                "w-full h-9 rounded-lg text-[12px] font-semibold",
-                                "bg-[var(--color-surface)] border border-[var(--color-border)] px-3",
-                                "text-[var(--color-text-primary)]",
+                                "w-full h-9 rounded-[var(--radius-sm)] text-[11px] font-bold px-3",
+                                "bg-[var(--color-surface)] border-0",
+                                "text-[var(--color-text-secondary)]",
                             )}
                         />
                     </div>
@@ -468,8 +469,8 @@ function UserMenu({ user }: { user: UserProfile }) {
                 <button
                     className={cn(
                         "flex items-center gap-2.5 h-9 pl-0 sm:pl-2 pr-0 sm:pr-3 rounded-full sm:rounded-[var(--radius-sm)]",
-                        "bg-[var(--color-surface)] border border-[var(--color-border)]",
-                        "hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)]",
+                        "bg-[var(--color-surface)]",
+                        "hover:bg-[var(--color-surface-secondary)]",
                         "transition-all duration-200 active:scale-95"
                     )}
                 >
@@ -707,29 +708,12 @@ export function DashboardHeader({
 
             {/* ── Right: action cluster ── */}
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                {/* Create */}
-                <CreateMenu />
-
-                {/* Language — visible sm+ */}
-                <button
-                    className={cn(
-                        "hidden sm:flex items-center gap-1.5 h-9 px-2.5",
-                        "rounded-[var(--radius-sm)] border border-[var(--color-border)]",
-                        "bg-[var(--color-surface)] text-[var(--color-text-secondary)]",
-                        "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
-                        "text-[12px] font-semibold transition-colors"
-                    )}
-                >
-                    <Globe className="h-3.5 w-3.5" />
-                    EN
-                </button>
-
                 {/* Currency — visible sm+ */}
                 <div className="hidden sm:block">
                     <CurrencySelector
                         className={cn(
-                            "h-9 rounded-[var(--radius-sm)] text-[11px] font-bold",
-                            "bg-[var(--color-surface)] border border-[var(--color-border)] px-3",
+                            "h-9 rounded-[var(--radius-sm)] text-[11px] font-bold px-3",
+                            "bg-[var(--color-surface)] border-0",
                             "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]",
                             "transition-colors"
                         )}

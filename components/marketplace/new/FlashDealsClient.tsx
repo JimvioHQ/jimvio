@@ -111,8 +111,9 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
       className="product-tap-nav group relative flex w-full min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card transition-[transform,box-shadow] duration-150 ease-out hover:shadow-[var(--shadow-card)]"
     >
       <div className="relative aspect-square w-full overflow-hidden bg-muted/50">
-        <img
-          src={getImage(d.images)}
+        <ProductCardVideoMedia
+          productId={d.id}
+          product={d}
           alt={d.name}
           imageSrc={displayImage}
           previewImages={previewImages}

@@ -6,43 +6,30 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
 import { useCurrency } from "@/context/CurrencyContext";
-import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
-import { Settings, BarChart3 } from "lucide-react";
-import type { EarningsDataset } from "@/types/dashboard";
+import { Plus, RefreshCw, TrendingUp } from "lucide-react";
+import type { Community, EarningsDataset } from "@/types/dashboard";
 import { QuickActionsStrip } from "@/components/dashboard/QuickActionsStrip";
-import { WorkspaceHeroCards, type WorkspaceCardStats } from "@/components/workspace/WorkspaceHeroCards";
-import { MissionControlSummaries } from "@/components/dashboard/MissionControlSummaries";
+import { KpiCards } from "@/components/dashboard/kpi-cards";
+import { RevenueChart } from "@/components/dashboard/revenue-chart";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { TopProducts } from "@/components/dashboard/top-products";
+import { DashboardPanel } from "@/components/dashboard/dashboard-sections";
 import {
-  DashboardMessagesPanel,
-  type DashboardMessagePreview,
-} from "@/components/dashboard/DashboardMessagesPanel";
-import { mapProductToStockRow, type StockQuantityRow } from "@/components/dashboard/StockQuantityTable";
-import {
-  DashboardEmptyState,
-  DashboardPanel,
-  DashboardSectionHeader,
-  SECTION_LINKS,
-} from "@/components/dashboard/dashboard-sections";
-import {
-  DashboardStatSkeleton,
-  DashboardGridSkeleton,
+    DashboardGridSkeleton,
 } from "@/components/dashboard/dashboard-skeleton";
 
-import type { StatCard, ActivityItem, Product, Community } from "@/types/dashboard";
+import type { StatCard, ActivityItem, Product } from "@/types/dashboard";
+import type { DashboardMessagePreview } from "@/components/dashboard/DashboardMessagesPanel";
+import { mapProductToStockRow, type StockQuantityRow } from "@/components/dashboard/StockQuantityTable";
 import { QUICK_ACTIONS } from "@/data/dashboard";
 
-const JimvioAIPanel = dynamic(
+const LazyAIPanel = dynamic(
   () =>
     import("@/components/ui/jimvio-ai-panel").then((m) => ({
       default: m.JimvioAIPanel,
     })),
-  {
-    loading: () => (
-      <div className="h-[280px] animate-pulse rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]" />
-    ),
-    ssr: false,
-  }
+  { ssr: false }
 );
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -184,6 +171,15 @@ function notifToActivity(n: NotifRow): ActivityItem {
   };
 }
 
+type DateRange = "7d" | "14d" | "30d" | "all";
+
+const DATE_RANGE_DAYS: Record<DateRange, number> = {
+  "7d": 7,
+  "14d": 14,
+  "30d": 30,
+  all: 365,
+};
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DashboardHomePage() {
@@ -191,6 +187,7 @@ export default function DashboardHomePage() {
   const { formatMoney } = useCurrency();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [profile, setProfile] = useState<{
     full_name: string | null;
     email: string;
@@ -199,28 +196,33 @@ export default function DashboardHomePage() {
   const [wallet, setWallet] = useState<WalletRow | null>(null);
   const [statCards, setStatCards] = useState<StatCard[]>([]);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
-  const [recentNotifications, setRecentNotifications] = useState<NotifRow[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [communities, setCommunities] = useState<Community[]>([]);
-  const [recentOrders, setRecentOrders] = useState<OrderRow[]>([]);
   const [earningsLabels, setEarningsLabels] = useState<string[]>([]);
   const [earningsDatasets, setEarningsDatasets] = useState<EarningsDataset[]>([]);
   const [dashboardMessages, setDashboardMessages] = useState<DashboardMessagePreview[]>([]);
-  const [stockRows, setStockRows] = useState<StockQuantityRow[]>([]);
-  const [isVendor, setIsVendor] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>("14d");
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [, setCommunities] = useState<Community[]>([]);
+  const [, setRecentOrders] = useState<OrderRow[]>([]);
+  const [, setStockRows] = useState<StockQuantityRow[]>([]);
+  const [, setIsVendor] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (showRefresh = false) => {
+    if (showRefresh) setRefreshing(true);
+    else setLoading(true);
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
       setLoading(false);
+      setRefreshing(false);
       return;
     }
 
     const userId = user.id;
-    const since14 = subDays(new Date(), 14).toISOString();
+    const rangeDays = DATE_RANGE_DAYS[dateRange];
+    const sinceDate = subDays(new Date(), rangeDays).toISOString();
 
     const [
       profileRes,
@@ -248,14 +250,14 @@ export default function DashboardHomePage() {
         .from("transactions")
         .select("amount, type, direction, created_at")
         .eq("user_id", userId)
-        .gte("created_at", since14)
+        .gte("created_at", sinceDate)
         .order("created_at", { ascending: true }),
       supabase
         .from("notifications")
         .select("id, type, title, message, is_read, created_at, action_url")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(8),
+        .limit(10),
       supabase
         .from("products")
         .select(
@@ -328,9 +330,8 @@ export default function DashboardHomePage() {
     }
 
     const txs = (txRes.data ?? []) as TxRow[];
-    const days = 14;
     const chartEnd = new Date();
-    const chartStart = subDays(chartEnd, days - 1);
+    const chartStart = subDays(chartEnd, rangeDays - 1);
     const range = eachDayOfInterval({
       start: startOfDay(chartStart),
       end: startOfDay(chartEnd),
@@ -377,7 +378,7 @@ export default function DashboardHomePage() {
         value: formatMoney(w?.total_earned ?? 0, "USD"),
         change: w?.pending_balance
           ? `${formatMoney(w.pending_balance, "USD")} pending`
-          : "All time",
+          : "No pending",
         up: true,
         chartColor: "#3b82f6",
         data: spark("marketplace"),
@@ -409,8 +410,7 @@ export default function DashboardHomePage() {
     ];
 
     const allNotifs = (notifsRes.data ?? []) as NotifRow[];
-    const activity = allNotifs.filter((n) => !n.is_read).map((n) => notifToActivity(n));
-    const recentNotifications = allNotifs.slice(0, 5);
+    const activity = allNotifs.map((n) => notifToActivity(n));
 
     const buyerConvs = buyerConvsRes.data ?? [];
     const convIds = buyerConvs.map((c: { id: string }) => c.id);
@@ -472,6 +472,8 @@ export default function DashboardHomePage() {
         price: formatMoney(displayPrice, p.currency ?? "USD"),
         commission: `${p.sale_count} sold`,
         sold: `${p.sale_count} sold`,
+        saleCount: p.sale_count,
+        priceValue: displayPrice,
         imageUrl: imgUrl,
         imageColor: `hsl(${hue},65%,45%)`,
       };
@@ -544,286 +546,246 @@ export default function DashboardHomePage() {
     setWallet(w);
     setStatCards(cards);
     setActivityItems(activity);
-    setRecentNotifications(recentNotifications);
     setProducts(mappedProducts);
     setCommunities(mappedCommunities);
     setRecentOrders(displayOrders);
     setEarningsLabels(labels);
     setEarningsDatasets(realDatasets);
     setDashboardMessages(mappedMessages);
+    setLastUpdated(new Date());
     setLoading(false);
-  }, [supabase, formatMoney]);
+    setRefreshing(false);
+  }, [supabase, formatMoney, dateRange]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const displayName = profile?.full_name ?? profile?.email?.split("@")[0] ?? "there";
+  const totalEarned = wallet?.total_earned ?? 0;
+  const totalEarnedFormatted = formatMoney(totalEarned, "USD");
+
+  const heroSub = statCards.slice(1);
 
   return (
-    <div className="min-h-screen bg-bg font-[family-name:var(--font-dm-sans)]">
+    <div className="min-h-screen bg-bg font-[family-name:var(--font-family-body)]">
       <DashboardPage className="px-2 sm:px-0">
-        <PageHeader
-          eyebrow="Mission Control"
-          title={loading ? "Loading…" : `Welcome back, ${displayName}`}
-          subtitle="Your unified command center across all Jimvio workspaces."
-          actions={
-            <>
-              <Link
-                href="/dashboard/analytics"
-                className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-text-primary)]"
-              >
-                <BarChart3 className="h-3.5 w-3.5" />
-                Analytics
-              </Link>
-              <Link
-                href="/dashboard/settings"
-                className="inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-[12.5px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-colors hover:text-[var(--color-text-primary)]"
-              >
-                <Settings className="h-3.5 w-3.5" />
-                Settings
-              </Link>
-            </>
-          }
-        />
-
         {loading ? (
-          <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-48 animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
-              />
-            ))}
+          <div className="space-y-5">
+            <div className="h-[200px] animate-pulse rounded-2xl bg-[var(--color-surface-secondary)]" />
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-[108px] animate-pulse rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+                />
+              ))}
+            </div>
+            <DashboardGridSkeleton />
           </div>
-        ) : (
-          <WorkspaceHeroCards
-            className="mt-6"
-            stats={{
-              marketplace: {
-                status: "Active",
-                stat: String(recentOrders.length),
-                statLabel: "Recent orders",
-                recentActivity:
-                  recentOrders[0]?.order_number
-                    ? `Latest order #${recentOrders[0].order_number}`
-                    : "Browse the marketplace",
-              },
-              communities: {
-                status: "Connected",
-                stat: String(communities.length),
-                statLabel: "Communities",
-                recentActivity:
-                  communities[0]?.name
-                    ? `Active in ${communities[0].name}`
-                    : "Explore communities",
-              },
-              affiliates: {
-                status: "Ready",
-                stat: wallet
-                  ? formatMoney(Number(wallet.available_balance ?? 0), "USD")
-                  : "—",
-                statLabel: "Available balance",
-                recentActivity: "Promote products and earn",
-              },
-              ugc: {
-                status: "Open",
-                stat:
-                  activityItems.filter((a) => a.title.toLowerCase().includes("campaign")).length > 0
-                    ? String(
-                        activityItems.filter((a) => a.title.toLowerCase().includes("campaign")).length
-                      )
-                    : "—",
-                statLabel: "Campaign activity",
-                recentActivity: "Discover creator campaigns",
-              },
-            } satisfies WorkspaceCardStats}
-          />
-        )}
-
-        {loading ? (
-          <DashboardStatSkeleton />
-        ) : (
-          <div className="mt-6">
-            <MissionControlSummaries
-              summaries={[
-                {
-                  id: "marketplace",
-                  title: "Marketplace",
-                  value: String(recentOrders.length),
-                  sub: "Recent orders across your account",
-                  href: "/marketplace",
-                  accent: "#fd5000",
-                },
-                {
-                  id: "community",
-                  title: "Community",
-                  value: String(communities.length),
-                  sub: "Active memberships",
-                  href: "/communities",
-                  accent: "#7c3aed",
-                },
-                {
-                  id: "revenue",
-                  title: "Revenue",
-                  value: wallet
-                    ? formatMoney(Number(wallet.available_balance ?? 0), "USD")
-                    : "—",
-                  sub: "Available wallet balance",
-                  href: "/dashboard/payments",
-                  accent: "#0d9488",
-                },
-                {
-                  id: "store",
-                  title: "Store Health",
-                  value: isVendor ? String(stockRows.length) : "—",
-                  sub: isVendor ? "SKUs tracked in inventory" : "Activate seller account",
-                  href: isVendor ? "/dashboard/vendor/store" : "/dashboard/activate/vendor",
-                  accent: "#2563eb",
-                },
-              ]}
-            />
-          </div>
-        )}
-
-        {loading ? (
-          <DashboardGridSkeleton />
         ) : (
         <>
-        <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-12">
-          <div className="xl:col-span-8 flex flex-col gap-5">
-            <section aria-label="Recent activity">
-              <DashboardSectionHeader
-                title="Recent Activity"
-                href={SECTION_LINKS.notifications}
-                linkLabel="All notifications"
-              />
-              <DashboardPanel>
-                {activityItems.length === 0 ? (
-                  <DashboardEmptyState
-                    title="No recent activity"
-                    description="Orders, messages, and updates will appear here."
-                    href={SECTION_LINKS.marketplace}
-                    linkLabel="Browse marketplace"
+        {/* ─── Earnings Hero ─── */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f0804] via-[#2a1508] to-[#4d2000] p-6 sm:p-8">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40" />
+          <div className="relative z-10">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-medium text-white/50">
+                  Dashboard
+                </p>
+                <h1 className="mt-1 text-sm font-semibold text-white/80">
+                  Welcome back, {displayName}
+                </h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5">
+                  <RefreshCw
+                    className={`size-3 text-white/60 ${refreshing ? "animate-spin" : ""}`}
                   />
-                ) : (
-                  <ul className="divide-y divide-[var(--color-border)]">
-                    {activityItems.map((item, i) => (
-                      <li
-                        key={`${item.title}-${i}`}
-                        className="flex items-start justify-between gap-3 px-4 py-3"
+                  <span className="text-xs font-medium text-white/50">
+                    {lastUpdated ? timeAgo(lastUpdated.toISOString()) : "Loading"}
+                  </span>
+                </div>
+                <Link
+                  href="/dashboard/products/add"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#fd5000] px-3.5 text-xs font-bold text-white transition-all hover:bg-[#e84800] active:scale-95"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add Product
+                </Link>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap items-end gap-6 sm:gap-10">
+              <div>
+                <p className="text-xs font-medium text-white/50">Total earnings</p>
+                <p className="mt-1 text-3xl font-black text-white sm:text-4xl leading-none font-[family-name:var(--font-family-display)]">
+                  {totalEarnedFormatted}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3 pb-1">
+                {heroSub.map((s) => (
+                  <div
+                    key={s.label}
+                    className="rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 min-w-[80px]"
+                  >
+                    <p className="text-lg font-bold leading-none text-white tabular-nums">
+                      {s.value}
+                    </p>
+                    <p className="mt-1 text-xs font-medium text-white/50">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ─── KPI Cards ─── */}
+        <KpiCards cards={statCards} className="mt-5" />
+
+        {/* ─── Chart toolbar ─── */}
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="size-4 text-[var(--color-accent)]" />
+            <span className="text-sm font-bold text-[var(--color-text-primary)]">Revenue</span>
+            <div className="relative">
+              <select
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value as DateRange)}
+                className="h-7 appearance-none rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] pl-2.5 pr-6 text-xs font-medium text-[var(--color-text-secondary)] outline-none cursor-pointer hover:border-[var(--color-border-strong)] transition-colors"
+              >
+                <option value="7d">7 days</option>
+                <option value="14d">14 days</option>
+                <option value="30d">30 days</option>
+                <option value="all">All time</option>
+              </select>
+              <svg className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-[var(--color-text-muted)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+              </svg>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            {lastUpdated && (
+              <span className="text-xs text-[var(--color-text-muted)]">
+                Updated {timeAgo(lastUpdated.toISOString())}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => fetchData(true)}
+              disabled={refreshing}
+              className="inline-flex size-7 items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-50"
+              aria-label="Refresh data"
+            >
+              <RefreshCw className={`size-3 ${refreshing ? "animate-spin" : ""}`} />
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-1 grid grid-cols-1 gap-5 lg:grid-cols-12">
+          <div className="lg:col-span-7 xl:col-span-8">
+            <RevenueChart
+              labels={earningsLabels}
+              datasets={earningsDatasets}
+            />
+          </div>
+
+          <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-5">
+            <ActivityFeed items={activityItems} />
+
+            {dashboardMessages.length > 0 && (
+              <DashboardPanel className="p-0">
+                <div className="px-5 pt-4 pb-3 border-b border-[var(--color-border)]">
+                  <p className="text-sm font-bold text-[var(--color-text-primary)]">
+                    Messages
+                  </p>
+                </div>
+                <ul className="divide-y divide-[var(--color-border)]">
+                  {dashboardMessages.slice(0, 3).map((msg) => (
+                    <li key={msg.id}>
+                      <Link
+                        href={msg.href ?? ""}
+                        className="flex items-center gap-3 px-5 py-3 hover:bg-[var(--color-surface-secondary)]/40 transition-colors"
                       >
-                        <div className="min-w-0">
-                          <p className="text-[12px] font-semibold text-[var(--color-text-primary)] truncate">
-                            {item.title}
+                        <span
+                          className="grid size-8 shrink-0 place-items-center rounded-full text-xs font-bold text-white"
+                          style={{ background: msg.color }}
+                        >
+                          {msg.initials}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">
+                            {msg.name}
                           </p>
-                          <p className="text-[11px] text-[var(--color-text-muted)] truncate">
-                            {item.sub}
+                          <p className="text-xs text-[var(--color-text-muted)] truncate">
+                            {msg.preview}
                           </p>
                         </div>
-                        <span className="text-[10px] text-[var(--color-text-muted)] shrink-0">
-                          {item.time}
+                        <span className="text-xs text-[var(--color-text-muted)] shrink-0">
+                          {msg.time}
                         </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/dashboard/messages"
+                  className="block px-5 py-2.5 text-xs font-semibold text-[var(--color-accent)] hover:bg-[var(--color-surface-secondary)]/40 transition-colors text-center"
+                >
+                  All messages
+                </Link>
               </DashboardPanel>
-            </section>
+            )}
           </div>
+        </div>
 
-          <div className="xl:col-span-4 flex flex-col gap-5">
-            <section aria-label="Messages">
-              <DashboardMessagesPanel messages={dashboardMessages} />
-            </section>
-
-            <section aria-label="Notifications">
-              <DashboardSectionHeader
-                title="Notifications"
-                href={SECTION_LINKS.notifications}
-              />
-              <DashboardPanel>
-                {recentNotifications.length === 0 ? (
-                  <DashboardEmptyState
-                    title="You're all caught up"
-                    description="New alerts will show up here."
-                  />
-                ) : (
-                  <ul className="divide-y divide-[var(--color-border)]">
-                    {recentNotifications.map((n) => (
-                      <li key={n.id} className="px-4 py-3">
-                        <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">
-                          {n.title}
-                        </p>
-                        <p className="text-[11px] text-[var(--color-text-muted)] line-clamp-2">
-                          {n.message}
-                        </p>
-                        <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">
-                          {timeAgo(n.created_at)}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </DashboardPanel>
-            </section>
-
-            <section aria-label="Community overview">
-              <DashboardSectionHeader
-                title="Community Overview"
-                href={SECTION_LINKS.communities}
-              />
-              <DashboardPanel>
-                {communities.length === 0 ? (
-                  <DashboardEmptyState
-                    title="No communities yet"
-                    description="Join or create a community to connect with your audience."
-                    href="/communities"
-                    linkLabel="Explore communities"
-                  />
-                ) : (
-                  <ul className="divide-y divide-[var(--color-border)]">
-                    {communities.map((c) => (
-                      <li key={c.id}>
-                        <Link
-                          href={c.slug ? `/communities/${c.slug}` : SECTION_LINKS.communities}
-                          className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--color-surface-secondary)] transition-colors"
-                        >
-                          <span
-                            className="grid size-9 place-items-center rounded-full text-[11px] font-bold text-white"
-                            style={{ background: c.color }}
-                          >
-                            {c.initial}
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-[12px] font-semibold text-[var(--color-text-primary)] truncate">
-                              {c.name}
-                            </p>
-                            <p className="text-[11px] text-[var(--color-text-muted)]">
-                              {c.members} members
-                            </p>
-                          </div>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </DashboardPanel>
-            </section>
+        <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
+          <div className="lg:col-span-7 xl:col-span-8">
+            <TopProducts products={products} />
           </div>
+          <div className="lg:col-span-5 xl:col-span-4" />
+        </div>
+
+        <div className="mt-8">
+          <QuickActionsStrip actions={QUICK_ACTIONS} compact />
         </div>
         </>
         )}
-
-        <div className="mt-8 space-y-8 border-t border-[var(--color-border)] pt-8">
-          <QuickActionsStrip actions={QUICK_ACTIONS} />
-
-          <section aria-label="AI insights">
-            <DashboardSectionHeader title="AI Insights" />
-            <JimvioAIPanel />
-          </section>
-        </div>
       </DashboardPage>
+
+      {/* ─── Floating AI button ─── */}
+      <FloatingAIButton />
     </div>
+  );
+}
+
+// ─── Floating AI Button ───────────────────────────────────────────────────────
+
+function FloatingAIButton() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      {open && (
+        <div className="fixed bottom-20 right-4 z-50 w-[340px] sm:w-[380px]">
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
+            <div className="p-4 max-h-[420px] overflow-y-auto">
+              <LazyAIPanel compact />
+            </div>
+          </div>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="fixed bottom-4 right-4 z-50 flex size-12 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-[#fd5000] to-[#ff8c42] text-white shadow-lg transition-all hover:scale-105 active:scale-95"
+        aria-label="Toggle AI Assistant"
+      >
+        <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+        </svg>
+      </button>
+    </>
   );
 }

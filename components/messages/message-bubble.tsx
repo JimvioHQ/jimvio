@@ -2,7 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { Package, FileText, Image as ImageIcon, Quote } from "lucide-react";
+import {  Package, FileText, Image as ImageIcon, Quote  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

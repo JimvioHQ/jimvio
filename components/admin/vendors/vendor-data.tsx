@@ -5,7 +5,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import Link from "next/link";
-import { Package, Star, Users, TrendingUp, Sparkles } from "lucide-react";
+import {  Package, Star, Users, TrendingUp, Sparkles  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { useState } from "react";
 import { RowArrow, StatusPill } from "@/components/ui/admin";
 import { formatAdminWalletMoney } from "@/lib/admin/format-money";
@@ -68,7 +69,7 @@ export function VendorRow({ v, last }: { v: any; last: boolean }) {
             {/* ── Products ── */}
             <td className="px-3 py-2.5">
                 <div className="flex items-center gap-1.5">
-                    <Package className="h-3 w-3 text-[var(--color-text-muted)] shrink-0" />
+                    <VscPackage className="h-3 w-3 text-[var(--color-text-muted)] shrink-0" />
                     <span className="text-[13px] font-semibold text-[var(--color-text-primary)] tabular-nums">
                         {v.products_count ?? 0}
                     </span>

@@ -8,7 +8,6 @@ import {
   Link2,
   Megaphone,
   MessageSquare,
-  Package,
   Radio,
   Settings,
   ShoppingBag,
@@ -24,7 +23,6 @@ import {
 const MAP: Record<string, LucideIcon> = {
   home: Home,
   store: Store,
-  package: Package,
   "shopping-bag": ShoppingBag,
   users: Users,
   "users-round": Users,

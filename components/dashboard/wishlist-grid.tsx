@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Heart, Eye, Package, Star } from "lucide-react";
+import {  Heart, Eye, Package, Star  } from "lucide-react"
+import { VscPackage } from "react-icons/vsc";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass";
 import { useCurrency } from "@/context/CurrencyContext";

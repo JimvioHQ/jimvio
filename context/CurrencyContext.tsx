@@ -169,34 +169,38 @@ export function useCurrency(): CurrencyContextValue {
 }
 
 export function CurrencySelector({
-  className,
-  style,
+    className,
+    style,
+    disablePortal,
 }: {
-  className?: string;
-  style?: React.CSSProperties;
+    className?: string;
+    style?: React.CSSProperties;
+    disablePortal?: boolean;
 }) {
-  const { userCurrency, setUserCurrency, loading } = useCurrency();
-  const [mounted, setMounted] = useState(false);
+    const { userCurrency, setUserCurrency, loading } = useCurrency();
+    const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  const displayValue = mounted ? userCurrency : "RWF";
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+    const displayValue = mounted ? userCurrency : "RWF";
 
-  return (
-    <CustomSelect
-      menuPortalTarget={typeof document !== "undefined" ? document.body : null}
-      className={cn(
-        "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]",
-        className
-      )}
-      options={(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => {
-        const c = SUPPORTED_CURRENCIES[code];
-        return { label: `${c.symbol} — ${c.name}`, value: code };
-      })}
-      textSize="xs"
-      value={displayValue}
-      onChange={setUserCurrency}
-    />
-  );
+    const portalTarget = !disablePortal && typeof document !== "undefined" ? document.body : null;
+
+    return (
+        <CustomSelect
+            menuPortalTarget={portalTarget}
+            className={cn(
+                "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]",
+                className
+            )}
+            options={(Object.keys(SUPPORTED_CURRENCIES) as CurrencyCode[]).map((code) => {
+                const c = SUPPORTED_CURRENCIES[code];
+                return { label: `${c.symbol} — ${c.name}`, value: code };
+            })}
+            textSize="xs"
+            value={displayValue}
+            onChange={setUserCurrency}
+        />
+    );
 }
