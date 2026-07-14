@@ -1,10 +1,3 @@
-export const FEED_STATS = {
-  onlineNow: { value: "2,458", delta: "+245 today" },
-  liveSessions: { value: "18", delta: "+6 today" },
-  voiceRooms: { value: "7", delta: "+2 today" },
-  activeCommunities: { value: "32", delta: "+6 today" },
-};
-
 export const CREATOR_CHALLENGE = {
   progress: "2/3",
   title: "Finish 3 live sessions",

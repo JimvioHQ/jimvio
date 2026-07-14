@@ -149,7 +149,7 @@ export default function CampaignAnalyticsPage() {
                      contentStyle={{ background: "#fff", border: "1px solid #f2f2f2", borderRadius: 24, fontSize: 13, fontWeight: "bold", boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}
                      labelStyle={{ color: "#0f172a", marginBottom: 4 }}
                    />
-                   <Bar dataKey="deployed" name="Budget Spent" fill="#f97316" radius={[0, 12, 12, 0]} barSize={32} />
+                   <Bar dataKey="deployed" name="Budget Spent" fill="var(--color-accent)" radius={[0, 12, 12, 0]} barSize={32} />
                  </BarChart>
                </ResponsiveContainer>
              ) : (

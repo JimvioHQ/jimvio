@@ -74,7 +74,7 @@ function getEarnOptions(stats?: HomepageHeroProps["platformStats"]) {
       label: "Become a vendor",
       stat: `${stats?.totalVendors || "500+"} verified vendors`,
       desc: "Scale your reach through our creator network.",
-      accentColor: "#f97316",
+      accentColor: "var(--color-accent)",
     },
   ];
 }
@@ -240,8 +240,8 @@ export function HomepageHero({
       platformStats={platformStats}
       className={cn(
         "relative group h-12 px-8 rounded-full border-none text-white text-[14px] font-bold overflow-hidden",
-        "transition-all duration-300 active:scale-[0.97] shadow-[0_8px_24px_rgba(249,115,22,0.35)]",
-        "hover:shadow-[0_12px_32px_rgba(249,115,22,0.5)]"
+        "transition-all duration-300 active:scale-[0.97] shadow-[0_8px_24px_color-mix(in srgb, var(--color-accent) 35%, transparent)]",
+        "hover:shadow-[0_12px_32px_color-mix(in srgb, var(--color-accent) 50%, transparent)]"
       )}
     >
       <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600" />
@@ -341,7 +341,7 @@ export function HomepageHero({
           >
             {/* Ambient Background Glows */}
             <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[60%] rounded-full opacity-20 pointer-events-none mix-blend-screen"
-                 style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }} />
+                 style={{ background: "radial-gradient(circle, var(--color-accent) 0%, transparent 70%)" }} />
             <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[70%] rounded-full opacity-10 pointer-events-none mix-blend-screen"
                  style={{ background: "radial-gradient(circle, #fb923c 0%, transparent 70%)" }} />
             
@@ -349,7 +349,7 @@ export function HomepageHero({
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
-                backgroundImage: "linear-gradient(rgba(249,115,22,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(249,115,22,0.04) 1px, transparent 1px)",
+                backgroundImage: "linear-gradient(color-mix(in srgb, var(--color-accent) 4%, transparent) 1px, transparent 1px), linear-gradient(90deg, color-mix(in srgb, var(--color-accent) 4%, transparent) 1px, transparent 1px)",
                 backgroundSize: "40px 40px",
                 maskImage: "linear-gradient(to bottom, black 40%, transparent 100%)",
                 WebkitMaskImage: "linear-gradient(to bottom, black 40%, transparent 100%)",
@@ -493,7 +493,7 @@ export function HomepageHero({
                 >
                   {[
                     { icon: Globe, statKey: "countries" as const, label: "Countries", color: "#3b82f6" },
-                    { icon: Users, statKey: "users" as const, label: "Users", color: "#f97316" },
+                    { icon: Users, statKey: "users" as const, label: "Users", color: "var(--color-accent)" },
                     { icon: Zap, value: "$1M+", label: "Paid out", color: "#22c55e" },
                   ].map(({ icon: Icon, statKey, value, label, color }) => (
                     <div
@@ -530,8 +530,8 @@ export function HomepageHero({
                     href="/ugc"
                     className="flex items-center justify-between px-3 py-2 rounded-lg transition-all hover:brightness-95 active:scale-[0.98]"
                     style={{
-                      background: "linear-gradient(135deg, rgba(249,115,22,0.08) 0%, rgba(249,115,22,0.04) 100%)",
-                      border: "1px solid rgba(249,115,22,0.18)",
+                      background: "linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 8%, transparent) 0%, color-mix(in srgb, var(--color-accent) 4%, transparent) 100%)",
+                      border: "1px solid color-mix(in srgb, var(--color-accent) 18%, transparent)",
                     }}
                   >
                     <div className="flex items-center gap-2">

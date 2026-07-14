@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import IPhoneMockup from "@/components/ui/iphone-mockup";
 import { cn } from "@/lib/utils";
-const ORANGE = "#fd5000";
+const ORANGE = "var(--color-accent)";
 const GREEN = "#16a34a";
 const PURPLE = "#7c3aed";
 const BLUE = "#2563eb";

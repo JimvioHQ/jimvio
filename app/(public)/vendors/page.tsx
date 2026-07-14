@@ -109,7 +109,7 @@ export default async function VendorsPage() {
                   
                   <div className="flex items-center gap-4 text-sm text-[var(--color-text-secondary)] mb-4">
                     <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-[var(--color-amber)] text-[var(--color-amber)]" />
+                      <Star className="h-4 w-4 fill-[var(--color-events)] text-[var(--color-events)]" />
                       <span className="font-bold text-[var(--color-text-primary)]">{vendor.rating || "4.8"}</span>
                     </div>
                     <div className="flex items-center gap-1">

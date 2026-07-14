@@ -20,6 +20,7 @@ export function canAccessSpace(
   spaceId?: string
 ): boolean {
   if (communityOwnerId && userId && communityOwnerId === userId) return true;
+  if (!spaceAccessType) return true;
   const t = spaceAccessType.toLowerCase();
   if (t === "free") return true;
   if (!isMembershipActive(membership)) return false;

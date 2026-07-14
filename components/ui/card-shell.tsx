@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 interface CardCtx {
     accent: string;
 }
-const CardContext = createContext<CardCtx>({ accent: "#fd5000" });
+const CardContext = createContext<CardCtx>({ accent: "var(--color-accent)" });
 const useCard = () => useContext(CardContext);
 
 interface CardShellProps {
@@ -24,7 +24,7 @@ interface CardShellProps {
 
 function CardShellRoot({
     href,
-    accent = "#fd5000",
+    accent = "var(--color-accent)",
     className,
     children,
     onClick,
@@ -309,7 +309,7 @@ interface ActionButtonProps {
 }
 
 const hoverMap = {
-    orange: "hover:bg-orange-50 hover:text-[#fd5000] hover:border-[#fd5000]/20 dark:hover:bg-orange-500/10",
+    orange: "hover:bg-orange-50 hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/20 dark:hover:bg-orange-500/10",
     indigo: "hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400",
     emerald: "hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 dark:hover:bg-emerald-500/10",
 };
@@ -336,7 +336,7 @@ function ActionButton({
     const hoverClass =
         hoverColor === "indigo"
             ? "hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400"
-            : "hover:bg-orange-50 hover:text-[#fd5000] hover:border-[#fd5000]/20 dark:hover:bg-orange-500/10 dark:hover:text-orange-400";
+            : "hover:bg-orange-50 hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/20 dark:hover:bg-orange-500/10 dark:hover:text-orange-400";
 
     function handleClick(e: React.MouseEvent) {
         e.preventDefault();

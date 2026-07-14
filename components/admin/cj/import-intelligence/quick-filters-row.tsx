@@ -47,8 +47,8 @@ export function QuickFiltersRow({
                 "inline-flex h-7 shrink-0 items-center gap-1 rounded-full border px-2.5 text-[11px] font-medium transition-all",
                 disabled && "cursor-not-allowed opacity-40",
                 active
-                  ? "border-[#FF5A1F] bg-[#FF5A1F] text-white"
-                  : "border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#FF5A1F]/40"
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-white"
+                  : "border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[var(--color-accent)]/40"
               )}
             >
               <span>{emoji}</span>

@@ -40,11 +40,11 @@ export function MobileSearchOverlay({
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -16, opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 320 }}
-            className="fixed top-20 inset-x-0 z-[9991] md:hidden bg-white dark:bg-[#0a0a0a] border-b border-stone-100 dark:border-white/8 shadow-2xl"
+            className="fixed top-20 inset-x-0 z-[9991] md:hidden bg-white dark:bg-[var(--color-ink-deep)] border-b border-stone-100 dark:border-white/8 shadow-2xl"
           >
             <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-              <div className="flex-1 flex items-center gap-2.5 bg-stone-50 dark:bg-[#111] border border-[#fd5000]/40 focus-within:border-[#fd5000] rounded-full px-4 h-11 transition-colors duration-150">
-                <Search className="h-4 w-4 text-[#fd5000] shrink-0" />
+              <div className="flex-1 flex items-center gap-2.5 bg-stone-50 dark:bg-[#111] border border-[var(--color-accent)]/40 focus-within:border-[var(--color-accent)] rounded-full px-4 h-11 transition-colors duration-150">
+                <Search className="h-4 w-4 text-[var(--color-accent)] shrink-0" />
                 <input
                   autoFocus
                   value={query}
@@ -64,7 +64,7 @@ export function MobileSearchOverlay({
               </div>
               <button
                 onClick={onClose}
-                className="text-[13px] font-semibold text-[#fd5000] shrink-0 px-1 active:opacity-60 transition-opacity"
+                className="text-[13px] font-semibold text-[var(--color-accent)] shrink-0 px-1 active:opacity-60 transition-opacity"
               >
                 Cancel
               </button>
@@ -91,7 +91,7 @@ export function MobileSearchOverlay({
                           <p className="text-[13px] font-semibold text-stone-800 dark:text-white leading-tight">{item.label}</p>
                           <p className="text-[11px] text-stone-400 mt-0.5">{item.count}</p>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-stone-300 dark:text-stone-600 shrink-0 group-hover:text-[#fd5000] transition-colors" />
+                        <ChevronRight className="h-4 w-4 text-stone-300 dark:text-stone-600 shrink-0 group-hover:text-[var(--color-accent)] transition-colors" />
                       </button>
                     ))}
                   </div>
@@ -143,7 +143,7 @@ export function MobileSearchOverlay({
                               <Icon className="h-4 w-4 text-stone-400" />
                             </div>
                             <span className="text-[13px] font-semibold text-stone-800 dark:text-white flex-1">{l.label}</span>
-                            <ChevronRight className="h-4 w-4 text-stone-300 dark:text-stone-600 shrink-0 group-hover:text-[#fd5000] transition-colors" />
+                            <ChevronRight className="h-4 w-4 text-stone-300 dark:text-stone-600 shrink-0 group-hover:text-[var(--color-accent)] transition-colors" />
                           </Link>
                         );
                       })}
@@ -154,12 +154,12 @@ export function MobileSearchOverlay({
                     className="w-full mt-3 flex items-center gap-3 p-3.5 rounded-xl bg-orange-50 dark:bg-orange-500/10 hover:bg-orange-100 dark:hover:bg-orange-500/15 border border-orange-100 dark:border-orange-500/20 transition-colors"
                   >
                     <div className="h-9 w-9 rounded-xl bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center shrink-0">
-                      <Search className="h-4 w-4 text-[#fd5000]" />
+                      <Search className="h-4 w-4 text-[var(--color-accent)]" />
                     </div>
-                    <span className="text-[13px] font-bold text-[#fd5000] text-left flex-1">
+                    <span className="text-[13px] font-bold text-[var(--color-accent)] text-left flex-1">
                       Search all results for &ldquo;{query}&rdquo;
                     </span>
-                    <ChevronRight className="h-4 w-4 text-[#fd5000] shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-[var(--color-accent)] shrink-0" />
                   </button>
                 </>
               )}

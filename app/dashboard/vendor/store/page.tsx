@@ -148,7 +148,7 @@
 //           </div>
 //           <h2 className="text-xl sm:text-2xl font-bold text-stone-900 dark:text-white mb-2 tracking-tight">No Storefront Found</h2>
 //           <p className="text-stone-500 text-xs sm:text-sm mb-8 sm:mb-10 leading-relaxed font-medium">Initialize your first storefront to start selling on Jimvio.</p>
-//           <Button asChild className="w-full h-11 sm:h-12 rounded-xl bg-[#fd5000] text-white hover:bg-orange-600 font-bold active:scale-95 transition-all text-xs sm:text-sm shadow-sm border-none">
+//           <Button asChild className="w-full h-11 sm:h-12 rounded-xl bg-[var(--color-accent)] text-white hover:bg-orange-600 font-bold active:scale-95 transition-all text-xs sm:text-sm shadow-sm border-none">
 //              <Link href="/dashboard/activate/vendor">Create a Storefront <ArrowRight className="h-4 w-4 ml-2" /></Link>
 //           </Button>
 //         </GlassCard>
@@ -244,7 +244,7 @@
 
 //                     <div className="space-y-1">
 //                        <div className="flex items-center gap-2">
-//                           <Badge variant="secondary" className="bg-[#fd5000] hover:bg-[#fd5000] text-white border-none text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">Verified Vendor</Badge>
+//                           <Badge variant="secondary" className="bg-[var(--color-accent)] hover:bg-[var(--color-accent)] text-white border-none text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-sm">Verified Vendor</Badge>
 //                        </div>
 //                        {editing ? (
 //                           <Input 
@@ -274,7 +274,7 @@
 //                                 Public Page <ExternalLink className="h-3 w-3 ml-1.5" />
 //                              </Button>
 //                           </Link>
-//                           <Button onClick={() => setEditing(true)} className="flex-1 sm:flex-none h-9 sm:h-10 px-5 sm:px-6 rounded-xl bg-[#fd5000] text-white hover:bg-[#e04700] font-bold text-[9px] sm:text-[10px] uppercase tracking-widest shadow-sm active:scale-95 transition-all border-none">
+//                           <Button onClick={() => setEditing(true)} className="flex-1 sm:flex-none h-9 sm:h-10 px-5 sm:px-6 rounded-xl bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] font-bold text-[9px] sm:text-[10px] uppercase tracking-widest shadow-sm active:scale-95 transition-all border-none">
 //                              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit Profile
 //                           </Button>
 //                        </>
@@ -661,7 +661,7 @@ export default function VendorStorePage() {
                      Create your first storefront to start selling on Jimvio.
                   </p>
                </div>
-               <Button asChild className="w-full h-11 rounded-xl bg-[#fd5000] hover:bg-[#e04700] text-white font-semibold text-[11px] tracking-widest border-none">
+               <Button asChild className="w-full h-11 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-semibold text-[11px] tracking-widest border-none">
                   <Link href="/dashboard/activate/vendor">Create storefront <ArrowRight className="h-4 w-4 ml-2" /></Link>
                </Button>
             </div>
@@ -796,7 +796,7 @@ export default function VendorStorePage() {
                               </Link>
                            </Button>
                            <Button onClick={() => setEditing(true)}
-                              className="h-9 px-5 rounded-xl bg-[#fd5000] hover:bg-[#e04700] text-white text-[11px] font-semibold tracking-widest border-none shadow-sm">
+                              className="h-9 px-5 rounded-xl bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-[11px] font-semibold tracking-widest border-none shadow-sm">
                               <Pencil className="h-3.5 w-3.5 mr-1.5" /> Edit
                            </Button>
                         </>
@@ -807,8 +807,8 @@ export default function VendorStorePage() {
 
             {/* ── Verified badge row ── */}
             <div className="flex items-center gap-3">
-               <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest px-3 py-1.5 rounded-full bg-[#fd5000]/10 text-[#fd5000] border border-[#fd5000]/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#fd5000]" />
+               <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest px-3 py-1.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] border border-[var(--color-accent)]/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />
                   Verified vendor
                </span>
                <span className="text-[11px] text-muted-foreground font-medium">
@@ -916,10 +916,10 @@ export default function VendorStorePage() {
 
                   {/* Promo CTA */}
                   <div className="rounded-2xl bg-stone-900 dark:bg-stone-950 text-white p-6 relative overflow-hidden border border-white/5">
-                     <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-[#fd5000]/20 blur-2xl pointer-events-none" />
+                     <div className="absolute -top-6 -right-6 w-28 h-28 rounded-full bg-[var(--color-accent)]/20 blur-2xl pointer-events-none" />
                      <div className="relative">
-                        <div className="w-8 h-8 rounded-xl bg-[#fd5000]/20 flex items-center justify-center mb-4">
-                           <Megaphone className="h-4 w-4 text-[#fd5000]" />
+                        <div className="w-8 h-8 rounded-xl bg-[var(--color-accent)]/20 flex items-center justify-center mb-4">
+                           <Megaphone className="h-4 w-4 text-[var(--color-accent)]" />
                         </div>
                         <h3 className="text-[15px] font-semibold tracking-tight mb-1.5">Boost your sales</h3>
                         <p className="text-[12px] text-white/50 leading-relaxed mb-5">

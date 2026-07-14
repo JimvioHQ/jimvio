@@ -37,7 +37,7 @@ function SortHeader({
     );
 }
 
-const RANK_COLORS = ["#fd5000", "#8b5cf6", "#3b82f6", "#22c55e"];
+const RANK_COLORS = ["var(--color-accent)", "#8b5cf6", "#3b82f6", "#22c55e"];
 
 export function TopProducts({ products, className }: TopProductsProps) {
     const [sortKey, setSortKey] = useState<SortKey>("sold");

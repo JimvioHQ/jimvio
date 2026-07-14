@@ -52,104 +52,177 @@ function fmtCount(n: number | null | undefined): string {
 
 // ─── Skeleton components ──────────────────────────────────────────────────────
 
-function SkeletonRow({ width = "full" }: { width?: "full" | "3/4" | "2/3" | "1/2" }) {
+function SkeletonRow({ width = "full" }: { width?: "full" | "3/4" | "1/2" | "1/3" }) {
   const widthClass = {
     full: "w-full",
     "3/4": "w-3/4",
-    "2/3": "w-2/3",
     "1/2": "w-1/2",
+    "1/3": "w-1/3",
   }[width];
   return (
     <div
-      className={`h-4 ${widthClass} animate-pulse rounded-md`}
+      className={`h-4 ${widthClass} rounded-md transition-opacity duration-200`}
       style={{ background: "var(--color-border)" }}
     />
   );
 }
 
-function CategorySkeleton() {
-  const widths: Array<"full" | "3/4" | "2/3" | "1/2"> = ["full", "3/4", "full", "2/3", "3/4", "full", "1/2", "2/3"];
+function StaggeredPulse({ delay = 0, children }: { delay?: number; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-2">
-      {/* Fake select box */}
-      <div
-        className="h-8 w-full animate-pulse rounded-md"
-        style={{ background: "var(--color-border)" }}
-      />
-      <div className="mt-1 flex flex-col gap-1.5">
-        {widths.map((w, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div
-              className="size-3.5 shrink-0 animate-pulse rounded"
-              style={{ background: "var(--color-border)", animationDelay: `${i * 60}ms` }}
-            />
-            <div
-              className={`h-3 ${w === "full" ? "w-full" : w === "3/4" ? "w-3/4" : w === "2/3" ? "w-2/3" : "w-1/2"} animate-pulse rounded`}
-              style={{ background: "var(--color-border)", animationDelay: `${i * 60}ms` }}
-            />
-          </div>
-        ))}
-      </div>
+    <div
+      style={{
+        animationDelay: `${delay}ms`,
+        animationDuration: "1.2s",
+      } as React.CSSProperties}
+      className="animate-pulse-reduced"
+    >
+      {children}
     </div>
   );
 }
 
-function FilterSkeleton() {
+function CategoriesSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
-      {/* Shipping section */}
-      <div className="flex flex-col gap-2">
-        <div className="h-3 w-1/3 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-        <div className="flex flex-col gap-1.5">
-          {["full", "3/4", "2/3", "full", "1/2"].map((w, i) => (
-            <div key={i} className="flex items-center gap-2" style={{ animationDelay: `${i * 50}ms` }}>
-              <div className="size-3.5 shrink-0 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-              <div
-                className={`h-3 animate-pulse rounded ${w === "full" ? "w-full" : w === "3/4" ? "w-3/4" : w === "2/3" ? "w-2/3" : "w-1/2"}`}
-                style={{ background: "var(--color-border)" }}
-              />
+    <div className="rounded-md p-3 space-y-3" role="status" aria-label="Loading categories">
+      <div className="flex items-center justify-between">
+        <StaggeredPulse delay={0}><SkeletonRow width="1/3" /></StaggeredPulse>
+        <StaggeredPulse delay={60}><SkeletonRow width="1/6" /></StaggeredPulse>
+      </div>
+      <StaggeredPulse delay={120}>
+        <div className="h-10 w-full animate-pulse-reduced rounded-md" style={{ background: "var(--color-border)" }} />
+      </StaggeredPulse>
+      <StaggeredPulse delay={180}><SkeletonRow width="1/2" /></StaggeredPulse>
+    </div>
+  );
+}
+
+function FiltersSkeleton({ type }: { type: "physical" | "digital" }) {
+  return (
+    <div className="rounded-md p-3 space-y-4" role="status" aria-label="Loading filters">
+      <div className="flex items-center justify-between">
+        <StaggeredPulse delay={0}><SkeletonRow width="1/4" /></StaggeredPulse>
+        <StaggeredPulse delay={60}><SkeletonRow width="1/5" /></StaggeredPulse>
+      </div>
+
+      {type === "physical" && (
+        <>
+          {/* Shipping From */}
+          <div className="space-y-2">
+            <StaggeredPulse delay={120}><SkeletonRow width="1/3" /></StaggeredPulse>
+            <div className="space-y-1.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <StaggeredPulse delay={180 + i * 40}>
+                    <div className="size-3.5 shrink-0 rounded" style={{ background: "var(--color-border)" }} />
+                  </StaggeredPulse>
+                  <StaggeredPulse delay={180 + i * 40}><SkeletonRow width="2/3" /></StaggeredPulse>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Price Range */}
+      <div className="space-y-2">
+        <StaggeredPulse delay={type === "physical" ? 300 : 120}><SkeletonRow width="1/4" /></StaggeredPulse>
+        <StaggeredPulse delay={type === "physical" ? 340 : 160}>
+          <div className="h-2 w-full animate-pulse-reduced rounded-full" style={{ background: "var(--color-border)" }} />
+        </StaggeredPulse>
+        <StaggeredPulse delay={type === "physical" ? 380 : 200}>
+          <div className="flex justify-between">
+            <SkeletonRow width="1/8" />
+            <SkeletonRow width="1/5" />
+          </div>
+        </StaggeredPulse>
+      </div>
+
+      {type === "physical" && (
+        <>
+          {/* Delivery Time */}
+          <div className="space-y-2">
+            <StaggeredPulse delay={420}><SkeletonRow width="2/5" /></StaggeredPulse>
+            <div className="space-y-1.5">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <StaggeredPulse delay={460 + i * 40}>
+                    <div className="size-3.5 shrink-0 rounded" style={{ background: "var(--color-border)" }} />
+                  </StaggeredPulse>
+                  <StaggeredPulse delay={460 + i * 40}><SkeletonRow width="2/3" /></StaggeredPulse>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Rating */}
+      <div className="space-y-2">
+        <StaggeredPulse delay={type === "physical" ? 500 : 240}><SkeletonRow width="1/3" /></StaggeredPulse>
+        <div className="space-y-1.5">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex items-center gap-2">
+              <StaggeredPulse delay={type === "physical" ? 540 + i * 40 : 280 + i * 40}>
+                <div className="size-3.5 shrink-0 rounded" style={{ background: "var(--color-border)" }} />
+              </StaggeredPulse>
+              <StaggeredPulse delay={type === "physical" ? 540 + i * 40 : 280 + i * 40}><SkeletonRow width="1/4" /></StaggeredPulse>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Price range section */}
-      <div className="flex flex-col gap-2">
-        <div className="h-3 w-1/4 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-        <div className="h-2 w-full animate-pulse rounded-full" style={{ background: "var(--color-border)" }} />
-        <div className="flex justify-between">
-          <div className="h-3 w-6 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-          <div className="h-3 w-10 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
+      {/* Apply Filters button */}
+      <StaggeredPulse delay={type === "physical" ? 620 : 360}>
+        <div className="mt-3 h-8 w-full animate-pulse-reduced rounded-lg" style={{ background: "var(--color-accent)" }} />
+      </StaggeredPulse>
+    </div>
+  );
+}
+
+function PromotionalSkeleton() {
+  return (
+    <div className="space-y-3" role="status" aria-label="Loading promotional content">
+      {/* AI Shopping Assistant skeleton */}
+      <div className="rounded-xl p-3.5 space-y-2" style={{ background: "var(--color-surface-secondary)" }}>
+        <div className="flex items-center gap-2">
+          <StaggeredPulse delay={0}>
+            <div className="size-3.5 rounded" style={{ background: "var(--color-border)" }} />
+          </StaggeredPulse>
+          <StaggeredPulse delay={40}><SkeletonRow width="1/2" /></StaggeredPulse>
+          <StaggeredPulse delay={80}><SkeletonRow width="1/6" /></StaggeredPulse>
+        </div>
+        <StaggeredPulse delay={120}><SkeletonRow width="3/4" /></StaggeredPulse>
+        <StaggeredPulse delay={160}><SkeletonRow width="full" /></StaggeredPulse>
+        <div className="flex gap-1">
+          <StaggeredPulse delay={200}><SkeletonRow width="1/3" /></StaggeredPulse>
+          <StaggeredPulse delay={240}><SkeletonRow width="1/3" /></StaggeredPulse>
+          <StaggeredPulse delay={280}><SkeletonRow width="1/3" /></StaggeredPulse>
         </div>
       </div>
 
-      {/* Delivery section */}
-      <div className="flex flex-col gap-2">
-        <div className="h-3 w-2/5 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-        {["full", "3/4", "2/3"].map((w, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="size-3.5 shrink-0 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-            <div
-              className={`h-3 animate-pulse rounded ${w === "full" ? "w-full" : w === "3/4" ? "w-3/4" : "w-2/3"}`}
-              style={{ background: "var(--color-border)" }}
-            />
-          </div>
-        ))}
+      {/* Elite Club skeleton */}
+      <div className="rounded-xl p-3.5 space-y-3" style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}>
+        <div className="flex items-center gap-2">
+          <StaggeredPulse delay={0}>
+            <div className="size-3.5 rounded" style={{ background: "var(--color-border)" }} />
+          </StaggeredPulse>
+          <StaggeredPulse delay={40}><SkeletonRow width="1/3" /></StaggeredPulse>
+          <StaggeredPulse delay={80}><SkeletonRow width="1/6" /></StaggeredPulse>
+        </div>
+        <div className="space-y-1">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <StaggeredPulse delay={120 + i * 40}>
+                <div className="size-1.5 shrink-0 rounded-full" style={{ background: "var(--color-border)" }} />
+              </StaggeredPulse>
+              <StaggeredPulse delay={120 + i * 40}><SkeletonRow width="1/2" /></StaggeredPulse>
+            </div>
+          ))}
+        </div>
+        <StaggeredPulse delay={240}>
+          <div className="h-8 w-full animate-pulse-reduced rounded-lg" style={{ background: "var(--color-accent)" }} />
+        </StaggeredPulse>
       </div>
-
-      {/* Rating section */}
-      <div className="flex flex-col gap-2">
-        <div className="h-3 w-1/3 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-        {[0, 1].map((i) => (
-          <div key={i} className="flex items-center gap-2">
-            <div className="size-3.5 shrink-0 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-            <div className="h-3 w-16 animate-pulse rounded" style={{ background: "var(--color-border)" }} />
-          </div>
-        ))}
-      </div>
-
-      {/* Apply button skeleton */}
-      <div className="h-8 w-full animate-pulse rounded-lg" style={{ background: "var(--color-border)" }} />
     </div>
   );
 }
@@ -366,14 +439,14 @@ export function Sidebar({ type = "physical" }: Props) {
   const allCategories = [...sidebarCategories];
 
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-0 self-start">
+    <aside className="flex w-full shrink-0 flex-col gap-0 self-start" style={{ minWidth: "15rem", maxWidth: "20rem", width: "100%" }}>
 
       <div className="flex flex-col gap-3.5">
 
-        {/* ── Categories ── */}
-        <div className="rounded-md p-3">
+        {/* ── Categories (Primary) ── */}
+        <section className="rounded-md p-3 border border-[var(--color-border)] bg-[var(--color-surface)]" aria-labelledby="categories-heading">
           <div className="mb-2.5 flex items-center justify-between">
-            <span className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>
+            <h2 id="categories-heading" className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>
               Categories
               <span
                 className="ml-1.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white"
@@ -381,7 +454,7 @@ export function Sidebar({ type = "physical" }: Props) {
               >
                 {type === "digital" ? "Digital" : "Physical"}
               </span>
-            </span>
+            </h2>
             <button
               onClick={() => setCategory("")}
               className="text-[10px] font-semibold"
@@ -392,7 +465,7 @@ export function Sidebar({ type = "physical" }: Props) {
           </div>
 
           {loadingCats ? (
-            <CategorySkeleton />
+            <CategoriesSkeleton />
           ) : (
             <div>
               <CustomSelect
@@ -418,12 +491,12 @@ export function Sidebar({ type = "physical" }: Props) {
               )}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* ── Filters ── */}
-        <div className="rounded-md p-3">
+        {/* ── Filters (Primary) ── */}
+        <section className="rounded-md p-3 border border-[var(--color-border)] bg-[var(--color-surface)]" aria-labelledby="filters-heading">
           <div className="mb-2.5 flex items-center justify-between">
-            <span className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>Filters</span>
+            <h2 id="filters-heading" className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>Filters</h2>
             <button
               onClick={clearFilters}
               className="rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors hover:opacity-80"
@@ -434,7 +507,7 @@ export function Sidebar({ type = "physical" }: Props) {
           </div>
 
           {loadingFilters ? (
-            <FilterSkeleton />
+            <FiltersSkeleton type={type} />
           ) : (
             <div className="flex flex-col gap-3">
 
@@ -515,115 +588,130 @@ export function Sidebar({ type = "physical" }: Props) {
                 </div>
               </div>
 
+              {/* Digital type empty state for physical-only filters */}
+              {type === "digital" && (
+                <div className="rounded-md py-2 px-3 text-center text-[10px]" style={{ color: "var(--color-text-muted)", background: "var(--color-surface-secondary)" }}>
+                  Shipping & delivery filters available for physical products
+                </div>
+              )}
+
             </div>
           )}
 
           <button
             type="button"
             onClick={applyFilters}
-            className="mt-3 w-full rounded-lg py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="mt-3 w-full rounded-lg py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-1"
             style={{ background: "var(--color-accent)" }}
             disabled={loadingFilters}
           >
             Apply Filters
           </button>
-        </div>
+        </section>
 
-        {/* ── AI Shopping Assistant ── */}
-        <div
-          className="rounded-xl p-3.5"
-          style={{
-            background: JIMVIO_ORANGE.gradient135,
-            boxShadow: type === "digital" ? JIMVIO_ORANGE.glow : undefined,
-          }}
-        >
-          <div className="mb-1 flex items-center gap-1.5">
-            <Sparkles className="size-3.5 text-white" />
-            <span className="text-xs font-black text-white">AI Shopping Assistant</span>
-            <span
-              className="rounded-full px-1.5 py-0.5 text-[8px] font-bold text-white"
-              style={{ background: "rgba(255,255,255,0.25)" }}
-            >
-              Beta
-            </span>
-          </div>
-          <p className="mb-2.5 text-[10px] leading-relaxed text-white/75">
-            {type === "digital"
-              ? "Find top digital products, courses and tools."
-              : "Find winning products, trending items and profitable opportunities."}
-          </p>
-          <form
-            className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 ring-1 ring-white/10 focus-within:ring-white/30 transition-all"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (aiQuery.trim()) { setCategory(""); setAiQuery(""); }
+        {/* ── Promotional Content (Secondary) ── */}
+        <div className="flex flex-col gap-3" style={{ opacity: 0.9 }}>
+
+          {/* ── AI Shopping Assistant ── */}
+          <section
+            className="rounded-xl p-3.5"
+            style={{
+              background: JIMVIO_ORANGE.gradient135,
+              boxShadow: type === "digital" ? JIMVIO_ORANGE.glow : undefined,
             }}
+            aria-labelledby="ai-assistant-heading"
           >
-            <input
-              value={aiQuery}
-              onChange={(e) => setAiQuery(e.target.value)}
-              placeholder={type === "digital" ? "Find digital products..." : "Ask AI anything..."}
-              className="w-full bg-transparent text-[11px] text-white outline-none placeholder:text-white/55"
-            />
-            <button
-              type="submit"
-              className="rounded p-0.5 transition-colors hover:bg-white/20"
-            >
-              <Send className="size-3 text-white" />
-            </button>
-          </form>
-          <div className="mt-2.5 flex flex-wrap gap-1 text-[9px] font-semibold">
-            {(type === "digital"
-              ? ["Top courses", "AI tools", "Templates"]
-              : ["Winning products", "Viral now", "High commission"]
-            ).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setCategory("")}
-                className="rounded-full bg-white/15 px-2 py-0.5 text-white transition-colors hover:bg-white/30"
+            <div className="mb-1 flex items-center gap-1.5">
+              <Sparkles className="size-3.5 text-white" aria-hidden="true" />
+              <h3 id="ai-assistant-heading" className="text-xs font-black text-white">AI Shopping Assistant</h3>
+              <span
+                className="rounded-full px-1.5 py-0.5 text-[8px] font-bold text-white"
+                style={{ background: "rgba(255,255,255,0.25)" }}
               >
-                {t}
+                Beta
+              </span>
+            </div>
+            <p className="mb-2.5 text-[10px] leading-relaxed text-white/75">
+              {type === "digital"
+                ? "Find top digital products, courses and tools."
+                : "Find winning products, trending items and profitable opportunities."}
+            </p>
+            <form
+              className="flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 ring-1 ring-white/10 focus-within:ring-white/30 transition-all"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (aiQuery.trim()) { setCategory(""); setAiQuery(""); }
+              }}
+            >
+              <input
+                value={aiQuery}
+                onChange={(e) => setAiQuery(e.target.value)}
+                placeholder={type === "digital" ? "Find digital products..." : "Ask AI anything..."}
+                className="w-full bg-transparent text-[11px] text-white outline-none placeholder:text-white/55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 rounded"
+              />
+              <button
+                type="submit"
+                className="rounded p-0.5 transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+              >
+                <Send className="size-3 text-white" aria-hidden="true" />
               </button>
-            ))}
-          </div>
-        </div>
+            </form>
+            <div className="mt-2.5 flex flex-wrap gap-1 text-[9px] font-semibold">
+              {(type === "digital"
+                ? ["Top courses", "AI tools", "Templates"]
+                : ["Winning products", "Viral now", "High commission"]
+              ).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setCategory("")}
+                  className="rounded-full bg-white/15 px-2 py-0.5 text-white transition-colors hover:bg-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </section>
 
-        {/* ── Elite Club ── */}
-        <div
-          className="rounded-xl p-3.5"
-          style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
-        >
-          <div className="mb-2 flex items-center gap-1.5">
-            <Crown className="size-3.5" style={{ color: "var(--color-accent)" }} />
-            <span className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>
-              Jimvio Elite Club
-            </span>
-            <span
-              className="ml-auto rounded-full px-1.5 py-0.5 text-[8px] font-bold text-white"
+          {/* ── Elite Club ── */}
+          <section
+            className="rounded-xl p-3.5"
+            style={{ background: "var(--color-surface-secondary)", border: "1px solid var(--color-border)" }}
+            aria-labelledby="elite-club-heading"
+          >
+            <div className="mb-2 flex items-center gap-1.5">
+              <Crown className="size-3.5" style={{ color: "var(--color-accent)" }} aria-hidden="true" />
+              <h3 id="elite-club-heading" className="text-xs font-black" style={{ color: "var(--color-text-primary)" }}>
+                Jimvio Elite Club
+              </h3>
+              <span
+                className="ml-auto rounded-full px-1.5 py-0.5 text-[8px] font-bold text-white"
+                style={{ background: "var(--color-accent)" }}
+              >
+                New
+              </span>
+            </div>
+            <ul className="mb-3 space-y-1 text-[10px]" style={{ color: "var(--color-text-secondary)" }}>
+              {["Exclusive perks", "Higher commissions", "VIP support"].map((item) => (
+                <li key={item} className="flex items-center gap-1.5">
+                  <span
+                    className="size-1.5 shrink-0 rounded-full"
+                    style={{ background: "var(--color-accent)" }}
+                    aria-hidden="true"
+                  />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="w-full rounded-lg py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30 focus-visible:ring-offset-1"
               style={{ background: "var(--color-accent)" }}
             >
-              New
-            </span>
-          </div>
-          <ul className="mb-3 space-y-1 text-[10px]" style={{ color: "var(--color-text-secondary)" }}>
-            {["Exclusive perks", "Higher commissions", "VIP support"].map((item) => (
-              <li key={item} className="flex items-center gap-1.5">
-                <span
-                  className="size-1.5 shrink-0 rounded-full"
-                  style={{ background: "var(--color-accent)" }}
-                />
-                {item}
-              </li>
-            ))}
-          </ul>
-          <button
-            type="button"
-            className="w-full rounded-lg py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
-            style={{ background: "var(--color-accent)" }}
-          >
-            Join Elite Now
-          </button>
+              Join Elite Now
+            </button>
+          </section>
+
         </div>
 
       </div>

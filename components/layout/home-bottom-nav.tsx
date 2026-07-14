@@ -33,7 +33,7 @@ export function HomeBottomNav() {
               href={href}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 flex-1 py-2 min-w-0 rounded-sm transition-colors",
-                isActive ? "text-[#f97316]" : "text-[#9ca3af]"
+                isActive ? "text-[var(--color-accent)]" : "text-[#9ca3af]"
               )}
             >
               <Icon className={cn("h-5 w-5 shrink-0", isActive && "stroke-[2.5]")} />

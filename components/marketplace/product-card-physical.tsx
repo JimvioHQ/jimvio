@@ -204,7 +204,7 @@ export function ProductCardPhysical({
           "hover:-translate-y-0.5",
           outOfStock && "opacity-70",
           inCart
-            ? "ring-1 ring-orange-500/30 shadow-[0_8px_24px_-12px_rgba(249,115,22,0.35)]"
+            ? "ring-1 ring-orange-500/30 shadow-[0_8px_24px_-12px_color-mix(in srgb, var(--color-accent) 35%, transparent)]"
             : "ring-1 ring-[var(--color-border)] hover:shadow-[0_12px_32px_-16px_rgba(0,0,0,0.18)]"
         )}
       >
@@ -337,7 +337,7 @@ export function ProductCardPhysical({
             <LocalizedPrice
               amount={price}
               currency={p.currency}
-              className="text-[12px] font-bold tabular-nums leading-none tracking-tight text-[#FF5A1F] md:text-[14px]"
+              className="text-[12px] font-bold tabular-nums leading-none tracking-tight text-[var(--color-accent)] md:text-[14px]"
             />
             {onSale && compareAtPrice != null && (
               <LocalizedPrice

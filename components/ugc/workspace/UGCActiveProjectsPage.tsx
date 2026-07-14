@@ -74,7 +74,7 @@ export function UGCActiveProjectsPage() {
           title="No active projects"
           description="Join a campaign and get approved to unlock your creator workspace."
           action={
-            <Button asChild className="rounded-xl bg-[#FF5A1F]">
+            <Button asChild className="rounded-xl bg-[var(--color-accent)]">
               <Link href="/ugc">Discover campaigns</Link>
             </Button>
           }
@@ -99,7 +99,7 @@ export function UGCActiveProjectsPage() {
                   {days !== null && days > 0 ? ` · ${days}d left` : ""}
                 </p>
                 <div className="mt-3 flex gap-2">
-                  <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
+                  <Button asChild size="sm" className="rounded-xl bg-[var(--color-accent)]">
                     <Link href={`/ugc/${row.campaign?.id}/dashboard`}>Open workspace</Link>
                   </Button>
                   <Button asChild size="sm" variant="outline" className="rounded-xl">

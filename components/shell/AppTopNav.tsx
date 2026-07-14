@@ -75,21 +75,21 @@ export function AppTopNav({
   return (
     <>
       {showUtilityBar && (
-        <div className="hidden border-b border-gray-200 bg-white lg:block">
+        <div className="hidden border-b border-[var(--color-border)] bg-[var(--color-bg)] lg:block">
           <div className="mx-auto flex h-7 max-w-[1600px] items-center justify-between px-6">
             <div className="flex items-center gap-5">
-              <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                <Globe className="h-3 w-3 text-orange-500" />
+              <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                <Globe className="h-3 w-3 text-[var(--color-accent)]" />
                 Global Sourcing Network
               </span>
-              <CurrencySelector className="h-5 border-0 bg-transparent px-1 text-[10px] font-semibold text-gray-400 ring-0 hover:text-gray-900 focus:ring-0" />
+              <CurrencySelector className="h-5 border-0 bg-transparent px-1 text-[10px] font-semibold text-[var(--color-text-muted)] ring-0 hover:text-[var(--color-text-primary)] focus:ring-0" />
             </div>
             <div className="flex items-center gap-5">
-              <Link href="/help" className="text-[10px] font-semibold uppercase text-gray-400 hover:text-orange-500">
+              <Link href="/help" className="text-[10px] font-semibold uppercase text-[var(--color-text-muted)] hover:text-[var(--color-accent)]">
                 Support
               </Link>
-              <span className="h-3 w-px bg-gray-200" />
-              <Link href="/vendors" className="text-[10px] font-semibold uppercase text-gray-400 hover:text-gray-900">
+              <span className="h-3 w-px bg-[var(--color-border)]" />
+              <Link href="/vendors" className="text-[10px] font-semibold uppercase text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
                 Sell on Jimvio
               </Link>
             </div>
@@ -97,7 +97,7 @@ export function AppTopNav({
         </div>
       )}
 
-      <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-gray-200 bg-white px-3 sm:gap-x-3 sm:px-5 lg:px-6">
+      <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-[var(--color-border)] bg-[var(--color-bg)] px-3 sm:gap-x-3 sm:px-5 lg:px-6">
         <Link href="/" className="shrink-0" aria-label="Jimvio home">
           <JimvioLogo href={undefined} size="md" />
         </Link>
@@ -117,8 +117,8 @@ export function AppTopNav({
                 className={cn(
                   "relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors xl:px-2.5 xl:text-[13px]",
                   active
-                    ? "text-orange-500 after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-orange-500 xl:after:left-2.5 xl:after:right-2.5"
-                    : "text-gray-600 hover:text-gray-900"
+                    ? "text-[var(--color-accent)] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-0.5 after:rounded-full after:bg-[var(--color-accent)] xl:after:left-2.5 xl:after:right-2.5"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
                 )}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -130,21 +130,21 @@ export function AppTopNav({
         </nav>
 
         <div className="col-start-3 flex shrink-0 items-center justify-end gap-1 sm:gap-1.5">
-          <div className="hidden h-9 w-[132px] items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 min-[1060px]:flex xl:w-[152px]">
-            <Search className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+          <div className="hidden h-9 w-[132px] items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 min-[1060px]:flex xl:w-[152px]">
+            <Search className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
             <input
               placeholder="Search..."
               aria-label="Search"
-              className="min-w-0 flex-1 bg-transparent text-[12px] text-gray-900 outline-none placeholder:text-gray-400"
+              className="min-w-0 flex-1 bg-transparent text-[12px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
             />
-            <kbd className="hidden shrink-0 rounded border border-gray-200 bg-white px-1 py-px text-[9px] font-medium text-gray-400 2xl:inline">
+            <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1 py-px text-[9px] font-medium text-[var(--color-text-muted)] 2xl:inline">
               ⌘K
             </kbd>
           </div>
 
           <button
             type="button"
-            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-orange-500 px-2.5 text-[12px] font-semibold text-white transition-colors hover:bg-orange-600 sm:gap-1.5 sm:px-3"
+            className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[var(--color-accent)] px-2.5 text-[12px] font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)] sm:gap-1.5 sm:px-3"
           >
             <Plus className="h-3.5 w-3.5 shrink-0" />
             <span className="hidden whitespace-nowrap sm:inline">Create</span>
@@ -154,11 +154,11 @@ export function AppTopNav({
           <Link
             href="/notifications"
             aria-label="Notifications"
-            className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
+            className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
           >
             <Bell className="h-[17px] w-[17px]" />
             {notificationCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-red-500 px-1 text-[9px] font-semibold text-white">
+              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-[var(--color-danger)] px-1 text-[9px] font-semibold text-white">
                 {notificationCount > 9 ? "9+" : notificationCount}
               </span>
             )}
@@ -167,11 +167,11 @@ export function AppTopNav({
           <Link
             href="/cart"
             aria-label="Cart"
-            className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
+            className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
           >
             <ShoppingCart className="h-[17px] w-[17px]" />
             {cartCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-orange-500 px-1 text-[9px] font-semibold text-white">
+              <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-[var(--color-accent)] px-1 text-[9px] font-semibold text-white">
                 {cartCount > 9 ? "9+" : cartCount}
               </span>
             )}
@@ -185,8 +185,8 @@ export function AppTopNav({
               className={cn(
                 "inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors sm:px-3 sm:text-xs",
                 dashboardActive
-                  ? "border-orange-500 bg-orange-50 text-orange-600"
-                  : "border-gray-200 text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600"
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                  : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-light)] hover:text-[var(--color-accent)]"
               )}
             >
               <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />

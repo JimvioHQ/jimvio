@@ -63,7 +63,7 @@ export function NumInput({
             type="number" min={min} max={max} step={step} placeholder={placeholder}
             value={value ?? ""}
             onChange={e => onChange(e.target.value === "" ? null : Number(e.target.value))}
-            className="tabular-nums focus-visible:ring-1 focus-visible:ring-[var(--color-accent,#fd5000)] focus-visible:border-[var(--color-accent,#fd5000)]"
+            className="tabular-nums focus-visible:ring-1 focus-visible:ring-[var(--color-accent,var(--color-accent))] focus-visible:border-[var(--color-accent,var(--color-accent))]"
             style={baseInputStyle}
         />
     )
@@ -81,7 +81,7 @@ export function TextInput({
         <Input
             type={type} value={value} placeholder={placeholder}
             onChange={e => onChange(e.target.value)}
-            className="focus-visible:ring-1 focus-visible:ring-[var(--color-accent,#fd5000)] focus-visible:border-[var(--color-accent,#fd5000)]"
+            className="focus-visible:ring-1 focus-visible:ring-[var(--color-accent,var(--color-accent))] focus-visible:border-[var(--color-accent,var(--color-accent))]"
             style={baseInputStyle}
         />
     )
@@ -360,8 +360,8 @@ export function SaveBar({
         <div
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-5 py-3 animate-in slide-in-from-bottom-4 fade-in-0 duration-200"
             style={{
-                background: "#0a0a0a",
-                border: "1px solid #1f1f1f",
+                background: "var(--color-ink-deep)",
+                border: "1px solid var(--color-border)",
                 borderRadius: "var(--radius-lg)",
                 boxShadow: "var(--shadow-xl)",
             }}

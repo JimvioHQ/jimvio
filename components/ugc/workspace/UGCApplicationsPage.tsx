@@ -110,7 +110,7 @@ export function UGCApplicationsPage() {
           title="Sign in required"
           description="Log in to view your campaign applications."
           action={
-            <Button asChild className="rounded-xl bg-[#FF5A1F]">
+            <Button asChild className="rounded-xl bg-[var(--color-accent)]">
               <Link href="/login?redirect=/ugc/applications">Sign in</Link>
             </Button>
           }
@@ -122,7 +122,7 @@ export function UGCApplicationsPage() {
           title="Creator profile required"
           description="Complete your creator profile to apply to campaigns."
           action={
-            <Button asChild className="rounded-xl bg-[#FF5A1F]">
+            <Button asChild className="rounded-xl bg-[var(--color-accent)]">
               <Link href="/c/profile">Set up profile</Link>
             </Button>
           }
@@ -133,7 +133,7 @@ export function UGCApplicationsPage() {
           title="No applications yet"
           description="Discover campaigns and submit your first application."
           action={
-            <Button asChild className="rounded-xl bg-[#FF5A1F]">
+            <Button asChild className="rounded-xl bg-[var(--color-accent)]">
               <Link href="/ugc">Discover campaigns</Link>
             </Button>
           }
@@ -169,7 +169,7 @@ export function UGCApplicationsPage() {
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {row.status === "accepted" && row.campaign?.id ? (
-                  <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
+                  <Button asChild size="sm" className="rounded-xl bg-[var(--color-accent)]">
                     <Link href={`/ugc/${row.campaign.id}/dashboard`}>Open project</Link>
                   </Button>
                 ) : null}

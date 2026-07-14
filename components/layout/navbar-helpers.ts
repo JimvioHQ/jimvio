@@ -26,7 +26,7 @@ export function useScrollDirection(threshold = 8) {
 export const TRENDING_SEARCHES: {
   label: string; count: string; icon: LucideIcon; color: string; bg: string;
 }[] = [
-  { label: "Wireless chargers", count: "142 products", icon: BatteryCharging, color: "#f97316", bg: "bg-orange-50 dark:bg-orange-500/10" },
+  { label: "Wireless chargers", count: "142 products", icon: BatteryCharging, color: "var(--color-accent)", bg: "bg-orange-50 dark:bg-orange-500/10" },
   { label: "Wireless earbuds", count: "89 products", icon: Headphones, color: "#3b82f6", bg: "bg-blue-50 dark:bg-blue-500/10" },
   { label: "Laptop accessories", count: "230 products", icon: Laptop, color: "#8b5cf6", bg: "bg-violet-50 dark:bg-violet-500/10" },
   { label: "LED desk lamps", count: "77 products", icon: Lamp, color: "#eab308", bg: "bg-yellow-50 dark:bg-yellow-500/10" },

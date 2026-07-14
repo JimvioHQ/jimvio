@@ -8,7 +8,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { getImage, fmtCount, cn } from "@/lib/utils";
 import { CommunityLetterAvatar } from "@/components/community/community-letter-avatar";
 
-const ORANGE = "#fd5000";
+const ORANGE = "var(--color-accent)";
 const GREEN = "#16a34a";
 const ROTATE_MS = 4000;
 
@@ -343,7 +343,7 @@ export function HeroFeaturedShowcase({
               onClick={() => setIndex(i)}
               className={cn(
                 "h-1.5 rounded-full transition-all duration-300",
-                i === index ? "w-6 bg-[#fd5000]" : "w-1.5 bg-[var(--color-border)] hover:bg-[var(--color-text-muted)]"
+                i === index ? "w-6 bg-[var(--color-accent)]" : "w-1.5 bg-[var(--color-border)] hover:bg-[var(--color-text-muted)]"
               )}
             />
           ))}

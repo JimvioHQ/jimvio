@@ -112,7 +112,7 @@ export default async function FlashDealsPage() {
       {/* Bulk Sourcing Extra */}
       <section className="py-20 max-w-[var(--container-max)] mx-auto px-4 sm:px-6 mb-20">
         <div className="bg-gradient-to-br from-ink-dark to-ink-darker rounded-sm p-12 flex flex-col md:flex-row items-center gap-10 border border-white/5 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.1),transparent_70%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,color-mix(in srgb, var(--color-accent) 10%, transparent),transparent_70%)]" />
           <div className="flex-1 text-center md:text-left relative z-10">
             <h2 className="text-3xl font-black text-white mb-4">Bulk Sourcing?</h2>
             <p className="text-white/60 mb-8 max-w-md">Get even lower prices when you order in containers. Connect with our dedicated B2B sourcing agents.</p>

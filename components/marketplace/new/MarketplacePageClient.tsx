@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Zap, ChevronRight, ArrowRight,
-  Sparkles, Camera, Search,
+  Sparkles, Camera, Search, Filter, X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchProductVideosMap, attachProductVideos } from "@/lib/product-videos";
@@ -143,7 +143,7 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
   return (
     <Link
       href={`/marketplace?type=${type}&category=${c.slug}`}
-      className="group relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-56 sm:h-64 lg:h-72 rounded-2xl overflow-hidden border border-white/10 bg-[#122019] hover:border-[#FD5000]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#FD5000]/5"
+      className="group relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-56 sm:h-64 lg:h-72 rounded-2xl overflow-hidden border border-white/10 bg-[var(--color-ink)] hover:border-[var(--color-accent)]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5"
       aria-label={`Browse ${c.name}`}
     >
       <img
@@ -156,13 +156,13 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
           setFallbackIdx((i) => (i + 1 < fallbacks.length ? i + 1 : i));
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#122019] via-[#122019]/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-ink)] via-[var(--color-ink)]/40 to-transparent" />
       <div className="relative h-full p-4 lg:p-6 flex flex-col justify-end">
         <div>
-          <h3 className="font-display font-semibold text-lg lg:text-xl tracking-tight text-[#F3EFE4] group-hover:text-[#FD5000] transition-colors">{c.name}</h3>
-          <p className="mt-0.5 font-mono text-xs text-[#F3EFE4]/40">{count}</p>
+          <h3 className="font-display font-semibold text-lg lg:text-xl tracking-tight text-[var(--color-paper)] group-hover:text-[var(--color-accent)] transition-colors">{c.name}</h3>
+          <p className="mt-0.5 font-mono text-xs text-[var(--color-paper)]/40">{count}</p>
         </div>
-        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-body text-[#F3EFE4]/60 group-hover:text-[#F3EFE4]/90 transition-colors">
+        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-body text-[var(--color-paper)]/60 group-hover:text-[var(--color-paper)]/90 transition-colors">
           <span>Browse</span>
           <span aria-hidden="true">→</span>
         </div>
@@ -310,6 +310,7 @@ export function MarketplacePageClient({
   const [newProductIds, setNewProductIds] = useState<Set<string>>(() => new Set());
   const [listingCount, setListingCount] = useState(startingBundle.listingCount);
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchExactMatch, setSearchExactMatch] = useState(true);
 
@@ -956,8 +957,11 @@ export function MarketplacePageClient({
   return (
     <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:gap-4">
       {/* Sidebar — fixed in viewport while product grid scrolls */}
-      <div className="hidden lg:block lg:w-[15rem] lg:shrink-0">
-        <div className="sticky top-[calc(var(--navbar-height,64px)+0.75rem)] z-20 max-h-[calc(100dvh-var(--navbar-height,64px)-1.5rem)] overflow-y-auto overflow-x-hidden overscroll-contain pr-0.5 [scrollbar-width:thin]">
+      <div className="hidden lg:block lg:w-[15rem] lg:shrink-0 lg:min-w-[15rem] lg:max-w-[20rem]">
+        <div
+          className="sidebar-container sticky top-[calc(var(--navbar-height,64px)+0.75rem)] z-20 overflow-y-auto overflow-x-hidden overscroll-contain pr-0.5 scrollbar-hide"
+          style={{ '--sidebar-height': 'calc(100dvh - var(--navbar-height, 64px) - 1.5rem)' }}
+        >
           <Sidebar type={type} />
         </div>
       </div>
@@ -1007,7 +1011,7 @@ export function MarketplacePageClient({
             <button
               type="button"
               onClick={() => openAssistant(search.trim() || undefined)}
-              className="flex shrink-0 items-center gap-1 rounded-lg bg-gradient-to-r from-[#fd5000] via-[#ff6a1a] to-[#ff8c00] px-2.5 py-1.5 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+              className="flex shrink-0 items-center gap-1 rounded-lg bg-gradient-to-r from-[var(--color-accent)] via-[var(--color-accent-hover)] to-[#ff8c00] px-2.5 py-1.5 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
               <Sparkles className="size-3.5" />
               AI
@@ -1066,9 +1070,65 @@ export function MarketplacePageClient({
                 {t}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              className="grid size-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-primary)] transition-colors hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35"
+              aria-label="Open filters"
+            >
+              <Filter className="size-4.5" />
+              <span className="sr-only">Filters</span>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Sidebar Drawer */}
+      {mobileSidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Filters">
+          <div
+            className="absolute inset-0 bg-black/50 transition-opacity"
+            onClick={() => setMobileSidebarOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="absolute inset-y-0 right-0 w-full max-w-sm bg-[var(--color-bg)] shadow-xl flex flex-col animate-slide-in-right">
+            <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
+              <h2 className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>Filters</h2>
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(false)}
+                className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)]"
+                aria-label="Close filters"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <Sidebar type={type} />
+            </div>
+            <div className="p-4 border-t border-[var(--color-border)] sticky bottom-0 bg-[var(--color-bg)]">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { clearFilters(); setMobileSidebarOpen(false); }}
+                  className="flex-1 rounded-lg py-2 text-sm font-semibold transition-colors"
+                  style={{ background: "var(--color-border)", color: "var(--color-text-secondary)" }}
+                >
+                  Clear All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { applyFilters(); setMobileSidebarOpen(false); }}
+                  className="flex-1 rounded-lg py-2 text-sm font-bold text-white transition-opacity hover:opacity-90"
+                  style={{ background: "var(--color-accent)" }}
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main content below search */}
       <div className="flex min-w-0 flex-col gap-3 overflow-x-hidden lg:col-start-2 lg:row-start-2">
@@ -1103,7 +1163,7 @@ export function MarketplacePageClient({
                 <FlashDealsCountdown />
                 <Link
                   href="/marketplace/flash-deals"
-                  className="font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e]"
+                  className="font-mono text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-soft)]"
                 >
                   View All Deals
                 </Link>
@@ -1114,7 +1174,7 @@ export function MarketplacePageClient({
             </p>
           </div>
           <div className="px-4 pb-4">
-            {loading && filteredDeals.length === 0 ? (
+            {loading && displayFlashDeals.length === 0 ? (
               <SkeletonDeals />
             ) : displayFlashDeals.length > 0 ? (
               <FlashDealsClient deals={displayFlashDeals} />
@@ -1151,7 +1211,7 @@ export function MarketplacePageClient({
               <div className="mt-5 text-center sm:hidden">
                 <Link
                   href="/marketplace"
-                  className="font-mono text-sm transition-colors hover:text-[#ff7a2e]"
+                  className="font-mono text-sm transition-colors hover:text-[var(--color-accent-soft)]"
                   style={{ color: "var(--color-accent)" }}
                 >
                   All products →

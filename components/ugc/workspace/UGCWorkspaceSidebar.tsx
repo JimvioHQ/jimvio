@@ -78,8 +78,8 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
           className={cn(
             "mt-1.5 flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[10px] font-bold transition-colors",
             activeId === "mission"
-              ? "border-[#FF5A1F] bg-[#FFF0E8] text-[#FF5A1F]"
-              : "border-[#FFE4D6] bg-[#FFF8F5] text-[#FF5A1F] hover:bg-[#FFF0E8]",
+              ? "border-[var(--color-accent)] bg-[#FFF0E8] text-[var(--color-accent)]"
+              : "border-[#FFE4D6] bg-[#FFF8F5] text-[var(--color-accent)] hover:bg-[#FFF0E8]",
           )}
         >
           <LayoutDashboard className="h-3 w-3" />
@@ -100,12 +100,12 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
                   className={cn(
                     "flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-colors",
                     active
-                      ? "bg-[#FFF0E8] text-[#FF5A1F]"
+                      ? "bg-[#FFF0E8] text-[var(--color-accent)]"
                       : "text-[#4B5563] hover:bg-[#F5F6F8] hover:text-[#111827]",
                   )}
                 >
                   <Icon
-                    className={cn("h-3.5 w-3.5 shrink-0", active ? "text-[#FF5A1F]" : "text-[#9CA3AF]")}
+                    className={cn("h-3.5 w-3.5 shrink-0", active ? "text-[var(--color-accent)]" : "text-[#9CA3AF]")}
                   />
                   <span className="truncate">{item.label}</span>
                 </Link>
@@ -124,7 +124,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
           <Link
             href="/c/profile"
             onClick={onNavigate}
-            className="mt-1.5 flex h-6 w-full items-center justify-center rounded-full border border-[#FF5A1F] text-[10px] font-bold text-[#FF5A1F] transition-colors hover:bg-[#FF5A1F] hover:text-white"
+            className="mt-1.5 flex h-6 w-full items-center justify-center rounded-full border border-[var(--color-accent)] text-[10px] font-bold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)] hover:text-white"
           >
             Upgrade Now
           </Link>

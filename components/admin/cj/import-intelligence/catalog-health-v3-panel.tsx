@@ -113,7 +113,7 @@ export function CatalogHealthV3Panel({ className }: { className?: string }) {
         className="flex w-full items-center justify-between px-3 py-2.5 text-left"
       >
         <div className="flex items-center gap-2">
-          <Activity className="h-4 w-4 text-[#FF5A1F]" />
+          <Activity className="h-4 w-4 text-[var(--color-accent)]" />
           <span className="text-[12px] font-semibold text-[#111827]">
             Catalog Health v3
           </span>

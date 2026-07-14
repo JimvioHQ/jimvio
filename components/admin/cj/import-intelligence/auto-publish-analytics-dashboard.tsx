@@ -116,14 +116,14 @@ function StatCard({
       className={cn(
         "rounded-[10px] border border-[#E5E7EB] bg-white px-2.5 py-2 text-left transition-all",
         clickable &&
-          "cursor-pointer hover:border-[#FF5A1F]/50 hover:bg-[#FFF7F3] hover:shadow-sm active:scale-[0.98]",
+          "cursor-pointer hover:border-[var(--color-accent)]/50 hover:bg-[var(--color-accent-light)] hover:shadow-sm active:scale-[0.98]",
         !clickable && "cursor-default"
       )}
     >
       <p className="text-[9px] font-medium text-[#9CA3AF]">{label}</p>
       <p className={cn("text-[15px] font-bold tabular-nums", accentClass)}>{value}</p>
       {clickable && (
-        <p className="mt-0.5 text-[8px] font-medium text-[#FF5A1F]">View products →</p>
+        <p className="mt-0.5 text-[8px] font-medium text-[var(--color-accent)]">View products →</p>
       )}
     </button>
   );
@@ -199,7 +199,7 @@ export function AutoPublishAnalyticsDashboard({
     <div className={cn("rounded-[14px] border border-[#E5E7EB] bg-white", className)}>
       <div className="flex items-center justify-between border-b border-[#F3F4F6] px-3 py-2">
         <div className="flex items-center gap-1.5">
-          <BarChart3 className="h-3.5 w-3.5 text-[#FF5A1F]" />
+          <BarChart3 className="h-3.5 w-3.5 text-[var(--color-accent)]" />
           <h3 className="text-[12px] font-semibold text-[#111827]">Auto Publish Analytics</h3>
           <span className="text-[9px] text-[#9CA3AF]">· live</span>
         </div>

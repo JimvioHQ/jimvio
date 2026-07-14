@@ -35,7 +35,7 @@ export function buildOrderInvoiceHtml(order: InvoiceOrder): string {
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #111; margin: 0; padding: 40px 32px; background: #fff; }
     .wrap { max-width: 720px; margin: 0 auto; }
-    .brand { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: #fd5000; }
+    .brand { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; color: var(--color-accent); }
     .meta { margin-top: 28px; display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
     .meta h1 { margin: 0 0 6px; font-size: 20px; }
     .muted { color: #6b7280; font-size: 13px; line-height: 1.5; }

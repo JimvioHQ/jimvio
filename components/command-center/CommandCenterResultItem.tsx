@@ -55,11 +55,11 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 const KIND_COLORS: Partial<Record<CommandResultKind, string>> = {
-  product: "#fd5000",
+  product: "var(--color-accent)",
   community: "#16a34a",
   "ugc-campaign": "#7c3aed",
   "affiliate-campaign": "#2563eb",
-  ai: "#fd5000",
+  ai: "var(--color-accent)",
   command: "#64748b",
 };
 

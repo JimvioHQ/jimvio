@@ -70,7 +70,7 @@ export function UGCTemplatesPage() {
           className={cn(
             "rounded-xl border px-3 py-2 text-sm font-semibold",
             favoritesOnly
-              ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#FF5A1F]"
+              ? "border-[var(--color-accent)] bg-[#FFF4EF] text-[var(--color-accent)]"
               : "border-[#E5E7EB] text-[#374151]",
           )}
         >
@@ -109,7 +109,7 @@ export function UGCTemplatesPage() {
         <button
           type="button"
           onClick={save}
-          className="mt-2 rounded-xl bg-[#FF5A1F] px-4 py-2 text-sm font-semibold text-white"
+          className="mt-2 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white"
         >
           Save template
         </button>
@@ -126,7 +126,7 @@ export function UGCTemplatesPage() {
             <div key={t.id} className="rounded-[16px] border border-[#EEF0F2] bg-white p-4">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="text-[10px] font-bold uppercase text-[#FF5A1F]">{t.category}</p>
+                  <p className="text-[10px] font-bold uppercase text-[var(--color-accent)]">{t.category}</p>
                   <h3 className="text-[14px] font-bold text-[#111827]">{t.title}</h3>
                 </div>
                 <button

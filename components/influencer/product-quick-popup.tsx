@@ -93,7 +93,7 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
             <LocalizedPrice
               amount={Number(product.price)}
               currency={product.currency}
-              className="text-2xl font-black text-[#f97316]"
+              className="text-2xl font-black text-[var(--color-accent)]"
             />
             <div className="flex items-center gap-1 text-amber-500">
               <Star className="h-4 w-4 fill-current" />
@@ -103,7 +103,7 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
           {vendor && (
             <p className="text-sm text-[#6b7280] font-medium">
               Supplier:{" "}
-              <Link href={storeUrl} className="text-[#f97316] font-bold hover:underline" onClick={onClose}>
+              <Link href={storeUrl} className="text-[var(--color-accent)] font-bold hover:underline" onClick={onClose}>
                 {vendor.business_name}
               </Link>
             </p>
@@ -118,7 +118,7 @@ export function ProductQuickPopup({ product, vendor, open, onClose, className }:
 
           <div className="grid grid-cols-1 gap-2 pt-2">
             <Link href={`${productUrl}?buy=1`} onClick={onClose}>
-              <Button className="w-full h-12 rounded-sm bg-[#f97316] hover:bg-[#ea580c] font-black text-white">
+              <Button className="w-full h-12 rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black text-white">
                 Buy Now
               </Button>
             </Link>

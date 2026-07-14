@@ -124,7 +124,7 @@ function BulkBtn({
       className={cn(
         "inline-flex h-7 items-center gap-1.5 rounded-[10px] px-2.5 text-[10.5px] font-semibold disabled:opacity-60",
         primary
-          ? "bg-[#FF5A1F] text-white shadow-sm hover:opacity-90"
+          ? "bg-[var(--color-accent)] text-white shadow-sm hover:opacity-90"
           : "border border-[#E5E7EB] text-[#374151] hover:bg-[#F9FAFB]"
       )}
     >

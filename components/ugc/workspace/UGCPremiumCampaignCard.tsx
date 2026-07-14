@@ -90,7 +90,7 @@ export function UGCPremiumCampaignCard({
                 className="h-4 w-4 shrink-0 rounded-full border border-[#E8EAED] object-cover"
               />
             ) : (
-              <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-[7px] font-bold text-white">
+              <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[var(--color-accent)] text-[7px] font-bold text-white">
                 {c.vendor?.business_name?.[0] ?? "B"}
               </span>
             )}
@@ -110,7 +110,7 @@ export function UGCPremiumCampaignCard({
             </div>
           </div>
 
-          <h3 className="line-clamp-2 min-h-[1.75rem] text-[11px] font-bold leading-tight text-[#111827] group-hover:text-[#FF5A1F]">
+          <h3 className="line-clamp-2 min-h-[1.75rem] text-[11px] font-bold leading-tight text-[#111827] group-hover:text-[var(--color-accent)]">
             {c.title}
           </h3>
 

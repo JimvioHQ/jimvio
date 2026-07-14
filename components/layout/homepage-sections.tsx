@@ -34,7 +34,7 @@ const TakeJimvioPhonesClient = dynamic(
 );
 
 /* ─── Design tokens (match mockup) ─── */
-const ORANGE = "#fd5000";
+const ORANGE = "var(--color-accent)";
 const GREEN = "#16a34a";
 const PURPLE = "#7c3aed";
 const BLUE = "#2563eb";

@@ -43,6 +43,11 @@ export type LiveSessionItem = {
   status: "live" | "upcoming" | "ended";
   privacy: "public" | "private";
   started_at: string;
+  category?: string;
+  description?: string | null;
+  host_follower_count?: number;
+  host_bio?: string | null;
+  cover_url?: string | null;
 };
 
 export type LiveDashboard = {
@@ -66,5 +71,5 @@ export type LiveDashboard = {
     watchTimeMinutes: number;
     revenue: number;
   };
-  session: { title: string; host: string; href: string; tag: string; roomId: string | null };
+  session: { title: string; host: string; href: string; tag: string; roomId: string | null; description?: string | null; host_bio?: string | null; host_follower_count?: number; host_avatar?: string | null };
 };

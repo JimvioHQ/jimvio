@@ -43,7 +43,7 @@ export function SavedPresetsBar({
         <button
           type="button"
           onClick={onSaveCurrent}
-          className="h-6 px-2 rounded-sm border border-dashed border-[var(--color-border)] text-[10px] text-[var(--color-text-muted)] hover:border-[#FF5A1F]/40 hover:text-[#FF5A1F] inline-flex items-center gap-1"
+          className="h-6 px-2 rounded-sm border border-dashed border-[var(--color-border)] text-[10px] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]/40 hover:text-[var(--color-accent)] inline-flex items-center gap-1"
         >
           <Plus className="h-3 w-3" />
           Save
@@ -69,8 +69,8 @@ function PresetChip({
       className={cn(
         "h-7 rounded-full border px-2.5 text-[10.5px] font-medium transition-all",
         active
-          ? "border-[#FF5A1F] bg-[#FF5A1F]/10 text-[#FF5A1F]"
-          : "border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[#FF5A1F]/30"
+          ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+          : "border-[#E5E7EB] bg-white text-[#6B7280] hover:border-[var(--color-accent)]/30"
       )}
     >
       {preset.emoji} {preset.label}

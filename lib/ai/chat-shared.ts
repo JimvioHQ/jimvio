@@ -1,4 +1,4 @@
-export const JIMVIO_ORANGE = "#FF5A1F";
+export const JIMVIO_ORANGE = "var(--color-accent)";
 export const MAX_CHAT_HISTORY = 10;
 export const AI_CACHE_TTL_MS = 5 * 60 * 1000;
 

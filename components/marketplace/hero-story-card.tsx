@@ -37,7 +37,7 @@ export function HeroStoryCard({ viralClips }: HeroStoryCardProps) {
         <div className="absolute bottom-6 left-6 right-6 text-white text-left">
           <p className="text-[14px] font-black leading-tight mb-2 drop-shadow-none">{firstClip.title}</p>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-sm bg-[#f97316] flex items-center justify-center text-[10px] font-black border border-white/20">
+            <div className="w-6 h-6 rounded-sm bg-[var(--color-accent)] flex items-center justify-center text-[10px] font-black border border-white/20">
               {firstClip.vendors?.business_name?.[0] || "V"}
             </div>
             <span className="text-[11px] font-bold text-white/80">@{firstClip.vendors?.business_name?.toLowerCase().replace(/\s/g, '') || "verified"}</span>

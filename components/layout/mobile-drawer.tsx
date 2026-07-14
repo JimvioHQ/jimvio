@@ -54,14 +54,14 @@ function NavRow({
       className={cn(
         "flex items-center gap-3 rounded-lg border px-3 py-2.5 text-[14px] font-medium transition-colors",
         active
-          ? "border-[#fd5000]/25 bg-[#fd5000]/5 text-[#fd5000]"
+          ? "border-[var(--color-accent)]/25 bg-[var(--color-accent)]/5 text-[var(--color-accent)]"
           : "border-transparent text-[var(--color-text-secondary)] hover:border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]",
       )}
     >
-      <Icon className={cn("size-4 shrink-0", active ? "text-[#fd5000]" : "text-[var(--color-text-muted)]")} />
+      <Icon className={cn("size-4 shrink-0", active ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]")} />
       <span className="flex-1">{label}</span>
       {badge && badge > 0 ? (
-        <span className="rounded-full bg-[#fd5000] px-1.5 py-0.5 text-[10px] font-bold text-white">
+        <span className="rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[10px] font-bold text-white">
           {badge > 99 ? "99+" : badge}
         </span>
       ) : null}
@@ -85,11 +85,11 @@ function ExpandSection({
         className={cn(
           "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-[14px] font-medium transition-colors",
           isOpen || isActive
-            ? "border-[#fd5000]/25 bg-[#fd5000]/5 text-[#fd5000]"
+            ? "border-[var(--color-accent)]/25 bg-[var(--color-accent)]/5 text-[var(--color-accent)]"
             : "border-transparent text-[var(--color-text-secondary)] hover:border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)]",
         )}
       >
-        <Icon className={cn("size-4 shrink-0", isOpen || isActive ? "text-[#fd5000]" : "text-[var(--color-text-muted)]")} />
+        <Icon className={cn("size-4 shrink-0", isOpen || isActive ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]")} />
         <span className="flex-1 text-left">{label}</span>
         <ChevronDown className={cn("size-4 text-[var(--color-text-muted)] transition-transform", isOpen && "rotate-180")} />
       </button>
@@ -178,7 +178,7 @@ export function MobileDrawer({
                     >
                       <Avatar className="size-10 shrink-0 border border-[var(--color-border)]">
                         <AvatarImage src={user.avatar_url ?? undefined} />
-                        <AvatarFallback className="bg-[#fd5000]/10 text-[11px] font-bold text-[#fd5000]">
+                        <AvatarFallback className="bg-[var(--color-accent)]/10 text-[11px] font-bold text-[var(--color-accent)]">
                           {user.full_name?.[0] || user.email?.[0] || "U"}
                         </AvatarFallback>
                       </Avatar>
@@ -210,7 +210,7 @@ export function MobileDrawer({
                                 <link.icon className="size-4 shrink-0 text-[var(--color-text-muted)]" />
                                 {link.label}
                                 {link.href === "/dashboard/messages" && chatCount > 0 && (
-                                  <span className="ml-auto rounded-full bg-[#fd5000] px-1.5 py-0.5 text-[10px] font-bold text-white">
+                                  <span className="ml-auto rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[10px] font-bold text-white">
                                     {chatCount > 99 ? "99+" : chatCount}
                                   </span>
                                 )}
@@ -244,7 +244,7 @@ export function MobileDrawer({
                       <Link
                         href="/register"
                         onClick={onClose}
-                        className="inline-flex h-10 items-center justify-center rounded-lg bg-[#fd5000] text-[13px] font-bold text-white"
+                        className="inline-flex h-10 items-center justify-center rounded-lg bg-[var(--color-accent)] text-[13px] font-bold text-white"
                       >
                         Join free
                       </Link>
@@ -257,9 +257,9 @@ export function MobileDrawer({
                 <button
                   type="button"
                   onClick={() => { openAssistant(); onClose(); }}
-                  className="flex w-full items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-3 text-left transition-colors hover:border-[#fd5000]/30"
+                  className="flex w-full items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-3 text-left transition-colors hover:border-[var(--color-accent)]/30"
                 >
-                  <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[#fd5000]/10 text-[#fd5000]">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
                     <Sparkles className="size-4" />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -277,10 +277,10 @@ export function MobileDrawer({
                     onClick={onClose}
                     className="relative flex items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] py-2.5 text-[13px] font-semibold text-[var(--color-text-primary)]"
                   >
-                    <MessageSquare className="size-4 text-[#fd5000]" />
+                    <MessageSquare className="size-4 text-[var(--color-accent)]" />
                     Messages
                     {chatCount > 0 && (
-                      <span className="absolute -right-1 -top-1 rounded-full bg-[#fd5000] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      <span className="absolute -right-1 -top-1 rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[9px] font-bold text-white">
                         {chatCount > 99 ? "99+" : chatCount}
                       </span>
                     )}
@@ -293,7 +293,7 @@ export function MobileDrawer({
                     <ShoppingCart className="size-4 text-[var(--color-text-muted)]" />
                     Cart
                     {cartCount > 0 && (
-                      <span className="absolute -right-1 -top-1 rounded-full bg-[#fd5000] px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      <span className="absolute -right-1 -top-1 rounded-full bg-[var(--color-accent)] px-1.5 py-0.5 text-[9px] font-bold text-white">
                         {cartCount > 99 ? "99+" : cartCount}
                       </span>
                     )}

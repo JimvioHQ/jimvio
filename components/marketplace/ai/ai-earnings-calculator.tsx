@@ -51,7 +51,7 @@ export function AiEarningsCalculator() {
               step={s.step}
               value={[s.val]}
               onValueChange={(v) => s.set(v[0] ?? s.min)}
-              className="py-1 [--color-accent:#FF5A1F]"
+              className="py-1 [--color-accent:var(--color-accent)]"
             />
           </div>
         ))}

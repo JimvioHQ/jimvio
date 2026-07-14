@@ -184,11 +184,12 @@ export function PulseSection() {
 const TRUST_LOGOS = [
   { name: "Binance Pay", src: "/logos/binance.png", w: 90, h: 24 },
   { name: "Flutterwave", src: "/logos/Flutterwave-main.svg", w: 100, h: 24 },
-  { name: "Visa", text: true },
-  { name: "Mastercard", src: "/logos/Payoneer_Master_Logo_OnWhite_RGB.svg", w: 100, h: 24 },
+  { name: "Visa", src: "/logos/visa.svg", w: 16, h: 16, color: true },
+  { name: "Mastercard", src: "/logos/mastercard.svg", w: 26, h: 16, color: true },
+  { name: "PayPal", src: "/logos/paypal.png", w: 80, h: 22 },
   { name: "NOWPayments", src: "/logos/nowpayment updated.svg", w: 110, h: 24 },
-  { name: "Apple Pay", text: true },
-  { name: "Google Pay", text: true },
+  { name: "Apple Pay", src: "/logos/apple-pay.svg", w: 55, h: 16 },
+  { name: "Google Pay", src: "/logos/google-pay.svg", w: 60, h: 16 },
   { name: "MTN MoMo", src: "/logos/mtn.jpeg", w: 80, h: 24 },
 ];
 
@@ -201,22 +202,21 @@ export function TrustStrip() {
   Trusted by industry leaders
 </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            {TRUST_LOGOS.map((m) =>
-              m.text ? (
-                <span key={m.name} className="rounded-md border border-[var(--color-text-primary)]/10 bg-[var(--color-bg)] px-2.5 py-1 text-[10px] font-bold text-[var(--color-text-muted)]">
-                  {m.name}
-                </span>
-              ) : (
-                <Image
-                  key={m.name}
-                  src={m.src!}
-                  alt={m.name}
-                  width={m.w}
-                  height={m.h}
-                  className="h-5 w-auto object-contain opacity-50 grayscale transition-all hover:opacity-80 hover:grayscale-0"
-                />
-              )
-            )}
+            {TRUST_LOGOS.map((m) => (
+              <Image
+                key={m.name}
+                src={m.src!}
+                alt={m.name}
+                width={m.w}
+                height={m.h}
+                className={cn(
+                  "h-5 w-auto object-contain transition-all",
+                  m.color
+                    ? "opacity-40 hover:opacity-100"
+                    : "opacity-50 grayscale hover:opacity-80 hover:grayscale-0"
+                )}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -831,8 +831,8 @@ export function SocialProof() {
           {QUOTES.map((q) => (
             <div key={q.name} className="group flex flex-col rounded-2xl bg-[var(--color-surface)] p-5 sm:p-6 transition-all duration-300 hover:-translate-y-0.5">
               <div className="mb-4 flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#FD5000]/10 flex items-center justify-center shrink-0">
-                  <span className="text-xl font-bold text-[#FD5000]">{q.avatar}</span>
+                <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                  <span className="text-xl font-bold text-[var(--color-accent)]">{q.avatar}</span>
                 </div>
                 <div>
                   <p className="text-2xl text-[var(--color-text-primary)] leading-tight">{q.name}</p>
@@ -941,40 +941,40 @@ export function SecurityPayments() {
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {/* Two-factor login */}
-            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[#F3EFE4]/10 bg-[#122019]/50 hover:border-[#FD5000]/20 transition-all">
-              <div className="w-10 h-10 rounded-full bg-[#FD5000]/10 flex items-center justify-center shrink-0">
-                <Fingerprint size={18} className="text-[#FD5000]" />
+            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-paper)]/10 bg-[var(--color-ink)]/50 hover:border-[var(--color-accent)]/20 transition-all">
+              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                <Fingerprint size={18} className="text-[var(--color-accent)]" />
               </div>
               <div>
-                <h3 className="font-body font-semibold text-[#F3EFE4]">Two-factor login</h3>
-                <p className="text-sm text-[#F3EFE4]/50 font-body mt-1 leading-relaxed">TOTP + backup codes — enabled on every account by default. No exceptions.</p>
+                <h3 className="font-body font-semibold text-[var(--color-paper)]">Two-factor login</h3>
+                <p className="text-sm text-[var(--color-paper)]/50 font-body mt-1 leading-relaxed">TOTP + backup codes — enabled on every account by default. No exceptions.</p>
               </div>
             </div>
 
             {/* Buyer Protection */}
-            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[#F3EFE4]/10 bg-[#122019]/50 hover:border-[#FD5000]/20 transition-all">
-              <div className="w-10 h-10 rounded-full bg-[#FD5000]/10 flex items-center justify-center shrink-0">
-                <Lock size={18} className="text-[#FD5000]" />
+            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-paper)]/10 bg-[var(--color-ink)]/50 hover:border-[var(--color-accent)]/20 transition-all">
+              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                <Lock size={18} className="text-[var(--color-accent)]" />
               </div>
               <div>
-                <h3 className="font-body font-semibold text-[#F3EFE4]">Buyer protection</h3>
-                <p className="text-sm text-[#F3EFE4]/50 font-body mt-1 leading-relaxed">Every order is tracked. Refunds within 24 hours if delivery fails.</p>
+                <h3 className="font-body font-semibold text-[var(--color-paper)]">Buyer protection</h3>
+                <p className="text-sm text-[var(--color-paper)]/50 font-body mt-1 leading-relaxed">Every order is tracked. Refunds within 24 hours if delivery fails.</p>
               </div>
             </div>
 
             {/* Worldwide Shipping */}
-            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[#F3EFE4]/10 bg-[#122019]/50 hover:border-[#FD5000]/20 transition-all">
-              <div className="w-10 h-10 rounded-full bg-[#FD5000]/10 flex items-center justify-center shrink-0">
-                <Truck size={18} className="text-[#FD5000]" />
+            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-paper)]/10 bg-[var(--color-ink)]/50 hover:border-[var(--color-accent)]/20 transition-all">
+              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                <Truck size={18} className="text-[var(--color-accent)]" />
               </div>
               <div>
-                <h3 className="font-body font-semibold text-[#F3EFE4]">Worldwide Shipping</h3>
-                <p className="text-sm text-[#F3EFE4]/50 font-body mt-1 leading-relaxed">Fast & reliable delivery</p>
+                <h3 className="font-body font-semibold text-[var(--color-paper)]">Worldwide Shipping</h3>
+                <p className="text-sm text-[var(--color-paper)]/50 font-body mt-1 leading-relaxed">Fast & reliable delivery</p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 border-t border-[#F3EFE4]/30 pt-6 mt-8">
+          <div className="flex flex-wrap gap-3 border-t border-[var(--color-paper)]/30 pt-6 mt-8">
             {PAYMENT_PROVIDERS.map((p) => (
               <span
                 key={p.name}
@@ -1013,9 +1013,9 @@ export function CommonQuestions() {
   return (
     <section id="faq" aria-label="Common questions" className="mx-auto max-w-7xl px-6 pb-24">
       <div className="mb-9">
-        <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#FD5000] font-medium">FAQ</span>
-        <h2 className="font-display font-semibold text-4xl lg:text-[3.5rem] tracking-[-0.045em] text-[#F3EFE4] mt-2">Common questions.</h2>
-        <p className="mt-3 text-[#F3EFE4]/50 font-body text-base max-w-xl leading-relaxed">Concrete answers — no filler, no marketing language.</p>
+        <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-accent)] font-medium">FAQ</span>
+        <h2 className="font-display font-semibold text-4xl lg:text-[3.5rem] tracking-[-0.045em] text-[var(--color-paper)] mt-2">Common questions.</h2>
+        <p className="mt-3 text-[var(--color-paper)]/50 font-body text-base max-w-xl leading-relaxed">Concrete answers — no filler, no marketing language.</p>
       </div>
 
       <div className="flex flex-col gap-5">

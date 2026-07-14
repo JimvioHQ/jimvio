@@ -4,7 +4,7 @@ export const GRAPH_NODE_META: Record<
   GraphNodeKind,
   { emoji: string; label: string; accent: string }
 > = {
-  product: { emoji: "🛍️", label: "Product", accent: "#fd5000" },
+  product: { emoji: "🛍️", label: "Product", accent: "var(--color-accent)" },
   creator: { emoji: "👤", label: "Creator", accent: "#7c3aed" },
   community: { emoji: "⭐", label: "Community", accent: "#ca8a04" },
   course: { emoji: "🎓", label: "Course", accent: "#db2777" },

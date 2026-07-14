@@ -49,7 +49,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       <div className="relative hidden w-0 flex-1 lg:block bg-[var(--color-bg-dark)] overflow-hidden">
         <div className="absolute inset-0 z-0 pointer-events-none">
-          <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[70%] rounded-sm bg-gradient-to-bl from-[var(--color-accent)]/20 via-[var(--color-amber)]/5 to-transparent blur-[130px]" />
+          <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[70%] rounded-sm bg-gradient-to-bl from-[var(--color-accent)]/20 via-[var(--color-events)]/5 to-transparent blur-[130px]" />
           <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-sm bg-gradient-to-tr from-[var(--color-accent)]/10 to-transparent blur-[100px]" />
           <div
             className="absolute inset-0 opacity-[0.1] mix-blend-overlay"
@@ -77,7 +77,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <div>
               <p className="text-3xl xl:text-4xl font-black font-primary text-[var(--color-text-primary)] mb-1.5">$2M+</p>
               <p className="text-[12px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest">Commissions Paid</p>
-              <div className="h-0.5 w-8 bg-[var(--color-amber)]/50 mt-4 rounded-sm" />
+              <div className="h-0.5 w-8 bg-[var(--color-events)]/50 mt-4 rounded-sm" />
             </div>
           </div>
 

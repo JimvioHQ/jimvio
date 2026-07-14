@@ -55,7 +55,7 @@ function GoogleIcon() {
 
 const LIVE_ACTIVITIES = [
   { user: "Kofi A.", action: "earned $48 in commissions", time: "2m ago", color: "#22c55e" },
-  { user: "Amara T.", action: "joined UGC campaign", time: "4m ago", color: "#f97316" },
+  { user: "Amara T.", action: "joined UGC campaign", time: "4m ago", color: "var(--color-accent)" },
   { user: "David M.", action: "made first sale", time: "6m ago", color: "#3b82f6" },
   { user: "Zara K.", action: "reached 10K views", time: "9m ago", color: "#a855f7" },
   { user: "Emre B.", action: "payout of $120 sent", time: "12m ago", color: "#22c55e" },
@@ -177,12 +177,12 @@ function LoggedInView({ profile }: { profile: NonNullable<Profile> }) {
         {/* Decorative glow */}
         <div
           className="absolute -top-6 -right-6 w-20 h-20 rounded-full opacity-15 pointer-events-none"
-          style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, var(--color-accent) 0%, transparent 70%)" }}
         />
 
         <div className="flex items-center gap-2.5 mb-3">
           <div className="relative">
-            <Avatar className="h-9 w-9 shrink-0 ring-2 ring-[#f97316]/20">
+            <Avatar className="h-9 w-9 shrink-0 ring-2 ring-[var(--color-accent)]/20">
               <AvatarImage src={profile.avatar_url ?? undefined} />
               <AvatarFallback className="bg-gradient-to-br from-orange-400 to-orange-600 text-white text-[13px] font-bold">
                 {initials}
@@ -201,7 +201,7 @@ function LoggedInView({ profile }: { profile: NonNullable<Profile> }) {
           </div>
           <div
             className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide"
-            style={{ background: "rgba(249,115,22,0.1)", color: "#f97316", border: "1px solid rgba(249,115,22,0.2)" }}
+            style={{ background: "color-mix(in srgb, var(--color-accent) 10%, transparent)", color: "var(--color-accent)", border: "1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)" }}
           >
             Active
           </div>
@@ -211,8 +211,8 @@ function LoggedInView({ profile }: { profile: NonNullable<Profile> }) {
           href="/dashboard"
           className="group relative flex items-center justify-center gap-2 w-full h-9 rounded-lg text-[11px] font-bold text-white overflow-hidden transition-all hover:brightness-110 active:scale-[0.97]"
           style={{
-            background: "linear-gradient(135deg, #f97316 0%, #ea6c0a 100%)",
-            boxShadow: "0 6px 16px rgba(249,115,22,0.4)",
+            background: "linear-gradient(135deg, var(--color-accent) 0%, #ea6c0a 100%)",
+            boxShadow: "0 6px 16px color-mix(in srgb, var(--color-accent) 40%, transparent)",
           }}
         >
           <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -228,7 +228,7 @@ function LoggedInView({ profile }: { profile: NonNullable<Profile> }) {
       <div className="flex gap-2">
         <AnimatedStat value="$0" label="Earned" icon={DollarSign} color="#22c55e" />
         <AnimatedStat value="0" label="Orders" icon={ShoppingBag} color="#3b82f6" />
-        <AnimatedStat value="0%" label="Growth" icon={TrendingUp} color="#f97316" />
+        <AnimatedStat value="0%" label="Growth" icon={TrendingUp} color="var(--color-accent)" />
       </div>
 
       {/* Live activity */}
@@ -282,13 +282,13 @@ function GuestView() {
         className="relative overflow-hidden rounded-xl p-4"
         style={{
           background: "linear-gradient(145deg, #0f0a00 0%, #1e0d00 45%, #2d1000 100%)",
-          border: "1px solid rgba(249,115,22,0.2)",
+          border: "1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)",
         }}
       >
         {/* Ambient blobs */}
         <div
           className="absolute -top-8 -right-8 w-28 h-28 rounded-full opacity-20 pointer-events-none"
-          style={{ background: "radial-gradient(circle, #f97316 0%, transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, var(--color-accent) 0%, transparent 70%)" }}
         />
         <div
           className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full opacity-10 pointer-events-none"
@@ -299,7 +299,7 @@ function GuestView() {
           <div className="flex items-center gap-1.5 mb-3">
             <div
               className="w-5 h-5 rounded-md flex items-center justify-center"
-              style={{ background: "rgba(249,115,22,0.2)", border: "1px solid rgba(249,115,22,0.3)" }}
+              style={{ background: "color-mix(in srgb, var(--color-accent) 20%, transparent)", border: "1px solid color-mix(in srgb, var(--color-accent) 30%, transparent)" }}
             >
               <Sparkles className="h-3 w-3 text-orange-400" />
             </div>
@@ -342,8 +342,8 @@ function GuestView() {
             href="/register"
             className="flex items-center justify-center gap-2 w-full h-9 rounded-xl text-[12px] font-bold text-white transition-all hover:brightness-110 active:scale-[0.97]"
             style={{
-              background: "linear-gradient(135deg, #f97316 0%, #ea6c0a 100%)",
-              boxShadow: "0 6px 20px rgba(249,115,22,0.4)",
+              background: "linear-gradient(135deg, var(--color-accent) 0%, #ea6c0a 100%)",
+              boxShadow: "0 6px 20px color-mix(in srgb, var(--color-accent) 40%, transparent)",
             }}
           >
             Join Free — No Card Needed
@@ -418,8 +418,8 @@ function GuestView() {
         href="/vendor/register"
         className="group relative overflow-hidden flex items-center gap-3 p-3 rounded-xl transition-all shadow-lg hover:shadow-orange-500/20 active:scale-[0.98]"
         style={{
-          background: "linear-gradient(135deg, #1a1408 0%, #2d1e05 55%, #f97316 100%)",
-          border: "1px solid rgba(249,115,22,0.4)",
+          background: "linear-gradient(135deg, #1a1408 0%, #2d1e05 55%, var(--color-accent) 100%)",
+          border: "1px solid color-mix(in srgb, var(--color-accent) 40%, transparent)",
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-orange-500/20 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none" />

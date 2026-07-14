@@ -63,7 +63,7 @@ export function SettingsTabNav() {
                             "group inline-flex items-center gap-2 px-4 py-3 text-sm font-medium",
                             "border-b-2 transition-all whitespace-nowrap relative",
                             active
-                                ? "border-[var(--color-accent,#fd5000)] text-foreground"
+                                ? "border-[var(--color-accent,var(--color-accent))] text-foreground"
                                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         )}
                         aria-current={active ? "page" : undefined}
@@ -73,7 +73,7 @@ export function SettingsTabNav() {
                                 "size-4 shrink-0 transition-transform",
                                 active && "scale-110"
                             )}
-                            style={{ color: active ? "var(--color-accent, #fd5000)" : undefined }}
+                            style={{ color: active ? "var(--color-accent, var(--color-accent))" : undefined }}
                         />
                         <span>{tab.label}</span>
                     </Link>

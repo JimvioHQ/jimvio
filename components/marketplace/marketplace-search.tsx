@@ -115,9 +115,9 @@ export function MarketplaceSearch({
     <div ref={containerRef} className={cn("relative w-full max-w-[600px] group isolate z-[100]", className)}>
       <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
         {isLoading ? (
-          <Loader2 className="h-[18px] w-[18px] text-[#f97316] animate-spin" />
+          <Loader2 className="h-[18px] w-[18px] text-[var(--color-accent)] animate-spin" />
         ) : (
-          <Search className="h-[18px] w-[18px] text-zinc-400 group-focus-within:text-[#f97316] transition-colors" />
+          <Search className="h-[18px] w-[18px] text-zinc-400 group-focus-within:text-[var(--color-accent)] transition-colors" />
         )}
       </div>
       
@@ -227,7 +227,7 @@ export function MarketplaceSearch({
                 </div>
               ) : (
                 <div className="px-4 py-12 flex flex-col items-center gap-3">
-                   <Loader2 className="h-6 w-6 text-[#f97316] animate-spin" />
+                   <Loader2 className="h-6 w-6 text-[var(--color-accent)] animate-spin" />
                    <p className="text-[13px] font-bold text-zinc-400">Searching the marketplace...</p>
                 </div>
               )}

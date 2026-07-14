@@ -62,7 +62,7 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
               <Menu className="h-4 w-4" />
             </button>
             <span className="text-sm font-semibold text-[#111827]">UGC &amp; Clipping</span>
-            <Link href="/dashboard" className="ml-auto text-xs font-semibold text-[#FF5A1F]">
+            <Link href="/dashboard" className="ml-auto text-xs font-semibold text-[var(--color-accent)]">
               Mission Control
             </Link>
           </div>

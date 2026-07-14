@@ -108,7 +108,7 @@ export function ActiveProjectHero({
               </span>
             ) : null}
             {countdown ? (
-              <span className="font-mono text-[#FF5A1F]">{countdown}</span>
+              <span className="font-mono text-[var(--color-accent)]">{countdown}</span>
             ) : null}
           </div>
           <div className="w-full sm:max-w-xs">

@@ -76,9 +76,9 @@ export default function HubWalletPage() {
 
   const sources = useMemo(
     () => [
-      { label: "Sales", value: agg?.vendor ?? 0, icon: Store, color: "sage", bg: "bg-[var(--color-sage)]/15" },
-      { label: "Affiliate", value: agg?.affiliate ?? 0, icon: Users, color: "ocean", bg: "bg-[var(--color-ocean)]/15" },
-      { label: "Creator", value: agg?.creator ?? 0, icon: Sparkles, color: "amber", bg: "bg-[var(--color-amber)]/15" },
+      { label: "Sales", value: agg?.vendor ?? 0, icon: Store, color: "growth", bg: "bg-[var(--color-growth)]/15" },
+      { label: "Affiliate", value: agg?.affiliate ?? 0, icon: Users, color: "live", bg: "bg-[var(--color-live)]/15" },
+      { label: "Creator", value: agg?.creator ?? 0, icon: Sparkles, color: "events", bg: "bg-[var(--color-events)]/15" },
     ],
     [agg]
   );
@@ -96,7 +96,7 @@ export default function HubWalletPage() {
   return (
     <div className="min-h-full bg-[var(--color-bg)]"
          style={{
-           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-social)/3, transparent 40%)`,
          }}>
       <div className="mx-auto flex max-w-[960px] flex-col gap-6 p-4 lg:p-6">
         {/* Header */}
@@ -121,7 +121,7 @@ export default function HubWalletPage() {
                background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))",
              }}>
           <div className="absolute inset-0 -z-10 opacity-20 animate-blob"
-               style={{ background: "radial-gradient(circle at 30% 70%, var(--color-berry), transparent 50%)" }} />
+               style={{ background: "radial-gradient(circle at 30% 70%, var(--color-social), transparent 50%)" }} />
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70">Available Balance</p>
@@ -151,7 +151,7 @@ export default function HubWalletPage() {
             label="Total earned"
             value={formatMoney(wallet?.total_earned ?? 0, currency)}
             icon={<ArrowUpRight className="h-4 w-4" />}
-            accent="#fd5000"
+            accent="var(--color-accent)"
           />
           <HubStatCard
             label="This month"

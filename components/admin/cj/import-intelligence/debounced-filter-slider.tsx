@@ -94,14 +94,14 @@ export function DebouncedFilterSlider({
           "[&::-webkit-slider-thumb]:appearance-none",
           "[&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4",
           "[&::-webkit-slider-thumb]:rounded-full",
-          "[&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#FF5A1F]",
+          "[&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[var(--color-accent)]",
           "[&::-webkit-slider-thumb]:bg-[var(--color-surface)]",
           "[&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:-mt-[5px]",
           "[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:rounded-full",
           "[&::-moz-range-track]:bg-[var(--color-border)]",
           "[&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4",
           "[&::-moz-range-thumb]:rounded-full",
-          "[&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#FF5A1F]",
+          "[&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[var(--color-accent)]",
           "[&::-moz-range-thumb]:bg-[var(--color-surface)]"
         )}
       />

@@ -92,7 +92,7 @@ function MobileSwiper<T>({
     seeAllHref,
     seeAllLabel = "See all",
     mobileSlideWidth,
-    accent = "#fd5000",
+    accent = "var(--color-accent)",
 }: Pick<
     SwipeableCardGridProps<T>,
     "items" | "renderCard" | "seeAllHref" | "seeAllLabel" | "mobileSlideWidth" | "accent"
@@ -194,7 +194,7 @@ export function SwipeableCardGrid<T>({
     mobileSlideWidth,
     desktopGap = "gap-4",
     gridClassName,
-    accent = "#fd5000",
+    accent = "var(--color-accent)",
 }: SwipeableCardGridProps<T>) {
     return (
         <>

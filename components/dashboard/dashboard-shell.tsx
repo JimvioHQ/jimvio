@@ -342,7 +342,7 @@ function AnimatedDots() {
       {[0, 200, 400].map((delay) => (
         <span
           key={delay}
-          className="w-[3px] h-[3px] rounded-full bg-[#fd5000] animate-pulse"
+          className="w-[3px] h-[3px] rounded-full bg-[var(--color-accent)] animate-pulse"
           style={{ animationDelay: `${delay}ms` }}
         />
       ))}
@@ -381,7 +381,7 @@ export function DashboardLoadingSkeleton() {
               <circle
                 cx="36" cy="36" r="30"
                 fill="none"
-                stroke="#fd5000"
+                stroke="var(--color-accent)"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeDasharray="60 130"
@@ -390,7 +390,7 @@ export function DashboardLoadingSkeleton() {
             <div className="absolute inset-[10px] rounded-[14px] flex items-center justify-center
               bg-white dark:bg-zinc-900
               border border-zinc-200 dark:border-zinc-800">
-              <LayoutDashboard className="h-5 w-5 text-[#fd5000]" />
+              <LayoutDashboard className="h-5 w-5 text-[var(--color-accent)]" />
             </div>
           </div>
 

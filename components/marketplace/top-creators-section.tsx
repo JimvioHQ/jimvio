@@ -51,7 +51,7 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
         </div>
         <Link
           href="/influencers/browse"
-          className="flex items-center gap-1 text-[12px] font-semibold text-[#fd5000] hover:text-orange-700 transition-colors shrink-0 ml-4"
+          className="flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)] hover:text-orange-700 transition-colors shrink-0 ml-4"
         >
           View all <ChevronRight className="h-3.5 w-3.5" />
         </Link>
@@ -70,9 +70,9 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
               <Link href={profileUrl} className="flex flex-col items-center flex-1 min-w-0 w-full gap-2">
                 {/* Avatar with glow ring on hover */}
                 <div className="relative mb-1">
-                  <Avatar className="h-14 w-14 sm:h-16 sm:w-16 ring-2 ring-white dark:ring-[#111] group-hover:ring-[#fd5000]/20 transition-all duration-300 shadow-sm">
+                  <Avatar className="h-14 w-14 sm:h-16 sm:w-16 ring-2 ring-white dark:ring-[#111] group-hover:ring-[var(--color-accent)]/20 transition-all duration-300 shadow-sm">
                     <AvatarImage src={c.avatar_url ?? undefined} />
-                    <AvatarFallback className="bg-gradient-to-br from-[#fd5000] to-orange-600 text-white font-bold text-lg">
+                    <AvatarFallback className="bg-gradient-to-br from-[var(--color-accent)] to-orange-600 text-white font-bold text-lg">
                       {c.full_name?.[0] ?? "C"}
                     </AvatarFallback>
                   </Avatar>
@@ -92,7 +92,7 @@ export function TopCreatorsSection({ creators, className }: TopCreatorsSectionPr
 
               {/* Follow CTA */}
               <Link href={profileUrl} className="w-full mt-3">
-                <button className="w-full h-9 rounded-full text-[11px] font-semibold bg-[#fd5000] hover:bg-[#e04700] text-white transition-all duration-150 active:scale-95 flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(253,80,0,0.25)]">
+                <button className="w-full h-9 rounded-full text-[11px] font-semibold bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white transition-all duration-150 active:scale-95 flex items-center justify-center gap-1.5 shadow-[0_2px_8px_rgba(253,80,0,0.25)]">
                   <UserPlus className="h-3.5 w-3.5" />
                   Follow
                 </button>

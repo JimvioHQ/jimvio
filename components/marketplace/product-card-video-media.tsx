@@ -506,7 +506,7 @@ export function ProductCardVideoMedia({
           className={cn(
             "absolute top-2 right-2 z-30 pointer-events-none",
             "flex size-5 sm:size-6 items-center justify-center rounded-full",
-            "bg-[#FF5A1F]",
+            "bg-[var(--color-accent)]",
             "shadow-[0_2px_8px_rgba(255,90,31,0.25)]",
             "transition-opacity duration-150",
           )}

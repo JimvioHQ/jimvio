@@ -169,7 +169,7 @@
 //       aria-label={`${value}${unavailable ? " (sold out)" : ""}`}
 //       aria-pressed={selected}
 //       className={cn(
-//         "relative flex-shrink-0 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]",
+//         "relative flex-shrink-0 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
 //         unavailable ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:scale-110 active:scale-95"
 //       )}
 //       style={{ width: 32, height: 32 }}
@@ -179,7 +179,7 @@
 //         <span
 //           className="absolute inset-0 rounded-full pointer-events-none"
 //           style={{
-//             boxShadow: "0 0 0 2px #fff, 0 0 0 3.5px #fd5000",
+//             boxShadow: "0 0 0 2px #fff, 0 0 0 3.5px var(--color-accent)",
 //           }}
 //         />
 //       )}
@@ -230,17 +230,17 @@
 //       aria-label={`${value}${unavailable ? " (sold out)" : ""}`}
 //       aria-pressed={selected}
 //       className={cn(
-//         "relative h-10 rounded-xl text-[13px] font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]",
+//         "relative h-10 rounded-xl text-[13px] font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
 //         unavailable
 //           ? "cursor-not-allowed"
 //           : "cursor-pointer active:scale-95"
 //       )}
 //       style={{
 //         border: selected
-//           ? "1.5px solid #fd5000"
+//           ? "1.5px solid var(--color-accent)"
 //           : "1px solid var(--color-border, rgba(0,0,0,0.12))",
 //         background: selected
-//           ? "#fd5000"
+//           ? "var(--color-accent)"
 //           : unavailable
 //             ? "var(--color-surface-secondary, #f5f5f5)"
 //             : "var(--color-surface, #fff)",
@@ -295,9 +295,9 @@
 //       )}
 //       style={{
 //         border: selected
-//           ? "1.5px solid #fd5000"
+//           ? "1.5px solid var(--color-accent)"
 //           : "1px solid var(--color-border, rgba(0,0,0,0.12))",
-//         background: selected ? "#fd5000" : "var(--color-surface, #fff)",
+//         background: selected ? "var(--color-accent)" : "var(--color-surface, #fff)",
 //         color: selected ? "#fff" : "var(--color-text-primary)",
 //       }}
 //     >
@@ -320,7 +320,7 @@
 //   return (
 //     <span
 //       className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
-//       style={{ background: "rgba(253,80,0,0.1)", color: "#fd5000" }}
+//       style={{ background: "rgba(253,80,0,0.1)", color: "var(--color-accent)" }}
 //     >
 //       −{pct}%
 //     </span>
@@ -713,7 +713,7 @@
 //               background:
 //                 !resolvedVariant || isOutOfStock
 //                   ? "var(--color-surface-secondary)"
-//                   : "#fd5000",
+//                   : "var(--color-accent)",
 //               color:
 //                 !resolvedVariant || isOutOfStock
 //                   ? "var(--color-text-muted)"
@@ -952,7 +952,7 @@ function ColorSwatchBtn({
       aria-pressed={selected}
       className={cn(
         "relative flex-shrink-0 transition-all duration-150 focus:outline-none",
-        "focus-visible:ring-2 focus-visible:ring-[#fd5000]",
+        "focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
         unavailable
           ? "opacity-40 cursor-not-allowed"
           : "cursor-pointer hover:scale-110 active:scale-95"
@@ -962,7 +962,7 @@ function ColorSwatchBtn({
       {selected && (
         <span
           className="absolute inset-0 rounded-full pointer-events-none"
-          style={{ boxShadow: "0 0 0 2px #fff, 0 0 0 3.5px #fd5000" }}
+          style={{ boxShadow: "0 0 0 2px #fff, 0 0 0 3.5px var(--color-accent)" }}
         />
       )}
       <span
@@ -1001,15 +1001,15 @@ function SizeChipBtn({
       aria-pressed={selected}
       className={cn(
         "relative h-10 rounded-xl text-[13px] font-semibold transition-all duration-150",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
         unavailable ? "cursor-not-allowed" : "cursor-pointer active:scale-95"
       )}
       style={{
         border: selected
-          ? "1.5px solid #fd5000"
+          ? "1.5px solid var(--color-accent)"
           : "1px solid var(--color-border, rgba(0,0,0,0.12))",
         background: selected
-          ? "#fd5000"
+          ? "var(--color-accent)"
           : unavailable
             ? "var(--color-surface-secondary, #f5f5f5)"
             : "var(--color-surface, #fff)",
@@ -1052,9 +1052,9 @@ function GenericChipBtn({
       )}
       style={{
         border: selected
-          ? "1.5px solid #fd5000"
+          ? "1.5px solid var(--color-accent)"
           : "1px solid var(--color-border, rgba(0,0,0,0.12))",
-        background: selected ? "#fd5000" : "var(--color-surface, #fff)",
+        background: selected ? "var(--color-accent)" : "var(--color-surface, #fff)",
         color: selected ? "#fff" : "var(--color-text-primary)",
       }}
     >
@@ -1071,7 +1071,7 @@ function DiscountBadge({ price, compareAt, productDiscount }: { price: number; c
   return (
     <span
       className="inline-flex items-center text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
-      style={{ background: "rgba(253,80,0,0.1)", color: "#fd5000" }}
+      style={{ background: "rgba(253,80,0,0.1)", color: "var(--color-accent)" }}
     >
       −{pct}%
     </span>
@@ -1530,7 +1530,7 @@ export function VariantPickerDialog({
               background:
                 !resolvedVariant || isOutOfStock
                   ? "var(--color-surface-secondary)"
-                  : "#fd5000",
+                  : "var(--color-accent)",
               color:
                 !resolvedVariant || isOutOfStock
                   ? "var(--color-text-muted)"

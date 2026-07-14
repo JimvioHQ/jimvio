@@ -33,7 +33,7 @@ export function StickyBulkPublishBar({
         type="button"
         onClick={onPublish}
         disabled={publishing}
-        className="inline-flex h-8 items-center gap-1.5 rounded-[10px] bg-[#FF5A1F] px-3 text-[11px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
+        className="inline-flex h-8 items-center gap-1.5 rounded-[10px] bg-[var(--color-accent)] px-3 text-[11px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
       >
         {publishing ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />

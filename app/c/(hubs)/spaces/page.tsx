@@ -63,14 +63,14 @@ export default function HubSpacesPage() {
   return (
     <div className="min-h-full bg-[var(--color-bg)]"
          style={{
-           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-social)/3, transparent 40%)`,
          }}>
       <div className="mx-auto flex max-w-[1000px] flex-col gap-6 p-4 lg:p-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 animate-in animate-fade-in-up">
           <div>
             <h1 className="flex items-center gap-2 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-berry)]/15 text-[var(--color-berry)]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-social)]/15 text-[var(--color-social)]">
                 <Layers className="h-5 w-5" />
               </div>
               Spaces
@@ -86,10 +86,10 @@ export default function HubSpacesPage() {
 
         {/* Stats row */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 animate-in stagger-children">
-          <HubStatCard label="Total" value={stats.total} icon={Layers} color="amber" />
-          <HubStatCard label="Members" value={stats.members.toLocaleString()} icon={Users} color="sage" />
-          <HubStatCard label="Rooms" value={stats.rooms} icon={Hash} color="ocean" />
-          <HubStatCard label="Free / Paid / Premium" value={`${stats.free} / ${stats.paid} / ${stats.premium}`} icon={Globe} color="berry" />
+          <HubStatCard label="Total" value={stats.total} icon={<Layers className="h-4 w-4" />} color="events" />
+          <HubStatCard label="Members" value={stats.members.toLocaleString()} icon={<Users className="h-4 w-4" />} color="growth" />
+          <HubStatCard label="Rooms" value={stats.rooms} icon={<Hash className="h-4 w-4" />} color="live" />
+          <HubStatCard label="Free / Paid / Premium" value={`${stats.free} / ${stats.paid} / ${stats.premium}`} icon={<Globe className="h-4 w-4" />} color="social" />
         </div>
 
         {/* Search */}
@@ -132,10 +132,10 @@ export default function HubSpacesPage() {
                 <div className={cn(
                   "group relative overflow-hidden rounded-2xl border transition-all duration-300 hover-lift",
                   space.access_type === "free"
-                    ? "border-[var(--color-sage)]/30 bg-gradient-to-br from-[var(--color-sage)]/5 to-transparent"
+                    ? "border-[var(--color-growth)]/30 bg-gradient-to-br from-[var(--color-growth)]/5 to-transparent"
                     : space.access_type === "paid"
-                    ? "border-[var(--color-amber)]/30 bg-gradient-to-br from-[var(--color-amber)]/5 to-transparent"
-                    : "border-[var(--color-berry)]/30 bg-gradient-to-br from-[var(--color-berry)]/5 to-transparent"
+                    ? "border-[var(--color-events)]/30 bg-gradient-to-br from-[var(--color-events)]/5 to-transparent"
+                    : "border-[var(--color-social)]/30 bg-gradient-to-br from-[var(--color-social)]/5 to-transparent"
                 )}>
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2">
@@ -143,10 +143,10 @@ export default function HubSpacesPage() {
                         <div className="flex items-center gap-1.5">
                           <p className="truncate text-[14px] font-black group-hover:text-[var(--color-accent)] transition-colors">{space.name}</p>
                           {space.access_type === "paid" && (
-                            <HubBadge variant="amber">Paid</HubBadge>
+                            <HubBadge variant="orange">Paid</HubBadge>
                           )}
                           {space.access_type === "premium" && (
-                            <HubBadge variant="berry">Premium</HubBadge>
+                            <HubBadge variant="default">Premium</HubBadge>
                           )}
                         </div>
                         <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">{space.community_name}</p>
@@ -171,10 +171,10 @@ export default function HubSpacesPage() {
                   <div className="absolute bottom-0 left-0 right-0 h-1.5"
                        style={{
                          background: space.access_type === "free"
-                           ? "linear-gradient(90deg, var(--color-sage), var(--color-accent))"
+                           ? "linear-gradient(90deg, var(--color-growth), var(--color-accent))"
                            : space.access_type === "paid"
-                           ? "linear-gradient(90deg, var(--color-amber), var(--color-accent))"
-                           : "linear-gradient(90deg, var(--color-berry), var(--color-ocean))",
+                           ? "linear-gradient(90deg, var(--color-events), var(--color-accent))"
+                           : "linear-gradient(90deg, var(--color-social), var(--color-live))",
                        }} />
                 </div>
               </Link>

@@ -238,12 +238,12 @@ export function ProductCardClient({
           "bg-white dark:bg-[#121212]",
           "border transition-[transform,box-shadow] duration-150 ease-out",
           inCart
-            ? "border-[#fd5000]/40 shadow-[0_0_0_1.5px_#fd5000,0_12px_40px_rgba(253,80,0,0.12)]"
+            ? "border-[var(--color-accent)]/40 shadow-[0_0_0_1.5px_var(--color-accent),0_12px_40px_rgba(253,80,0,0.12)]"
             : "border-stone-200/80 dark:border-white/[0.07] shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.12)]"
         )}
         style={
           cartFlash
-            ? { boxShadow: "0 0 0 2px #fd5000, 0 0 32px rgba(253,80,0,0.3)" }
+            ? { boxShadow: "0 0 0 2px var(--color-accent), 0 0 32px rgba(253,80,0,0.3)" }
             : undefined
         }
       >
@@ -343,7 +343,7 @@ export function ProductCardClient({
                 compact ? "h-8 text-[10px]" : "h-9 text-[11px]",
                 inCart
                   ? "bg-emerald-500 hover:bg-red-500"
-                  : "bg-gradient-to-r from-[#fd5000] to-[#e03c00] hover:from-[#ff6520] hover:to-[#fd5000]"
+                  : "bg-gradient-to-r from-[var(--color-accent)] to-[#e03c00] hover:from-[var(--color-accent-hover)] hover:to-[var(--color-accent)]"
               )}
             >
               {loading ? (
@@ -401,7 +401,7 @@ export function ProductCardClient({
           <h3
             className={cn(
               "font-semibold leading-[1.35] text-[#0f0f0f] dark:text-[#ebebeb]",
-              "transition-colors duration-200 group-hover:text-[#fd5000]",
+              "transition-colors duration-200 group-hover:text-[var(--color-accent)]",
               compact ? "text-[12px] line-clamp-1" : "text-[14px] line-clamp-2"
             )}
           >
@@ -416,7 +416,7 @@ export function ProductCardClient({
               className={cn(
                 isDigital
                   ? "font-black tracking-tight text-[#0f0f0f] dark:text-white"
-                  : "font-bold tabular-nums tracking-tight text-[#FF5A1F] text-[12px] md:text-[14px]",
+                  : "font-bold tabular-nums tracking-tight text-[var(--color-accent)] text-[12px] md:text-[14px]",
                 isDigital && (compact ? "text-[17px]" : "text-[20px]"),
               )}
             />
@@ -439,7 +439,7 @@ export function ProductCardClient({
           <div className="flex items-center justify-between gap-2">
             {/* ✅ FIXED: only show when affiliate_enabled AND commissionRate > 0 */}
             {p.affiliate_enabled && commissionRate != null && Number(commissionRate) > 0 ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 text-[#fd5000] px-2.5 py-0.5 text-[9px] font-bold tracking-wide uppercase">
+              <span className="inline-flex items-center gap-1 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 text-[var(--color-accent)] px-2.5 py-0.5 text-[9px] font-bold tracking-wide uppercase">
                 <TrendingUp className="h-2.5 w-2.5" />
                 {commissionRate}% commission
               </span>
@@ -465,7 +465,7 @@ export function ProductCardClient({
               compact ? "h-8 text-[11px]" : "h-9 text-[12px]",
               inCart
                 ? "bg-emerald-500 hover:bg-red-500"
-                : "bg-gradient-to-r from-[#fd5000] to-[#e03c00]"
+                : "bg-gradient-to-r from-[var(--color-accent)] to-[#e03c00]"
             )}
           >
             {loading ? (

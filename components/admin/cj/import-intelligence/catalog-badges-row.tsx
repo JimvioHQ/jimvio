@@ -5,10 +5,10 @@ import { cn } from "@/lib/utils";
 
 const BADGE_STYLES: Record<string, string> = {
   video: "bg-[#111827]/85",
-  trending: "bg-[#FF5A1F]/90",
+  trending: "bg-[var(--color-accent)]/90",
   verified: "bg-emerald-600/90",
   elite: "bg-violet-600/90",
-  premium: "bg-[#FF5A1F]/90",
+  premium: "bg-[var(--color-accent)]/90",
   "fast-shipping": "bg-sky-600/90",
   "in-stock": "bg-emerald-700/90",
   "us-warehouse": "bg-blue-700/90",

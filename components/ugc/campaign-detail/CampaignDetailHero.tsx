@@ -113,7 +113,7 @@ export function CampaignDetailHero({
                   className="h-14 w-14 rounded-2xl border-2 border-white object-cover shadow-md sm:h-16 sm:w-16"
                 />
               ) : (
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[#FF5A1F] to-[#FF7A45] text-lg font-bold text-white shadow-md sm:h-16 sm:w-16">
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[var(--color-accent)] to-[#FF7A45] text-lg font-bold text-white shadow-md sm:h-16 sm:w-16">
                   {campaign.vendor?.business_name?.[0] ?? "B"}
                 </div>
               )}
@@ -162,8 +162,8 @@ export function CampaignDetailHero({
               className={cn(
                 "inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-[12px] font-semibold transition",
                 isBookmarked
-                  ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#FF5A1F]"
-                  : "border-[#E5E7EB] bg-white text-[#374151] hover:border-[#FF5A1F]/40",
+                  ? "border-[var(--color-accent)] bg-[#FFF4EF] text-[var(--color-accent)]"
+                  : "border-[#E5E7EB] bg-white text-[#374151] hover:border-[var(--color-accent)]/40",
               )}
               aria-pressed={isBookmarked}
             >
@@ -173,7 +173,7 @@ export function CampaignDetailHero({
             <button
               type="button"
               onClick={onShare}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3 text-[12px] font-semibold text-[#374151] transition hover:border-[#FF5A1F]/40"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3 text-[12px] font-semibold text-[#374151] transition hover:border-[var(--color-accent)]/40"
             >
               <Share2 className="h-4 w-4" />
               Share
@@ -181,7 +181,7 @@ export function CampaignDetailHero({
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3 text-[12px] font-semibold text-[#374151] transition hover:border-[#FF5A1F]/40"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3 text-[12px] font-semibold text-[#374151] transition hover:border-[var(--color-accent)]/40"
             >
               <Copy className="h-4 w-4" />
               {copied ? "Copied" : "Copy link"}
@@ -189,7 +189,7 @@ export function CampaignDetailHero({
             {isActive && !isPending && campaign.join_mode !== "invite_only" ? (
               <Link
                 href={joinHref}
-                className="inline-flex h-10 items-center rounded-xl bg-[#FF5A1F] px-5 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(255,90,31,0.28)] transition hover:bg-[#E54E18]"
+                className="inline-flex h-10 items-center rounded-xl bg-[var(--color-accent)] px-5 text-[13px] font-bold text-white shadow-[0_4px_14px_rgba(255,90,31,0.28)] transition hover:bg-[#E54E18]"
               >
                 {joinLabel}
               </Link>

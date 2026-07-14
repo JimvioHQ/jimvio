@@ -144,14 +144,14 @@ export default function HubProfilePage() {
   return (
     <div className="min-h-full bg-[var(--color-bg)]"
          style={{
-           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-social)/3, transparent 40%)`,
          }}>
       <div className="mx-auto max-w-[720px] space-y-6 p-4 lg:p-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 animate-in animate-fade-in-up">
           <div>
             <h1 className="flex items-center gap-2 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-berry)]/15 text-[var(--color-berry)]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-social)]/15 text-[var(--color-social)]">
                 <Flag className="h-5 w-5" />
               </div>
               {editing ? "Edit Profile" : "My Profile"}
@@ -200,7 +200,7 @@ export default function HubProfilePage() {
                 {avatarSrc ? (
                   <img src={avatarSrc} alt={profile?.full_name ?? "Profile"} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-berry)] text-white font-bold text-[24px]">
+                  <div className="flex h-full w-full items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-social)] text-white font-bold text-[24px]">
                     {(profile?.full_name ?? profile?.username ?? "?").charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -286,7 +286,7 @@ export default function HubProfilePage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
             <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-sage)]/15 text-[var(--color-sage)]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-growth)]/15 text-[var(--color-growth)]">
                 <Flag className="h-4 w-4" />
               </div>
               <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Location</h3>
@@ -301,7 +301,7 @@ export default function HubProfilePage() {
 
           <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
             <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-berry)]/15 text-[var(--color-berry)]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-social)]/15 text-[var(--color-social)]">
                 <User className="h-4 w-4" />
               </div>
               <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Account</h3>
@@ -320,7 +320,7 @@ export default function HubProfilePage() {
 
           <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
             <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-ocean)]/15 text-[var(--color-ocean)]">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-live)]/15 text-[var(--color-live)]">
                 <ShieldCheck className="h-4 w-4" />
               </div>
               <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Privacy & Security</h3>

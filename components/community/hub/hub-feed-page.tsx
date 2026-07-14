@@ -25,19 +25,19 @@ const FEED_TABS = [
 ] as const;
 
 const CREATE_LINKS = [
-  { icon: Radio, label: "Go Live", desc: "Start a live session", href: "/c/live", color: "ocean" },
-  { icon: Mic, label: "Voice Room", desc: "Host audio chat", href: "/c/live", color: "berry" },
+  { icon: Radio, label: "Go Live", desc: "Start a live session", href: "/c/live", color: "live" },
+  { icon: Mic, label: "Voice Room", desc: "Host audio chat", href: "/c/live", color: "social" },
   { icon: Scissors, label: "Upload Clip", desc: "Share a short video", href: "/c", color: "accent" },
-  { icon: Target, label: "Create Mission", desc: "Challenge your community", href: "/c/missions", color: "ocean" },
+  { icon: Target, label: "Create Mission", desc: "Challenge your community", href: "/c/missions", color: "live" },
 ] as const;
 
 const HUB_QUICK_LINKS = [
-  { icon: Radio, label: "Go Live", href: "/c/live", color: "ocean" },
-  { icon: Target, label: "Missions", href: "/c/missions", color: "ocean" },
-  { icon: GraduationCap, label: "Courses", href: "/c/courses", color: "amber" },
-  { icon: Calendar, label: "Events", href: "/c/events", color: "amber" },
-  { icon: Wallet, label: "Wallet", href: "/c/wallet", color: "sage" },
-  { icon: Layers, label: "Spaces", href: "/c/spaces", color: "berry" },
+  { icon: Radio, label: "Go Live", href: "/c/live", color: "live" },
+  { icon: Target, label: "Missions", href: "/c/missions", color: "live" },
+  { icon: GraduationCap, label: "Courses", href: "/c/courses", color: "events" },
+  { icon: Calendar, label: "Events", href: "/c/events", color: "events" },
+  { icon: Wallet, label: "Wallet", href: "/c/wallet", color: "growth" },
+  { icon: Layers, label: "Spaces", href: "/c/spaces", color: "social" },
 ] as const;
 
 type HubDashboard = {
@@ -180,7 +180,7 @@ export function HubFeedPage() {
   return (
     <div className="min-h-full bg-[var(--color-bg)]"
          style={{
-           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-social)/3, transparent 40%)`,
          }}>
       <div className="pointer-events-none fixed inset-0 -z-10 opacity-30"
            style={{
@@ -197,9 +197,9 @@ export function HubFeedPage() {
             <span className="text-[10px] font-bold text-center" style={{ color: "var(--color-text-muted)" }}>All</span>
           </div>
           {stats && [
-            { label: "Online", value: stats.membersOnline, icon: Users, color: "sage" },
-            { label: "Live", value: stats.liveSessions, icon: Radio, color: "ocean" },
-            { label: "Rooms", value: stats.voiceRooms, icon: MessageSquare, color: "berry" },
+            { label: "Online", value: stats.membersOnline, icon: Users, color: "growth" },
+            { label: "Live", value: stats.liveSessions, icon: Radio, color: "live" },
+            { label: "Rooms", value: stats.voiceRooms, icon: MessageSquare, color: "social" },
           ].map((s, i) => (
             <div key={i} className="flex flex-col items-center gap-1 rounded-xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-2 hover-lift group"
                  style={{ borderColor: `var(--color-${s.color})/30` }}>
@@ -225,10 +225,10 @@ export function HubFeedPage() {
 
           {/* Stats row */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 animate-in stagger-children">
-            <FeatureStatCard label="Online now" value={loading ? "—" : formatStat(stats?.membersOnline ?? 0)} delta={stats?.membersOnlineDelta ?? undefined} icon={Users} color="sage" />
-            <FeatureStatCard label="Live sessions" value={loading ? "—" : formatStat(stats?.liveSessions ?? 0)} delta={stats?.liveSessionsDelta ?? undefined} icon={Radio} color="ocean" />
-            <FeatureStatCard label="Voice rooms" value={loading ? "—" : formatStat(stats?.voiceRooms ?? 0)} delta={stats?.voiceRoomsDelta ?? undefined} icon={Mic} color="berry" />
-            <FeatureStatCard label="Active communities" value={loading ? "—" : formatStat(stats?.activeCommunities ?? 0)} delta={stats?.activeCommunitiesDelta ?? undefined} icon={Layers} color="amber" />
+            <FeatureStatCard label="Online now" value={loading ? "—" : formatStat(stats?.membersOnline ?? 0)} delta={stats?.membersOnlineDelta ?? undefined} icon={Users} color="growth" />
+            <FeatureStatCard label="Live sessions" value={loading ? "—" : formatStat(stats?.liveSessions ?? 0)} delta={stats?.liveSessionsDelta ?? undefined} icon={Radio} color="live" />
+            <FeatureStatCard label="Voice rooms" value={loading ? "—" : formatStat(stats?.voiceRooms ?? 0)} delta={stats?.voiceRoomsDelta ?? undefined} icon={Mic} color="social" />
+            <FeatureStatCard label="Active communities" value={loading ? "—" : formatStat(stats?.activeCommunities ?? 0)} delta={stats?.activeCommunitiesDelta ?? undefined} icon={Layers} color="events" />
           </div>
 
           {/* Mobile / tablet quick links */}
@@ -294,7 +294,7 @@ export function HubFeedPage() {
               {(data?.stories ?? []).map((s) => (
                 <Link key={s.id} href={s.href} className="flex shrink-0 flex-col items-center gap-1.5 w-[64px] group">
                   <div className="relative flex h-[64px] w-[64px] items-center justify-center rounded-full">
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--color-berry)]/40 to-[var(--color-ocean)]/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[var(--color-social)]/40 to-[var(--color-live)]/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <HubAvatar name={s.name} src={s.avatar_url} size={64} live={s.live} />
                     {s.live && (
                       <span className="absolute -bottom-1 -right-1 animate-pulse flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-accent)] text-[8px] font-black text-white">LIVE</span>
@@ -456,10 +456,10 @@ export function HubFeedPage() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: "Posts", value: data.insights.postCount30d, sub: "Last 30 days", icon: ImageIcon, color: "sage" },
-                  { label: "Engagement", value: data.insights.engagement30d, sub: "Likes + comments", icon: Heart, color: "ocean" },
-                  { label: "Communities", value: data.insights.communitiesJoined, sub: "Joined", icon: Users, color: "amber" },
-                  { label: "Live rooms", value: stats?.liveSessions ?? 0, sub: "Active now", icon: Radio, color: "berry" },
+                  { label: "Posts", value: data.insights.postCount30d, sub: "Last 30 days", icon: ImageIcon, color: "growth" },
+                  { label: "Engagement", value: data.insights.engagement30d, sub: "Likes + comments", icon: Heart, color: "live" },
+                  { label: "Communities", value: data.insights.communitiesJoined, sub: "Joined", icon: Users, color: "events" },
+                  { label: "Live rooms", value: stats?.liveSessions ?? 0, sub: "Active now", icon: Radio, color: "social" },
                 ].map(({ label, value, sub, icon: Icon, color }) => (
                   <div key={label} className="relative rounded-xl p-3 hover-lift"
                        style={{ background: `var(--color-${color})/5`, border: "1px solid var(--color-border)/20" }}>
@@ -478,7 +478,7 @@ export function HubFeedPage() {
           {/* AI Assistant */}
           <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
             <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--color-berry)/15", color: "var(--color-berry)" }}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--color-social)/15", color: "var(--color-social)" }}>
                 <Bot className="h-4 w-4" />
               </div>
               <div>
@@ -526,7 +526,7 @@ export function HubFeedPage() {
           {data?.earnings && (
             <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 hover-lift"
                  style={{ background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))" }}>
-              <div className="absolute inset-0 -z-10 opacity-10" style={{ background: "radial-gradient(circle at 20% 80%, var(--color-berry), transparent 50%)" }} />
+              <div className="absolute inset-0 -z-10 opacity-10" style={{ background: "radial-gradient(circle at 20% 80%, var(--color-social), transparent 50%)" }} />
               <div className="p-4 text-white">
                 <div className="mb-3 flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15">
@@ -562,7 +562,7 @@ export function HubFeedPage() {
                   <span className="text-[10px] font-bold text-emerald-500">{challengePct}%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full" style={{ background: "var(--color-surface-secondary)" }}>
-                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${challengePct}%`, background: "linear-gradient(90deg, var(--color-sage), var(--color-accent))" }} />
+                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${challengePct}%`, background: "linear-gradient(90deg, var(--color-growth), var(--color-accent))" }} />
                 </div>
               </div>
             </div>

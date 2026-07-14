@@ -51,14 +51,14 @@ export function SessionAnalytics({
               "flex h-[52px] min-w-[96px] shrink-0 items-center gap-2 rounded-[12px] border px-2.5",
               "bg-white shadow-[0_1px_2px_rgba(17,24,39,0.04)]",
               s.accent
-                ? "border-[#FF5A1F]/20 bg-gradient-to-r from-[#FF5A1F]/[0.05] to-white"
+                ? "border-[var(--color-accent)]/20 bg-gradient-to-r from-[var(--color-accent)]/[0.05] to-white"
                 : "border-[#E5E7EB]"
             )}
           >
             <Icon
               className={cn(
                 "h-3.5 w-3.5 shrink-0",
-                s.accent ? "text-[#FF5A1F]" : "text-[#9CA3AF]"
+                s.accent ? "text-[var(--color-accent)]" : "text-[#9CA3AF]"
               )}
               strokeWidth={2}
             />

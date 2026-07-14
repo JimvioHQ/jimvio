@@ -9,12 +9,12 @@ export function HeroBlobBackground() {
         >
             <defs>
                 <linearGradient id="blob-o1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#fd5000" stopOpacity="0.18" />
+                    <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.18" />
                     <stop offset="100%" stopColor="#ff7a30" stopOpacity="0.05" />
                 </linearGradient>
                 <linearGradient id="blob-o2" x1="1" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#fd5000" stopOpacity="0.12" />
-                    <stop offset="100%" stopColor="#fd5000" stopOpacity="0.02" />
+                    <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.12" />
+                    <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.02" />
                 </linearGradient>
                 <linearGradient id="blob-pu" x1="0" y1="1" x2="1" y2="0">
                     <stop offset="0%" stopColor="#7F77DD" stopOpacity="0.10" />
@@ -42,14 +42,14 @@ export function HeroBlobBackground() {
             <ellipse cx="580" cy="400" rx="180" ry="130" fill="url(#blob-tl)" transform="rotate(-12 580 400)" />
 
             {/* Small crisp accent blob — tight top right corner */}
-            <ellipse cx="640" cy="30" rx="90" ry="70" fill="#fd5000" fillOpacity="0.08" transform="rotate(-30 640 30)" />
+            <ellipse cx="640" cy="30" rx="90" ry="70" fill="var(--color-accent)" fillOpacity="0.08" transform="rotate(-30 640 30)" />
 
             {/* Soft ring stroke — orange, center top */}
-            <ellipse cx="340" cy="-10" rx="260" ry="110" fill="none" stroke="#fd5000" strokeWidth="0.8" strokeOpacity="0.12" />
+            <ellipse cx="340" cy="-10" rx="260" ry="110" fill="none" stroke="var(--color-accent)" strokeWidth="0.8" strokeOpacity="0.12" />
 
             {/* Geometric triangle accent — top right */}
-            <polygon points="520,0 680,0 680,130" fill="#fd5000" fillOpacity="0.05" />
-            <polygon points="560,0 680,0 680,80" fill="#fd5000" fillOpacity="0.07" />
+            <polygon points="520,0 680,0 680,130" fill="var(--color-accent)" fillOpacity="0.05" />
+            <polygon points="560,0 680,0 680,80" fill="var(--color-accent)" fillOpacity="0.07" />
 
             {/* Fine grid overlay */}
             <path
@@ -65,15 +65,15 @@ export function HeroBlobBackground() {
             <path d="M-40,400 Q100,300 220,420" fill="none" stroke="#7F77DD" strokeWidth="0.7" strokeOpacity="0.09" strokeLinecap="round" />
 
             {/* Floating accent circles */}
-            <circle cx="130" cy="50" r="5" fill="#fd5000" fillOpacity="0.12" />
-            <circle cx="490" cy="310" r="7" fill="#fd5000" fillOpacity="0.09" />
+            <circle cx="130" cy="50" r="5" fill="var(--color-accent)" fillOpacity="0.12" />
+            <circle cx="490" cy="310" r="7" fill="var(--color-accent)" fillOpacity="0.09" />
             <circle cx="60" cy="390" r="4" fill="#534AB7" fillOpacity="0.10" />
-            <circle cx="610" cy="180" r="6" fill="#fd5000" fillOpacity="0.11" />
+            <circle cx="610" cy="180" r="6" fill="var(--color-accent)" fillOpacity="0.11" />
             <circle cx="270" cy="430" r="5" fill="#1D9E75" fillOpacity="0.09" />
-            <circle cx="400" cy="20" r="3.5" fill="#fd5000" fillOpacity="0.15" />
+            <circle cx="400" cy="20" r="3.5" fill="var(--color-accent)" fillOpacity="0.15" />
 
             {/* Diamond accents */}
-            <rect x="155" y="130" width="8" height="8" rx="1" fill="#fd5000" fillOpacity="0.12" transform="rotate(45 159 134)" />
+            <rect x="155" y="130" width="8" height="8" rx="1" fill="var(--color-accent)" fillOpacity="0.12" transform="rotate(45 159 134)" />
             <rect x="500" y="390" width="6" height="6" rx="1" fill="#534AB7" fillOpacity="0.12" transform="rotate(45 503 393)" />
         </svg>
     );

@@ -73,7 +73,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
             Live Feed
           </span>
           <h2 className="text-[20px] sm:text-[22px] font-bold text-[#11181c] dark:text-[#ededed] tracking-tight leading-tight">
-            Creator <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fd5000] to-orange-600">Shorts</span>
+            Creator <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-accent)] to-orange-600">Shorts</span>
           </h2>
           <p className="text-[12px] text-[#889096] dark:text-[#6a6a6a] font-medium">
             Discover and shop trending creator content.
@@ -82,7 +82,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
 
         <Link
           href="/shorts"
-          className="flex items-center gap-1 text-[12px] font-semibold text-[#fd5000] hover:text-orange-700 transition-colors shrink-0 ml-4"
+          className="flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)] hover:text-orange-700 transition-colors shrink-0 ml-4"
         >
           Watch all <ChevronRight className="h-3.5 w-3.5" />
         </Link>
@@ -121,7 +121,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
                  {video.video_type !== "general" && (
                     <div className={cn(
                       "flex items-center gap-1 px-2 py-1 rounded-full border border-white/10 text-[9px] font-semibold text-white backdrop-blur-md",
-                      video.video_type === "community" ? "bg-indigo-600/60" : "bg-[#fd5000]/60"
+                      video.video_type === "community" ? "bg-indigo-600/60" : "bg-[var(--color-accent)]/60"
                     )}>
                       {video.video_type === "community" ? <Users className="h-2.5 w-2.5" /> : <TrendingUp className="h-2.5 w-2.5" />}
                       {video.video_type === "community" ? "Circle" : "Viral"}
@@ -171,7 +171,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
             </Link>
 
             {/* ── CONVERSION SECTION (Grounded UI) ── */}
-            <div className="p-3 bg-stone-50 dark:bg-[#0a0a0a] border-t border-stone-100 dark:border-white/6 space-y-2 relative z-10 flex-1 flex flex-col justify-between">
+            <div className="p-3 bg-stone-50 dark:bg-[var(--color-ink-deep)] border-t border-stone-100 dark:border-white/6 space-y-2 relative z-10 flex-1 flex flex-col justify-between">
               {video.video_type === "product" && video.product ? (
                 <div className="space-y-2 flex flex-col h-full">
                   <div className="flex items-start justify-between gap-2 mb-1">
@@ -182,7 +182,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
                     </div>
                     {video.product.price != null && (
                       <div className="shrink-0 px-1.5 py-0.5 rounded bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20">
-                        <p className="text-[11px] font-bold text-[#fd5000] leading-none">
+                        <p className="text-[11px] font-bold text-[var(--color-accent)] leading-none">
                           {video.product.currency || "$"}{Number(video.product.price).toFixed(0)}
                         </p>
                       </div>

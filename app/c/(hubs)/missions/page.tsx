@@ -74,7 +74,7 @@ export default function HubMissionsPage() {
   return (
     <div className="min-h-full bg-[var(--color-bg)]"
          style={{
-           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-social)/3, transparent 40%)`,
          }}>
       <div className="mx-auto flex max-w-[1000px] flex-col gap-6 p-4 lg:p-6">
         {/* Header */}
@@ -95,7 +95,7 @@ export default function HubMissionsPage() {
 
         {/* Stats row */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 animate-in stagger-children">
-          <HubStatCard label="Total" value={stats.total} icon={<Target className="h-4 w-4" />} accent="#fd5000" />
+          <HubStatCard label="Total" value={stats.total} icon={<Target className="h-4 w-4" />} accent="var(--color-accent)" />
           <HubStatCard label="Active" value={stats.active} icon={<Flag className="h-4 w-4" />} accent="#4fc3f7" />
           <HubStatCard label="Completed" value={stats.completed} icon={<CheckCircle2 className="h-4 w-4" />} accent="#81c784" />
           <HubStatCard label="Total XP" value={stats.totalPoints.toLocaleString()} icon={<Star className="h-4 w-4" />} accent="#ffb74d" />
@@ -156,12 +156,12 @@ export default function HubMissionsPage() {
                 <div className={cn(
                   "group relative overflow-hidden rounded-2xl border transition-all duration-300 hover-lift animate-in animate-fade-in-up",
                   mission.is_completed
-                    ? "border-[var(--color-sage)]/30 bg-gradient-to-br from-[var(--color-sage)]/5 to-transparent"
+                    ? "border-[var(--color-growth)]/30 bg-gradient-to-br from-[var(--color-growth)]/5 to-transparent"
                     : "border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur"
                 )}>
                   {/* Completion overlay */}
                   {mission.is_completed && (
-                    <div className="absolute inset-0 -z-10 opacity-10" style={{ background: "linear-gradient(135deg, var(--color-sage), transparent)" }} />
+                    <div className="absolute inset-0 -z-10 opacity-10" style={{ background: "linear-gradient(135deg, var(--color-growth), transparent)" }} />
                   )}
 
                   <div className="p-4">
@@ -187,7 +187,7 @@ export default function HubMissionsPage() {
                         )}
                         <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-[var(--color-text-muted)]">
                           <span className="flex items-center gap-1">
-                            <Star className="h-3 w-3 text-[var(--color-amber)]" />
+                            <Star className="h-3 w-3 text-[var(--color-events)]" />
                             {mission.points} XP {mission.points}
                           </span>
                           <span className="flex items-center gap-1">
@@ -221,7 +221,7 @@ export default function HubMissionsPage() {
 
                   {/* Progress indicator for active missions */}
                   {!mission.is_completed && mission.due_date && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-amber)] opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-events)] opacity-0 group-hover:opacity-100 transition-opacity" />
                   )}
                 </div>
               </Link>

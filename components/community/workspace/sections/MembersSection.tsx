@@ -71,7 +71,7 @@ export function MembersSection({ community, currentUserId, view, isAdmin }: Prop
       {/* Top performers */}
       <div className="bg-surface border border-border rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Trophy className="w-3.5 h-3.5 text-[#fd5000]" />
+          <Trophy className="w-3.5 h-3.5 text-[var(--color-accent)]" />
           <span className="text-[11px] font-bold uppercase tracking-wider text-text-primary">
             Top this week
           </span>
@@ -93,7 +93,7 @@ export function MembersSection({ community, currentUserId, view, isAdmin }: Prop
                 <div
                   key={m.user_id}
                   className={`text-center p-3 rounded-xl ${
-                    isFirst ? "bg-[#fd5000]/10 ring-1 ring-[#fd5000]/30" : "bg-surface-secondary"
+                    isFirst ? "bg-[var(--color-accent)]/10 ring-1 ring-[var(--color-accent)]/30" : "bg-surface-secondary"
                   }`}
                 >
                   <div className="relative inline-block mb-2">
@@ -104,12 +104,12 @@ export function MembersSection({ community, currentUserId, view, isAdmin }: Prop
                         className="w-12 h-12 rounded-full object-cover ring-2 ring-border"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ring-2 ring-border" style={{ background: "#fd5000" }}>
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ring-2 ring-border" style={{ background: "var(--color-accent)" }}>
                         {name[0]?.toUpperCase()}
                       </div>
                     )}
                     {isFirst && (
-                      <Crown className="absolute -top-2 -right-1 w-4 h-4 text-[#fd5000]" fill="#fd5000" />
+                      <Crown className="absolute -top-2 -right-1 w-4 h-4 text-[var(--color-accent)]" fill="var(--color-accent)" />
                     )}
                   </div>
                   <p className="text-[11px] font-semibold text-text-primary truncate">{name}</p>
@@ -130,7 +130,7 @@ export function MembersSection({ community, currentUserId, view, isAdmin }: Prop
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search members..."
-            className="w-full bg-surface border border-border rounded-lg pl-9 pr-3 py-2 text-[12px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-[#fd5000]/50 focus:ring-2 focus:ring-[#fd5000]/10 transition-all"
+            className="w-full bg-surface border border-border rounded-lg pl-9 pr-3 py-2 text-[12px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-[var(--color-accent)]/50 focus:ring-2 focus:ring-[var(--color-accent)]/10 transition-all"
           />
         </div>
         <span className="text-[11px] font-semibold text-text-muted">
@@ -167,37 +167,37 @@ function MemberCard({ member, canModerate }: { member: Member; canModerate: bool
   return (
     <Link
       href={p?.username ? `/u/${p.username}` : "#"}
-      className="group bg-surface border border-border rounded-xl p-3 flex flex-col items-center text-center hover:border-[#fd5000]/30 transition-all"
+      className="group bg-surface border border-border rounded-xl p-3 flex flex-col items-center text-center hover:border-[var(--color-accent)]/30 transition-all"
     >
       <div className="relative mb-2">
         {p?.avatar_url ? (
           <img
             src={p.avatar_url}
             alt={name}
-            className="w-12 h-12 rounded-full object-cover ring-2 ring-border group-hover:ring-[#fd5000]/40 transition-all"
+            className="w-12 h-12 rounded-full object-cover ring-2 ring-border group-hover:ring-[var(--color-accent)]/40 transition-all"
           />
         ) : (
           <div
-            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ring-2 ring-border group-hover:ring-[#fd5000]/40 transition-all"
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ring-2 ring-border group-hover:ring-[var(--color-accent)]/40 transition-all"
             style={{ background: `hsl(${name.charCodeAt(0) % 360}, 65%, 50%)` }}
           >
             {name[0]?.toUpperCase()}
           </div>
         )}
         {isStaff && (
-          <div className="absolute -bottom-1 -right-1 bg-[#fd5000] text-white text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded-full">
+          <div className="absolute -bottom-1 -right-1 bg-[var(--color-accent)] text-white text-[8px] font-bold tracking-wider px-1.5 py-0.5 rounded-full">
             {member.role.toUpperCase()}
           </div>
         )}
       </div>
-      <p className="text-[12px] font-semibold text-text-primary truncate w-full group-hover:text-[#fd5000] transition-colors">
+      <p className="text-[12px] font-semibold text-text-primary truncate w-full group-hover:text-[var(--color-accent)] transition-colors">
         {name}
       </p>
       {p?.username && (
         <p className="text-[10px] text-text-muted truncate w-full">@{p.username}</p>
       )}
       {canModerate && (
-        <span className="mt-2 text-[9px] font-bold text-[#fd5000] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="mt-2 text-[9px] font-bold text-[var(--color-accent)] uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity">
           Manage →
         </span>
       )}

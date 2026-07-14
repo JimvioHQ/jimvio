@@ -89,7 +89,7 @@ export function UGCHeroHeader({
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search campaigns, brands or niches…"
             aria-label="Search campaigns"
-            className="h-9 w-full rounded-full border border-[#E8EAED] bg-[#F5F6F8] pl-9 pr-12 text-[12px] text-[#111827] outline-none transition-all placeholder:text-[#9CA3AF] focus:border-[#FF5A1F]/50 focus:bg-white focus:ring-2 focus:ring-[#FF5A1F]/10"
+            className="h-9 w-full rounded-full border border-[#E8EAED] bg-[#F5F6F8] pl-9 pr-12 text-[12px] text-[#111827] outline-none transition-all placeholder:text-[#9CA3AF] focus:border-[var(--color-accent)]/50 focus:bg-white focus:ring-2 focus:ring-[var(--color-accent)]/10"
           />
           <kbd className="pointer-events-none absolute right-10 top-1/2 hidden -translate-y-1/2 rounded border border-[#E8EAED] bg-white px-1 py-px text-[9px] font-medium text-[#9CA3AF] md:inline">
             ⌘K
@@ -128,7 +128,7 @@ export function UGCHeroHeader({
                   className={cn(
                     "flex h-7 w-7 items-center justify-center rounded-full border transition-all",
                     active
-                      ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#FF5A1F]"
+                      ? "border-[var(--color-accent)] bg-[#FFF4EF] text-[var(--color-accent)]"
                       : "border-[#E8EAED] bg-white text-[#6B7280] hover:border-[#D1D5DB]"
                   )}
                 >
@@ -179,7 +179,7 @@ export function UGCHeroHeader({
         <button
           type="button"
           onClick={onClearAll}
-          className="mt-1 text-[10px] font-semibold text-[#FF5A1F] hover:underline"
+          className="mt-1 text-[10px] font-semibold text-[var(--color-accent)] hover:underline"
         >
           Clear all filters
         </button>
@@ -211,7 +211,7 @@ function FilterSelect({
         onChange={(e) => onChange(e.target.value)}
         aria-label={label || "Filter"}
         className={cn(
-          "h-7 appearance-none rounded-full border border-[#E8EAED] bg-white text-[10px] font-medium text-[#374151] outline-none focus:border-[#FF5A1F]/40",
+          "h-7 appearance-none rounded-full border border-[#E8EAED] bg-white text-[10px] font-medium text-[#374151] outline-none focus:border-[var(--color-accent)]/40",
           compact ? "pl-2 pr-6" : "min-w-[80px] pl-2 pr-6"
         )}
       >

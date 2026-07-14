@@ -34,7 +34,7 @@ export function SmartSearchBar({
         className={cn(
           "flex h-9 items-center gap-2 rounded-[12px] border bg-white px-3 transition-all",
           focused
-            ? "border-[#FF5A1F]/40 shadow-[0_0_0_3px_rgba(255,90,31,0.08)]"
+            ? "border-[var(--color-accent)]/40 shadow-[0_0_0_3px_rgba(255,90,31,0.08)]"
             : "border-[#E5E7EB]"
         )}
       >
@@ -66,7 +66,7 @@ export function SmartSearchBar({
           </button>
         )}
         {loading && (
-          <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[#FF5A1F] border-t-transparent" />
+          <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[var(--color-accent)] border-t-transparent" />
         )}
       </div>
 

@@ -59,7 +59,7 @@ export function PublishSummaryModal({
         <button
           type="button"
           onClick={onClose}
-          className="mt-5 w-full h-10 rounded-sm bg-[#111827] dark:bg-[#FF5A1F] text-white text-[13px] font-semibold"
+          className="mt-5 w-full h-10 rounded-sm bg-[#111827] dark:bg-[var(--color-accent)] text-white text-[13px] font-semibold"
         >
           Done
         </button>
@@ -82,7 +82,7 @@ function SummaryRow({
   return (
     <div className="flex items-center justify-between">
       <dt className={cn("text-[var(--color-text-muted)]", muted && "opacity-70")}>{label}</dt>
-      <dd className={cn("text-xl font-bold tabular-nums", accent && "text-[#FF5A1F]")}>{value}</dd>
+      <dd className={cn("text-xl font-bold tabular-nums", accent && "text-[var(--color-accent)]")}>{value}</dd>
     </div>
   );
 }
@@ -123,7 +123,7 @@ export function PublishSafetyDialog({
             type="button"
             onClick={onPublishQualified}
             disabled={qualifiedCount === 0}
-            className="h-10 rounded-sm bg-[#FF5A1F] text-white text-[12px] font-semibold disabled:opacity-50"
+            className="h-10 rounded-sm bg-[var(--color-accent)] text-white text-[12px] font-semibold disabled:opacity-50"
           >
             Publish qualified products only ({qualifiedCount})
           </button>

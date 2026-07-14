@@ -9,12 +9,12 @@ import {
   Loader2, Smile, Send, Wifi, LogIn, Link2, Copy, Check, UserPlus,
   X, AlertTriangle, CheckCircle2, Info, ArrowLeft,
   Flame, HelpCircle, BarChart3, ChevronDown, RotateCcw, MoreHorizontal,
-  Zap, WifiOff, Settings, Archive, Trash2, Pin, Bell,
+  Zap, WifiOff, Settings, Archive, Trash2, Pin, Bell, Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar, HubBadge, HubProgressBar } from "./hub-ui";
-import type { LiveDashboard } from "@/lib/community/hub-live-types";
-import { normalizeHubLiveDashboard, getMockSessionById } from "@/lib/community/hub-live-demo";
+import type { LiveDashboard, LiveSessionItem } from "@/lib/community/hub-live-types";
+import { getEmptyHubLiveDashboard, getMockSessions } from "@/lib/community/hub-live-demo";
 import { LiveSessionsList } from "./live-sessions-list";
 import { StartLiveDialog } from "./start-live-dialog";
 import { toast } from "sonner";
@@ -342,23 +342,29 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
       setLoading(true);
       try {
         const res = await fetch(`/api/c/live/${sessionId}`);
-        let json: LiveDashboard | null = null;
+        const normalized = getEmptyHubLiveDashboard();
         if (res.ok) {
-          json = (await res.json()) as LiveDashboard;
-        }
-        if (!cancelled) {
-          const normalized = normalizeHubLiveDashboard(json);
-          if (sessionId && json?.session) {
+          const json = await res.json();
+          const s = json.session;
+          if (s) {
             normalized.session = {
-              ...normalized.session,
-              title: json.session.title,
-              host: json.session.host,
-              tag: json.session.tag,
+              title: s.title ?? "Live Session",
+              host: s.host?.full_name ?? s.host?.username ?? "Host",
+              href: `/c/live/${sessionId}`,
+              tag: s.status === "live" ? "Live" : "Scheduled",
               roomId: sessionId,
+              description: s.description ?? null,
+              host_bio: null,
+              host_follower_count: 0,
+              host_avatar: s.host?.avatar_url ?? null,
             };
+            normalized.session.tag = s.status === "live" ? "Live" : "Scheduled";
+            if (s.space) {
+              normalized.session.tag = `${s.space.name}`;
+            }
           }
-          setData(normalized);
         }
+        if (!cancelled) setData(normalized);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -383,6 +389,12 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
   }, [data?.chatMessages]);
 
   const speakers = useMemo(() => data?.speakers ?? [], [data?.speakers]);
+
+  const relatedSessions = useMemo(() => {
+    if (!sessionId) return [];
+    const mockAll = getMockSessions(communitySlug);
+    return mockAll.filter((s) => s.id !== sessionId && s.status === "live").slice(0, 4);
+  }, [sessionId, communitySlug]);
 
   const qaItems = useMemo(() => [
     { id: "1", question: "Will this session be recorded?", askedBy: "Sarah", votes: 5, answered: true, answer: "Yes, all sessions are automatically recorded and available in Recordings." },
@@ -480,38 +492,97 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
         onMouseLeave={() => setHoveringVideo(false)}
       >
         {!joined ? (
-          /* ── Join overlay ── */
+          /* ── Join overlay (enhanced) ── */
           <div className="relative flex flex-1 items-center justify-center overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-surface-secondary)] via-[var(--color-bg)] to-black" />
-            <div className="relative z-10 flex flex-col items-center px-6 text-center">
-              <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--color-accent)]/10">
+            <div className="absolute inset-0 opacity-[0.03]" style={{
+              backgroundImage: `radial-gradient(circle at 25% 50%, var(--color-accent) 0%, transparent 50%), radial-gradient(circle at 75% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)`,
+            }} />
+            <div className="relative z-10 flex flex-col items-center px-6 text-center max-w-md">
+              {/* Icon */}
+              <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--color-accent)]/10">
                 <Radio className="h-10 w-10 text-[var(--color-accent)]" />
               </div>
+
+              {/* Title */}
               <h2 className="text-[22px] font-black text-[var(--color-text-primary)]">{session.title}</h2>
-              <p className="mt-2 text-[14px] text-[var(--color-text-muted)]">
-                <span className="font-semibold text-[var(--color-text-primary)]">{session.host}</span> is live
-              </p>
-              <div className="mt-4 flex items-center gap-4 text-[12px] text-[var(--color-text-muted)]">
+
+              {/* Description */}
+              {session.description && (
+                <p className="mt-2 text-[13px] text-[var(--color-text-secondary)] leading-relaxed">{session.description}</p>
+              )}
+
+              {/* Host row with bio */}
+              <div className="mt-4 flex items-center gap-2.5">
+                <HubAvatar name={session.host} src={session.host_avatar} size={28} />
+                <div className="text-left">
+                  <p className="text-[14px] font-semibold text-[var(--color-text-primary)]">{session.host} <span className="font-normal text-[var(--color-text-muted)]">is live</span></p>
+                  {session.host_bio && (
+                    <p className="text-[10px] text-[var(--color-text-muted)]">{session.host_bio}</p>
+                  )}
+                  {session.host_follower_count != null && session.host_follower_count > 0 && (
+                    <p className="text-[10px] text-[var(--color-text-muted)]">{formatCount(session.host_follower_count)} followers</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Meta row */}
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3 text-[11px] text-[var(--color-text-muted)]">
                 <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{formatCount(analytics?.viewers ?? 0)} watching</span>
                 <span className="flex items-center gap-1"><Wifi className="h-3.5 w-3.5" />Live</span>
+                <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{formatOnlineDuration(elapsed)}</span>
               </div>
+
+              {/* Community preview — show speaker avatars */}
+              {speakers.length > 0 && (
+                <div className="mt-4 flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {speakers.slice(0, 5).map((s) => (
+                      <HubAvatar key={s.id} name={s.name} src={s.avatar_url} size={26} className="ring-2 ring-[var(--color-bg)]" />
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-[var(--color-text-muted)]">{speakers.length} in session</span>
+                </div>
+              )}
+
+              {/* Join button */}
               <button
                 type="button"
                 onClick={joinSession}
                 disabled={joining}
-                className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--color-accent)] px-6 py-3 text-[13px] font-bold text-white transition hover:bg-[var(--color-accent-hover)] disabled:opacity-50"
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--color-accent)] px-6 py-3 text-[13px] font-bold text-white transition hover:brightness-110 disabled:opacity-50"
               >
                 {joining ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Joining…
-                  </>
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Joining…</>
                 ) : (
-                  <>
-                    <LogIn className="h-4 w-4" /> Join Live
-                  </>
+                  <><LogIn className="h-4 w-4" /> Join Live</>
                 )}
               </button>
-              <p className="mt-4 text-[11px] text-[var(--color-text-muted)]">By joining, you agree to the community guidelines</p>
+
+              {/* Related sessions strip */}
+              {relatedSessions.length > 0 && (
+                <div className="mt-6 w-full border-t border-[var(--color-border)]/30 pt-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-2">More live sessions</p>
+                  <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+                    {relatedSessions.map((rs) => {
+                      const href = communitySlug ? `/c/${communitySlug}/live/${rs.id}` : `/c/live/${rs.id}`;
+                      return (
+                        <button
+                          key={rs.id}
+                          type="button"
+                          onClick={() => { window.location.href = href; }}
+                          className="shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-left text-[11px] transition hover:bg-[var(--color-border)]"
+                        >
+                          <p className="font-semibold text-[var(--color-text-primary)] truncate max-w-[120px]">{rs.title}</p>
+                          <p className="text-[9px] text-[var(--color-text-muted)]">{formatCount(rs.viewer_count ?? 0)} watching</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-4 text-[10px] text-[var(--color-text-muted)]">By joining, you agree to the community guidelines</p>
             </div>
           </div>
         ) : roomEnded ? (

@@ -120,7 +120,7 @@ export function CommunityCard({
     c,
     rank,
     showQuickActions = true,
-    accent = "#fd5000",
+    accent = "var(--color-accent)",
 }: CommunityCardProps) {
     const initial = c.name?.[0]?.toUpperCase() ?? "?";
     const newCommunity = isNew(c.created_at);
@@ -163,7 +163,7 @@ export function CommunityCard({
 
             <CardShell.Body padTop="avatar">
                 {/* Name + tagline */}
-                <h2 className="text-[15px] font-semibold tracking-tight leading-snug text-[#1a1714] dark:text-[#ededec] group-hover:text-[var(--card-accent,#fd5000)] transition-colors duration-200 line-clamp-1">
+                <h2 className="text-[15px] font-semibold tracking-tight leading-snug text-[var(--color-text-primary)] dark:text-[var(--color-paper)] group-hover:text-[var(--card-accent,var(--color-accent))] transition-colors duration-200 line-clamp-1">
                     {c.name}
                 </h2>
                 <p className="mt-1 text-[12px] text-[#6b6660] dark:text-[#787470] leading-relaxed font-normal line-clamp-2">
@@ -191,7 +191,7 @@ export function CommunityCard({
                         </span>
                     ) : c.monthly_price ? (
                         <div className="flex items-baseline gap-0.5">
-                            <span className="font-mono text-[20px] text-[#1a1714] dark:text-white leading-none">
+                            <span className="font-mono text-[20px] text-[var(--color-text-primary)] dark:text-white leading-none">
                                 {c.monthly_price.toLocaleString()}
                             </span>
                             <span className="text-[10px] text-stone-400 ml-0.5">
@@ -277,7 +277,7 @@ export function ProductCard({
     p,
     rank,
     showQuickActions = true,
-    accent = "#fd5000",
+    accent = "var(--color-accent)",
     onAddToCart,
 }: ProductCardProps) {
     const initial = p.name?.[0]?.toUpperCase() ?? "?";
@@ -328,7 +328,7 @@ export function ProductCard({
                 )}
 
                 {/* Name */}
-                <h2 className="text-[15px] font-semibold tracking-tight leading-snug text-[#1a1714] dark:text-[#ededec] group-hover:text-[var(--card-accent,#fd5000)] transition-colors duration-200 line-clamp-2 mb-2">
+                <h2 className="text-[15px] font-semibold tracking-tight leading-snug text-[var(--color-text-primary)] dark:text-[var(--color-paper)] group-hover:text-[var(--card-accent,var(--color-accent))] transition-colors duration-200 line-clamp-2 mb-2">
                     {p.name}
                 </h2>
 
@@ -355,7 +355,7 @@ export function ProductCard({
                 <div className="flex items-end justify-between mb-3">
                     <div>
                         <div className="flex items-baseline gap-2">
-                            <span className="font-mono text-[20px] font-bold text-[#1a1714] dark:text-white leading-none">
+                            <span className="font-mono text-[20px] font-bold text-[var(--color-text-primary)] dark:text-white leading-none">
                                 {p.price.toLocaleString()}
                             </span>
                             <span className="text-[11px] text-stone-400">{p.currency ?? "RWF"}</span>
@@ -423,7 +423,7 @@ export function AffiliateCard({
     p,
     rank,
     showQuickActions = true,
-    accent = "#fd5000",
+    accent = "var(--color-accent)",
 }: AffiliateCardProps) {
     const initial = p.name?.[0]?.toUpperCase() ?? "?";
 
@@ -456,7 +456,7 @@ export function AffiliateCard({
                 )}
 
                 {/* Name */}
-                <h2 className="text-[15px] font-semibold tracking-tight leading-snug text-[#1a1714] dark:text-[#ededec] group-hover:text-[var(--card-accent,#fd5000)] transition-colors duration-200 line-clamp-2 mb-4">
+                <h2 className="text-[15px] font-semibold tracking-tight leading-snug text-[var(--color-text-primary)] dark:text-[var(--color-paper)] group-hover:text-[var(--card-accent,var(--color-accent))] transition-colors duration-200 line-clamp-2 mb-4">
                     {p.name}
                 </h2>
 
@@ -479,7 +479,7 @@ export function AffiliateCard({
                         <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wide mb-0.5">
                             Engagement
                         </p>
-                        <p className="font-mono text-lg font-bold text-[#1a1714] dark:text-white leading-none">
+                        <p className="font-mono text-lg font-bold text-[var(--color-text-primary)] dark:text-white leading-none">
                             {formatNumber(p.engagement ?? 0)}
                         </p>
                     </div>

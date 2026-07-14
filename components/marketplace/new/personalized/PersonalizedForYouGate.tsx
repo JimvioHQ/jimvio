@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect,useRef, useId, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -37,14 +37,19 @@ export function PersonalizedForYouGate({
     setHydrated(true);
   }, []);
 
+  // Store callback in ref to avoid stale closure
+  const onExpandedChangeRef = useRef(onExpandedChange);
+  onExpandedChangeRef.current = onExpandedChange;
+
   const toggle = useCallback(() => {
     setExpanded((prev) => {
       const next = !prev;
       writeSessionExpanded(next);
-      onExpandedChange?.(next);
+      // Defer callback to avoid state update during render
+      setTimeout(() => onExpandedChangeRef.current?.(next), 0);
       return next;
     });
-  }, [onExpandedChange]);
+  }, []);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>) => {

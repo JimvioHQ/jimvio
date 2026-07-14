@@ -61,9 +61,9 @@ export const OS_NOTIFICATION_FILTERS = [
 ];
 
 export const OS_QUICK_CREATE_ITEMS: OsQuickCreateItem[] = [
-  { id: "product", label: "Product", description: "New listing", href: "/dashboard/products/new", icon: "package", accent: "#fd5000" },
+  { id: "product", label: "Product", description: "New listing", href: "/dashboard/products/new", icon: "package", accent: "var(--color-accent)" },
   { id: "community", label: "Community", description: "Launch a hub", href: "/dashboard/communities", icon: "users", accent: "#16a34a" },
-  { id: "campaign", label: "Campaign", description: "Seller campaign", href: "/dashboard/vendor/campaigns/new", icon: "megaphone", accent: "#ea580c" },
+  { id: "campaign", label: "Campaign", description: "Seller campaign", href: "/dashboard/vendor/campaigns/new", icon: "megaphone", accent: "var(--color-accent-hover)" },
   { id: "course", label: "Course", description: "Digital learning", href: "/dashboard/products/new", icon: "graduation", accent: "#7c3aed" },
   { id: "coupon", label: "Coupon", description: "Discount code", href: "/dashboard/products", icon: "ticket", accent: "#ca8a04" },
   { id: "message", label: "Message", description: "Start conversation", href: "/dashboard/messages", icon: "message", accent: "#4f46e5" },

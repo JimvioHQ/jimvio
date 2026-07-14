@@ -68,7 +68,7 @@
 // function CheckIcon() {
 //   return (
 //     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-//       <circle cx="7" cy="7" r="6.5" fill="var(--color-accent, #fd5000)" />
+//       <circle cx="7" cy="7" r="6.5" fill="var(--color-accent, var(--color-accent))" />
 //       <polyline points="4,7 6,9.5 10,4.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
 //     </svg>
 //   );
@@ -172,8 +172,8 @@
 //         <button
 //           style={triggerBtn}
 //           onMouseEnter={(e) => {
-//             (e.currentTarget as HTMLElement).style.borderColor = "var(--color-accent, #fd5000)";
-//             (e.currentTarget as HTMLElement).style.color = "var(--color-accent, #fd5000)";
+//             (e.currentTarget as HTMLElement).style.borderColor = "var(--color-accent, var(--color-accent))";
+//             (e.currentTarget as HTMLElement).style.color = "var(--color-accent, var(--color-accent))";
 //           }}
 //           onMouseLeave={(e) => {
 //             (e.currentTarget as HTMLElement).style.borderColor = "var(--color-border)";
@@ -200,7 +200,7 @@
 //                 width: 32, height: 32, borderRadius: 8, flexShrink: 0,
 //                 background: "rgba(253,80,0,0.08)", border: "0.5px solid rgba(253,80,0,0.2)",
 //                 display: "flex", alignItems: "center", justifyContent: "center",
-//                 color: "var(--color-accent, #fd5000)",
+//                 color: "var(--color-accent, var(--color-accent))",
 //               }}>
 //                 <MoveIcon />
 //               </div>
@@ -231,7 +231,7 @@
 //                 width: 22, height: 22, borderRadius: 6,
 //                 background: "rgba(253,80,0,0.08)", border: "0.5px solid rgba(253,80,0,0.15)",
 //                 display: "flex", alignItems: "center", justifyContent: "center",
-//                 color: "var(--color-accent, #fd5000)", flexShrink: 0,
+//                 color: "var(--color-accent, var(--color-accent))", flexShrink: 0,
 //               }}>
 //                 <StoreIcon size={12} />
 //               </div>
@@ -286,7 +286,7 @@
 //                   color: "var(--color-text-primary)",
 //                   transition: "border-color 150ms",
 //                 }}
-//                 onFocus={(e) => (e.target.style.borderColor = "var(--color-accent, #fd5000)")}
+//                 onFocus={(e) => (e.target.style.borderColor = "var(--color-accent, var(--color-accent))")}
 //                 onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")}
 //               />
 //             </div>
@@ -295,7 +295,7 @@
 //               disabled={searching || !query.trim()}
 //               style={{
 //                 height: 36, width: 36, borderRadius: 8, flexShrink: 0,
-//                 background: searching || !query.trim() ? "var(--color-surface, #f8f8f7)" : "var(--color-accent, #fd5000)",
+//                 background: searching || !query.trim() ? "var(--color-surface, #f8f8f7)" : "var(--color-accent, var(--color-accent))",
 //                 border: "0.5px solid var(--color-border)",
 //                 color: searching || !query.trim() ? "var(--color-text-muted, #aaa)" : "#fff",
 //                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -326,7 +326,7 @@
 //                       display: "flex", alignItems: "center", justifyContent: "space-between",
 //                       padding: "10px 12px", cursor: "pointer",
 //                       borderBottom: i < vendors.length - 1 ? "0.5px solid var(--color-border)" : "none",
-//                       borderLeft: `3px solid ${isSelected ? "var(--color-accent, #fd5000)" : "transparent"}`,
+//                       borderLeft: `3px solid ${isSelected ? "var(--color-accent, var(--color-accent))" : "transparent"}`,
 //                       background: isSelected ? "rgba(253,80,0,0.04)" : "var(--color-bg, #fff)",
 //                       transition: "background 120ms, border-color 120ms",
 //                     }}
@@ -340,7 +340,7 @@
 //                         background: isSelected ? "rgba(253,80,0,0.1)" : "var(--color-surface, #f8f8f7)",
 //                         border: `0.5px solid ${isSelected ? "rgba(253,80,0,0.2)" : "var(--color-border)"}`,
 //                         display: "flex", alignItems: "center", justifyContent: "center",
-//                         color: isSelected ? "var(--color-accent, #fd5000)" : "var(--color-text-muted, #aaa)",
+//                         color: isSelected ? "var(--color-accent, var(--color-accent))" : "var(--color-text-muted, #aaa)",
 //                         transition: "all 150ms",
 //                       }}>
 //                         {v.business_name?.charAt(0)?.toUpperCase() || <StoreIcon size={14} />}
@@ -438,7 +438,7 @@
 //                 ? "rgba(34,197,94,0.9)"
 //                 : !selectedVendor || moving
 //                   ? "var(--color-surface, #f0f0ee)"
-//                   : "var(--color-accent, #fd5000)",
+//                   : "var(--color-accent, var(--color-accent))",
 //               border: "none", cursor: !selectedVendor || moving || confirmed ? "not-allowed" : "pointer",
 //               color: !selectedVendor && !confirmed ? "var(--color-text-muted, #aaa)" : "#fff",
 //               fontSize: 13, fontWeight: 700,
@@ -538,7 +538,7 @@ function ShieldIcon() {
 function CheckIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <circle cx="7" cy="7" r="6.5" fill="var(--color-accent, #fd5000)" />
+      <circle cx="7" cy="7" r="6.5" fill="var(--color-accent, var(--color-accent))" />
       <polyline points="4,7 6,9.5 10,4.5" stroke="#fff" strokeWidth="1.5"
         strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
@@ -579,7 +579,7 @@ function VendorOption({
       style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "10px 12px", cursor: "pointer",
-        borderLeft: `3px solid ${isSelected ? "var(--color-accent, #fd5000)" : "transparent"}`,
+        borderLeft: `3px solid ${isSelected ? "var(--color-accent, var(--color-accent))" : "transparent"}`,
         background: isSelected
           ? "rgba(253,80,0,0.04)"
           : hovered ? "var(--color-surface, #f8f8f7)" : "var(--color-bg, #fff)",
@@ -598,7 +598,7 @@ function VendorOption({
             border: `0.5px solid ${isSelected ? "rgba(253,80,0,0.2)" : "var(--color-border)"}`,
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 13, fontWeight: 800,
-            color: isSelected ? "var(--color-accent, #fd5000)" : `hsl(${hue},45%,35%)`,
+            color: isSelected ? "var(--color-accent, var(--color-accent))" : `hsl(${hue},45%,35%)`,
             transition: "all 150ms",
           }}>
             {v.business_name?.charAt(0)?.toUpperCase() ?? "?"}
@@ -737,8 +737,8 @@ export function MoveProductDialog({
         transition: "border-color 150ms, color 150ms",
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = "var(--color-accent, #fd5000)";
-        (e.currentTarget as HTMLElement).style.color = "var(--color-accent, #fd5000)";
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--color-accent, var(--color-accent))";
+        (e.currentTarget as HTMLElement).style.color = "var(--color-accent, var(--color-accent))";
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.borderColor = "var(--color-border)";
@@ -762,7 +762,7 @@ export function MoveProductDialog({
           <div style={{ padding: "20px 20px 0" }}>
             <DialogHeader>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: "rgba(253,80,0,0.08)", border: "0.5px solid rgba(253,80,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-accent, #fd5000)" }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: "rgba(253,80,0,0.08)", border: "0.5px solid rgba(253,80,0,0.2)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-accent, var(--color-accent))" }}>
                   {isBulk ? <PackageStackIcon /> : <MoveIcon />}
                 </div>
                 <div>
@@ -784,7 +784,7 @@ export function MoveProductDialog({
               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 8, marginTop: 10, background: "rgba(253,80,0,0.05)", border: "0.5px solid rgba(253,80,0,0.15)" }}>
                 <PackageStackIcon />
                 <span style={{ fontSize: 12, color: "var(--color-text-secondary)", fontWeight: 500 }}>
-                  <strong style={{ color: "var(--color-accent, #fd5000)", fontWeight: 800 }}>{ids.length}</strong> products selected for transfer
+                  <strong style={{ color: "var(--color-accent, var(--color-accent))", fontWeight: 800 }}>{ids.length}</strong> products selected for transfer
                 </span>
               </div>
             )}
@@ -794,7 +794,7 @@ export function MoveProductDialog({
               <div style={{ fontSize: 11, color: "var(--color-text-muted, #888)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", flexShrink: 0 }}>From</div>
               <div style={{ width: 1, height: 16, background: "var(--color-border)" }} />
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 20, height: 20, borderRadius: 5, background: "rgba(253,80,0,0.08)", border: "0.5px solid rgba(253,80,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-accent, #fd5000)", flexShrink: 0 }}>
+                <div style={{ width: 20, height: 20, borderRadius: 5, background: "rgba(253,80,0,0.08)", border: "0.5px solid rgba(253,80,0,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-accent, var(--color-accent))", flexShrink: 0 }}>
                   <StoreIcon size={11} />
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text-primary)" }}>
@@ -833,14 +833,14 @@ export function MoveProductDialog({
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search vendor by name or email…"
                   style={{ width: "100%", boxSizing: "border-box", height: 36, paddingLeft: 32, paddingRight: 12, border: "0.5px solid var(--color-border)", borderRadius: 8, fontSize: 13, outline: "none", background: "var(--color-bg, #fff)", color: "var(--color-text-primary)", transition: "border-color 150ms" }}
-                  onFocus={(e) => (e.target.style.borderColor = "var(--color-accent, #fd5000)")}
+                  onFocus={(e) => (e.target.style.borderColor = "var(--color-accent, var(--color-accent))")}
                   onBlur={(e) => (e.target.style.borderColor = "var(--color-border)")}
                 />
               </div>
               <button
                 type="submit"
                 disabled={searching || !query.trim()}
-                style={{ height: 36, width: 36, borderRadius: 8, flexShrink: 0, background: searching || !query.trim() ? "var(--color-surface, #f8f8f7)" : "var(--color-accent, #fd5000)", border: "0.5px solid var(--color-border)", color: searching || !query.trim() ? "var(--color-text-muted, #aaa)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: searching || !query.trim() ? "not-allowed" : "pointer", transition: "background 150ms, color 150ms" }}
+                style={{ height: 36, width: 36, borderRadius: 8, flexShrink: 0, background: searching || !query.trim() ? "var(--color-surface, #f8f8f7)" : "var(--color-accent, var(--color-accent))", border: "0.5px solid var(--color-border)", color: searching || !query.trim() ? "var(--color-text-muted, #aaa)" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", cursor: searching || !query.trim() ? "not-allowed" : "pointer", transition: "background 150ms, color 150ms" }}
               >
                 {searching ? <SpinnerIcon /> : <SearchIcon />}
               </button>
@@ -892,7 +892,7 @@ export function MoveProductDialog({
               disabled={!selectedVendor || moving || confirmed}
               style={{
                 height: 36, padding: "0 16px", borderRadius: 8, border: "none",
-                background: confirmed ? "#16a34a" : !selectedVendor || moving ? "var(--color-surface, #f0f0ee)" : "var(--color-accent, #fd5000)",
+                background: confirmed ? "#16a34a" : !selectedVendor || moving ? "var(--color-surface, #f0f0ee)" : "var(--color-accent, var(--color-accent))",
                 cursor: !selectedVendor || moving || confirmed ? "not-allowed" : "pointer",
                 color: !selectedVendor && !confirmed ? "var(--color-text-muted, #aaa)" : "#fff",
                 fontSize: 13, fontWeight: 700,

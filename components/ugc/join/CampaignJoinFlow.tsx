@@ -130,7 +130,7 @@ export function CampaignJoinFlow() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#FF5A1F]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" />
       </div>
     );
   }
@@ -140,7 +140,7 @@ export function CampaignJoinFlow() {
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-4 text-center">
         <AlertCircle className="h-8 w-8 text-[#9CA3AF]" />
         <p className="font-semibold text-[#111827]">Campaign unavailable</p>
-        <Link href="/ugc" className="text-sm font-semibold text-[#FF5A1F]">
+        <Link href="/ugc" className="text-sm font-semibold text-[var(--color-accent)]">
           Back to discover
         </Link>
       </div>
@@ -164,7 +164,7 @@ export function CampaignJoinFlow() {
             <ArrowLeft className="h-4 w-4" />
             Campaign
           </Link>
-          <span className="rounded-full bg-[#FFF4EF] px-2.5 py-1 text-[11px] font-bold text-[#FF5A1F]">
+          <span className="rounded-full bg-[#FFF4EF] px-2.5 py-1 text-[11px] font-bold text-[var(--color-accent)]">
             {modeLabel}
           </span>
         </div>
@@ -182,7 +182,7 @@ export function CampaignJoinFlow() {
         <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-5">
           <h2 className="text-[15px] font-bold text-[#111827]">Eligibility</h2>
           <div className="mt-3 flex items-center gap-3">
-            <span className="text-2xl font-bold text-[#FF5A1F]">{ctx.eligibility.score}%</span>
+            <span className="text-2xl font-bold text-[var(--color-accent)]">{ctx.eligibility.score}%</span>
             <span
               className={cn(
                 "rounded-full px-2.5 py-1 text-[11px] font-bold uppercase",
@@ -250,7 +250,7 @@ export function CampaignJoinFlow() {
         <Button
           onClick={handleSubmit}
           disabled={!canSubmit || submitting}
-          className="h-12 w-full rounded-2xl bg-[#FF5A1F] text-base font-bold hover:bg-[#E54E18]"
+          className="h-12 w-full rounded-2xl bg-[var(--color-accent)] text-base font-bold hover:bg-[#E54E18]"
         >
           {submitting ? (
             <>
@@ -265,7 +265,7 @@ export function CampaignJoinFlow() {
         </Button>
 
         <div className="flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">
-          <ShieldCheck className="h-4 w-4 text-[#FF5A1F]" />
+          <ShieldCheck className="h-4 w-4 text-[var(--color-accent)]" />
           Secure · Escrow protected · Fraud monitored
         </div>
       </div>

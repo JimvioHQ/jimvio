@@ -216,7 +216,7 @@ export function SecurityForm({
                                 onChange={e => setCurrentPw(e.target.value)}
                                 placeholder="Enter current password"
                                 autoComplete="current-password"
-                                className="focus-visible:ring-1 focus-visible:ring-[var(--color-accent,#fd5000)] focus-visible:border-[var(--color-accent,#fd5000)]"
+                                className="focus-visible:ring-1 focus-visible:ring-[var(--color-accent,var(--color-accent))] focus-visible:border-[var(--color-accent,var(--color-accent))]"
                                 style={{ height: 36, fontSize: 13, borderRadius: "var(--radius-sm)" }}
                             />
                         </Field>
@@ -230,7 +230,7 @@ export function SecurityForm({
                                     onChange={e => setNewPw(e.target.value)}
                                     placeholder="At least 8 characters"
                                     autoComplete="new-password"
-                                    className="pr-10 focus-visible:ring-1 focus-visible:ring-[var(--color-accent,#fd5000)] focus-visible:border-[var(--color-accent,#fd5000)]"
+                                    className="pr-10 focus-visible:ring-1 focus-visible:ring-[var(--color-accent,var(--color-accent))] focus-visible:border-[var(--color-accent,var(--color-accent))]"
                                     style={{ height: 36, fontSize: 13, borderRadius: "var(--radius-sm)" }}
                                 />
                                 <button
@@ -253,7 +253,7 @@ export function SecurityForm({
                                 onChange={e => setConfirmPw(e.target.value)}
                                 placeholder="Repeat new password"
                                 autoComplete="new-password"
-                                className="focus-visible:ring-1 focus-visible:ring-[var(--color-accent,#fd5000)] focus-visible:border-[var(--color-accent,#fd5000)]"
+                                className="focus-visible:ring-1 focus-visible:ring-[var(--color-accent,var(--color-accent))] focus-visible:border-[var(--color-accent,var(--color-accent))]"
                                 style={{ height: 36, fontSize: 13, borderRadius: "var(--radius-sm)" }}
                             />
                         </Field>

@@ -140,7 +140,7 @@ export default function HubSettingsPage() {
   return (
     <div className="min-h-full bg-[var(--color-bg)]"
          style={{
-           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-social)/3, transparent 40%)`,
          }}>
       <div className="mx-auto max-w-[800px] space-y-6 p-4 lg:p-6">
         {/* Header */}
@@ -182,7 +182,7 @@ export default function HubSettingsPage() {
         {/* Notifications */}
         <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4">
           <h3 className="mb-4 flex items-center gap-2 text-[13px] font-black text-[var(--color-text-primary)]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-ocean)]/15 text-[var(--color-ocean)]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-live)]/15 text-[var(--color-live)]">
               <Bell className="h-4 w-4" />
             </div>
             Notifications
@@ -215,7 +215,7 @@ export default function HubSettingsPage() {
         {/* Privacy */}
         <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4">
           <h3 className="mb-4 flex items-center gap-2 text-[13px] font-black text-[var(--color-text-primary)]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-sage)]/15 text-[var(--color-sage)]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-growth)]/15 text-[var(--color-growth)]">
               <Shield className="h-4 w-4" />
             </div>
             Privacy
@@ -248,7 +248,7 @@ export default function HubSettingsPage() {
         {/* Account info */}
         <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4">
           <h3 className="mb-4 flex items-center gap-2 text-[13px] font-black text-[var(--color-text-primary)]">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-berry)]/15 text-[var(--color-berry)]">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-social)]/15 text-[var(--color-social)]">
               <Info className="h-4 w-4" />
             </div>
             Account Info

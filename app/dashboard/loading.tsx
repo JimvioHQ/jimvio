@@ -34,7 +34,7 @@ export default function DashboardLoading() {
           <circle cx="44" cy="44" r="38" fill="none" stroke="var(--color-border)" strokeWidth="1" />
           <circle
             cx="44" cy="44" r="38"
-            fill="none" stroke="#fd5000" strokeWidth="1.5"
+            fill="none" stroke="var(--color-accent)" strokeWidth="1.5"
             strokeLinecap="round" strokeDasharray="28 210"
           />
         </svg>
@@ -52,7 +52,7 @@ export default function DashboardLoading() {
         {/* Core icon */}
         <div className="relative z-10 w-[46px] h-[46px] rounded-[13px] bg-[var(--color-surface)] border border-[var(--color-border)] flex items-center justify-center">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-            stroke="#fd5000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
             style={{ animation: "spin 1s linear infinite" }}
           >
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -76,7 +76,7 @@ export default function DashboardLoading() {
           style={{ animation: "slide-up 0.35s ease both" }}
         >
           {MESSAGES[msgIndex]}
-          <span className="inline-block w-[18px] text-left text-[#fd5000]">
+          <span className="inline-block w-[18px] text-left text-[var(--color-accent)]">
             {".".repeat(dotCount)}
           </span>
         </p>
@@ -85,7 +85,7 @@ export default function DashboardLoading() {
       {/* ── Progress bar ── */}
       <div className="mt-8 w-[120px] h-[2px] rounded-full bg-[var(--color-border)] overflow-hidden">
         <div
-          className="h-full rounded-full bg-[#fd5000]"
+          className="h-full rounded-full bg-[var(--color-accent)]"
           style={{ animation: "progress 2.4s ease-in-out infinite" }}
         />
       </div>

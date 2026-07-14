@@ -83,7 +83,7 @@ export function UGCAnalyticsPage() {
           title="No analytics yet"
           description="Join campaigns and submit content to see performance data."
           action={
-            <Button asChild className="rounded-xl bg-[#FF5A1F]">
+            <Button asChild className="rounded-xl bg-[var(--color-accent)]">
               <Link href="/ugc">Discover campaigns</Link>
             </Button>
           }
@@ -119,7 +119,7 @@ export function UGCAnalyticsPage() {
                       className="flex items-center justify-between rounded-lg bg-[#FAFAFA] px-3 py-2 hover:bg-[#FFF4EF]"
                     >
                       <span className="truncate text-[13px] font-medium">{c.title}</span>
-                      <span className="text-[12px] font-bold text-[#FF5A1F]">
+                      <span className="text-[12px] font-bold text-[var(--color-accent)]">
                         {formatMoney(c.earnings, "USD")}
                       </span>
                     </Link>

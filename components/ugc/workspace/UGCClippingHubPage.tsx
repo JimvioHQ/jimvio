@@ -116,7 +116,7 @@ export function UGCClippingHubPage() {
                     </p>
                     <h3 className="text-[15px] font-bold text-[#111827]">{c.title}</h3>
                     <div className="mt-3 flex gap-2">
-                      <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
+                      <Button asChild size="sm" className="rounded-xl bg-[var(--color-accent)]">
                         <Link href={joinedIds.has(c.id) ? `/ugc/${c.id}/dashboard` : `/ugc/${c.id}`}>
                           {joinedIds.has(c.id) ? "Open project" : "View campaign"}
                         </Link>
@@ -145,9 +145,9 @@ export function UGCClippingHubPage() {
                   >
                     <div className="grid h-9 w-9 place-items-center rounded-lg bg-[#FFF4EF]">
                       {r.type === "video" ? (
-                        <Play className="h-4 w-4 text-[#FF5A1F]" />
+                        <Play className="h-4 w-4 text-[var(--color-accent)]" />
                       ) : (
-                        <Download className="h-4 w-4 text-[#FF5A1F]" />
+                        <Download className="h-4 w-4 text-[var(--color-accent)]" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">

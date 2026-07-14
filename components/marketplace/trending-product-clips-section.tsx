@@ -51,7 +51,7 @@ function ClipCard({
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(clip); }
       }}
-      className="group relative shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-stone-100 dark:border-white/6 bg-white dark:bg-[#111] text-left transition-all duration-300 hover:shadow-[0_8px_32px_rgba(253,80,0,0.15)] hover:border-[#fd5000]/30 active:scale-[0.99] shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
+      className="group relative shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-stone-100 dark:border-white/6 bg-white dark:bg-[#111] text-left transition-all duration-300 hover:shadow-[0_8px_32px_rgba(253,80,0,0.15)] hover:border-[var(--color-accent)]/30 active:scale-[0.99] shadow-[0_2px_12px_rgba(0,0,0,0.04)]"
       style={{ width }}
     >
       <div className="relative aspect-[9/16] overflow-hidden rounded-2xl">
@@ -70,7 +70,7 @@ function ClipCard({
           <div className="relative shrink-0">
             <Avatar className="h-7 w-7 border border-white/20 shadow-sm transition-transform group-hover:scale-110">
               <AvatarImage src={logoUrl(clip.vendors)} />
-              <AvatarFallback className="bg-gradient-to-br from-[#fd5000] to-orange-600 text-[10px] font-bold text-white">
+              <AvatarFallback className="bg-gradient-to-br from-[var(--color-accent)] to-orange-600 text-[10px] font-bold text-white">
                 {clip.vendors?.business_name?.[0] ?? "V"}
               </AvatarFallback>
             </Avatar>
@@ -84,13 +84,13 @@ function ClipCard({
         {/* Hover overlay: stats + product + follow */}
         <div className="absolute bottom-2.5 left-2.5 right-2.5 z-10 flex flex-col gap-1.5 opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
           <div className="flex h-6 w-fit items-center gap-1 rounded-full bg-black/40 backdrop-blur-md px-2.5 border border-white/10">
-            <Eye className="h-3 w-3 shrink-0 text-[#fd5000]" />
+            <Eye className="h-3 w-3 shrink-0 text-[var(--color-accent)]" />
             <span className="text-[10px] font-semibold tabular-nums text-white">{(clip.total_views ?? 0).toLocaleString()}</span>
           </div>
           {clip.products && (
             <div className="flex items-center justify-between gap-1.5 rounded-xl bg-white/95 dark:bg-[#111]/95 px-2.5 py-1.5 shadow-sm border border-stone-100 dark:border-white/10 backdrop-blur-md">
               <span className="min-w-0 truncate text-[10px] font-semibold text-[#11181c] dark:text-[#ededed]">{clip.products.name}</span>
-              <ShoppingBag className="h-3.5 w-3.5 shrink-0 text-[#fd5000]" />
+              <ShoppingBag className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
             </div>
           )}
           {clip.vendors?.id && (
@@ -99,7 +99,7 @@ function ClipCard({
                 vendorId={clip.vendors.id}
                 followLabel="Follow"
                 variant="ghost"
-                className="h-8 w-full rounded-full border border-white/20 bg-[#fd5000]/90 backdrop-blur-md px-2 text-[10px] font-semibold text-white hover:bg-[#fd5000] transition-all active:scale-95 shadow-[0_2px_8px_rgba(253,80,0,0.25)]"
+                className="h-8 w-full rounded-full border border-white/20 bg-[var(--color-accent)]/90 backdrop-blur-md px-2 text-[10px] font-semibold text-white hover:bg-[var(--color-accent)] transition-all active:scale-95 shadow-[0_2px_8px_rgba(253,80,0,0.25)]"
               />
             </div>
           )}
@@ -145,8 +145,8 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
 
       <div className="flex items-center justify-between px-1">
         <div className="flex flex-col gap-1">
-          <span className="inline-flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 text-[10px] font-semibold text-[#fd5000] tracking-wide">
-            <Play className="h-3 w-3 fill-[#fd5000]" />
+          <span className="inline-flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-full bg-orange-50 dark:bg-orange-500/10 border border-orange-100 dark:border-orange-500/20 text-[10px] font-semibold text-[var(--color-accent)] tracking-wide">
+            <Play className="h-3 w-3 fill-[var(--color-accent)]" />
             Creator Storefront
           </span>
           <h2 className="text-[20px] sm:text-[22px] font-bold text-[#11181c] dark:text-[#ededed] tracking-tight leading-tight">
@@ -159,7 +159,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
 
         <Link
           href="/marketplace"
-          className="flex items-center gap-1 text-[12px] font-semibold text-[#fd5000] hover:text-orange-700 transition-colors shrink-0 ml-4"
+          className="flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)] hover:text-orange-700 transition-colors shrink-0 ml-4"
         >
           View all <ChevronRight className="h-3.5 w-3.5" />
         </Link>
@@ -180,7 +180,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
             aria-hidden
           />
           <div className="pointer-events-none fixed inset-0 z-[1001] flex items-center justify-center p-4">
-            <div className="pointer-events-auto relative flex w-full max-w-[400px] flex-col gap-0 overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a] shadow-2xl">
+            <div className="pointer-events-auto relative flex w-full max-w-[400px] flex-col gap-0 overflow-hidden rounded-3xl border border-white/10 bg-[var(--color-ink-deep)] shadow-2xl">
               <button
                 type="button"
                 onClick={closeModal}
@@ -210,7 +210,7 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
                 <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3">
                   <Avatar className="h-12 w-12 border border-white/20 shadow-lg">
                     <AvatarImage src={logoUrl(modalClip.vendors)} />
-                    <AvatarFallback className="bg-gradient-to-br from-[#fd5000] to-orange-600 font-bold text-white">
+                    <AvatarFallback className="bg-gradient-to-br from-[var(--color-accent)] to-orange-600 font-bold text-white">
                       {modalClip.vendors?.business_name?.[0] ?? "V"}
                     </AvatarFallback>
                   </Avatar>
@@ -241,12 +241,12 @@ export function TrendingProductClipsSection({ clips, className, title = "Trendin
                       <LocalizedPrice
                         amount={Number(modalClip.products.price)}
                         currency={modalClip.products.currency}
-                        className="font-bold text-[#fd5000] text-[14px]"
+                        className="font-bold text-[var(--color-accent)] text-[14px]"
                       />
                     </div>
                   </div>
                   <Link href={`/marketplace/${modalClip.products.slug ?? ""}?buy=1`} onClick={closeModal} className="w-full">
-                    <button className="h-11 w-full rounded-full bg-[#fd5000] hover:bg-[#e04700] text-[13px] font-semibold text-white transition-all active:scale-[0.98] shadow-[0_4px_14px_rgba(253,80,0,0.3)]">
+                    <button className="h-11 w-full rounded-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-[13px] font-semibold text-white transition-all active:scale-[0.98] shadow-[0_4px_14px_rgba(253,80,0,0.3)]">
                       Shop Product
                     </button>
                   </Link>

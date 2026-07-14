@@ -31,9 +31,9 @@ export function AiRecommendationCards({ products, campaigns, communities, onClos
               key={p.id}
               href={p.slug ? `/marketplace/${p.slug}` : "/marketplace"}
               onClick={onClose}
-              className="group rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] p-3 transition-colors hover:border-[#FF5A1F]/40"
+              className="group rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] p-3 transition-colors hover:border-[var(--color-accent)]/40"
             >
-              <div className="mb-2.5 flex h-20 items-center justify-center overflow-hidden rounded-lg bg-[#FF5A1F]/5">
+              <div className="mb-2.5 flex h-20 items-center justify-center overflow-hidden rounded-lg bg-[var(--color-accent)]/5">
                 {p.image ? (
                   <Image
                     src={p.image}
@@ -55,7 +55,7 @@ export function AiRecommendationCards({ products, campaigns, communities, onClos
               <div className="mt-2 flex items-center justify-between text-[12px]">
                 <span className="font-bold" style={{ color: JIMVIO_ORANGE }}>{p.price}</span>
                 {p.commission ? (
-                  <span className="rounded-full bg-[#FF5A1F]/10 px-2 py-0.5 text-[10px] font-bold" style={{ color: JIMVIO_ORANGE }}>
+                  <span className="rounded-full bg-[var(--color-accent)]/10 px-2 py-0.5 text-[10px] font-bold" style={{ color: JIMVIO_ORANGE }}>
                     {p.commission} comm.
                   </span>
                 ) : (
@@ -74,7 +74,7 @@ export function AiRecommendationCards({ products, campaigns, communities, onClos
               key={c.id}
               href={`/ugc/${c.slug ?? c.id}`}
               onClick={onClose}
-              className="rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] p-3 transition-colors hover:border-[#FF5A1F]/40"
+              className="rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] p-3 transition-colors hover:border-[var(--color-accent)]/40"
             >
               <div className="mb-2 flex items-center gap-2">
                 <span className="grid size-8 place-items-center rounded-lg bg-violet-500/10 text-violet-600">
@@ -98,9 +98,9 @@ export function AiRecommendationCards({ products, campaigns, communities, onClos
               key={c.id}
               href={c.slug ? `/communities/${c.slug}` : "/communities"}
               onClick={onClose}
-              className="flex gap-3 rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] p-3 transition-colors hover:border-[#FF5A1F]/40"
+              className="flex gap-3 rounded-xl border border-[#FFE0D1] bg-[#FFFDFB] p-3 transition-colors hover:border-[var(--color-accent)]/40"
             >
-              <div className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#FF5A1F]/10">
+              <div className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--color-accent)]/10">
                 {c.avatar ? (
                   <Image src={c.avatar} alt={c.name} width={40} height={40} className="size-10 object-cover" unoptimized />
                 ) : (

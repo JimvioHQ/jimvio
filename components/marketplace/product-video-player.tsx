@@ -176,7 +176,7 @@ function CustomVideoControls({
           <button
             type="button"
             onClick={onTogglePlay}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/15 backdrop-blur-md transition-colors hover:bg-[#fd5000] hover:ring-[#fd5000]/40"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/12 text-white ring-1 ring-white/15 backdrop-blur-md transition-colors hover:bg-[var(--color-accent)] hover:ring-[var(--color-accent)]/40"
             aria-label={playing ? "Pause" : "Play"}
           >
             {playing ? (
@@ -207,7 +207,7 @@ function CustomVideoControls({
                 step={0.05}
                 value={muted ? 0 : volume}
                 onChange={(e) => onVolumeChange(Number(e.target.value))}
-                className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-[#fd5000] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
+                className="h-1 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-[var(--color-accent)] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
                 aria-label="Volume"
               />
             </div>
@@ -413,7 +413,7 @@ export function ProductVideoPlayer({
 
   const frameBadge = (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-md ring-1 ring-white/15">
-      <Film className="h-3 w-3 text-[#fd5000]" strokeWidth={2.25} />
+      <Film className="h-3 w-3 text-[var(--color-accent)]" strokeWidth={2.25} />
       Product video
     </span>
   );
@@ -486,7 +486,7 @@ export function ProductVideoPlayer({
           ref={shellRef}
           className="relative flex h-full w-full max-w-full items-center justify-center bg-[var(--color-bg-darker,#0a1410)]"
         >
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#fd5000]/20 via-transparent to-white/5 p-px">
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[var(--color-accent)]/20 via-transparent to-white/5 p-px">
             <div className="h-full w-full rounded-2xl bg-[var(--color-bg-darker,#0a1410)]/80" />
           </div>
 
@@ -536,9 +536,9 @@ export function ProductVideoPlayer({
                 className="absolute inset-0 z-[3] flex items-center justify-center bg-black/20"
                 aria-label="Play product video"
               >
-                <span className="relative flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full bg-gradient-to-br from-[#fd5000] to-[#ff7a33] shadow-[0_12px_40px_rgba(253,80,0,0.45)] ring-4 ring-white/20 transition-transform hover:scale-105 active:scale-95">
+                <span className="relative flex h-[4.25rem] w-[4.25rem] items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[#ff7a33] shadow-[0_12px_40px_rgba(253,80,0,0.45)] ring-4 ring-white/20 transition-transform hover:scale-105 active:scale-95">
                   {!needsTap && (
-                    <span className="absolute inset-0 animate-ping rounded-full bg-[#fd5000]/20" />
+                    <span className="absolute inset-0 animate-ping rounded-full bg-[var(--color-accent)]/20" />
                   )}
                   <Play className="relative ml-1 h-7 w-7 fill-white text-white" />
                 </span>

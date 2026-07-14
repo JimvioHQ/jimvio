@@ -59,7 +59,7 @@ describe("getNotificationColor", () => {
   });
 
   it("returns orange for community type", () => {
-    expect(getNotificationColor("community")).toBe("#fd5000");
+    expect(getNotificationColor("community")).toBe("var(--color-accent)");
   });
 
   it("returns gray for unknown types", () => {

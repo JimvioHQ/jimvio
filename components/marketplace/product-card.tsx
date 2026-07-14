@@ -132,7 +132,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           <div className="flex flex-col gap-2 flex-shrink-0 justify-center relative z-10">
             <button
               type="button"
-              className="px-4 py-2 rounded-sm bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white text-[11px] font-semibold shadow-none hover:scale-105 active:scale-95 transition-all"
+              className="px-4 py-2 rounded-sm bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-hover)] text-white text-[11px] font-semibold shadow-none hover:scale-105 active:scale-95 transition-all"
             >
               Add to cart
             </button>
@@ -201,7 +201,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           <div className="absolute bottom-3 left-3 right-3 z-20 translate-y-[140%] group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]">
             <button
               type="button"
-              className="w-full h-9 rounded-sm bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white text-[11px] font-semibold flex items-center justify-center gap-2 shadow-none hover:from-orange-400 hover:to-orange-500 transition-all active:scale-95"
+              className="w-full h-9 rounded-sm bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-hover)] text-white text-[11px] font-semibold flex items-center justify-center gap-2 shadow-none hover:from-orange-400 hover:to-orange-500 transition-all active:scale-95"
             >
               <ShoppingCart className="h-3.5 w-3.5" /> Add to Cart
             </button>

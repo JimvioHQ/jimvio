@@ -93,7 +93,7 @@ import { DigitalLibrary } from "@/components/library/digital-library"
 //     case "music-audio":
 //       return { label: "Audio",       icon: Music,         color: "#dc2626", action: "download"  as const, actionLabel: "Download",  ActionIcon: Download    };
 //     case "graphics-design":
-//       return { label: "Graphics",    icon: ImageIcon,     color: "#ea580c", action: "download"  as const, actionLabel: "Download",  ActionIcon: Download    };
+//       return { label: "Graphics",    icon: ImageIcon,     color: "var(--color-accent-hover)", action: "download"  as const, actionLabel: "Download",  ActionIcon: Download    };
 //     case "photography":
 //       return { label: "Photo",       icon: Camera,        color: "#0891b2", action: "download"  as const, actionLabel: "Download",  ActionIcon: Download    };
 //     default:

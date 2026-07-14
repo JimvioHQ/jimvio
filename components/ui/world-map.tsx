@@ -34,7 +34,7 @@ type WorldMapProps = {
 export function WorldMap({
   dots = [],
   pins = [],
-  lineColor = "#fd5000",
+  lineColor = "var(--color-accent)",
   className = "",
   showArcs = true,
 }: WorldMapProps) {

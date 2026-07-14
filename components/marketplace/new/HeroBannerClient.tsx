@@ -99,7 +99,7 @@ export function HeroBannerClient({ claimedPct }: Props) {
         <div className="flex items-center gap-1.5">
           <span
             className="size-1.5 animate-pulse rounded-full"
-            style={{ background: "#FD5000", boxShadow: "0 0 8px rgba(253,80,0,0.75)" }}
+            style={{ background: "var(--color-accent)", boxShadow: "0 0 8px rgba(253,80,0,0.75)" }}
           />
           <span
             className="text-[10px] font-bold uppercase tracking-[0.12em]"

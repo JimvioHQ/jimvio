@@ -88,7 +88,7 @@ export function AICommunityInsights() {
 
 const STATUS_STYLES = {
   live: "bg-[var(--color-danger)]/10 text-[var(--color-danger)]",
-  voice: "bg-[var(--color-amber)]/10 text-[var(--color-amber)]",
+  voice: "bg-[var(--color-events)]/10 text-[var(--color-events)]",
   watching: "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]",
   online: "bg-[var(--color-success)]/10 text-[var(--color-success)]",
 };

@@ -69,7 +69,7 @@ export const HEALTH_LABELS: Record<
 > = {
   excellent: { label: "Excellent", emoji: "🟢", color: "#10b981" },
   good: { label: "Good", emoji: "🟡", color: "#eab308" },
-  warning: { label: "Warning", emoji: "🟠", color: "#f97316" },
+  warning: { label: "Warning", emoji: "🟠", color: "var(--color-accent)" },
   poor: { label: "Poor", emoji: "🔴", color: "#ef4444" },
 };
 

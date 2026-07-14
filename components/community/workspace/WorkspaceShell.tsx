@@ -99,7 +99,7 @@
 //   name: string; avatar?: string | null; size?: "xs" | "sm" | "md" | "lg"; online?: boolean;
 // }) {
 //   const dims = { xs: "w-7 h-7 text-[10px]", sm: "w-8 h-8 text-[11px]", md: "w-10 h-10 text-[13px]", lg: "w-14 h-14 text-[18px]" }[size];
-//   const colors = ["bg-[#fd5000]/15 text-[#fd5000]", "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400", "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400", "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"];
+//   const colors = ["bg-[var(--color-accent)]/15 text-[var(--color-accent)]", "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400", "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400", "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400", "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"];
 //   const color = colors[(name?.charCodeAt(0) || 0) % colors.length];
 //   return (
 //     <div className="relative flex-shrink-0">
@@ -213,7 +213,7 @@ function Avatar({ name, avatar, size = "md" }: { name: string; avatar?: string |
     lg: "w-14 h-14 text-[18px]",
   }[size];
   const colors = [
-    "bg-[#fd5000]/15 text-[#fd5000]",
+    "bg-[var(--color-accent)]/15 text-[var(--color-accent)]",
     "bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400",
     "bg-sky-100 text-sky-600 dark:bg-sky-900/30 dark:text-sky-400",
     "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
@@ -436,7 +436,7 @@ function Sidebar({
                 className="w-11 h-11 rounded-xl object-cover ring-2 ring-[var(--color-accent)]/30 flex-shrink-0"
               />
             ) : (
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#fd5000] to-[#ff7a30] text-white font-bold text-[13px] flex items-center justify-center flex-shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[var(--color-accent)] to-[#ff7a30] text-white font-bold text-[13px] flex items-center justify-center flex-shrink-0">
                 {community.name[0]?.toUpperCase()}
               </div>
             )}
@@ -445,7 +445,7 @@ function Sidebar({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <h3 className="text-[14px] font-black text-[var(--color-text-primary)] truncate">{community.name}</h3>
-              <ShieldCheck className="w-4 h-4 text-[#fd5000] flex-shrink-0" />
+              <ShieldCheck className="w-4 h-4 text-[var(--color-accent)] flex-shrink-0" />
             </div>
             <p className="text-[10px] text-[var(--color-text-muted)]">
               {(community as { is_private?: boolean }).is_private ? "Private Community" : "Public Community"}
@@ -458,7 +458,7 @@ function Sidebar({
 
         <Link
           href={`${basePath}/members`}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#fd5000] px-3 py-2 text-[12px] font-semibold text-white shadow-sm shadow-[#fd5000]/25 transition-opacity hover:opacity-90"
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--color-accent)] px-3 py-2 text-[12px] font-semibold text-white shadow-sm shadow-[var(--color-accent)]/25 transition-opacity hover:opacity-90"
         >
           <UserPlus className="w-3.5 h-3.5" />
           Invite People
@@ -474,7 +474,7 @@ function Sidebar({
             className={cn(
               "w-full px-3 py-2 text-[11px] font-semibold rounded-lg transition-all",
               view === "admin"
-                ? "bg-[#fd5000]/10 text-[#fd5000]"
+                ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
                 : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
             )}
           >
@@ -507,7 +507,7 @@ function Sidebar({
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[12px] font-medium transition-all",
                   active
-                    ? "bg-[#fd5000] text-white shadow-sm shadow-[#fd5000]/25"
+                    ? "bg-[var(--color-accent)] text-white shadow-sm shadow-[var(--color-accent)]/25"
                     : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
                 )}
               >
@@ -541,7 +541,7 @@ function Sidebar({
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all",
                 active
-                  ? "bg-[#fd5000] text-white shadow-sm shadow-[#fd5000]/25"
+                  ? "bg-[var(--color-accent)] text-white shadow-sm shadow-[var(--color-accent)]/25"
                   : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
               )}
             >
@@ -564,7 +564,7 @@ function Sidebar({
             <button
               type="button"
               aria-label="Create space"
-              className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[#fd5000] transition-colors"
+              className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"
             >
               <Plus className="w-3 h-3" />
             </button>
@@ -584,8 +584,8 @@ function Sidebar({
                     onClick={() => onToggleSpace(space.id)}
                     className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-left hover:bg-[var(--color-surface-secondary)] transition-colors group"
                   >
-                    <div className="w-6 h-6 rounded-md bg-[#fd5000]/10 flex items-center justify-center flex-shrink-0">
-                      <Hash className="w-3 h-3 text-[#fd5000]" />
+                    <div className="w-6 h-6 rounded-md bg-[var(--color-accent)]/10 flex items-center justify-center flex-shrink-0">
+                      <Hash className="w-3 h-3 text-[var(--color-accent)]" />
                     </div>
                     <span className="flex-1 truncate text-[12px] font-medium text-[var(--color-text-primary)]">
                       {space.name}
@@ -625,7 +625,7 @@ function Sidebar({
         {isAdmin && view === "admin" && (
           <button
             type="button"
-            className="w-full flex items-center gap-2.5 px-4 py-1.5 mt-1 rounded-lg text-[12px] font-medium text-[var(--color-text-muted)] hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all"
+            className="w-full flex items-center gap-2.5 px-4 py-1.5 mt-1 rounded-lg text-[12px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent)]/5 transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
             Create Space
@@ -639,7 +639,7 @@ function Sidebar({
       {!isPremium && (
         <div className="flex-shrink-0 mx-3 mt-3 p-3 rounded-xl p-4 text-white hover-lift"
           style={{
-            background: "linear-gradient(135deg, var(--color-berry) 0%, var(--color-berry) 50%, var(--color-amber) 100%)",
+            background: "linear-gradient(135deg, var(--color-social) 0%, var(--color-social) 50%, var(--color-events) 100%)",
             backgroundSize: "200% 200%",
             animation: "gradient-shift 4s ease infinite",
           }}
@@ -654,7 +654,7 @@ function Sidebar({
           <button
             type="button"
             className="w-full py-1.5 rounded-lg bg-white py-2 text-[12px] font-bold transition-colors hover:opacity-90"
-            style={{ color: "var(--color-berry)" }}
+            style={{ color: "var(--color-social)" }}
           >
             Upgrade Now
           </button>
@@ -715,7 +715,7 @@ function UserProfileCard({
             )}
             style={{
               width: `${pct}%`,
-              background: close ? "linear-gradient(90deg,var(--color-accent),var(--color-amber))" : "var(--color-accent)",
+              background: close ? "linear-gradient(90deg,var(--color-accent),var(--color-events))" : "var(--color-accent)",
             }}
           />
         </div>

@@ -73,7 +73,7 @@ export default function CampaignApplicationPage() {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#FF5A1F]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" />
       </div>
     );
   }
@@ -135,7 +135,7 @@ export default function CampaignApplicationPage() {
 
           <div className="mt-6 flex flex-col gap-2">
             {isRejected ? (
-              <Button asChild className="h-11 rounded-xl bg-[#FF5A1F]">
+              <Button asChild className="h-11 rounded-xl bg-[var(--color-accent)]">
                 <Link href={`/ugc/${id}/join`}>Apply again</Link>
               </Button>
             ) : null}

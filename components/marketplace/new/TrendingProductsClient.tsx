@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import {
-  Flame, Sparkles,
+  Flame, Sparkles, CheckCircle2,
   TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star, ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
@@ -265,6 +265,8 @@ function ProductCard({
   const activeVariants = variants.filter((v) => v.is_active);
   const activeVariantsCount = activeVariants.length;
   const defaultVariant = activeVariantsCount > 0 ? activeVariants[0] : null;
+
+  const needsPurchasableSelection = hasColors || hasSizes;
 
   const initialColor = (() => {
     if (defaultVariant) {

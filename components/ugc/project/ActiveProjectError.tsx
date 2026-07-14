@@ -35,7 +35,7 @@ export function ActiveProjectError({
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
       <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#FFF4EF]">
-        <Icon className="h-6 w-6 text-[#FF5A1F]" />
+        <Icon className="h-6 w-6 text-[var(--color-accent)]" />
       </div>
       <div>
         <p className="text-base font-bold text-[#111827]">{title}</p>
@@ -45,7 +45,7 @@ export function ActiveProjectError({
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#FF5A1F] px-4 py-2 text-sm font-semibold text-white"
+          className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white"
         >
           <RefreshCw className="h-4 w-4" />
           Retry

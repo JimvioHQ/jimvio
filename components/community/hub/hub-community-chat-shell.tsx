@@ -46,10 +46,10 @@ export function HubCommunityChatShell() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: "Messages", value: overview?.messagesThisWeek ?? 0, delta: null, icon: MessageSquare, color: "sage" },
-              { label: "Members Online", value: overview?.membersOnline ?? 0, delta: overview?.membersOnlineDelta ?? null, icon: Users, color: "ocean" },
-              { label: "Voice Rooms", value: String(overview?.voiceRooms ?? 0), delta: overview?.voiceRoomsDelta ?? null, icon: Radio, color: "berry" },
-              { label: "Courses", value: String(overview?.courseCount ?? 0), delta: overview?.courseCountDelta ?? null, icon: GraduationCap, color: "amber" },
+              { label: "Messages", value: overview?.messagesThisWeek ?? 0, delta: null, icon: MessageSquare, color: "growth" },
+              { label: "Members Online", value: overview?.membersOnline ?? 0, delta: overview?.membersOnlineDelta ?? null, icon: Users, color: "live" },
+              { label: "Voice Rooms", value: String(overview?.voiceRooms ?? 0), delta: overview?.voiceRoomsDelta ?? null, icon: Radio, color: "social" },
+              { label: "Courses", value: String(overview?.courseCount ?? 0), delta: overview?.courseCountDelta ?? null, icon: GraduationCap, color: "events" },
             ].map(({ label, value, delta, icon: Icon, color }) => (
               <div key={label} className="relative rounded-xl p-3 hover-lift"
                    style={{ background: `var(--color-${color})/5`, border: "1px solid var(--color-border)/20" }}>
@@ -145,10 +145,10 @@ export function HubCommunityChatShell() {
           </div>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: "Messages", value: overview?.messagesThisWeek ?? 0, icon: MessageSquare, color: "sage" },
-              { label: "Engagement", value: overview?.engagementRate ?? 0, icon: Heart, color: "ocean" },
-              { label: "Communities", value: overview?.communitiesJoined ?? 0, icon: Users, color: "amber" },
-              { label: "Live sessions", value: overview?.liveSessions ?? 0, icon: Radio, color: "berry" },
+              { label: "Messages", value: overview?.messagesThisWeek ?? 0, icon: MessageSquare, color: "growth" },
+              { label: "Engagement", value: overview?.engagementRate ?? 0, icon: Heart, color: "live" },
+              { label: "Communities", value: overview?.communitiesJoined ?? 0, icon: Users, color: "events" },
+              { label: "Live sessions", value: overview?.liveSessions ?? 0, icon: Radio, color: "social" },
             ].map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="relative rounded-xl p-3 hover-lift"
                    style={{ background: `var(--color-${color})/5`, border: "1px solid var(--color-border)/20" }}>

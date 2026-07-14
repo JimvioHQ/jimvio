@@ -63,7 +63,7 @@ function FloatingParticles({ reduced }: { reduced: boolean }) {
       {PARTICLE_SEEDS.map((p, i) => (
         <motion.span
           key={i}
-          className="pointer-events-none absolute size-1 rounded-full bg-[#fd5000]/70"
+          className="pointer-events-none absolute size-1 rounded-full bg-[var(--color-accent)]/70"
           style={{ left: p.x, top: p.y }}
           animate={{
             y: [0, -8, 0],
@@ -110,7 +110,7 @@ function SparkleBurst({ reduced }: { reduced: boolean }) {
 
   return (
     <motion.span
-      className="pointer-events-none absolute z-20 text-[#fd5000]"
+      className="pointer-events-none absolute z-20 text-[var(--color-accent)]"
       style={{ left: `${left}%`, top: `${top}%` }}
       initial={{ opacity: 0, scale: 0.4, rotate: 0 }}
       animate={{ opacity: [0, 1, 0], scale: [0.4, 1.2, 0.5], rotate: 45 }}
@@ -130,13 +130,13 @@ function EarGlowPulse({ reduced }: { reduced: boolean }) {
   return (
     <>
       <motion.span
-        className="pointer-events-none absolute left-[18%] top-[14%] z-[5] h-3 w-3 rounded-full bg-[#fd5000]/60 blur-md"
+        className="pointer-events-none absolute left-[18%] top-[14%] z-[5] h-3 w-3 rounded-full bg-[var(--color-accent)]/60 blur-md"
         animate={{ opacity: [0.35, 0.85, 0.35], scale: [0.9, 1.15, 0.9] }}
         transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
         aria-hidden
       />
       <motion.span
-        className="pointer-events-none absolute right-[18%] top-[14%] z-[5] h-3 w-3 rounded-full bg-[#fd5000]/60 blur-md"
+        className="pointer-events-none absolute right-[18%] top-[14%] z-[5] h-3 w-3 rounded-full bg-[var(--color-accent)]/60 blur-md"
         animate={{ opacity: [0.35, 0.85, 0.35], scale: [0.9, 1.15, 0.9] }}
         transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
         aria-hidden
@@ -209,7 +209,7 @@ export function JimvioAIMascot({
       {/* Ambient glow pulse — opacity only */}
       {!motionless && (
         <motion.span
-          className="pointer-events-none absolute bottom-[8%] left-1/2 z-0 h-[38%] w-[82%] -translate-x-1/2 rounded-[100%] bg-[#fd5000]/28 blur-3xl will-change-[opacity,transform]"
+          className="pointer-events-none absolute bottom-[8%] left-1/2 z-0 h-[38%] w-[82%] -translate-x-1/2 rounded-[100%] bg-[var(--color-accent)]/28 blur-3xl will-change-[opacity,transform]"
           animate={reduced ? undefined : { opacity: [0.35, 0.55, 0.35], scale: [0.96, 1.04, 0.96] }}
           transition={reduced ? undefined : { duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -226,16 +226,16 @@ export function JimvioAIMascot({
 
       {showRings && (
         <div className="pointer-events-none absolute inset-x-0 bottom-[2%] z-[1] h-[42%]">
-          <span className="absolute bottom-0 left-1/2 h-[72%] w-[88%] -translate-x-1/2 rounded-[100%] border border-[#fd5000]/20" />
+          <span className="absolute bottom-0 left-1/2 h-[72%] w-[88%] -translate-x-1/2 rounded-[100%] border border-[var(--color-accent)]/20" />
           <OrbitRing
             className="bottom-[6%] h-[78%] w-[92%]"
-            ringClassName="border-dashed border-[#fd5000]/22"
+            ringClassName="border-dashed border-[var(--color-accent)]/22"
             duration={24}
             reduced={reduced}
           />
           <OrbitRing
             className="bottom-[2%] h-[86%] w-[98%]"
-            ringClassName="border-[#fd5000]/14"
+            ringClassName="border-[var(--color-accent)]/14"
             duration={32}
             reverse
             reduced={reduced}

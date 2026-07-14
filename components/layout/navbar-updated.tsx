@@ -32,7 +32,7 @@ import JimvioLogo from "../ui/logo";
 
 /* ─────────────────── TRENDING SEARCHES ─────────────────── */
 const TRENDING_SEARCHES = [
-    { label: "Wireless chargers", count: "142 products", icon: BatteryCharging, color: "#f97316", bg: "rgba(249,115,22,0.1)" },
+    { label: "Wireless chargers", count: "142 products", icon: BatteryCharging, color: "var(--color-accent)", bg: "color-mix(in srgb, var(--color-accent) 10%, transparent)" },
     { label: "Wireless earbuds", count: "89 products", icon: Headphones, color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
     { label: "Laptop accessories", count: "230 products", icon: Laptop, color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
     { label: "LED desk lamps", count: "77 products", icon: Lamp, color: "#eab308", bg: "rgba(234,179,8,0.1)" },
@@ -101,7 +101,7 @@ const NavBtn = React.forwardRef<any, {
         active
             ? "bg-stone-100 dark:bg-white/8 text-stone-900 dark:text-white font-semibold"
             : accent
-                ? "bg-[#fd5000] text-white hover:bg-[#e04700] shadow-[0_2px_8px_rgba(253,80,0,0.35)]"
+                ? "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] shadow-[0_2px_8px_rgba(253,80,0,0.35)]"
                 : "text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-white/6 hover:text-stone-900 dark:hover:text-white",
         className
     );
@@ -126,7 +126,7 @@ const IconBtn = React.forwardRef<any, {
         <>
             {children}
             {badge != null && badge > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 bg-[#fd5000] text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white dark:ring-[#0a0a0a]">
+                <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 bg-[var(--color-accent)] text-white text-[9px] font-black flex items-center justify-center rounded-full ring-2 ring-white dark:ring-[var(--color-ink-deep)]">
                     {badge > 99 ? "99+" : badge}
                 </span>
             )}
@@ -150,7 +150,7 @@ function SearchTrigger({ placeholder, onClick }: { placeholder?: string; onClick
                 color: "var(--color-text-muted, #a3a3a3)",
             }}
         >
-            <Search className="h-3.5 w-3.5 shrink-0 text-stone-400 dark:text-stone-500 group-hover:text-[#fd5000] transition-colors duration-150" />
+            <Search className="h-3.5 w-3.5 shrink-0 text-stone-400 dark:text-stone-500 group-hover:text-[var(--color-accent)] transition-colors duration-150" />
             <span className="flex-1 text-left truncate text-stone-400 dark:text-stone-500 text-[12px]">
                 {placeholder || "Search products, stores…"}
             </span>
@@ -205,7 +205,7 @@ function SearchOverlay({
                                 style={{ borderBottom: "1px solid var(--color-border, #e5e5e5)" }}>
                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                                     style={{ background: "rgba(253,80,0,0.1)", border: "1px solid rgba(253,80,0,0.15)" }}>
-                                    <Search className="h-3.5 w-3.5 text-[#fd5000]" />
+                                    <Search className="h-3.5 w-3.5 text-[var(--color-accent)]" />
                                 </div>
                                 <input
                                     ref={inputRef}
@@ -256,7 +256,7 @@ function SearchOverlay({
                                                             <p className="text-[11px] mt-0.5"
                                                                 style={{ color: "var(--color-text-muted, #a3a3a3)" }}>{item.count}</p>
                                                         </div>
-                                                        <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-[#fd5000]" />
+                                                        <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-accent)]" />
                                                     </button>
                                                 ))}
                                             </div>
@@ -297,7 +297,7 @@ function SearchOverlay({
                                                     </div>
                                                     <span className="text-[13px] font-semibold flex-1"
                                                         style={{ color: "var(--color-text-primary, #171717)" }}>{l.label}</span>
-                                                    <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-[#fd5000]" />
+                                                    <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-accent)]" />
                                                 </Link>
                                             );
                                         })}
@@ -307,12 +307,12 @@ function SearchOverlay({
                                             style={{ background: "rgba(253,80,0,0.05)", border: "1px solid rgba(253,80,0,0.15)" }}>
                                             <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                                                 style={{ background: "rgba(253,80,0,0.1)" }}>
-                                                <Search className="h-3.5 w-3.5 text-[#fd5000]" />
+                                                <Search className="h-3.5 w-3.5 text-[var(--color-accent)]" />
                                             </div>
-                                            <span className="text-[13px] font-semibold text-[#fd5000] flex-1 text-left">
+                                            <span className="text-[13px] font-semibold text-[var(--color-accent)] flex-1 text-left">
                                                 Search all results for &ldquo;{searchQ}&rdquo;
                                             </span>
-                                            <ArrowRight className="h-3.5 w-3.5 text-[#fd5000] shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                                            <ArrowRight className="h-3.5 w-3.5 text-[var(--color-accent)] shrink-0 group-hover:translate-x-0.5 transition-transform" />
                                         </button>
                                     </div>
                                 )}
@@ -359,7 +359,7 @@ function MarketplaceDropdown({ open, onMouseEnter, onMouseLeave, variants }: {
         <DropdownMenu open={open} modal={false}>
             <DropdownMenuTrigger asChild>
                 <NavBtn className="px-3.5 py-2" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-                    <ShoppingBag className="h-3.5 w-3.5 text-[#fd5000] shrink-0" />
+                    <ShoppingBag className="h-3.5 w-3.5 text-[var(--color-accent)] shrink-0" />
                     Marketplace
                     <ChevronDown className={cn("h-3 w-3 text-stone-400 transition-transform duration-300 ml-0.5", open && "rotate-180")} />
                 </NavBtn>
@@ -396,7 +396,7 @@ function MarketplaceDropdown({ open, onMouseEnter, onMouseLeave, variants }: {
                                         style={{ color: "var(--color-text-primary, #171717)" }}>{v.title}</p>
                                     {v.badge && (
                                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                                            style={{ background: "#fd5000" }}>{v.badge}</span>
+                                            style={{ background: "var(--color-accent)" }}>{v.badge}</span>
                                     )}
                                 </div>
                                 <p className="text-[11px] mt-1 leading-snug" style={{ color: "var(--color-text-muted, #a3a3a3)" }}>{v.desc}</p>
@@ -413,7 +413,7 @@ function MarketplaceDropdown({ open, onMouseEnter, onMouseLeave, variants }: {
                         className="flex items-center justify-between px-3 py-2.5 rounded-md text-[12px] font-semibold transition-all hover:bg-stone-50 dark:hover:bg-white/5 group"
                         style={{ color: "var(--color-text-muted, #a3a3a3)" }}>
                         <span>Browse all categories</span>
-                        <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform text-[#fd5000]" />
+                        <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform text-[var(--color-accent)]" />
                     </Link>
                 </div>
             </DropdownMenuContent>
@@ -430,13 +430,13 @@ function UserMenu({ user }: { user: { email: string; full_name?: string | null; 
                     className="relative flex items-center gap-2.5 px-2 py-1.5 rounded-xl transition-all hover:bg-stone-100 dark:hover:bg-white/6 active:scale-[0.97] group"
                 >
                     <div className="relative">
-                        <Avatar className="h-7 w-7 rounded-lg shrink-0 ring-2 ring-white dark:ring-[#0a0a0a]">
+                        <Avatar className="h-7 w-7 rounded-lg shrink-0 ring-2 ring-white dark:ring-[var(--color-ink-deep)]">
                             <AvatarImage src={user.avatar_url ?? undefined} className="object-cover rounded-lg" />
-                            <AvatarFallback className="bg-gradient-to-br from-[#fd5000] to-orange-600 rounded-lg text-white text-[10px] font-bold capitalize">
+                            <AvatarFallback className="bg-gradient-to-br from-[var(--color-accent)] to-orange-600 rounded-lg text-white text-[10px] font-bold capitalize">
                                 {user.full_name?.[0] || user.email?.[0] || "U"}
                             </AvatarFallback>
                         </Avatar>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white dark:border-[#0a0a0a]" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white dark:border-[var(--color-ink-deep)]" />
                     </div>
                     <div className="hidden lg:block text-left min-w-0">
                         <p className="text-[11px] font-bold leading-none truncate max-w-[90px]"
@@ -462,9 +462,9 @@ function UserMenu({ user }: { user: { email: string; full_name?: string | null; 
                     style={{ background: "var(--color-surface-secondary, #f5f5f5)", border: "1px solid var(--color-border, #e5e5e5)" }}>
                     <div className="flex items-center gap-3">
                         <div className="relative">
-                            <Avatar className="h-9 w-9 rounded-xl ring-2 ring-white dark:ring-[#0a0a0a] shrink-0">
+                            <Avatar className="h-9 w-9 rounded-xl ring-2 ring-white dark:ring-[var(--color-ink-deep)] shrink-0">
                                 <AvatarImage src={user.avatar_url ?? undefined} className="rounded-xl" />
-                                <AvatarFallback className="bg-gradient-to-br from-[#fd5000] to-orange-600 rounded-xl text-white text-[11px] font-bold capitalize">
+                                <AvatarFallback className="bg-gradient-to-br from-[var(--color-accent)] to-orange-600 rounded-xl text-white text-[11px] font-bold capitalize">
                                     {user.full_name?.[0]}
                                 </AvatarFallback>
                             </Avatar>
@@ -480,8 +480,8 @@ function UserMenu({ user }: { user: { email: string; full_name?: string | null; 
                     {/* Creator badge */}
                     <div className="mt-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
                         style={{ background: "rgba(253,80,0,0.08)", border: "1px solid rgba(253,80,0,0.15)" }}>
-                        <Star className="h-3 w-3 text-[#fd5000]" />
-                        <span className="text-[10px] font-bold text-[#fd5000]">Creator account · Pro</span>
+                        <Star className="h-3 w-3 text-[var(--color-accent)]" />
+                        <span className="text-[10px] font-bold text-[var(--color-accent)]">Creator account · Pro</span>
                     </div>
                 </div>
 
@@ -585,7 +585,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
     const marketplaceVariants = [
         { title: "Digital Market", desc: "Software, courses & assets", href: "/marketplace?type=digital", icon: Zap, color: "#0ea5e9", badge: "Hot" },
         { title: "Physical Market", desc: "Real-world goods & equipment", href: "/marketplace?type=physical", icon: Package, color: "#f59e0b" },
-        { title: "All Products", desc: "Complete global catalog", href: "/marketplace", icon: ShoppingBag, color: "#fd5000" },
+        { title: "All Products", desc: "Complete global catalog", href: "/marketplace", icon: ShoppingBag, color: "var(--color-accent)" },
     ];
 
     const runSearch = useCallback((override?: string) => {
@@ -600,11 +600,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
             <div className={cn(
                 "pointer-events-auto relative transition-all duration-300",
                 scrolled
-                    ? "bg-white/92 dark:bg-[#0a0a0a]/92 backdrop-blur-2xl shadow-[0_1px_0_rgba(0,0,0,0.06),0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
-                    : "bg-white/80 dark:bg-[#0a0a0a]/80 backdrop-blur-xl"
+                    ? "bg-white/92 dark:bg-[var(--color-ink-deep)]/92 backdrop-blur-2xl shadow-[0_1px_0_rgba(0,0,0,0.06),0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
+                    : "bg-white/80 dark:bg-[var(--color-ink-deep)]/80 backdrop-blur-xl"
             )}>
                 {/* Top gradient line */}
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#fd5000]/30 to-transparent pointer-events-none" />
+                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--color-accent)]/30 to-transparent pointer-events-none" />
 
                 {/* ── TOP STRIP ── */}
                 <motion.div
@@ -615,7 +615,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                         style={{ borderBottom: "1px solid var(--color-border, #e5e5e5)" }}>
                         <div className="flex items-center gap-6">
                             <div className="flex items-center gap-1.5">
-                                <Globe className="h-3 w-3 text-[#fd5000]" />
+                                <Globe className="h-3 w-3 text-[var(--color-accent)]" />
                                 <span className="text-[10px] font-bold text-stone-500 dark:text-stone-500 uppercase tracking-widest">
                                     Global Sourcing Network
                                 </span>
@@ -624,7 +624,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                             <CurrencySelector className="h-5 bg-transparent border-0 focus:ring-0 px-0 ring-0 text-[10px] font-bold text-stone-500 hover:text-stone-800 transition-colors" />
                         </div>
                         <div className="flex items-center gap-5">
-                            <Link href="/help" className="text-[10px] font-bold text-stone-500 hover:text-[#fd5000] transition-colors uppercase tracking-wide">
+                            <Link href="/help" className="text-[10px] font-bold text-stone-500 hover:text-[var(--color-accent)] transition-colors uppercase tracking-wide">
                                 Support
                             </Link>
                             <div className="h-3 w-px bg-stone-200 dark:bg-stone-800" />
@@ -667,14 +667,14 @@ export function Navbar({ user, marketing }: NavbarProps) {
                                 <NavBtn key={item.href} href={item.href} active={active} className="group">
                                     <Icon className={cn(
                                         "h-3.5 w-3.5 shrink-0 transition-colors",
-                                        active ? "text-[#fd5000]" : "text-stone-400 group-hover:text-[#fd5000]"
+                                        active ? "text-[var(--color-accent)]" : "text-stone-400 group-hover:text-[var(--color-accent)]"
                                     )} />
                                     <span className={active ? "text-stone-900 dark:text-white" : "text-stone-600 dark:text-stone-300 group-hover:text-stone-900 dark:group-hover:text-white"}>
                                         {item.label}
                                     </span>
                                     {/* Active indicator dot */}
                                     {active && (
-                                        <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#fd5000]" />
+                                        <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[var(--color-accent)]" />
                                     )}
                                 </NavBtn>
                             );
@@ -739,9 +739,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
                                     </Link>
                                     <Link href="/register"
                                         className="h-9 px-4 flex items-center rounded-xl text-[12px] font-black uppercase tracking-wider text-white transition-all active:scale-95 shrink-0 whitespace-nowrap"
-                                        style={{ background: "#fd5000", boxShadow: "0 2px 8px rgba(253,80,0,0.3)" }}
-                                        onMouseEnter={e => (e.currentTarget.style.background = "#e04700")}
-                                        onMouseLeave={e => (e.currentTarget.style.background = "#fd5000")}>
+                                        style={{ background: "var(--color-accent)", boxShadow: "0 2px 8px rgba(253,80,0,0.3)" }}
+                                        onMouseEnter={e => (e.currentTarget.style.background = "var(--color-accent-hover)")}
+                                        onMouseLeave={e => (e.currentTarget.style.background = "var(--color-accent)")}>
                                         Join free
                                     </Link>
                                 </div>
@@ -815,20 +815,20 @@ export function Navbar({ user, marketing }: NavbarProps) {
                                 return link.href ? (
                                     <Link key={link.href} href={link.href}
                                         className={cn("relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all duration-200",
-                                            active ? "text-[#fd5000]" : "text-stone-400")}>
+                                            active ? "text-[var(--color-accent)]" : "text-stone-400")}>
                                         <div className="relative">
                                             <link.icon className={cn("h-5 w-5 transition-all", active ? "scale-110" : "scale-100")} strokeWidth={active ? 2.5 : 2} />
                                             {link.badge != null && link.badge > 0 && (
-                                                <span className="absolute -top-1.5 -right-1.5 h-4 min-w-[16px] px-1 bg-[#fd5000] text-white text-[9px] font-black flex items-center justify-center rounded-full">
+                                                <span className="absolute -top-1.5 -right-1.5 h-4 min-w-[16px] px-1 bg-[var(--color-accent)] text-white text-[9px] font-black flex items-center justify-center rounded-full">
                                                     {link.badge}
                                                 </span>
                                             )}
-                                            {active && <motion.div layoutId="tab-glow" className="absolute inset-0 bg-[#fd5000]/20 blur-xl rounded-full" />}
+                                            {active && <motion.div layoutId="tab-glow" className="absolute inset-0 bg-[var(--color-accent)]/20 blur-xl rounded-full" />}
                                         </div>
                                         <span className={cn("text-[9px] font-bold tracking-tight", active ? "opacity-100" : "opacity-50")}>
                                             {link.label}
                                         </span>
-                                        {active && <motion.div layoutId="tab-active" className="absolute top-0 h-[2px] w-8 rounded-b-full bg-[#fd5000]" />}
+                                        {active && <motion.div layoutId="tab-active" className="absolute top-0 h-[2px] w-8 rounded-b-full bg-[var(--color-accent)]" />}
                                     </Link>
                                 ) : (
                                     <button key="menu" onClick={link.action}
@@ -873,7 +873,7 @@ function MobileDrawer({ open, onClose, user, pathname, marketplaceVariants, navL
             <Link href={href} onClick={onClose}
                 className={cn(
                     "flex items-center gap-3 px-3 py-3 rounded-xl text-[13px] font-semibold transition-all",
-                    active ? "text-[#fd5000]" : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/5"
+                    active ? "text-[var(--color-accent)]" : "text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-white/5"
                 )}
                 style={active ? { background: "rgba(253,80,0,0.06)", border: "1px solid rgba(253,80,0,0.12)" } : { border: "1px solid transparent" }}
             >
@@ -882,10 +882,10 @@ function MobileDrawer({ open, onClose, user, pathname, marketplaceVariants, navL
                         ? { background: "rgba(253,80,0,0.1)" }
                         : { background: "var(--color-surface-secondary, #f5f5f5)", border: "1px solid var(--color-border, #e5e5e5)" }
                     }>
-                    <Icon className={cn("h-4 w-4", active ? "text-[#fd5000]" : "text-stone-400")} />
+                    <Icon className={cn("h-4 w-4", active ? "text-[var(--color-accent)]" : "text-stone-400")} />
                 </div>
                 <span className="flex-1">{label}</span>
-                {active && <div className="w-1.5 h-1.5 rounded-full bg-[#fd5000]" />}
+                {active && <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)]" />}
             </Link>
         );
     }
@@ -910,7 +910,7 @@ function MobileDrawer({ open, onClose, user, pathname, marketplaceVariants, navL
                         <div className="flex items-center justify-between px-5 py-4 shrink-0"
                             style={{ borderBottom: "1px solid var(--color-border, #e5e5e5)" }}>
                             <div className="flex items-center gap-2.5">
-                                <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "#fd5000" }}>
+                                <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ background: "var(--color-accent)" }}>
                                     <Zap className="h-3.5 w-3.5 text-white" />
                                 </div>
                                 <span className="text-[14px] font-bold" style={{ color: "var(--color-text-primary, #171717)" }}>Jimvio</span>
@@ -935,7 +935,7 @@ function MobileDrawer({ open, onClose, user, pathname, marketplaceVariants, navL
                                             <div className="relative shrink-0">
                                                 <Avatar className="h-10 w-10 rounded-xl ring-2 ring-white dark:ring-stone-800">
                                                     <AvatarImage src={user.avatar_url ?? undefined} className="rounded-xl" />
-                                                    <AvatarFallback className="bg-gradient-to-br from-[#fd5000] to-orange-600 rounded-xl text-white text-[11px] font-bold">
+                                                    <AvatarFallback className="bg-gradient-to-br from-[var(--color-accent)] to-orange-600 rounded-xl text-white text-[11px] font-bold">
                                                         {user.full_name?.[0] || user.email?.[0] || "U"}
                                                     </AvatarFallback>
                                                 </Avatar>
@@ -991,7 +991,7 @@ function MobileDrawer({ open, onClose, user, pathname, marketplaceVariants, navL
                                             </Link>
                                             <Link href="/register" onClick={onClose}
                                                 className="flex items-center justify-center gap-2 py-3 rounded-xl text-[13px] font-black text-white transition-all active:scale-95"
-                                                style={{ background: "#fd5000", boxShadow: "0 4px 12px rgba(253,80,0,0.3)" }}>
+                                                style={{ background: "var(--color-accent)", boxShadow: "0 4px 12px rgba(253,80,0,0.3)" }}>
                                                 <Sparkles className="h-4 w-4" /> Join free
                                             </Link>
                                         </div>
@@ -1001,7 +1001,7 @@ function MobileDrawer({ open, onClose, user, pathname, marketplaceVariants, navL
                                 {/* AI Assistant CTA */}
                                 <button onClick={() => { openAssistant(); onClose(); }}
                                     className="w-full relative flex items-center gap-4 p-4 rounded-2xl overflow-hidden active:scale-[0.98] transition-all"
-                                    style={{ background: "#fd5000" }}>
+                                    style={{ background: "var(--color-accent)" }}>
                                     <div className="absolute -right-4 -top-4 h-20 w-20 bg-white/15 rounded-full blur-xl pointer-events-none" />
                                     <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 border border-white/20">
                                         <Sparkles className="h-5 w-5 text-white" />
@@ -1059,7 +1059,7 @@ function MobileDrawer({ open, onClose, user, pathname, marketplaceVariants, navL
                                                                     </div>
                                                                     {v.badge && (
                                                                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                                                                            style={{ background: "#fd5000" }}>{v.badge}</span>
+                                                                            style={{ background: "var(--color-accent)" }}>{v.badge}</span>
                                                                     )}
                                                                 </Link>
                                                             ))}

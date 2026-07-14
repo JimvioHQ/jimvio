@@ -12,6 +12,7 @@ type Props = {
   pageSize: number;
   onPageChange: (page: number) => void;
   itemLabel?: string;
+  currentPage: number;
 };
 
 const ELLIPSIS = "ellipsis" as const;
@@ -123,7 +124,9 @@ export function MarketplacePagination({
   pageSize,
   onPageChange,
   itemLabel = "products",
+  currentPage = 1,
 }: Props) {
+  const totalPages = Math.ceil(total / pageSize);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const mqRef = useRef<MediaQueryList | null>(null);
 

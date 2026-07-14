@@ -106,14 +106,14 @@ export default function HubAnalyticsPage() {
   return (
     <div className="min-h-full bg-[var(--color-bg)]"
          style={{
-           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-social)/3, transparent 40%)`,
          }}>
       <div className="mx-auto flex max-w-[960px] flex-col gap-6 p-4 lg:p-6">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 animate-in animate-fade-in-up">
           <div>
             <h1 className="flex items-center gap-2 text-xl font-black tracking-tight text-[var(--color-text-primary)]">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-ocean)]/15 text-[var(--color-ocean)]">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-live)]/15 text-[var(--color-live)]">
                 <BarChart3 className="h-5 w-5" />
               </div>
               Analytics
@@ -129,10 +129,10 @@ export default function HubAnalyticsPage() {
 
         {/* Stat cards - mood board style */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 animate-in stagger-children">
-          <FeatureStatCard label="Online now" value={stats?.membersOnline ?? 0} delta={null} icon={Users} color="sage" />
-          <FeatureStatCard label="Live sessions" value={stats?.liveSessions ?? 0} delta={null} icon={Radio} color="ocean" />
-          <FeatureStatCard label="Voice rooms" value={stats?.voiceRooms ?? 0} delta={null} icon={Radio} color="berry" />
-          <FeatureStatCard label="Communities" value={stats?.activeCommunities ?? 0} delta={null} icon={Layers} color="amber" />
+          <FeatureStatCard label="Online now" value={stats?.membersOnline ?? 0} delta={null} icon={Users} color="growth" />
+          <FeatureStatCard label="Live sessions" value={stats?.liveSessions ?? 0} delta={null} icon={Radio} color="live" />
+          <FeatureStatCard label="Voice rooms" value={stats?.voiceRooms ?? 0} delta={null} icon={Radio} color="social" />
+          <FeatureStatCard label="Communities" value={stats?.activeCommunities ?? 0} delta={null} icon={Layers} color="events" />
         </div>
 
         {/* Creator Insights + Earnings */}
@@ -144,10 +144,10 @@ export default function HubAnalyticsPage() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: "Posts", value: insights?.postCount30d ?? 0, icon: MessageSquare, color: "sage" },
-                { label: "Engagement", value: insights?.engagement30d ?? 0, icon: Heart, color: "ocean" },
-                { label: "Communities", value: insights?.communitiesJoined ?? 0, icon: Layers, color: "amber" },
-                { label: "Live rooms", value: stats?.liveSessions ?? 0, icon: Radio, color: "berry" },
+                { label: "Posts", value: insights?.postCount30d ?? 0, icon: MessageSquare, color: "growth" },
+                { label: "Engagement", value: insights?.engagement30d ?? 0, icon: Heart, color: "live" },
+                { label: "Communities", value: insights?.communitiesJoined ?? 0, icon: Layers, color: "events" },
+                { label: "Live rooms", value: stats?.liveSessions ?? 0, icon: Radio, color: "social" },
               ].map(({ label, value, icon: Icon, color }) => (
                 <div key={label} className="relative rounded-xl p-3 hover-lift"
                      style={{ background: `var(--color-${color})/5`, border: "1px solid var(--color-border)/20" }}>
@@ -163,7 +163,7 @@ export default function HubAnalyticsPage() {
 
           {/* Earnings */}
           <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift animate-in animate-fade-in-up"
-               style={{ background: "linear-gradient(135deg, var(--color-sage)/10, var(--color-accent)/10)" }}>
+               style={{ background: "linear-gradient(135deg, var(--color-growth)/10, var(--color-accent)/10)" }}>
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Earnings Overview</h3>
               <HubBadge variant="orange">Overview</HubBadge>
@@ -190,7 +190,7 @@ export default function HubAnalyticsPage() {
         {/* Weekly Challenge */}
         {data?.challenge && (
           <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 bg-gradient-to-br from-[var(--color-surface)] to-[var(--color-surface-secondary)] p-4 hover-lift animate-in animate-fade-in-up"
-               style={{ background: "linear-gradient(135deg, var(--color-berry)/5, var(--color-amber)/5)" }}>
+               style={{ background: "linear-gradient(135deg, var(--color-social)/5, var(--color-events)/5)" }}>
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-[13px] font-black text-[var(--color-text-primary)]">Weekly Challenge</h3>
               <HubBadge variant="orange">{data.challenge.completed}/{data.challenge.target}</HubBadge>
@@ -206,30 +206,30 @@ export default function HubAnalyticsPage() {
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
               <div className="h-full rounded-full transition-all duration-500"
-                   style={{ width: `${challengePct}%`, background: "linear-gradient(90deg, var(--color-sage), var(--color-accent))" }} />
+                   style={{ width: `${challengePct}%`, background: "linear-gradient(90deg, var(--color-growth), var(--color-accent))" }} />
             </div>
           </div>
         )}
 
         {/* Growth Tips */}
         <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift animate-in animate-fade-in-up"
-             style={{ background: "linear-gradient(135deg, var(--color-sage)/5, var(--color-ocean)/5)" }}>
+             style={{ background: "linear-gradient(135deg, var(--color-growth)/5, var(--color-live)/5)" }}>
           <h3 className="mb-3 text-[13px] font-black text-[var(--color-text-primary)]">Growth tips</h3>
           <ul className="space-y-2 text-[12px] text-[var(--color-text-secondary)]">
             <li className="flex items-start gap-2">
-              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-amber)]" />
+              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-events)]" />
               Post clips during peak hours to boost reach in your spaces.
             </li>
             <li className="flex items-start gap-2">
-              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-amber)]" />
+              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-events)]" />
               Go live weekly — live sessions drive the highest engagement.
             </li>
             <li className="flex items-start gap-2">
-              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-amber)]" />
+              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-events)]" />
               Complete missions to unlock community rewards faster.
             </li>
             <li className="flex items-start gap-2">
-              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-amber)]" />
+              <Zap className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-events)]" />
               Invite collaborators to cross-promote and grow together.
             </li>
           </ul>

@@ -123,7 +123,7 @@ export function IntelligenceMonitor({ className }: { className?: string }) {
         type="button"
         onClick={() => void handleBootstrap()}
         disabled={bootstrapping}
-        className="inline-flex h-7 items-center gap-1 rounded-[8px] bg-[#FF5A1F] px-2.5 text-[10px] font-semibold text-white disabled:opacity-60"
+        className="inline-flex h-7 items-center gap-1 rounded-[8px] bg-[var(--color-accent)] px-2.5 text-[10px] font-semibold text-white disabled:opacity-60"
       >
         {bootstrapping ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
         <span className="hidden sm:inline">Sync & Enrich</span>

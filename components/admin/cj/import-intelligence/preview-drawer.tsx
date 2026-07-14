@@ -146,7 +146,7 @@ export function PreviewDrawer({
               />
               <HealthScoreBadge score={intel.healthScore} label={intel.healthLabel} />
               {intel.trending && (
-                <span className="text-[10px] font-semibold text-[#FF5A1F]">🔥 Trending</span>
+                <span className="text-[10px] font-semibold text-[var(--color-accent)]">🔥 Trending</span>
               )}
             </div>
             <h2 className="text-[15px] font-bold text-[var(--color-text-primary)] line-clamp-2">
@@ -176,7 +176,7 @@ export function PreviewDrawer({
                   {(duplicateInfo?.existingProductId || intel.importedProductId) && (
                     <Link
                       href={`/admin/products/${duplicateInfo?.existingProductId ?? intel.importedProductId}`}
-                      className="inline-flex items-center gap-1 mt-1.5 text-[#FF5A1F] font-medium hover:underline"
+                      className="inline-flex items-center gap-1 mt-1.5 text-[var(--color-accent)] font-medium hover:underline"
                     >
                       <ExternalLink className="h-3 w-3" />
                       View existing product
@@ -263,7 +263,7 @@ export function PreviewDrawer({
                       onClick={() => setActiveImage(i)}
                       className={cn(
                         "relative h-14 w-14 shrink-0 rounded-sm overflow-hidden ring-2",
-                        i === activeImage ? "ring-[#FF5A1F]" : "ring-transparent"
+                        i === activeImage ? "ring-[var(--color-accent)]" : "ring-transparent"
                       )}
                     >
                       <Image src={img} alt="" fill className="object-cover" unoptimized />
@@ -304,7 +304,7 @@ export function PreviewDrawer({
                 </ul>
               )}
               {(intel.opportunityScore >= 90 || intel.aiRecommendation) && (
-                <div className="text-[12px] font-semibold text-[#FF5A1F] pt-1 border-t border-[var(--color-border)]/50 space-y-0.5">
+                <div className="text-[12px] font-semibold text-[var(--color-accent)] pt-1 border-t border-[var(--color-border)]/50 space-y-0.5">
                   {intel.opportunityScore >= 95 && (
                     <p>Potential winner product.</p>
                   )}
@@ -474,7 +474,7 @@ export function PreviewDrawer({
                   type="button"
                   onClick={onImportAndPublish}
                   disabled={importing}
-                  className="flex-1 h-11 rounded-sm bg-[#FF5A1F] text-white text-[12px] font-bold hover:opacity-90 disabled:opacity-60 inline-flex items-center justify-center gap-2"
+                  className="flex-1 h-11 rounded-sm bg-[var(--color-accent)] text-white text-[12px] font-bold hover:opacity-90 disabled:opacity-60 inline-flex items-center justify-center gap-2"
                 >
                   {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                   Import & Publish

@@ -220,7 +220,7 @@ export function PlatformStatsRotatingBadge({
               transition={{ duration: 0.38, ease: PHRASE_EASE }}
               className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] sm:text-[12px]"
             >
-              <Icon className="size-3.5 shrink-0 text-[#FF5A1F]" strokeWidth={2.2} />
+              <Icon className="size-3.5 shrink-0 text-[var(--color-accent)]" strokeWidth={2.2} />
               <PlatformStatLine
                 statKey={currentKey}
                 valueClassName="font-semibold text-[var(--color-text-primary)]"

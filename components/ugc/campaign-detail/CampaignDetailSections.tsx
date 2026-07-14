@@ -120,7 +120,7 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
           </label>
         </div>
         <div className="mt-4 rounded-[12px] border border-[#FFE4D6] bg-[#FFF8F5] p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#FF5A1F]">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
             Estimated earnings
           </p>
           <p className="mt-1 text-[28px] font-bold tabular-nums text-[#111827]">
@@ -162,7 +162,7 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
       <SectionCard id="eligibility">
         <SectionTitle sub="See if you qualify before applying">Creator eligibility</SectionTitle>
         <div className="mb-4 flex items-center gap-3">
-          <div className="text-[32px] font-bold tabular-nums text-[#FF5A1F]">{eligibility.score}%</div>
+          <div className="text-[32px] font-bold tabular-nums text-[var(--color-accent)]">{eligibility.score}%</div>
           <Pill
             tone={
               eligibility.level === "eligible"
@@ -235,7 +235,7 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
               <button
                 type="button"
                 onClick={() => setExpandedDesc((e) => !e)}
-                className="mt-2 text-[12px] font-semibold text-[#FF5A1F]"
+                className="mt-2 text-[12px] font-semibold text-[var(--color-accent)]"
               >
                 {expandedDesc ? "Show less" : "Read full description"}
               </button>
@@ -292,7 +292,7 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
             <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">Hashtags</p>
             <div className="flex flex-wrap gap-1.5">
               {campaign.required_hashtags.map((h) => (
-                <span key={h} className="rounded-lg bg-[#FFF4EF] px-2 py-1 text-[11px] font-semibold text-[#FF5A1F]">
+                <span key={h} className="rounded-lg bg-[#FFF4EF] px-2 py-1 text-[11px] font-semibold text-[var(--color-accent)]">
                   {h.startsWith("#") ? h : `#${h}`}
                 </span>
               ))}
@@ -408,7 +408,7 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
                   e.status === "done"
                     ? "bg-emerald-500"
                     : e.status === "current"
-                      ? "bg-[#FF5A1F]"
+                      ? "bg-[var(--color-accent)]"
                       : "bg-[#D1D5DB]"
                 }`}
               />
@@ -444,7 +444,7 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
               className="h-14 w-14 rounded-xl object-cover"
             />
           ) : (
-            <div className="grid h-14 w-14 place-items-center rounded-xl bg-[#FFF4EF] text-lg font-bold text-[#FF5A1F]">
+            <div className="grid h-14 w-14 place-items-center rounded-xl bg-[#FFF4EF] text-lg font-bold text-[var(--color-accent)]">
               {campaign.vendor?.business_name?.[0] ?? "B"}
             </div>
           )}
@@ -485,7 +485,7 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
         {campaign.vendor?.business_slug ? (
           <Link
             href={`/vendors/${campaign.vendor.business_slug}`}
-            className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF5A1F]"
+            className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)]"
           >
             View brand store <ExternalLink className="h-3.5 w-3.5" />
           </Link>

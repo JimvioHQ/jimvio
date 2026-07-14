@@ -405,8 +405,8 @@
 //         body: "Every product decision starts with one question: does this help creators earn more?",
 //         icon: (
 //             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-//                 <circle cx="10" cy="10" r="8" stroke="#fd5000" strokeWidth="1.5" />
-//                 <path d="M7 10l2 2 4-4" stroke="#fd5000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+//                 <circle cx="10" cy="10" r="8" stroke="var(--color-accent)" strokeWidth="1.5" />
+//                 <path d="M7 10l2 2 4-4" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 //             </svg>
 //         ),
 //     },
@@ -415,7 +415,7 @@
 //         body: "No hidden fees. No opaque policies. We publish our fee structure and changelog publicly.",
 //         icon: (
 //             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-//                 <path d="M10 2l2 6h6l-5 3.5 2 6L10 14l-5 3.5 2-6L2 8h6z" stroke="#fd5000" strokeWidth="1.5" strokeLinejoin="round" />
+//                 <path d="M10 2l2 6h6l-5 3.5 2 6L10 14l-5 3.5 2-6L2 8h6z" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinejoin="round" />
 //             </svg>
 //         ),
 //     },
@@ -424,8 +424,8 @@
 //         body: "Geography is not a reason to be excluded. We build for every creator, everywhere.",
 //         icon: (
 //             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-//                 <path d="M10 2C5.6 2 2 5.6 2 10s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8z" stroke="#fd5000" strokeWidth="1.5" />
-//                 <path d="M2 10h16M10 2c-2 3-3 5-3 8s1 5 3 8M10 2c2 3 3 5 3 8s-1 5-3 8" stroke="#fd5000" strokeWidth="1.5" />
+//                 <path d="M10 2C5.6 2 2 5.6 2 10s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8z" stroke="var(--color-accent)" strokeWidth="1.5" />
+//                 <path d="M2 10h16M10 2c-2 3-3 5-3 8s1 5 3 8M10 2c2 3 3 5 3 8s-1 5-3 8" stroke="var(--color-accent)" strokeWidth="1.5" />
 //             </svg>
 //         ),
 //     },
@@ -450,7 +450,7 @@
 //     return (
 //         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" className="flex-shrink-0 mt-0.5">
 //             <circle cx="9" cy="9" r="8" fill="var(--color-accent-light)" stroke="rgba(253,80,0,.2)" strokeWidth="1" />
-//             <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="#fd5000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+//             <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 //         </svg>
 //     );
 // }
@@ -484,7 +484,7 @@
 //         title: "Radical Transparency",
 //         icon: (
 //             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-//                 <path d="M10 2l2 6h6l-5 3.5 2 6L10 14l-5 3.5 2-6L2 8h6z" stroke="#fd5000" strokeWidth="1.5" strokeLinejoin="round" />
+//                 <path d="M10 2l2 6h6l-5 3.5 2 6L10 14l-5 3.5 2-6L2 8h6z" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinejoin="round" />
 //             </svg>
 //         ),
 //         body: "Every click, sale, and view is tracked in real-time with full transparency. Our analytics dashboard puts creators in complete control of their data and earnings.",
@@ -1155,7 +1155,7 @@ const VALUES = [
         title: "Radical Transparency",
         icon: (
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-                <path d="M10 2l2 6h6l-5 3.5 2 6L10 14l-5 3.5 2-6L2 8h6z" stroke="#fd5000" strokeWidth="1.5" strokeLinejoin="round" />
+                <path d="M10 2l2 6h6l-5 3.5 2 6L10 14l-5 3.5 2-6L2 8h6z" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinejoin="round" />
             </svg>
         ),
         // PDF p.2 & p.3 analytics dashboard
@@ -1484,7 +1484,7 @@ function CheckIcon() {
     return (
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true" className="flex-shrink-0 mt-0.5">
             <circle cx="9" cy="9" r="8" fill="var(--color-accent-light)" stroke="rgba(253,80,0,.2)" strokeWidth="1" />
-            <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="#fd5000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5.5 9l2.5 2.5 4.5-4.5" stroke="var(--color-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     );
 }

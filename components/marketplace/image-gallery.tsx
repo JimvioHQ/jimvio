@@ -207,7 +207,7 @@
 //                         </span>
 //                     )}
 //                     {isFeatured && (
-//                         <span className="bg-[#fd5000] text-white text-[10px] font-bold tracking-widest uppercase px-3 py-1.5 leading-none flex items-center gap-1.5">
+//                         <span className="bg-[var(--color-accent)] text-white text-[10px] font-bold tracking-widest uppercase px-3 py-1.5 leading-none flex items-center gap-1.5">
 //                             <Zap className="h-2.5 w-2.5 fill-white stroke-none" /> Hot
 //                         </span>
 //                     )}
@@ -538,7 +538,7 @@ function Thumbnail({
                 style={{
                     border: active
                         ? isVideo
-                            ? "2px solid #fd5000"
+                            ? "2px solid var(--color-accent)"
                             : "2px solid var(--color-text-primary)"
                         : "2px solid var(--color-border)",
                     background: isVideo ? "var(--color-bg-darker, #0a1410)" : "var(--color-surface)",
@@ -554,12 +554,12 @@ function Thumbnail({
                         draggable={false}
                     />
                     <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10" />
-                    <span className="absolute left-1.5 top-1.5 rounded bg-[#fd5000] px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white">
+                    <span className="absolute left-1.5 top-1.5 rounded bg-[var(--color-accent)] px-1 py-0.5 text-[8px] font-bold uppercase tracking-wide text-white">
                         Video
                     </span>
                     <span className="absolute inset-0 flex items-center justify-center">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-md ring-2 ring-[#fd5000]/30">
-                            <Play className="ml-0.5 h-3.5 w-3.5 fill-[#fd5000] text-[#fd5000]" />
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 shadow-md ring-2 ring-[var(--color-accent)]/30">
+                            <Play className="ml-0.5 h-3.5 w-3.5 fill-[var(--color-accent)] text-[var(--color-accent)]" />
                         </span>
                     </span>
                 </>
@@ -756,7 +756,7 @@ export function ImageGallery({
                             className={cn(
                                 "inline-flex h-8 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold transition-all",
                                 activeMedia?.type === "video"
-                                    ? "bg-[#fd5000] text-white shadow-sm"
+                                    ? "bg-[var(--color-accent)] text-white shadow-sm"
                                     : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
                             )}
                         >
@@ -830,7 +830,7 @@ export function ImageGallery({
                             {mediaError ? (
                                 <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-3 bg-[var(--color-bg-darker,#0a1410)] px-4 text-center">
                                     <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5 ring-1 ring-white/10">
-                                        <Film className="h-6 w-6 text-[#fd5000]" />
+                                        <Film className="h-6 w-6 text-[var(--color-accent)]" />
                                     </span>
                                     <p className="text-[13px] font-medium text-white/80">Video couldn&apos;t load</p>
                                     <p className="text-[11px] text-white/45">Try again or open the file directly.</p>
@@ -838,7 +838,7 @@ export function ImageGallery({
                                         href={mainVideo.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="mt-1 rounded-full bg-[#fd5000] px-4 py-2 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
+                                        className="mt-1 rounded-full bg-[var(--color-accent)] px-4 py-2 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         Open video
@@ -955,7 +955,7 @@ export function ImageGallery({
                         {isFeatured && (
                             <span
                                 className="text-[10px] font-bold tracking-widest uppercase px-2.5 py-1.5 rounded-md leading-none flex items-center gap-1.5 text-white"
-                                style={{ background: "var(--color-accent, #fd5000)" }}
+                                style={{ background: "var(--color-accent, var(--color-accent))" }}
                             >
                                 <Zap className="h-2.5 w-2.5 fill-white stroke-none" />
                                 Hot

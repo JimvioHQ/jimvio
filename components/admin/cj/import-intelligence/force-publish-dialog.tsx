@@ -68,7 +68,7 @@ export function ForcePublishDialog({
             onChange={(e) => setReason(e.target.value)}
             rows={3}
             placeholder="Why is this product being force published?"
-            className="w-full rounded-[10px] border border-[#E5E7EB] px-2.5 py-2 text-[12px] focus:border-[#FF5A1F]/40 focus:outline-none focus:ring-2 focus:ring-[#FF5A1F]/10"
+            className="w-full rounded-[10px] border border-[#E5E7EB] px-2.5 py-2 text-[12px] focus:border-[var(--color-accent)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/10"
           />
         </label>
         <div className="mt-4 flex gap-2">

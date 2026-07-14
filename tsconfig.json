@@ -1,11 +1,12 @@
 {
   "compilerOptions": {
+    "target": "ES2017",
     "lib": [
       "dom",
       "dom.iterable",
       "esnext"
     ],
-    "allowJs": true,
+    "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -16,36 +17,25 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "noUncheckedSideEffectImports": false,
     "paths": {
       "@/*": [
         "./*"
       ]
     },
-    "target": "ES2017"
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "styles/**/*.css",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "scripts",
-    "tests",
-    "playwright-report",
-    "test-results",
-    ".next",
-    "temp_ts_parse.js",
-    "tsc-errors.txt",
-    "tsc-output.txt"
+    "node_modules"
   ]
 }

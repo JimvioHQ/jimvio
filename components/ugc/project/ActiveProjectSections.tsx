@@ -303,7 +303,7 @@ export function ActiveProjectSections({
                 className={cn(
                   "rounded-xl border px-3 py-2.5 text-center text-[12px] font-semibold transition-colors",
                   action.primary
-                    ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#FF5A1F]"
+                    ? "border-[var(--color-accent)] bg-[#FFF4EF] text-[var(--color-accent)]"
                     : "border-[#E5E7EB] bg-[#FAFAFA] text-[#374151] hover:bg-white",
                 )}
               >
@@ -337,7 +337,7 @@ export function ActiveProjectSections({
                 className={cn(
                   "min-w-[72px] flex-1 rounded-lg px-2 py-2 text-center text-[10px] font-bold",
                   done && "bg-emerald-50 text-emerald-700",
-                  active && "bg-[#FFF4EF] text-[#FF5A1F] ring-1 ring-[#FFE4D6]",
+                  active && "bg-[#FFF4EF] text-[var(--color-accent)] ring-1 ring-[#FFE4D6]",
                   !done && !active && "bg-[#F9FAFB] text-[#9CA3AF]",
                 )}
               >
@@ -416,7 +416,7 @@ export function ActiveProjectSections({
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#F3F4F6]">
                   <div
-                    className="h-full rounded-full bg-[#FF5A1F] transition-all"
+                    className="h-full rounded-full bg-[var(--color-accent)] transition-all"
                     style={{ width: `${task.progress}%` }}
                   />
                 </div>
@@ -435,7 +435,7 @@ export function ActiveProjectSections({
                 className={cn(
                   "grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-bold",
                   m.status === "done" && "bg-emerald-500 text-white",
-                  m.status === "current" && "bg-[#FF5A1F] text-white",
+                  m.status === "current" && "bg-[var(--color-accent)] text-white",
                   m.status === "upcoming" && "bg-[#E5E7EB] text-[#6B7280]",
                 )}
               >
@@ -457,7 +457,7 @@ export function ActiveProjectSections({
         <div className="space-y-3 border-l-2 border-[#EEF0F2] pl-4">
           {activity.map((item) => (
             <div key={item.id} className="relative">
-              <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-[#FF5A1F]" />
+              <span className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--color-accent)]" />
               <p className="text-[13px] font-semibold text-[#111827]">{item.title}</p>
               {item.detail ? <p className="text-[11px] text-[#6B7280]">{item.detail}</p> : null}
               <p className="text-[10px] text-[#9CA3AF]">{new Date(item.at).toLocaleString()}</p>
@@ -496,9 +496,9 @@ export function ActiveProjectSections({
               >
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#FFF4EF]">
                   {r.type === "video" ? (
-                    <Play className="h-4 w-4 text-[#FF5A1F]" />
+                    <Play className="h-4 w-4 text-[var(--color-accent)]" />
                   ) : (
-                    <Download className="h-4 w-4 text-[#FF5A1F]" />
+                    <Download className="h-4 w-4 text-[var(--color-accent)]" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -523,7 +523,7 @@ export function ActiveProjectSections({
                       markAssetsDownloaded(campaignId);
                       onFlagsChange();
                     }}
-                    className="rounded-lg bg-[#FF5A1F] px-2 py-1 text-[11px] font-semibold text-white"
+                    className="rounded-lg bg-[var(--color-accent)] px-2 py-1 text-[11px] font-semibold text-white"
                   >
                     Open
                   </a>
@@ -597,7 +597,7 @@ export function ActiveProjectSections({
           <button
             type="button"
             onClick={sendMessage}
-            className="rounded-xl bg-[#FF5A1F] px-3 text-white"
+            className="rounded-xl bg-[var(--color-accent)] px-3 text-white"
             aria-label="Send message"
           >
             <Send className="h-4 w-4" />
@@ -647,7 +647,7 @@ export function ActiveProjectSections({
             <p className="text-[13px] text-[#6B7280]">No submissions yet.</p>
             <Link
               href={`/ugc/${campaignId}/submit`}
-              className="mt-3 inline-flex items-center gap-1 rounded-xl bg-[#FF5A1F] px-4 py-2 text-[12px] font-semibold text-white"
+              className="mt-3 inline-flex items-center gap-1 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-white"
             >
               <Plus className="h-4 w-4" />
               Submit content
@@ -676,7 +676,7 @@ export function ActiveProjectSections({
                     href={s.post_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-1 flex items-center gap-1 text-[12px] text-[#FF5A1F]"
+                    className="mt-1 flex items-center gap-1 text-[12px] text-[var(--color-accent)]"
                   >
                     View post <ExternalLink className="h-3 w-3" />
                   </a>

@@ -388,7 +388,7 @@ export default function DashboardHomePage() {
         value: String(displayOrdersCount),
         change: vendorId ? "Store orders" : "Your purchases",
         up: true,
-        chartColor: "#fd5000",
+        chartColor: "var(--color-accent)",
         data: spark("marketplace"),
       },
       {
@@ -609,7 +609,7 @@ export default function DashboardHomePage() {
                 </div>
                 <Link
                   href="/dashboard/products/add"
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#fd5000] px-3.5 text-xs font-bold text-white transition-all hover:bg-[#e84800] active:scale-95"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3.5 text-xs font-bold text-white transition-all hover:bg-[#e84800] active:scale-95"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add Product
@@ -779,7 +779,7 @@ function FloatingAIButton() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-4 right-4 z-50 flex size-12 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-[#fd5000] to-[#ff8c42] text-white shadow-lg transition-all hover:scale-105 active:scale-95"
+        className="fixed bottom-4 right-4 z-50 flex size-12 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[#ff8c42] text-white shadow-lg transition-all hover:scale-105 active:scale-95"
         aria-label="Toggle AI Assistant"
       >
         <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

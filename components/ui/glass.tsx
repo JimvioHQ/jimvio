@@ -19,8 +19,8 @@ export const GLASS_TOKENS = {
     boxShadow: "var(--shadow-none)",
   },
   ctaOrange: {
-    background: "rgba(249,115,22,0.06)",
-    border: "1px solid rgba(249,115,22,0.2)",
+    background: "color-mix(in srgb, var(--color-accent) 6%, transparent)",
+    border: "1px solid color-mix(in srgb, var(--color-accent) 20%, transparent)",
     boxShadow: "none",
   }
 };

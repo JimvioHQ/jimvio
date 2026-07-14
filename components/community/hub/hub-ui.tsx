@@ -77,9 +77,9 @@ export function HubBadge({
 }) {
   const styles = {
     live: "bg-red-500 text-white",
-    new: "bg-[#fd5000] text-white",
+    new: "bg-[var(--color-accent)] text-white",
     voice: "bg-violet-600 text-white",
-    orange: "bg-[#fd5000]/10 text-[#fd5000]",
+    orange: "bg-[var(--color-accent)]/10 text-[var(--color-accent)]",
     count: "bg-[var(--color-accent)] text-white",
     default: "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]",
   };
@@ -125,7 +125,7 @@ export function HubAvatar({
         />
       ) : (
         <div
-          className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-[#fd5000] to-[#ff7a30] text-[11px] font-bold text-white"
+          className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[#ff7a30] text-[11px] font-bold text-white"
           style={{ width: size, height: size }}
         >
           {initials || "?"}
@@ -145,7 +145,7 @@ export function HubStatCard({
   value,
   delta,
   icon,
-  accent = "#fd5000",
+  accent = "var(--color-accent)",
 }: {
   label: string;
   value: string;
@@ -220,10 +220,10 @@ export function HubLinkButton({
   className?: string;
 } & React.ComponentPropsWithoutRef<typeof Link>) {
   const styles = {
-    primary: "bg-[#fd5000] text-white hover:bg-[#e04800] shadow-sm",
+    primary: "bg-[var(--color-accent)] text-white hover:bg-[#e04800] shadow-sm",
     secondary: "border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]",
     ghost: "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
-    soft: "bg-[#fd5000]/12 text-[#fd5000] hover:bg-[#fd5000]/18",
+    soft: "bg-[var(--color-accent)]/12 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/18",
   };
   return (
     <Link
@@ -250,7 +250,7 @@ export function HubPremiumCard({ className }: { className?: string }) {
         </p>
         <Link
           href="/c/settings"
-          className="mt-3 inline-flex rounded-md bg-[#fd5000] px-3 py-2 text-[11px] font-bold text-white transition hover:bg-[#e04800]"
+          className="mt-3 inline-flex rounded-md bg-[var(--color-accent)] px-3 py-2 text-[11px] font-bold text-white transition hover:bg-[#e04800]"
         >
           Upgrade Now
         </Link>
@@ -280,7 +280,7 @@ export function HubUserCard({
         <HubAvatar name={name} src={avatarUrl} size={36} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[12px] font-bold text-[var(--color-text-primary)]">{name}</p>
-          <p className="text-[10px] font-semibold text-[#fd5000]">{level}</p>
+          <p className="text-[10px] font-semibold text-[var(--color-accent)]">{level}</p>
         </div>
       </div>
       <div className="mt-3">
@@ -293,7 +293,7 @@ export function HubUserCard({
       {username && (
         <Link
           href={`/c/profile/${username}`}
-          className="mt-2 block text-[10px] font-semibold text-[#fd5000] hover:underline"
+          className="mt-2 block text-[10px] font-semibold text-[var(--color-accent)] hover:underline"
         >
           View profile
         </Link>
@@ -317,7 +317,7 @@ export function Badge({
     live:
       "bg-red-500 text-white",
     new:
-      "bg-[#fd5000] text-white",
+      "bg-[var(--color-accent)] text-white",
     count:
       "bg-[var(--color-accent)] text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full min-w-4 text-center",
     tier:

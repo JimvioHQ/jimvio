@@ -231,11 +231,11 @@ export function resolveShopCategories(
 
 /** Jimvio orange gradient tokens for digital branding */
 export const JIMVIO_ORANGE = {
-  primary: "#FF5A1F",
+  primary: "var(--color-accent)",
   mid: "#FF7A1F",
   light: "#FF8C42",
-  gradient: "linear-gradient(90deg, #FF5A1F 0%, #FF7A1F 50%, #FF8C42 100%)",
-  gradient135: "linear-gradient(135deg, #FF5A1F 0%, #FF7A1F 50%, #FF8C42 100%)",
+  gradient: "linear-gradient(90deg, var(--color-accent) 0%, #FF7A1F 50%, #FF8C42 100%)",
+  gradient135: "linear-gradient(135deg, var(--color-accent) 0%, #FF7A1F 50%, #FF8C42 100%)",
   glow: "0 4px 20px rgba(255, 90, 31, 0.45)",
   glowSoft: "rgba(255, 90, 31, 0.55)",
 } as const;

@@ -1,5 +1,5 @@
 ﻿import type { Metadata } from "next";
-import { MarketplacePage } from "@/components/marketplace/new/Marketplacepage ";
+import { MarketplacePage } from "@/components/marketplace/new/MarketplacePage";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata("marketplace");

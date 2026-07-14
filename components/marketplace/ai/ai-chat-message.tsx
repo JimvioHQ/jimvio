@@ -83,7 +83,7 @@ export function AiChatMessage({
             "text-[10px] font-bold",
             msg.role === "user"
               ? "text-white"
-              : "bg-[#FF5A1F]/12 text-[#FF5A1F]"
+              : "bg-[var(--color-accent)]/12 text-[var(--color-accent)]"
           )}
           style={msg.role === "user" ? { background: JIMVIO_ORANGE } : undefined}
         >
@@ -128,7 +128,7 @@ export function AiChatMessage({
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1 rounded-lg border border-[#FFE0D1] px-2 py-1 text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[#FF5A1F]/5 hover:text-[var(--color-text-primary)]"
+              className="inline-flex items-center gap-1 rounded-lg border border-[#FFE0D1] px-2 py-1 text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-accent)]/5 hover:text-[var(--color-text-primary)]"
             >
               {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
               {copied ? "Copied" : "Copy"}
@@ -137,7 +137,7 @@ export function AiChatMessage({
               <button
                 type="button"
                 onClick={() => onRegenerate(msg.id)}
-                className="inline-flex items-center gap-1 rounded-lg border border-[#FFE0D1] px-2 py-1 text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[#FF5A1F]/5 hover:text-[var(--color-text-primary)]"
+                className="inline-flex items-center gap-1 rounded-lg border border-[#FFE0D1] px-2 py-1 text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-accent)]/5 hover:text-[var(--color-text-primary)]"
               >
                 <RefreshCw className="size-3" />
                 Regenerate
@@ -147,8 +147,8 @@ export function AiChatMessage({
               type="button"
               onClick={() => onFeedback?.(msg.id, "up")}
               className={cn(
-                "rounded-lg border border-[#FFE0D1] p-1 transition-colors hover:bg-[#FF5A1F]/5",
-                msg.feedback === "up" && "bg-[#FF5A1F]/10"
+                "rounded-lg border border-[#FFE0D1] p-1 transition-colors hover:bg-[var(--color-accent)]/5",
+                msg.feedback === "up" && "bg-[var(--color-accent)]/10"
               )}
               aria-label="Helpful"
             >
@@ -158,8 +158,8 @@ export function AiChatMessage({
               type="button"
               onClick={() => onFeedback?.(msg.id, "down")}
               className={cn(
-                "rounded-lg border border-[#FFE0D1] p-1 transition-colors hover:bg-[#FF5A1F]/5",
-                msg.feedback === "down" && "bg-[#FF5A1F]/10"
+                "rounded-lg border border-[#FFE0D1] p-1 transition-colors hover:bg-[var(--color-accent)]/5",
+                msg.feedback === "down" && "bg-[var(--color-accent)]/10"
               )}
               aria-label="Not helpful"
             >
@@ -201,7 +201,7 @@ export function AiChatMessage({
                 key={q}
                 type="button"
                 onClick={() => onFollowup?.(q)}
-                className="rounded-full border border-[#FFE0D1] bg-[#FFFDFB] px-3 py-1.5 text-left text-[12px] font-medium text-[var(--color-text-secondary)] transition-colors hover:border-[#FF5A1F]/40 hover:text-[#FF5A1F]"
+                className="rounded-full border border-[#FFE0D1] bg-[#FFFDFB] px-3 py-1.5 text-left text-[12px] font-medium text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-accent)]/40 hover:text-[var(--color-accent)]"
               >
                 {q}
               </button>

@@ -41,11 +41,11 @@ const config: Config = {
         },
         "accent-hover": "var(--color-accent-hover)",
         "accent-light": "var(--color-accent-light)",
-        /* Feature palette — each section gets an intentional color */
-        sage: "var(--color-sage)",          /* growth, earnings, wallet */
-        amber: "var(--color-amber)",        /* events, courses */
-        ocean: "var(--color-ocean)",        /* live, streaming */
-        berry: "var(--color-berry)",        /* creator, missions */
+        /* Section tints — derived from ink + accent */
+        growth: "var(--color-growth)",
+        events: "var(--color-events)",
+        live: "var(--color-live)",
+        social: "var(--color-social)",
         /* Primary/brand = orange accent */
         primary: {
           50: "var(--color-accent-light)",
@@ -71,12 +71,18 @@ const config: Config = {
         danger: "var(--color-danger)",
         "danger-light": "var(--color-danger-light)",
         muted: "var(--color-surface-secondary)",
+        "surface-tertiary": "var(--color-surface-tertiary)",
+        "border-subtle": "var(--color-border-subtle)",
+        "accent-deep": "var(--color-accent-deep)",
+        "accent-muted": "var(--color-accent-muted)",
       },
       boxShadow: {
         card: "var(--shadow-card)",
         elevated: "var(--shadow-elevated)",
         brand: "0 2px 8px rgba(232, 89, 12, 0.25)",
         primary: "0 2px 8px rgba(232, 89, 12, 0.2)",
+        glow: "var(--color-accent-glow)",
+        "glow-accent": "0 0 20px rgba(253, 80, 0, 0.25)",
       },
       spacing: {
         1: "var(--space-1)",
@@ -90,11 +96,24 @@ const config: Config = {
         9: "var(--space-9)",
         10: "var(--space-10)",
       },
+      fontSize: {
+        "ds-xs": "var(--ds-font-size-xs)",
+        "ds-sm": "var(--ds-font-size-sm)",
+        "ds-base": "var(--ds-font-size-base)",
+        "ds-lg": "var(--ds-font-size-lg)",
+        "ds-xl": "var(--ds-font-size-xl)",
+        "ds-2xl": "var(--ds-font-size-2xl)",
+        "ds-3xl": "var(--ds-font-size-3xl)",
+        "ds-4xl": "var(--ds-font-size-4xl)",
+        "ds-5xl": "var(--ds-font-size-5xl)",
+      },
       borderRadius: {
         sm: "var(--radius-sm)",
         md: "var(--radius-md)",
         lg: "var(--radius-lg)",
         xl: "var(--radius-xl)",
+        "2xl": "var(--radius-2xl)",
+        "3xl": "var(--radius-3xl)",
         full: "var(--radius-full)",
       },
       maxWidth: {

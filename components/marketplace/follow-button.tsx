@@ -69,7 +69,7 @@ export function FollowButton({ vendorId, className, variant = "outline", followL
       variant={isFollowing ? "secondary" : variant}
       className={cn(
         "font-black h-12 rounded-sm transition-all duration-300",
-        !isFollowing && "bg-[#f97316] text-white hover:bg-[#ea580c] border-none shadow-none shadow-[#f97316]/20 active:scale-95",
+        !isFollowing && "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] border-none shadow-none shadow-[var(--color-accent)]/20 active:scale-95",
         isFollowing && "bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-100 group",
         className
       )}

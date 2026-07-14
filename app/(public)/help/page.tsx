@@ -16,7 +16,7 @@ export default function HelpCenterPage() {
 
   const categories = [
     { icon: ShieldCheck, title: "Trust & Safety", count: "12 articles", color: "bg-blue-50 text-blue-600" },
-    { icon: Zap, title: "Getting Started", count: "8 articles", color: "bg-orange-50 text-[#f97316]" },
+    { icon: Zap, title: "Getting Started", count: "8 articles", color: "bg-orange-50 text-[var(--color-accent)]" },
     { icon: FileText, title: "Selling Guide", count: "15 articles", color: "bg-purple-50 text-purple-600" },
     { icon: Book, title: "Buying Guide", count: "10 articles", color: "bg-emerald-50 text-emerald-600" },
     { icon: MessageSquare, title: "Messenger", count: "5 articles", color: "bg-pink-50 text-pink-600" },
@@ -32,20 +32,20 @@ export default function HelpCenterPage() {
   ];
 
   return (
-    <div className="bg-zinc-50 dark:bg-surface/50 min-h-screen selection:bg-[#f97316]/20">
+    <div className="bg-zinc-50 dark:bg-surface/50 min-h-screen selection:bg-[var(--color-accent)]/20">
       {/* GLOSSY HEADER SECTION */}
       <section className="relative pt-32 pb-44 overflow-hidden bg-white dark:bg-surface border-b border-zinc-100 dark:border-border">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-[0.03] pointer-events-none">
-           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,#f97316,transparent_70%)]" />
+           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,var(--color-accent),transparent_70%)]" />
         </div>
 
         <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-sm bg-orange-50 text-[#f97316] text-[11px] font-black uppercase tracking-widest mb-6">
+             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-sm bg-orange-50 text-[var(--color-accent)] text-[11px] font-black uppercase tracking-widest mb-6">
                 <Sparkles className="h-3 w-3" /> Support Intelligence
              </span>
              <h1 className="text-5xl md:text-7xl font-black text-zinc-900 dark:text-white mb-10 tracking-tight leading-[0.95]">
-               How can we <span className="text-[#f97316] italic">help you?</span>
+               How can we <span className="text-[var(--color-accent)] italic">help you?</span>
              </h1>
           </motion.div>
 
@@ -58,11 +58,11 @@ export default function HelpCenterPage() {
              <form className={cn(
                 "group flex h-16 sm:h-20 items-center rounded-sm border transition-all p-2 pr-2.5",
                 isSearchFocused 
-                  ? "bg-white dark:bg-surface border-[#f97316] shadow-[0_25px_60px_-15px_rgba(249,115,22,0.2)] ring-4 ring-[#f97316]/5 scale-[1.02]" 
+                  ? "bg-white dark:bg-surface border-[var(--color-accent)] shadow-[0_25px_60px_-15px_color-mix(in srgb, var(--color-accent) 20%, transparent)] ring-4 ring-[var(--color-accent)]/5 scale-[1.02]" 
                   : "bg-zinc-50 dark:bg-surface/50 border-zinc-200 dark:border-border shadow-none hover:border-zinc-300"
              )}>
                 <div className="flex h-full flex-1 items-center px-6">
-                   <Search className={cn("mr-4 h-6 w-6 transition-colors", isSearchFocused ? "text-[#f97316]" : "text-zinc-400")} />
+                   <Search className={cn("mr-4 h-6 w-6 transition-colors", isSearchFocused ? "text-[var(--color-accent)]" : "text-zinc-400")} />
                    <input
                      type="text"
                      value={searchVal}
@@ -77,7 +77,7 @@ export default function HelpCenterPage() {
                   type="button"
                   className="h-full flex items-center gap-3 rounded-sm bg-zinc-900 px-6 sm:px-10 text-[14px] sm:text-[16px] font-black text-white shadow-none shadow-zinc-900/10 transition-all hover:bg-black hover:-translate-y-0.5"
                 >
-                   <Zap className="h-5 w-5 fill-[#f97316] stroke-none" />
+                   <Zap className="h-5 w-5 fill-[var(--color-accent)] stroke-none" />
                    <span className="hidden sm:inline">Ask AI</span>
                 </button>
              </form>
@@ -109,7 +109,7 @@ export default function HelpCenterPage() {
               <h3 className="text-2xl font-black text-zinc-900 dark:text-white mb-3 tracking-tight">{cat.title}</h3>
               <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-8">{cat.count}</p>
               
-              <div className="flex items-center gap-2 text-[13px] font-black text-[#f97316] opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all">
+              <div className="flex items-center gap-2 text-[13px] font-black text-[var(--color-accent)] opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all">
                  Browse Guide <ArrowRight className="h-4 w-4" />
               </div>
               
@@ -131,9 +131,9 @@ export default function HelpCenterPage() {
            
            <div className="space-y-4">
              {commonQuestions.map((q, i) => (
-               <div key={i} className="group flex items-center justify-between p-8 rounded-sm bg-zinc-50 dark:bg-surface/50 border border-transparent hover:border-[#f97316]/20 hover:bg-white dark:bg-surface transition-all cursor-pointer">
+               <div key={i} className="group flex items-center justify-between p-8 rounded-sm bg-zinc-50 dark:bg-surface/50 border border-transparent hover:border-[var(--color-accent)]/20 hover:bg-white dark:bg-surface transition-all cursor-pointer">
                  <span className="text-[17px] font-bold text-zinc-800 dark:text-text-secondary group-hover:text-zinc-900 dark:text-white">{q}</span>
-                 <div className="h-10 w-10 rounded-sm bg-white dark:bg-surface shadow-none flex items-center justify-center group-hover:bg-[#f97316] group-hover:text-white transition-all">
+                 <div className="h-10 w-10 rounded-sm bg-white dark:bg-surface shadow-none flex items-center justify-center group-hover:bg-[var(--color-accent)] group-hover:text-white transition-all">
                     <ChevronRight className="h-5 w-5" />
                  </div>
                </div>
@@ -148,14 +148,14 @@ export default function HelpCenterPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                <div className="relative bg-zinc-900 p-16 rounded-sm text-white overflow-hidden group">
                   <div className="relative z-10">
-                     <div className="h-14 w-14 rounded-sm bg-[#f97316] flex items-center justify-center mb-10 shadow-none shadow-orange-500/40">
+                     <div className="h-14 w-14 rounded-sm bg-[var(--color-accent)] flex items-center justify-center mb-10 shadow-none shadow-orange-500/40">
                         <MessageCircle className="h-7 w-7 text-white" />
                      </div>
                      <h2 className="text-4xl font-black mb-4 tracking-tight">Talk to our experts.</h2>
                      <p className="text-lg text-zinc-400 font-medium mb-10 max-w-sm">Get real-time assistance from our specialist team available 24/7.</p>
                      <Button className="h-14 px-10 rounded-sm bg-white dark:bg-surface text-zinc-900 dark:text-white font-black hover:bg-zinc-100 transition-all text-base">Start Live Chat</Button>
                   </div>
-                  <div className="absolute -bottom-20 -right-20 h-80 w-80 bg-[#f97316] opacity-[0.05] blur-[100px] group-hover:opacity-[0.1] transition-opacity" />
+                  <div className="absolute -bottom-20 -right-20 h-80 w-80 bg-[var(--color-accent)] opacity-[0.05] blur-[100px] group-hover:opacity-[0.1] transition-opacity" />
                </div>
 
                <div className="relative bg-white dark:bg-surface p-16 rounded-sm border border-zinc-100 dark:border-border overflow-hidden group">
@@ -167,7 +167,7 @@ export default function HelpCenterPage() {
                       <p className="text-lg text-zinc-400 font-medium mb-10 max-w-sm">Detailed technical issues or specialized requests. We respond in &lt;12h.</p>
                       <Button variant="outline" className="h-14 px-10 rounded-sm border-zinc-200 dark:border-border text-zinc-900 dark:text-white font-black hover:bg-zinc-50 dark:bg-surface/50 transition-all text-base">Submit a Ticket</Button>
                    </div>
-                   <div className="absolute top-0 right-0 p-16 text-[#f97316] opacity-[0.02]">
+                   <div className="absolute top-0 right-0 p-16 text-[var(--color-accent)] opacity-[0.02]">
                       <Mail className="h-64 w-64" />
                    </div>
                </div>

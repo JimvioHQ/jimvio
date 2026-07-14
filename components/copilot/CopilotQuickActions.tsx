@@ -62,9 +62,9 @@ export function CopilotQuickActions({
               role="listitem"
               disabled={disabled}
               onClick={() => onSelect(action)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1.5 text-[12px] font-semibold text-[var(--color-text-secondary)] transition-[transform,border-color,color] duration-200 hover:scale-[1.02] hover:border-[#FF5A1F]/40 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1.5 text-[12px] font-semibold text-[var(--color-text-secondary)] transition-[transform,border-color,color] duration-200 hover:scale-[1.02] hover:border-[var(--color-accent)]/40 hover:text-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 disabled:opacity-50"
             >
-              <Icon className="size-3.5 text-[#FF5A1F]" aria-hidden />
+              <Icon className="size-3.5 text-[var(--color-accent)]" aria-hidden />
               {action.label}
             </button>
           );
@@ -91,17 +91,17 @@ export function CopilotQuickActions({
             className={cn(
               "flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-left",
               "transition-[transform,border-color,background-color] duration-200",
-              "hover:scale-[1.01] hover:border-[#FF5A1F]/40 hover:bg-[var(--color-surface-secondary)]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
+              "hover:scale-[1.01] hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-surface-secondary)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
               "disabled:opacity-50",
             )}
             style={{ willChange: "transform" }}
           >
             <span
-              className="grid size-8 shrink-0 place-items-center rounded-lg bg-[#FF5A1F]/10"
+              className="grid size-8 shrink-0 place-items-center rounded-lg bg-[var(--color-accent)]/10"
               aria-hidden
             >
-              <Icon className="size-4 text-[#FF5A1F]" />
+              <Icon className="size-4 text-[var(--color-accent)]" />
             </span>
             <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">
               {action.label}

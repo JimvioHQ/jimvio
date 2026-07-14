@@ -97,7 +97,7 @@ export function UGCSubmissionsPage() {
           title="No submissions yet"
           description="Submit your first piece of content from an active project."
           action={
-            <Button asChild className="rounded-xl bg-[#FF5A1F]">
+            <Button asChild className="rounded-xl bg-[var(--color-accent)]">
               <Link href="/ugc/campaigns">View active projects</Link>
             </Button>
           }
@@ -122,7 +122,7 @@ export function UGCSubmissionsPage() {
                       href={sub.post_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-1 flex items-center gap-1 text-[14px] font-bold text-[#111827] hover:text-[#FF5A1F]"
+                      className="mt-1 flex items-center gap-1 text-[14px] font-bold text-[#111827] hover:text-[var(--color-accent)]"
                     >
                       {sub.platform.toUpperCase()} post
                       <ExternalLink className="h-3.5 w-3.5" />
@@ -142,7 +142,7 @@ export function UGCSubmissionsPage() {
                 </div>
                 <div className="mt-3 flex gap-2">
                   {camp?.id && sub.status === "rejected" ? (
-                    <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
+                    <Button asChild size="sm" className="rounded-xl bg-[var(--color-accent)]">
                       <Link href={`/ugc/${camp.id}/submit`}>Resubmit</Link>
                     </Button>
                   ) : null}

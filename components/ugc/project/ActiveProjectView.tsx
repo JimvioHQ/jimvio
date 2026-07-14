@@ -75,7 +75,7 @@ export function ActiveProjectView() {
             <p className="text-[12px] font-semibold text-[#111827]">Campaign details</p>
             <Link
               href={`/ugc/${id}`}
-              className="mt-2 inline-block text-[12px] font-semibold text-[#FF5A1F] hover:underline"
+              className="mt-2 inline-block text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
             >
               View full brief →
             </Link>
@@ -87,7 +87,7 @@ export function ActiveProjectView() {
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#EEF0F2] bg-white/95 p-3 backdrop-blur lg:hidden">
         <Link
           href={`/ugc/${id}/submit`}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#FF5A1F] text-sm font-bold text-white shadow-lg"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-accent)] text-sm font-bold text-white shadow-lg"
         >
           <Plus className="h-5 w-5" />
           Submit content

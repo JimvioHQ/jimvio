@@ -83,14 +83,14 @@ export function PopularStoresSection({ stores, className }: PopularStoresSection
                 className="snap-start shrink-0 w-[280px] sm:w-[300px] flex flex-col p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#111] border border-stone-100 dark:border-white/6 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
               >
                 {/* Subtle ambient glow */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#fd5000]/4 rounded-full blur-3xl -mr-8 -mt-8 pointer-events-none" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-accent)]/4 rounded-full blur-3xl -mr-8 -mt-8 pointer-events-none" />
 
                 {/* Store header */}
                 <div className="flex items-start justify-between mb-4 relative z-10">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl border border-stone-100 dark:border-white/8 shadow-sm">
                       <AvatarImage src={s.business_logo ?? undefined} className="object-cover" />
-                      <AvatarFallback className="bg-gradient-to-br from-[#fd5000] to-orange-600 text-white font-bold text-lg rounded-xl">
+                      <AvatarFallback className="bg-gradient-to-br from-[var(--color-accent)] to-orange-600 text-white font-bold text-lg rounded-xl">
                         {s.business_name?.[0] ?? "S"}
                       </AvatarFallback>
                     </Avatar>
@@ -121,7 +121,7 @@ export function PopularStoresSection({ stores, className }: PopularStoresSection
                       <Link
                         key={pr.id}
                         href={`/marketplace/${pr.slug}`}
-                        className="group/product relative aspect-square rounded-xl overflow-hidden bg-stone-50 dark:bg-white/5 border border-stone-100 dark:border-white/6 hover:border-[#fd5000]/40 transition-all"
+                        className="group/product relative aspect-square rounded-xl overflow-hidden bg-stone-50 dark:bg-white/5 border border-stone-100 dark:border-white/6 hover:border-[var(--color-accent)]/40 transition-all"
                       >
                         {pr.images?.[0] ? (
                           <img src={pr.images[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover/product:scale-110" />
@@ -158,12 +158,12 @@ export function PopularStoresSection({ stores, className }: PopularStoresSection
           {/* See All Card */}
           <Link
             href="/vendors"
-            className="snap-start shrink-0 w-[180px] flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-stone-200 dark:border-white/8 hover:border-[#fd5000]/40 hover:bg-orange-50/20 dark:hover:bg-orange-950/10 transition-all group"
+            className="snap-start shrink-0 w-[180px] flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-stone-200 dark:border-white/8 hover:border-[var(--color-accent)]/40 hover:bg-orange-50/20 dark:hover:bg-orange-950/10 transition-all group"
           >
-            <div className="h-12 w-12 rounded-2xl bg-stone-50 dark:bg-white/5 flex items-center justify-center group-hover:bg-[#fd5000] group-hover:scale-110 transition-all duration-300 mb-3 text-stone-400 group-hover:text-white">
+            <div className="h-12 w-12 rounded-2xl bg-stone-50 dark:bg-white/5 flex items-center justify-center group-hover:bg-[var(--color-accent)] group-hover:scale-110 transition-all duration-300 mb-3 text-stone-400 group-hover:text-white">
               <ChevronRight className="h-5 w-5" />
             </div>
-            <p className="text-[12px] font-semibold text-stone-400 dark:text-stone-500 group-hover:text-[#fd5000] transition-colors text-center leading-tight">
+            <p className="text-[12px] font-semibold text-stone-400 dark:text-stone-500 group-hover:text-[var(--color-accent)] transition-colors text-center leading-tight">
               Explore all<br />vendors
             </p>
           </Link>

@@ -141,7 +141,7 @@ export function getNotificationColor(type: NotificationType): string {
     payment: "#16a34a",
     affiliate: "#ca8a04",
     influencer: "#a855f7",
-    community: "#fd5000",
+    community: "var(--color-accent)",
     system: "#6b7280",
     review: "#ec4899",
     message: "#3b82f6",

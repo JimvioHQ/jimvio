@@ -78,7 +78,7 @@ export function MissionsSection({ community, currentUserId, role, view, isAdmin,
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 text-[12px] font-semibold rounded-md transition-colors ${
                 filter === f
-                  ? "bg-[#fd5000] text-white"
+                  ? "bg-[var(--color-accent)] text-white"
                   : "text-text-muted hover:text-text-primary"
               }`}
             >
@@ -91,7 +91,7 @@ export function MissionsSection({ community, currentUserId, role, view, isAdmin,
           <button
             type="button"
             className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white px-3 py-2 rounded-lg"
-            style={{ background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
+            style={{ background: "linear-gradient(135deg, var(--color-accent), #ff7a30)" }}
           >
             <Plus className="w-3.5 h-3.5" />
             New mission
@@ -128,7 +128,7 @@ function MissionCard({ mission }: { mission: Mission }) {
   return (
     <Link
       href={`/ugc/${mission.id}`}
-      className="group bg-surface border border-border rounded-2xl overflow-hidden hover:border-[#fd5000]/30 transition-all"
+      className="group bg-surface border border-border rounded-2xl overflow-hidden hover:border-[var(--color-accent)]/30 transition-all"
     >
       {/* Cover */}
       <div className="relative aspect-[16/9] bg-surface-secondary overflow-hidden">
@@ -140,7 +140,7 @@ function MissionCard({ mission }: { mission: Mission }) {
           </div>
         )}
         {isHot && (
-          <div className="absolute top-2 left-2 inline-flex items-center gap-1 bg-[#fd5000] text-white text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">
+          <div className="absolute top-2 left-2 inline-flex items-center gap-1 bg-[var(--color-accent)] text-white text-[10px] font-bold tracking-wider px-2 py-0.5 rounded-full">
             <Flame className="w-2.5 h-2.5" />
             HOT
           </div>
@@ -155,10 +155,10 @@ function MissionCard({ mission }: { mission: Mission }) {
 
       <div className="p-4">
         <div className="flex items-baseline justify-between gap-2 mb-1">
-          <h3 className="text-[13px] font-bold text-text-primary truncate group-hover:text-[#fd5000] transition-colors">
+          <h3 className="text-[13px] font-bold text-text-primary truncate group-hover:text-[var(--color-accent)] transition-colors">
             {mission.title}
           </h3>
-          <span className="text-[12px] font-bold text-[#fd5000] whitespace-nowrap">{earn}</span>
+          <span className="text-[12px] font-bold text-[var(--color-accent)] whitespace-nowrap">{earn}</span>
         </div>
         <p className="text-[11px] text-text-muted mb-3 capitalize">
           {mission.campaign_type.replace(/_/g, " ")}
@@ -168,7 +168,7 @@ function MissionCard({ mission }: { mission: Mission }) {
             <Users className="w-3 h-3" />
             {mission.submission_count} joined
           </span>
-          <span className="inline-flex items-center gap-0.5 font-semibold text-[#fd5000] opacity-0 group-hover:opacity-100 transition-opacity">
+          <span className="inline-flex items-center gap-0.5 font-semibold text-[var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity">
             View
             <ChevronRight className="w-3 h-3" />
           </span>
@@ -197,8 +197,8 @@ function MissionsSkeleton() {
 function MissionsEmpty({ filter }: { filter: string }) {
   return (
     <div className="bg-surface border border-border rounded-2xl p-12 flex flex-col items-center text-center">
-      <div className="w-14 h-14 rounded-2xl bg-[#fd5000]/10 flex items-center justify-center mb-3">
-        <Target className="w-6 h-6 text-[#fd5000]" />
+      <div className="w-14 h-14 rounded-2xl bg-[var(--color-accent)]/10 flex items-center justify-center mb-3">
+        <Target className="w-6 h-6 text-[var(--color-accent)]" />
       </div>
       <h3 className="text-[15px] font-bold text-text-primary mb-1">
         {filter === "ending" ? "Nothing closing this week" : filter === "new" ? "No fresh missions yet" : "No active missions"}

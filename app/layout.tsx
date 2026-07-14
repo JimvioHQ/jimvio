@@ -43,7 +43,7 @@ export const metadata: Metadata = constructMetadata();
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fd5000" },
+    { media: "(prefers-color-scheme: light)", color: "var(--color-accent)" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
   width: "device-width",
@@ -67,12 +67,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <DialogProvider>
           <NextTopLoader
-            color="#fd5000"
+            color="var(--color-accent)"
             height={3}
             showSpinner={false}
             easing="ease"
             speed={200}
-            shadow="0 0 10px #fd5000,0 0 5px #fd5000"
+            shadow="0 0 10px var(--color-accent),0 0 5px var(--color-accent)"
           />
           <ReferralTracker />
           <PlatformStatsProvider>

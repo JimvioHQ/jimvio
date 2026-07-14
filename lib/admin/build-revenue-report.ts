@@ -14,7 +14,7 @@ export type OrderRow = {
   vendor_id?: string | null;
 };
 
-const CATEGORY_COLORS = ["#f97316", "#8b5cf6", "#3b82f6", "#22c55e", "#ec4899", "#14b8a6", "#eab308"];
+const CATEGORY_COLORS = ["var(--color-accent)", "#8b5cf6", "#3b82f6", "#22c55e", "#ec4899", "#14b8a6", "#eab308"];
 
 function inPrimaryCurrency(o: OrderRow): boolean {
   return (o.currency ?? ADMIN_PRIMARY_CURRENCY).toUpperCase() === ADMIN_PRIMARY_CURRENCY;

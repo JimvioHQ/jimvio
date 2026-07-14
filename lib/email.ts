@@ -73,7 +73,7 @@ export function emailLayout(htmlContent: string): string {
       <tr><td style="padding:16px 24px;background:#fafafa;border-top:1px solid #eee;">
         <p style="margin:0;font-size:11px;color:#888;text-align:center;">
           Jimvio &mdash; Global Creator-Commerce Ecosystem<br/>
-          <a href="https://www.jimvio.com" style="color:#fd5000;">www.jimvio.com</a>
+          <a href="https://www.jimvio.com" style="color:var(--color-accent);">www.jimvio.com</a>
         </p>
       </td></tr>
     </table>
@@ -100,10 +100,10 @@ export function orderConfirmationEmail(params: {
     <p style="font-size:13px;color:#555;margin:0 0 16px;">Your order <strong>#${params.orderId}</strong> has been confirmed!</p>
     <table width="100%" cellpadding="0" cellspacing="0">
       ${itemsHtml}
-      <tr><td style="border-top:2px solid #fd5000;padding:8px 0 0;font-size:14px;font-weight:700;color:#111;">Total</td><td style="border-top:2px solid #fd5000;padding:8px 0 0;font-size:14px;font-weight:700;color:#111;text-align:right;">${params.total}</td></tr>
+      <tr><td style="border-top:2px solid var(--color-accent);padding:8px 0 0;font-size:14px;font-weight:700;color:#111;">Total</td><td style="border-top:2px solid var(--color-accent);padding:8px 0 0;font-size:14px;font-weight:700;color:#111;text-align:right;">${params.total}</td></tr>
     </table>
     <p style="margin:20px 0 0;">
-      <a href="https://www.jimvio.com/orders/${params.orderId}" style="display:inline-block;padding:10px 24px;background:#fd5000;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">View Order</a>
+      <a href="https://www.jimvio.com/orders/${params.orderId}" style="display:inline-block;padding:10px 24px;background:var(--color-accent);color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">View Order</a>
     </p>
   `);
 }
@@ -116,7 +116,7 @@ export function passwordResetEmail(params: {
     <p style="font-size:15px;color:#333;margin:0 0 16px;">Hi <strong>${params.name}</strong>,</p>
     <p style="font-size:13px;color:#555;margin:0 0 16px;">We received a request to reset your password. Click the button below to set a new one.</p>
     <p style="text-align:center;margin:24px 0;">
-      <a href="${params.resetLink}" style="display:inline-block;padding:10px 24px;background:#fd5000;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Reset Password</a>
+      <a href="${params.resetLink}" style="display:inline-block;padding:10px 24px;background:var(--color-accent);color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Reset Password</a>
     </p>
     <p style="font-size:12px;color:#888;margin:16px 0 0;">If you didn't request this, you can safely ignore this email.</p>
   `);
@@ -131,10 +131,10 @@ export function newMessageEmail(params: {
   return emailLayout(`
     <p style="font-size:15px;color:#333;margin:0 0 16px;">Hi <strong>${params.recipientName}</strong>,</p>
     <p style="font-size:13px;color:#555;margin:0 0 8px;"><strong>${params.senderName}</strong> sent you a message:</p>
-    <blockquote style="margin:8px 0 16px;padding:12px 16px;background:#f9f9f9;border-left:3px solid #fd5000;font-size:13px;color:#444;">
+    <blockquote style="margin:8px 0 16px;padding:12px 16px;background:#f9f9f9;border-left:3px solid var(--color-accent);font-size:13px;color:#444;">
       ${params.preview}
     </blockquote>
-    <p><a href="https://www.jimvio.com${params.conversationUrl}" style="display:inline-block;padding:10px 24px;background:#fd5000;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">View Message</a></p>
+    <p><a href="https://www.jimvio.com${params.conversationUrl}" style="display:inline-block;padding:10px 24px;background:var(--color-accent);color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">View Message</a></p>
   `);
 }
 
@@ -161,7 +161,7 @@ export function welcomeEmail(params: { name: string }): string {
       <li>Go <strong>live</strong> and engage with your audience in real time</li>
     </ul>
     <p style="margin:20px 0 0;">
-      <a href="https://www.jimvio.com/dashboard" style="display:inline-block;padding:10px 24px;background:#fd5000;color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Go to Dashboard</a>
+      <a href="https://www.jimvio.com/dashboard" style="display:inline-block;padding:10px 24px;background:var(--color-accent);color:#fff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Go to Dashboard</a>
     </p>
   `);
 }

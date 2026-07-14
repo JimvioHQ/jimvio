@@ -84,7 +84,7 @@ export function NotificationBell() {
       >
         <Bell className="size-5" />
         {unreadCount > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#fd5000] px-1 text-[8px] font-black text-white leading-none shadow-sm">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[8px] font-black text-white leading-none shadow-sm">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -119,7 +119,7 @@ export function NotificationBell() {
           <div className="overflow-y-auto max-h-[380px]">
             {loading && notifications.length === 0 && (
               <div className="flex items-center justify-center py-12">
-                <div className="size-5 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[#fd5000]" />
+                <div className="size-5 animate-spin rounded-full border-2 border-[var(--color-border)] border-t-[var(--color-accent)]" />
               </div>
             )}
 
@@ -141,7 +141,7 @@ export function NotificationBell() {
                   key={notif.id}
                   className={cn(
                     "group relative flex items-start gap-3 border-b border-[var(--color-border)] px-4 py-3 transition-colors hover:bg-[var(--color-surface-secondary)]",
-                    !notif.is_read && "bg-[#fd5000]/[0.03]"
+                    !notif.is_read && "bg-[var(--color-accent)]/[0.03]"
                   )}
                 >
                   {/* Icon */}
@@ -159,7 +159,7 @@ export function NotificationBell() {
                         {notif.title}
                       </p>
                       {!notif.is_read && (
-                        <span className="mt-1 size-1.5 shrink-0 rounded-full bg-[#fd5000]" />
+                        <span className="mt-1 size-1.5 shrink-0 rounded-full bg-[var(--color-accent)]" />
                       )}
                     </div>
                     <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)] line-clamp-2">
@@ -203,7 +203,7 @@ export function NotificationBell() {
             <Link
               href="/dashboard/notifications"
               onClick={() => setOpen(false)}
-              className="block rounded-xl py-2 text-center text-[11px] font-bold text-[#fd5000] hover:bg-[#fd5000]/5 transition-colors"
+              className="block rounded-xl py-2 text-center text-[11px] font-bold text-[var(--color-accent)] hover:bg-[var(--color-accent)]/5 transition-colors"
             >
               View all notifications
             </Link>

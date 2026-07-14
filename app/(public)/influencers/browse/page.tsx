@@ -14,7 +14,7 @@ export default async function InfluencersBrowsePage() {
     <div className="min-h-screen bg-white dark:bg-surface">
       {/* Premium Hero Header */}
       <div className="relative overflow-hidden bg-zinc-950 pt-32 pb-20 px-4">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.1),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,color-mix(in srgb, var(--color-accent) 10%, transparent),transparent_50%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(139,92,246,0.1),transparent_50%)]" />
         
         <div className="max-w-[1400px] mx-auto relative z-10">

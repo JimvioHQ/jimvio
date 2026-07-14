@@ -113,8 +113,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
         className={cn(
           "pointer-events-auto relative mx-auto transition-all duration-300 flex flex-col",
           scrolled
-            ? "bg-white/90 dark:bg-[#122019]/90 backdrop-blur-2xl shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
-            : "bg-white/70 dark:bg-[#122019]/70 backdrop-blur-xl",
+            ? "bg-white/90 dark:bg-[var(--color-ink)]/90 backdrop-blur-2xl shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
+            : "bg-white/70 dark:bg-[var(--color-ink)]/70 backdrop-blur-xl",
         )}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10 pointer-events-none" />
@@ -202,7 +202,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                                       style={{ color: "var(--color-text-primary, #171717)" }}>{v.title}</p>
                                     {v.badge && (
                                       <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                                        style={{ background: "#fd5000" }}>{v.badge}</span>
+                                        style={{ background: "var(--color-accent)" }}>{v.badge}</span>
                                     )}
                                   </div>
                                   <p className="text-[11px] mt-1 leading-snug" style={{ color: "var(--color-text-muted, #a3a3a3)" }}>{v.desc}</p>
@@ -217,7 +217,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
                               className="flex items-center justify-between px-3 py-2.5 rounded-xl text-[12px] font-semibold transition-all hover:bg-stone-50 dark:hover:bg-white/5 group"
                               style={{ color: "var(--color-text-muted, #a3a3a3)" }}>
                               <span>Browse all categories</span>
-                              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform text-[#fd5000]" />
+                              <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform text-[var(--color-accent)]" />
                             </Link>
                           </div>
                         </DropdownMenuContent>

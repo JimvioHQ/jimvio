@@ -24,10 +24,10 @@ export const ConsoleButton = React.forwardRef<
       ? ["text-[var(--color-accent)] font-bold"]
       : orange
         ? [
-          "bg-[#fd5000] text-white hover:bg-[#e04700]",
+          "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]",
           "shadow-[0_1px_3px_rgba(200,60,0,0.25),inset_0_0_0_1px_rgba(200,60,0,0.12)]",
           "hover:shadow-[0_2px_6px_rgba(200,60,0,0.35)]",
-          "dark:hover:bg-[#ff6520]",
+          "dark:hover:bg-[var(--color-accent-hover)]",
           "dark:shadow-[0_1px_4px_rgba(0,0,0,0.45),inset_0_0_0_1px_rgba(255,120,40,0.18)]",
           "dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.50)]",
           "after:w-0",
@@ -76,7 +76,7 @@ export const ConsoleIconBtn = React.forwardRef<
       {children}
       {badge != null && badge > 0 && (
         <span className="absolute -top-1 -right-1 h-4 min-w-[16px]
-         px-1 bg-[#fd5000]
+         px-1 bg-[var(--color-accent)]
          text-white text-[9px] font-black flex items-center justify-center 
          rounded-full ring-2 ring-white dark:ring-[var(--color-ink)] z-20">
           {badge}

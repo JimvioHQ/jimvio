@@ -18,7 +18,7 @@ export default function UGCError({
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-4 px-4 py-16 text-center">
       <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#FFF4EF]">
-        <AlertCircle className="h-6 w-6 text-[#FF5A1F]" />
+        <AlertCircle className="h-6 w-6 text-[var(--color-accent)]" />
       </div>
       <div>
         <p className="text-base font-bold text-[#111827]">Something went wrong</p>
@@ -30,7 +30,7 @@ export default function UGCError({
         <button
           type="button"
           onClick={reset}
-          className="inline-flex items-center gap-2 rounded-xl bg-[#FF5A1F] px-4 py-2 text-sm font-semibold text-white"
+          className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white"
         >
           <RefreshCw className="h-4 w-4" />
           Retry

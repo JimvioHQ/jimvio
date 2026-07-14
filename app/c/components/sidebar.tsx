@@ -812,7 +812,7 @@ function UserSidebarAvatar({ name, src, size = 36 }: { name: string; src?: strin
         <span style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
             width: size, height: size, borderRadius: "50%", flexShrink: 0,
-            background: "linear-gradient(135deg, #fd5000, #ff7a30)",
+            background: "linear-gradient(135deg, var(--color-accent), #ff7a30)",
             color: "#fff", fontSize: size * 0.38, fontWeight: 700,
         }}>
             {initials}
@@ -1035,7 +1035,7 @@ background: "var(--color-text-primary, #ededed)",
                                     {badge && collapsed && typeof badge === "number" && (
                                         <span style={{
                                             position: "absolute", top: -4, right: -4,
-                                            background: "var(--color-accent, #fd5000)", color: "#fff",
+                                            background: "var(--color-accent, var(--color-accent))", color: "#fff",
                                             fontSize: 9, fontWeight: 700, borderRadius: 99,
                                             minWidth: 14, height: 14,
                                             display: "flex", alignItems: "center", justifyContent: "center",
@@ -1052,7 +1052,7 @@ background: "var(--color-text-primary, #ededed)",
                                         </span>
                                         {badge && typeof badge === "number" && (
                                             <span style={{
-                                                background: "var(--color-accent, #fd5000)", color: "#fff",
+                                                background: "var(--color-accent, var(--color-accent))", color: "#fff",
                                                 fontSize: 10, fontWeight: 700, borderRadius: 99,
                                                 minWidth: 18, height: 18,
                                                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -1063,7 +1063,7 @@ background: "var(--color-text-primary, #ededed)",
                                         )}
                                         {badge && typeof badge === "string" && (
                                             <span style={{
-                                                background: badge === "LIVE" ? "var(--color-accent)" : "var(--color-accent, #fd5000)",
+                                                background: badge === "LIVE" ? "var(--color-accent)" : "var(--color-accent, var(--color-accent))",
                                                 color: "#fff", fontSize: 9, fontWeight: 700, borderRadius: 99,
                                                 padding: "0 6px", height: 16, display: "flex", alignItems: "center",
                                             }}>{badge}</span>
@@ -1138,7 +1138,7 @@ background: "var(--color-text-primary, #ededed)",
                                     {community.unread_count && community.unread_count > 0 ? (
                                         <span style={{
                                             position: "absolute", top: -3, right: -3,
-                                            background: "var(--color-accent, #fd5000)", color: "#fff",
+                                            background: "var(--color-accent, var(--color-accent))", color: "#fff",
                                             fontSize: 8, fontWeight: 700, borderRadius: 99,
                                             minWidth: 13, height: 13,
                                             display: "flex", alignItems: "center", justifyContent: "center",
@@ -1207,7 +1207,7 @@ background: "var(--color-text-primary, #ededed)",
                     <Link
                         href={buildHubLoginUrl("/c")}
                         title={collapsed ? "Sign in" : undefined}
-                        style={{ ...footerBtnBase, display: "flex", color: "var(--color-accent, #fd5000)", fontWeight: 700 }}
+                        style={{ ...footerBtnBase, display: "flex", color: "var(--color-accent, var(--color-accent))", fontWeight: 700 }}
                         onClick={onLinkClick}
                     >
                         <Icons.SignOut />

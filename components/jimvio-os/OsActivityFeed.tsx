@@ -10,9 +10,9 @@ const KIND_COLORS: Record<string, string> = {
   affiliate: "#0891b2",
   ugc: "#7c3aed",
   community: "#ca8a04",
-  campaign: "#ea580c",
+  campaign: "var(--color-accent-hover)",
   follower: "#db2777",
-  review: "#fd5000",
+  review: "var(--color-accent)",
 };
 
 export function OsActivityFeed() {

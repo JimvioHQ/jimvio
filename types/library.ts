@@ -142,7 +142,7 @@ export function getFileTypeInfo(filename?: string): { type: string; color: strin
             return { type: 'PDF', color: 'var(--color-danger)' }
         case 'doc':
         case 'docx':
-            return { type: 'DOC', color: 'var(--color-ocean)' }
+            return { type: 'DOC', color: 'var(--color-live)' }
         case 'xls':
         case 'xlsx':
             return { type: 'SHEET', color: 'var(--color-chart-green)' }

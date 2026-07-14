@@ -14,7 +14,7 @@ export function ProfitDisplay({
   return (
     <div
       className={cn(
-        "rounded-sm border border-[#FF5A1F]/15 bg-[#FF5A1F]/[0.04] backdrop-blur-sm",
+        "rounded-sm border border-[var(--color-accent)]/15 bg-[var(--color-accent)]/[0.04] backdrop-blur-sm",
         compact ? "p-1.5 space-y-0.5" : "p-2 space-y-1",
         className
       )}
@@ -30,12 +30,12 @@ export function ProfitDisplay({
           accent
         />
       </div>
-      <div className={cn("flex items-center justify-between pt-0.5 border-t border-[#FF5A1F]/10", compact ? "text-[9px]" : "text-[10px]")}>
+      <div className={cn("flex items-center justify-between pt-0.5 border-t border-[var(--color-accent)]/10", compact ? "text-[9px]" : "text-[10px]")}>
         <span className="text-[var(--color-text-muted)]">
           Margin <strong className={cn("tabular-nums", profitable ? "text-emerald-600" : "text-rose-600")}>{profit.marginPercent}%</strong>
         </span>
         <span className="text-[var(--color-text-muted)]">
-          ROI <strong className="tabular-nums text-[#FF5A1F]">{profit.roi}%</strong>
+          ROI <strong className="tabular-nums text-[var(--color-accent)]">{profit.roi}%</strong>
         </span>
       </div>
     </div>
@@ -59,7 +59,7 @@ function ProfitRow({
       <span
         className={cn(
           "tabular-nums font-semibold shrink-0",
-          accent && "text-[#FF5A1F]",
+          accent && "text-[var(--color-accent)]",
           highlight && !accent && "text-[var(--color-text-primary)]"
         )}
       >

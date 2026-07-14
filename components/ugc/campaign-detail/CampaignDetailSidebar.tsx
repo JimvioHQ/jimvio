@@ -57,7 +57,7 @@ export function CampaignDetailSidebar({
       <SectionCard className="space-y-4 shadow-[0_8px_30px_rgba(17,24,39,0.06)]">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#9CA3AF]">Reward</p>
-          <p className="mt-1 text-[22px] font-bold text-[#FF5A1F]">
+          <p className="mt-1 text-[22px] font-bold text-[var(--color-accent)]">
             {getCampaignRewardLine(campaign, formatMoney)}
           </p>
           <p className="text-[12px] text-[#6B7280]">{getCampaignPayoutLabel(campaign, formatMoney)}</p>
@@ -104,7 +104,7 @@ export function CampaignDetailSidebar({
             className={cn(
               "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border text-[12px] font-semibold",
               isBookmarked
-                ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#FF5A1F]"
+                ? "border-[var(--color-accent)] bg-[#FFF4EF] text-[var(--color-accent)]"
                 : "border-[#E5E7EB] text-[#374151]",
             )}
           >
@@ -114,7 +114,7 @@ export function CampaignDetailSidebar({
           {isActive && !isPending ? (
             <Link
               href={joinHref}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-[#FF5A1F] text-[12px] font-bold text-white hover:bg-[#E54E18]"
+              className="inline-flex h-10 items-center justify-center rounded-xl bg-[var(--color-accent)] text-[12px] font-bold text-white hover:bg-[#E54E18]"
             >
               {joinLabel}
             </Link>
@@ -167,7 +167,7 @@ export function CampaignDetailMobileCta({
       <div className="flex items-center gap-3">
         <div className="min-w-0 shrink-0">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#9CA3AF]">Earn up to</p>
-          <p className="text-[16px] font-bold text-[#FF5A1F]">
+          <p className="text-[16px] font-bold text-[var(--color-accent)]">
             {formatMoney(campaign.max_payout_per_sub ?? campaign.fixed_rate ?? campaign.rate_per_1k_views * 10, "USD")}
           </p>
         </div>
@@ -178,7 +178,7 @@ export function CampaignDetailMobileCta({
               "flex h-12 flex-1 items-center justify-center rounded-2xl text-sm font-bold shadow-[0_4px_16px_rgba(255,90,31,0.3)]",
               isPending
                 ? "border border-amber-300 bg-amber-50 text-amber-800"
-                : "bg-[#FF5A1F] text-white",
+                : "bg-[var(--color-accent)] text-white",
             )}
           >
             {joinLabel}

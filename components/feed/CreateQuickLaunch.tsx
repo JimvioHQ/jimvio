@@ -38,7 +38,7 @@ export function CreateMenuDropdown({ variant = "rail", className }: CreateMenuDr
       ? "flex w-full items-center justify-center gap-1.5 rounded-sm bg-orange-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
       : variant === "inline"
         ? "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-orange-500 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-600"
-        : "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[#fd5000] px-4 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[#e04800]";
+        : "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-[#e04800]";
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>

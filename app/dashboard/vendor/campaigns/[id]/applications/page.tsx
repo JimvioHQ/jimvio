@@ -144,7 +144,7 @@ export default function VendorCampaignApplicationsPage() {
             onClick={() => setFilter(s)}
             className={cn(
               "rounded-full px-3 py-1.5 text-[12px] font-semibold capitalize",
-              filter === s ? "bg-[#FF5A1F] text-white" : "bg-[#F3F4F6] text-[#374151]",
+              filter === s ? "bg-[var(--color-accent)] text-white" : "bg-[#F3F4F6] text-[#374151]",
             )}
           >
             {s}
@@ -163,7 +163,7 @@ export default function VendorCampaignApplicationsPage() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-[#FF5A1F]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--color-accent)]" />
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-10 text-center text-sm text-[#6B7280]">

@@ -78,7 +78,7 @@ export function ImportSettingsPanel({
                 name="visibility"
                 checked={settings.publishVisibility === v}
                 onChange={() => onChange({ ...settings, publishVisibility: v })}
-                className="accent-[#FF5A1F]"
+                className="accent-[var(--color-accent)]"
               />
               {v}
             </label>

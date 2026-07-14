@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, Loader2, X, ArrowUpRight, ChevronDown } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Search, Loader2, X, ArrowUpRight, ChevronDown, Filter, SlidersHorizontal, XCircle } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 import {
   SharedCommunityCard,
@@ -304,6 +305,176 @@ function PriceFilterChips({
   );
 }
 
+function CategoryTabs({
+  value,
+  onChange,
+}: {
+  value: Category;
+  onChange: (v: Category) => void;
+}) {
+  return (
+    <nav aria-label="Filter by category" className="flex shrink-0 items-center gap-0.5 overflow-x-auto no-scrollbar">
+      {CATEGORIES.map((c) => {
+        const active = value === c;
+        return (
+          <button
+            key={c}
+            type="button"
+            onClick={() => onChange(c)}
+            aria-pressed={active}
+            className={cn(
+              "h-9 shrink-0 border-b-2 px-3 text-[12px] font-medium transition-colors sm:px-4",
+              active
+                ? "border-[var(--color-text-primary)] text-[var(--color-text-primary)]"
+                : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+            )}
+          >
+            {c}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+function SearchInput({
+  value,
+  onChange,
+  onClear,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="relative flex min-w-0 w-full max-w-md sm:max-w-lg">
+      <Search
+        size={16}
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
+      />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Search by community name…"
+        aria-label="Search communities"
+        className="h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] pl-9 pr-9 text-[14px] text-[var(--color-text-primary)] outline-none transition-all placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-light)]"
+      />
+      {value && (
+        <button
+          type="button"
+          aria-label="Clear search"
+          onClick={onClear}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+        >
+          <X size={14} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FilterDrawer({
+  isOpen,
+  onClose,
+  sort,
+  onSortChange,
+  priceFilter,
+  onPriceFilterChange,
+  category,
+  onCategoryChange,
+  search,
+  onSearchChange,
+  onSearchClear,
+  onResetAll,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  sort: SortKey;
+  onSortChange: (v: SortKey) => void;
+  priceFilter: PriceFilter;
+  onPriceFilterChange: (v: PriceFilter) => void;
+  category: Category;
+  onCategoryChange: (v: Category) => void;
+  search: string;
+  onSearchChange: (v: string) => void;
+  onSearchClear: () => void;
+  onResetAll: () => void;
+}) {
+  return (
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <div
+        className={cn(
+          "fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-[var(--color-bg)] shadow-xl flex flex-col animate-slide-in-right",
+          isOpen ? "translate-x-0" : "translate-x-full"
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Filters"
+      >
+        <div className="flex items-center justify-between p-4 border-b border-[var(--color-border)]">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Filters</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)]"
+            aria-label="Close filters"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div>
+            <label htmlFor="mobile-search" className="block text-[12px] font-medium text-[var(--color-text-secondary)] mb-2">
+              Search
+            </label>
+            <SearchInput value={search} onChange={onSearchChange} onClear={onSearchClear} />
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-medium text-[var(--color-text-secondary)] mb-2">
+              Category
+            </label>
+            <CategoryTabs value={category} onChange={onCategoryChange} />
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-medium text-[var(--color-text-secondary)] mb-2">
+              Sort by
+            </label>
+            <SortMenu value={sort} onChange={onSortChange} />
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-medium text-[var(--color-text-secondary)] mb-2">
+              Price
+            </label>
+            <PriceFilterChips value={priceFilter} onChange={onPriceFilterChange} />
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-[var(--color-border)] space-y-2 sticky bottom-0 bg-[var(--color-bg)]">
+          <button
+            type="button"
+            onClick={onResetAll}
+            className="w-full h-10 rounded-lg border border-[var(--color-border)] text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)]"
+          >
+            <XCircle size={14} className="mr-2" />
+            Clear all filters
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export function CommunitiesDiscovery({
   initialCommunities = [],
   initialTotal = 0,
@@ -311,16 +482,20 @@ export function CommunitiesDiscovery({
   initialCommunities?: CommunityRow[];
   initialTotal?: number;
 }) {
-  const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState("");
-  const [category, setCategory] = useState<Category>("All");
-  const [sort, setSort] = useState<SortKey>("popular");
-  const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
-  const [page, setPage] = useState(1);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [search, setSearch] = useState(searchParams.get("search") || "");
+  const [debounced, setDebounced] = useState(searchParams.get("search") || "");
+  const [category, setCategory] = useState<Category>((searchParams.get("category") as Category) || "All");
+  const [sort, setSort] = useState<SortKey>((searchParams.get("sort") as SortKey) || "popular");
+  const [priceFilter, setPriceFilter] = useState<PriceFilter>((searchParams.get("price") as PriceFilter) || "all");
+  const [page, setPage] = useState(Math.max(1, parseInt(searchParams.get("page") || "1", 10)));
   const [total, setTotal] = useState(initialTotal);
   const [items, setItems] = useState<CommunityRow[]>(initialCommunities);
   const [loading, setLoading] = useState(initialCommunities.length === 0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const sortRef = useRef(sort);
   sortRef.current = sort;
 
@@ -328,6 +503,20 @@ export function CommunitiesDiscovery({
     const t = setTimeout(() => setDebounced(search.trim()), 300);
     return () => clearTimeout(t);
   }, [search]);
+
+  const syncUrl = useCallback(() => {
+    const params = new URLSearchParams();
+    if (debounced) params.set("search", debounced);
+    if (category !== "All") params.set("category", category);
+    if (sort !== "popular") params.set("sort", sort);
+    if (priceFilter !== "all") params.set("price", priceFilter);
+    if (page > 1) params.set("page", String(page));
+    router.replace(`/communities/explore?${params.toString()}`, { scroll: false });
+  }, [debounced, category, sort, priceFilter, page, router]);
+
+  useEffect(() => {
+    syncUrl();
+  }, [syncUrl]);
 
   const fetchPage = useCallback(
     async (p: number, append: boolean) => {
@@ -404,15 +593,51 @@ export function CommunitiesDiscovery({
     setSearch("");
   };
 
+  const handleSearchChange = (v: string) => {
+    setSearch(v);
+    setPage(1);
+  };
+
+  const handleSearchClear = () => {
+    setSearch("");
+    setPage(1);
+  };
+
+  const handleCategoryChange = (v: Category) => {
+    setCategory(v);
+    setPage(1);
+  };
+
+  const handleSortChange = (v: SortKey) => {
+    setSort(v);
+  };
+
+  const handlePriceFilterChange = (v: PriceFilter) => {
+    setPriceFilter(v);
+    setPage(1);
+  };
+
   return (
     <div className="min-h-screen bg-[var(--color-bg)]">
+      <FilterDrawer
+        isOpen={mobileDrawerOpen}
+        onClose={() => setMobileDrawerOpen(false)}
+        sort={sort}
+        onSortChange={handleSortChange}
+        priceFilter={priceFilter}
+        onPriceFilterChange={handlePriceFilterChange}
+        category={category}
+        onCategoryChange={handleCategoryChange}
+        search={search}
+        onSearchChange={handleSearchChange}
+        onSearchClear={handleSearchClear}
+        onResetAll={resetAll}
+      />
+
       <div className={`${SHELL} pb-28 pt-10 sm:pb-20 sm:pt-14`}>
         <header className="mb-8 sm:mb-10">
           <div className="flex items-start justify-between gap-6">
             <div className="max-w-2xl">
-              {/* <h1 className="text-[clamp(1.85rem,4vw,2.75rem)] font-semibold leading-[1.08] tracking-tight text-[var(--color-text-primary)]">
-                Communities
-              </h1> */}
               <SectionHeading>
                 Communities
               </SectionHeading>
@@ -434,58 +659,32 @@ export function CommunitiesDiscovery({
 
         <div className="sticky top-[var(--navbar-height,64px)] z-30 -mx-4 border-b border-[var(--color-border)] bg-[var(--color-bg)]/95 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3 pb-0 pt-1">
-            <nav
-              aria-label="Filter by category"
-              className="flex shrink-0 items-center gap-0.5 overflow-x-auto no-scrollbar"
-            >
-              {CATEGORIES.map((c) => {
-                const active = category === c;
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCategory(c)}
-                    aria-pressed={active}
-                    className={cn(
-                      "h-9 shrink-0 border-b-2 px-3 text-[12px] font-medium transition-colors sm:px-4",
-                      active
-                        ? "border-[var(--color-text-primary)] text-[var(--color-text-primary)]"
-                        : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-                    )}
-                  >
-                    {c}
-                  </button>
-                );
-              })}
-            </nav>
+            <div className="flex items-center gap-2 shrink-0 sm:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileDrawerOpen(true)}
+                className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)]"
+              >
+                <SlidersHorizontal size={14} />
+                <span>Filters</span>
+                {hasFilter && (
+                  <span className="size-2 rounded-full bg-[var(--color-accent)]" />
+                )}
+              </button>
+              <SortMenu value={sort} onChange={handleSortChange} />
+            </div>
+
+            <CategoryTabs value={category} onChange={handleCategoryChange} />
 
             <div className="flex items-center gap-2 shrink-0">
-              <div className="relative flex min-w-0 w-full max-w-md sm:max-w-lg">
-                <Search
-                  size={16}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]"
-                />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by community name…"
-                  aria-label="Search communities"
-                  className="h-9 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] pl-9 pr-9 text-[14px] text-[var(--color-text-primary)] outline-none transition-all placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-light)]"
-                />
-                {search && (
-                  <button
-                    type="button"
-                    aria-label="Clear search"
-                    onClick={() => setSearch("")}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
+              <div className="hidden sm:flex">
+                <SearchInput value={search} onChange={handleSearchChange} onClear={handleSearchClear} />
               </div>
               <div className="flex items-center gap-2">
-                <PriceFilterChips value={priceFilter} onChange={setPriceFilter} />
-                <SortMenu value={sort} onChange={setSort} />
+                <PriceFilterChips value={priceFilter} onChange={handlePriceFilterChange} />
+                <div className="hidden sm:flex">
+                  <SortMenu value={sort} onChange={handleSortChange} />
+                </div>
               </div>
             </div>
           </div>
@@ -540,14 +739,11 @@ export function CommunitiesDiscovery({
                 Reset
               </button>
             )}
-            <div className="sm:hidden">
-              <SortMenu value={sort} onChange={setSort} />
-            </div>
           </div>
         </div>
 
         {loading ? (
-          <div className={GRID}>
+          <div className={GRID} role="status" aria-label="Loading communities">
             {Array.from({ length: 10 }).map((_, i) => (
               <SkeletonCard key={i} />
             ))}
@@ -579,9 +775,9 @@ export function CommunitiesDiscovery({
               />
             )}
 
-            <div className={GRID}>
+            <div className={GRID} role="list" aria-label="Communities">
               {gridItems.map((c) => (
-                <SharedCommunityCard key={c.id} c={c} />
+                <SharedCommunityCard key={c.id} c={c} role="listitem" />
               ))}
             </div>
 

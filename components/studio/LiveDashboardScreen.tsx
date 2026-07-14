@@ -501,7 +501,7 @@ export const LiveDashboardScreen: React.FC<{
                 {/* Stage Content Area */}
                 <div className="relative flex h-full w-full items-center justify-center p-4">
                   {/* Main Video / Screen Share */}
-                  <div className="relative flex-1 max-w-4xl mx-auto aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-800 to-[#fd5000]/50">
+                  <div className="relative flex-1 max-w-4xl mx-auto aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-800 to-[var(--color-accent)]/50">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="relative flex h-full w-full items-center justify-center">
                         {/* Mock Camera Feed */}

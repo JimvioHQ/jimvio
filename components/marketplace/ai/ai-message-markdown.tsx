@@ -45,7 +45,7 @@ export function AiMessageMarkdown({ content, className, onNavigate }: AiMessageM
           const path = href ?? "/";
           const isInternal = path.startsWith("/");
           const className =
-            "inline-flex items-center gap-1 rounded-md border border-[#FFE0D1] bg-[#FFFDFB] px-2 py-0.5 text-[12px] font-semibold transition-colors hover:bg-[#FF5A1F]/10";
+            "inline-flex items-center gap-1 rounded-md border border-[#FFE0D1] bg-[#FFFDFB] px-2 py-0.5 text-[12px] font-semibold transition-colors hover:bg-[var(--color-accent)]/10";
           if (isInternal && onNavigate) {
             return (
               <button
@@ -80,7 +80,7 @@ export function AiMessageMarkdown({ content, className, onNavigate }: AiMessageM
             );
           }
           return (
-            <code className="rounded bg-[#FF5A1F]/8 px-1 py-0.5 text-[12px] font-medium text-[var(--color-text-primary)]">
+            <code className="rounded bg-[var(--color-accent)]/8 px-1 py-0.5 text-[12px] font-medium text-[var(--color-text-primary)]">
               {children}
             </code>
           );
@@ -91,7 +91,7 @@ export function AiMessageMarkdown({ content, className, onNavigate }: AiMessageM
           </div>
         ),
         thead: ({ children }) => (
-          <thead className="bg-[#FF5A1F]/5 text-[var(--color-text-primary)]">{children}</thead>
+          <thead className="bg-[var(--color-accent)]/5 text-[var(--color-text-primary)]">{children}</thead>
         ),
         th: ({ children }) => <th className="px-3 py-2 font-semibold">{children}</th>,
         td: ({ children }) => (
@@ -100,7 +100,7 @@ export function AiMessageMarkdown({ content, className, onNavigate }: AiMessageM
           </td>
         ),
         blockquote: ({ children }) => (
-          <blockquote className="border-l-2 border-[#FF5A1F]/40 pl-3 text-[var(--color-text-muted)]">
+          <blockquote className="border-l-2 border-[var(--color-accent)]/40 pl-3 text-[var(--color-text-muted)]">
             {children}
           </blockquote>
         ),

@@ -86,7 +86,7 @@ export function HubCommunityOverview({
       <div className="min-w-0 space-y-6">
         {/* Hero banner */}
         <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur hover-lift"
-             style={{ background: "linear-gradient(135deg, var(--color-berry)/10, var(--color-ocean)/10)" }}>
+             style={{ background: "linear-gradient(135deg, var(--color-social)/10, var(--color-live)/10)" }}>
           <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center">
@@ -159,7 +159,7 @@ export function HubCommunityOverview({
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full"
-                       style={{ background: "linear-gradient(135deg, var(--color-berry), var(--color-amber))" }}>
+                       style={{ background: "linear-gradient(135deg, var(--color-social), var(--color-events))" }}>
                     <Trophy className="h-5 w-5 text-white" />
                   </div>
                   <div>
@@ -198,7 +198,7 @@ export function HubCommunityOverview({
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2 text-[10px]">
                   <span className="font-semibold text-[var(--color-text-muted)]">Community Level</span>
-                  <span className="font-semibold text-[var(--color-sage)]">{communityProgress}%</span>
+                  <span className="font-semibold text-[var(--color-growth)]">{communityProgress}%</span>
                 </div>
                 <HubProgressBar value={communityProgress} max={100} />
 
@@ -222,7 +222,7 @@ export function HubCommunityOverview({
                 className="relative group flex flex-col items-center gap-1.5 rounded-xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-3 transition-all hover:border-[var(--color-accent)]/30 hover:bg-[var(--color-surface)]"
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg"
-                     style={{ background: `var(--color-${link.icon === Radio ? "ocean" : link.icon === Calendar ? "amber" : link.icon === Trophy ? "berry" : link.icon === FileText ? "sage" : link.icon === Wrench ? "orange" : "accent"})/15`, color: `var(--color-${link.icon === Radio ? "ocean" : link.icon === Calendar ? "amber" : link.icon === Trophy ? "berry" : link.icon === FileText ? "sage" : link.icon === Wrench ? "orange" : "accent"})` }}>
+                     style={{ background: `var(--color-${link.icon === Radio ? "live" : link.icon === Calendar ? "events" : link.icon === Trophy ? "social" : link.icon === FileText ? "growth" : link.icon === Wrench ? "orange" : "accent"})/15`, color: `var(--color-${link.icon === Radio ? "live" : link.icon === Calendar ? "events" : link.icon === Trophy ? "social" : link.icon === FileText ? "growth" : link.icon === Wrench ? "orange" : "accent"})` }}>
                   <link.icon className="h-4 w-4" />
                 </div>
                 <span className="text-[11px] font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">
@@ -235,10 +235,10 @@ export function HubCommunityOverview({
 
         {/* Stats row — "Mood board" style cards */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 animate-in stagger-children">
-          <FeatureStatCard label="Members Online" value={overview?.onlineNow ?? 0} delta={overview?.onlineDelta ?? null} icon={Users} color="sage" />
-          <FeatureStatCard label="Live Now" value={overview?.liveSessions ?? 0} delta={overview?.liveDelta ?? null} icon={Radio} color="ocean" />
-          <FeatureStatCard label="Voice Rooms" value={overview?.voiceRooms ?? 0} delta={overview?.voiceDelta ?? null} icon={Mic} color="berry" />
-          <FeatureStatCard label="Active Communities" value={overview?.activeCommunities ?? 0} delta={overview?.communityDelta ?? null} icon={Users} color="amber" />
+          <FeatureStatCard label="Members Online" value={overview?.onlineNow ?? 0} delta={overview?.onlineDelta ?? null} icon={Users} color="growth" />
+          <FeatureStatCard label="Live Now" value={overview?.liveSessions ?? 0} delta={overview?.liveDelta ?? null} icon={Radio} color="live" />
+          <FeatureStatCard label="Voice Rooms" value={overview?.voiceRooms ?? 0} delta={overview?.voiceDelta ?? null} icon={Mic} color="social" />
+          <FeatureStatCard label="Active Communities" value={overview?.activeCommunities ?? 0} delta={overview?.communityDelta ?? null} icon={Users} color="events" />
         </div>
 
         {/* Creator challenge */}
@@ -260,7 +260,7 @@ export function HubCommunityOverview({
                 <p className="text-[11px] text-[var(--color-text-secondary)]">{overview.challenge.title}</p>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
                   <div className="h-full rounded-full transition-all duration-500 ease-out animate-in animate-fade-in-right"
-                       style={{ width: `${challengePct}%`, background: "linear-gradient(90deg, var(--color-sage), var(--color-accent))" }} />
+                       style={{ width: `${challengePct}%`, background: "linear-gradient(90deg, var(--color-growth), var(--color-accent))" }} />
                 </div>
               </div>
             </div>
@@ -397,7 +397,7 @@ export function HubCommunityOverview({
           {/* Live Now card */}
           {overview?.featuredLive && (
             <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 bg-gradient-to-br from-zinc-900/50 to-zinc-950/50 hover-lift"
-                 style={{ background: "linear-gradient(135deg, var(--color-berry)/10, var(--color-ocean)/10)" }}>
+                 style={{ background: "linear-gradient(135deg, var(--color-social)/10, var(--color-live)/10)" }}>
               <div className="relative h-36 flex items-center justify-center">
                 <div className="absolute inset-0 flex items-center justify-center">
                   <Play className="h-10 w-10 text-white/60" fill="white" />
@@ -430,10 +430,10 @@ export function HubCommunityOverview({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: "Posts", value: overview.insights.postCount30d, icon: MessageSquare, color: "sage" },
-                  { label: "Engagement", value: overview.insights.engagement30d, icon: Heart, color: "ocean" },
-                  { label: "Communities", value: overview.insights.communitiesJoined, icon: Users, color: "amber" },
-                  { label: "Live rooms", value: overview?.liveSessions ?? 0, icon: Radio, color: "berry" },
+                  { label: "Posts", value: overview.insights.postCount30d, icon: MessageSquare, color: "growth" },
+                  { label: "Engagement", value: overview.insights.engagement30d, icon: Heart, color: "live" },
+                  { label: "Communities", value: overview.insights.communitiesJoined, icon: Users, color: "events" },
+                  { label: "Live rooms", value: overview?.liveSessions ?? 0, icon: Radio, color: "social" },
                 ].map(({ label, value, icon: Icon, color }) => (
                   <div key={label} className="relative rounded-xl p-3 hover-lift"
                        style={{ background: `var(--color-${color})/5`, border: "1px solid var(--color-border)/20" }}>
@@ -451,7 +451,7 @@ export function HubCommunityOverview({
           {/* AI Assistant */}
           <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur p-4 hover-lift">
             <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--color-berry)/15", color: "var(--color-berry)" }}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--color-social)/15", color: "var(--color-social)" }}>
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
@@ -499,7 +499,7 @@ export function HubCommunityOverview({
           {overview?.earnings && (
             <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/30 hover-lift"
                  style={{ background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))" }}>
-              <div className="absolute inset-0 -z-10 opacity-10" style={{ background: "radial-gradient(circle at 20% 80%, var(--color-berry), transparent 50%)" }} />
+              <div className="absolute inset-0 -z-10 opacity-10" style={{ background: "radial-gradient(circle at 20% 80%, var(--color-social), transparent 50%)" }} />
               <div className="p-4 text-white">
                 <div className="mb-3 flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/15">
@@ -536,7 +536,7 @@ export function HubCommunityOverview({
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
                   <div className="h-full rounded-full transition-all duration-500"
-                       style={{ width: `${challengePct}%`, background: "linear-gradient(90deg, var(--color-sage), var(--color-accent))" }} />
+                       style={{ width: `${challengePct}%`, background: "linear-gradient(90deg, var(--color-growth), var(--color-accent))" }} />
                 </div>
               </div>
             </div>

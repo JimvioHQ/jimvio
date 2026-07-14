@@ -4,7 +4,7 @@ import type { ExportDocument, ExportSheet } from "@/lib/admin/export/types";
 
 const MUTED = "#6b7280";
 const INK = "#111827";
-const BRAND = "#fd5000";
+const BRAND = "var(--color-accent)";
 const BRAND_LIGHT = "#fff4ed";
 const BORDER = "#e5e7eb";
 const HEADER_BG = "#1f2937";

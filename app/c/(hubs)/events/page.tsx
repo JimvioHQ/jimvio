@@ -78,7 +78,7 @@ export default function HubEventsPage() {
   return (
     <div className="min-h-full bg-[var(--color-bg)]"
          style={{
-           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-social)/3, transparent 40%)`,
          }}>
       <div className="mx-auto max-w-[960px] space-y-6 p-4 lg:p-6">
         {/* Header */}
@@ -100,7 +100,7 @@ export default function HubEventsPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 animate-in stagger-children">
           <HubStatCard label="Upcoming" value={stats.upcoming} icon={<Calendar className="h-4 w-4" />} accent="#4fc3f7" />
-          <HubStatCard label="Live now" value={stats.live} icon={<Radio className="h-4 w-4" />} accent="#fd5000" />
+          <HubStatCard label="Live now" value={stats.live} icon={<Radio className="h-4 w-4" />} accent="var(--color-accent)" />
           <HubStatCard label="Past" value={stats.past} icon={<Award className="h-4 w-4" />} accent="#81c784" />
           <HubStatCard label="Total" value={stats.total} icon={<Users className="h-4 w-4" />} accent="#ffb74d" />
         </div>
@@ -209,7 +209,7 @@ export default function HubEventsPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">{event.community_name}</span>
                       <span className="flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
-                            style={{ background: event.kind === "campaign" ? "var(--color-amber)/15" : "var(--color-ocean)/15", color: event.kind === "campaign" ? "var(--color-amber)" : "var(--color-ocean)" }}>
+                            style={{ background: event.kind === "campaign" ? "var(--color-events)/15" : "var(--color-live)/15", color: event.kind === "campaign" ? "var(--color-events)" : "var(--color-live)" }}>
                         {event.kind}
                       </span>
                     </div>

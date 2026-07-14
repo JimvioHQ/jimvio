@@ -16,6 +16,10 @@ import {
     MessageSquare,
     Target,
     LayoutDashboard,
+    ShoppingBag,
+    Users,
+    DollarSign,
+    Clapperboard,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
@@ -135,6 +139,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
     const [searchOpen, setSearchOpen] = useState(false);
+    const [notificationsOpen, setNotificationsOpen] = useState(false);
 
     const manuallyToggled = useRef(false);
 
@@ -317,8 +322,8 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         </button>
 
                         {/* Notifications */}
-                        <Link
-                            href="/notifications"
+                        <button
+                            onClick={() => setNotificationsOpen(true)}
                             aria-label={`Notifications${unreadNotifications > 0 ? ` (${unreadNotifications} unread)` : ""}`}
                             className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                         >
@@ -328,7 +333,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                                     {unreadNotifications > 9 ? "9+" : unreadNotifications}
                                 </span>
                             )}
-                        </Link>
+                        </button>
 
                         {/* Cart */}
                         <Link
@@ -377,6 +382,8 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                             onToggleCollapse={handleToggleCollapse}
                             username={profile?.username ?? ""}
                             unreadMessages={unreadMessages}
+                            unreadNotifications={unreadNotifications}
+                            onOpenNotifications={() => setNotificationsOpen(true)}
                             mobileOpen={mobileNavOpen}
                             onMobileClose={() => setMobileNavOpen(false)}
                         />

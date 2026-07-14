@@ -23,7 +23,7 @@ type Props = {
   onSearchPick?: (term: string) => void;
 };
 
-const ACCENT = "#fd5000";
+const ACCENT = "var(--color-accent)";
 const ACCENT_BG = "rgba(253,80,0,0.1)";
 
 const GROWTH_PATHS = [

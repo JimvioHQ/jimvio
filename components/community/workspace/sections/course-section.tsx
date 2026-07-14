@@ -28,7 +28,7 @@ export function CoursesSection() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {courses.map((course) => (
           <HubCard key={course.id}>
-            <div className="mb-3 h-24 rounded-md bg-gradient-to-br from-[#fd5000]/20 to-zinc-800" />
+            <div className="mb-3 h-24 rounded-md bg-gradient-to-br from-[var(--color-accent)]/20 to-zinc-800" />
             <h3 className="text-sm font-bold">{course.title}</h3>
             <p className="mt-1 text-xs capitalize text-[var(--color-text-muted)]">
               {course.difficulty} · {course.total_lessons} lessons
@@ -36,7 +36,7 @@ export function CoursesSection() {
             <HubProgressBar value={course.progress} max={100} className="mt-3" />
             <Link
               href={course.href || base}
-              className="mt-3 inline-block text-xs font-semibold text-[#fd5000]"
+              className="mt-3 inline-block text-xs font-semibold text-[var(--color-accent)]"
             >
               Continue learning
             </Link>

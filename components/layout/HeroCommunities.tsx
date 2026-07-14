@@ -53,7 +53,7 @@ export default function HeroCommunities() {
           </ul>
 
           <div className="mt-4 flex gap-3">
-            <a href="/communities/create" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#fd5000] text-white font-semibold">Create Community</a>
+            <a href="/communities/create" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-accent)] text-white font-semibold">Create Community</a>
             <a href="/communities" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm">Browse Communities</a>
           </div>
         </div>

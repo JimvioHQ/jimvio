@@ -4,35 +4,43 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-sm text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-95",
+  [
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap",
+    "font-semibold transition-all duration-200 ease-out",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]",
+    "disabled:pointer-events-none disabled:opacity-50",
+    "active:scale-[0.98]",
+    "rounded-[var(--radius-md)]",
+    "text-sm",
+  ],
   {
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-brand-600 to-accent-600 text-white shadow-brand hover:shadow-brand-lg hover:scale-[1.02]",
+          "bg-[var(--color-accent)] text-[var(--color-accent-foreground)] shadow-[var(--shadow-sm)] hover:bg-[var(--color-accent-hover)] hover:shadow-[var(--shadow-md)]",
         secondary:
-          "bg-white dark:bg-surface/10 border border-white/20 text-white hover:bg-white dark:bg-surface/20",
+          "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] hover:bg-[var(--color-surface)] hover:border-[var(--color-border-strong)]",
         outline:
-          "border border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white",
+          "bg-transparent text-[var(--color-accent)] border border-[var(--color-accent)] hover:bg-[var(--color-accent-subtle)]",
         ghost:
-          "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)] border border-transparent",
+          "bg-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] border border-transparent",
         destructive:
-          "bg-red-600 text-white hover:bg-red-700 shadow-none",
-        orange:
-          "bg-orange-500/10 border border-orange-500/30 text-orange-600 hover:bg-orange-500/20 shadow-[0_2px_10px_rgba(249,115,22,0.10)]",
-        glass:
-          "bg-white dark:bg-surface/10 border border-white/20 text-white hover:bg-white dark:bg-surface/20 shadow-none",
+          "bg-[var(--color-danger)] text-white shadow-[var(--shadow-sm)] hover:bg-[var(--color-danger)]/90 hover:shadow-[var(--shadow-md)]",
+        subtle:
+          "bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-accent)]/30 hover:bg-[var(--color-accent-light)] hover:shadow-[0_2px_10px_color-mix(in_srgb,_var(--color-accent)_10%,_transparent)]",
         success:
-          "bg-emerald-600 text-white hover:bg-emerald-700 shadow-none",
-        link: "text-brand-400 underline-offset-4 hover:underline p-0 h-auto",
+          "bg-[var(--color-success)] text-white shadow-[var(--shadow-sm)] hover:bg-[var(--color-success)]/90 hover:shadow-[var(--shadow-md)]",
+        warning:
+          "bg-[var(--color-warning)] text-white shadow-[var(--shadow-sm)] hover:bg-[var(--color-warning)]/90 hover:shadow-[var(--shadow-md)]",
+        link: "text-[var(--color-accent)] underline-offset-4 hover:underline p-0 h-auto",
       },
       size: {
-        default: "h-10 px-5 py-2",
-        sm: "h-8 rounded-sm px-3 text-xs",
-        lg: "h-12 rounded-sm px-8 text-base",
-        xl: "h-14 rounded-sm px-10 text-lg",
+        default: "h-10 px-5",
+        sm: "h-8 rounded-[var(--radius-sm)] px-3 text-xs",
+        lg: "h-12 rounded-[var(--radius-lg)] px-8 text-base",
+        xl: "h-14 rounded-[var(--radius-xl)] px-10 text-lg",
         icon: "h-10 w-10",
-        "icon-sm": "h-8 w-8 rounded-sm",
+        "icon-sm": "h-8 w-8 rounded-[var(--radius-sm)]",
       },
     },
     defaultVariants: {
@@ -57,12 +65,16 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(buttonVariants({ variant, size }), className)}
         ref={ref}
         disabled={disabled || loading}
+        aria-busy={loading}
         {...props}
       >
         {asChild ? children : (
           <>
             {loading && (
-              <span className="h-4 w-4 animate-spin rounded-sm border-2 border-current border-t-transparent" />
+              <span
+                className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+                aria-hidden="true"
+              />
             )}
             {children}
           </>
@@ -74,4 +86,3 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button";
 
 export { Button, buttonVariants };
-

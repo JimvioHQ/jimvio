@@ -73,9 +73,9 @@ export const IntelligenceProductCard = memo(function IntelligenceProductCard({
       className={cn(
         "group flex h-[368px] w-full max-w-[210px] flex-col overflow-hidden rounded-[14px] border bg-white mx-auto",
         "shadow-[0_1px_3px_rgba(17,24,39,0.06)] transition-all duration-200",
-        "hover:border-[#FF5A1F]/35 hover:shadow-[0_8px_28px_rgba(17,24,39,0.1)]",
+        "hover:border-[var(--color-accent)]/35 hover:shadow-[0_8px_28px_rgba(17,24,39,0.1)]",
         selected
-          ? "border-[#FF5A1F]/50 ring-2 ring-[#FF5A1F]/12"
+          ? "border-[var(--color-accent)]/50 ring-2 ring-[var(--color-accent)]/12"
           : "border-[#E5E7EB]",
         intel.isImported && "from-emerald-50/50 to-white bg-gradient-to-b"
       )}
@@ -123,7 +123,7 @@ export const IntelligenceProductCard = memo(function IntelligenceProductCard({
             className={cn(
               "flex h-[18px] w-[18px] items-center justify-center rounded-[5px] border backdrop-blur-md",
               selected
-                ? "border-[#FF5A1F] bg-[#FF5A1F] text-white"
+                ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-white"
                 : "border-white/50 bg-black/40 text-white",
               intel.isImported && "opacity-40"
             )}
@@ -156,7 +156,7 @@ export const IntelligenceProductCard = memo(function IntelligenceProductCard({
       {/* Info — bottom 40% */}
       <div className="flex min-h-0 flex-1 flex-col px-2.5 pt-2 pb-2.5">
         <button type="button" onClick={onPreview} className="text-left">
-          <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-[#111827] group-hover:text-[#FF5A1F]">
+          <p className="line-clamp-2 text-[11px] font-semibold leading-snug text-[#111827] group-hover:text-[var(--color-accent)]">
             {product.productNameEn}
           </p>
         </button>
@@ -218,7 +218,7 @@ export const IntelligenceProductCard = memo(function IntelligenceProductCard({
               type="button"
               onClick={onPublish}
               disabled={importing}
-              className="inline-flex h-[30px] w-full items-center justify-center gap-1.5 rounded-[10px] bg-[#FF5A1F] text-[10.5px] font-semibold text-white shadow-sm hover:opacity-90 disabled:opacity-60"
+              className="inline-flex h-[30px] w-full items-center justify-center gap-1.5 rounded-[10px] bg-[var(--color-accent)] text-[10.5px] font-semibold text-white shadow-sm hover:opacity-90 disabled:opacity-60"
             >
               {importing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

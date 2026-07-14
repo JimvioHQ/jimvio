@@ -62,7 +62,7 @@ export function UGCBrandDealsPage() {
           title="No brand deals available"
           description="New partnership offers will appear here when brands launch promotion campaigns."
           action={
-            <Button asChild className="rounded-xl bg-[#FF5A1F]">
+            <Button asChild className="rounded-xl bg-[var(--color-accent)]">
               <Link href="/ugc">Discover all campaigns</Link>
             </Button>
           }
@@ -81,7 +81,7 @@ export function UGCBrandDealsPage() {
                 <p className="mt-1 text-[12px] text-[#6B7280]">Target: {c.promotion_target}</p>
               ) : null}
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
+                <Button asChild size="sm" className="rounded-xl bg-[var(--color-accent)]">
                   <Link href={`/ugc/${c.id}`}>View offer</Link>
                 </Button>
                 <Button asChild size="sm" variant="outline" className="rounded-xl">

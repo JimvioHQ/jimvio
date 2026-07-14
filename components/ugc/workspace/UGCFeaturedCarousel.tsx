@@ -64,7 +64,7 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
             <div
               className="absolute inset-0"
               style={{
-                background: "linear-gradient(135deg, #111827 0%, #374151 50%, #FF5A1F 140%)",
+                background: "linear-gradient(135deg, #111827 0%, #374151 50%, var(--color-accent) 140%)",
               }}
             />
           )}
@@ -85,7 +85,7 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
                   className="h-4 w-4 rounded-full border border-white/20 object-cover"
                 />
               ) : (
-                <span className="grid h-4 w-4 place-items-center rounded-full bg-[#FF5A1F] text-[7px] font-bold text-white">
+                <span className="grid h-4 w-4 place-items-center rounded-full bg-[var(--color-accent)] text-[7px] font-bold text-white">
                   {c.vendor?.business_name?.[0] ?? "B"}
                 </span>
               )}
@@ -104,14 +104,14 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
             )}
 
             <div className="mt-1.5 flex flex-wrap items-center gap-2.5 text-[10px]">
-              <span className="font-semibold text-[#FF5A1F]">{rewardLine}</span>
+              <span className="font-semibold text-[var(--color-accent)]">{rewardLine}</span>
               <span className="text-white/55">{formatCreatorCount(creators)} creators joined</span>
             </div>
 
             <div className="mt-2 flex flex-wrap gap-1.5">
               <Link
                 href={`/ugc/${c.id}/join`}
-                className="inline-flex h-7 items-center justify-center rounded-full bg-[#FF5A1F] px-3.5 text-[10px] font-bold text-white transition-colors hover:bg-[#E54E18]"
+                className="inline-flex h-7 items-center justify-center rounded-full bg-[var(--color-accent)] px-3.5 text-[10px] font-bold text-white transition-colors hover:bg-[#E54E18]"
               >
                 Join Campaign
               </Link>
@@ -135,7 +135,7 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
                   onClick={() => setIndex(i)}
                   className={cn(
                     "h-0.5 rounded-full transition-all",
-                    i === index ? "w-4 bg-[#FF5A1F]" : "w-1 bg-white/35"
+                    i === index ? "w-4 bg-[var(--color-accent)]" : "w-1 bg-white/35"
                   )}
                 />
               ))}

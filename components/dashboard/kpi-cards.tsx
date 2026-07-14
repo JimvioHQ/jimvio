@@ -19,7 +19,7 @@ const CARD_LINKS: Record<string, string> = {
 
 const CARD_ACCENTS: Record<string, string> = {
     Revenue: "#3b82f6",
-    Orders: "#fd5000",
+    Orders: "var(--color-accent)",
     Products: "#8b5cf6",
     Customers: "#22c55e",
 };

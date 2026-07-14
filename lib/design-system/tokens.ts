@@ -1,7 +1,18 @@
 /** Jimvio Design System — canonical token map (mirrors CSS custom properties). */
 
 export const dsColors = {
+  /* Core primitives */
+  paper: "var(--color-paper)",
+  paperDim: "var(--color-paper-dim)",
+  paperDark: "var(--color-paper-dark)",
+  ink: "var(--color-ink)",
+  inkDeep: "var(--color-ink-deep)",
+  inkMuted: "var(--color-ink-muted)",
+  inkSubtle: "var(--color-ink-subtle)",
+
+  /* Semantic tokens */
   bg: "var(--color-bg)",
+  bgElevated: "var(--color-bg-elevated)",
   surface: "var(--color-surface)",
   surfaceSecondary: "var(--color-surface-secondary)",
   border: "var(--color-border)",
@@ -10,9 +21,21 @@ export const dsColors = {
   accentHover: "var(--color-accent-hover)",
   accentLight: "var(--color-accent-light)",
   accentSubtle: "var(--color-accent-subtle)",
+  accentSoft: "var(--color-accent-soft)",
+  accentForeground: "var(--color-accent-foreground)",
   textPrimary: "var(--color-text-primary)",
   textSecondary: "var(--color-text-secondary)",
   textMuted: "var(--color-text-muted)",
+  bgDark: "var(--color-bg-dark)",
+  bgDarker: "var(--color-bg-darker)",
+
+  /* Section tints — derived from ink + accent */
+  growth: "var(--color-growth)",
+  events: "var(--color-events)",
+  live: "var(--color-live)",
+  social: "var(--color-social)",
+
+  /* Status */
   success: "var(--color-success)",
   successLight: "var(--color-success-light)",
   warning: "var(--color-warning)",

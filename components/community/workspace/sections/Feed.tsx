@@ -577,7 +577,7 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img src={selectedCommunity.avatar_url} alt="" className="w-4 h-4 rounded-full object-cover" />
                                 ) : (
-                                    <div className="w-4 h-4 rounded-full bg-[#fd5000] flex items-center justify-center text-white text-[8px] font-bold">
+                                    <div className="w-4 h-4 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white text-[8px] font-bold">
                                         {selectedCommunity.name[0]?.toUpperCase()}
                                     </div>
                                 )}
@@ -604,13 +604,13 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                                         setShowCommunityPicker(false);
                                         setComposerError(null);
                                     }}
-                                    className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] font-medium text-left hover:bg-surface-secondary transition-colors ${selectedCommunity?.id === c.id ? "text-[#fd5000]" : "text-text-primary"}`}
+                                    className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] font-medium text-left hover:bg-surface-secondary transition-colors ${selectedCommunity?.id === c.id ? "text-[var(--color-accent)]" : "text-text-primary"}`}
                                 >
                                     {c.avatar_url ? (
                                         // eslint-disable-next-line @next/next/no-img-element
                                         <img src={c.avatar_url} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
                                     ) : (
-                                        <div className="w-5 h-5 rounded-full bg-[#fd5000] flex items-center justify-center text-white text-[9px] font-bold shrink-0">
+                                        <div className="w-5 h-5 rounded-full bg-[var(--color-accent)] flex items-center justify-center text-white text-[9px] font-bold shrink-0">
                                             {c.name[0]?.toUpperCase()}
                                         </div>
                                     )}
@@ -705,7 +705,7 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                             type="button"
                             onClick={() => imageInputRef.current?.click()}
                             disabled={!isMemberOfSelected}
-                            className="p-2 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="p-2 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                             aria-label="Attach photo"
                         >
                             <ImageIcon className="w-4 h-4" />
@@ -718,10 +718,10 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                         className={cn(
                             "inline-flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all",
                             isHub
-                                ? "bg-[#fd5000]/15 text-[#fd5000] hover:bg-[#fd5000]/22"
+                                ? "bg-[var(--color-accent)]/15 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/22"
                                 : "text-white"
                         )}
-                        style={isHub ? undefined : { background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
+                        style={isHub ? undefined : { background: "linear-gradient(135deg, var(--color-accent), #ff7a30)" }}
                     >
                         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                         Post
@@ -767,7 +767,7 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                             type="button"
                             onClick={loadMore}
                             disabled={loadingMore}
-                            className="w-full flex items-center justify-center gap-2 py-3 text-[12px] font-semibold text-text-muted hover:text-[#fd5000] border border-border rounded-2xl bg-surface hover:border-border-hover transition-colors disabled:opacity-40"
+                            className="w-full flex items-center justify-center gap-2 py-3 text-[12px] font-semibold text-text-muted hover:text-[var(--color-accent)] border border-border rounded-2xl bg-surface hover:border-border-hover transition-colors disabled:opacity-40"
                         >
                             {loadingMore ? <Loader2 className="w-4 h-4 animate-spin" /> : <ChevronDown className="w-4 h-4" />}
                             {loadingMore ? "Loading…" : "Load more"}
@@ -831,11 +831,11 @@ function PostCard({
 
     return (
         <article
-            className={`bg-surface border rounded-2xl p-4 hover:border-border-hover transition-colors ${isDetailOpen ? "border-[#fd5000]/40" : "border-border"}`}
+            className={`bg-surface border rounded-2xl p-4 hover:border-border-hover transition-colors ${isDetailOpen ? "border-[var(--color-accent)]/40" : "border-border"}`}
         >
             {/* Pinned badge */}
             {post.is_pinned && (
-                <div className="flex items-center gap-1 text-[10px] font-semibold text-[#fd5000] mb-2">
+                <div className="flex items-center gap-1 text-[10px] font-semibold text-[var(--color-accent)] mb-2">
                     <Pin className="w-3 h-3" />
                     Pinned
                 </div>
@@ -852,7 +852,7 @@ function PostCard({
                 ) : (
                     <div
                         className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
-                        style={{ background: "#fd5000" }}
+                        style={{ background: "var(--color-accent)" }}
                     >
                         {name[0]?.toUpperCase()}
                     </div>
@@ -902,9 +902,9 @@ function PostCard({
                 <button
                     type="button"
                     onClick={onLike}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] transition-colors ${liked ? "text-[#fd5000]" : "text-text-muted hover:bg-surface-secondary hover:text-[#fd5000]"}`}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] transition-colors ${liked ? "text-[var(--color-accent)]" : "text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)]"}`}
                 >
-                    <Heart className={`w-3.5 h-3.5 ${liked ? "fill-[#fd5000]" : ""}`} />
+                    <Heart className={`w-3.5 h-3.5 ${liked ? "fill-[var(--color-accent)]" : ""}`} />
                     {(post.like_count ?? 0) > 0 && <span className="font-semibold">{post.like_count}</span>}
                 </button>
 
@@ -912,7 +912,7 @@ function PostCard({
                 <button
                     type="button"
                     onClick={onSelect}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] transition-colors ${isDetailOpen ? "text-[#fd5000]" : "text-text-muted hover:bg-surface-secondary hover:text-[#fd5000]"}`}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] transition-colors ${isDetailOpen ? "text-[var(--color-accent)]" : "text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)]"}`}
                 >
                     <MessageCircle className="w-3.5 h-3.5" />
                     {(post.comment_count ?? 0) > 0 && <span className="font-semibold">{post.comment_count}</span>}
@@ -922,10 +922,10 @@ function PostCard({
                 <button
                     type="button"
                     onClick={onSave}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors"
                 >
                     {saved ? (
-                        <BookmarkCheck className="w-3.5 h-3.5 text-[#fd5000]" />
+                        <BookmarkCheck className="w-3.5 h-3.5 text-[var(--color-accent)]" />
                     ) : (
                         <Bookmark className="w-3.5 h-3.5" />
                     )}
@@ -935,7 +935,7 @@ function PostCard({
                 <button
                     type="button"
                     onClick={onShare}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors"
                 >
                     <Share2 className="w-3.5 h-3.5" />
                 </button>
@@ -1065,11 +1065,11 @@ function PostDetailPanel({
     const replies = (parentId: string) => comments.filter((c) => c.parent_id === parentId);
 
     return (
-        <div className="bg-surface border border-[#fd5000]/30 rounded-2xl p-4">
+        <div className="bg-surface border border-[var(--color-accent)]/30 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-4">
                 <button
                     onClick={onClose}
-                    className="p-1 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+                    className="p-1 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors"
                 >
                     <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -1128,7 +1128,7 @@ function PostDetailPanel({
                             {replyTo.profiles?.full_name || replyTo.profiles?.username || "Member"}
                         </strong>
                     </span>
-                    <button onClick={() => setReplyTo(null)} className="hover:text-[#fd5000] transition-colors">
+                    <button onClick={() => setReplyTo(null)} className="hover:text-[var(--color-accent)] transition-colors">
                         <X className="h-3.5 w-3.5" />
                     </button>
                 </div>
@@ -1162,7 +1162,7 @@ function PostDetailPanel({
                     disabled={!text.trim() || sending}
                     onClick={sendComment}
                     className="self-end inline-flex items-center gap-1.5 text-[12px] font-semibold text-white px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                    style={{ background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
+                    style={{ background: "linear-gradient(135deg, var(--color-accent), #ff7a30)" }}
                 >
                     {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 </button>
@@ -1200,7 +1200,7 @@ function CommentItem({
             ) : (
                 <div
                     className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                    style={{ background: "#fd5000" }}
+                    style={{ background: "var(--color-accent)" }}
                 >
                     {name[0]?.toUpperCase()}
                 </div>
@@ -1228,7 +1228,7 @@ function CommentItem({
                 <button
                     type="button"
                     onClick={() => onReply(comment)}
-                    className="mt-1 inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-[#fd5000] transition-colors font-semibold"
+                    className="mt-1 inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-[var(--color-accent)] transition-colors font-semibold"
                 >
                     <Reply className="h-3 w-3" /> Reply
                 </button>
@@ -1264,8 +1264,8 @@ function FeedSkeleton() {
 function FeedEmpty() {
     return (
         <div className="bg-surface border border-border rounded-2xl p-12 flex flex-col items-center text-center">
-            <div className="w-14 h-14 rounded-2xl bg-[#fd5000]/10 flex items-center justify-center mb-3">
-                <MessageCircle className="w-6 h-6 text-[#fd5000]" />
+            <div className="w-14 h-14 rounded-2xl bg-[var(--color-accent)]/10 flex items-center justify-center mb-3">
+                <MessageCircle className="w-6 h-6 text-[var(--color-accent)]" />
             </div>
             <h3 className="text-[15px] font-bold text-text-primary mb-1">Be the first to post</h3>
             <p className="text-[12px] text-text-muted max-w-sm">

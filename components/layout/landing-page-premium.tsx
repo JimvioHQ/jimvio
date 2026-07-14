@@ -77,7 +77,7 @@ function useLandingData() {
 /* ═══════════════════════════════════════════════
    DESIGN TOKENS
    ═══════════════════════════════════════════════ */
-const ACCENT = "#fd5000";
+const ACCENT = "var(--color-accent)";
 const ACCENT_RGB = "253,80,0";
 const GREEN = "#16a34a";
 const GREEN_RGB = "22,163,74";

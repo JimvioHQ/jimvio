@@ -1092,7 +1092,7 @@ export default function CJImportBrowser({
               className={cn(
                 "inline-flex h-8 items-center rounded-[10px] border px-2.5 text-[10px] font-medium",
                 settingsOpen
-                  ? "border-[#FF5A1F]/40 bg-[#FF5A1F]/10 text-[#FF5A1F]"
+                  ? "border-[var(--color-accent)]/40 bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
                   : "border-[#E5E7EB] bg-white text-[#374151]"
               )}
             >
@@ -1136,7 +1136,7 @@ export default function CJImportBrowser({
             type="button"
             onClick={runSearch}
             disabled={loading}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[12px] bg-[#FF5A1F] px-3.5 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[12px] bg-[var(--color-accent)] px-3.5 text-[12px] font-semibold text-white hover:opacity-90 disabled:opacity-60"
           >
             {loading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1292,7 +1292,7 @@ export default function CJImportBrowser({
           )}
           <Link
             href="/admin/settings"
-            className="mt-2 inline-flex text-[11px] font-semibold text-[#FF5A1F] hover:underline"
+            className="mt-2 inline-flex text-[11px] font-semibold text-[var(--color-accent)] hover:underline"
           >
             Open platform settings →
           </Link>
@@ -1346,7 +1346,7 @@ export default function CJImportBrowser({
                     </strong>{" "}
                     shown · {total.toLocaleString()} catalog
                     {activeFilterCount > 0 && (
-                      <span className="ml-1.5 text-[#FF5A1F]">
+                      <span className="ml-1.5 text-[var(--color-accent)]">
                         · {activeFilterCount} filters
                       </span>
                     )}
@@ -1439,7 +1439,7 @@ export default function CJImportBrowser({
                   {entry.productId && (
                     <Link
                       href={`/admin/products/${entry.productId}`}
-                      className="shrink-0 text-[#FF5A1F] hover:underline"
+                      className="shrink-0 text-[var(--color-accent)] hover:underline"
                     >
                       Open
                     </Link>
@@ -1514,8 +1514,8 @@ export default function CJImportBrowser({
 function EmptyState({ onSearch }: { onSearch: () => void }) {
   return (
     <div className="rounded-[14px] border border-dashed border-[#E5E7EB] bg-white py-20 px-6 text-center shadow-[0_1px_3px_rgba(17,24,39,0.04)]">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#FF5A1F]/10">
-        <Sparkles className="h-6 w-6 text-[#FF5A1F]" />
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[14px] bg-[var(--color-accent)]/10">
+        <Sparkles className="h-6 w-6 text-[var(--color-accent)]" />
       </div>
       <h3 className="text-[16px] font-bold text-[#111827]">
         Global Sourcing Intelligence
@@ -1526,7 +1526,7 @@ function EmptyState({ onSearch }: { onSearch: () => void }) {
       <button
         type="button"
         onClick={onSearch}
-        className="mt-5 inline-flex h-10 items-center rounded-[14px] bg-[#FF5A1F] px-5 text-[13px] font-semibold text-white shadow-sm hover:opacity-90"
+        className="mt-5 inline-flex h-10 items-center rounded-[14px] bg-[var(--color-accent)] px-5 text-[13px] font-semibold text-white shadow-sm hover:opacity-90"
       >
         Search Catalog
       </button>

@@ -77,7 +77,7 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
           title="No earnings yet"
           description="Submit approved content to start earning from UGC campaigns."
           action={
-            <Button asChild className="rounded-xl bg-[#FF5A1F]">
+            <Button asChild className="rounded-xl bg-[var(--color-accent)]">
               <Link href="/ugc">Discover campaigns</Link>
             </Button>
           }
@@ -108,7 +108,7 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
             </p>
             {mode === "payouts" ? (
               <div className="mt-4 flex flex-wrap gap-2">
-                <Button asChild className="rounded-xl bg-[#FF5A1F]">
+                <Button asChild className="rounded-xl bg-[var(--color-accent)]">
                   <Link href="/dashboard/wallet">Request withdrawal</Link>
                 </Button>
                 <Button asChild variant="outline" className="rounded-xl">

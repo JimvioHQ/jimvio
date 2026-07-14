@@ -138,7 +138,7 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
         <div className="mt-auto flex items-baseline gap-0.5 leading-none pt-1">
           <span
             className="text-[10px] font-bold leading-none md:text-[12px]"
-            style={{ color: "#FF5A1F" }}
+            style={{ color: "var(--color-accent)" }}
           >
             {formatMoney(d.price, d.currency)}
           </span>
@@ -150,7 +150,7 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
               {formatMoney(compareAtPrice, d.currency)}
             </span>
           )}
-          <ArrowRight className="size-2.5 ml-0.5" strokeWidth={2.5} style={{ color: "#FF5A1F" }} />
+          <ArrowRight className="size-2.5 ml-0.5" strokeWidth={2.5} style={{ color: "var(--color-accent)" }} />
         </div>
       </div>
     </Link>

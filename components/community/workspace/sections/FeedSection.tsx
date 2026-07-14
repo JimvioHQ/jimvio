@@ -281,7 +281,7 @@ export function FeedSection() {
                   type="button"
                   key={b.label}
                   onClick={b.action}
-                  className="p-2 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+                  className="p-2 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors"
                   aria-label={b.label}
                 >
                   <Icon className="w-4 h-4" />
@@ -294,7 +294,7 @@ export function FeedSection() {
             disabled={!composer.trim() || saving || uploading}
             onClick={submitPost}
             className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-white px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            style={{ background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
+            style={{ background: "linear-gradient(135deg, var(--color-accent), #ff7a30)" }}
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             Post
@@ -313,7 +313,7 @@ export function FeedSection() {
 
       {/* Admin notice */}
       {adminView && (
-        <div className="text-[11px] font-semibold text-[#fd5000] bg-[#fd5000]/10 border border-[#fd5000]/20 rounded-lg px-3 py-2">
+        <div className="text-[11px] font-semibold text-[var(--color-accent)] bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20 rounded-lg px-3 py-2">
           Admin view: you can pin, hide, or delete any post.
         </div>
       )}
@@ -386,7 +386,7 @@ function PostCard({
         ) : (
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
-            style={{ background: "#fd5000" }}
+            style={{ background: "var(--color-accent)" }}
           >
             {name[0]?.toUpperCase()}
           </div>
@@ -432,7 +432,7 @@ function PostCard({
         <button
           type="button"
           onClick={onLike}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors"
         >
           <Heart className="w-3.5 h-3.5" />
           {(post.like_count ?? 0) > 0 && <span className="font-semibold">{post.like_count}</span>}
@@ -441,7 +441,7 @@ function PostCard({
         <button
           type="button"
           onClick={onSelect}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors"
         >
           <MessageCircle className="w-3.5 h-3.5" />
           {(post.comment_count ?? 0) > 0 && <span className="font-semibold">{post.comment_count}</span>}
@@ -449,7 +449,7 @@ function PostCard({
 
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors"
         >
           <Repeat2 className="w-3.5 h-3.5" />
         </button>
@@ -457,10 +457,10 @@ function PostCard({
         <button
           type="button"
           onClick={onSave}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors"
         >
           {saved ? (
-            <BookmarkCheck className="w-3.5 h-3.5 text-[#fd5000]" />
+            <BookmarkCheck className="w-3.5 h-3.5 text-[var(--color-accent)]" />
           ) : (
             <Bookmark className="w-3.5 h-3.5" />
           )}
@@ -469,7 +469,7 @@ function PostCard({
         <button
           type="button"
           onClick={() => navigator.clipboard?.writeText(window.location.href)}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors"
         >
           <Share2 className="w-3.5 h-3.5" />
         </button>
@@ -532,7 +532,7 @@ function PostDetailPanel({
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={onClose}
-          className="p-1 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+          className="p-1 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[var(--color-accent)] transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -586,7 +586,7 @@ function PostDetailPanel({
               {replyTo.profiles?.full_name || replyTo.profiles?.username || "Member"}
             </strong>
           </span>
-          <button onClick={() => setReplyTo(null)} className="hover:text-[#fd5000] transition-colors">
+          <button onClick={() => setReplyTo(null)} className="hover:text-[var(--color-accent)] transition-colors">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -612,7 +612,7 @@ function PostDetailPanel({
           disabled={!text.trim()}
           onClick={sendComment}
           className="self-end inline-flex items-center gap-1.5 text-[12px] font-semibold text-white px-4 py-2 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-          style={{ background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
+          style={{ background: "linear-gradient(135deg, var(--color-accent), #ff7a30)" }}
         >
           <Send className="w-3.5 h-3.5" />
         </button>
@@ -645,7 +645,7 @@ function CommentItem({
       ) : (
         <div
           className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-          style={{ background: "#fd5000" }}
+          style={{ background: "var(--color-accent)" }}
         >
           {name[0]?.toUpperCase()}
         </div>
@@ -663,7 +663,7 @@ function CommentItem({
         <button
           type="button"
           onClick={() => onReply(comment)}
-          className="mt-1 inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-[#fd5000] transition-colors font-semibold"
+          className="mt-1 inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-[var(--color-accent)] transition-colors font-semibold"
         >
           <Reply className="h-3 w-3" /> Reply
         </button>
@@ -699,8 +699,8 @@ function FeedSkeleton() {
 function FeedEmpty() {
   return (
     <div className="bg-surface border border-border rounded-2xl p-12 flex flex-col items-center text-center">
-      <div className="w-14 h-14 rounded-2xl bg-[#fd5000]/10 flex items-center justify-center mb-3">
-        <MessageCircle className="w-6 h-6 text-[#fd5000]" />
+      <div className="w-14 h-14 rounded-2xl bg-[var(--color-accent)]/10 flex items-center justify-center mb-3">
+        <MessageCircle className="w-6 h-6 text-[var(--color-accent)]" />
       </div>
       <h3 className="text-[15px] font-bold text-text-primary mb-1">Be the first to post</h3>
       <p className="text-[12px] text-text-muted max-w-sm">

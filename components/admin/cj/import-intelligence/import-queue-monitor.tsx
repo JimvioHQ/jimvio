@@ -24,7 +24,7 @@ export function ImportQueueMonitor({
   return (
     <div
       className={cn(
-        "rounded-sm border border-[#FF5A1F]/30 bg-[#FF5A1F]/5 backdrop-blur-xl p-3 space-y-2",
+        "rounded-sm border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/5 backdrop-blur-xl p-3 space-y-2",
         className
       )}
     >
@@ -39,7 +39,7 @@ export function ImportQueueMonitor({
             </p>
           )}
         </div>
-        <p className="text-[11px] font-medium text-[#FF5A1F] tabular-nums">
+        <p className="text-[11px] font-medium text-[var(--color-accent)] tabular-nums">
           ETA: {eta}
         </p>
       </div>
@@ -49,7 +49,7 @@ export function ImportQueueMonitor({
           <span>Progress</span>
           <span className="tabular-nums font-semibold">{progress}%</span>
         </div>
-        <div className="font-mono text-[11px] tracking-wider text-[#FF5A1F]">
+        <div className="font-mono text-[11px] tracking-wider text-[var(--color-accent)]">
           {"█".repeat(barFilled)}
           {"░".repeat(10 - barFilled)} {progress}%
         </div>
@@ -58,7 +58,7 @@ export function ImportQueueMonitor({
       <div className="flex flex-wrap gap-3 text-[10px] tabular-nums">
         <span className="text-emerald-600">✓ {queue.succeeded} ok</span>
         <span className="text-rose-600">✗ {queue.failed} failed</span>
-        <span className="text-[#FF5A1F]">↑ {queue.published} published</span>
+        <span className="text-[var(--color-accent)]">↑ {queue.published} published</span>
         <span className="text-[var(--color-text-muted)]">📝 {queue.drafted} draft</span>
         {queue.skipped > 0 && (
           <span className="text-amber-600">⊘ {queue.skipped} skipped</span>

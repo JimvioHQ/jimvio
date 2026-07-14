@@ -60,7 +60,7 @@ function PremiumSwitch({
       onClick={() => onChange(!checked)}
       className={cn(
         "flex w-full items-center justify-between gap-2 rounded-[10px] px-2 py-1.5 text-left transition-colors",
-        checked ? "bg-[#FF5A1F]/[0.07]" : "hover:bg-[#F9FAFB]",
+        checked ? "bg-[var(--color-accent)]/[0.07]" : "hover:bg-[#F9FAFB]",
         compact && "justify-center px-1"
       )}
       title={label}
@@ -78,7 +78,7 @@ function PremiumSwitch({
       <span
         className={cn(
           "relative inline-flex h-[18px] w-[30px] shrink-0 rounded-full transition-colors",
-          checked ? "bg-[#FF5A1F]" : "bg-[#E5E7EB]"
+          checked ? "bg-[var(--color-accent)]" : "bg-[#E5E7EB]"
         )}
       >
         <span
@@ -140,7 +140,7 @@ function NumberInput({
         step={step}
         value={value || ""}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        className="h-7 w-full rounded-[10px] border border-[#E5E7EB] bg-white px-2 text-[11px] tabular-nums text-[#111827] focus:border-[#FF5A1F]/40 focus:outline-none focus:ring-2 focus:ring-[#FF5A1F]/10"
+        className="h-7 w-full rounded-[10px] border border-[#E5E7EB] bg-white px-2 text-[11px] tabular-nums text-[#111827] focus:border-[var(--color-accent)]/40 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/10"
       />
     </label>
   );
@@ -201,7 +201,7 @@ export function FilterSidebar({
         {!collapsed ? (
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <Filter className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" />
+              <Filter className="h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
               <h3 className="text-[12px] font-semibold text-[#111827]">Filters</h3>
             </div>
             {activeCount > 0 && (
@@ -209,7 +209,7 @@ export function FilterSidebar({
             )}
           </div>
         ) : (
-          <Filter className="h-4 w-4 text-[#FF5A1F]" />
+          <Filter className="h-4 w-4 text-[var(--color-accent)]" />
         )}
         <div className={cn("flex items-center gap-0.5", collapsed && "flex-col")}>
           {!collapsed && activeCount > 0 && (
@@ -241,7 +241,7 @@ export function FilterSidebar({
       {collapsed ? (
         activeCount > 0 && (
           <div className="flex justify-center py-2">
-            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#FF5A1F] px-1 text-[9px] font-bold text-white">
+            <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-accent)] px-1 text-[9px] font-bold text-white">
               {activeCount}
             </span>
           </div>

@@ -9,8 +9,6 @@ import {
   Shield,
   Camera,
   Globe,
-  Smartphone,
-  MapPin,
   Mail,
   Loader2,
   AlertCircle,
@@ -21,13 +19,8 @@ import {
   Trash2,
   Plug,
   Image as ImageIcon,
-  ChevronLeft,
-  Save,
   Settings,
   CreditCard,
-  Key,
-  Wifi,
-  Palette,
 } from "lucide-react";
 import { StyledTextarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,10 +32,8 @@ import { cn } from "@/lib/utils";
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
 import CustomSelect from "@/components/ui/select-2";
-import { AccountSettingsHeader } from "@/components/dashboard/account-settings-header";
 import {
   BrandBtn,
-  Divider,
   Grid,
   Toast,
   Toggle,
@@ -164,7 +155,17 @@ const defaultInfluencer = {
   social_platforms: "{}",
 };
 
-const TABS_CONFIG = [
+type TabCondition = "vendor" | "hasAffiliate" | "hasInfluencer";
+
+type TabConfig = {
+  value: string;
+  label: string;
+  icon: typeof User;
+  always?: boolean;
+  condition?: TabCondition;
+};
+
+const TABS_CONFIG: TabConfig[] = [
   { value: "profile", label: "Profile", icon: User, always: true },
   { value: "vendor", label: "Business", icon: Store, condition: "vendor" },
   { value: "preferences", label: "Preferences", icon: Settings, always: true },
@@ -173,7 +174,7 @@ const TABS_CONFIG = [
   { value: "creator", label: "Creator", icon: Video, condition: "hasInfluencer" },
   { value: "notifications", label: "Notifications", icon: Bell, always: true },
   { value: "privacy", label: "Privacy", icon: Shield, always: true },
-] as const;
+];
 
 const tabTriggerClass =
   "inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-none border-b-2 border-transparent px-4 py-3 text-sm font-medium shadow-none transition-all " +
@@ -676,8 +677,8 @@ export default function DashboardSettingsClient() {
       <div className="flex gap-6">
         {/* Sidebar Navigation */}
         <aside className="hidden lg:block w-56 flex-shrink-0">
-          <div className="rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] overflow-hidden">
-            <div className="px-4 py-4 border-b border-[var(--color-border)]/60">
+          <div className="bg-transparent overflow-hidden">
+            <div className="px-4 py-4">
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">
                 Settings
               </p>
@@ -726,12 +727,13 @@ export default function DashboardSettingsClient() {
 
         {/* Content Panel */}
         <div className="flex-1 min-w-0">
-          <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsContent value="profile" className="mt-0 space-y-6">
+          <div className="space-y-6">
+            <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsContent value="profile" className="mt-0 space-y-6">
             {/* Avatar & Identity */}
-            <div className="flex flex-wrap items-center gap-4 rounded-xl bg-[var(--color-surface-secondary)]/40 p-4 ring-1 ring-[var(--color-border)]">
+            <div className="flex flex-wrap items-center gap-4 rounded-xl bg-[var(--color-surface-secondary)]/40 p-4">
               <div className="group relative">
-                <div className="h-16 w-16 overflow-hidden rounded-full ring-2 ring-[var(--color-border)]">
+                <div className="h-16 w-16 overflow-hidden rounded-full">
                   <CloudinaryAvatar
                     src={profile.avatar_url}
                     alt={profile.full_name}
@@ -1397,10 +1399,11 @@ export default function DashboardSettingsClient() {
                 Deactivate account
               </BrandBtn>
             </SectionCard>
-          </TabsContent>
+        </TabsContent>
           </Tabs>
         </div>
       </div>
+    </div>
     </>
   );
 }

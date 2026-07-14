@@ -20,7 +20,7 @@ import { JimvioAIMascot } from "@/components/ui/jimvio-ai-mascot";
 import { getImage, fmtCount, cn } from "@/lib/utils";
 import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 
-const ORANGE = "#fd5000";
+const ORANGE = "var(--color-accent)";
 const GREEN = "#16a34a";
 const PURPLE = "#7c3aed";
 
@@ -196,7 +196,7 @@ function JimvioAIHotSpotlight({
         >
           <Link
             href={current.href}
-            className="flex w-full cursor-pointer touch-manipulation items-center gap-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 px-2.5 py-2 transition-colors hover:border-[#fd5000]/25 hover:bg-[#fd5000]/8 sm:gap-3 sm:px-3 sm:py-2.5"
+            className="flex w-full cursor-pointer touch-manipulation items-center gap-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 px-2.5 py-2 transition-colors hover:border-[var(--color-accent)]/25 hover:bg-[var(--color-accent)]/8 sm:gap-3 sm:px-3 sm:py-2.5"
           >
             <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[var(--color-surface)] sm:size-11">
               {current.image ? (
@@ -252,7 +252,7 @@ function JimvioAIHotSpotlight({
               key={item.id}
               className={cn(
                 "h-1 rounded-full transition-all duration-300",
-                i === index ? "w-4 bg-[#fd5000]" : "w-1 bg-[var(--color-border)]"
+                i === index ? "w-4 bg-[var(--color-accent)]" : "w-1 bg-[var(--color-border)]"
               )}
             />
           ))}
@@ -270,9 +270,9 @@ function JimvioAIFeatureGrid({ onSelect }: { onSelect: (query: string) => void }
           key={label}
           type="button"
           onClick={() => onSelect(query)}
-          className="flex min-h-[2.75rem] min-w-0 cursor-pointer touch-manipulation items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/70 px-2.5 py-2 text-left transition-colors hover:border-[#fd5000]/30 hover:bg-[#fd5000]/10 active:bg-[#fd5000]/15 sm:min-h-[3rem] sm:px-3"
+          className="flex min-h-[2.75rem] min-w-0 cursor-pointer touch-manipulation items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/70 px-2.5 py-2 text-left transition-colors hover:border-[var(--color-accent)]/30 hover:bg-[var(--color-accent)]/10 active:bg-[var(--color-accent)]/15 sm:min-h-[3rem] sm:px-3"
         >
-          <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[var(--color-surface)] text-[#fd5000] shadow-[0_2px_6px_rgba(253,80,0,0.12)] sm:size-8">
+          <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-[var(--color-surface)] text-[var(--color-accent)] shadow-[0_2px_6px_rgba(253,80,0,0.12)] sm:size-8">
             <Icon className="size-3.5 sm:size-4" strokeWidth={2.25} />
           </span>
           <span className="min-w-0 text-[10px] font-semibold leading-tight text-[var(--color-text-primary)] sm:text-[11px]">
@@ -318,12 +318,12 @@ export function JimvioAIPanel({
           compact ? "justify-start" : "justify-center"
         )}
       >
-        <span className="grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#fd5000] to-[#ff8c42] text-white sm:size-8">
+        <span className="grid size-7 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[#ff8c42] text-white sm:size-8">
           <Sparkles className="size-3.5 sm:size-4" strokeWidth={2.25} />
         </span>
         <h2
           className={cn(
-            "shrink-0 font-black leading-none tracking-tight text-[#fd5000]",
+            "shrink-0 font-black leading-none tracking-tight text-[var(--color-accent)]",
             compact ? "text-[14px]" : "text-[17px] sm:text-[22px]"
           )}
         >
@@ -339,7 +339,7 @@ export function JimvioAIPanel({
 
       <div className="relative z-10 mt-1.5 flex flex-col gap-1.5 sm:relative sm:mt-2 sm:block">
         <div className="relative min-w-0 w-full">
-          <Sparkles className="pointer-events-none absolute left-3 top-1/2 z-10 size-3.5 -translate-y-1/2 text-[#fd5000] sm:left-3.5 sm:size-4" />
+          <Sparkles className="pointer-events-none absolute left-3 top-1/2 z-10 size-3.5 -translate-y-1/2 text-[var(--color-accent)] sm:left-3.5 sm:size-4" />
           <input
             type="text"
             value={prompt}
@@ -350,7 +350,7 @@ export function JimvioAIPanel({
             placeholder="Ask about products, campaigns…"
             aria-label="Ask Jimvio AI"
             className={cn(
-              "h-10 w-full min-w-0 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] py-0 pl-9 pr-4 text-[12px] text-[var(--color-text-primary)] shadow-sm outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#fd5000]/50 focus:ring-2 focus:ring-[#fd5000]/15 sm:pl-10 sm:pr-[148px] sm:text-[13px]",
+              "h-10 w-full min-w-0 rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] py-0 pl-9 pr-4 text-[12px] text-[var(--color-text-primary)] shadow-sm outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)]/50 focus:ring-2 focus:ring-[var(--color-accent)]/15 sm:pl-10 sm:pr-[148px] sm:text-[13px]",
               compact ? "sm:pr-4" : "sm:h-11"
             )}
           />

@@ -10,7 +10,7 @@ import type { InvoiceData } from "@/lib/orders/invoice-data";
 const MARGIN = 50;
 const MUTED = "#6b7280";
 const INK = "#111111";
-const BRAND = "#fd5000";
+const BRAND = "var(--color-accent)";
 const FOOTER_ZONE = 48;
 
 function s(value: string): string {

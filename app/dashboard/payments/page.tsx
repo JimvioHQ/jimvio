@@ -826,7 +826,7 @@ export default function PaymentsPage() {
                            onClick={requestWithdrawal}
                            className={cn(
                               "w-full h-11 rounded-lg text-sm font-semibold transition-all duration-150",
-                              "bg-orange-500 text-white shadow-[0_4px_16px_rgba(249,115,22,0.25)]",
+                              "bg-orange-500 text-white shadow-[0_4px_16px_color-mix(in srgb, var(--color-accent) 25%, transparent)]",
                               "hover:bg-orange-600 active:scale-[0.98]",
                               "disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
                            )}

@@ -7,7 +7,7 @@
  * visually consistent without repeating markup.
  *
  * DESIGN RULES applied uniformly:
- *  • accent color  → var(--color-accent)   / prop `color` defaults to "#fd5000"
+ *  • accent color  → var(--color-accent)   / prop `color` defaults to "var(--color-accent)"
  *  • opacity       → every decorator is transparent by default; caller controls prominence
  *  • positioning   → all decorators are position:absolute + pointerEvents:none
  *  • aria          → aria-hidden="true" on every decorator
@@ -37,7 +37,7 @@
 import React from "react";
 
 /* ─── shared defaults ─────────────────────────────── */
-const ACCENT = "#fd5000";
+const ACCENT = "var(--color-accent)";
 const NONE = "none";
 const PTR = "none" as const;
 const ABS: React.CSSProperties = { position: "absolute", pointerEvents: PTR };

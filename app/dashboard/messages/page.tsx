@@ -111,7 +111,7 @@ function ConvRow({
       )}
     >
       {active && (
-        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-full bg-[#fd5000]" />
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-full bg-[var(--color-accent)]" />
       )}
 
       <Avatar src={avatar} name={name} size="md" />
@@ -139,7 +139,7 @@ function ConvRow({
       </div>
 
       {conv.unread && (
-        <span className="w-2 h-2 rounded-full bg-[#fd5000] flex-shrink-0 mt-2" />
+        <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] flex-shrink-0 mt-2" />
       )}
     </button>
   );
@@ -522,7 +522,7 @@ export default function MessagesPage() {
   if (loading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4">
-        <div className="w-6 h-6 border-2 border-border border-t-[#fd5000] rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-border border-t-[var(--color-accent)] rounded-full animate-spin" />
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">Loading…</p>
       </div>
     );
@@ -557,7 +557,7 @@ export default function MessagesPage() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search…"
-                  className="w-full h-8 pl-8 pr-3 rounded-lg bg-muted/50 border-0 text-[12px] font-medium placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-[#fd5000]/30 transition-all"
+                  className="w-full h-8 pl-8 pr-3 rounded-lg bg-muted/50 border-0 text-[12px] font-medium placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]/30 transition-all"
                 />
               </div>
             </div>
@@ -653,7 +653,7 @@ export default function MessagesPage() {
                               <Button
                                 size="sm"
                                 onClick={() => { setQuoteReplyTarget(m); setShowQuoteReply(true); }}
-                                className="h-8 rounded-lg bg-[#fd5000] hover:bg-[#e04700] text-white font-semibold text-[11px] px-4 border-none"
+                                className="h-8 rounded-lg bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-semibold text-[11px] px-4 border-none"
                               >
                                 Create offer
                               </Button>

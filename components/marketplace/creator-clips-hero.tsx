@@ -39,7 +39,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
     <section id="trending-clips" className={cn("relative", className)}>
       {/* Section header: For You / Live - TikTok style */}
       <div className="flex items-center gap-3 mb-4 px-1">
-        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-[#f97316] text-white text-[12px] font-black uppercase tracking-widest">
+        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-sm bg-[var(--color-accent)] text-white text-[12px] font-black uppercase tracking-widest">
           <Sparkles className="h-3.5 w-3.5" />
           For You
         </span>
@@ -47,7 +47,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
           <span className="w-2 h-2 rounded-sm bg-red-500 animate-pulse" />
           Live
         </span>
-        <Link href="/marketplace" className="ml-auto text-[11px] font-black text-[#f97316] uppercase tracking-widest hover:underline flex items-center gap-1">
+        <Link href="/marketplace" className="ml-auto text-[11px] font-black text-[var(--color-accent)] uppercase tracking-widest hover:underline flex items-center gap-1">
           See all clips →
         </Link>
       </div>
@@ -61,7 +61,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
             tabIndex={0}
             onClick={() => setModalClip(clip)}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setModalClip(clip); } }}
-            className="group relative flex-shrink-0 w-[160px] sm:w-[180px] md:w-[200px] rounded-sm overflow-hidden bg-ink-dark shadow-none hover:shadow-none hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-left cursor-pointer ring-2 ring-transparent hover:ring-[#f97316]/40"
+            className="group relative flex-shrink-0 w-[160px] sm:w-[180px] md:w-[200px] rounded-sm overflow-hidden bg-ink-dark shadow-none hover:shadow-none hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 text-left cursor-pointer ring-2 ring-transparent hover:ring-[var(--color-accent)]/40"
           >
             <div className="aspect-[9/16] relative">
               <div
@@ -69,15 +69,15 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                 style={{
                   backgroundImage: clip.thumbnail_url
                     ? `url(${clip.thumbnail_url})`
-                    : "linear-gradient(135deg, var(--color-bg-dark) 0%, #431407 50%, #ea580c 100%)",
+                    : "linear-gradient(135deg, var(--color-bg-dark) 0%, #431407 50%, var(--color-accent-hover) 100%)",
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink-darker/95 via-ink-darker/30 to-transparent" />
 
               <div className="absolute top-3 left-3 right-3 flex items-center gap-2 z-10">
-                <Avatar className="h-9 w-9 border-2 border-white/90 ring-2 ring-[#f97316]/50">
+                <Avatar className="h-9 w-9 border-2 border-white/90 ring-2 ring-[var(--color-accent)]/50">
                   <AvatarImage src={logoUrl(clip.vendors)} />
-                  <AvatarFallback className="bg-[#f97316] text-white text-[11px] font-black">
+                  <AvatarFallback className="bg-[var(--color-accent)] text-white text-[11px] font-black">
                     {clip.vendors?.business_name?.[0] ?? "C"}
                   </AvatarFallback>
                 </Avatar>
@@ -94,7 +94,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                 {clip.products && (
                   <div className="bg-ink-darker/50 rounded-sm px-2.5 py-2 flex items-center justify-between gap-2">
                     <span className="text-[10px] font-bold text-white truncate flex-1">{clip.products.name}</span>
-                    <ShoppingBag className="h-4 w-4 text-[#f97316] shrink-0" />
+                    <ShoppingBag className="h-4 w-4 text-[var(--color-accent)] shrink-0" />
                   </div>
                 )}
                 {clip.vendors?.id && (
@@ -102,7 +102,7 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                     <FollowButton
                       vendorId={clip.vendors.id}
                       variant="ghost"
-                      className="w-full h-9 rounded-sm bg-[#f97316] hover:bg-[#ea580c] text-white text-[11px] font-black border-0"
+                      className="w-full h-9 rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white text-[11px] font-black border-0"
                     />
                   </div>
                 )}
@@ -143,15 +143,15 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-ink-darker/80 to-transparent" />
                 <div className="absolute bottom-4 left-4 right-12 flex items-center gap-3">
-                  <Avatar className="h-10 w-10 border-2 border-[#f97316]">
+                  <Avatar className="h-10 w-10 border-2 border-[var(--color-accent)]">
                     <AvatarImage src={logoUrl(modalClip.vendors)} />
-                    <AvatarFallback className="bg-[#f97316] text-white font-black">{modalClip.vendors?.business_name?.[0] ?? "C"}</AvatarFallback>
+                    <AvatarFallback className="bg-[var(--color-accent)] text-white font-black">{modalClip.vendors?.business_name?.[0] ?? "C"}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-black truncate">{modalClip.vendors?.business_name ?? "Creator"}</p>
                     <p className="text-[11px] text-white/70">{(modalClip.total_views ?? 0).toLocaleString()} views</p>
                   </div>
-                  {modalClip.vendors?.id && <FollowButton vendorId={modalClip.vendors.id} className="rounded-sm h-9 px-4 text-xs font-black bg-[#f97316] border-0 text-white hover:bg-[#ea580c] shrink-0" />}
+                  {modalClip.vendors?.id && <FollowButton vendorId={modalClip.vendors.id} className="rounded-sm h-9 px-4 text-xs font-black bg-[var(--color-accent)] border-0 text-white hover:bg-[var(--color-accent-hover)] shrink-0" />}
                 </div>
               </div>
               {modalClip.products && (
@@ -168,11 +168,11 @@ export function CreatorClipsHero({ clips, className }: CreatorClipsHeroProps) {
                     <LocalizedPrice
                       amount={Number(modalClip.products.price)}
                       currency={modalClip.products.currency}
-                      className="text-[#f97316] font-black"
+                      className="text-[var(--color-accent)] font-black"
                     />
                   </div>
                   <Link href={`/marketplace/${modalClip.products.slug ?? ""}?buy=1`} onClick={closeModal}>
-                    <Button className="rounded-sm h-10 px-5 bg-[#f97316] hover:bg-[#ea580c] font-black text-white text-xs">Buy Product</Button>
+                    <Button className="rounded-sm h-10 px-5 bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] font-black text-white text-xs">Buy Product</Button>
                   </Link>
                 </div>
               )}

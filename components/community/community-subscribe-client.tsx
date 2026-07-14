@@ -34,7 +34,7 @@ type CommunitySub = {
 };
 
 /* ─── Inline SVG helpers ─── */
-const IconCheck = ({ size = 9, color = "#fd5000" }: { size?: number; color?: string }) => (
+const IconCheck = ({ size = 9, color = "var(--color-accent)" }: { size?: number; color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round">
     <path d="M2 5l2 2 4-4" />
   </svg>
@@ -209,7 +209,7 @@ export function CommunitySubscribeClient({
         className={cn(
           "w-full flex items-center justify-between p-5 rounded-2xl border-[1.5px] transition-all duration-200 cursor-pointer text-left",
           selected
-            ? "border-[#fd5000] bg-orange-50/60 dark:bg-orange-950/20"
+            ? "border-[var(--color-accent)] bg-orange-50/60 dark:bg-orange-950/20"
             : "border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 hover:border-stone-300 dark:hover:border-stone-600",
         )}
       >
@@ -218,14 +218,14 @@ export function CommunitySubscribeClient({
           <div className={cn(
             "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-200",
             selected
-              ? "border-[#fd5000] bg-[#fd5000]"
+              ? "border-[var(--color-accent)] bg-[var(--color-accent)]"
               : "border-stone-300 dark:border-stone-600",
           )}>
             {selected && <div className="w-2 h-2 rounded-full bg-white" />}
           </div>
           <div>
             <span className="flex items-center gap-2">
-              <span className={cn("text-[14px] font-semibold", selected ? "text-[#fd5000]" : "text-stone-900 dark:text-white")}>
+              <span className={cn("text-[14px] font-semibold", selected ? "text-[var(--color-accent)]" : "text-stone-900 dark:text-white")}>
                 {label}
               </span>
               {pKey === "yearly" && yearlySaving > 0 && (
@@ -244,7 +244,7 @@ export function CommunitySubscribeClient({
         </div>
         <div className={cn(
           "font-mono text-[20px] tracking-tight shrink-0",
-          selected ? "text-[#fd5000]" : "text-stone-900 dark:text-white",
+          selected ? "text-[var(--color-accent)]" : "text-stone-900 dark:text-white",
         )}>
           {formatMoney(price, currency)}
         </div>
@@ -289,7 +289,7 @@ export function CommunitySubscribeClient({
               {community.avatar_url ? (
                 <img src={community.avatar_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <span className="font-serif italic text-[18px] text-[#fd5000]">{initial}</span>
+                <span className="font-serif italic text-[18px] text-[var(--color-accent)]">{initial}</span>
               )}
             </div>
             <div className="min-w-0">
@@ -303,7 +303,7 @@ export function CommunitySubscribeClient({
             <p className="text-[10px] font-medium uppercase tracking-widest text-white/25 mb-1">What you get</p>
             {BENEFITS.map((b) => (
               <div key={b} className="flex items-center gap-2.5">
-                <div className="w-4 h-4 rounded-full bg-[#fd5000]/15 flex items-center justify-center shrink-0">
+                <div className="w-4 h-4 rounded-full bg-[var(--color-accent)]/15 flex items-center justify-center shrink-0">
                   <IconCheck />
                 </div>
                 <span className="text-[12px] text-white/60">{b}</span>
@@ -329,13 +329,13 @@ export function CommunitySubscribeClient({
                 <div key={s.n} className="flex-1 flex flex-col gap-1.5">
                   <div className={cn(
                     "h-[3px] rounded-full transition-all duration-400",
-                    s.n < currentStep ? "bg-[#fd5000]/40"
-                      : s.n === currentStep ? "bg-[#fd5000]"
+                    s.n < currentStep ? "bg-[var(--color-accent)]/40"
+                      : s.n === currentStep ? "bg-[var(--color-accent)]"
                         : "bg-stone-100 dark:bg-stone-800",
                   )} />
                   <p className={cn(
                     "text-[10px] font-medium uppercase tracking-wider transition-colors duration-300",
-                    s.n === currentStep ? "text-[#fd5000]"
+                    s.n === currentStep ? "text-[var(--color-accent)]"
                       : s.n < currentStep ? "text-stone-400 dark:text-stone-500"
                         : "text-stone-300 dark:text-stone-700",
                   )}>
@@ -451,7 +451,7 @@ export function CommunitySubscribeClient({
                 "h-11 px-7 rounded-full font-semibold text-[13px] flex items-center gap-2 border-none cursor-pointer transition-all duration-200 active:scale-[0.98] disabled:opacity-60",
                 currentStep === 3
                   ? "bg-stone-900 dark:bg-white text-white dark:text-stone-900 shadow-[0_2px_0_rgba(0,0,0,0.3),_0_4px_14px_rgba(0,0,0,0.12)] hover:opacity-90"
-                  : "bg-[#fd5000] text-white shadow-[0_2px_0_rgba(150,40,0,0.35),_0_4px_14px_rgba(253,80,0,0.22)] hover:bg-[#e54800]",
+                  : "bg-[var(--color-accent)] text-white shadow-[0_2px_0_rgba(150,40,0,0.35),_0_4px_14px_rgba(253,80,0,0.22)] hover:bg-[#e54800]",
               )}
             >
               {submitting ? (

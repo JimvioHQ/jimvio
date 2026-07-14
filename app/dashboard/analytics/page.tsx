@@ -16,7 +16,7 @@ import {
   type AnalyticsSaleRow,
 } from "@/components/dashboard/AnalyticsPageBoard";
 
-const AVATAR_COLORS = ["#fd5000", "#7c3aed", "#2563eb", "#0d9488", "#ca8a04", "#e11d48"];
+const AVATAR_COLORS = ["var(--color-accent)", "#7c3aed", "#2563eb", "#0d9488", "#ca8a04", "#e11d48"];
 
 /** Exclude corrupt outlier credits from chart aggregation */
 const MAX_CHART_CREDIT = 50_000_000;

@@ -56,7 +56,7 @@ export function PremiumCatalogBar({
         <span className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7280]">
           Jimvio Intelligence
           {syncing && (
-            <span className="ml-1.5 font-normal normal-case text-[#FF5A1F]">
+            <span className="ml-1.5 font-normal normal-case text-[var(--color-accent)]">
               syncing…
             </span>
           )}

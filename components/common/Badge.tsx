@@ -17,7 +17,7 @@ export function Badge({
     live:
       "bg-red-500 text-white",
     new:
-      "bg-[#fd5000] text-white",
+      "bg-[var(--color-accent)] text-white",
     count:
       "bg-[var(--color-accent)] text-white text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full min-w-4 text-center",
     tier:

@@ -47,7 +47,7 @@ function SectionHeader({ title, href, count }: { title: string; href?: string; c
     <div className="mb-2 flex items-center justify-between">
       <h2 className="text-[15px] font-bold text-[#111827]">{title}</h2>
       {href ? (
-        <Link href={href} className="text-[12px] font-semibold text-[#FF5A1F] hover:underline">
+        <Link href={href} className="text-[12px] font-semibold text-[var(--color-accent)] hover:underline">
           View all
         </Link>
       ) : count ? (
@@ -272,7 +272,7 @@ export function UGCDiscoverPage() {
                   <button
                     type="button"
                     onClick={resetAll}
-                    className="mt-4 text-[12px] font-semibold text-[#FF5A1F] hover:underline"
+                    className="mt-4 text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
                   >
                     Clear all filters
                   </button>
@@ -289,7 +289,7 @@ export function UGCDiscoverPage() {
             <div ref={loadMoreRef} className="flex justify-center py-6">
               {loadingMore && (
                 <div className="flex items-center gap-2 text-[12px] font-medium text-[#6B7280]">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF5A1F]" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--color-accent)]" />
                   Loading more…
                 </div>
               )}

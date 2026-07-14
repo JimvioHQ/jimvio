@@ -117,8 +117,8 @@ export function RevenueChart({
   showComparison = false,
   onActivePointChange,
 }: RevenueChartProps) {
-  const color = theme === "light" ? "#ea580c" : "#6366f1";
-  const colorSecondary = theme === "light" ? "#f97316" : "#d946ef";
+  const color = theme === "light" ? "var(--color-accent-hover)" : "#6366f1";
+  const colorSecondary = theme === "light" ? "var(--color-accent)" : "#d946ef";
   const compareColor = theme === "light" ? "#94a3b8" : "rgba(255,255,255,0.35)";
   const gridStroke = theme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.05)";
   const tickFill = theme === "light" ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.4)";

@@ -12,9 +12,9 @@ export const BUSINESS_ENTITY_META: Record<
 > = {
   buyer: { emoji: "🛒", label: "Buyer", accent: "#64748b" },
   creator: { emoji: "👤", label: "Creator", accent: "#7c3aed" },
-  seller: { emoji: "🏪", label: "Seller", accent: "#fd5000" },
+  seller: { emoji: "🏪", label: "Seller", accent: "var(--color-accent)" },
   brand: { emoji: "🏷️", label: "Brand", accent: "#2563eb" },
-  product: { emoji: "🛍️", label: "Product", accent: "#ea580c" },
+  product: { emoji: "🛍️", label: "Product", accent: "var(--color-accent-hover)" },
   "affiliate-program": { emoji: "💰", label: "Affiliate Program", accent: "#16a34a" },
   "ugc-campaign": { emoji: "🎥", label: "UGC Campaign", accent: "#7c3aed" },
   community: { emoji: "⭐", label: "Community", accent: "#ca8a04" },

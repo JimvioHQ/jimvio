@@ -199,7 +199,7 @@ function FlashDealsSection({ deals }: { deals: DbProduct[] }) {
           <FlashDealsCountdown />
           <Link
             href="/marketplace/flash-deals"
-            className="font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e]"
+            className="font-mono text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-soft)]"
           >
             View All Deals →
           </Link>
@@ -279,7 +279,7 @@ function TrendingProductsSection({ products }: { products: DbProduct[] }) {
         </h2>
         <Link
           href="/marketplace"
-          className="ml-auto font-mono text-sm text-[#FD5000] transition-colors hover:text-[#ff7a2e]"
+          className="ml-auto font-mono text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-soft)]"
         >
           View all →
         </Link>

@@ -138,7 +138,7 @@ export function JimvioCopilot() {
         type="button"
         onClick={toggleMinimize}
         aria-label="Open Jimvio AI Copilot"
-        className="fixed bottom-4 right-4 z-[9999] inline-flex h-12 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[13px] font-bold text-[var(--color-text-primary)] shadow-lg transition-[transform,opacity] duration-300 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/50"
+        className="fixed bottom-4 right-4 z-[9999] inline-flex h-12 items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[13px] font-bold text-[var(--color-text-primary)] shadow-lg transition-[transform,opacity] duration-300 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50"
         style={{
           boxShadow: "0 12px 40px rgba(0,0,0,0.12)",
           willChange: "transform",
@@ -202,7 +202,7 @@ export function JimvioCopilot() {
               type="button"
               onClick={clearHistory}
               aria-label="Clear conversation"
-              className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+              className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
             >
               <Trash2 className="size-4" />
             </button>
@@ -211,7 +211,7 @@ export function JimvioCopilot() {
             type="button"
             onClick={toggleExpand}
             aria-label={expanded ? "Dock panel" : "Expand panel"}
-            className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+            className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
           >
             {expanded ? <ChevronDown className="size-4" /> : <Maximize2 className="size-4" />}
           </button>
@@ -219,7 +219,7 @@ export function JimvioCopilot() {
             type="button"
             onClick={toggleMinimize}
             aria-label="Minimize copilot"
-            className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+            className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
           >
             <Minus className="size-4" />
           </button>
@@ -227,7 +227,7 @@ export function JimvioCopilot() {
             type="button"
             onClick={closeAssistant}
             aria-label="Close copilot"
-            className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+            className="grid size-8 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
           >
             <X className="size-4" />
           </button>
@@ -319,7 +319,7 @@ export function JimvioCopilot() {
                 messages.length === 0 ? contextMeta.placeholder : "Ask a follow-up…"
               }
               aria-label="Message Jimvio Copilot"
-              className="max-h-28 min-h-[44px] w-full resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] py-2.5 pl-10 pr-3 text-[14px] text-[var(--color-text-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[#FF5A1F]/50 focus:ring-2 focus:ring-[#FF5A1F]/15 disabled:opacity-60"
+              className="max-h-28 min-h-[44px] w-full resize-none rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] py-2.5 pl-10 pr-3 text-[14px] text-[var(--color-text-primary)] outline-none transition-colors placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)]/50 focus:ring-2 focus:ring-[var(--color-accent)]/15 disabled:opacity-60"
             />
           </div>
           <Button

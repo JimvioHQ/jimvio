@@ -58,7 +58,7 @@ export function ProjectProgressBar({ value }: { value: number }) {
   return (
     <div className="h-2 w-full overflow-hidden rounded-full bg-[#F3F4F6]">
       <div
-        className="h-full rounded-full bg-gradient-to-r from-[#FF7A45] to-[#FF5A1F] transition-all duration-700"
+        className="h-full rounded-full bg-gradient-to-r from-[#FF7A45] to-[var(--color-accent)] transition-all duration-700"
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
         role="progressbar"
         aria-valuenow={value}

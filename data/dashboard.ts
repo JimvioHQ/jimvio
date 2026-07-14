@@ -94,7 +94,7 @@ export const COMMUNITIES: Community[] = [
   {
     name: "Content Creators Hub",
     initial: "C",
-    color: "#fd5000",
+    color: "var(--color-accent)",
     members: "2.4k",
     online: "134 online",
     lastMessage: "Sarah: New viral strategy dropped",
@@ -137,7 +137,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
   {
     label: "Open Marketplace",
     sub: "Browse and shop",
-    accentColor: "#fd5000",
+    accentColor: "var(--color-accent)",
     bgColor: "#fff3ee",
     href: "/marketplace",
   },
@@ -189,7 +189,7 @@ export const EARNINGS_DATASETS = [
   {
     label: "Affiliate",
     data: [180, 220, 260, 310, 370, 450, 520, 580, 620, 680, 740],
-    color: "#fd5000",
+    color: "var(--color-accent)",
     amount: "$620.00",
   },
   {

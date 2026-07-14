@@ -39,7 +39,7 @@ import {
   getPlatformStatsLaunchSnapshot,
 } from "@/lib/platform-stats";
 
-const ORANGE = "#fd5000";
+const ORANGE = "var(--color-accent)";
 const HERO_PHRASES = [
   "Earn Commissions",
   "Create Campaigns",
@@ -123,7 +123,7 @@ function HeroPrimaryCTA() {
         "group relative inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 overflow-hidden rounded-full px-6 text-[13px] font-bold text-white sm:h-[48px] sm:w-auto sm:px-7 sm:text-[14px]",
         "shadow-[0_8px_24px_rgba(253,80,0,0.26)] transition-[transform,box-shadow,opacity] duration-200 ease-out will-change-transform",
         "hover:scale-[1.02] hover:shadow-[0_12px_32px_rgba(253,80,0,0.34)] active:scale-[0.98]",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/45 focus-visible:ring-offset-2",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/45 focus-visible:ring-offset-2",
         pending && "pointer-events-none opacity-85",
       )}
       style={{ background: ORANGE }}
@@ -184,7 +184,7 @@ function HeroLiveTicker({ onlineCount }: { onlineCount: number }) {
 
   return (
     <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
-      <div className="flex h-11 w-full items-center overflow-hidden bg-[#fd5000] sm:h-10">
+      <div className="flex h-11 w-full items-center overflow-hidden bg-[var(--color-accent)] sm:h-10">
         <div className="flex h-full shrink-0 items-center pl-2 sm:pl-3">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-[#E53935] px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-white shadow-[0_2px_10px_rgba(229,57,53,0.38)]">
             <motion.span
@@ -376,7 +376,7 @@ function HeroAIAmbientLayer({ reduced }: { reduced: boolean }) {
   return (
     <>
       <motion.div
-        className="pointer-events-none absolute -left-8 top-1/4 h-40 w-40 rounded-full bg-[#fd5000]/10 blur-3xl"
+        className="pointer-events-none absolute -left-8 top-1/4 h-40 w-40 rounded-full bg-[var(--color-accent)]/10 blur-3xl"
         animate={{ x: [0, 18, -12, 0], y: [0, -14, 8, 0], opacity: [0.35, 0.6, 0.4, 0.35] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
         aria-hidden
@@ -390,7 +390,7 @@ function HeroAIAmbientLayer({ reduced }: { reduced: boolean }) {
       {AMBIENT_PARTICLES.map((p, i) => (
         <motion.span
           key={i}
-          className="pointer-events-none absolute rounded-full bg-[#fd5000]/50"
+          className="pointer-events-none absolute rounded-full bg-[var(--color-accent)]/50"
           style={{ left: p.left, top: p.top, width: p.size, height: p.size }}
           animate={{ y: [0, -10, 0], opacity: [0.15, 0.4, 0.15] }}
           transition={{
@@ -436,7 +436,7 @@ function HeroAISparkles({ reduced }: { reduced: boolean }) {
         {sparkles.map((s) => (
           <motion.span
             key={s.id}
-            className="absolute text-[#fd5000]"
+            className="absolute text-[var(--color-accent)]"
             style={{ left: `${s.left}%`, top: `${s.top}%` }}
             initial={{ opacity: 0, scale: 0.3, rotate: 0 }}
             animate={{ opacity: [0, 1, 0], scale: [0.3, 1.15, 0.4], rotate: 45 }}
@@ -538,7 +538,7 @@ const HeroAILogo = memo(function HeroAILogo() {
         <motion.span
           className="relative z-10 grid size-full place-items-center overflow-hidden rounded-xl text-white shadow-[0_6px_20px_rgba(253,80,0,0.24)] sm:rounded-[13px]"
           style={{
-            background: "linear-gradient(135deg, #fd5000 0%, #ff8c42 35%, #ff5e8a 65%, #c850c0 85%, #fd5000 100%)",
+            background: "linear-gradient(135deg, var(--color-accent) 0%, #ff8c42 35%, #ff5e8a 65%, #c850c0 85%, var(--color-accent) 100%)",
             backgroundSize: "220% 220%",
           }}
           animate={
@@ -549,7 +549,7 @@ const HeroAILogo = memo(function HeroAILogo() {
           transition={reduced ? undefined : { duration: 6, repeat: Infinity, ease: "easeInOut" }}
         >
           <motion.span
-            className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[#fd5000]/45 blur-lg"
+            className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[var(--color-accent)]/45 blur-lg"
             animate={reduced ? undefined : { opacity: [0.2, 0.55, 0.2] }}
             transition={reduced ? undefined : { duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
             aria-hidden
@@ -565,7 +565,7 @@ const HeroAILogo = memo(function HeroAILogo() {
       <h2
         className="relative m-0 whitespace-nowrap text-[18px] font-black leading-none tracking-[-0.03em] text-[var(--color-text-primary)] sm:text-[28px] lg:text-[30px]"
       >
-        Jimvio <span className="text-[#fd5000]">AI</span>
+        Jimvio <span className="text-[var(--color-accent)]">AI</span>
         {!reduced && (
           <motion.span
             className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/55 to-transparent"
@@ -603,11 +603,11 @@ function HeroAICTAButton({ onClick }: { onClick: () => void }) {
         tap: { scale: 0.98 },
       }}
       transition={{ type: "spring", stiffness: 460, damping: 30 }}
-      className="relative inline-flex h-[56px] w-full min-w-[min(100%,360px)] max-w-[400px] items-center justify-center gap-2.5 overflow-visible rounded-full px-7 text-[14px] font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 focus-visible:ring-offset-2 sm:text-[15px]"
+      className="relative inline-flex h-[56px] w-full min-w-[min(100%,360px)] max-w-[400px] items-center justify-center gap-2.5 overflow-visible rounded-full px-7 text-[14px] font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 focus-visible:ring-offset-2 sm:text-[15px]"
     >
       {/* Ambient glow — soft pulse + hover boost */}
       <motion.span
-        className="pointer-events-none absolute -inset-2 rounded-full bg-[#FF5A1F]/25 blur-[18px]"
+        className="pointer-events-none absolute -inset-2 rounded-full bg-[var(--color-accent)]/25 blur-[18px]"
         animate={reduced ? undefined : { opacity: [0.26, 0.4, 0.26] }}
         transition={reduced ? undefined : { duration: 5, repeat: Infinity, ease: "easeInOut" }}
         aria-hidden
@@ -628,7 +628,7 @@ function HeroAICTAButton({ onClick }: { onClick: () => void }) {
         <span
           className="absolute inset-0"
           style={{
-            background: "linear-gradient(180deg, #FF8C42 0%, #FF7A1F 48%, #FF5A1F 100%)",
+            background: "linear-gradient(180deg, #FF8C42 0%, #FF7A1F 48%, var(--color-accent) 100%)",
           }}
           aria-hidden
         />
@@ -732,7 +732,7 @@ function HeroAIFeatureCard({
     <motion.button
       type="button"
       onClick={() => onSelect(query)}
-      className="group relative flex h-[50px] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-0.5 py-1 text-center shadow-[var(--shadow-sm)] transition-[border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/35 focus-visible:ring-offset-2 sm:h-[48px] sm:flex-row sm:gap-2.5 sm:rounded-lg sm:px-4 sm:py-2 sm:text-left sm:shadow-[0_2px_8px_rgba(15,23,42,0.05)] sm:hover:border-[#fd5000]/35 sm:hover:shadow-[0_8px_24px_rgba(253,80,0,0.12)]"
+      className="group relative flex h-[50px] w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-0.5 py-1 text-center shadow-[var(--shadow-sm)] transition-[border-color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 sm:h-[48px] sm:flex-row sm:gap-2.5 sm:rounded-lg sm:px-4 sm:py-2 sm:text-left sm:shadow-[0_2px_8px_rgba(15,23,42,0.05)] sm:hover:border-[var(--color-accent)]/35 sm:hover:shadow-[0_8px_24px_rgba(253,80,0,0.12)]"
       whileHover={isMobile || reduced ? undefined : { y: -4, scale: 1.01 }}
       transition={{ type: "spring", stiffness: 420, damping: 28 }}
     >
@@ -745,7 +745,7 @@ function HeroAIFeatureCard({
         aria-hidden
       />
       <motion.span
-        className="relative z-10 grid size-4 shrink-0 place-items-center rounded-md bg-[#fd5000]/[0.07] text-[#fd5000] ring-1 ring-[#fd5000]/10 sm:size-7"
+        className="relative z-10 grid size-4 shrink-0 place-items-center rounded-md bg-[var(--color-accent)]/[0.07] text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/10 sm:size-7"
         animate={reduced || isMobile ? undefined : { scale: [1, 1.05, 1] }}
         transition={
           reduced || isMobile
@@ -822,7 +822,7 @@ function CreatorWorkspaceShowcase() {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-gray-900 dark:text-white text-sm">Sarah Jenkins</span>
-              <span className="h-4 w-4 bg-[#fd5000] text-white rounded-full flex items-center justify-center text-[9px] font-black" title="Verified Creator">✓</span>
+              <span className="h-4 w-4 bg-[var(--color-accent)] text-white rounded-full flex items-center justify-center text-[9px] font-black" title="Verified Creator">✓</span>
             </div>
             <span className="text-xs text-gray-500">SaaS & Design Creator</span>
           </div>
@@ -886,7 +886,7 @@ function CreatorWorkspaceShowcase() {
                   key={`chart-${activeTab}`}
                   d="M 0 25 Q 15 15 30 20 T 60 10 T 80 18 T 100 5"
                   fill="none"
-                  stroke="#fd5000"
+                  stroke="var(--color-accent)"
                   strokeWidth="2"
                   initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
@@ -902,8 +902,8 @@ function CreatorWorkspaceShowcase() {
                 />
                 <defs>
                   <linearGradient id="sparkline-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#fd5000" />
-                    <stop offset="100%" stopColor="#fd5000" stopOpacity="0" />
+                    <stop offset="0%" stopColor="var(--color-accent)" />
+                    <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -933,15 +933,15 @@ function CreatorWorkspaceShowcase() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-gray-900 dark:text-white">Community (2.1k members)</span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fd5000]/15 dark:bg-[#fd5000]/20 px-2 py-0.5 text-[9px] font-bold text-[#fd5000]">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-accent)]/15 dark:bg-[var(--color-accent)]/20 px-2 py-0.5 text-[9px] font-bold text-[var(--color-accent)]">
                   <span className="relative size-1.5 flex shrink-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#fd5000] opacity-75"></span>
-                    <span className="relative inline-flex rounded-full size-1.5 bg-[#fd5000]"></span>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-accent)] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full size-1.5 bg-[var(--color-accent)]"></span>
                   </span>
                   LIVE
                 </span>
               </div>
-              <div className="rounded-xl overflow-hidden bg-gradient-to-r from-[#fd5000] to-[#ff8c42] h-16 w-full relative flex items-end p-2 mb-3">
+              <div className="rounded-xl overflow-hidden bg-gradient-to-r from-[var(--color-accent)] to-[#ff8c42] h-16 w-full relative flex items-end p-2 mb-3">
                 <div className="text-white font-black text-xs drop-shadow-md">The Creative Guild</div>
               </div>
               <div className="space-y-1.5">
@@ -956,7 +956,7 @@ function CreatorWorkspaceShowcase() {
                       <span>{channel.name}</span>
                     </div>
                     {channel.count > 0 && (
-                      <span className="bg-[#fd5000] text-white rounded-full px-1.5 py-0.2 text-[9px] font-bold">
+                      <span className="bg-[var(--color-accent)] text-white rounded-full px-1.5 py-0.2 text-[9px] font-bold">
                         {channel.count}
                       </span>
                     )}
@@ -1019,14 +1019,14 @@ function CreatorWorkspaceShowcase() {
               <div className="border border-gray-100 dark:border-white/5 rounded-xl p-3 bg-gray-50/50 dark:bg-zinc-800/50 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300">Aura Cosmetics Review</span>
-                  <span className="rounded-full bg-[#fd5000]/15 dark:bg-[#fd5000]/20 px-2 py-0.5 text-[8px] font-bold text-[#fd5000] uppercase">
+                  <span className="rounded-full bg-[var(--color-accent)]/15 dark:bg-[var(--color-accent)]/20 px-2 py-0.5 text-[8px] font-bold text-[var(--color-accent)] uppercase">
                     Approved
                   </span>
                 </div>
                 <p className="text-[10px] text-gray-500">Film a 30s Reels reviewing the Hydra Skin Elixir.</p>
                 <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-white/5 text-[10px]">
                   <span className="text-gray-400">Payout Reward</span>
-                  <span className="font-bold text-[#fd5000]">$250.00</span>
+                  <span className="font-bold text-[var(--color-accent)]">$250.00</span>
                 </div>
               </div>
             </div>
@@ -1098,7 +1098,7 @@ function HeroPremiumBackground({ reduced }: { reduced: boolean }) {
         {HERO_BG_PARTICLES.map((particle, index) => (
           <motion.span
             key={index}
-            className="absolute rounded-full bg-[#fd5000]/15"
+            className="absolute rounded-full bg-[var(--color-accent)]/15"
             style={{
               left: particle.left,
               top: particle.top,
@@ -1133,7 +1133,7 @@ function HeroPremiumBackground({ reduced }: { reduced: boolean }) {
           ].map((sparkle, index) => (
             <motion.span
               key={`sparkle-${index}`}
-              className="absolute text-[#fd5000]/12"
+              className="absolute text-[var(--color-accent)]/12"
               style={{ left: sparkle.left, top: sparkle.top }}
               animate={{ opacity: [0.06, 0.18, 0.06], scale: [0.9, 1.02, 0.9] }}
               transition={{
@@ -1181,7 +1181,7 @@ export function Hero() {
                 <PlatformStatsRotatingBadge className="mb-3 sm:mb-4" />
               </div>
 
-              <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[#fd5000] dark:bg-orange-950/30">
+              <div className="mb-2.5 inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3.5 py-1 text-xs font-black uppercase tracking-wider text-[var(--color-accent)] dark:bg-orange-950/30">
                 Create. Connect. Earn.
               </div>
               <h1
@@ -1212,7 +1212,7 @@ export function Hero() {
               </Link>
               <Link
                 href="/communities"
-                className="inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-8 text-[14px] font-bold text-[var(--color-text-primary)] transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:border-[#fd5000]/30 hover:bg-orange-500/[0.03] hover:text-[#fd5000] hover:shadow-md active:translate-y-0 active:scale-[0.98] sm:h-[48px] sm:w-auto"
+                className="inline-flex h-12 w-full min-w-0 items-center justify-center gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-8 text-[14px] font-bold text-[var(--color-text-primary)] transition-all duration-200 ease-in-out hover:-translate-y-0.5 hover:border-[var(--color-accent)]/30 hover:bg-orange-500/[0.03] hover:text-[var(--color-accent)] hover:shadow-md active:translate-y-0 active:scale-[0.98] sm:h-[48px] sm:w-auto"
               >
                 Explore Communities
                 <ArrowRight className="size-4 shrink-0 opacity-60" />

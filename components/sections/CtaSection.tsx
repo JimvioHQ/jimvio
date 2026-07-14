@@ -15,14 +15,14 @@ function CtaBlobBackground() {
             <defs>
                 {/* Orange blob — top right */}
                 <linearGradient id="cta-o1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#fd5000" stopOpacity="0.22" />
+                    <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.22" />
                     <stop offset="100%" stopColor="#ff7a30" stopOpacity="0.04" />
                 </linearGradient>
 
                 {/* Orange blob — top left */}
                 <linearGradient id="cta-o2" x1="1" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#fd5000" stopOpacity="0.14" />
-                    <stop offset="100%" stopColor="#fd5000" stopOpacity="0.02" />
+                    <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.14" />
+                    <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.02" />
                 </linearGradient>
 
                 {/* Purple blob — bottom left */}
@@ -53,21 +53,21 @@ function CtaBlobBackground() {
             />
 
             {/* Soft ellipse — bottom center */}
-            <ellipse cx="340" cy="320" rx="240" ry="90" fill="#fd5000" fillOpacity="0.05" />
+            <ellipse cx="340" cy="320" rx="240" ry="90" fill="var(--color-accent)" fillOpacity="0.05" />
 
             {/* Triangle accents — corners */}
-            <polygon points="600,0 680,0 680,90" fill="#fd5000" fillOpacity="0.06" />
-            <polygon points="640,0 680,0 680,50" fill="#fd5000" fillOpacity="0.08" />
+            <polygon points="600,0 680,0 680,90" fill="var(--color-accent)" fillOpacity="0.06" />
+            <polygon points="640,0 680,0 680,50" fill="var(--color-accent)" fillOpacity="0.08" />
             <polygon points="0,240 0,300 70,300" fill="#534AB7" fillOpacity="0.05" />
 
             {/* Soft ring strokes */}
             <ellipse
                 cx="340" cy="-18" rx="280" ry="100"
-                fill="none" stroke="#fd5000" strokeWidth="0.8" strokeOpacity="0.10"
+                fill="none" stroke="var(--color-accent)" strokeWidth="0.8" strokeOpacity="0.10"
             />
             <ellipse
                 cx="340" cy="318" rx="220" ry="80"
-                fill="none" stroke="#fd5000" strokeWidth="0.6" strokeOpacity="0.08"
+                fill="none" stroke="var(--color-accent)" strokeWidth="0.6" strokeOpacity="0.08"
             />
 
             {/* Fine grid overlay */}
@@ -86,21 +86,21 @@ function CtaBlobBackground() {
             />
             <path
                 d="M20,40 Q60,10 110,50"
-                fill="none" stroke="#fd5000" strokeWidth="1.0" strokeOpacity="0.12" strokeLinecap="round"
+                fill="none" stroke="var(--color-accent)" strokeWidth="1.0" strokeOpacity="0.12" strokeLinecap="round"
             />
 
             {/* Floating accent circles */}
-            <circle cx="80" cy="60" r="4.5" fill="#fd5000" fillOpacity="0.13" />
-            <circle cx="580" cy="220" r="6" fill="#fd5000" fillOpacity="0.09" />
+            <circle cx="80" cy="60" r="4.5" fill="var(--color-accent)" fillOpacity="0.13" />
+            <circle cx="580" cy="220" r="6" fill="var(--color-accent)" fillOpacity="0.09" />
             <circle cx="30" cy="200" r="3.5" fill="#534AB7" fillOpacity="0.11" />
-            <circle cx="630" cy="140" r="5" fill="#fd5000" fillOpacity="0.10" />
+            <circle cx="630" cy="140" r="5" fill="var(--color-accent)" fillOpacity="0.10" />
             <circle cx="340" cy="280" r="4" fill="#1D9E75" fillOpacity="0.09" />
-            <circle cx="460" cy="18" r="3" fill="#fd5000" fillOpacity="0.16" />
+            <circle cx="460" cy="18" r="3" fill="var(--color-accent)" fillOpacity="0.16" />
 
             {/* Diamond accents */}
-            <rect x="110" y="80" width="7" height="7" rx="1" fill="#fd5000" fillOpacity="0.13" transform="rotate(45 113 83)" />
+            <rect x="110" y="80" width="7" height="7" rx="1" fill="var(--color-accent)" fillOpacity="0.13" transform="rotate(45 113 83)" />
             <rect x="520" y="220" width="6" height="6" rx="1" fill="#534AB7" fillOpacity="0.11" transform="rotate(45 523 223)" />
-            <rect x="200" y="240" width="5" height="5" rx="1" fill="#fd5000" fillOpacity="0.10" transform="rotate(45 202 242)" />
+            <rect x="200" y="240" width="5" height="5" rx="1" fill="var(--color-accent)" fillOpacity="0.10" transform="rotate(45 202 242)" />
         </svg>
     );
 }

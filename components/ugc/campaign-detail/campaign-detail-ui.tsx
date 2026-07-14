@@ -44,7 +44,7 @@ export function Pill({
 }) {
   const tones = {
     neutral: "bg-[#F3F4F6] text-[#374151] border-[#E5E7EB]",
-    brand: "bg-[#FFF4EF] text-[#FF5A1F] border-[#FFE4D6]",
+    brand: "bg-[#FFF4EF] text-[var(--color-accent)] border-[#FFE4D6]",
     success: "bg-emerald-50 text-emerald-700 border-emerald-200",
     warning: "bg-amber-50 text-amber-700 border-amber-200",
     danger: "bg-rose-50 text-rose-700 border-rose-200",
@@ -134,7 +134,7 @@ export function ProgressBar({ value, className }: { value: number; className?: s
   return (
     <div className={cn("h-2 w-full overflow-hidden rounded-full bg-[#F3F4F6]", className)}>
       <div
-        className="h-full rounded-full bg-gradient-to-r from-[#FF7A45] to-[#FF5A1F] transition-all duration-700"
+        className="h-full rounded-full bg-gradient-to-r from-[#FF7A45] to-[var(--color-accent)] transition-all duration-700"
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
         role="progressbar"
         aria-valuenow={value}

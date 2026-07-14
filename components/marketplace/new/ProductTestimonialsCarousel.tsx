@@ -75,8 +75,8 @@ function getImage(images: unknown): string | null {
 }
 
 const JIMVIO_ORANGE = {
-  gradient: "linear-gradient(135deg, #fd5000, #ff7a30)",
-  gradient135: "linear-gradient(135deg, #fd5000, #ff7a30)",
+  gradient: "linear-gradient(135deg, var(--color-accent), #ff7a30)",
+  gradient135: "linear-gradient(135deg, var(--color-accent), #ff7a30)",
   light: "#ff8c00",
   glow: "0 6px 28px rgba(253,80,0,0.55)",
   glowSoft: "rgba(255,90,31,0.22)",
@@ -441,7 +441,7 @@ export function ProductTestimonialsCarousel({ products, type }: Props) {
             href={`/marketplace?type=${type}&sort=rating`}
             className="mt-6 inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-white transition-all hover:-translate-y-0.5"
             style={{
-              background: "linear-gradient(135deg, #fd5000, #ff7a30)",
+              background: "linear-gradient(135deg, var(--color-accent), #ff7a30)",
               boxShadow: "0 4px 18px rgba(253,80,0,0.4), 0 2px 8px rgba(253,80,0,0.35)",
             }}
           >
@@ -517,7 +517,7 @@ export function ProductTestimonialsCarousel({ products, type }: Props) {
         <div className="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <div className="inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[9px] font-bold uppercase tracking-wider text-white sm:h-7 sm:gap-2 sm:px-3 sm:text-[11px] mb-3"
-              style={{ background: "linear-gradient(135deg, #fd5000, #ff7a30)", boxShadow: "0 2px 10px rgba(255, 90, 31, 0.28)" }}>
+              style={{ background: "linear-gradient(135deg, var(--color-accent), #ff7a30)", boxShadow: "0 2px 10px rgba(255, 90, 31, 0.28)" }}>
               <Users className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
               {type === "digital" ? "TOP RATED DIGITAL" : "CUSTOMER FAVORITES"}
             </div>
@@ -652,7 +652,7 @@ export function ProductTestimonialsCarousel({ products, type }: Props) {
             href={`/marketplace?type=${type}&sort=rating`}
             className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5"
             style={{
-              background: "linear-gradient(135deg, #fd5000, #ff7a30)",
+              background: "linear-gradient(135deg, var(--color-accent), #ff7a30)",
               boxShadow: "0 4px 18px rgba(253,80,0,0.4), 0 2px 8px rgba(253,80,0,0.35)",
             }}
           >

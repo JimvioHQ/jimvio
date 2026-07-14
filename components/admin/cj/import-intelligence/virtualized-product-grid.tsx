@@ -195,7 +195,7 @@ export function VirtualizedProductGrid({
         className="flex min-h-10 items-center justify-center py-3"
       >
         {loadingMore && (
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#FF5A1F] border-t-transparent" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[var(--color-accent)] border-t-transparent" />
         )}
         {!hasMore && products.length > 0 && !loadingMore && (
           <p className="text-[11px] text-[#9CA3AF]">End of catalog</p>

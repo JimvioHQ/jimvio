@@ -8,7 +8,7 @@ import { CreatorChallengeCard } from "@/components/feed/CreatorChallengeCard";
 import { CreatorInsightsCard } from "@/components/feed/CreatorInsightsCard";
 import { EarningsOverviewCard } from "@/components/feed/EarningsOverviewCard";
 import { FeedPostCard } from "@/components/feed/FeedPostCard";
-import { FeedStatsRow } from "@/components/feed/FeedStatsRow";
+
 import { FeedTabs } from "@/components/feed/FeedTabs";
 import { LiveNowCard } from "@/components/feed/LiveNowCard";
 import { MiniLivePlayerBar } from "@/components/feed/MiniLivePlayerBar";
@@ -43,7 +43,6 @@ export function FeedPageContent() {
       <div className="mx-auto w-full max-w-[1600px] bg-gray-50 p-4 lg:p-5">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start">
           <div className="min-w-0 space-y-4 pb-20 lg:col-span-8 xl:col-span-9 2xl:col-span-7">
-            <FeedStatsRow />
             <StoriesRail />
             <PostComposer />
             <FeedTabs />

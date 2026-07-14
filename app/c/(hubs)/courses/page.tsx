@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Loader2, CheckCircle2, Clock, Award } from "lucide-react";
+import { Search, Loader2, CheckCircle2, Clock, Award, GraduationCap } from "lucide-react";
 import { HubCard, HubBadge, HubLinkButton, HubStatCard, HubSectionTitle } from "@/components/community/hub/hub-ui";
 import { cn } from "@/lib/utils";
 
@@ -73,7 +73,7 @@ export default function HubCoursesPage() {
   return (
     <div className="min-h-full bg-[var(--color-bg)]"
          style={{
-           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-berry)/3, transparent 40%)`,
+           backgroundImage: `radial-gradient(circle at 50% -20%, var(--color-accent)/5, transparent 50%), radial-gradient(circle at 100% 100%, var(--color-social)/3, transparent 40%)`,
          }}>
       <div className="mx-auto max-w-[960px] space-y-6 p-4 lg:p-6">
         {/* Header */}
@@ -94,7 +94,7 @@ export default function HubCoursesPage() {
 
         {/* Stats row */}
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 animate-in stagger-children">
-          <HubStatCard label="Total" value={stats.total} icon={<GraduationCap className="h-4 w-4" />} accent="#fd5000" />
+          <HubStatCard label="Total" value={stats.total} icon={<GraduationCap className="h-4 w-4" />} accent="var(--color-accent)" />
           <HubStatCard label="In Progress" value={stats.inProgress} icon={<Clock className="h-4 w-4" />} accent="#4fc3f7" />
           <HubStatCard label="Completed" value={stats.completed} icon={<CheckCircle2 className="h-4 w-4" />} accent="#81c784" />
           <HubStatCard label="Lessons" value={stats.totalLessons} icon={<Award className="h-4 w-4" />} accent="#ffb74d" />
@@ -154,9 +154,9 @@ export default function HubCoursesPage() {
                 <div className={cn(
                   "group relative overflow-hidden rounded-2xl border transition-all duration-300 hover-lift",
                   course.status === "completed"
-                    ? "border-[var(--color-sage)]/30 bg-gradient-to-br from-[var(--color-sage)]/5 to-transparent"
+                    ? "border-[var(--color-growth)]/30 bg-gradient-to-br from-[var(--color-growth)]/5 to-transparent"
                     : course.status === "in_progress"
-                    ? "border-[var(--color-ocean)]/30 bg-gradient-to-br from-[var(--color-ocean)]/5 to-transparent"
+                    ? "border-[var(--color-live)]/30 bg-gradient-to-br from-[var(--color-live)]/5 to-transparent"
                     : "border-[var(--color-border)]/30 bg-[var(--color-surface)]/50 backdrop-blur"
                 )}>
                   <div className="relative">
@@ -172,16 +172,16 @@ export default function HubCoursesPage() {
                         {course.difficulty}
                       </HubBadge>
                       {course.status === "completed" && (
-                        <HubBadge variant="sage">Done</HubBadge>
+                        <HubBadge variant="default">Done</HubBadge>
                       )}
                       {course.status === "in_progress" && (
-                        <HubBadge variant="ocean">In Progress</HubBadge>
+                        <HubBadge variant="live">In Progress</HubBadge>
                       )}
                     </div>
                     <div className="absolute bottom-3 left-3 right-3 bg-gradient-to-t from-black/80 to-transparent p-3 rounded-b-xl">
                       <div className="h-2 overflow-hidden rounded-full bg-white/10">
                         <div className="h-full rounded-full transition-all duration-500"
-                             style={{ width: `${course.progress}%`, background: course.status === "completed" ? "var(--color-sage)" : "linear-gradient(90deg, var(--color-sage), var(--color-accent))" }} />
+                             style={{ width: `${course.progress}%`, background: course.status === "completed" ? "var(--color-growth)" : "linear-gradient(90deg, var(--color-growth), var(--color-accent))" }} />
                       </div>
                       <p className="mt-1 text-[11px] font-semibold text-white/80">{course.progress}% complete · {course.total_lessons} lessons</p>
                     </div>
@@ -202,12 +202,12 @@ export default function HubCoursesPage() {
                         )}
                         {course.status === "in_progress" && (
                           <>
-                            <Clock className="h-3 w-3 text-[var(--color-ocean)]" /> Continuing
+                            <Clock className="h-3 w-3 text-[var(--color-live)]" /> Continuing
                           </>
                         )}
                         {course.status === "not_started" && (
                           <>
-                            <Award className="h-3 w-3 text-[var(--color-amber)]" /> Not started
+                            <Award className="h-3 w-3 text-[var(--color-events)]" /> Not started
                           </>
                         )}
                       </span>

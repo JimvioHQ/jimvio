@@ -57,7 +57,7 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
     href: "/marketplace",
     description: "Buy, sell and manage commerce.",
     cta: "Open Marketplace",
-    accent: "#fd5000",
+    accent: "var(--color-accent)",
     icon: ShoppingBag,
     sidebar: [
       { id: "browse", label: "Browse", href: "/marketplace", icon: Home },

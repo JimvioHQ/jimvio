@@ -70,7 +70,7 @@ export function UGCDashboardPage() {
       title="Dashboard"
       subtitle="Your UGC workspace overview — projects, earnings, and next actions."
       actions={
-        <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
+        <Button asChild size="sm" className="rounded-xl bg-[var(--color-accent)]">
           <Link href="/ugc">Discover campaigns</Link>
         </Button>
       }
@@ -81,7 +81,7 @@ export function UGCDashboardPage() {
           title="Sign in required"
           description="Log in to view your creator dashboard."
           action={
-            <Button asChild className="rounded-xl bg-[#FF5A1F]">
+            <Button asChild className="rounded-xl bg-[var(--color-accent)]">
               <Link href="/login?redirect=/ugc/dashboard">Sign in</Link>
             </Button>
           }
@@ -94,7 +94,7 @@ export function UGCDashboardPage() {
           description="Complete your profile and join your first campaign to see stats here."
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Button asChild className="rounded-xl bg-[#FF5A1F]">
+              <Button asChild className="rounded-xl bg-[var(--color-accent)]">
                 <Link href="/ugc">Discover campaigns</Link>
               </Button>
               <Button asChild variant="outline" className="rounded-xl">
@@ -128,7 +128,7 @@ export function UGCDashboardPage() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-[14px] border border-[#EEF0F2] bg-white px-4 py-3 text-[13px] font-semibold text-[#374151] transition-colors hover:border-[#FFE4D6] hover:bg-[#FFF8F5] hover:text-[#FF5A1F]"
+                className="rounded-[14px] border border-[#EEF0F2] bg-white px-4 py-3 text-[13px] font-semibold text-[#374151] transition-colors hover:border-[#FFE4D6] hover:bg-[#FFF8F5] hover:text-[var(--color-accent)]"
               >
                 {item.label} →
               </Link>

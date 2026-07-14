@@ -46,8 +46,8 @@ export function DashboardViewControls({
           className={cn(
             "rounded-full border px-2 py-0.5 text-[9px] font-medium transition-colors",
             prefs[key]
-              ? "border-[#FF5A1F] bg-[#FFF7F3] text-[#FF5A1F]"
-              : "border-[#E5E7EB] text-[#6B7280] hover:border-[#FF5A1F]/40"
+              ? "border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+              : "border-[#E5E7EB] text-[#6B7280] hover:border-[var(--color-accent)]/40"
           )}
         >
           {label}
@@ -60,8 +60,8 @@ export function DashboardViewControls({
         className={cn(
           "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[9px] font-semibold",
           prefs.productsOnly
-            ? "border-[#FF5A1F] bg-[#FF5A1F] text-white"
-            : "border-[#E5E7EB] text-[#374151] hover:border-[#FF5A1F]/40"
+            ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-white"
+            : "border-[#E5E7EB] text-[#374151] hover:border-[var(--color-accent)]/40"
         )}
       >
         <LayoutGrid className="h-3 w-3" />
@@ -70,7 +70,7 @@ export function DashboardViewControls({
       <button
         type="button"
         onClick={() => onChange(applyShowDashboardMode())}
-        className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] px-2.5 py-0.5 text-[9px] font-medium text-[#374151] hover:border-[#FF5A1F]/40"
+        className="inline-flex items-center gap-1 rounded-full border border-[#E5E7EB] px-2.5 py-0.5 text-[9px] font-medium text-[#374151] hover:border-[var(--color-accent)]/40"
       >
         <PanelTop className="h-3 w-3" />
         Show Dashboard
