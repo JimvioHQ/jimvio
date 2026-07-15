@@ -636,11 +636,6 @@ function ProductCard({
           <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>
             {formatMoney(displayPrice, currency)}
           </span>
-          {effectiveCompareAt && (
-            <span className="text-[10px] line-through" style={{ color: "var(--color-text-muted)" }}>
-              {formatMoney(effectiveCompareAt, currency)}
-            </span>
-          )}
           <ArrowRight className="size-3.5" strokeWidth={2.5} style={{ color: "var(--color-accent)" }} />
         </div>
 
