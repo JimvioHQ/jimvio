@@ -747,7 +747,7 @@ function ProductCard({
           </div>
         )}
 
-        <div className="flex min-h-[20px] items-baseline gap-1.5">
+        {/* <div className="flex min-h-[20px] items-baseline gap-1.5">
           <span className="text-[15px] font-black leading-none tracking-[-0.02em]" style={{ color: "var(--color-accent)" }}>
             {formatMoney(displayPrice, currency)}
           </span>
@@ -756,7 +756,7 @@ function ProductCard({
               {formatMoney(effectiveCompareAt, currency)}
             </span>
           )}
-        </div>
+        </div> */}
       </div>
 
     </div>
