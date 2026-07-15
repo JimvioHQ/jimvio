@@ -343,7 +343,7 @@ export function ProductCardPhysical({
               <LocalizedPrice
                 amount={compareAtPrice}
                 currency={p.currency}
-                className="text-[8px] font-medium tabular-nums leading-none text-[#9CA3AF] line-through md:text-[9px]"
+                className="text-[8px] font-medium tabular-nums leading-none text-[var(--color-text-muted)] line-through md:text-[9px]"
               />
             )}
           </div>

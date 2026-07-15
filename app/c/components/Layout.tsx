@@ -399,7 +399,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     )}
 
                     {/* Page content */}
-                    <main className={cn("flex min-h-0 flex-1 flex-col overflow-hidden", isFullscreen && "bg-[var(--color-bg)]")}>
+                    <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", isFullscreen && "bg-[var(--color-bg)]")}>
                         {/* Mobile page title bar */}
                         {!isFullscreen && (
                         <div className="flex h-11 items-center bg-[var(--color-surface)]/80 backdrop-blur-xl px-4 lg:hidden shrink-0">

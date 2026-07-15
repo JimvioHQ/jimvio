@@ -26,12 +26,8 @@ export async function POST(
     return NextResponse.json({ error: participantError.message }, { status: 500 });
   }
 
-  await supabase
-    .from("live_sessions")
-    .update({ 
-      viewer_count: supabase.rpc("decrement_viewer_count", { session_id: sessionId }),
-    })
-    .eq("id", sessionId);
+  // Decrement viewer count
+  await supabase.rpc("decrement_viewer_count", { session_id: sessionId });
 
   return NextResponse.json({ success: true });
 }

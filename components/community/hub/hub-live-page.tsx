@@ -14,7 +14,6 @@ import {
 import { cn } from "@/lib/utils";
 import { HubAvatar, HubBadge, HubProgressBar } from "./hub-ui";
 import type { LiveDashboard, LiveSessionItem } from "@/lib/community/hub-live-types";
-import { getEmptyHubLiveDashboard, getMockSessions } from "@/lib/community/hub-live-demo";
 import { LiveSessionsList } from "./live-sessions-list";
 import { StartLiveDialog } from "./start-live-dialog";
 import { toast } from "sonner";
@@ -143,11 +142,10 @@ function HubLiveListingPage({ communitySlug }: { communitySlug?: string }) {
     window.location.href = `${base}/${session.id}`;
   };
 
-  const handleStartLive = (title: string, spaceId: string, privacy: "public" | "private") => {
+  const handleStartLive = (title: string, spaceId: string, privacy: "public" | "private", sessionId: string) => {
     setShowStartLive(false);
     const base = communitySlug ? `/c/${communitySlug}/live` : "/c/live";
-    const newId = `sess-${Date.now()}`;
-    window.location.href = `${base}/${newId}`;
+    window.location.href = `${base}/${sessionId}`;
   };
 
   return (
@@ -342,7 +340,12 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
       setLoading(true);
       try {
         const res = await fetch(`/api/c/live/${sessionId}`);
-        const normalized = getEmptyHubLiveDashboard();
+        let normalized: LiveDashboard = {
+          session: null,
+          chatMessages: [],
+          speakers: [],
+          analytics: { viewerCount: 0, likesCount: 0, tipsCount: 0, messagesCount: 0 },
+        };
         if (res.ok) {
           const json = await res.json();
           const s = json.session;
@@ -390,23 +393,55 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
 
   const speakers = useMemo(() => data?.speakers ?? [], [data?.speakers]);
 
-  const relatedSessions = useMemo(() => {
-    if (!sessionId) return [];
-    const mockAll = getMockSessions(communitySlug);
-    return mockAll.filter((s) => s.id !== sessionId && s.status === "live").slice(0, 4);
+  const [relatedSessions, setRelatedSessions] = useState<LiveSessionItem[]>([]);
+  const [qaItems, setQaItems] = useState<{ id: string; question: string; askedBy: string; votes: number; answered: boolean; answer?: string }[]>([]);
+  const [polls, setPolls] = useState<{ id: string; question: string; options: string[]; votes: number[]; active: boolean }[]>([]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/c/live?communityId=${communitySlug || ""}&status=live&limit=5`);
+        if (res.ok) {
+          const json = await res.json();
+          const sessions = (json.sessions || []).filter((s: any) => s.id !== sessionId && s.status === "live").slice(0, 4);
+          if (!cancelled) setRelatedSessions(sessions);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
   }, [sessionId, communitySlug]);
 
-  const qaItems = useMemo(() => [
-    { id: "1", question: "Will this session be recorded?", askedBy: "Sarah", votes: 5, answered: true, answer: "Yes, all sessions are automatically recorded and available in Recordings." },
-    { id: "2", question: "What pricing tier supports 100+ viewers?", askedBy: "Alex", votes: 3, answered: false },
-    { id: "3", question: "Can I share screen alongside camera?", askedBy: "Jordan", votes: 8, answered: true, answer: "Screen share replaces the camera feed. You can toggle between them." },
-    { id: "4", question: "Is there a time limit for live sessions?", askedBy: "Morgan", votes: 2, answered: false },
-  ], []);
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/c/live/${sessionId}/qa`);
+        if (res.ok) {
+          const json = await res.json();
+          if (!cancelled) setQaItems(json.questions || []);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [sessionId]);
 
-  const polls = useMemo(() => [
-    { id: "1", question: "Which topic should we cover next?", options: ["Advanced features", "Beginner guide", "API tutorial", "Case study"], votes: [12, 8, 15, 6], active: true },
-    { id: "2", question: "Was this session helpful?", options: ["Yes!", "Somewhat", "Not really"], votes: [34, 12, 3], active: false },
-  ], []);
+  useEffect(() => {
+    if (!sessionId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/c/live/${sessionId}/polls`);
+        if (res.ok) {
+          const json = await res.json();
+          if (!cancelled) setPolls(json.polls || []);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [sessionId]);
 
   const endRoom = async () => {
     setShowEndRoomConfirm(false);

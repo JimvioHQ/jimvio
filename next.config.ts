@@ -8,6 +8,9 @@ if (process.env.ANALYZE === "true") {
   } catch {}
 }
 let nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   serverExternalPackages: ["pdfkit"],
   turbopack: {
   },

@@ -55,7 +55,7 @@ export function RegisterForm() {
   return (
     <div className="w-full">
       <div className="space-y-3 mb-10">
-        <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)]">Create an account</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">Create an account</h1>
         <p className="text-[14px] font-medium text-[var(--color-text-muted)]">
           Join Jimvio — completely free to sign up.
         </p>
@@ -72,7 +72,7 @@ export function RegisterForm() {
             }
           })}
           disabled={pending}
-          className="w-full h-12 bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] shadow-none rounded-sm font-bold transition-all flex items-center justify-center gap-3"
+          className="w-full h-12 bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] shadow-none rounded-full font-bold transition-all flex items-center justify-center gap-3"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -163,7 +163,7 @@ export function RegisterForm() {
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-sm bg-[var(--color-text-primary)] hover:bg-[var(--color-text-secondary)] text-[var(--color-bg)] font-bold text-[14px] shadow-none transition-all mt-6"
+            className="w-full h-12 rounded-full bg-[var(--color-text-primary)] hover:bg-[var(--color-text-secondary)] text-[var(--color-bg)] font-bold text-[14px] shadow-none transition-all mt-6"
             disabled={pending}
           >
             {pending ? "Creating account…" : "Create account"}

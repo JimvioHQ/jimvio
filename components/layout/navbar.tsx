@@ -113,8 +113,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
         className={cn(
           "pointer-events-auto relative mx-auto transition-all duration-300 flex flex-col",
           scrolled
-            ? "bg-white/90 dark:bg-[var(--color-ink)]/90 backdrop-blur-2xl shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
-            : "bg-white/70 dark:bg-[var(--color-ink)]/70 backdrop-blur-xl",
+            ? "bg-[var(--color-bg-elevated)]/90 dark:bg-[var(--color-ink)]/90 backdrop-blur-2xl shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.04)]"
+            : "bg-[var(--color-bg)]",
         )}
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10 pointer-events-none" />

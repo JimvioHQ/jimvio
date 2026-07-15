@@ -235,11 +235,11 @@ export function ProductCardClient({
         className={cn(
           "product-tap-nav group relative flex flex-col h-full",
           "rounded-xl overflow-hidden",
-          "bg-white dark:bg-[#121212]",
+          "bg-[var(--color-surface)]",
           "border transition-[transform,box-shadow] duration-150 ease-out",
           inCart
             ? "border-[var(--color-accent)]/40 shadow-[0_0_0_1.5px_var(--color-accent),0_12px_40px_rgba(253,80,0,0.12)]"
-            : "border-stone-200/80 dark:border-white/[0.07] shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.12)]"
+            : "border-[var(--color-border)] shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_48px_rgba(0,0,0,0.12)]"
         )}
         style={
           cartFlash
@@ -393,14 +393,14 @@ export function ProductCardClient({
         {/* ─────────── Info area ─────────── */}
         <div className="pointer-events-none relative z-[2] flex flex-col flex-1 px-3.5 pt-3 pb-3.5 gap-1">
           {p.vendors?.business_name && (
-            <p className="text-[10px] font-medium tracking-wide text-stone-400 dark:text-stone-500 uppercase truncate">
+            <p className="text-[10px] font-medium tracking-wide text-[var(--color-text-muted)] uppercase truncate">
               {p.vendors.business_name}
             </p>
           )}
 
           <h3
             className={cn(
-              "font-semibold leading-[1.35] text-[#0f0f0f] dark:text-[#ebebeb]",
+              "font-semibold leading-[1.35] text-[var(--color-text-primary)]",
               "transition-colors duration-200 group-hover:text-[var(--color-accent)]",
               compact ? "text-[12px] line-clamp-1" : "text-[14px] line-clamp-2"
             )}
@@ -415,7 +415,7 @@ export function ProductCardClient({
               period={p.pricing_type === "recurring" ? p.billing_period : null}
               className={cn(
                 isDigital
-                  ? "font-black tracking-tight text-[#0f0f0f] dark:text-white"
+                  ? "font-black tracking-tight text-[var(--color-accent)]"
                   : "font-bold tabular-nums tracking-tight text-[var(--color-accent)] text-[12px] md:text-[14px]",
                 isDigital && (compact ? "text-[17px]" : "text-[20px]"),
               )}
@@ -427,14 +427,14 @@ export function ProductCardClient({
                 className={cn(
                   "line-through",
                   isDigital
-                    ? "text-[12px] font-semibold text-stone-400 dark:text-stone-500"
-                    : "text-[8px] font-medium text-[#9CA3AF] md:text-[9px]",
+                    ? "text-[12px] font-semibold text-[var(--color-text-muted)]"
+                    : "text-[8px] font-medium text-[var(--color-text-muted)] md:text-[9px]",
                 )}
               />
             )}
           </div>
 
-          <div className="h-px bg-stone-100 dark:bg-white/[0.06] mt-2 mb-1.5" />
+          <div className="h-px bg-[var(--color-border)] mt-2 mb-1.5" />
 
           <div className="flex items-center justify-between gap-2">
             {/* ✅ FIXED: only show when affiliate_enabled AND commissionRate > 0 */}

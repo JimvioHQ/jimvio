@@ -63,7 +63,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
   return (
     <div className="w-full">
       <div className="space-y-3 mb-10">
-        <h1 className="text-3xl font-black tracking-tight text-[var(--color-text-primary)]">
+        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)]">
           Welcome back
         </h1>
         <p className="text-[14px] font-medium text-[var(--color-text-muted)]">
@@ -99,7 +99,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
             })
           }
           disabled={pending}
-          className="w-full h-12 bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] shadow-none rounded-sm font-bold transition-all flex items-center justify-center gap-3"
+          className="w-full h-12 bg-[var(--color-surface)] hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] shadow-none rounded-full font-bold transition-all flex items-center justify-center gap-3"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -137,14 +137,18 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
           </Field>
 
           <div className="relative group">
-            <Field label="Password" required icon={<Lock className="h-5 w-5" />}>
+            <div className="flex items-center justify-between mb-1.5">
+              <label htmlFor="password" className="text-[13px] font-bold text-[var(--color-text-primary)]">
+                Password
+              </label>
               <Link
                 href="/forgot-password"
-                aria-label="Forgot password?"
-                className="absolute right-0 z-50 -top-6 text-[13px] font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+                className="text-[13px] font-semibold text-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
               >
                 Forgot password?
               </Link>
+            </div>
+            <Field label="" required icon={<Lock className="h-5 w-5" />}>
               <FieldInput
                 id="password"
                 type={showPw ? "text" : "password"}
@@ -169,7 +173,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
 
           <Button
             type="submit"
-            className="w-full h-12 rounded-sm bg-[var(--color-text-primary)] hover:bg-[var(--color-text-secondary)] text-[var(--color-bg)] font-bold text-[14px] shadow-none transition-all mt-2"
+            className="w-full h-12 rounded-full bg-[var(--color-text-primary)] hover:bg-[var(--color-text-secondary)] text-[var(--color-bg)] font-bold text-[14px] shadow-none transition-all mt-2"
             disabled={pending}
           >
             {pending ? "Signing in…" : "Sign in"}

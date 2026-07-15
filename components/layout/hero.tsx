@@ -252,7 +252,7 @@ function HeroPartnerStrip() {
           />
 
           <div
-            className="flex w-max items-center gap-12 motion-reduce:animate-none sm:gap-16"
+            className="flex w-max items-center gap-6 sm:gap-12 md:gap-16 motion-reduce:animate-none"
             style={{ animation: "hero-partner-marquee 42s linear infinite" }}
           >
             {items.map((logo, i) => {

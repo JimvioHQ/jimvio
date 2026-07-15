@@ -32,6 +32,12 @@ export async function GET(
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
 
+  // Flatten space.access_type to space_access_type for client compatibility
+  const flattenedSession = {
+    ...session,
+    space_access_type: session.space?.access_type ?? "free",
+  };
+
   const { count: viewerCount } = await supabase
     .from("live_session_participants")
     .select("*", { count: "exact", head: true })
@@ -40,7 +46,7 @@ export async function GET(
 
   return NextResponse.json({
     session: {
-      ...session,
+      ...flattenedSession,
       viewer_count: viewerCount ?? 0,
     },
   });

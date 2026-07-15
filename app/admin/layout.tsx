@@ -112,14 +112,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             {/* Logo */}
             <Link href="/admin" aria-label="Admin overview" className="shrink-0">
-              <Image
-                src="/jimvio-logo.png"
-                alt="Jimvio"
-                width={128}
-                height={40}
-                priority
-                style={{ width: "auto", height: 28 }}
-              />
+              <div className="flex items-center gap-2">
+                <div className="rounded-md bg-[var(--color-accent)] overflow-hidden">
+                  <Image
+                    src="/jimvio-logo.svg"
+                    alt=""
+                    width={28}
+                    height={28}
+                    style={{ borderRadius: "22%" }}
+                  />
+                </div>
+                <span className="font-bold text-[15px] tracking-tight text-[var(--color-text-primary)]">
+                  Jim<span className="text-[var(--color-accent)]">vio</span>
+                </span>
+              </div>
             </Link>
 
             {/* Right actions */}

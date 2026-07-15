@@ -669,7 +669,7 @@ export function DashboardHeader({
             className={cn(
                 "sticky top-0 z-40 flex-shrink-0",
                 "relative flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 lg:px-6 h-14",
-                "bg-[var(--color-surface)]"
+                "bg-background"
             )}
         >
             {/* ── Left: menu (mobile) + dashboard label (desktop) ── */}

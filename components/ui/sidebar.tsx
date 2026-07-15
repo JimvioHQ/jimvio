@@ -79,7 +79,7 @@ export function SidebarHeader({ collapsed, onToggle, onMobileClose, collapsible 
         <SidebarLogoMark size={28} />
         <span
           className="text-[17px] font-semibold tracking-tight truncate font-[family-name:var(--font-family-display)]"
-          style={{ color: "var(--color-text-primary)" }}
+          style={{ color: "var(--color-paper)" }}
         >
           jim
           <span
@@ -99,8 +99,8 @@ export function SidebarHeader({ collapsed, onToggle, onMobileClose, collapsible 
           type="button"
           onClick={onToggle}
           aria-label="Collapse sidebar"
-          className="hidden lg:flex w-6 h-6 items-center justify-center transition-colors hover:bg-[var(--color-surface-secondary)] active:scale-95"
-          style={{ borderRadius: "var(--radius-sm)", color: "var(--color-text-muted)" }}
+          className="hidden lg:flex w-6 h-6 items-center justify-center transition-colors hover:bg-[color-mix(in_srgb,var(--color-paper)_8%,transparent)] active:scale-95"
+          style={{ borderRadius: "var(--radius-sm)", color: "color-mix(in srgb, var(--color-paper) 50%, transparent)" }}
           disabled={!collapsible}
         >
           <ChevronLeft className="h-3 w-3" />
@@ -111,8 +111,8 @@ export function SidebarHeader({ collapsed, onToggle, onMobileClose, collapsible 
           type="button"
           onClick={onMobileClose}
           aria-label="Close sidebar"
-          className="lg:hidden w-6 h-6 flex items-center justify-center transition-colors hover:bg-[var(--color-surface-secondary)] active:scale-95"
-          style={{ borderRadius: "var(--radius-sm)", color: "var(--color-text-muted)" }}
+          className="lg:hidden w-6 h-6 flex items-center justify-center transition-colors hover:bg-[color-mix(in_srgb,var(--color-paper)_8%,transparent)] active:scale-95"
+          style={{ borderRadius: "var(--radius-sm)", color: "color-mix(in srgb, var(--color-paper) 50%, transparent)" }}
         >
           <X className="h-3 w-3" />
         </button>
@@ -144,7 +144,7 @@ export function SidebarNavItem({ item, active, collapsed, badge, locked, onClick
       )}
       <Icon
         className={cn("flex-shrink-0", collapsed ? "h-4 w-4" : "h-4 w-4")}
-        style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }}
+        style={{ color: active ? "var(--color-accent)" : "color-mix(in srgb, var(--color-paper) 50%, transparent)" }}
       />
       {!collapsed && (
         <>
@@ -153,15 +153,15 @@ export function SidebarNavItem({ item, active, collapsed, badge, locked, onClick
             <span
               className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none"
               style={{
-                backgroundColor: "var(--color-surface-secondary)",
-                color: "var(--color-text-muted)",
+                backgroundColor: "var(--color-paper-dark)",
+                color: "color-mix(in srgb, var(--color-paper) 60%, transparent)",
               }}
             >
               {badge}
             </span>
           )}
           {locked && (
-            <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+            <span className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: "color-mix(in srgb, var(--color-paper) 50%, transparent)" }}>
               Unlock
             </span>
           )}
@@ -173,7 +173,7 @@ export function SidebarNavItem({ item, active, collapsed, badge, locked, onClick
   const style = {
     borderRadius: "var(--radius-sm)",
     backgroundColor: active ? "color-mix(in srgb, var(--color-accent) 10%, transparent)" : "transparent",
-    color: active ? "var(--color-accent)" : "var(--color-text-secondary)",
+    color: active ? "var(--color-accent)" : "var(--color-paper-dim)",
     fontWeight: active ? 600 : 500,
     transition: "background-color 0.12s, color 0.12s",
   };
@@ -187,7 +187,7 @@ export function SidebarNavItem({ item, active, collapsed, badge, locked, onClick
         className={cn(
           "relative flex items-center gap-2.5 text-[13px] font-medium w-full text-left",
           collapsed ? "w-9 h-9 justify-center" : "px-2.5 py-2",
-          !active && "hover:bg-[var(--color-surface-secondary)]"
+          !active && "hover:bg-[color-mix(in_srgb,var(--color-paper)_8%,transparent)]"
         )}
         style={style}
       >
@@ -205,7 +205,7 @@ export function SidebarNavItem({ item, active, collapsed, badge, locked, onClick
       className={cn(
         "relative flex items-center gap-2.5 text-[13px] font-medium",
         collapsed ? "w-9 h-9 justify-center" : "px-2.5 py-2",
-        !active && "hover:bg-[var(--color-surface-secondary)]"
+        !active && "hover:bg-[color-mix(in_srgb,var(--color-paper)_8%,transparent)]"
       )}
       style={style}
     >
@@ -242,9 +242,9 @@ export function SidebarSection({
         onClick={onToggle}
         className={cn(
           "w-full flex items-center gap-2 px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-colors",
-          "hover:bg-[var(--color-surface-secondary)]"
+          "hover:bg-[color-mix(in_srgb,var(--color-paper)_8%,transparent)]"
         )}
-        style={{ borderRadius: "var(--radius-sm)", color: "var(--color-text-muted)" }}
+        style={{ borderRadius: "var(--radius-sm)", color: "color-mix(in srgb, var(--color-paper) 50%, transparent)" }}
       >
         <span className="flex-1 text-left">{section.title}</span>
         <motion.div animate={{ rotate: isOpen ? 0 : -90 }} transition={{ duration: 0.18, ease: "easeInOut" }}>
@@ -341,12 +341,12 @@ export function SidebarProfile({ user, collapsed, onSettingsClick, roles, signOu
         </Link>
         <div className="min-w-0 flex-1 hidden sm:block">
           <Link href="/dashboard/settings" onClick={onSettingsClick}>
-            <p className="text-[13px] font-semibold truncate leading-tight" style={{ color: "var(--color-text-primary)" }}>
+            <p className="text-[13px] font-semibold truncate leading-tight" style={{ color: "var(--color-paper)" }}>
               {user.full_name?.split(" ")[0] || "Account"}
             </p>
           </Link>
           <div className="flex items-center gap-1.5 mt-px">
-            <p className="text-[11px] truncate leading-tight" style={{ color: "var(--color-text-muted)" }}>
+            <p className="text-[11px] truncate leading-tight" style={{ color: "color-mix(in srgb, var(--color-paper) 60%, transparent)" }}>
               {user.email}
             </p>
             {roles && roles.length > 0 && (

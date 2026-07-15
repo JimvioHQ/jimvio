@@ -1,7 +1,6 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import { noIndexMetadata } from "@/lib/seo";
 
@@ -16,29 +15,22 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-screen bg-[var(--color-bg)]">
       <div className="flex flex-1 flex-col justify-center px-6 py-12 lg:flex-none lg:w-1/2 xl:w-5/12 bg-[var(--color-surface)] relative overflow-y-auto">
         <div className="mx-auto w-full max-w-[420px]">
-          <div className="mb-8">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors mb-8"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back to Jimvio
-            </Link>
-            <Link href="/" className="flex items-center gap-0 group">
-              <div className="relative">
+          <div className="mb-10">
+            <Link href="/" className="inline-flex items-center gap-3 group">
+              <div className="relative shrink-0 rounded-[22%] bg-[var(--color-accent)]">
+                <div className="absolute -inset-2 rounded-full bg-[var(--color-accent)]/10 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 <Image
-                  src="/jimvio-logo.png"
-                  alt="Jimvio Icon"
-                  width={36}
-                  height={36}
-                  className="mix-blend-multiply dark:mix-blend-normal"
-                  style={{ width: "auto", height: 36 }}
+                  src="/jimvio-logo.svg"
+                  alt="Jimvio"
+                  width={40}
+                  height={40}
+                  className="relative shrink-0"
+                  style={{ borderRadius: "22%" }}
                 />
               </div>
-              <span className="text-[32px] font-black tracking-[-0.07em] flex items-center leading-none select-none">
+              <span className="text-[30px] font-black tracking-[-0.07em] leading-none select-none">
                 <span className="text-[var(--color-text-primary)]">Jim</span>
-                <span className="bg-gradient-to-br from-[var(--color-accent)] via-[var(--color-accent)] to-[var(--color-accent-hover)] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(253,80,0,0.2)]">
-                  vio
-                </span>
+                <span className="text-[var(--color-accent)]">vio</span>
               </span>
             </Link>
           </div>
@@ -60,28 +52,28 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <div className="absolute inset-0 flex flex-col justify-center px-16 xl:px-24 z-10">
-          <h2 className="text-4xl xl:text-[52px] font-bold text-[var(--color-text-primary)] mb-6 leading-[1.1]">
+          <h2 className="text-4xl xl:text-[52px] font-bold text-[var(--color-paper)] mb-6 leading-[1.1]">
             Viral commerce,
             <br /> built for growth.
           </h2>
-          <p className="text-lg text-[var(--color-text-muted)] max-w-md mb-16 leading-relaxed">
+          <p className="text-lg text-[var(--color-paper-dim)] max-w-md mb-16 leading-relaxed">
             Join an elite network of vendors, creators, and community leaders running powerful affiliate programs.
           </p>
 
           <div className="grid grid-cols-2 gap-x-8 gap-y-10 max-w-lg">
             <div>
-              <p className="text-3xl xl:text-4xl font-primary font-bold text-[var(--color-text-primary)] mb-1.5">500k+</p>
-              <p className="text-[12px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest">Active Products</p>
-              <div className="h-0.5 w-8 bg-[var(--color-accent)]/50 mt-4 rounded-sm" />
+              <p className="text-3xl xl:text-4xl font-primary font-bold text-[var(--color-paper)] mb-1.5">500k+</p>
+              <p className="text-[12px] font-bold text-[color-mix(in_srgb,var(--color-paper)_60%,transparent)] uppercase tracking-widest">Active Products</p>
+              <div className="h-0.5 w-8 bg-[color-mix(in_srgb,var(--color-accent)_50%,transparent)] mt-4 rounded-sm" />
             </div>
             <div>
-              <p className="text-3xl xl:text-4xl font-black font-primary text-[var(--color-text-primary)] mb-1.5">$2M+</p>
-              <p className="text-[12px] font-bold text-[var(--color-text-muted)] uppercase tracking-widest">Commissions Paid</p>
-              <div className="h-0.5 w-8 bg-[var(--color-events)]/50 mt-4 rounded-sm" />
+              <p className="text-3xl xl:text-4xl font-black font-primary text-[var(--color-paper)] mb-1.5">$2M+</p>
+              <p className="text-[12px] font-bold text-[color-mix(in_srgb,var(--color-paper)_60%,transparent)] uppercase tracking-widest">Commissions Paid</p>
+              <div className="h-0.5 w-8 bg-[color-mix(in_srgb,var(--color-events)_50%,transparent)] mt-4 rounded-sm" />
             </div>
           </div>
 
-          <div className="absolute bottom-12 left-16 xl:left-24 text-[12px] font-medium text-[var(--color-text-muted)]">
+          <div className="absolute bottom-12 left-16 xl:left-24 text-[12px] font-medium text-[color-mix(in_srgb,var(--color-paper)_50%,transparent)]">
             &copy; {new Date().getFullYear()} Jimvio Inc.
           </div>
         </div>

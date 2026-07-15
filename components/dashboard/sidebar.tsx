@@ -155,7 +155,7 @@ function SidebarContent({ collapsed, onCollapsedChange, onMobileClose, user, act
           <button
             onClick={() => onCollapsedChange(false)}
             aria-label="Expand sidebar"
-            className="w-6 h-6 mx-auto mb-2 flex items-center justify-center transition-colors hover:bg-[var(--color-surface-secondary)] active:scale-95"
+            className="w-6 h-6 mx-auto mb-2 flex items-center justify-center transition-colors hover:bg-[color-mix(in_srgb,var(--color-paper)_8%,transparent)] active:scale-95"
             style={{ borderRadius: "var(--radius-sm)", color: "var(--color-text-muted)" }}
           >
             <ChevronRight className="h-3 w-3" />
@@ -167,7 +167,9 @@ function SidebarContent({ collapsed, onCollapsedChange, onMobileClose, user, act
 
   // Expanded mode
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: "var(--color-bg)" }}>
+    <div
+      className="flex flex-col h-full"
+    >
       <SidebarHeader onToggle={() => onCollapsedChange(true)} onMobileClose={onMobileClose} collapsible={collapsible} />
 
       <nav className="flex-1 overflow-y-auto px-2.5 py-2 no-scrollbar" aria-label="Dashboard navigation">
@@ -196,7 +198,7 @@ function SidebarNavItemPrimitive({ item, active, collapsed, badge }: {
   const Icon = item.icon;
   const content = (
     <>
-      <Icon className="h-4 w-4 flex-shrink-0" style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }} />
+      <Icon className="h-4 w-4 flex-shrink-0" style={{ color: active ? "var(--color-accent)" : "color-mix(in srgb, var(--color-paper) 50%, transparent)" }} />
       {badge && (
         <span
           className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full"
@@ -209,20 +211,20 @@ function SidebarNavItemPrimitive({ item, active, collapsed, badge }: {
   const style = {
     borderRadius: "var(--radius-sm)",
     backgroundColor: active ? "color-mix(in srgb, var(--color-accent) 10%, transparent)" : "transparent",
-    color: active ? "var(--color-accent)" : "var(--color-text-secondary)",
+    color: active ? "var(--color-accent)" : "var(--color-paper-dim)",
     transition: "background-color 0.12s, color 0.12s",
   };
 
   if (item.onClick) {
     return (
-      <button type="button" title={item.label} className="w-9 h-9 flex items-center justify-center" style={style}>
+      <button type="button" title={item.label} className="w-9 h-9 flex items-center justify-center hover:bg-[color-mix(in_srgb,var(--color-paper)_8%,transparent)] active:scale-95" style={style}>
         {content}
       </button>
     );
   }
 
   return (
-    <Link href={item.href ?? "#"} title={item.label} className="w-9 h-9 flex items-center justify-center" style={style}>
+    <Link href={item.href ?? "#"} title={item.label} className="w-9 h-9 flex items-center justify-center hover:bg-[color-mix(in_srgb,var(--color-paper)_8%,transparent)]" style={style}>
       {content}
     </Link>
   );
@@ -235,7 +237,7 @@ export function Sidebar(props: SidebarProps) {
   const { resolvedTheme } = useTheme();
   const isLight = resolvedTheme === "light";
   const sharedProps = { ...props };
-  const sidebarBg = isLight ? "var(--color-ink-deep)" : "var(--color-bg)";
+  const sidebarBg = isLight ? "var(--color-ink)" : "var(--color-ink-deep)";
 
   return (
     <>

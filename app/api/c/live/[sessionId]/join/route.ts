@@ -52,14 +52,19 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await supabase
-    .from("live_sessions")
-    .update({ 
-      viewer_count: supabase.rpc("increment_viewer_count", { session_id: sessionId }),
-      status: session.status === "scheduled" ? "live" : session.status,
-      started_at: session.status === "scheduled" ? new Date().toISOString() : undefined,
-    })
-    .eq("id", sessionId);
+  // Increment viewer count
+  await supabase.rpc("increment_viewer_count", { session_id: sessionId });
+
+  // Update session status if scheduled
+  if (session.status === "scheduled") {
+    await supabase
+      .from("live_sessions")
+      .update({
+        status: "live",
+        started_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId);
+  }
 
   return NextResponse.json({ participant });
 }

@@ -123,10 +123,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Flatten space.access_type to space_access_type for client compatibility
+    const flattenedSessions = (sessions || []).map((s: any) => ({
+      ...s,
+      space_access_type: s.space?.access_type ?? "free",
+    }));
+
     // Use the first membership as primary membership for the response
     const primaryMembership = memberships[0] || null;
 
-    return NextResponse.json({ sessions: sessions || [], membership: primaryMembership });
+    return NextResponse.json({ sessions: flattenedSessions, membership: primaryMembership });
   }
 
   // Community-specific mode (original behavior)
@@ -170,5 +176,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ sessions: sessions || [], membership });
+  // Flatten space.access_type to space_access_type for client compatibility
+  const flattenedSessions = (sessions || []).map((s: any) => ({
+    ...s,
+    space_access_type: s.space?.access_type ?? "free",
+  }));
+
+  return NextResponse.json({ sessions: flattenedSessions, membership });
 }

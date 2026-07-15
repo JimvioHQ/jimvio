@@ -24,7 +24,7 @@ export function MobileBottomNav({ hidden, onMenuOpen }: MobileBottomNavProps) {
         initial={{ y: 80 }}
         animate={{ y: hidden ? 80 : 0 }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="pointer-events-auto relative grid h-[60px] grid-cols-5 items-stretch border-t border-stone-100 bg-white/95 shadow-[0_-8px_24px_rgba(0,0,0,0.04)] backdrop-blur-md dark:border-white/5 dark:bg-stone-950/95"
+        className="pointer-events-auto relative grid h-[60px] grid-cols-5 items-stretch border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 shadow-[0_-8px_24px_rgba(0,0,0,0.04)] backdrop-blur-md dark:bg-[var(--color-bg-darker)]/95"
       >
         {mobileBottomLinks.map((link) => {
           const active = isActive(pathname, link.href);
@@ -37,7 +37,7 @@ export function MobileBottomNav({ hidden, onMenuOpen }: MobileBottomNavProps) {
               aria-current={active ? "page" : undefined}
               className={cn(
                 "relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-0.5 transition-colors duration-200",
-                active ? "text-orange-600 dark:text-orange-500" : "text-stone-400 dark:text-stone-600",
+                active ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
               )}
             >
               <div className="relative flex h-6 items-center justify-center">
@@ -46,19 +46,19 @@ export function MobileBottomNav({ hidden, onMenuOpen }: MobileBottomNavProps) {
                   strokeWidth={active ? 2.5 : 2}
                 />
                 {active && (
-                  <motion.div layoutId="mobile-glow" className="absolute inset-0 rounded-full bg-orange-500/20 blur-xl" />
+                  <motion.div layoutId="mobile-glow" className="absolute inset-0 rounded-full bg-[var(--color-accent)]/20 blur-xl" />
                 )}
               </div>
               <span
                 className={cn(
                   "max-w-full truncate text-[9px] font-semibold leading-none tracking-tight whitespace-nowrap",
-                  active ? "text-orange-600 opacity-100 dark:text-orange-500" : "opacity-70",
+                  active ? "text-[var(--color-accent)] opacity-100" : "opacity-70",
                 )}
               >
                 {link.label}
               </span>
               {active && (
-                <motion.div layoutId="mobile-pill-active" className="absolute top-0 h-[2px] w-7 rounded-b-full bg-orange-500" />
+                <motion.div layoutId="mobile-pill-active" className="absolute top-0 h-[2px] w-7 rounded-b-full bg-[var(--color-accent)]" />
               )}
             </Link>
           );
@@ -68,7 +68,7 @@ export function MobileBottomNav({ hidden, onMenuOpen }: MobileBottomNavProps) {
           type="button"
           onClick={onMenuOpen}
           aria-label="Open menu"
-          className="flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-0.5 text-stone-400 transition-colors duration-200 dark:text-stone-600"
+          className="flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-0.5 text-[var(--color-text-muted)] transition-colors duration-200"
         >
           <Menu className="h-5 w-5 shrink-0 stroke-[2px]" />
           <span className="text-[9px] font-semibold leading-none tracking-tight whitespace-nowrap opacity-70">

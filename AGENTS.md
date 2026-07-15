@@ -13,6 +13,8 @@ npm run test:watch   # vitest (watch mode)
 
 **Verify before merge:** `npm run lint && npm run type-check && npm run test`
 
+> **Build perf:** `next.config.ts` has `typescript.ignoreBuildErrors: true` to skip TS checking during build (it's the slowest step). `tsconfig.json` uses narrowed `include` (no `**/*.ts` glob) + `incremental: true` + `tsBuildInfoFile: ".tsbuildinfo"` for caching. Run `npm run type-check` when you need type verification. Delete `.tsbuildinfo` if types get stale.
+
 ## Architecture
 
 - **Next.js 16 App Router** with React 19. Route groups: `(auth)`, `(public)`, `admin/`, `dashboard/`.

@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 @layer utilities {
+  .no-save {
+    -webkit-user-drag: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+@layer utilities {
   .font-display {
     font-family: var(--font-family-display), sans-serif;
   }
@@ -149,9 +157,9 @@
     /* ── Gradient stop tokens ── */
     --gradient-brand-start: #FD5000;
     --gradient-brand-end: #ff7a30;
-    --gradient-hero-start: #000000;
-    --gradient-hero-mid: #1a0500;
-    --gradient-hero-end: #FD5000;
+    --gradient-hero-start: var(--color-ink);
+    --gradient-hero-mid: var(--color-accent-subtle);
+    --gradient-hero-end: var(--color-accent);
     --gradient-surface-start: var(--color-surface);
     --gradient-surface-end: var(--color-bg-elevated);
 
@@ -186,11 +194,6 @@
     --ds-icon-lg: 20px;
     --ds-icon-xl: 24px;
 
-    /* ── Brand section colors (cohesive accent-derived) ── */
-    --color-growth: #3a7a4e;
-    --color-events: #c47a2e;
-    --color-live: #2a6a6a;
-    --color-social: #7a4a4a;
   }
 
   .dark {
@@ -233,8 +236,8 @@
     --color-success: #4ca77a;
     --color-success-light: #143024;
     --color-warning: #d9a84a;
-    --color-warning-light: #2a2010;
     --color-danger: #f07070;
+    --color-warning-light: #2a2010;
     --color-danger-light: #351515;
 
     /* Depth-aware shadows */
@@ -271,11 +274,11 @@
     --color-accent-glow: 0 0 20px rgba(253, 80, 0, 0.35);
 
     /* ── Gradient stop tokens ── */
-    --gradient-brand-start: #FD5000;
-    --gradient-brand-end: #ff7a30;
-    --gradient-hero-start: #000000;
-    --gradient-hero-mid: #1a0500;
-    --gradient-hero-end: #FD5000;
+    --gradient-brand-start: var(--color-accent);
+    --gradient-brand-end: var(--color-accent-hover);
+    --gradient-hero-start: var(--color-bg-dark);
+    --gradient-hero-mid: var(--color-accent-subtle);
+    --gradient-hero-end: var(--color-accent);
     --gradient-surface-start: var(--color-surface);
     --gradient-surface-end: var(--color-bg-elevated);
   }
@@ -378,8 +381,12 @@
   }
 
   ::selection {
-    background: rgba(253, 80, 0, 0.22);
-    color: #F3EFE4;
+    background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+    color: inherit;
+  }
+
+  .dark ::selection {
+    background: color-mix(in srgb, var(--color-accent) 32%, transparent);
   }
 
   /* Smooth page transitions via Next.js */
@@ -431,15 +438,15 @@
   }
 
   .gradient-brand {
-    background: linear-gradient(135deg, #fd5000 0%, #ff7a30 100%);
+    background: linear-gradient(135deg, var(--gradient-brand-start) 0%, var(--gradient-brand-end) 100%);
   }
 
   .gradient-brand-dark {
-    background: linear-gradient(135deg, #c43e00 0%, #fd5000 100%);
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
   }
 
   .gradient-hero {
-    background: linear-gradient(160deg, #000000 0%, #1a0500 50%, #fd5000 100%);
+    background: linear-gradient(160deg, var(--gradient-hero-start) 0%, var(--gradient-hero-mid) 50%, var(--gradient-hero-end) 100%);
   }
 
   .section-padding {

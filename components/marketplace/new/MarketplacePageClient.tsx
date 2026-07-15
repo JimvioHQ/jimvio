@@ -143,7 +143,7 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
   return (
     <Link
       href={`/marketplace?type=${type}&category=${c.slug}`}
-      className="group relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-56 sm:h-64 lg:h-72 rounded-2xl overflow-hidden border border-white/10 bg-[var(--color-ink)] hover:border-[var(--color-accent)]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5"
+      className="group relative flex-shrink-0 w-48 sm:w-56 lg:w-64 h-56 sm:h-64 lg:h-72 rounded-2xl overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5"
       aria-label={`Browse ${c.name}`}
     >
       <img
@@ -156,13 +156,13 @@ function CategoryCard({ c, type }: { c: DbCategory; type: ProductType }) {
           setFallbackIdx((i) => (i + 1 < fallbacks.length ? i + 1 : i));
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-ink)] via-[var(--color-ink)]/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/40 to-transparent" />
       <div className="relative h-full p-4 lg:p-6 flex flex-col justify-end">
         <div>
-          <h3 className="font-display font-semibold text-lg lg:text-xl tracking-tight text-[var(--color-paper)] group-hover:text-[var(--color-accent)] transition-colors">{c.name}</h3>
-          <p className="mt-0.5 font-mono text-xs text-[var(--color-paper)]/40">{count}</p>
+          <h3 className="font-display font-semibold text-lg lg:text-xl tracking-tight text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{c.name}</h3>
+          <p className="mt-0.5 font-mono text-xs text-[var(--color-text-muted)]">{count}</p>
         </div>
-        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-xs font-body text-[var(--color-paper)]/60 group-hover:text-[var(--color-paper)]/90 transition-colors">
+        <div className="mt-3 pt-3 border-t border-[var(--color-border)] flex items-center justify-between text-xs font-body text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)] transition-colors">
           <span>Browse</span>
           <span aria-hidden="true">→</span>
         </div>

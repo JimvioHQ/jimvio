@@ -19,7 +19,7 @@ export function StartLiveDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  onStart: (title: string, spaceId: string, privacy: "public" | "private") => void;
+  onStart: (title: string, spaceId: string, privacy: "public" | "private", sessionId: string) => void;
   communitySlug?: string;
 }) {
   /* ── form state ── */
@@ -154,7 +154,7 @@ export function StartLiveDialog({
     if (!title.trim() || !spaceId) return;
     setCreating(true);
     setError(null);
-    try {
+try {
       const body: Record<string, unknown> = {
         spaceId, title: title.trim(), privacy,
         description: description.trim() || undefined,
@@ -172,7 +172,7 @@ export function StartLiveDialog({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create session");
       onClose();
-      onStart(title.trim(), spaceId, privacy);
+      onStart(title.trim(), spaceId, privacy, data.session?.id || "");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start session");
     } finally {

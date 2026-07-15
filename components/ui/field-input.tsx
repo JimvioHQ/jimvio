@@ -9,7 +9,7 @@ export function FieldInput({
         <Input
             className={cn(
                 "h-11 w-full pl-10 pr-3 text-[13px] font-medium rounded-sm",
-                "bg-[var(--color-surface)] border border-[var(--color-border)]",
+                "bg-[var(--color-bg-elevated)] border border-[var(--color-border)]",
                 "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
                 "focus:outline-none focus:ring-1 focus:border-[var(--color-accent)] focus:ring-[var(--color-accent)]",
                 hasError

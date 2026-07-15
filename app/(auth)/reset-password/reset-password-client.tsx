@@ -99,7 +99,6 @@ export function ResetPasswordClient() {
     const formData = new FormData(e.currentTarget);
     const p1 = (formData.get("password") as string) || "";
     const p2 = (formData.get("password_confirm") as string) || "";
-    alert(`${p2} ${p1.length}`);
     if (p1.length < 8) {
       setFormError("Password must be at least 8 characters.");
       return;
@@ -119,13 +118,13 @@ export function ResetPasswordClient() {
   if (done) {
     return (
       <div className="animate-fade-in text-center">
-        <div className="w-16 h-16 rounded-sm bg-emerald-500/20 flex items-center justify-center mx-auto mb-6">
-          <CheckCircle className="h-8 w-8 text-emerald-400" />
+        <div className="w-16 h-16 rounded-full bg-[var(--color-success-light)] flex items-center justify-center mx-auto mb-6 ring-4 ring-[var(--color-success)]/20">
+          <CheckCircle className="h-8 w-8 text-[var(--color-success)]" />
         </div>
-        <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-3">Password updated</h2>
-        <p className="text-[var(--color-text-secondary)] mb-6">You can sign in with your new password.</p>
+        <h2 className="text-2xl font-black text-[var(--color-text-primary)] mb-3 tracking-tight">Password updated</h2>
+        <p className="text-[var(--color-text-muted)] mb-6">You can sign in with your new password.</p>
         <Link href="/login">
-          <Button className="w-full" size="lg">
+          <Button className="w-full h-12 rounded-full bg-[var(--color-text-primary)] hover:bg-[var(--color-text-secondary)] text-[var(--color-bg)] font-bold text-[14px] shadow-none transition-all">
             Sign in
           </Button>
         </Link>
@@ -143,7 +142,7 @@ export function ResetPasswordClient() {
           to get a fresh email.
         </div>
         <Link href="/forgot-password">
-          <Button className="w-full mb-4" size="lg">
+          <Button className="w-full h-12 rounded-full bg-[var(--color-text-primary)] hover:bg-[var(--color-text-secondary)] text-[var(--color-bg)] font-bold text-[14px] shadow-none transition-all mb-4">
             Request new reset link
           </Button>
         </Link>
@@ -190,12 +189,16 @@ export function ResetPasswordClient() {
         </Field>
 
         {formError && (
-          <div className="rounded-sm border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div role="alert" className="p-3.5 rounded-sm text-[13px] font-semibold bg-[var(--color-danger-light)] text-[var(--color-danger)] flex items-center justify-center text-center">
             {formError}
           </div>
         )}
-        <Button type="submit" className="w-full" size="lg" loading={isPending}>
-          Update password
+        <Button
+          type="submit"
+          className="w-full h-12 rounded-full bg-[var(--color-text-primary)] hover:bg-[var(--color-text-secondary)] text-[var(--color-bg)] font-bold text-[14px] shadow-none transition-all"
+          disabled={isPending}
+        >
+          {isPending ? "Updating…" : "Update password"}
         </Button>
       </form>
       <div className="mt-6 text-center">

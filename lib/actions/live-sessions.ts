@@ -64,11 +64,6 @@ export async function createLiveSession(
     return { error: "You don't have access to this space" };
   }
 
-  const canHost = await canAccessSpace(user.id, space.id);
-  if (!canHost) {
-    return { error: "You don't have permission to host in this space" };
-  }
-
   const streamKey = `live_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
   const { data: session, error } = await supabase
@@ -80,7 +75,7 @@ export async function createLiveSession(
       title: input.title,
       description: input.description ?? null,
       privacy: input.privacy ?? "public",
-      status: input.scheduledAt ? "scheduled" : "scheduled",
+      status: input.scheduledAt ? "scheduled" : "live",
       scheduled_at: input.scheduledAt ?? null,
       max_viewers: input.maxViewers ?? 100,
       stream_key: streamKey,
@@ -217,7 +212,7 @@ export async function joinLiveSession(
     return { error: error.message };
   }
 
-  await supabase.rpc("increment_live_session_viewers", { session_id: sessionId });
+  await supabase.rpc("increment_viewer_count", { session_id: sessionId });
 
   return { participant };
 }
@@ -239,7 +234,7 @@ export async function leaveLiveSession(
     .eq("user_id", user.id)
     .is("left_at", null);
 
-  await supabase.rpc("decrement_live_session_viewers", { session_id: sessionId });
+  await supabase.rpc("decrement_viewer_count", { session_id: sessionId });
 
   return {};
 }

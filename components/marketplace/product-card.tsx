@@ -27,7 +27,7 @@ function GlassBadge({
   color?: "neutral" | "orange" | "red" | "violet" | "amber";
 }) {
   const styles = {
-    neutral: "bg-surface dark:bg-surface/70 border-border dark:border-white/10 text-stone-600 dark:text-text-muted",
+    neutral: "bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)]",
     orange:  "bg-orange-50/80 border-orange-200/50 text-orange-700",
     red:     "bg-red-500/90 border-transparent text-white shadow-[0_2px_8px_rgba(239,68,68,0.35)]",
     violet:  "bg-violet-500/90 border-transparent text-white shadow-[0_2px_8px_rgba(139,92,246,0.35)]",
@@ -35,7 +35,7 @@ function GlassBadge({
   };
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[10px] font-bold dark:border-opacity-30",
+      "inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[10px] font-bold",
       styles[color]
     )}>
       {children}
@@ -66,15 +66,15 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
         <div className={cn(
           "flex gap-4 p-4 group cursor-pointer overflow-hidden",
           "rounded-sm border ",
-          "bg-white dark:bg-surface/55 border-white/70 dark:border-white/10",
+          "bg-[var(--color-surface)] border-[var(--color-border)]",
           "shadow-none",
           "hover:shadow-none",
-          "hover:border-orange-100/80 dark:hover:border-orange-500/30 transition-all duration-300 relative"
+          "hover:border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] transition-all duration-300 relative"
         )}>
           {/* Specular shine */}
           <div className="pointer-events-none absolute inset-0 rounded-sm overflow-hidden">
-            <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-white/80 to-transparent" />
-            <div className="absolute bottom-0 right-0 w-1/3 h-1/2 rounded-sm blur-2xl bg-orange-100/40" />
+            <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-[var(--color-surface)]/60 to-transparent" />
+            <div className="absolute bottom-0 right-0 w-1/3 h-1/2 rounded-sm blur-2xl bg-[var(--color-accent)]/10" />
           </div>
 
           {/* Image */}
@@ -102,7 +102,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           {/* Info */}
           <div className="flex-1 min-w-0 py-1 relative z-10">
             {/* Vendor name removed */}
-            <h3 className="font-semibold text-[13px] text-stone-800 dark:text-text-secondary mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors leading-snug">
+            <h3 className="font-semibold text-[13px] text-[var(--color-text-secondary)] mb-2 line-clamp-2 group-hover:text-[var(--color-accent)] transition-colors leading-snug">
               {product.name}
             </h3>
             <div className="flex items-center gap-2 mb-2.5">
@@ -113,14 +113,14 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
               <LocalizedPrice
                 amount={product.price}
                 currency={(product as any).currency}
-                className="font-bold text-[14px] text-orange-600 tabular-nums"
+                className="font-bold text-[14px] text-[var(--color-accent)] tabular-nums"
               />
               {discount > 0 && (
                 <>
                   <LocalizedPrice
                     amount={effectiveCompareAt!}
                     currency={(product as any).currency}
-                    className="text-[11px] text-stone-400 line-through"
+                    className="text-[11px] text-[var(--color-text-muted)] line-through"
                   />
                   <GlassBadge color="red">-{discount}%</GlassBadge>
                 </>
@@ -132,6 +132,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           <div className="flex flex-col gap-2 flex-shrink-0 justify-center relative z-10">
             <button
               type="button"
+              aria-label={`Add ${product.name} to cart`}
               className="px-4 py-2 rounded-sm bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-hover)] text-white text-[11px] font-semibold shadow-none hover:scale-105 active:scale-95 transition-all"
             >
               Add to cart
@@ -151,15 +152,15 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
       <div className={cn(
         "group relative overflow-hidden cursor-pointer",
         "rounded-sm border ",
-        "bg-white dark:bg-surface/55 border-white/70 dark:border-white/10",
+        "bg-[var(--color-surface)] border-[var(--color-border)]",
         "shadow-none",
         "hover:shadow-none",
-        "hover:border-orange-100/80 dark:hover:border-orange-500/30 transition-all duration-300",
+        "hover:border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] transition-all duration-300",
       )}>
         {/* —â‚¬—â‚¬ Specular shine (matches dashboard GlassCard shine) —â‚¬—â‚¬ */}
         <div className="pointer-events-none absolute inset-0 rounded-sm overflow-hidden z-10">
-          <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-white/80 to-transparent" />
-          <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-sm blur-2xl bg-orange-100/40" />
+          <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-[var(--color-surface)]/60 to-transparent" />
+          <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-sm blur-2xl bg-[var(--color-accent)]/10" />
         </div>
 
         {/* —â‚¬—â‚¬ Image —â‚¬—â‚¬ */}
@@ -201,6 +202,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           <div className="absolute bottom-3 left-3 right-3 z-20 translate-y-[140%] group-hover:translate-y-0 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]">
             <button
               type="button"
+              aria-label={`Add ${product.name} to cart`}
               className="w-full h-9 rounded-sm bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-hover)] text-white text-[11px] font-semibold flex items-center justify-center gap-2 shadow-none hover:from-orange-400 hover:to-orange-500 transition-all active:scale-95"
             >
               <ShoppingCart className="h-3.5 w-3.5" /> Add to Cart
@@ -213,7 +215,7 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
           {product.affiliate_enabled && (
             <GlassBadge color="orange">Affiliate</GlassBadge>
           )}
-          <h3 className="font-semibold text-[13px] text-stone-800 dark:text-text-secondary mt-1.5 mb-2.5 line-clamp-1 group-hover:text-orange-600 transition-colors leading-tight">
+          <h3 className="font-semibold text-[13px] text-[var(--color-text-secondary)] mt-1.5 mb-2.5 line-clamp-1 group-hover:text-[var(--color-accent)] transition-colors leading-tight">
             {product.name}
           </h3>
           <div className="flex items-center justify-between">
@@ -221,13 +223,13 @@ export function ProductCard({ product, viewMode = "grid" }: ProductCardProps) {
               <LocalizedPrice
                 amount={product.price}
                 currency={(product as any).currency}
-                className="font-bold text-[14px] text-orange-600 tabular-nums"
+                className="font-bold text-[14px] text-[var(--color-accent)] tabular-nums"
               />
               {discount > 0 && (
                 <LocalizedPrice
                   amount={effectiveCompareAt!}
                   currency={(product as any).currency}
-                  className="text-[10px] text-stone-400 line-through"
+                  className="text-[10px] text-[var(--color-text-muted)] line-through"
                 />
               )}
             </div>

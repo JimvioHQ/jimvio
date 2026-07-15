@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import {
    ArrowRight, ShoppingBag, Users, Clock, Zap,
-   ShieldCheck, Wallet, DollarSign, Star, ChevronRight, Play,
+   ShieldCheck, Wallet, DollarSign, Star, Play,
    Sparkles, Store, Megaphone, Globe, CheckCircle,
    Timer, TrendingUp, User, Video,
    Clapperboard, Package, Headphones, Palette,
@@ -39,7 +39,7 @@ const accentLight = "bg-[var(--color-accent-light)]";
 
 function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-accent)]/25 bg-[var(--color-accent)]/8 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-accent)]">
+    <span className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--color-accent)_25%,transparent)] bg-[color-mix(in_srgb,var(--color-accent)_8%,transparent)] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--color-accent)]">
       {children}
     </span>
   );
@@ -70,20 +70,20 @@ function StatNumber({ children, className }: { children: React.ReactNode; classN
 
 function SignalRingVisual() {
   return (
-    <div aria-hidden className="relative flex size-48 items-center justify-center sm:size-56">
-      <div className="absolute inset-0 rounded-full border border-[var(--color-accent)]/10" />
-      <div className="absolute inset-4 rounded-full border border-[var(--color-accent)]/15" />
-      <div className="absolute inset-8 rounded-full border border-[var(--color-accent)]/20" />
-      <div className="absolute inset-12 rounded-full border border-[var(--color-accent)]/25" />
-      <div className="absolute inset-16 rounded-full border border-[var(--color-accent)]/30" />
-      <div className="absolute inset-[72px] rounded-full border border-[var(--color-accent)]/40" />
-      <div className="absolute flex size-16 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+    <div aria-hidden className="relative flex size-36 items-center justify-center sm:size-48 lg:size-56">
+      <div className="absolute inset-0 rounded-full border border-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]" />
+      <div className="absolute inset-4 rounded-full border border-[color-mix(in_srgb,var(--color-accent)_15%,transparent)]" />
+      <div className="absolute inset-8 rounded-full border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)]" />
+      <div className="absolute inset-12 rounded-full border border-[color-mix(in_srgb,var(--color-accent)_25%,transparent)]" />
+      <div className="absolute inset-16 rounded-full border border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)]" />
+      <div className="absolute inset-[72px] rounded-full border border-[color-mix(in_srgb,var(--color-accent)_40%,transparent)]" />
+      <div className="absolute flex size-16 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]">
         <Zap className="h-7 w-7 text-[var(--color-accent)]" />
       </div>
       {[1, 2, 3].map((i) => (
         <div
           key={i}
-          className="absolute inset-0 animate-ping rounded-full border border-[var(--color-accent)]/20"
+          className="absolute inset-0 animate-ping rounded-full border border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)]"
           style={{ animationDuration: `${2 + i * 0.5}s`, animationDelay: `${i * 0.4}s` }}
         />
       ))}
@@ -93,41 +93,55 @@ function SignalRingVisual() {
 
 export function HeroSection() {
   return (
-    <section className={cn(sectionBg, "relative overflow-hidden pt-12 pb-10 sm:pb-14 lg:pt-16 lg:pb-16")}>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--color-accent)_0.06_0%,transparent_70%)]" />
+    <section className={cn(sectionBg, "relative overflow-hidden pt-10 pb-10 sm:pt-12 sm:pb-14 lg:pt-16 lg:pb-16")}>
       <div className={shell}>
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+        <div className="grid items-center gap-8 sm:gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="relative z-10">
-            <h1 className="text-6xl font-semibold leading-[1.05] tracking-tight text-[var(--color-text-primary)]">
-              Shop live.
+            <h1 className="text-[clamp(1.75rem,5.5vw,3.75rem)] font-semibold leading-[1.08] tracking-tight text-[var(--color-text-primary)]">
+              Create <span className="text-[var(--color-accent)]">together.</span>{' '}
               <br />
-              <span className="text-[var(--color-accent)]">Sell live.</span>
+              Sell <span className="text-[var(--color-accent)]">together.</span>{' '}
               <br />
-              <span className="whitespace-nowrap">Get paid same day.</span>
+              Grow <span className="text-[var(--color-accent)]">together.</span>
             </h1>
 
-            <p className={cn("mt-4 max-w-lg text-[15px] leading-relaxed", "text-[var(--color-text-muted)]")}>
+            <p className={cn("mt-4 max-w-lg sm:max-w-xl text-[15px] leading-relaxed", "text-[var(--color-text-muted)]")}>
               Build your income ecosystem with Jimvio. Discover affiliate opportunities, create UGC content, sell in the marketplace, and grow with a community built for creators and entrepreneurs.
             </p>
-
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/marketplace"
-                className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full bg-[var(--color-accent)] text-[var(--color-bg)] font-body font-semibold text-base hover:bg-[var(--color-accent-hover)] transition-all duration-300 shadow-2xl shadow-[var(--color-accent)]/20 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-[var(--color-accent)] text-[var(--color-ink)] font-body font-semibold text-base hover:bg-[var(--color-accent-hover)] transition-all duration-300 shadow-2xl shadow-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] hover:-translate-y-0.5"
               >
-                Start shopping <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+                Start creating <ArrowRight size={18} strokeWidth={2.5} />
               </Link>
               <Link
                 href="/vendor/register"
-                className="inline-flex items-center justify-center gap-2.5 px-8 py-4 rounded-full border border-[var(--color-text-primary)]/15 text-[var(--color-text-primary)] font-body font-medium text-base hover:bg-[var(--color-text-primary)]/5 hover:border-[var(--color-text-primary)]/25 transition-all duration-300"
+                className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full border border-[color-mix(in_srgb,var(--color-text-primary)_20%,transparent)] text-[var(--color-text-primary)] font-body font-medium text-base hover:bg-[color-mix(in_srgb,var(--color-text-primary)_5%,transparent)] hover:border-[color-mix(in_srgb,var(--color-text-primary)_40%,transparent)] transition-all duration-300"
               >
-                Open your shop
+                Earn as a creator
               </Link>
             </div>
           </div>
 
           <div className="relative flex items-center justify-center lg:justify-end">
-            <SignalRingVisual />
+            <div
+              className="hero-product-float relative select-none w-full max-w-[320px] sm:max-w-[380px] lg:max-w-[460px]"
+              onContextMenu={(e) => e.preventDefault()}
+            >
+              <div className="relative aspect-[3/2] w-full overflow-hidden rounded-2xl">
+                <Image
+                  src="/uploads/hero-image.png"
+                  alt="Jimvio creator marketplace — products, vendors, and community"
+                  fill
+                  sizes="(max-width: 640px) 320px, (max-width: 1024px) 380px, 460px"
+                  className="no-save pointer-events-none object-contain"
+                  draggable={false}
+                  priority
+                />
+              </div>
+            </div>
+            <div className="pointer-events-none absolute -bottom-6 left-1/2 -z-10 h-16 w-3/4 -translate-x-1/2 rounded-full blur-3xl" style={{ background: "var(--color-accent-subtle)" }} />
           </div>
         </div>
       </div>
@@ -203,19 +217,23 @@ export function TrustStrip() {
 </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             {TRUST_LOGOS.map((m) => (
-              <Image
+              <span
                 key={m.name}
-                src={m.src!}
-                alt={m.name}
-                width={m.w}
-                height={m.h}
-                className={cn(
-                  "h-5 w-auto object-contain transition-all",
-                  m.color
-                    ? "opacity-40 hover:opacity-100"
-                    : "opacity-50 grayscale hover:opacity-80 hover:grayscale-0"
-                )}
-              />
+                className="inline-flex items-center justify-center w-20 h-6"
+              >
+                <Image
+                  src={m.src!}
+                  alt={m.name}
+                  width={m.w}
+                  height={m.h}
+                  className={cn(
+                    "max-h-5 w-auto object-contain transition-all",
+                    m.color
+                      ? "opacity-40 hover:opacity-100"
+                      : "opacity-50 grayscale hover:opacity-80 hover:grayscale-0"
+                  )}
+                />
+              </span>
             ))}
           </div>
         </div>
@@ -323,8 +341,10 @@ export function FlashDealsSection() {
     return () => clearInterval(interval);
   }, []);
 
+  const marqueeItems = [...items, ...items];
+
   return (
-    <section id="flash-deals" aria-label="Flash deals" className="mx-auto max-w-7xl px-6 mt-10 pb-24">
+    <section id="flash-deals" aria-label="Flash deals" className="mx-auto max-w-7xl px-6 mt-10 pb-24 overflow-hidden">
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div className="flex-1 min-w-0">
           <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-accent)] font-medium">Marketplace</span>
@@ -334,17 +354,16 @@ export function FlashDealsSection() {
         <a href="#marketplace" className="flex-shrink-0 font-mono text-sm text-[var(--color-accent)] transition-colors hover:text-[var(--color-accent-hover)]">View all deals →</a>
       </div>
 
-      <div className="flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 scroll-smooth" role="list" aria-label="Flash deal items">
-        {items.map((item, i) => (
+      <div className="flash-deals-marquee flex gap-5">
+        {marqueeItems.map((item, i) => (
           <article
-            key={item.rank}
-            role="listitem"
-            className="group w-[300px] shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--color-text-primary)]/10 bg-[var(--color-surface-secondary)] transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-accent)]/30 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5 lg:w-[340px]"
+            key={`${item.rank}-${i}`}
+            className="group w-[300px] shrink-0 overflow-hidden rounded-2xl border border-[color-mix(in_srgb,var(--color-text-primary)_10%,transparent)] bg-[var(--color-surface-secondary)] transition-all duration-300 hover:-translate-y-1 hover:border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] hover:shadow-2xl hover:shadow-[color-mix(in_srgb,var(--color-accent)_5%,transparent)] lg:w-[340px]"
           >
             <div className="relative h-56 overflow-hidden">
               <img src={item.image} alt={item.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
               <span className="absolute left-3 top-3 rounded-md bg-[var(--color-accent)] px-2.5 py-1 font-mono text-xs font-bold tracking-wide text-[var(--color-bg)] shadow-lg">{item.rank}</span>
-              <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full border border-[var(--color-text-primary)]/10 bg-[var(--color-bg)]/80 px-2.5 py-1 font-mono text-[10px] tracking-wide text-[var(--color-text-primary)] shadow-lg backdrop-blur-md">
+              <span className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full border border-[color-mix(in_srgb,var(--color-text-primary)_10%,transparent)] bg-[color-mix(in_srgb,var(--color-bg)_80%,transparent)] px-2.5 py-1 font-mono text-[10px] tracking-wide text-[var(--color-text-primary)] shadow-lg backdrop-blur-md">
                 <Zap size={10} className="text-[var(--color-accent)]" /> Ends in {times[i]}
               </span>
             </div>
@@ -358,7 +377,7 @@ export function FlashDealsSection() {
                   <span>Claimed: <strong className="text-[var(--color-text-secondary)]">{item.total - item.available}</strong></span>
                   <span>Available: <strong className="text-[var(--color-text-secondary)]">{item.available}</strong></span>
                 </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-text-primary)]/5">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--color-text-primary)_5%,transparent)]">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-hover)]"
                     style={{ width: `${(1 - item.available / item.total) * 100}%` }}
@@ -406,26 +425,26 @@ function LiveCard({ session }: { session: LiveSession }) {
   return (
     <Link
       href={isLive ? `/live/${session.id}` : "#"}
-      className={`relative group rounded-3xl overflow-hidden border ${isLive ? 'border-[var(--color-accent)]/30' : 'border-[var(--color-text-primary)]/6'} bg-[var(--color-surface-secondary)] hover:border-[var(--color-accent)]/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5`}
+      className={`relative group rounded-3xl overflow-hidden border ${isLive ? 'border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)]' : 'border-[color-mix(in_srgb,var(--color-text-primary)_6%,transparent)]'} bg-[var(--color-surface-secondary)] hover:border-[color-mix(in_srgb,var(--color-accent)_50%,transparent)] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[color-mix(in_srgb,var(--color-accent)_5%,transparent)]`}
     >
       <div className="relative h-72 lg:h-80">
         <img src={session.image} alt={session.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-50 group-hover:scale-[1.02] transition duration-700" loading="lazy" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[color-mix(in_srgb,var(--color-bg)_30%,transparent)] to-transparent" />
 
         <div className="absolute top-5 left-5 flex items-center gap-2">
-          <span className={`flex h-2.5 w-2.5 rounded-full ${isLive ? 'bg-[var(--color-accent)] animate-pulse' : 'bg-[var(--color-text-primary)]/30'}`} aria-hidden="true" />
-          <span className="font-mono text-[10px] tracking-[0.1em] uppercase px-2.5 py-1 rounded-md backdrop-blur-sm bg-[var(--color-bg)]/80 text-[var(--color-text-primary)]/90 border border-[var(--color-text-primary)]/8 font-medium">
+          <span className={`flex h-2.5 w-2.5 rounded-full ${isLive ? 'bg-[var(--color-accent)] animate-pulse' : 'bg-[color-mix(in_srgb,var(--color-text-primary)_30%,transparent)]'}`} aria-hidden="true" />
+          <span className="font-mono text-[10px] tracking-[0.1em] uppercase px-2.5 py-1 rounded-md backdrop-blur-sm bg-[color-mix(in_srgb,var(--color-bg)_80%,transparent)] text-[color-mix(in_srgb,var(--color-text-primary)_90%,transparent)] border border-[color-mix(in_srgb,var(--color-text-primary)_8%,transparent)] font-medium">
             {isLive ? 'Live now' : 'Next up'}
           </span>
         </div>
 
         <div className="absolute top-5 right-5">
           {isLive ? (
-            <span className="font-mono text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--color-bg)]/80 backdrop-blur-sm border border-[var(--color-text-primary)]/8 text-[var(--color-text-primary)]/80">
+            <span className="font-mono text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[color-mix(in_srgb,var(--color-bg)_80%,transparent)] backdrop-blur-sm border border-[color-mix(in_srgb,var(--color-text-primary)_8%,transparent)] text-[color-mix(in_srgb,var(--color-text-primary)_80%,transparent)]">
               <Users size={12} className="text-[var(--color-accent)]" /> {session.viewers} watching
             </span>
           ) : (
-            <span className="font-mono text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--color-bg)]/80 backdrop-blur-sm border border-[var(--color-text-primary)]/8 text-[var(--color-text-primary)]/80">
+            <span className="font-mono text-xs flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[color-mix(in_srgb,var(--color-bg)_80%,transparent)] backdrop-blur-sm border border-[color-mix(in_srgb,var(--color-text-primary)_8%,transparent)] text-[color-mix(in_srgb,var(--color-text-primary)_80%,transparent)]">
               <Clock size={12} className="text-amber-400" /> {session.next}
             </span>
           )}
@@ -434,15 +453,15 @@ function LiveCard({ session }: { session: LiveSession }) {
         <div className="absolute bottom-6 left-6 right-6">
           <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[var(--color-accent)]">{session.category}</span>
           <h3 className="font-display font-semibold text-2xl lg:text-3xl tracking-tight text-[var(--color-text-primary)] mt-1">{session.host}</h3>
-          <p className="mt-1 text-[var(--color-text-primary)]/60 text-sm font-body">{session.title}</p>
+          <p className="mt-1 text-[color-mix(in_srgb,var(--color-text-primary)_60%,transparent)] text-sm font-body">{session.title}</p>
         </div>
       </div>
 
       <div className="p-5 flex items-center justify-between">
-        <div className="font-body text-sm text-[var(--color-text-primary)]/60">
-          Host: <strong className="text-[var(--color-text-primary)]/90">{session.host}</strong>
+        <div className="font-body text-sm text-[color-mix(in_srgb,var(--color-text-primary)_60%,transparent)]">
+          Host: <strong className="text-[color-mix(in_srgb,var(--color-text-primary)_90%,transparent)]">{session.host}</strong>
         </div>
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-body font-semibold bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-hover)] transition-colors shadow-lg shadow-[var(--color-accent)]/15">
+        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-body font-semibold bg-[var(--color-accent)] text-[var(--color-bg)] hover:bg-[var(--color-accent-hover)] transition-colors shadow-lg shadow-[color-mix(in_srgb,var(--color-accent)_15%,transparent)]">
           {isLive ? 'Join session' : 'Set reminder'} <Play size={14} strokeWidth={2.5} />
         </span>
       </div>
@@ -474,7 +493,7 @@ export function LiveShoppingSpotlight() {
           {sessions.length > 0 ? sessions.map((s) => (
             <LiveCard key={s.id} session={s} />
           )) : (
-            <div className={cn("col-span-full rounded-2xl border border-[var(--color-text-primary)]/8 p-8 text-center", "text-[var(--color-text-muted)]")}>
+            <div className={cn("col-span-full rounded-2xl border border-[color-mix(in_srgb,var(--color-text-primary)_8%,transparent)] p-8 text-center", "text-[var(--color-text-muted)]")}>
               <p className="mb-1 text-sm font-semibold text-[var(--color-text-primary)]">No live sessions right now</p>
               <p className="text-[13px]">Next live: Fashion Try-On — Tomorrow 4PM</p>
             </div>
@@ -508,18 +527,18 @@ function CategoryCard({ cat }: { cat: typeof CATEGORIES[0] }) {
   return (
     <a
       href={cat.href}
-      className="group relative h-72 lg:h-80 rounded-2xl overflow-hidden border border-[var(--color-text-primary)]/10 bg-[var(--color-bg)] hover:border-[var(--color-accent)]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5"
+      className="group relative h-72 lg:h-80 rounded-2xl overflow-hidden border border-[color-mix(in_srgb,var(--color-text-primary)_10%,transparent)] bg-[var(--color-bg)] hover:border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[color-mix(in_srgb,var(--color-accent)_5%,transparent)]"
       aria-label={`Browse ${cat.name}`}
     >
       <img src={cat.image} alt={cat.name} className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-40 group-hover:scale-105 transition-all duration-700" loading="lazy" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[color-mix(in_srgb,var(--color-bg)_40%,transparent)] to-transparent" />
 
       <div className="relative h-full p-6 lg:p-7 flex flex-col justify-end">
         <div>
           <h3 className="font-display font-semibold text-2xl lg:text-3xl tracking-tight text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors">{cat.name}</h3>
-          <p className="mt-1 font-mono text-sm text-[var(--color-text-primary)]/40">{cat.count}</p>
+          <p className="mt-1 font-mono text-sm text-[color-mix(in_srgb,var(--color-text-primary)_40%,transparent)]">{cat.count}</p>
         </div>
-        <div className="mt-4 pt-4 border-t border-[var(--color-text-primary)]/10 flex items-center justify-between text-sm font-body text-[var(--color-text-primary)]/60 group-hover:text-[var(--color-text-primary)]/90 transition-colors">
+        <div className="mt-4 pt-4 border-t border-[color-mix(in_srgb,var(--color-text-primary)_10%,transparent)] flex items-center justify-between text-sm font-body text-[color-mix(in_srgb,var(--color-text-primary)_60%,transparent)] group-hover:text-[color-mix(in_srgb,var(--color-text-primary)_90%,transparent)] transition-colors">
           <span>Browse</span>
           <span aria-hidden="true">→</span>
         </div>
@@ -593,7 +612,7 @@ function CreatorCard({ creator }: { creator: Creator }) {
        className="group flex flex-col gap-5 rounded-2xl bg-[var(--color-bg)] p-6 transition-all duration-300 hover:-translate-y-0.5 min-h-[300px]"
      >
        <div className="flex items-center gap-4">
-         <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/15 text-2xl font-bold text-[var(--color-accent)]">
+         <span className="flex size-16 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-accent)_15%,transparent)] text-2xl font-bold text-[var(--color-accent)]">
            {creator.avatar}
          </span>
          <div>
@@ -671,20 +690,20 @@ export function HowJimvioWorks() {
       <div className="mb-10">
         <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-accent)] font-medium">How it works</span>
         <h2 className="font-display font-semibold text-4xl lg:text-[3.5rem] tracking-[-0.045em] text-[var(--color-text-primary)] mt-2">Three steps. No friction.</h2>
-        <p className="mt-3 text-[var(--color-text-primary)]/50 font-body text-base max-w-xl">Not a sign-up funnel — it's how people actually move through Jimvio.</p>
+        <p className="mt-3 text-[color-mix(in_srgb,var(--color-text-primary)_50%,transparent)] font-body text-base max-w-xl">Not a sign-up funnel — it's how people actually move through Jimvio.</p>
       </div>
 
       <div className="relative">
         {/* Connecting line for desktop */}
-        <div aria-hidden="true" className="hidden lg:block absolute top-16 left-[calc(33.33%-1rem)] w-[calc(33.33%+2rem)] h-px bg-gradient-to-r from-[var(--color-accent)]/30 via-[var(--color-accent)]/10 to-transparent" />
+        <div aria-hidden="true" className="hidden lg:block absolute top-16 left-[calc(33.33%-1rem)] w-[calc(33.33%+2rem)] h-px bg-gradient-to-r from-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] via-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] to-transparent" />
 
         <div className="grid lg:grid-cols-3 gap-5">
           {steps.map((step) => (
-            <article key={step.num} className="relative rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-8 lg:p-9 hover:border-[var(--color-accent)]/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]">
-              <span className="font-mono text-5xl font-bold text-[var(--color-accent)]/30 tracking-tighter select-none">{step.num}</span>
+            <article key={step.num} className="relative rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] p-8 lg:p-9 hover:border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lg)]">
+              <span className="font-mono text-5xl font-bold text-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] tracking-tighter select-none">{step.num}</span>
               <h3 className="font-display font-semibold text-2xl tracking-tight text-[var(--color-text-primary)] mt-3">{step.title}</h3>
-              <p className="mt-3 text-[var(--color-text-primary)]/60 font-body text-sm leading-relaxed">{step.desc}</p>
-              <div className="mt-6 pt-5 border-t border-[var(--color-text-primary)]/5 flex items-center justify-between">
+              <p className="mt-3 text-[color-mix(in_srgb,var(--color-text-primary)_60%,transparent)] font-body text-sm leading-relaxed">{step.desc}</p>
+              <div className="mt-6 pt-5 border-t border-[color-mix(in_srgb,var(--color-text-primary)_5%,transparent)] flex items-center justify-between">
                 <span className="font-mono text-[10px] tracking-[0.15em] uppercase text-[var(--color-accent)]">{step.meta}</span>
                 <ArrowDownRight size={16} className="text-[var(--color-accent)]" />
               </div>
@@ -725,7 +744,7 @@ export function FeaturedUGCCampaigns() {
             <Link
               key={c.title}
               href="/ugc"
-              className="group relative overflow-hidden rounded-3xl border border-[var(--color-text-primary)]/20 bg-[var(--color-bg)] transition-all duration-300 hover:-translate-y-1.5 hover:border-[var(--color-accent)]/25 hover:shadow-2xl hover:shadow-[var(--color-accent)]/5"
+              className="group relative overflow-hidden rounded-3xl border border-[color-mix(in_srgb,var(--color-text-primary)_20%,transparent)] bg-[var(--color-bg)] transition-all duration-300 hover:-translate-y-1.5 hover:border-[color-mix(in_srgb,var(--color-accent)_25%,transparent)] hover:shadow-2xl hover:shadow-[color-mix(in_srgb,var(--color-accent)_5%,transparent)]"
             >
               <div className="relative h-60 overflow-hidden">
                 <img
@@ -739,23 +758,23 @@ export function FeaturedUGCCampaigns() {
                     "font-body text-[10px] tracking-wide",
                     c.status === "Trending"
                       ? "rounded-md bg-[var(--color-accent)] px-2 py-0.5 font-bold text-[var(--color-bg)]"
-                      : "rounded-md border border-[var(--color-text-primary)]/8 bg-[var(--color-bg)]/80 px-2 py-0.5 text-[var(--color-text-primary)]/80 backdrop-blur-sm"
+                      : "rounded-md border border-[color-mix(in_srgb,var(--color-text-primary)_8%,transparent)] bg-[color-mix(in_srgb,var(--color-bg)_80%,transparent)] px-2 py-0.5 text-[color-mix(in_srgb,var(--color-text-primary)_80%,transparent)] backdrop-blur-sm"
                   )}>
                     {c.status}
                   </span>
                 </div>
                 <div className="absolute right-4 top-4">
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-bg)]/80 px-2.5 py-1 backdrop-blur-sm">
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[color-mix(in_srgb,var(--color-bg)_80%,transparent)] px-2.5 py-1 backdrop-blur-sm">
                     <span className="font-mono text-sm font-bold text-[var(--color-text-primary)]">{c.clips}</span>
-                    <span className="font-['var(--font-ibm-plex-mono)'] text-[9px] tracking-wide text-[var(--color-text-primary)]/40">clips</span>
+                    <span className="font-['var(--font-ibm-plex-mono)'] text-[9px] tracking-wide text-[color-mix(in_srgb,var(--color-text-primary)_40%,transparent)]">clips</span>
                   </span>
                 </div>
-                <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/20 to-transparent" />
+                <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-[var(--color-bg)] via-[color-mix(in_srgb,var(--color-bg)_20%,transparent)] to-transparent" />
                 <div className="absolute bottom-5 left-5 right-5">
-                  <h3 className="font-['var(--font-fraunces)'] text-2xl font-semibold tracking-tight text-[var(--color-text-primary)]">
+                  <h3 className="text-2xl font-normal tracking-tight text-[var(--color-text-primary)]">
                     {c.title}
                   </h3>
-                  <p className="font-['var(--font-ibm-plex-mono)'] text-[10px] uppercase tracking-[0.1em] text-[var(--color-accent)]/60">
+                  <p className="font-['var(--font-ibm-plex-mono)'] text-[10px] uppercase tracking-[0.1em] text-[color-mix(in_srgb,var(--color-accent)_60%,transparent)]">
                     {c.subtitle}
                   </p>
                 </div>
@@ -763,17 +782,17 @@ export function FeaturedUGCCampaigns() {
 
               <div className="p-6">
                 <div className="mb-5 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-[var(--color-text-primary)]/5 bg-[var(--color-surface-secondary)] p-3 text-center">
+                  <div className="rounded-2xl border border-[color-mix(in_srgb,var(--color-text-primary)_5%,transparent)] bg-[var(--color-surface-secondary)] p-3 text-center">
                     <span className="font-mono text-xl font-semibold text-[var(--color-accent)]">{c.pool}</span>
-                    <span className="mt-0.5 block font-mono text-[9px] tracking-wide text-[var(--color-text-primary)]/30">Reward pool</span>
+                    <span className="mt-0.5 block font-mono text-[9px] tracking-wide text-[color-mix(in_srgb,var(--color-text-primary)_30%,transparent)]">Reward pool</span>
                   </div>
-                  <div className="rounded-2xl border border-[var(--color-text-primary)]/5 bg-[var(--color-surface-secondary)] p-3 text-center">
+                  <div className="rounded-2xl border border-[color-mix(in_srgb,var(--color-text-primary)_5%,transparent)] bg-[var(--color-surface-secondary)] p-3 text-center">
                     <span className="font-mono text-xl font-semibold text-[var(--color-text-primary)]">{c.rewardPerView}</span>
-                    <span className="mt-0.5 block font-mono text-[9px] tracking-wide text-[var(--color-text-primary)]/30">Per view</span>
+                    <span className="mt-0.5 block font-mono text-[9px] tracking-wide text-[color-mix(in_srgb,var(--color-text-primary)_30%,transparent)]">Per view</span>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-[var(--color-text-primary)]/5 pt-4">
+                <div className="flex items-center justify-between border-t border-[color-mix(in_srgb,var(--color-text-primary)_5%,transparent)] pt-4">
                   <span className="inline-flex items-center gap-1.5 text-xs font-body font-medium text-emerald-400">
                     <TrendingUp className="h-3.5 w-3.5" /> {c.trend}
                   </span>
@@ -831,7 +850,7 @@ export function SocialProof() {
           {QUOTES.map((q) => (
             <div key={q.name} className="group flex flex-col rounded-2xl bg-[var(--color-surface)] p-5 sm:p-6 transition-all duration-300 hover:-translate-y-0.5">
               <div className="mb-4 flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] flex items-center justify-center shrink-0">
                   <span className="text-xl font-bold text-[var(--color-accent)]">{q.avatar}</span>
                 </div>
                 <div>
@@ -874,9 +893,9 @@ export function PlatformSection() {
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
             <Link
               href="/marketplace"
-              className="group flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/50 hover:border-[var(--color-accent)]/20 hover:bg-[var(--color-bg)] transition-all hover:-translate-y-0.5"
+              className="group flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-bg)_50%,transparent)] hover:border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] hover:bg-[var(--color-bg)] transition-all hover:-translate-y-0.5"
             >
-              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] flex items-center justify-center shrink-0">
                 <ShoppingBag size={18} className="text-[var(--color-accent)]" />
               </div>
               <div className="text-left pt-1">
@@ -887,9 +906,9 @@ export function PlatformSection() {
 
             <Link
               href="/live"
-              className="group flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/50 hover:border-[var(--color-accent)]/20 hover:bg-[var(--color-bg)] transition-all hover:-translate-y-0.5"
+              className="group flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-bg)_50%,transparent)] hover:border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] hover:bg-[var(--color-bg)] transition-all hover:-translate-y-0.5"
             >
-              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] flex items-center justify-center shrink-0">
                 <Video size={18} className="text-[var(--color-accent)]" />
               </div>
               <div className="text-left pt-1">
@@ -900,9 +919,9 @@ export function PlatformSection() {
 
             <Link
               href="/creators"
-              className="group flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]/50 hover:border-[var(--color-accent)]/20 hover:bg-[var(--color-bg)] transition-all hover:-translate-y-0.5"
+              className="group flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-bg)_50%,transparent)] hover:border-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] hover:bg-[var(--color-bg)] transition-all hover:-translate-y-0.5"
             >
-              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] flex items-center justify-center shrink-0">
                 <Users size={18} className="text-[var(--color-accent)]" />
               </div>
               <div className="text-left pt-1">
@@ -931,54 +950,54 @@ export function SecurityPayments() {
   return (
     <section className={cn(sectionBg, "py-12 sm:py-16")}>
       <div className={shell}>
-        <div className="rounded-3xl border border-white/10 dark:border-white/10 bg-[var(--color-bg)] p-8 lg:p-10">
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-8 lg:p-10">
           <h2 className="text-3xl font-semibold tracking-tight text-[var(--color-text-primary)] lg:text-4xl mb-4">
             Shop with confidence
           </h2>
-          <p className="text-[var(--color-text-primary)]/50 text-base lg:text-lg mb-10 max-w-2xl">
+          <p className="text-[var(--color-text-muted)] text-base lg:text-lg mb-10 max-w-2xl">
             Your security is our priority. Every transaction is protected from checkout to delivery.
           </p>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {/* Two-factor login */}
-            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-paper)]/10 bg-[var(--color-ink)]/50 hover:border-[var(--color-accent)]/20 transition-all">
-              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] transition-all">
+              <div className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] flex items-center justify-center shrink-0">
                 <Fingerprint size={18} className="text-[var(--color-accent)]" />
               </div>
               <div>
-                <h3 className="font-body font-semibold text-[var(--color-paper)]">Two-factor login</h3>
-                <p className="text-sm text-[var(--color-paper)]/50 font-body mt-1 leading-relaxed">TOTP + backup codes — enabled on every account by default. No exceptions.</p>
+                <h3 className="font-body font-semibold text-[var(--color-text-primary)]">Two-factor login</h3>
+                <p className="text-sm text-[var(--color-text-muted)] font-body mt-1 leading-relaxed">TOTP + backup codes — enabled on every account by default. No exceptions.</p>
               </div>
             </div>
 
             {/* Buyer Protection */}
-            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-paper)]/10 bg-[var(--color-ink)]/50 hover:border-[var(--color-accent)]/20 transition-all">
-              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] transition-all">
+              <div className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] flex items-center justify-center shrink-0">
                 <Lock size={18} className="text-[var(--color-accent)]" />
               </div>
               <div>
-                <h3 className="font-body font-semibold text-[var(--color-paper)]">Buyer protection</h3>
-                <p className="text-sm text-[var(--color-paper)]/50 font-body mt-1 leading-relaxed">Every order is tracked. Refunds within 24 hours if delivery fails.</p>
+                <h3 className="font-body font-semibold text-[var(--color-text-primary)]">Buyer protection</h3>
+                <p className="text-sm text-[var(--color-text-muted)] font-body mt-1 leading-relaxed">Every order is tracked. Refunds within 24 hours if delivery fails.</p>
               </div>
             </div>
 
             {/* Worldwide Shipping */}
-            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-paper)]/10 bg-[var(--color-ink)]/50 hover:border-[var(--color-accent)]/20 transition-all">
-              <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 flex items-center justify-center shrink-0">
+            <div className="flex items-start gap-4 p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] hover:border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] transition-all">
+              <div className="w-10 h-10 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)] flex items-center justify-center shrink-0">
                 <Truck size={18} className="text-[var(--color-accent)]" />
               </div>
               <div>
-                <h3 className="font-body font-semibold text-[var(--color-paper)]">Worldwide Shipping</h3>
-                <p className="text-sm text-[var(--color-paper)]/50 font-body mt-1 leading-relaxed">Fast & reliable delivery</p>
+                <h3 className="font-body font-semibold text-[var(--color-text-primary)]">Worldwide Shipping</h3>
+                <p className="text-sm text-[var(--color-text-muted)] font-body mt-1 leading-relaxed">Fast & reliable delivery</p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 border-t border-[var(--color-paper)]/30 pt-6 mt-8">
+          <div className="flex flex-wrap gap-3 border-t border-[var(--color-border)] pt-6 mt-8">
             {PAYMENT_PROVIDERS.map((p) => (
               <span
                 key={p.name}
-                className="inline-flex items-center justify-center rounded-full bg-[var(--color-bg)]/60 p-2 backdrop-blur-sm"
+                className="inline-flex items-center justify-center rounded-full bg-[var(--color-surface-secondary)] p-2"
               >
                 <Image
                   src={p.logo}
@@ -1014,8 +1033,8 @@ export function CommonQuestions() {
     <section id="faq" aria-label="Common questions" className="mx-auto max-w-7xl px-6 pb-24">
       <div className="mb-9">
         <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-[var(--color-accent)] font-medium">FAQ</span>
-        <h2 className="font-display font-semibold text-4xl lg:text-[3.5rem] tracking-[-0.045em] text-[var(--color-paper)] mt-2">Common questions.</h2>
-        <p className="mt-3 text-[var(--color-paper)]/50 font-body text-base max-w-xl leading-relaxed">Concrete answers — no filler, no marketing language.</p>
+        <h2 className="font-display font-semibold text-4xl lg:text-[3.5rem] tracking-[-0.045em] text-[var(--color-text-primary)] mt-2">Common questions.</h2>
+        <p className="mt-3 text-[var(--color-text-muted)] font-body text-base max-w-xl leading-relaxed">Concrete answers — no filler, no marketing language.</p>
       </div>
 
       <div className="flex flex-col gap-5">
@@ -1026,29 +1045,29 @@ export function CommonQuestions() {
               onClick={() => setOpen(open === i ? null : i)}
               className={`w-full text-left rounded-2xl border p-6 lg:p-7 transition-all duration-300 hover:-translate-y-0.5 ${
                 open === i
-                  ? 'bg-[var(--color-surface-secondary)] border-[var(--color-accent)]/30 shadow-2xl shadow-[var(--color-accent)]/5'
-                  : 'bg-[var(--color-bg)]/60 border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
+                  ? 'bg-[var(--color-surface-secondary)] border-[color-mix(in_srgb,var(--color-accent)_30%,transparent)] shadow-2xl shadow-[color-mix(in_srgb,var(--color-accent)_5%,transparent)]'
+                  : 'bg-[color-mix(in_srgb,var(--color-bg)_60%,transparent)] border-[var(--color-border)] hover:border-[var(--color-border-strong)]'
               }`}
               aria-expanded={open === i}
             >
               <div className="flex items-start justify-between gap-4">
                 <h3 className="font-display font-semibold text-lg lg:text-xl tracking-tight text-[var(--color-text-primary)]">{item.q}</h3>
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border transition-colors duration-300 ${open === i ? 'bg-[var(--color-accent)] border-[var(--color-accent)] text-[var(--color-bg)]' : 'bg-[var(--color-bg)] border-[var(--color-text-primary)]/20 text-[var(--color-text-primary)]/50'}`}>
+                <span className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border transition-colors duration-300 ${open === i ? 'bg-[var(--color-accent)] border-[var(--color-accent)] text-[var(--color-bg)]' : 'bg-[var(--color-bg)] border-[color-mix(in_srgb,var(--color-text-primary)_20%,transparent)] text-[color-mix(in_srgb,var(--color-text-primary)_50%,transparent)]'}`}>
                   {open === i ? <Minus size={14} strokeWidth={2.5} /> : <Plus size={14} strokeWidth={2.5} />}
                 </span>
               </div>
               <div
                 className={`overflow-hidden transition-all duration-500 ease-out ${open === i ? 'max-h-[300px] mt-4 opacity-100' : 'max-h-0 opacity-0'}`}
               >
-                <p className="text-[var(--color-accent)] font-body text-sm lg:text-base leading-[1.8]">{item.a}</p>
+                <p className="text-[var(--color-text-secondary)] font-body text-sm lg:text-base leading-[1.8]">{item.a}</p>
               </div>
             </button>
           ))}
         </div>
 
-        <a href="#" className="block rounded-2xl bg-gradient-to-br from-[var(--color-surface-secondary)] to-[var(--color-bg)] border border-[var(--color-text-primary)]/10 p-7 hover:border-[var(--color-accent)]/25 hover:-translate-y-1 transition-all duration-300">
+        <a href="#" className="block rounded-2xl bg-gradient-to-br from-[var(--color-surface-secondary)] to-[var(--color-bg)] border border-[color-mix(in_srgb,var(--color-text-primary)_10%,transparent)] p-7 hover:border-[color-mix(in_srgb,var(--color-accent)_25%,transparent)] hover:-translate-y-1 transition-all duration-300">
           <h3 className="font-display font-semibold text-2xl tracking-tight text-[var(--color-text-primary)]">Still have questions?</h3>
-          <p className="mt-3 text-[var(--color-text-primary)]/50 font-body text-sm leading-relaxed">Contact support — real people, not chatbots. Average response: under 10 minutes during business hours.</p>
+          <p className="mt-3 text-[color-mix(in_srgb,var(--color-text-primary)_50%,transparent)] font-body text-sm leading-relaxed">Contact support — real people, not chatbots. Average response: under 10 minutes during business hours.</p>
           <span className="mt-5 inline-flex items-center gap-2 text-sm font-body font-semibold text-[var(--color-accent)]">Contact support →</span>
         </a>
       </div>
@@ -1077,7 +1096,7 @@ export function FooterCTA() {
              href="/marketplace"
              className="group flex flex-col items-center gap-3 rounded-2xl bg-[var(--color-bg-elevated)] p-6 text-center transition-all hover:-translate-y-0.5"
            >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]">
                 <ShoppingBag className="h-[18px] w-[18px] text-[var(--color-accent)]" />
               </div>
              <div>
@@ -1093,7 +1112,7 @@ export function FooterCTA() {
              href="/vendor/register"
              className="group flex flex-col items-center gap-3 rounded-2xl bg-[var(--color-bg-elevated)] p-6 text-center transition-all hover:-translate-y-0.5"
            >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]">
                 <Store className="h-[18px] w-[18px] text-[var(--color-accent)]" />
               </div>
              <div>
@@ -1105,11 +1124,11 @@ export function FooterCTA() {
              </span>
            </Link>
 
-           <Link
-             href="/ugc"
-             className="group flex flex-col items-center gap-3 rounded-2xl bg-[var(--color-bg)] p-6 text-center transition-all hover:-translate-y-0.5"
-           >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)]/10">
+            <Link
+              href="/ugc"
+              className="group flex flex-col items-center gap-3 rounded-2xl bg-[var(--color-bg-elevated)] p-6 text-center transition-all hover:-translate-y-0.5"
+            >
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-accent)_10%,transparent)]">
                 <Clapperboard className="h-[18px] w-[18px] text-[var(--color-accent)]" />
               </div>
              <div>
@@ -1120,11 +1139,11 @@ export function FooterCTA() {
                Browse campaigns <ArrowRight className="h-3.5 w-3.5" />
              </span>
            </Link>
-         </div>
-       </div>
-     </section>
-   );
- }
+          </div>
+        </div>
+      </section>
+    );
+  }
 
 /* ═══════════════════════════════════════════════
    REVEAL — scroll-triggered fade-up

@@ -44,8 +44,8 @@ function LogoMark({ size: px }: { size: number }) {
             >
                 <defs>
                     <linearGradient id="j-logo-bg" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#fd5000" />
-                        <stop offset="100%" stopColor="var(--color-accent-hover)" />
+                        <stop offset="0%" stopColor="#ff6a1a" />
+                        <stop offset="100%" stopColor="var(--color-accent-hover, #e04700)" />
                     </linearGradient>
                 </defs>
                 <rect x="0.5" y="0.5" width="31" height="31" rx="7" fill="url(#j-logo-bg)" />

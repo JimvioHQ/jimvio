@@ -33,14 +33,38 @@ export function VisaLogo({ className }: LogoProps) {
 export function MastercardLogo({ className }: LogoProps) {
   return (
     <svg
-      viewBox="0 0 52 32"
-      className={cn("h-6 w-auto", className)}
+      viewBox="0 0 60 38"
+      className={cn("h-7 w-auto", className)}
       role="img"
       aria-label="Mastercard"
     >
-      <circle cx="18" cy="16" r="12" fill="#EB001B" />
-      <circle cx="34" cy="16" r="12" fill="#F79E1B" />
-      <path d="M26 6.5a12 12 0 0 0 0 19A12 12 0 0 0 26 6.5z" fill="#FF5F00" />
+      <defs>
+        <clipPath id="mc-clip">
+          <path d="M22.5 6a13 13 0 0 1 0 20 13 13 0 1 0 0-20z" />
+        </clipPath>
+        <linearGradient id="mc-blend" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#EB001B" />
+          <stop offset="50%" stopColor="#F79E1B" />
+          <stop offset="100%" stopColor="#F79E1B" />
+        </linearGradient>
+      </defs>
+      <g transform="translate(0, 2)">
+        <circle cx="17" cy="16" r="13" fill="#EB001B" />
+        <circle cx="37" cy="16" r="13" fill="#F79E1B" />
+        <circle cx="27" cy="16" r="13" fill="url(#mc-blend)" clipPath="url(#mc-clip)" opacity="0.85" />
+      </g>
+      <text
+        x="30"
+        y="34"
+        textAnchor="middle"
+        fill="currentColor"
+        fontSize="7.5"
+        fontWeight="700"
+        fontFamily="Arial, Helvetica, sans-serif"
+        letterSpacing="0.15em"
+      >
+        Mastercard
+      </text>
     </svg>
   );
 }

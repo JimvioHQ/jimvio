@@ -108,9 +108,9 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
   return (
     <Link
       href={`/marketplace/${d.slug}`}
-      className="product-tap-nav group relative flex w-full min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card transition-[transform,box-shadow] duration-150 ease-out hover:shadow-[var(--shadow-card)]"
+      className="product-tap-nav group relative flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] transition-[transform,box-shadow] duration-150 ease-out hover:shadow-[var(--shadow-card)]"
     >
-      <div className="relative aspect-square w-full overflow-hidden bg-muted/50">
+      <div className="relative aspect-square w-full overflow-hidden bg-[var(--color-surface-secondary)]/50">
         <ProductCardVideoMedia
           productId={d.id}
           product={d}
@@ -125,7 +125,7 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
         />
       </div>
       {discount && (
-        <span className="absolute left-2 top-2 z-10 rounded-md bg-primary px-1 py-0.5 text-[8px] font-bold leading-none text-primary-foreground md:text-[9px]">
+        <span className="absolute left-2 top-2 z-10 rounded-md bg-[var(--color-accent)] px-1 py-0.5 text-[8px] font-bold leading-none text-white md:text-[9px]">
           {discount}
         </span>
       )}
@@ -144,8 +144,7 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
           </span>
           {compareAtPrice && (
             <span
-              className="text-[8px] font-medium leading-none line-through opacity-70 md:text-[9px]"
-              style={{ color: "#9CA3AF" }}
+              className="text-[8px] font-medium leading-none line-through opacity-70 text-[var(--color-text-muted)] md:text-[9px]"
             >
               {formatMoney(compareAtPrice, d.currency)}
             </span>

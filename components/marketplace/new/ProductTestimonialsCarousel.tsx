@@ -418,32 +418,21 @@ export function ProductTestimonialsCarousel({ products, type }: Props) {
   // Show fallback when no reviews exist yet
   if (!products?.length) {
     return (
-      <section
-        className="rounded-2xl overflow-hidden"
-        style={{
-          background: "linear-gradient(135deg, #0d0500 0%, #1e0900 45%, #2d1200 100%)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.22), 0 0 0 1px rgba(59,130,246,0.06)",
-        }}
-      >
+      <section className="rounded-2xl overflow-hidden border border-[color-mix(in_srgb,var(--color-text-primary)_8%,transparent)] bg-[var(--color-surface)]">
         <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-          <div className="mb-4 flex items-center gap-2 rounded-full bg-[rgba(253,80,0,0.1)] px-4 py-2 text-sm font-medium text-[var(--color-accent)]">
+          <div className="mb-4 flex items-center gap-2 rounded-full bg-[color-mix(in_srgb,var(--color-accent)_12%,transparent)] px-4 py-2 text-sm font-medium text-[var(--color-accent)]">
             <Star className="h-4 w-4" />
             <span>{type === "digital" ? "Top Rated Digital" : "Customer Favorites"}</span>
           </div>
-          <h2 className="text-xl font-black tracking-tight text-white sm:text-2xl lg:text-3xl" style={{ letterSpacing: "-0.025em" }}>
+          <h2 className="text-xl font-black tracking-tight text-[var(--color-text-primary)] sm:text-2xl lg:text-3xl">
             Be the first to review
           </h2>
-          <p className="mt-2 max-w-md text-base text-[rgba(255,255,255,0.7)]">
+          <p className="mt-2 max-w-md text-base text-[var(--color-text-muted)]">
             No reviews yet for {type} products. Start shopping and share your experience!
           </p>
           <Link
             href={`/marketplace?type=${type}&sort=rating`}
-            className="mt-6 inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold text-white transition-all hover:-translate-y-0.5"
-            style={{
-              background: "linear-gradient(135deg, var(--color-accent), #ff7a30)",
-              boxShadow: "0 4px 18px rgba(253,80,0,0.4), 0 2px 8px rgba(253,80,0,0.35)",
-            }}
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-bold text-[var(--color-bg)] transition-all hover:opacity-90"
           >
             <Star className="h-4 w-4" />
             Explore Top Rated

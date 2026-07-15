@@ -22,6 +22,7 @@ export type CommunityRow = {
   image_url?: string | null;
   avatar_url?: string | null;
   created_at?: string | null;
+  tags?: string[] | null;
   profiles?: {
     full_name: string | null;
     avatar_url: string | null;
@@ -170,6 +171,25 @@ export function SharedCommunityCard({
             ) : owner ? (
               <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">by {owner}</p>
             ) : null}
+
+            {/* Tags */}
+            {c.tags && c.tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {c.tags.slice(0, 5).map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center gap-1 rounded bg-[var(--color-surface-secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-text-secondary)]"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {c.tags.length > 5 && (
+                  <span className="inline-flex items-center rounded bg-[var(--color-surface-secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-text-muted)]">
+                    +{c.tags.length - 5}
+                  </span>
+                )}
+              </div>
+            )}
 
             <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-[var(--color-text-muted)]">
               <span>{formatNumber(c.member_count ?? 0)} members</span>
