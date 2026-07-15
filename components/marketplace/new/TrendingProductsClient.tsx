@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   Flame, Sparkles, CheckCircle2,
   TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star, ArrowRight,
+  Check, X, Minus, Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -56,169 +57,13 @@ function normaliseVariant(v: any): DbVariant {
   };
 }
 
-// Single helper — shows toast AND sets inline error state, never logs to console
-function reportError(
-  msg: string,
-  setAddError: (m: string | null) => void
-) {
-  setAddError(msg);
-  toast.error(msg);
-  setTimeout(() => setAddError(null), 3000);
-}
-
-function LoadMoreSkeleton() {
-  return (
-    <>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={`load-more-skeleton-${i}`}
-          className="overflow-hidden rounded-xl border border-[var(--color-border)]"
-          style={{ background: "var(--color-surface)" }}
-        >
-          <div className="aspect-square animate-pulse" style={{ background: "var(--color-surface-secondary)" }} />
-          <div className="space-y-2 p-2.5">
-            <div className="h-3 w-full animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
-            <div className="h-4 w-1/2 animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
-          </div>
-        </div>
-      ))}
-    </>
-  );
-}
-
-export function TrendingProductsClient({
-  products,
-  type = "physical",
-  loading = false,
-}: {
-  products: Product[];
-  type?: "physical" | "digital";
-  loading?: boolean;
-}) {
-  const TABS = type === "digital" ? DIGITAL_TABS : PHYSICAL_TABS;
-  const [activeTab, setActiveTab] = useState(0);
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [cartProductIds, setCartProductIds] = useState<Set<string>>(() => new Set());
-
-  const refreshCartProductIds = useCallback(async () => {
-    const ids = await getCartProductIds();
-    setCartProductIds(new Set(ids));
-  }, []);
-
-  useEffect(() => {
-    void refreshCartProductIds();
-  }, [refreshCartProductIds]);
-
-  useEffect(() => {
-    const onCartUpdated = () => {
-      void refreshCartProductIds();
-    };
-    window.addEventListener("cart-updated", onCartUpdated);
-    return () => window.removeEventListener("cart-updated", onCartUpdated);
-  }, [refreshCartProductIds]);
-
-  useEffect(() => { setActiveTab(0); }, [type]);
-
-  useEffect(() => {
-    const el = tabRefs.current[activeTab];
-    if (el) setIndicatorStyle({ left: el.offsetLeft, width: el.offsetWidth });
-  }, [activeTab]);
-
-  const filtered = products.filter(TABS[activeTab].filter);
-
-  return (
-    <div className="w-full max-w-full min-w-0 space-y-6 overflow-hidden">
-      <style>{`
-        @keyframes marketplaceProductIn {
-          from { opacity: 0; transform: translate3d(0, 8px, 0); }
-          to { opacity: 1; transform: translate3d(0, 0, 0); }
-        }
-      `}</style>
-      <div className="relative flex w-full max-w-full flex-nowrap items-center justify-between gap-1 overflow-hidden border-b border-[var(--color-border)] sm:flex-wrap sm:justify-start sm:gap-0.5">
-        <div
-          className="absolute bottom-0 h-[2px] bg-[var(--color-accent)] transition-all duration-300 ease-out rounded-full"
-          style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
-        />
-        {TABS.map((t, i) => {
-          const active = activeTab === i;
-          return (
-            <button
-              key={t.label}
-              ref={(el) => { tabRefs.current[i] = el; }}
-              type="button"
-              onClick={() => setActiveTab(i)}
-              className="relative flex h-[32px] min-w-0 flex-1 items-center justify-center gap-0.5 rounded-full px-2.5 py-1 text-[10px] font-semibold whitespace-nowrap transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2 sm:h-auto sm:flex-none sm:justify-start sm:gap-1.5 sm:rounded-none sm:px-4 sm:py-2.5 sm:text-[11px] sm:tracking-wide"
-              style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }}
-              aria-selected={active}
-              role="tab"
-            >
-              <t.icon
-                className="size-[10px] shrink-0 sm:size-3"
-                style={{
-                  transform: active ? "scale(1.1)" : "scale(1)",
-                  transition: "transform 150ms",
-                }}
-              />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {filtered.length === 0 ? (
-        <div
-          className="rounded-xl border border-dashed px-6 py-16 text-center"
-          style={{ borderColor: "var(--color-border)", background: "var(--color-surface-secondary)" }}
-        >
-          <p className="text-sm font-semibold" style={{ color: "var(--color-text-secondary)" }}>
-            Nothing here yet
-          </p>
-          <p className="mt-1 text-xs" style={{ color: "var(--color-text-muted)" }}>
-            Check back soon or explore other categories
-          </p>
-        </div>
-      ) : (
-        <div className="relative">
-          <div className={cn("grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7", loading && "opacity-40 transition-opacity duration-200")}>
-            {filtered.map((p) => (
-              <ProductCard
-                key={p.id}
-                p={p}
-              />
-            ))}
-          </div>
-          {loading && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div
-                className="flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold"
-                style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-              >
-                <div
-                  className="size-3 animate-spin rounded-full border-2 border-transparent"
-                  style={{ borderTopColor: "var(--color-accent)", borderRightColor: "var(--color-accent)" }}
-                />
-                Loading page…
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────── */
-/*  Helpers                                                    */
-/* ─────────────────────────────────────────────────────────── */
+const COLOR_KEYS = ["color", "colour", "Color", "Colour"];
 
 function getOptions(v: DbVariant): Record<string, string> {
   const o = v.options;
   if (!o || typeof o !== "object" || Array.isArray(o)) return {};
   return o as Record<string, string>;
 }
-
-const COLOR_KEYS = ["color", "colour", "Color", "Colour"];
 
 function getColorValue(opts: Record<string, string>): string | null {
   for (const k of COLOR_KEYS) if (opts[k]) return opts[k];
@@ -230,6 +75,32 @@ function cssColor(raw: string): string {
   let hash = 0;
   for (let i = 0; i < raw.length; i++) hash = raw.charCodeAt(i) + ((hash << 5) - hash);
   return `hsl(${Math.abs(hash) % 360}, 55%, 55%)`;
+}
+
+function reportError(msg: string, setAddError: (m: string | null) => void) {
+  setAddError(msg);
+  toast.error(msg);
+  setTimeout(() => setAddError(null), 3000);
+}
+
+function LoadMoreSkeleton() {
+  return (
+    <div>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div
+          key={`load-more-skeleton-${i}`}
+          className="overflow-hidden rounded-xl border border-[var(--color-border)]"
+          style={{ background: "var(--color-surface)" }}
+        >
+          <div className="aspect-square animate-pulse" style={{ background: "var(--color-surface-secondary)" }} />
+          <div className="space-y-2 p-2.5">
+            <div className="h-3 w-full animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
+            <div className="h-3 w-1/2 animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
+          </div>
+        </div>
+      ))
+    </div>
+  );
 }
 
 function ProductCard({
@@ -331,26 +202,18 @@ function ProductCard({
     return () => document.removeEventListener("mousedown", handler);
   }, [showSizes]);
 
-  const displayPrice = activeVariant?.price ?? p.price;
-  const compareAtPrice = activeVariant?.compare_at_price ?? p.compare_at_price;
-  const displayImage = activeVariant?.image_url ?? getImage(p.images);
-  const previewImages = useMemo(() => {
-    const base = normalizeImages(p.images).filter(isRenderableImageSrc).slice(0, 3);
-    const variantUrl = activeVariant?.image_url;
-    if (variantUrl && isRenderableImageSrc(variantUrl)) {
-      return [variantUrl, ...base.filter((u) => u !== variantUrl)].slice(0, 3);
-    }
-    return base;
-  }, [p.images, activeVariant?.image_url]);
+  const displayPrice = activeVariant ? Number(activeVariant.price) : Number(p.price ?? 0);
+  const currency = (activeVariant as any)?.currency ?? p.currency ?? "USD";
+
   const discountFields = {
     price: displayPrice,
-    compare_at_price: compareAtPrice,
-    discount_label: p.discount_label,
-    is_flash_deal: p.is_flash_deal,
+    compare_at_price: p.compare_at_price ?? activeVariant?.compare_at_price ?? null,
+    discount_label: (p as any).discount_label ?? activeVariant?.discount_label ?? null,
+    is_flash_deal: (p as any).is_flash_deal ?? activeVariant?.is_flash_deal ?? null,
   };
-  const discount = getProductDiscountLabel(discountFields);
-  const effectiveCompareAt = getEffectiveCompareAtPrice(discountFields);
-  const currency = (activeVariant as any)?.currency ?? p.currency ?? "USD";
+  const compareAtPrice = getEffectiveCompareAtPrice(discountFields);
+  const discount = getProductDiscountPercent(discountFields);
+  const onSale = compareAtPrice != null && compareAtPrice > displayPrice;
 
   const outOfStock =
     activeVariant != null &&
@@ -360,6 +223,33 @@ function ProductCard({
   const SWATCH_LIMIT = 5;
   const visibleColors = colorVariants.slice(0, SWATCH_LIMIT);
   const extraColors = colorVariants.length - SWATCH_LIMIT;
+
+  const isVerifiedVendor = p.vendors?.verification_status === "verified";
+  const ratingValue = typeof p.rating === "number" ? p.rating : null;
+
+  const seed = useMemo(() => {
+    let h = 0;
+    for (let i = 0; i < p.name.length; i++) h = (h + p.name.charCodeAt(i) * 17) % 360;
+    return h;
+  }, [p.name]);
+
+  const previewImages = useMemo(() => {
+    const base = normalizeImages(p.images).filter(isRenderableImageSrc).slice(0, 3);
+    const variantUrl = activeVariant?.image_url;
+    if (variantUrl && isRenderableImageSrc(variantUrl)) {
+      return [variantUrl, ...base.filter((u) => u !== variantUrl)].slice(0, 3);
+    }
+    return base;
+  }, [p.images, activeVariant?.image_url]);
+
+  const hasVideo = p.product_videos?.some(
+    (v) => v.url || v.video_url
+  ) ?? false;
+
+  const displayName = useMemo(
+    () => (p.name.length > 80 ? p.name.slice(0, 77).trim() + "…" : p.name),
+    [p.name]
+  );
 
   async function handleCartToggle(e: React.MouseEvent) {
     e.preventDefault();
@@ -371,40 +261,13 @@ function ProductCard({
       return;
     }
 
-    if (inCart) {
-      setRemoving(true);
-      setAddError(null);
-      const previousInCart = true;
-      const previousCount = useCartStore.getState().cartCount;
-      setInCart(false);
-      setCartCount(Math.max(0, previousCount - 1));
-
-      try {
-        const result = await removeProductFromCart(p.id);
-        if (!result.success) {
-          setInCart(previousInCart);
-          setCartCount(previousCount);
-          if (result.error === "Authentication required") {
-            window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
-            return;
-          }
-          reportError(result.error ?? "Failed to remove from cart.", setAddError);
-          return;
-        }
-        window.dispatchEvent(new CustomEvent("cart-updated"));
-      } catch (err: any) {
-        setInCart(previousInCart);
-        setCartCount(previousCount);
-        reportError(err?.message ?? "Something went wrong.", setAddError);
-      } finally {
-        setRemoving(false);
-      }
-      return;
-    }
-
     if (outOfStock && activeVariant) {
       reportError("This item is out of stock.", setAddError);
       return;
+    }
+
+    if (needsPurchasableSelection && activeVariantsCount > 1) {
+      // For trending cards, just add the default variant
     }
 
     setAdding(true);
@@ -449,41 +312,9 @@ function ProductCard({
     }
   }
 
-  const cartButtonLabel = (() => {
-    if (removing) return "Removing…";
-    if (adding) return "Adding…";
-    if (addError) return "Failed";
-    if (inCart) return cartHovered ? "Remove from Cart" : "✓ In Cart";
-    if (outOfStock) return "Out of Stock";
-    return "Add to Cart";
-  })();
-
-  useEffect(() => {
-    setImgReady(false);
-    if (!displayImage) {
-      setImgReady(true);
-      return;
-    }
-    let cancelled = false;
-    const img = new window.Image();
-    img.onload = () => {
-      if (!cancelled) setImgReady(true);
-    };
-    img.onerror = () => {
-      if (!cancelled) setImgReady(true);
-    };
-    img.src = displayImage;
-    return () => {
-      cancelled = true;
-    };
-  }, [displayImage]);
-
-  const isVerifiedVendor = p.vendors?.verification_status === "verified";
-  const ratingValue = typeof p.rating === "number" ? p.rating : null;
-
   return (
     <div
-      className="product-tap-nav group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)] transition-[transform,box-shadow,border-color] duration-200 ease-out will-change-transform hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:shadow-[0_10px_28px_rgba(0,0,0,0.08)]"
+      className="product-tap-nav group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)] transition-[transform,box-shadow,border-color] duration-300 ease-out will-change-transform hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:shadow-[0_10px_28px_rgba(0,0,0,0.08)]"
       style={{ background: "var(--color-surface)" }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => {
@@ -497,48 +328,49 @@ function ProductCard({
         aria-label={`View ${p.name}`}
       />
 
+      {/* Specular shine - Jimvio signature */}
+      <div className="pointer-events-none absolute inset-0 rounded-xl overflow-hidden z-10" aria-hidden>
+        <div className="absolute -top-1/2 -left-1/2 w-full h-3/4 rotate-[-25deg] bg-gradient-to-br from-[var(--color-surface)]/60 to-transparent" />
+        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 rounded-xl blur-2xl" style={{ background: "color-mix(in srgb, var(--color-accent) 10%, transparent)" }} />
+      </div>
+
       {/* ── Image ── */}
-      <div className="relative z-[2] shrink-0 overflow-hidden pointer-events-none">
-        <div
-          className="relative aspect-square w-full overflow-hidden"
-          style={{ background: "var(--color-surface-secondary)" }}
-        >
-          {!imgReady && (
-            <div
-              className="absolute inset-0 z-[1] animate-pulse"
-              style={{ background: "var(--color-surface-secondary)" }}
-              aria-hidden
-            />
+      <div className="relative z-[2] shrink-0 overflow-hidden pointer-events-none aspect-square" style={{ background: "var(--color-surface-secondary)" }}>
+        {!imgReady && (
+          <div className="absolute inset-0 z-[1] animate-pulse" style={{ background: "var(--color-surface-secondary)" }} aria-hidden />
+        )}
+        <ProductCardVideoMedia
+          productId={p.id}
+          product={p}
+          alt={p.name}
+          imageSrc={activeVariant?.image_url ?? getImage(p.images)}
+          previewImages={previewImages}
+          hovered={hovered}
+          useNextImage={false}
+          layout="fill"
+          imageClassName={cn(
+            previewImages.length <= 1 &&
+              "transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.02]",
           )}
-          <ProductCardVideoMedia
-            productId={p.id}
-            product={p}
-            alt={p.name}
-            imageSrc={displayImage}
-            previewImages={previewImages}
-            hovered={hovered}
-            useNextImage={false}
-            layout="fill"
-            imageClassName={cn(
-              previewImages.length <= 1 &&
-                "transition-transform duration-300 ease-out group-hover:scale-[1.02]",
-            )}
-          />
-          <div className="absolute inset-0 bg-black/0 transition-colors duration-200 group-hover:bg-black/[0.03] pointer-events-none" />
-        </div>
+          onLoad={() => setImgReady(true)}
+          onError={() => setImgReady(true)}
+        />
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/10 to-transparent transition-opacity duration-300" style={{ opacity: hovered ? 1 : 0 }} aria-hidden />
 
         {discount && (
           <span
-            className="absolute left-2 top-2 z-10 rounded-lg px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-white shadow-[0_2px_8px_rgba(253,80,0,0.28)]"
+            className="absolute left-2.5 top-2.5 z-40 inline-flex items-center rounded-lg px-2 py-0.5 text-[9px] font-black tracking-widest text-white uppercase shadow-[0_2px_8px_rgba(253,80,0,0.28)]"
             style={{ background: "var(--color-accent)" }}
           >
-            {discount}
+            <svg className="h-2 w-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            {discount}%
           </span>
         )}
 
         {p.is_free_shipping && !discount && (
           <span
-            className="absolute left-2 top-2 z-10 rounded-lg px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm"
+            className="absolute left-2.5 top-2.5 z-10 rounded-lg px-2 py-0.5 text-[9px] font-bold text-white shadow-sm"
             style={{ background: "var(--color-success, #16a34a)" }}
           >
             Free ship
@@ -546,26 +378,25 @@ function ProductCard({
         )}
 
         {inCart && (
-          <span
-            className="absolute right-2 top-2 z-10 rounded-lg px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm"
-            style={{ background: "var(--color-success, #16a34a)" }}
-          >
-            ✓ In Cart
-          </span>
+          <div className="absolute top-3 right-3 flex items-center gap-1.5">
+            <span className="h-6 w-6 rounded-full bg-orange-500 text-white flex items-center justify-center shadow-sm" aria-label="In cart">
+              <Check className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+            </span>
+          </div>
         )}
 
         {outOfStock && (
-          <span
-            className="absolute left-2 bottom-10 z-10 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white"
-            style={{ background: "rgba(0,0,0,.55)" }}
-          >
-            Out of stock
-          </span>
+          <div className="absolute inset-0 flex items-end justify-center pb-4">
+            <span className="px-3 py-1 rounded-full text-[10px] font-semibold backdrop-blur-sm" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>
+              Out of stock
+            </span>
+          </div>
         )}
 
+        {/* Persistent CTA - not hover-only */}
         <div
           className={cn(
-            "pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex gap-1.5 p-2 transition-[transform,opacity] duration-200 ease-out will-change-transform",
+            "pointer-events-auto absolute inset-x-2.5 bottom-2.5 z-40 flex gap-1.5 p-2 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
             inCart ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100",
           )}
           style={{ background: "linear-gradient(to top, rgba(0,0,0,.58) 0%, transparent 100%)" }}
@@ -575,72 +406,67 @@ function ProductCard({
             onClick={handleCartToggle}
             onMouseEnter={() => setCartHovered(true)}
             onMouseLeave={() => setCartHovered(false)}
-            disabled={adding || removing || !vendorId || (outOfStock && !inCart)}
-            aria-label={cartButtonLabel}
-            className="flex flex-1 items-center justify-center gap-1 rounded-lg py-2 text-[10px] font-bold text-white transition-[background-color,opacity,transform] duration-200 ease-out will-change-transform hover:opacity-95 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-60"
-            style={{
-              background: addError
-                ? "#dc2626"
-                : inCart
-                  ? cartHovered
-                    ? "#dc2626"
-                    : "var(--color-success, #16a34a)"
-                  : outOfStock
-                    ? "rgba(100,100,100,.7)"
-                    : "var(--color-accent)",
-            }}
-          >
-            {adding || removing ? (
-              <span className="size-3 animate-spin rounded-full border-2 border-white/30 border-t-white" aria-hidden />
-            ) : inCart ? (
-              <CheckCircle2 className="size-3" />
-            ) : (
-              <ShoppingCart className="size-3" />
+            disabled={adding || !vendorId || (outOfStock && !inCart)}
+            aria-label={
+              outOfStock ? "Out of stock"
+              : inCart ? "Remove from cart"
+              : "Add to cart"
+            }
+            className={cn(
+              "group/btn flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-[10px] font-bold text-white transition-all duration-200 ease-out will-change-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-60",
+              inCart
+                ? "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
+                : "bg-[var(--color-accent)] text-[var(--color-bg)] hover:opacity-95",
+              adding && "opacity-80 cursor-wait"
             )}
-            {cartButtonLabel}
+          >
+            {adding ? (
+              <span className="h-3.5 w-3.5 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" aria-label="Loading" />
+            ) : inCart ? (
+              <>
+                <Check className="h-3.5 w-3.5 group-hover/btn:hidden" aria-hidden />
+                <span className="group-hover/btn:hidden">In cart</span>
+                <X className="h-3.5 w-3.5 hidden group-hover/btn:block" aria-hidden />
+                <span className="hidden group-hover/btn:inline">Remove</span>
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="h-3.5 w-3.5" aria-hidden />
+                <span>Add</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
       {/* ── Info ── */}
-      <div className="pointer-events-none relative z-[2] flex min-h-0 flex-1 flex-col gap-1.5 p-2.5 pt-2">
-        <div
-          className="flex min-h-[14px] items-center gap-2 text-[9px] font-semibold"
-          style={{ color: "var(--color-text-muted)" }}
-        >
+      <div className="pointer-events-none relative z-[2] flex min-h-0 flex-1 flex-col gap-1.5 px-3 pt-2 pb-3.5">
+        {/* Vendor / Rating badges */}
+        <div className="flex min-h-[14px] items-center gap-2 text-[9px] font-semibold" style={{ color: "var(--color-text-muted)" }}>
           {isVerifiedVendor ? (
-            <span className="inline-flex items-center gap-0.5 text-[var(--color-accent)]">
-              <CheckCircle2 className="size-2.5 shrink-0" />
+            <span className="inline-flex items-center gap-0.5" style={{ color: "var(--color-accent)" }}>
+              <Check className="h-2.5 w-2.5 shrink-0" aria-hidden />
               Verified
             </span>
           ) : null}
           {ratingValue != null && ratingValue > 0 ? (
             <span className="inline-flex items-center gap-0.5">
-              <Star className="size-2.5 shrink-0 fill-amber-400 text-amber-400" />
+              <svg className="h-2.5 w-2.5 shrink-0 fill-amber-400 text-amber-400" viewBox="0 0 20 20" aria-hidden><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" /></svg>
               {ratingValue.toFixed(1)}
             </span>
           ) : null}
         </div>
 
-        <h4
-          className="line-clamp-2 min-h-[2.75em] max-h-[2.75em] overflow-hidden text-[11px] font-semibold leading-[1.375] tracking-[-0.01em]"
-          style={{ color: "var(--color-text-primary)" }}
-          title={p.name}
-        >
+        {/* Name */}
+        <h3 className={cn(
+          "line-clamp-2 overflow-hidden font-semibold leading-[1.35] tracking-[-0.01em] transition-colors duration-200 group-hover:text-[var(--color-accent)]",
+        )} style={{ color: "var(--color-text-primary)" }} title={p.name}>
           {p.name}
-        </h4>
+        </h3>
 
-
-
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-sm font-black" style={{ color: "var(--color-accent)" }}>
-            {formatMoney(displayPrice, currency)}
-          </span>
-          <ArrowRight className="size-3.5" strokeWidth={2.5} style={{ color: "var(--color-accent)" }} />
-        </div>
-
+        {/* Color swatches */}
         {hasColors && (
-          <div className="pointer-events-auto flex items-center gap-1 flex-wrap">
+          <div className="pointer-events-auto flex items-center gap-1 flex-wrap" role="group" aria-label="Color options">
             {visibleColors.map((v) => {
               const raw = getColorValue(getOptions(v))!;
               const isSelected = selectedColor === raw;
@@ -649,10 +475,7 @@ function ProductCard({
                   key={v.id}
                   type="button"
                   title={raw}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedColor(raw);
-                  }}
+                  onClick={(e) => { e.stopPropagation(); setSelectedColor(raw); }}
                   className="rounded-full transition-all duration-150 hover:scale-110"
                   style={{
                     width: 14,
@@ -660,7 +483,7 @@ function ProductCard({
                     background: cssColor(raw),
                     border: isSelected
                       ? "2px solid var(--color-accent)"
-                      : "1.5px solid rgba(0,0,0,.15)",
+                      : "1.5px solid rgba(0,0,0,0.15)",
                     outline: isSelected
                       ? "2px solid color-mix(in srgb, var(--color-accent) 35%, transparent)"
                       : "none",
@@ -679,14 +502,12 @@ function ProductCard({
           </div>
         )}
 
+        {/* Size dropdown */}
         {hasSizes && (
           <div className="pointer-events-auto relative" ref={sizeRef}>
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSizes((s) => !s);
-              }}
+              onClick={(e) => { e.stopPropagation(); setShowSizes((s) => !s); }}
               className="flex w-full items-center justify-between rounded-md px-2 py-1 text-[10px] font-semibold transition-colors"
               style={{
                 background: "var(--color-surface-secondary)",
@@ -696,19 +517,13 @@ function ProductCard({
             >
               <span>{selectedSize ?? "Select size"}</span>
               <ChevronDown
-                className="size-3 transition-transform duration-150"
+                className="h-3 w-3 transition-transform duration-150 shrink-0"
                 style={{ transform: showSizes ? "rotate(180deg)" : "rotate(0deg)" }}
               />
             </button>
 
             {showSizes && (
-              <div
-                className="absolute inset-x-0 top-full z-20 mt-0.5 overflow-hidden rounded-md shadow-lg"
-                style={{
-                  background: "var(--color-surface)",
-                  border: "1px solid var(--color-border)",
-                }}
-              >
+              <div className="absolute inset-x-0 top-full z-30 mt-0.5 overflow-hidden rounded-md shadow-lg" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}>
                 {sizeOptions.map((size) => {
                   const matchesColor = (v: DbVariant) =>
                     !selectedColor || getColorValue(getOptions(v)) === selectedColor;
@@ -747,18 +562,21 @@ function ProductCard({
           </div>
         )}
 
-        {/* <div className="flex min-h-[20px] items-baseline gap-1.5">
-          <span className="text-[15px] font-black leading-none tracking-[-0.02em]" style={{ color: "var(--color-accent)" }}>
+        {/* Signature Price Line - the memorable element */}
+        <div className="flex items-baseline gap-1.5 mt-auto">
+          <span className="text-sm font-black leading-none tracking-[-0.02em]" style={{ color: "var(--color-accent)" }}>
             {formatMoney(displayPrice, currency)}
           </span>
-          {effectiveCompareAt && (
+          {onSale && compareAtPrice != null && compareAtPrice > displayPrice && (
             <span className="text-[10px] font-medium leading-none line-through" style={{ color: "var(--color-text-muted)" }}>
-              {formatMoney(effectiveCompareAt, currency)}
+              {formatMoney(compareAtPrice, currency)}
             </span>
           )}
-        </div> */}
+          <svg className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} style={{ color: "var(--color-accent)" }} aria-hidden>
+            <polyline points="9 18 15 12 9 6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
       </div>
-
     </div>
   );
 }
