@@ -1,20 +1,19 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
-  Flame, Sparkles, CheckCircle2,
-  TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star, ArrowRight,
-  Check, X, Minus, Loader2,
+  Flame, Sparkles,
+  TrendingUp, Warehouse, ChevronDown, Star,
+  Check, X, ShoppingBag,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
 import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel, normalizeImages, isRenderableImageSrc } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { addToCart, getCartProductIds, removeProductFromCart } from "@/lib/actions/marketplace";
-import { requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
-import { useCartStore } from "@/lib/store/use-cart-store";
+import { addToCart, removeProductFromCart } from "@/lib/actions/marketplace";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
+import { useCartStore } from "@/lib/store/use-cart-store";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
 import type { Tables } from "@/types/supabase";
 
@@ -212,7 +211,7 @@ function ProductCard({
     is_flash_deal: (p as any).is_flash_deal ?? activeVariant?.is_flash_deal ?? null,
   };
   const compareAtPrice = getEffectiveCompareAtPrice(discountFields);
-  const discount = getProductDiscountPercent(discountFields);
+  const discount = getProductDiscountLabel(discountFields);
   const onSale = compareAtPrice != null && compareAtPrice > displayPrice;
 
   const outOfStock =
@@ -227,12 +226,6 @@ function ProductCard({
   const isVerifiedVendor = p.vendors?.verification_status === "verified";
   const ratingValue = typeof p.rating === "number" ? p.rating : null;
 
-  const seed = useMemo(() => {
-    let h = 0;
-    for (let i = 0; i < p.name.length; i++) h = (h + p.name.charCodeAt(i) * 17) % 360;
-    return h;
-  }, [p.name]);
-
   const previewImages = useMemo(() => {
     const base = normalizeImages(p.images).filter(isRenderableImageSrc).slice(0, 3);
     const variantUrl = activeVariant?.image_url;
@@ -241,15 +234,6 @@ function ProductCard({
     }
     return base;
   }, [p.images, activeVariant?.image_url]);
-
-  const hasVideo = p.product_videos?.some(
-    (v) => v.url || v.video_url
-  ) ?? false;
-
-  const displayName = useMemo(
-    () => (p.name.length > 80 ? p.name.slice(0, 77).trim() + "…" : p.name),
-    [p.name]
-  );
 
   async function handleCartToggle(e: React.MouseEvent) {
     e.preventDefault();
@@ -261,13 +245,50 @@ function ProductCard({
       return;
     }
 
-    if (outOfStock && activeVariant) {
-      reportError("This item is out of stock.", setAddError);
+    if (inCart) {
+      setRemoving(true);
+      setAddError(null);
+      const previousCount = useCartStore.getState().cartCount;
+      setInCart(false);
+      incrementCartCount(-1);
+
+      try {
+        const result = await removeProductFromCart(
+          p.id,
+          vendorId,
+          variantForCart?.id ?? null,
+        );
+
+        if (!result.success) {
+          setInCart(true);
+          setCartCount(previousCount);
+          if (result.error === "Authentication required") {
+            window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+            return;
+          }
+          reportError(result.error ?? "Failed to remove from cart.", setAddError);
+          return;
+        }
+
+        window.dispatchEvent(new CustomEvent("cart-updated"));
+        toast.success("Removed from cart");
+      } catch (err: any) {
+        setInCart(true);
+        setCartCount(previousCount);
+        if (err?.message === "Authentication required") {
+          window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
+        reportError(err?.message ?? "Something went wrong.", setAddError);
+      } finally {
+        setRemoving(false);
+      }
       return;
     }
 
-    if (needsPurchasableSelection && activeVariantsCount > 1) {
-      // For trending cards, just add the default variant
+    if (outOfStock && activeVariant) {
+      reportError("This item is out of stock.", setAddError);
+      return;
     }
 
     setAdding(true);
@@ -364,7 +385,7 @@ function ProductCard({
             style={{ background: "var(--color-accent)" }}
           >
             <svg className="h-2 w-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden><line x1="5" y1="12" x2="19" y2="12" /></svg>
-            {discount}%
+            {discount}
           </span>
         )}
 
@@ -406,7 +427,7 @@ function ProductCard({
             onClick={handleCartToggle}
             onMouseEnter={() => setCartHovered(true)}
             onMouseLeave={() => setCartHovered(false)}
-            disabled={adding || !vendorId || (outOfStock && !inCart)}
+            disabled={adding || removing || !vendorId || (outOfStock && !inCart)}
             aria-label={
               outOfStock ? "Out of stock"
               : inCart ? "Remove from cart"
@@ -420,7 +441,7 @@ function ProductCard({
               adding && "opacity-80 cursor-wait"
             )}
           >
-            {adding ? (
+            {adding || removing ? (
               <span className="h-3.5 w-3.5 border-[1.5px] border-current border-t-transparent rounded-full animate-spin" aria-label="Loading" />
             ) : inCart ? (
               <>
@@ -583,3 +604,4 @@ function ProductCard({
 
 export type TrendingProductCardProduct = Product;
 export { ProductCard as MarketplaceTrendingProductCard, LoadMoreSkeleton as TrendingProductLoadMoreSkeleton };
+export { TrendingProductsClient };
