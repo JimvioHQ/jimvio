@@ -124,7 +124,7 @@ export function HeroSection() {
             </div>
           </div>
 
-          <div className="relative flex items-center justify-center lg:justify-end">
+          <div className="relative flex items-center justify-center lg:justify-end hidden lg:block">
             <div
               className="hero-product-float relative select-none w-full max-w-[320px] sm:max-w-[380px] lg:max-w-[460px]"
               onContextMenu={(e) => e.preventDefault()}

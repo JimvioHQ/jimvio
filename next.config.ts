@@ -5,11 +5,11 @@ if (process.env.ANALYZE === "true") {
   try {
     const mod = require("@next/bundle-analyzer");
     withBundleAnalyzer = mod({ enabled: true });
-  } catch {}
+  } catch { }
 }
 let nextConfig: NextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   serverExternalPackages: ["pdfkit"],
   turbopack: {
@@ -44,7 +44,7 @@ let nextConfig: NextConfig = {
         protocol: "https",
         hostname: "picsum.photos",
       },
-{
+      {
         protocol: "https",
         hostname: "cf.cjdropshipping.com",
       },
