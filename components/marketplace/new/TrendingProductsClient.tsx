@@ -98,7 +98,7 @@ function LoadMoreSkeleton() {
             <div className="h-3 w-1/2 animate-pulse rounded" style={{ background: "var(--color-surface-secondary)" }} />
           </div>
         </div>
-      ))
+      ))}
     </div>
   );
 }
