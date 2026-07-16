@@ -35,10 +35,17 @@ function getSpaceIcon(spaceId: string): string {
 }
 
 /* ── Types ── */
+export type SessionHost = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  username: string | null;
+};
+
 export type SessionWithSpace = {
   id: string;
   title: string;
-  host: string;
+  host: string | SessionHost;
   host_avatar: string | null;
   space_id: string;
   space_name: string;
