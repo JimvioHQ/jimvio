@@ -143,6 +143,7 @@ export default async function CommunityDetailPage({
     // ── 6. Build the final payload ────────────────────────────────────
     const payload: CommunityDetailPayload = {
         ...community,
+        weekly_price: (community as any).weekly_price ?? null,
         owner: community.owner ?? null,
         recent_members,
         stats: {
