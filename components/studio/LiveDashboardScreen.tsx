@@ -673,8 +673,8 @@ export const LiveDashboardScreen: React.FC<{
                           <h3 className="truncate text-[14px] font-black text-[var(--color-text-primary)]">{session.title}</h3>
                         </div>
                         <div className="mt-2 flex items-center gap-2">
-                          <HubAvatar name={session.host} size={24} />
-                          <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">{session.host}</span>
+                          <HubAvatar name={session.host?.full_name ?? "Host"} size={24} />
+                          <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">{session.host?.full_name ?? "Host"}</span>
                           <LiveIndicator label="LIVE" />
                         </div>
                         <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">{formatOnlineDuration(elapsed)}</p>

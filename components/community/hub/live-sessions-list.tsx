@@ -522,10 +522,10 @@ function SessionCard({
         {/* ══ FOOTER: Host + CTA ══ */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <HubAvatar name={session.host} src={session.host_avatar} size={22} />
+            <HubAvatar name={session.host?.full_name ?? "Host"} src={session.host?.avatar_url} size={22} />
             <div className="min-w-0 leading-tight">
               <p className="text-[11px] font-semibold text-[var(--color-text-primary)] truncate">
-                {session.host}
+                {session.host?.full_name ?? "Host"}
               </p>
               {session.host_follower_count != null && (
                 <p className="text-[9px] text-[var(--color-text-muted)]">

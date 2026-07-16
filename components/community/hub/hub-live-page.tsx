@@ -508,7 +508,7 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
             <LiveIndicator className="shrink-0" />
             <p className="truncate text-[13px] font-bold text-[var(--color-text-primary)]">{session.title}</p>
           </div>
-          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">{session.host} · {formatOnlineDuration(elapsed)}</p>
+          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">{session.host?.full_name ?? "Host"} · {formatOnlineDuration(elapsed)}</p>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="flex -space-x-1.5">
@@ -549,9 +549,9 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
 
               {/* Host row with bio */}
               <div className="mt-4 flex items-center gap-2.5">
-                <HubAvatar name={session.host} src={session.host_avatar} size={28} />
+                <HubAvatar name={session.host?.full_name ?? "Host"} src={session.host?.avatar_url} size={28} />
                 <div className="text-left">
-                  <p className="text-[14px] font-semibold text-[var(--color-text-primary)]">{session.host} <span className="font-normal text-[var(--color-text-muted)]">is live</span></p>
+                  <p className="text-[14px] font-semibold text-[var(--color-text-primary)]">{session.host?.full_name ?? "Host"} <span className="font-normal text-[var(--color-text-muted)]">is live</span></p>
                   {session.host_bio && (
                     <p className="text-[10px] text-[var(--color-text-muted)]">{session.host_bio}</p>
                   )}
@@ -807,8 +807,8 @@ function HubLiveSessionPage({ sessionId, communitySlug }: { sessionId: string; c
                   <h3 className="truncate text-[14px] font-black text-[var(--color-text-primary)]">{session.title}</h3>
                 </div>
                 <div className="mt-2 flex items-center gap-2">
-                  <HubAvatar name={session.host} size={24} />
-                  <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">{session.host}</span>
+                  <HubAvatar name={session.host?.full_name ?? "Host"} size={24} />
+                  <span className="text-[13px] font-semibold text-[var(--color-text-primary)]">{session.host?.full_name ?? "Host"}</span>
                   <LiveIndicator label="LIVE" />
                 </div>
                 <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">{formatOnlineDuration(elapsed)}</p>
