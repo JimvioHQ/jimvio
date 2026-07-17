@@ -17,13 +17,14 @@ import {
 } from "@/lib/payments/webhook-logger";
 import { notifyUser } from "@/lib/notifications/notify-user";
 
+import { getSupabaseSecretKey } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 // ─── Supabase ─────────────────────────────────────────────────────────────────
 
 function getSupabase(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = getSupabaseSecretKey();
   if (!url || !key) throw new Error("Supabase env vars are not configured");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },

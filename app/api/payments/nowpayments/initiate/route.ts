@@ -1,3 +1,4 @@
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 // app/api/payments/nowpayments/initiate/route.ts
 // Called by Jimvio frontend to create a crypto payment invoice
 // Returns: { invoiceUrl } — frontend redirects buyer there
@@ -12,8 +13,8 @@ import { createClient } from '@supabase/supabase-js'
 export const dynamic = 'force-dynamic'
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  getSupabaseUrl(),
+  getSupabaseSecretKey()
 )
 
 export async function POST(req: NextRequest) {

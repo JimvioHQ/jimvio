@@ -7,6 +7,7 @@ import { generateTxRef } from "@/lib/payments/tx-ref";
 import { buildPaymentSnapshot } from "@/lib/payments/order-payment-utils";
 import { verifyFlutterwaveTransaction, FlutterwaveAPIError } from "@/lib/payments/Transaction-verify";
 
+import { getSupabaseSecretKey } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 type ApiError =
@@ -46,7 +47,7 @@ const ALLOWED_RETURN_HOSTS = new Set([
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = getSupabaseSecretKey();
   if (!url || !key) throw new Error("Supabase env vars are not configured");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },

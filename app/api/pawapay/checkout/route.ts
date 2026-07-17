@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { convertFromUSD } from "@/lib/currency/rates";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export async function POST(request: Request) {
   try {
     const apiToken = process.env.PAWAPAY_API_TOKEN?.trim();
@@ -170,8 +171,8 @@ export async function POST(request: Request) {
     // Update order with payment provider
     const { createClient } = await import("@supabase/supabase-js");
     const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      getSupabaseUrl(),
+      getSupabaseSecretKey()
     );
     await supabase.from("orders").update({
       payment_provider: "pawapay",

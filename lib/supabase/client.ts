@@ -1,4 +1,8 @@
 import { createBrowserClient } from "@supabase/ssr";
+import {
+  getSupabasePublishableKey,
+  getSupabaseUrl,
+} from "@/lib/supabase/service-role";
 
 let browserClient: ReturnType<typeof createBrowserClient> | undefined;
 
@@ -6,10 +10,10 @@ export function createClient() {
   if (browserClient) {
     return browserClient;
   }
-  
+
   const client = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
   );
 
   if (typeof window !== "undefined") {

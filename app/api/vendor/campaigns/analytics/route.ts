@@ -3,14 +3,15 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getVendorCampaignStats } from "@/services/dashboard-analytics";
 
+import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const cookieStore = await cookies();
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      getSupabaseUrl(),
+      getSupabasePublishableKey(),
       { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
     );
     const { data: { user } } = await supabase.auth.getUser();

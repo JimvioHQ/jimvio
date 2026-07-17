@@ -290,7 +290,7 @@ async function main() {
 
   const required = [
     ["NEXT_PUBLIC_SUPABASE_URL", process.env.NEXT_PUBLIC_SUPABASE_URL],
-    ["SUPABASE_SERVICE_ROLE_KEY", process.env.SUPABASE_SERVICE_ROLE_KEY ? "(set)" : undefined],
+    ["SUPABASE_SECRET_KEY", (process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY) ? "(set)" : undefined],
   ];
   for (const [key, val] of required) {
     console.log(`  ${val ? "OK" : "MISSING"} ${key}`);

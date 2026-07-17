@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createAfriPaySession } from "@/lib/afripay/afripay";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export async function POST(req: NextRequest) {
   try {
     // SECURITY RULE 2: Handle logic in backend. 
@@ -14,8 +15,8 @@ export async function POST(req: NextRequest) {
 
     // Use Service Role to fetch order securely bypassing user-auth (for system reliability)
     const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      getSupabaseUrl(),
+      getSupabaseSecretKey()
     );
 
     // STEP 1 & 2 (Already handled by your cart system creating the UUID)

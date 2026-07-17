@@ -7,6 +7,7 @@ import { createTransaction } from "@/lib/actions/create-transaction";
 import { formatTransactionValidationError } from "@/lib/payments/transaction-types";
 import { recordBothStatusChanges } from "@/lib/payments/record-status-change";
 
+import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 // ─── Runtime ──────────────────────────────────────────────────────────────────
 // Force Node.js runtime — required on Render for crypto, fetch, and cookie APIs.
 // Do NOT use "edge" here; Supabase SSR and cookies() require Node runtime.
@@ -149,8 +150,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── 2. Build Supabase client ───────────────────────────────────────────────
   const cookieStore = await cookies();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
     {
       cookies: {
         getAll: () => cookieStore.getAll(),

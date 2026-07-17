@@ -21,6 +21,7 @@ import type { CJOrderParams } from "@/lib/cj/webhoo-subscription";
 import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-status";
 import { mapCjFulfillmentToOrderStatus } from "@/lib/payments/order-payment-utils";
 import type { OrderStatusValue } from "@/lib/payments/record-status-change";
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import {
   scheduleFromWebhookFields,
   scheduleProductRemoval,
@@ -28,8 +29,8 @@ import {
 
 function createClient() {
     return createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
+        getSupabaseUrl(),
+        getSupabaseSecretKey()
     );
 }
 

@@ -1,9 +1,6 @@
-
 import { createClient } from "@supabase/supabase-js";
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 
 export function createServiceClient() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+  return createClient(getSupabaseUrl(), getSupabaseSecretKey());
 }

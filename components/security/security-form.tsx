@@ -299,7 +299,7 @@ export function SecurityForm({
                                 color: "var(--color-danger)",
                             }}
                         >
-                            {sessionsError}. Check that `SUPABASE_SERVICE_ROLE_KEY` is set, then sign in again.
+                            {sessionsError}. Check that `SUPABASE_SECRET_KEY` is set, then sign in again.
                         </div>
                     )}
 

@@ -44,13 +44,14 @@ import { finalizeCommunityPayment } from "@/lib/payments/community-payment-final
 import { verifyPesapalTransaction } from "@/lib/pesapal";
 import { verifyFlutterwaveTransaction, isFlutterwaveSuccessfulStatus } from "@/lib/flutterwave";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 // Supabase admin client (service role — never expose to browser)
 function getDb() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    getSupabaseUrl(),
+    getSupabaseSecretKey(),
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 }

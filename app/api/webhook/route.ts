@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import {
   logWebhookEvent,
   markWebhookProcessed,
@@ -47,8 +48,8 @@ function pickStatus(body: PawaPayBody): string {
 }
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  getSupabaseUrl(),
+  getSupabaseSecretKey(),
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 

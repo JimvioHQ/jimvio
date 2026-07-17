@@ -1,3 +1,4 @@
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 
 let _adminClient: ReturnType<typeof createAdminClient> | null = null
@@ -5,8 +6,8 @@ let _adminClient: ReturnType<typeof createAdminClient> | null = null
 function adminDb() {
   if (!_adminClient) {
     _adminClient = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      getSupabaseUrl(),
+      getSupabaseSecretKey(),
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
   }

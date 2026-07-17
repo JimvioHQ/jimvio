@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+import { getSupabaseSecretKey, getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 // ─── Constants & Types ────────────────────────────────────────────────────────
 
 const VALID_ORDER_STATUSES = [
@@ -18,8 +19,8 @@ type OrderStatus = (typeof VALID_ORDER_STATUSES)[number];
 
 function getServiceSupabase() {
     return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        getSupabaseUrl(),
+        getSupabaseSecretKey(),
         { auth: { autoRefreshToken: false, persistSession: false } }
     );
 }
@@ -53,8 +54,8 @@ export async function PATCH(
     }
 
     const userSupabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        getSupabaseUrl(),
+        getSupabasePublishableKey(),
         {
             cookies: {
                 get(name: string) { return cookieStore.get(name)?.value; },

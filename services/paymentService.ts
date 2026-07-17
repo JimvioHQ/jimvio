@@ -9,9 +9,10 @@ import { createClient } from "@supabase/supabase-js";
 import { createShopifyOrder, attachShopifyOrdersToJimvioOrder } from "./shopifyOrderCreation";
 import { getShopifyPlatformCommissionFallback } from "@/lib/platform-settings";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  getSupabaseUrl(),
+  getSupabaseSecretKey()
 );
 
 export interface PaymentSuccessParams {

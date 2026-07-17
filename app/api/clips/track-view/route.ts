@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { createServiceRoleClient, getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import crypto from "crypto";
@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
     try {
       const cookieStore = await cookies();
       const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        getSupabaseUrl(),
+        getSupabasePublishableKey(),
         { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
       );
       const { data: { user } } = await supabase.auth.getUser();

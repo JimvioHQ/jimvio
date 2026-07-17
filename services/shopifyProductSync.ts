@@ -3,7 +3,8 @@ import { getPlatformShopifyVendorIdFromEnv, isPlatformShopifyEnvCredentialsCompl
 import { htmlToReadablePlainText } from "@/lib/htmlToPlainText";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+const supabase = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 

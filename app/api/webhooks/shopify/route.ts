@@ -4,9 +4,10 @@ import { syncVendorShopifyProducts } from "@/services/shopifyProductSync";
 import { getVendorTokenByDomain } from "@/lib/shopifyToken";
 import { createClient } from "@supabase/supabase-js";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+const supabase = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 

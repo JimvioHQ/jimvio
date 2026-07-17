@@ -9,6 +9,11 @@ import {
 } from "@/lib/platform-maintenance";
 import { isAccountAccessBlocked } from "@/lib/users/account-status";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
+import {
+  getSupabasePublishableKey,
+  getSupabaseUrl,
+  hasSupabaseSecretKey,
+} from "@/lib/supabase/service-role";
 
 function isGuestOnlyAuthPath(pathname: string): boolean {
   if (pathname.startsWith("/login/2fa")) return false;
@@ -49,8 +54,8 @@ export async function updateSession(request: NextRequest) {
     }
 
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      getSupabaseUrl(),
+      getSupabasePublishableKey(),
       {
         cookies: {
           getAll() {
@@ -111,7 +116,7 @@ export async function updateSession(request: NextRequest) {
     if (isProtected || hasSession || isGuestAuth) {
       const user = await resolveUser();
 
-      if (user && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      if (user && hasSupabaseSecretKey()) {
         const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
         const accountStatus = meta.account_status as string | undefined;
 

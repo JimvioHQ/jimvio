@@ -20,6 +20,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { notifyUser } from "@/lib/notifications/notify-user";
 
+import { getSupabaseSecretKey, getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -29,8 +30,8 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
 };
 
 const adminDb = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  getSupabaseUrl(),
+  getSupabaseSecretKey(),
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
@@ -41,8 +42,8 @@ export async function PATCH(
   // --- Auth: get calling user from session ---
   const cookieStore = await cookies();
   const authDb = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    getSupabaseUrl(),
+    getSupabasePublishableKey(),
     {
       cookies: {
         getAll: () => cookieStore.getAll(),

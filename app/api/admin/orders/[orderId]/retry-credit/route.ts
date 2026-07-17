@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { ensureNativeVendorCreditsApplied } from "@/lib/payments/credit-vendors-for-native-order";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 export async function POST(
@@ -19,8 +20,8 @@ export async function POST(
     return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseKey = getSupabaseSecretKey();
   const db = createClient(supabaseUrl, supabaseKey);
 
   try {

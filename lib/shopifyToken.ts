@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import {
   getPlatformShopifyVendorIdFromEnv,
   getShopifyApiVersionFromEnv,
@@ -6,7 +7,7 @@ import {
   normalizeShopifyDomain,
 } from "@/lib/platform-shopify";
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+const supabase = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 

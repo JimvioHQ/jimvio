@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hasSupabaseSecretKey } from "@/lib/supabase/service-role";
 
 export const MAINTENANCE_LOGIN_ERROR =
   "The platform is in maintenance mode. Only administrators can sign in right now.";
@@ -25,7 +26,7 @@ export async function getMaintenanceModeEnabled(): Promise<boolean> {
     return cachedMaintenance.value;
   }
 
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasSupabaseSecretKey()) {
     return false;
   }
 
@@ -57,7 +58,7 @@ export async function userIsPlatformAdmin(
 ): Promise<boolean> {
   if (isAdminEmail(email)) return true;
 
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (!hasSupabaseSecretKey()) {
     return false;
   }
 

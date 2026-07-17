@@ -6,7 +6,8 @@ import { requireAdmin, requireVendorOwnerOrAdmin } from "@/lib/auth/api-helpers"
 import { getShopifyPlatformCommissionFallback } from "@/lib/platform-settings";
 import { getPlatformShopifyVendorIdFromEnv, getShopifyApiVersionFromEnv } from "@/lib/platform-shopify";
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+const supabase = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 

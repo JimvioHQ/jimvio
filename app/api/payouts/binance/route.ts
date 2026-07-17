@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { transferToBinanceUser } from "@/lib/binance-pay";
 import { notifyUser } from "@/lib/notifications/notify-user";
 
+import { getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 async function getExchangeRate(
     fromCurrency: string,
     toCurrency: string
@@ -24,8 +25,8 @@ async function getExchangeRate(
 export async function POST(req: NextRequest) {
     const cookieStore = await cookies();
     const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        getSupabaseUrl(),
+        getSupabasePublishableKey(),
         {
             cookies: {
                 getAll: () => cookieStore.getAll(),

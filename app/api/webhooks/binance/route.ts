@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyBinanceWebhook } from "@/lib/binance-pay";
 import { recordBothStatusChanges } from "@/lib/payments/record-status-change";
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import type {
     OrderStatusValue,
     PaymentStatusValue,
 } from "@/lib/payments/record-status-change";
 
 const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    getSupabaseUrl(),
+    getSupabaseSecretKey()
 );
 
 export async function POST(req: NextRequest) {

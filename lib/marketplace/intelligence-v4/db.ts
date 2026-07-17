@@ -4,13 +4,14 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 let _db: SupabaseClient | null = null;
 
 export function getIntelligenceDB(): SupabaseClient {
   if (!_db) {
     _db = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      getSupabaseUrl(),
+      getSupabaseSecretKey(),
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
   }

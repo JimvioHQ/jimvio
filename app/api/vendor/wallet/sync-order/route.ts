@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { ensureNativeVendorCreditsApplied } from "@/lib/payments/credit-vendors-for-native-order";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 /**
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   if (!item) return NextResponse.json({ error: "No matching order for your store" }, { status: 404 });
 
-  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  const admin = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 

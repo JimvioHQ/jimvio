@@ -8,11 +8,12 @@ import { createClient } from "@supabase/supabase-js";
 import { capturePayPalOrder } from "@/lib/paypal";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  getSupabaseUrl(),
+  getSupabaseSecretKey(),
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 

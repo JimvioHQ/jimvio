@@ -56,8 +56,8 @@
 //         }
 
 //         const admin = createAdminClient(
-//             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-//             process.env.SUPABASE_SERVICE_ROLE_KEY!
+//             getSupabaseUrl(),
+//             getSupabaseSecretKey()
 //         );
 
 //         const nullifySteps: Array<{ table: string; column: string }> = [
@@ -116,6 +116,7 @@ import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { unsubscribeCJProducts } from "@/lib/cj/webhoo-subscription";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CJUnsubscribeResult {
@@ -214,8 +215,8 @@ export async function DELETE(req: NextRequest) {
         }
 
         const admin = createAdminClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
+            getSupabaseUrl(),
+            getSupabaseSecretKey()
         );
 
         // ── Detect CJ products among the IDs being deleted ──────────────────────

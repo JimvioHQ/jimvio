@@ -86,7 +86,10 @@ function buildIntegrations(): IntegrationCheck[] {
             id: "supabase",
             label: "Supabase",
             category: "core",
-            status: envPresent("NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY") ? "ok" : "missing",
+            status: envPresent("NEXT_PUBLIC_SUPABASE_URL") &&
+                (envPresent("SUPABASE_SECRET_KEY") || envPresent("SUPABASE_SERVICE_ROLE_KEY"))
+                ? "ok"
+                : "missing",
             detail: "Database & auth",
         },
         {

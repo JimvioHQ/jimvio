@@ -8,14 +8,14 @@
 //   - a single fetch wrapper that handles HTTP + CJ-level errors
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 
 export const CJ_BASE = "https://developers.cjdropshipping.com/api2.0/v1";
 
 export function getServiceClient(): SupabaseClient {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    return createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
+        auth: { autoRefreshToken: false, persistSession: false },
+    });
 }
 
 /**

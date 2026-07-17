@@ -5,12 +5,13 @@ import { cookies } from "next/headers";
 import { verifyFlutterwaveTransaction, } from "@/lib/payments/Transaction-verify"
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 
+import { getSupabaseSecretKey, getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 // ─── Supabase (lazy) ──────────────────────────────────────────────────────────
 
 function getServiceSupabase() {
     return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        getSupabaseUrl(),
+        getSupabaseSecretKey(),
         { auth: { autoRefreshToken: false, persistSession: false } }
     );
 }
@@ -27,8 +28,8 @@ export async function GET(
     const cookieStore = await cookies();
 
     const userSupabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        getSupabaseUrl(),
+        getSupabasePublishableKey(),
         {
             cookies: {
                 get: (name: string) => cookieStore.get(name)?.value,

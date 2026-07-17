@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { validateIPNSignature } from "@/services/nowpayments";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    const supabase = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 

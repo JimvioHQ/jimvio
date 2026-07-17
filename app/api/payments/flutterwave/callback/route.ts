@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyFlutterwaveTransaction, isFlutterwaveSuccessfulStatus } from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import {
     isOrderPaymentComplete,
     paymentAmountsMatch,
@@ -11,8 +12,8 @@ import {
 export const dynamic = "force-dynamic";
 
 const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    getSupabaseUrl(),
+    getSupabaseSecretKey(),
     { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
