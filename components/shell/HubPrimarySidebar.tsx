@@ -2,7 +2,7 @@
 
 import { PrimarySidebar, resolveSidebarActiveItem } from "@/components/shell/PrimarySidebar";
 import { usePathname } from "next/navigation";
-import HubSidebar from "@/app/c/components/sidebar";
+import HubSidebar from "@/app/communities/components/sidebar";
 
 type HubPrimarySidebarProps = {
   collapsed?: boolean;

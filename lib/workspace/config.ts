@@ -74,29 +74,29 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
   communities: {
     id: "communities",
     label: "Communities",
-    href: "/c",
+    href: "/communities",
     description: "Connect, learn and grow communities.",
     cta: "Open Communities",
     accent: "#7c3aed",
     icon: Users,
     sidebar: [
-      { id: "feed", label: "Feed", href: "/c", icon: Home },
+      { id: "feed", label: "Feed", href: "/communities", icon: Home },
       { id: "explore", label: "Explore", href: "/communities/explore", icon: Compass },
-      { id: "live", label: "Live", href: "/c/live", icon: Radio, badge: "Live" },
-      { id: "spaces", label: "Spaces", href: "/c/spaces", icon: Layers },
-      { id: "messages", label: "Messages", href: "/c/messages", icon: MessageSquare },
-      { id: "events", label: "Events", href: "/c/events", icon: Calendar },
-      { id: "courses", label: "Courses", href: "/c/courses", icon: GraduationCap },
-      { id: "bookmarks", label: "Bookmarks", href: "/c/bookmarks", icon: Bookmark },
+      { id: "live", label: "Live", href: "/communities/live", icon: Radio, badge: "Live" },
+      { id: "spaces", label: "Spaces", href: "/communities/spaces", icon: Layers },
+      { id: "messages", label: "Messages", href: "/communities/messages", icon: MessageSquare },
+      { id: "events", label: "Events", href: "/communities/events", icon: Calendar },
+      { id: "courses", label: "Courses", href: "/communities/courses", icon: GraduationCap },
+      { id: "bookmarks", label: "Bookmarks", href: "/communities/bookmarks", icon: Bookmark },
       { id: "create", label: "Create Community", href: "/communities/create", icon: Users },
-      { id: "settings", label: "Settings", href: "/c/settings", icon: Target },
+      { id: "settings", label: "Settings", href: "/communities/settings", icon: Target },
     ],
     rightPanel: {
       title: "Trending",
       items: [
-        { label: "Upcoming Events", href: "/c/events" },
+        { label: "Upcoming Events", href: "/communities/events" },
         { label: "Featured Communities", href: "/communities/explore" },
-        { label: "Live Now", href: "/c/live", value: "3" },
+        { label: "Live Now", href: "/communities/live", value: "3" },
       ],
     },
   },
@@ -143,7 +143,7 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
       { id: "analytics", label: "Analytics", href: "/ugc/analytics", icon: BarChart3 },
       { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign },
       { id: "wallet", label: "Wallet", href: "/dashboard/wallet", icon: Wallet },
-      { id: "profile", label: "Creator Profile", href: "/c/profile", icon: Users },
+      { id: "profile", label: "Creator Profile", href: "/communities/profile", icon: Users },
     ],
     rightPanel: {
       title: "Campaign Insights",
@@ -175,7 +175,7 @@ export function resolveWorkspaceNavActive(pathname: string, workspace: Workspace
   const def = WORKSPACES[workspace];
   if (workspace === "communities") {
     if (pathname.startsWith("/communities/explore")) return "explore";
-    if (pathname.startsWith("/c") || pathname === "/communities") return "feed";
+    if (pathname.startsWith("/communities") || pathname === "/communities") return "feed";
   }
   for (const item of def.sidebar) {
     const base = item.href.split("?")[0];

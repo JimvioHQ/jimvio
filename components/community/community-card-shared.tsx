@@ -217,7 +217,7 @@ export function SharedCommunityCard({
             {copied ? "Link copied" : "Share"}
           </button>
           <Link
-            href={`/c/${c.slug}/subscribe`}
+            href={`/communities/${c.slug}/subscribe`}
             onClick={(e) => e.stopPropagation()}
             className="h-7 flex-1 rounded-lg bg-[var(--color-accent)] text-center text-[11px] font-semibold leading-7 text-white transition-colors hover:bg-[var(--color-accent-hover)]"
           >

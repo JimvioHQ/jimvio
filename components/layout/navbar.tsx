@@ -229,7 +229,7 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
     out.push({ label: "Marketplace", href: "/marketplace" });
 
   if (!out.some((l) => norm(l.href) === "/communities"))
-    out.push({ label: "Communities", href: "/c" });
+    out.push({ label: "Communities", href: "/communities" });
 
   if (!out.some((l) => norm(l.href) === "/"))
     out.unshift({ label: "Home", href: "/" });
@@ -268,7 +268,7 @@ function iconForHref(href: string): LucideIcon {
 function isActive(pathname: string, href: string) {
   const h = href.replace(/\/$/, "") || "/";
   if (h === "/") return pathname === "/";
-  if (h === "/c") return pathname === "/c" || pathname.startsWith("/c/");
+  if (h === "/communities") return pathname === "/communities" || pathname.startsWith("/communities/");
   return pathname === h || pathname.startsWith(`${h}/`);
 }
 
@@ -1174,7 +1174,7 @@ function MobileDrawer({
                       <SubItem key={v.href} href={v.href} icon={v.icon} color={v.color} title={v.title} desc={v.desc} />
                     ))}
                   </ExpandSection>
-                  <NavRow href="/c" icon={Users} label="Communities" active={pathname.startsWith("/c") || pathname.startsWith("/communities")} />
+                  <NavRow href="/communities" icon={Users} label="Communities" active={pathname.startsWith("/communities")} />
                   <NavRow href="/ugc" icon={Clapperboard} label="UGC & Clipping" active={pathname.startsWith("/ugc")} />
                   <NavRow href="/affiliates" icon={BanknoteIcon} label="Affiliates" active={pathname.startsWith("/affiliates")} />
                   <NavRow href="/help" icon={CircleHelp} label="Help Center" active={pathname.startsWith("/help")} />

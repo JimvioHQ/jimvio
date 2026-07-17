@@ -36,8 +36,8 @@ const NAV: {
   { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign },
   { id: "payouts", label: "Payouts", href: "/ugc/payouts", icon: Wallet },
   { id: "deals", label: "Brand Deals", href: "/ugc/brand-deals", icon: Handshake },
-  { id: "profile", label: "My Profile", href: "/c/profile", icon: User },
-  { id: "settings", label: "Settings", href: "/c/settings", icon: Settings },
+  { id: "profile", label: "My Profile", href: "/communities/profile", icon: User },
+  { id: "settings", label: "Settings", href: "/communities/settings", icon: Settings },
 ];
 
 function resolveActive(pathname: string): string {
@@ -52,8 +52,8 @@ function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/earnings")) return "earnings";
   if (pathname.startsWith("/ugc/payouts")) return "payouts";
   if (pathname.startsWith("/ugc/brand-deals")) return "deals";
-  if (pathname.startsWith("/c/profile")) return "profile";
-  if (pathname.startsWith("/c/settings")) return "settings";
+  if (pathname.startsWith("/communities/profile")) return "profile";
+  if (pathname.startsWith("/communities/settings")) return "settings";
   if (pathname === "/ugc" || pathname === "/ugc/") return "discover";
   if (pathname.startsWith("/ugc/")) return "discover";
   if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return "mission";
@@ -122,7 +122,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
             Unlock priority applications and higher payouts.
           </p>
           <Link
-            href="/c/profile"
+            href="/communities/profile"
             onClick={onNavigate}
             className="mt-1.5 flex h-6 w-full items-center justify-center rounded-full border border-[#FF5A1F] text-[10px] font-bold text-[#FF5A1F] transition-colors hover:bg-[#FF5A1F] hover:text-white"
           >

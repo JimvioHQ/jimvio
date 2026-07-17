@@ -46,18 +46,18 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { id: "feed", label: "Feed", href: "/c", icon: Home },
-  { id: "explore", label: "Explore", href: "/communities", icon: Compass },
-  { id: "live", label: "Live", href: "/c/live", icon: Radio, badge: { type: "live" } },
-  { id: "spaces", label: "Spaces", href: "/c/spaces", icon: Layers },
-  { id: "messages", label: "Messages", href: "/c/messages", icon: MessageSquare, badge: { type: "count", value: 4 } },
-  { id: "missions", label: "Missions", href: "/c/missions", icon: Target, badge: { type: "new" } },
-  { id: "courses", label: "Courses", href: "/c/courses", icon: GraduationCap },
-  { id: "events", label: "Events", href: "/c/events", icon: Calendar },
-  { id: "wallet", label: "Wallet", href: "/c/wallet", icon: Wallet },
-  { id: "analytics", label: "Analytics", href: "/c/analytics", icon: BarChart3 },
-  { id: "bookmarks", label: "Bookmarks", href: "/c/bookmarks", icon: Bookmark },
-  { id: "profile", label: "My Profile", href: "/c/profile", icon: User },
+  { id: "feed", label: "Feed", href: "/communities", icon: Home },
+  { id: "explore", label: "Explore", href: "/communities/explore", icon: Compass },
+  { id: "live", label: "Live", href: "/communities/live", icon: Radio, badge: { type: "live" } },
+  { id: "spaces", label: "Spaces", href: "/communities/spaces", icon: Layers },
+  { id: "messages", label: "Messages", href: "/communities/messages", icon: MessageSquare, badge: { type: "count", value: 4 } },
+  { id: "missions", label: "Missions", href: "/communities/missions", icon: Target, badge: { type: "new" } },
+  { id: "courses", label: "Courses", href: "/communities/courses", icon: GraduationCap },
+  { id: "events", label: "Events", href: "/communities/events", icon: Calendar },
+  { id: "wallet", label: "Wallet", href: "/communities/wallet", icon: Wallet },
+  { id: "analytics", label: "Analytics", href: "/communities/analytics", icon: BarChart3 },
+  { id: "bookmarks", label: "Bookmarks", href: "/communities/bookmarks", icon: Bookmark },
+  { id: "profile", label: "My Profile", href: "/communities/profile", icon: User },
 ];
 
 type CommunityRow = { id: string; name: string; slug: string; unread?: boolean };
@@ -77,19 +77,18 @@ type PrimarySidebarProps = {
 };
 
 export function resolveSidebarActiveItem(pathname: string): SidebarItem {
-  if (pathname === "/c" || pathname === "/c/") return "feed";
-  if (pathname.startsWith("/c/live")) return "live";
-  if (pathname.startsWith("/c/messages")) return "messages";
-  if (pathname.startsWith("/c/spaces")) return "spaces";
-  if (pathname.startsWith("/c/missions")) return "missions";
-  if (pathname.startsWith("/c/courses")) return "courses";
-  if (pathname.startsWith("/c/events")) return "events";
-  if (pathname.startsWith("/c/wallet")) return "wallet";
-  if (pathname.startsWith("/c/analytics")) return "analytics";
-  if (pathname.startsWith("/c/bookmarks")) return "bookmarks";
-  if (pathname.startsWith("/c/profile")) return "profile";
-  if (pathname.startsWith("/communities")) return "explore";
-  if (/^\/c\/[^/]+/.test(pathname)) return "feed";
+  if (pathname === "/communities" || pathname === "/communities/") return "feed";
+  if (pathname.startsWith("/communities/explore")) return "explore";
+  if (pathname.startsWith("/communities/live")) return "live";
+  if (pathname.startsWith("/communities/messages")) return "messages";
+  if (pathname.startsWith("/communities/spaces")) return "spaces";
+  if (pathname.startsWith("/communities/missions")) return "missions";
+  if (pathname.startsWith("/communities/courses")) return "courses";
+  if (pathname.startsWith("/communities/events")) return "events";
+  if (pathname.startsWith("/communities/wallet")) return "wallet";
+  if (pathname.startsWith("/communities/analytics")) return "analytics";
+  if (pathname.startsWith("/communities/bookmarks")) return "bookmarks";
+  if (pathname.startsWith("/communities/profile")) return "profile";
   return "feed";
 }
 
@@ -250,7 +249,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
               ]).map((c) => (
                 <Link
                   key={c.id}
-                  href={`/c/${c.slug}`}
+                  href={`/communities/${c.slug}`}
                   className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                 >
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-[10px] font-semibold text-gray-600">
@@ -261,7 +260,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
                 </Link>
               ))}
               <Link
-                href="/communities"
+                href="/communities/explore"
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-gray-500 hover:text-gray-700"
               >
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-400">

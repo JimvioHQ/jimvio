@@ -2,7 +2,6 @@
 
 import { AIAssistantPanel } from "@/components/feed/AIAssistantPanel";
 import { ActivityFeedCard } from "@/components/feed/ActivityFeedCard";
-import { FeedFloatingBar } from "@/components/feed/FeedFloatingBar";
 import { CreateQuickLaunch } from "@/components/feed/CreateQuickLaunch";
 import { CreatorChallengeCard } from "@/components/feed/CreatorChallengeCard";
 import { CreatorInsightsCard } from "@/components/feed/CreatorInsightsCard";
@@ -40,14 +39,16 @@ function FeedRightRailTop() {
 export function FeedPageContent() {
   return (
     <>
-      <div className="mx-auto w-full max-w-[1600px] bg-gray-50 p-4 lg:p-5">
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start">
-          <div className="min-w-0 space-y-4 pb-20 lg:col-span-8 xl:col-span-9 2xl:col-span-7">
+      <div className="mx-auto w-full max-w-[1600px] bg-gray-50/80 p-4 lg:p-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
+          <div className="min-w-0 space-y-5 pb-20 lg:col-span-8 xl:col-span-9 2xl:col-span-7">
             <FeedStatsRow />
             <StoriesRail />
             <PostComposer />
-            <FeedTabs />
-            <FeedPostCard />
+            <div className="space-y-0">
+              <FeedTabs />
+              <FeedPostCard />
+            </div>
           </div>
           <aside className="scrollbar-hide hidden lg:col-span-4 lg:block lg:sticky lg:top-4 lg:z-10 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain xl:col-span-3 2xl:col-span-5">
             <FeedRightRailTop />
@@ -55,7 +56,6 @@ export function FeedPageContent() {
         </div>
       </div>
       <MiniLivePlayerBar />
-      <FeedFloatingBar />
     </>
   );
 }

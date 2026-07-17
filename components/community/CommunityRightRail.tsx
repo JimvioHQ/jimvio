@@ -135,7 +135,14 @@ export function UpcomingEventsList() {
               <span className="text-lg font-semibold leading-none text-gray-900">{event.day}</span>
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-gray-900">{event.title}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="truncate text-sm font-medium text-gray-900">{event.title}</p>
+                {"live" in event && event.live ? (
+                  <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-[8px] font-bold uppercase text-white">
+                    Live
+                  </span>
+                ) : null}
+              </div>
               <p className="text-xs text-gray-500">
                 {event.host} · {event.time}
               </p>
@@ -175,8 +182,7 @@ export function TopContributorsCard() {
 
 export function CommunityRightRail({ showContributors = false }: { showContributors?: boolean }) {
   return (
-    <div className="space-y-4">
-      <CommunityStatsCard />
+    <div className="space-y-5">
       <AICommunityInsights />
       <ActiveNowList />
       <UpcomingEventsList />

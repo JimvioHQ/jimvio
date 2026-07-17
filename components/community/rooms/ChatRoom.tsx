@@ -1989,7 +1989,7 @@
 //                     setActiveConvPeer(null);
 //                     setForceShowList(false);
 //                     router.push(
-//                       `/c/${slug}/workspace?space=${r.spaceId}&room=${r.id}`
+//                       `/communities/${slug}/workspace?space=${r.spaceId}&room=${r.id}`
 //                     );
 //                   }}
 //                 >

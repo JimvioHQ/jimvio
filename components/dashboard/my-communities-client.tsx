@@ -112,7 +112,7 @@ function roleBadgeClass(role: string, isOwner: boolean) {
 function CommunityDashboardCard({ community }: { community: DashboardCommunity }) {
   const { formatMoney } = useCurrency();
   const initial = community.name[0]?.toUpperCase() ?? "C";
-  const workspaceHref = `/c/${community.slug}`;
+  const workspaceHref = `/communities/${community.slug}`;
   const publicHref = `/communities/${community.slug}`;
 
   return (

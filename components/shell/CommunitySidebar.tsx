@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
+  ArrowLeft,
   BarChart3,
   BookOpen,
   Calendar,
@@ -20,6 +21,7 @@ import {
   Trophy,
   Users,
   Wrench,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_COMMUNITY } from "@/lib/community/dashboard-mock-data";
@@ -41,7 +43,6 @@ type SpaceItem = {
   href: string;
   unread?: number;
   live?: boolean;
-  active?: boolean;
 };
 
 type CommunitySidebarProps = {
@@ -52,9 +53,18 @@ type CommunitySidebarProps = {
   activeNav?: CommunityNavItem;
   activeSpaceId?: string;
   spaces?: SpaceItem[];
+  /** Mobile drawer mode (rendered from HubLayout). */
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
 };
 
-const NAV_ITEMS: { id: CommunityNavItem; label: string; icon: typeof LayoutGrid; href: string; dot?: boolean }[] = [
+const NAV_ITEMS: {
+  id: CommunityNavItem;
+  label: string;
+  icon: typeof LayoutGrid;
+  href: string;
+  dot?: boolean;
+}[] = [
   { id: "overview", label: "Overview", icon: LayoutGrid, href: "" },
   { id: "announcements", label: "Announcements", icon: Megaphone, href: "/announcements", dot: true },
   { id: "events", label: "Events", icon: Calendar, href: "/events" },
@@ -83,77 +93,130 @@ const TOOLS = [
   { label: "Feedback & Ideas", icon: MessageSquare, href: "/feedback" },
 ];
 
-export function CommunitySidebar({
+function SidebarBody({
   slug,
-  communityName = MOCK_COMMUNITY.name,
-  visibility = MOCK_COMMUNITY.visibility,
-  membersOnline = MOCK_COMMUNITY.membersOnline,
-  activeNav = "overview",
+  communityName,
+  visibility,
+  membersOnline,
+  activeNav,
   activeSpaceId,
-  spaces = DEFAULT_SPACES,
-}: CommunitySidebarProps) {
+  spaces,
+  onNavigate,
+}: {
+  slug: string;
+  communityName: string;
+  visibility: string;
+  membersOnline: number;
+  activeNav?: CommunityNavItem;
+  activeSpaceId?: string;
+  spaces: SpaceItem[];
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
-  const base = `/c/${slug}`;
+  const searchParams = useSearchParams();
+  const base = `/communities/${slug}`;
   const [spacesOpen, setSpacesOpen] = useState(true);
-  const [toolsOpen, setToolsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(true);
 
   function navActive(id: CommunityNavItem, href: string) {
+    const full = href ? `${base}${href.split("?")[0]}` : base;
     if (activeNav) return activeNav === id;
-    const full = href ? `${base}${href}` : base;
-    if (!href) return pathname === base || pathname === `${base}/`;
-    return pathname.startsWith(full);
+    if (!href) {
+      return pathname === base || pathname === `${base}/`;
+    }
+    if (id === "chat") return pathname.startsWith(`${base}/chat`);
+    return pathname === full || pathname.startsWith(`${full}/`);
   }
 
   function spaceActive(space: SpaceItem) {
     if (activeSpaceId) return activeSpaceId === space.id;
-    return pathname.includes("/chat") && space.id === "general";
+    if (!pathname.includes("/chat")) return false;
+    const spaceQuery = space.href.includes("space=")
+      ? space.href.split("space=")[1]
+      : null;
+    const currentSpace = searchParams.get("space");
+    if (spaceQuery) return currentSpace === spaceQuery;
+    return space.id === "general" && !currentSpace;
   }
 
   return (
-    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-gray-200 bg-white">
-      <div className="border-b border-gray-200 p-4">
+    <>
+      <div className="border-b border-gray-100 px-4 pb-4 pt-3">
+        <Link
+          href="/communities"
+          onClick={onNavigate}
+          className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-400 transition-colors hover:text-gray-700"
+        >
+          <ArrowLeft className="h-3 w-3" />
+          All communities
+        </Link>
+
         <div className="mb-3 flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-100 text-sm font-semibold text-green-700">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-sm font-bold text-orange-600">
             {communityName.slice(0, 2).toUpperCase()}
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1">
-              <p className="truncate text-sm font-semibold text-gray-900">{communityName}</p>
-              <svg className="h-3.5 w-3.5 shrink-0 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+              <p className="truncate text-[15px] font-semibold tracking-tight text-gray-900">
+                {communityName}
+              </p>
+              <svg
+                className="h-3.5 w-3.5 shrink-0 text-blue-500"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden
+              >
                 <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-xs text-gray-500">{visibility}</p>
-            <p className="text-xs text-gray-400">{membersOnline.toLocaleString()} online</p>
+            <p className="text-[12px] text-gray-500">{visibility}</p>
+            <p className="text-[12px] text-gray-400">
+              {membersOnline.toLocaleString()} online
+            </p>
           </div>
-          <button type="button" aria-label="Community settings" className="text-gray-400 hover:text-gray-600">
+          <button
+            type="button"
+            aria-label="Community settings"
+            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+          >
             <Settings className="h-4 w-4" />
           </button>
         </div>
+
         <button
           type="button"
-          className="w-full rounded-lg bg-orange-500 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+          className="w-full rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
         >
           Invite People
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3">
-        <nav className="mb-4 space-y-0.5">
+      <div className="flex-1 overflow-y-auto px-2.5 py-3 scrollbar-hide">
+        <nav className="mb-5 space-y-0.5">
           {NAV_ITEMS.map(({ id, label, icon: Icon, href, dot }) => {
             const active = navActive(id, href);
             return (
               <Link
                 key={id}
                 href={href ? `${base}${href}` : base}
+                onClick={onNavigate}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-                  active ? "bg-orange-50 font-medium text-orange-500" : "text-gray-700 hover:bg-gray-50"
+                  "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
+                  active
+                    ? "bg-orange-50 font-semibold text-orange-600"
+                    : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 )}
               >
-                <Icon className={cn("h-4 w-4 shrink-0", active ? "text-orange-500" : "text-gray-500")} />
+                <Icon
+                  className={cn(
+                    "h-4 w-4 shrink-0",
+                    active ? "text-orange-500" : "text-gray-400"
+                  )}
+                />
                 <span className="truncate">{label}</span>
-                {dot && <span className="ml-auto h-2 w-2 rounded-full bg-orange-500" />}
+                {dot && (
+                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-orange-500" />
+                )}
               </Link>
             );
           })}
@@ -162,28 +225,35 @@ export function CommunitySidebar({
         <button
           type="button"
           onClick={() => setSpacesOpen((o) => !o)}
-          className="mb-2 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wide text-gray-400"
+          className="mb-1.5 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400"
         >
           Spaces
-          {spacesOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {spacesOpen ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
         </button>
         {spacesOpen && (
-          <nav className="mb-4 space-y-0.5">
+          <nav className="mb-5 space-y-0.5">
             {spaces.map((space) => {
               const active = spaceActive(space);
               return (
                 <Link
                   key={space.id}
-                  href={`${base}${space.href.replace("/chat", "/chat")}`}
+                  href={`${base}${space.href}`}
+                  onClick={onNavigate}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-                    active ? "bg-orange-50 font-medium text-orange-500" : "text-gray-700 hover:bg-gray-50"
+                    "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
+                    active
+                      ? "bg-orange-50 font-semibold text-orange-600"
+                      : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   )}
                 >
-                  <MessageSquare className="h-4 w-4 shrink-0 text-gray-500" />
+                  <MessageSquare className="h-4 w-4 shrink-0 text-gray-400" />
                   <span className="truncate">{space.label}</span>
                   {space.live && (
-                    <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-white">
+                    <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
                       Live
                     </span>
                   )}
@@ -201,10 +271,14 @@ export function CommunitySidebar({
         <button
           type="button"
           onClick={() => setToolsOpen((o) => !o)}
-          className="mb-2 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wide text-gray-400"
+          className="mb-1.5 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400"
         >
           Tools
-          {toolsOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          {toolsOpen ? (
+            <ChevronUp className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5" />
+          )}
         </button>
         {toolsOpen && (
           <nav className="space-y-0.5">
@@ -212,15 +286,71 @@ export function CommunitySidebar({
               <Link
                 key={label}
                 href={`${base}${href}`}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                onClick={onNavigate}
+                className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
               >
-                <Icon className="h-4 w-4 shrink-0 text-gray-500" />
+                <Icon className="h-4 w-4 shrink-0 text-gray-400" />
                 <span className="truncate">{label}</span>
               </Link>
             ))}
           </nav>
         )}
       </div>
+    </>
+  );
+}
+
+export function CommunitySidebar({
+  slug,
+  communityName = MOCK_COMMUNITY.name,
+  visibility = MOCK_COMMUNITY.visibility,
+  membersOnline = MOCK_COMMUNITY.membersOnline,
+  activeNav,
+  activeSpaceId,
+  spaces = DEFAULT_SPACES,
+  mobileOpen,
+  onMobileClose,
+}: CommunitySidebarProps) {
+  const bodyProps = {
+    slug,
+    communityName,
+    visibility,
+    membersOnline,
+    activeNav,
+    activeSpaceId,
+    spaces,
+  };
+
+  if (mobileOpen !== undefined) {
+    if (!mobileOpen) return null;
+
+    return (
+      <>
+        <div
+          className="fixed inset-0 z-[99] bg-black/40 lg:hidden"
+          onClick={onMobileClose}
+          aria-hidden
+        />
+        <aside className="fixed inset-y-0 left-0 z-[100] flex w-[min(288px,86vw)] flex-col bg-white shadow-xl lg:hidden">
+          <div className="flex items-center justify-end px-3 pt-3">
+            <button
+              type="button"
+              aria-label="Close community menu"
+              onClick={onMobileClose}
+              className="rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <SidebarBody {...bodyProps} onNavigate={onMobileClose} />
+        </aside>
+      </>
+    );
+  }
+
+  return (
+    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-gray-100 bg-white">
+      <SidebarBody {...bodyProps} />
     </aside>
   );
 }

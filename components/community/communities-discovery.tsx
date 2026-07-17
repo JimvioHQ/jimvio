@@ -163,7 +163,7 @@ function CommunitiesHero({
                 <ArrowUpRight size={14} />
               </Link>
               <Link
-                href={`/c/${community.slug}/subscribe`}
+                href={`/communities/${community.slug}/subscribe`}
                 className="inline-flex h-9 items-center rounded-lg border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)]"
               >
                 {community.is_free ? "Join free" : "Join now"}

@@ -24,7 +24,7 @@ export function getEmptyHubLiveDashboard(): LiveDashboard {
     session: {
       title: "Community Live Room",
       host: "Jimvio",
-      href: "/c/live",
+      href: "/communities/live",
       tag: "Live Room",
       roomId: null,
     },

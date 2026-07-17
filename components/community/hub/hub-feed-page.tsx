@@ -24,19 +24,19 @@ const FEED_TABS = [
 ] as const;
 
 const HUB_QUICK_LINKS = [
-  { icon: Radio, label: "Go Live", href: "/c/live", color: "#ef4444" },
-  { icon: Target, label: "Missions", href: "/c/missions", color: "#3b82f6" },
-  { icon: GraduationCap, label: "Courses", href: "/c/courses", color: "#8b5cf6" },
-  { icon: Calendar, label: "Events", href: "/c/events", color: "#f59e0b" },
-  { icon: Wallet, label: "Wallet", href: "/c/wallet", color: "#22c55e" },
-  { icon: Layers, label: "Spaces", href: "/c/spaces", color: "#fd5000" },
+  { icon: Radio, label: "Go Live", href: "/communities/live", color: "#ef4444" },
+  { icon: Target, label: "Missions", href: "/communities/missions", color: "#3b82f6" },
+  { icon: GraduationCap, label: "Courses", href: "/communities/courses", color: "#8b5cf6" },
+  { icon: Calendar, label: "Events", href: "/communities/events", color: "#f59e0b" },
+  { icon: Wallet, label: "Wallet", href: "/communities/wallet", color: "#22c55e" },
+  { icon: Layers, label: "Spaces", href: "/communities/spaces", color: "#fd5000" },
 ] as const;
 
 const CREATE_LINKS = [
-  { icon: Radio, label: "Go Live", desc: "Start a live session", href: "/c/live", color: "#ef4444" },
-  { icon: Mic, label: "Voice Room", desc: "Host audio chat", href: "/c/live", color: "#8b5cf6" },
-  { icon: Scissors, label: "Upload Clip", desc: "Share a short video", href: "/c", color: "#fd5000" },
-  { icon: Target, label: "Create Mission", desc: "Challenge your community", href: "/c/missions", color: "#3b82f6" },
+  { icon: Radio, label: "Go Live", desc: "Start a live session", href: "/communities/live", color: "#ef4444" },
+  { icon: Mic, label: "Voice Room", desc: "Host audio chat", href: "/communities/live", color: "#8b5cf6" },
+  { icon: Scissors, label: "Upload Clip", desc: "Share a short video", href: "/communities", color: "#fd5000" },
+  { icon: Target, label: "Create Mission", desc: "Challenge your community", href: "/communities/missions", color: "#3b82f6" },
 ] as const;
 
 type HubDashboard = {
@@ -154,7 +154,7 @@ export function HubFeedPage() {
           {needsAuth && (
             <HubAuthPrompt
               compact
-              nextPath="/c"
+              nextPath="/communities"
               description="Sign in to see your personalized stats, post to the feed, and join community conversations."
             />
           )}
@@ -235,7 +235,7 @@ export function HubFeedPage() {
           <HubCard>
             <HubSectionTitle
               title="Stories"
-              action={<Link href="/c/events" className="text-[11px] font-semibold text-[#fd5000] hover:underline">View all</Link>}
+              action={<Link href="/communities/events" className="text-[11px] font-semibold text-[#fd5000] hover:underline">View all</Link>}
             />
             <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
               <button
@@ -294,7 +294,7 @@ export function HubFeedPage() {
                     { icon: Video, label: "Video" },
                     { icon: Scissors, label: "Clip" },
                     { icon: BarChart3, label: "Poll" },
-                    { icon: Target, label: "Mission", href: "/c/missions" },
+                    { icon: Target, label: "Mission", href: "/communities/missions" },
                     { icon: Sparkles, label: "AI Assist" },
                   ].map(({ icon: Icon, label, ...rest }) => {
                     const href = "href" in rest ? rest.href : undefined;
@@ -312,7 +312,7 @@ export function HubFeedPage() {
                       </button>
                     );
                   })}
-                  <HubLinkButton href="/c/live" className="ml-auto !rounded-md !px-3.5 !py-1.5 !text-[11px]">
+                  <HubLinkButton href="/communities/live" className="ml-auto !rounded-md !px-3.5 !py-1.5 !text-[11px]">
                     <Radio className="mr-1 inline h-3.5 w-3.5" />Go Live
                   </HubLinkButton>
                 </div>

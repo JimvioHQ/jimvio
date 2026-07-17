@@ -318,7 +318,7 @@ export async function getHubStories(userId: string): Promise<HubStory[]> {
       name,
       username: profile?.username ?? null,
       avatar_url: profile?.avatar_url ?? null,
-      href: profile?.username ? `/c/profile/${profile.username}` : "/c/profile",
+      href: profile?.username ? `/communities/profile/${profile.username}` : "/communities/profile",
       live: (post.created_at ?? "") >= liveCutoff,
     });
 
@@ -506,7 +506,7 @@ export async function getHubFeaturedLive(userId: string): Promise<HubFeaturedLiv
     id: post.id,
     title: post.title ?? "Live session",
     hostName,
-    href: community ? `/c/${community.slug}` : "/c/live",
+    href: community ? `/communities/${community.slug}` : "/communities/live",
     watchingLabel: post.like_count ? `${post.like_count} engaged` : null,
   };
 }
@@ -556,7 +556,7 @@ export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
       attendee_count: task.completion_count ?? 0,
       is_going: completedTaskIds.has(task.id),
       kind: "task",
-      href: community ? `/c/${community.slug}` : null,
+      href: community ? `/communities/${community.slug}` : null,
     });
   }
 
@@ -607,7 +607,7 @@ export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
       community_slug: community?.slug ?? "",
       room_count: space.room_count ?? 0,
       member_count: space.member_count ?? 0,
-      href: community ? `/c/${community.slug}` : "/c",
+      href: community ? `/communities/${community.slug}` : "/communities",
     };
   });
 }
@@ -651,7 +651,7 @@ export async function getHubMissions(userId: string): Promise<HubMissionItem[]> 
       is_completed: completedSet.has(task.id),
       community_name: community?.name ?? "Community",
       community_slug: community?.slug ?? "",
-      href: community ? `/c/${community.slug}` : "/c/missions",
+      href: community ? `/communities/${community.slug}` : "/communities/missions",
     };
   });
 }
@@ -707,7 +707,7 @@ export async function getHubCourses(userId: string): Promise<HubCourseItem[]> {
       progress: Math.min(progressPct, 100),
       community_name: community?.name ?? "Community",
       community_slug: community?.slug ?? "",
-      href: community ? `/c/${community.slug}/courses` : "/c/courses",
+      href: community ? `/communities/${community.slug}/courses` : "/communities/courses",
     };
   });
 }
@@ -754,10 +754,10 @@ export async function getHubLiveRooms(userId: string): Promise<HubLiveRoom[]> {
         message_count: counts.get(room.id) ?? 0,
         href:
           community && space
-            ? `/c/${community.slug}/room?space=${space.slug}&room=${room.slug}`
+            ? `/communities/${community.slug}/room?space=${space.slug}&room=${room.slug}`
             : community
-              ? `/c/${community.slug}/chats`
-              : "/c/live",
+              ? `/communities/${community.slug}/chats`
+              : "/communities/live",
       };
     })
     .sort((a, b) => b.message_count - a.message_count);
@@ -891,13 +891,13 @@ export async function getHubLiveDashboard(userId: string) {
       title: e.title,
       host: e.location ?? "Community",
       start_date: e.start_date,
-      href: e.href ?? "/c/events",
+      href: e.href ?? "/communities/events",
     }));
 
   const sessionTitle =
     featuredLive?.title ?? primaryRoom?.name ?? "Community Live Room";
   const sessionHost = featuredLive?.hostName ?? primaryRoom?.community_name ?? "Jimvio";
-  const sessionHref = featuredLive?.href ?? primaryRoom?.href ?? "/c/live";
+  const sessionHref = featuredLive?.href ?? primaryRoom?.href ?? "/communities/live";
 
   return {
     stats,
@@ -1069,7 +1069,7 @@ export async function getCommunityOverviewStats(
     .eq("id", communityId)
     .maybeSingle();
   const slug = slugRes.data?.slug ?? "";
-  const base = `/c/${slug}`;
+  const base = `/communities/${slug}`;
   const roomNameById = new Map((roomsRes.data ?? []).map((r) => [r.id, r.name]));
 
   const defaultRules = [

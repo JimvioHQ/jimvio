@@ -478,7 +478,7 @@ export function CreateCommunityForm() {
             >
               <div className="flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] focus-within:border-[var(--color-accent)] focus-within:ring-1 focus-within:ring-[var(--color-accent)]/30">
                 <span className="flex h-9 items-center px-2.5 text-[12px] text-[var(--color-text-muted)] border-r border-[var(--color-border)]">
-                  jimvio.com/c/
+                  jimvio.com/communities/
                 </span>
                 <input
                   value={slug}
@@ -902,7 +902,7 @@ export function CreateCommunityForm() {
 
             {/* Summary table */}
             <dl className="divide-y divide-[var(--color-border)] rounded-md border border-[var(--color-border)] text-[13px]">
-              <SummaryRow label="URL" value={<span className="font-mono text-[12px]">jimvio.com/c/{slug}</span>} editable onEdit={() => goToStep(0)} />
+              <SummaryRow label="URL" value={<span className="font-mono text-[12px]">jimvio.com/communities/{slug}</span>} editable onEdit={() => goToStep(0)} />
               <SummaryRow label="Category" value={category} editable onEdit={() => goToStep(0)} />
               <SummaryRow label="Visibility" value={isPrivate ? "Private" : "Public"} editable onEdit={() => goToStep(1)} />
               <SummaryRow label="Tags" value={tags.length ? tags.map((t) => `#${t}`).join(" ") : "None"} editable onEdit={() => goToStep(1)} />

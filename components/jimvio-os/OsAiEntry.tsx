@@ -10,7 +10,7 @@ function resolveContext(pathname: string): OsAiContext {
   if (pathname.startsWith("/marketplace")) return "marketplace";
   if (pathname.includes("/orders")) return "orders";
   if (pathname.includes("/analytics")) return "analytics";
-  if (pathname.includes("/communities") || pathname.startsWith("/c/")) return "communities";
+  if (pathname.includes("/communities")) return "communities";
   if (pathname.includes("/affiliate")) return "affiliate";
   return "default";
 }

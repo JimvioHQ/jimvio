@@ -13,7 +13,7 @@ export function TopMissionsList() {
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="text-sm font-bold text-gray-900">Top Missions</h3>
-        <Link href="/c/missions" className="text-xs font-medium text-orange-500 hover:underline">
+        <Link href="/communities/missions" className="text-xs font-medium text-orange-500 hover:underline">
           View all
         </Link>
       </div>

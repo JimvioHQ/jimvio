@@ -12,7 +12,7 @@ type HubAuthPromptProps = {
 export function HubAuthPrompt({
   title = "Sign in to access community features",
   description = "Create an account or sign in to message members, join spaces, track missions, and personalize your feed.",
-  nextPath = "/c",
+  nextPath = "/communities",
   compact = false,
 }: HubAuthPromptProps) {
   const loginHref = buildHubLoginUrl(nextPath);

@@ -195,7 +195,7 @@ export function AppTopNav({
           )}
 
           {user && (
-            <Link href="/c/profile" aria-label="Profile" className="shrink-0">
+            <Link href="/communities/profile" aria-label="Profile" className="shrink-0">
               <UserAvatar name={user.name} avatarUrl={user.avatarUrl} isPremium={user.isPremium} />
             </Link>
           )}

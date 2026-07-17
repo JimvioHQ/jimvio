@@ -134,7 +134,7 @@
 //   const router = useRouter();
 //   const searchParams = useSearchParams();
 //   const pathname = usePathname();
-//   const isRoot = pathname === `/c/community/${community.slug}`;
+//   const isRoot = pathname === `/communities/community/${community.slug}`;
 
 //   const resolve = (s: string): SectionKey =>
 //     s === "chats" ? "messages" : (SECTION_LIST as readonly string[]).includes(s) ? s as SectionKey : "feed";
@@ -160,7 +160,7 @@
 //     if (next.section) p.set("section", next.section);
 //     if (next.view) { if (next.view === "admin") p.set("view", "admin"); else p.delete("view"); }
 //     const qs = p.toString();
-//     router.replace(`/c/community/${community.slug}${qs ? `?${qs}` : ""}`, { scroll: false });
+//     router.replace(`/communities/community/${community.slug}${qs ? `?${qs}` : ""}`, { scroll: false });
 //   };
 
 //   const changeSection = (s: SectionKey) => { setSection(s); updateUrl({ section: s }); };
@@ -188,14 +188,14 @@
 //   const openRoom = (spaceId: string, roomId: string) => {
 //     const p = new URLSearchParams(searchParams.toString());
 //     p.set("space", spaceId); p.set("room", roomId);
-//     router.replace(`/c/community/${community.slug}?${p.toString()}`, { scroll: false });
+//     router.replace(`/communities/community/${community.slug}?${p.toString()}`, { scroll: false });
 //   };
 
 //   const closeRoom = () => {
 //     const p = new URLSearchParams(searchParams.toString());
 //     p.delete("space"); p.delete("room");
 //     const qs = p.toString();
-//     router.replace(`/c/community/${community.slug}${qs ? `?${qs}` : ""}`, { scroll: false });
+//     router.replace(`/communities/community/${community.slug}${qs ? `?${qs}` : ""}`, { scroll: false });
 //   };
 
 //   const activeSpaceId = searchParams.get("space");
@@ -1078,7 +1078,7 @@
 //           <div className="px-3 pt-2 pb-1 flex-shrink-0">
 //             <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-1 mb-1">Chat Rooms</p>
 //             {chatRooms.map((r) => (
-//               <Link key={r.id} href={`/c/${community.slug}/workspace?space=${r.spaceId}&room=${r.id}`}
+//               <Link key={r.id} href={`/communities/${community.slug}/workspace?space=${r.spaceId}&room=${r.id}`}
 //                 className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl hover:bg-surface-secondary transition-colors group mb-0.5">
 //                 <div className="w-8 h-8 rounded-xl bg-[#fd5000]/10 flex items-center justify-center flex-shrink-0">
 //                   <MessageCircle className="w-3.5 h-3.5 text-[#fd5000]" />
@@ -1428,7 +1428,7 @@ interface Props {
 /* ─── Nav config ──────────────────────────────────────────────────── */
 
 interface NavItem {
-  href: string;        // relative to /c/[slug], or absolute when external
+  href: string;        // relative to /communities/[slug], or absolute when external
   label: string;
   icon: LucideIcon;
   matchExact?: boolean;
@@ -1506,7 +1506,7 @@ export function WorkspaceLayout({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const basePath = basePathProp ?? `/c/${community.slug}`;
+  const basePath = basePathProp ?? `/communities/${community.slug}`;
 
   const urlView = searchParams.get("view");
   const [view, setView] = useState<WorkspaceView>(
@@ -1523,6 +1523,9 @@ export function WorkspaceLayout({
     ownerId: community.owner_id,
     memberCount: community.member_count,
     avatarUrl: community.avatar_url,
+    coverUrl: community.cover_image ?? null,
+    tagline: (community as { tagline?: string | null }).tagline ?? null,
+    ownerName: null as string | null,
     userId: currentUserId,
     currentUserId,
     view,
@@ -1749,7 +1752,7 @@ function Sidebar({
             { href: "/courses", label: "Courses", icon: GraduationCap, badge: overview?.courseCount ? String(overview.courseCount) : null },
             { href: "/members", label: "Members", icon: Users },
             { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-            { href: "/c/missions", label: "Challenges", icon: Target, external: true },
+            { href: "/communities/missions", label: "Challenges", icon: Target, external: true },
           ].map((item) => {
             const active = isActive(item);
             const Icon = item.icon;

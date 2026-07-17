@@ -203,7 +203,7 @@ export function HubPremiumCard({ className }: { className?: string }) {
           Unlock advanced analytics, priority support, and creator tools.
         </p>
         <Link
-          href="/c/settings"
+          href="/communities/settings"
           className="mt-3 inline-flex rounded-md bg-[#fd5000] px-3 py-2 text-[11px] font-bold text-white transition hover:bg-[#e04800]"
         >
           Upgrade Now
@@ -246,7 +246,7 @@ export function HubUserCard({
       </div>
       {username && (
         <Link
-          href={`/c/profile/${username}`}
+          href={`/communities/profile/${username}`}
           className="mt-2 block text-[10px] font-semibold text-[#fd5000] hover:underline"
         >
           View profile

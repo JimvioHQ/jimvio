@@ -50,13 +50,13 @@ export function HubCommunityOverview({
 }) {
   const { communityName, slug, memberCount, avatarUrl, points, overview } = useWorkspace();
 
-  const base = `/c/${slug}`;
+  const base = `/communities/${slug}`;
   const joinedLabel = formatJoined(joinedAt ?? null);
 
   const QUICK_LINKS = [
     { icon: Calendar, label: "Community Calendar", href: `${base}/live` },
     { icon: FileText, label: "Resources", href: `${base}?space=resources` },
-    { icon: Wrench, label: "Creator Toolkit", href: `/c/analytics` },
+    { icon: Wrench, label: "Creator Toolkit", href: `/communities/analytics` },
     { icon: Radio, label: "Live Schedule", href: `${base}/live` },
     { icon: Trophy, label: "Leaderboard", href: `${base}/leaderboard` },
     { icon: MoreHorizontal, label: "More", href: `${base}/members` },

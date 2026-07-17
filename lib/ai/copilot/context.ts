@@ -70,7 +70,7 @@ export function resolveCopilotContext(pathname: string): CopilotPageContext {
   if (pathname.startsWith("/marketplace")) return "marketplace";
   if (pathname.startsWith("/cart")) return "cart";
   if (pathname.startsWith("/checkout")) return "checkout";
-  if (pathname.startsWith("/communities") || pathname.startsWith("/c/")) return "communities";
+  if (pathname.startsWith("/communities")) return "communities";
   if (pathname.startsWith("/affiliates") || pathname.startsWith("/dashboard/influencer")) return "affiliate";
   if (pathname.startsWith("/ugc")) return "affiliate";
   if (pathname.startsWith("/dashboard/vendor") || pathname.startsWith("/dashboard/admin")) {

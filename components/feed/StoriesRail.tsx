@@ -44,7 +44,10 @@ function StoryIndicator({ story }: { story: (typeof STORIES)[number] }) {
 
 function StoryItem({ story }: { story: (typeof STORIES)[number] }) {
   return (
-    <button type="button" className="flex w-[62px] shrink-0 flex-col items-center gap-1.5">
+    <button
+      type="button"
+      className="flex w-[62px] shrink-0 flex-col items-center gap-1.5 transition-opacity hover:opacity-80"
+    >
       <div className="relative">
         <div className={cn("rounded-full p-[2px]", STORY_RING)}>
           <div className={cn(AVATAR_SIZE, "overflow-hidden rounded-full bg-gray-100")}>
@@ -57,7 +60,9 @@ function StoryItem({ story }: { story: (typeof STORIES)[number] }) {
         </div>
         <StoryIndicator story={story} />
       </div>
-      <span className="max-w-[62px] truncate text-center text-[11px] text-gray-900">{story.name}</span>
+      <span className="max-w-[62px] truncate text-center text-[11px] font-medium text-gray-700">
+        {story.name}
+      </span>
     </button>
   );
 }
@@ -89,23 +94,34 @@ export function StoriesRail() {
   }, [updateShowMore]);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <section className="px-0.5">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-bold text-gray-900">Stories</h2>
-        <Link href="/c/stories" className="text-xs font-medium text-[#FF5C00] hover:underline">
+        <h2 className="text-[13px] font-semibold tracking-tight text-gray-900">Stories</h2>
+        <Link
+          href="/communities/stories"
+          className="text-[12px] font-medium text-[#FF5C00] transition-opacity hover:opacity-80"
+        >
           View all
         </Link>
       </div>
 
       <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide sm:gap-4"
+        className="flex gap-3 overflow-x-auto pb-0.5 scrollbar-hide sm:gap-4"
         onScroll={updateShowMore}
       >
-        <button type="button" className="flex w-[62px] shrink-0 flex-col items-center gap-1.5">
+        <button
+          type="button"
+          className="flex w-[62px] shrink-0 flex-col items-center gap-1.5 transition-opacity hover:opacity-80"
+        >
           <div className="relative">
             <div className={cn("rounded-full p-[2px]", STORY_RING)}>
-              <div className={cn(AVATAR_SIZE, "flex items-center justify-center rounded-full bg-gray-100")}>
+              <div
+                className={cn(
+                  AVATAR_SIZE,
+                  "flex items-center justify-center rounded-full bg-gray-100"
+                )}
+              >
                 <Plus className="h-5 w-5 text-[#FF5C00]" strokeWidth={2} />
               </div>
             </div>
@@ -113,7 +129,9 @@ export function StoriesRail() {
               <Plus className="h-3 w-3 text-white" strokeWidth={3} />
             </span>
           </div>
-          <span className="max-w-[62px] truncate text-center text-[11px] text-gray-900">Your story</span>
+          <span className="max-w-[62px] truncate text-center text-[11px] font-medium text-gray-700">
+            Your story
+          </span>
         </button>
 
         {STORIES.map((story) => (
@@ -122,22 +140,22 @@ export function StoriesRail() {
 
         {showMore && (
           <Link
-            href="/c/stories"
-            className="flex w-[62px] shrink-0 flex-col items-center gap-1.5"
+            href="/communities/stories"
+            className="flex w-[62px] shrink-0 flex-col items-center gap-1.5 transition-opacity hover:opacity-80"
             aria-label="View more stories"
           >
             <div
               className={cn(
                 AVATAR_SIZE,
-                "flex items-center justify-center rounded-full border border-gray-300 bg-white"
+                "flex items-center justify-center rounded-full bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
               )}
             >
-              <ArrowRight className="h-4 w-4 text-gray-900" strokeWidth={2} />
+              <ArrowRight className="h-4 w-4 text-gray-700" strokeWidth={2} />
             </div>
-            <span className="text-center text-[11px] text-gray-900">More</span>
+            <span className="text-center text-[11px] font-medium text-gray-700">More</span>
           </Link>
         )}
       </div>
-    </div>
+    </section>
   );
 }

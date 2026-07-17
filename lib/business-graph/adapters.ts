@@ -227,7 +227,7 @@ export function buildCommunityBusinessGraph(community: CommunityDetailPayload): 
               id: `course-${community.id}`,
               kind: "course",
               title: `${community.stats.course_count} courses`,
-              href: `/c/${community.slug}/learn`,
+              href: `/communities/${community.slug}/learn`,
             },
             title,
           ),
@@ -244,7 +244,7 @@ export function buildCommunityBusinessGraph(community: CommunityDetailPayload): 
     collaborationBuilders: [
       () =>
         businessSection("brand-opportunities", BUSINESS_COLLABORATION_META["brand-opportunities"].title, [
-          businessNode({ id: `bo-${community.id}`, kind: "brand", title: "Brand sponsorship slot", href: `/c/${community.slug}` }, title),
+          businessNode({ id: `bo-${community.id}`, kind: "brand", title: "Brand sponsorship slot", href: `/communities/${community.slug}` }, title),
         ]),
       () =>
         businessSection("creator-opportunities", BUSINESS_COLLABORATION_META["creator-opportunities"].title, creators),

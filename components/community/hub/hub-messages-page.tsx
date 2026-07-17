@@ -548,7 +548,7 @@ export function HubMessagesPage() {
                       <Mic className="mr-1 inline h-3.5 w-3.5" />Open Room
                     </HubLinkButton>
                   ) : (
-                    <HubLinkButton href="/c/live" className="ml-1 !px-3 !py-1.5 !text-[11px]">
+                    <HubLinkButton href="/communities/live" className="ml-1 !px-3 !py-1.5 !text-[11px]">
                       <Mic className="mr-1 inline h-3.5 w-3.5" />Start Voice Room
                     </HubLinkButton>
                   )}

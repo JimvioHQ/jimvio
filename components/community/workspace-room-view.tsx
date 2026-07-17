@@ -208,7 +208,7 @@ export function WorkspaceRoomView() {
     return null;
   }, [spacesWithRooms, spaceId, roomId]);
 
-  const base = `/c/${slug}/workspace`;
+  const base = `/communities/${slug}/workspace`;
 
   function closeRoomOverlay() {
     router.push(base);

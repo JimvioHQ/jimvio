@@ -146,7 +146,7 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
                         type="button"
                         onClick={() => {
                           router.push(
-                            `/c/${community.slug}/workspace/room?space=${room.space_id}&room=${room.id}`
+                            `/communities/${community.slug}/workspace/room?space=${room.space_id}&room=${room.id}`
                           );
                         }}
                         className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-surface transition-colors text-left group"

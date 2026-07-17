@@ -196,7 +196,7 @@ export function WorkspaceShell({
      avatarUrl: community.avatar_url,
      userId,
      currentUserId: userId,
-     view: pathname.includes('/workspace/chats') || pathname === `/c/${community.slug}/workspace` ? 'member' : 'member', // Simplified for now
+     view: pathname.includes('/workspace/chats') || pathname === `/communities/${community.slug}/workspace` ? 'member' : 'member', // Simplified for now
      isAdmin: membership?.role === 'admin' || membership?.role === 'moderator' || community.owner_id === userId,
      profile,
      membership,

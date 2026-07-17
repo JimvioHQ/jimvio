@@ -318,7 +318,7 @@ export function CommunityDetailView({
     ? Math.ceil(lifetime / monthly)
     : 0;
 
-  const loginNext = `/login?next=${encodeURIComponent(`/c/${community.slug}`)}`;
+  const loginNext = `/login?next=${encodeURIComponent(`/communities/${community.slug}`)}`;
   const initial = community.name?.[0]?.toUpperCase() ?? "?";
   const createdYear = community.created_at ? new Date(community.created_at).getFullYear() : null;
 
@@ -341,7 +341,7 @@ export function CommunityDetailView({
     if (!isLoggedIn) { router.push(loginNext); return; }
 
     if (isPrivate) {
-      router.push(`/c/${community.slug}/request`);
+      router.push(`/communities/${community.slug}/request`);
       return;
     }
 
@@ -636,7 +636,7 @@ export function CommunityDetailView({
                       <AlertCircle size={13} className="mt-0.5 shrink-0" />
                       <span>
                         Your access expires in {expiresInDays} day{expiresInDays !== 1 ? "s" : ""}.{" "}
-                        <Link href={`/c/${community.slug}/subscribe?plan=${plan}`} className="font-medium underline">
+                        <Link href={`/communities/${community.slug}/subscribe?plan=${plan}`} className="font-medium underline">
                           Renew
                         </Link>
                       </span>
@@ -644,7 +644,7 @@ export function CommunityDetailView({
                   )}
 
                   <Link
-                    href={`/c/${community.slug}/chats`}
+                    href={`/communities/${community.slug}/chats`}
                     className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-accent)] text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)]"
                   >
                     Open workspace <ArrowRight size={13} />
@@ -756,7 +756,7 @@ export function CommunityDetailView({
                   <Link
                     href={
                       isLoggedIn
-                        ? `/c/${community.slug}/subscribe?plan=${plan}`
+                        ? `/communities/${community.slug}/subscribe?plan=${plan}`
                         : loginNext
                     }
                     className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-accent)] text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)]"

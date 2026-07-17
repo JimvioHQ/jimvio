@@ -40,7 +40,7 @@ export function EarningsOverviewCard() {
       </div>
 
       <Link
-        href="/c/wallet"
+        href="/communities/wallet"
         className="relative mt-5 flex w-full items-center justify-center rounded-sm bg-[#FF6600] py-3 text-sm font-bold text-white transition-colors hover:bg-orange-600"
       >
         View Payouts

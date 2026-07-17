@@ -42,7 +42,7 @@ const QUICK_TOOLS = [
 ];
 
 const QUICK_ACTIONS = [
-  { label: "Go Live", icon: Radio, href: "/c/live", accent: true },
+  { label: "Go Live", icon: Radio, href: "/communities/live", accent: true },
   { label: "Start Recording", icon: Disc },
   { label: "Take Screenshot", icon: Camera },
   { label: "Add Co-host", icon: UserCheck },
@@ -73,10 +73,10 @@ const STAGE_CONTROLS = [
 ];
 
 const RIGHT_FOOTER_NAV = [
-  { label: "Home", href: "/c", icon: Home },
+  { label: "Home", href: "/communities", icon: Home },
   { label: "Products", href: "/marketplace", icon: Package },
-  { label: "Chats", href: "/c/messages", icon: MessageSquare },
-  { label: "Events", href: "/c/events", icon: Calendar },
+  { label: "Chats", href: "/communities/messages", icon: MessageSquare },
+  { label: "Events", href: "/communities/events", icon: Calendar },
 ];
 
 /* ── Helpers ── */
@@ -121,7 +121,7 @@ export function HubLivePage() {
   const [copied, setCopied] = useState(false);
   const [showPip, setShowPip] = useState(true);
 
-  const sessionUrl = typeof window !== "undefined" ? `${window.location.origin}/c/live` : "jimvio.com/c/live";
+  const sessionUrl = typeof window !== "undefined" ? `${window.location.origin}/communities/live` : "jimvio.com/communities/live";
 
   useEffect(() => {
     let cancelled = false;
@@ -194,7 +194,7 @@ export function HubLivePage() {
   }
 
   const analytics = data?.analytics;
-  const session = data?.session ?? { title: "Community Live Room", host: "Jimvio", href: "/c/live", tag: "Live Room", roomId: null };
+  const session = data?.session ?? { title: "Community Live Room", host: "Jimvio", href: "/communities/live", tag: "Live Room", roomId: null };
   const hasSession = Boolean(data?.session.roomId);
   const extraSpeakers = Math.max(speakers.length - 4, 0);
   const extraViewers = Math.max((analytics?.viewers ?? 0) - speakers.slice(0, 4).length, 0);
@@ -204,7 +204,7 @@ export function HubLivePage() {
 
   return (
     <div className="relative min-h-full bg-[#f4f4f5] pb-20">
-      <div className="mx-auto max-w-[1680px] space-y-3 p-3 lg:p-4">
+      <div className="w-full space-y-3 px-3 py-3 sm:px-6 lg:px-8 lg:py-4">
         {/* ═══ SESSION HEADER ═══ */}
         <HubCard className="!p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">

@@ -1,0 +1,25 @@
+"use client";
+
+import { CommunitySidebar } from "@/components/shell/CommunitySidebar";
+import { useWorkspace } from "@/components/community/workspace-context";
+
+/**
+ * Member workspace chrome: Community sidebar only (no hub nav).
+ * Desktop renders the sidebar; mobile uses HubLayout drawer.
+ */
+export function CommunityWorkspaceFrame({ children }: { children: React.ReactNode }) {
+  const { slug, communityName, overview } = useWorkspace();
+
+  return (
+    <div className="flex min-h-0 flex-1 bg-[var(--color-bg,#f4f4f5)]">
+      <div className="hidden h-full shrink-0 lg:flex">
+        <CommunitySidebar
+          slug={slug}
+          communityName={communityName}
+          membersOnline={overview?.membersOnline}
+        />
+      </div>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
+    </div>
+  );
+}

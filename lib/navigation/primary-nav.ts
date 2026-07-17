@@ -13,7 +13,7 @@ export type PrimaryNavItem = {
 export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
   { label: "Home", href: "/", icon: Home },
   { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, dropdown: true },
-  { label: "Communities", href: "/c", icon: Users },
+  { label: "Communities", href: "/communities", icon: Users },
   { label: "Affiliates", href: "/affiliates", icon: DollarSign },
   { label: "UGC & Clipping", mobileLabel: "UGC", href: "/ugc", icon: Clapperboard },
 ];
@@ -21,12 +21,12 @@ export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
 export const MOBILE_BOTTOM_NAV_ITEMS = [
   { label: "Home", href: "/", icon: Home },
   { label: "Market", href: "/marketplace", icon: ShoppingBag },
-  { label: "Communities", href: "/c", icon: Users },
+  { label: "Communities", href: "/communities", icon: Users },
   { label: "UGC", href: "/ugc", icon: Clapperboard, ariaLabel: "UGC & Clipping" },
 ] as const;
 
 export function isCommunitiesNavActive(pathname: string): boolean {
-  return pathname.startsWith("/c") || pathname.startsWith("/communities");
+  return pathname === "/communities" || pathname.startsWith("/communities/");
 }
 
 export function isPrimaryNavActive(

@@ -52,6 +52,9 @@ const nextConfig: NextConfig = {
       { source: "/campaigns", destination: "/ugc", permanent: true },
       { source: "/listings/:path*", destination: "/marketplace/:path*", permanent: true },
       { source: "/creators/:path*", destination: "/influencers/:path*", permanent: true },
+      // Community hub: /c → /communities (permanent for bookmarks + SEO)
+      { source: "/c", destination: "/communities", permanent: true },
+      { source: "/c/:path*", destination: "/communities/:path*", permanent: true },
     ];
   },
 

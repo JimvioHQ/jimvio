@@ -889,7 +889,7 @@ export function useChatRoom({
             setActiveConvId(null);
             setActiveConvPeer(null);
             setForceShowList(false);
-            router.push(`/c/${slug}/workspace?space=${spaceId}&room=${rId}`);
+            router.push(`/communities/${slug}/workspace?space=${spaceId}&room=${rId}`);
         },
         [router, slug]
     );

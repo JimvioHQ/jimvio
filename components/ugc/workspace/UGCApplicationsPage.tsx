@@ -123,7 +123,7 @@ export function UGCApplicationsPage() {
           description="Complete your creator profile to apply to campaigns."
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/c/profile">Set up profile</Link>
+              <Link href="/communities/profile">Set up profile</Link>
             </Button>
           }
         />

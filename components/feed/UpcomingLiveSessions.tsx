@@ -4,7 +4,7 @@ import { getInitials } from "@/lib/utils";
 
 export function UpcomingLiveSessions() {
   return (
-    <RightRailCard title="Upcoming Live Sessions" action={{ label: "View all", href: "/c/events" }}>
+    <RightRailCard title="Upcoming Live Sessions" action={{ label: "View all", href: "/communities/events" }}>
       <ul className="space-y-3">
         {UPCOMING_LIVE.map((session) => (
           <li key={session.id} className="flex items-center gap-3">

@@ -65,7 +65,7 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Feed",
         short_name: "Feed",
-        url: "/c",
+        url: "/communities",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
       {
@@ -77,7 +77,7 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Messages",
         short_name: "Messages",
-        url: "/c/messages",
+        url: "/communities/messages",
         icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
       },
     ],

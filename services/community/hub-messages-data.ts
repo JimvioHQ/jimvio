@@ -138,7 +138,7 @@ export async function getHubMessageThreads(userId: string) {
         communitySlug: community?.slug ?? "",
         peerId,
         roomId: null,
-        href: peer?.username ? `/c/profile/${peer.username}` : null,
+        href: peer?.username ? `/communities/profile/${peer.username}` : null,
       });
     }
 
@@ -203,7 +203,7 @@ export async function getHubMessageThreads(userId: string) {
         communitySlug: community?.slug ?? "",
         peerId: null,
         roomId: room.id,
-        href: community ? `/c/${community.slug}/room?room=${room.id}` : null,
+        href: community ? `/communities/${community.slug}/room?room=${room.id}` : null,
       });
     }
 
@@ -224,7 +224,7 @@ export async function getHubMessageThreads(userId: string) {
         communitySlug: community?.slug ?? "",
         peerId: null,
         roomId: null,
-        href: community ? `/c/${community.slug}` : null,
+        href: community ? `/communities/${community.slug}` : null,
       });
     }
   }
@@ -418,7 +418,7 @@ export async function getHubMessagePeer(userId: string, peerId: string) {
     .map((m) => {
       const c = m.communities as { id: string; name: string; slug: string } | null;
       return c
-        ? { id: c.id, name: c.name, slug: c.slug, href: `/c/${c.slug}` }
+        ? { id: c.id, name: c.name, slug: c.slug, href: `/communities/${c.slug}` }
         : null;
     })
     .filter(Boolean) as HubMessagePeer["sharedCommunities"];

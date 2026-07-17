@@ -37,7 +37,7 @@ export function ActivityFeedCard() {
           <span className="h-4 w-1 rounded-full bg-orange-500" aria-hidden />
           <h3 className="text-sm font-bold text-gray-900">Activity Feed</h3>
         </div>
-        <Link href="/c/activity" className="text-xs font-medium text-orange-500 hover:underline">
+        <Link href="/communities/activity" className="text-xs font-medium text-orange-500 hover:underline">
           View all
         </Link>
       </div>

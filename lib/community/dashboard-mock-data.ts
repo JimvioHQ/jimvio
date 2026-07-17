@@ -2,15 +2,25 @@ export const MOCK_COMMUNITY = {
   slug: "ugc-army",
   name: "UGC Army",
   tagline: "Create. Grow. Earn.",
-  visibility: "Private Community" as const,
+  description:
+    "Build a community for creators who want to grow, collaborate and earn together.",
+  visibility: "Private" as const,
   membersOnline: 2145,
+  memberCount: 2145,
   verified: true,
   createdBy: "Maya Editz",
-  joinedDate: "Jan 12, 2025",
-  level: 8,
-  xp: 4120,
-  xpGoal: 6000,
-  bannerUrl: "https://picsum.photos/seed/ugc-banner/1200/320",
+  joinedDate: "May 12, 2024",
+  level: 15,
+  xp: 4250,
+  xpGoal: 6500,
+  rankLabel: "Top 1% in Community",
+  bannerUrl: "https://picsum.photos/seed/ugc-army-hero/1400/420",
+  bannerPills: [
+    "Creator Economy",
+    "Weekly Live",
+    "Mentorship",
+    "Collaboration",
+  ],
 };
 
 export const COMMUNITY_STATS = {
@@ -21,11 +31,11 @@ export const COMMUNITY_STATS = {
 };
 
 export const OVERVIEW_STATS = [
-  { label: "Members Online", value: "2,145", delta: "+142 today" },
-  { label: "Live Now", value: "24", delta: "+6 today" },
-  { label: "Voice Rooms", value: "7", delta: "+2 today" },
-  { label: "Courses", value: "18", delta: "+1 new" },
-  { label: "Total Earned", value: "$12,480", delta: "+$840" },
+  { label: "Members Online", value: "2,145", delta: "+142 today", tone: "green" as const },
+  { label: "Live Now", value: "24", delta: "+10 today", tone: "red" as const },
+  { label: "Voice Rooms", value: "7", delta: "+4 today", tone: "violet" as const },
+  { label: "Courses", value: "18", delta: "+3 today", tone: "blue" as const },
+  { label: "Total Earned", value: "$12,480", delta: "+12.5%", tone: "green" as const },
 ];
 
 export const AI_COMMUNITY_INSIGHTS = [
@@ -54,9 +64,9 @@ export const ACTIVE_NOW = [
 ];
 
 export const UPCOMING_EVENTS = [
-  { id: "1", month: "MAY", day: 24, title: "Live Trading Masterclass", host: "Maya Editz", time: "10:00 AM" },
-  { id: "2", month: "MAY", day: 25, title: "UGC Clip Review", host: "Brick Fx", time: "2:00 PM" },
-  { id: "3", month: "MAY", day: 27, title: "Community Q&A", host: "Sarah Chen", time: "6:00 PM" },
+  { id: "1", month: "MAY", day: 24, title: "Live Trading Masterclass", host: "Maya Editz", time: "10:00 AM", live: true },
+  { id: "2", month: "MAY", day: 25, title: "UGC Clip Review", host: "Brick Fx", time: "2:00 PM", live: false },
+  { id: "3", month: "MAY", day: 27, title: "Community Q&A", host: "Sarah Chen", time: "6:00 PM", live: false },
 ];
 
 export const TOP_CONTRIBUTORS = [
@@ -74,30 +84,115 @@ export const COMMUNITY_RULES = [
   "Follow platform guidelines for UGC content",
 ];
 
+export const COMMUNITY_RULES_PRIMARY = COMMUNITY_RULES;
+
 export const COMMUNITY_FEATURES = [
-  "Weekly live trading sessions",
-  "UGC missions with cash rewards",
-  "Private signals space",
+  "Weekly live masterclasses",
+  "Exclusive creator resources",
+  "Private signals & mentorship",
   "Creator toolkit & templates",
 ];
 
+export const COMMUNITY_ABOUT = {
+  summary:
+    "A community for UGC creators, traders, and digital entrepreneurs. Learn, collaborate, and earn together through live sessions, missions, and shared resources.",
+  highlights: COMMUNITY_FEATURES,
+};
+
+export const COMMUNITY_JOURNEY = {
+  level: 15,
+  xp: 4250,
+  xpGoal: 6500,
+  challengesCompleted: 24,
+  riddlesCompleted: 18,
+  membersTotal: "2.5K",
+  rank: "Top 1%",
+};
+
 export const COURSES = [
-  { id: "1", title: "UGC Mastery 101", difficulty: "Beginner", lessons: 12, progress: 75, thumbnail: "https://picsum.photos/seed/course1/400/240" },
-  { id: "2", title: "Content Creation", difficulty: "Intermediate", lessons: 18, progress: 40, thumbnail: "https://picsum.photos/seed/course2/400/240" },
-  { id: "3", title: "Live Streaming", difficulty: "Advanced", lessons: 8, progress: 0, thumbnail: "https://picsum.photos/seed/course3/400/240" },
-  { id: "4", title: "Affiliate Basics", difficulty: "Beginner", lessons: 6, progress: 100, thumbnail: "https://picsum.photos/seed/course4/400/240" },
+  {
+    id: "1",
+    title: "UGC Mastery 101",
+    difficulty: "Beginner",
+    lessons: 12,
+    progress: 75,
+    thumbnail: "https://picsum.photos/seed/course1/640/400",
+  },
+  {
+    id: "2",
+    title: "Content Creation",
+    difficulty: "Intermediate",
+    lessons: 18,
+    progress: 40,
+    thumbnail: "https://picsum.photos/seed/course2/640/400",
+  },
+  {
+    id: "3",
+    title: "Live Streaming",
+    difficulty: "Advanced",
+    lessons: 8,
+    progress: 12,
+    thumbnail: "https://picsum.photos/seed/course3/640/400",
+  },
+  {
+    id: "4",
+    title: "Affiliate Basics",
+    difficulty: "Beginner",
+    lessons: 6,
+    progress: 100,
+    thumbnail: "https://picsum.photos/seed/course4/640/400",
+  },
+  {
+    id: "5",
+    title: "Editing Pro",
+    difficulty: "Advanced",
+    lessons: 14,
+    progress: 28,
+    thumbnail: "https://picsum.photos/seed/course5/640/400",
+  },
 ];
 
 export const RECENT_ACTIVITY = [
-  { id: "1", user: "Maya", action: "posted in General Chat", time: "2m ago" },
-  { id: "2", user: "Brick", action: "started a live session", time: "15m ago" },
-  { id: "3", user: "Sarah", action: "completed UGC Mastery 101", time: "1h ago" },
+  { id: "1", user: "Maya Ede", action: "started a live session", time: "2m ago", type: "live" as const },
+  { id: "2", user: "Bricks", action: "shared a new signal", time: "15m ago", type: "resource" as const },
+  { id: "3", user: "Sarah Chen", action: "completed UGC Mastery 101", time: "1h ago", type: "course" as const },
+  { id: "4", user: "Alex Rivera", action: "joined Voice Room", time: "2h ago", type: "join" as const },
+  { id: "5", user: "Chris Clips", action: "posted in General Chat", time: "3h ago", type: "resource" as const },
 ];
 
 export const POPULAR_WEEK = [
-  { id: "1", title: "Live Trading Room", count: "842 joined" },
-  { id: "2", title: "Signals Space", count: "612 enrolled" },
-  { id: "3", title: "Clip Challenges", count: "489 active" },
+  {
+    id: "1",
+    title: "Editing Masterclass Live",
+    type: "Live",
+    popularity: "1.2K joined",
+    actionLabel: "Join",
+    href: "/live",
+  },
+  {
+    id: "2",
+    title: "Voice Room Motivation Talk",
+    type: "Voice",
+    popularity: "980 joined",
+    actionLabel: "Join",
+    href: "/chat?space=voice",
+  },
+  {
+    id: "3",
+    title: "Signals Space",
+    type: "Space",
+    popularity: "612 active",
+    actionLabel: "Open",
+    href: "/chat?space=signals",
+  },
+  {
+    id: "4",
+    title: "Clip Challenges",
+    type: "Challenge",
+    popularity: "489 playing",
+    actionLabel: "Enter",
+    href: "/missions",
+  },
 ];
 
 export const CHAT_MESSAGES = [
