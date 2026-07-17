@@ -75,8 +75,9 @@ The project relies on the following configuration values. A full sample is avail
 
 ### Supabase / Database
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (preferred)
+- `SUPABASE_SECRET_KEY` (preferred, server-only)
+- Legacy fallbacks (optional): `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - `NEXT_PUBLIC_APP_URL` (optional, used for auth links)
 
 ### Payments
