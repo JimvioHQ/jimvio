@@ -693,7 +693,8 @@ erDiagram
 |-------------|---------|
 | API keys | Vercel environment variables |
 | Payment keys | Env + `platform_secrets` table |
-| Service role | `SUPABASE_SERVICE_ROLE_KEY` — server only |
+| Service role / secret | `SUPABASE_SECRET_KEY` — server only |
+| Publishable key | `SUPABASE_PUBLISHABLE_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |
 | Webhook secrets | Per-provider env vars |
 | **Never** | Client bundle, git, logs |
 
@@ -921,7 +922,7 @@ Canonical template: `.env.example`
 
 | Group | Keys |
 |-------|------|
-| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` |
+| Supabase | `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` |
 | App | `NEXT_PUBLIC_APP_URL` |
 | Email | `RESEND_API_KEY`, `EMAIL_FROM` |
 | Payments | PesaPal, PawaPay, NowPayments, AfriPay, Flutterwave, PayPal, Binance |
