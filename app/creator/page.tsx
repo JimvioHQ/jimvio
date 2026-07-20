@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CreatorEarningsNudge } from "@/components/growth/CreatorEarningsNudge";
 
 const modules = [
   ["Digital library", "/creator/digital", "Deliver and download digital products."],
@@ -28,6 +29,7 @@ export default function CreatorHomePage() {
           </Link>
         ))}
       </div>
+      <CreatorEarningsNudge />
     </section>
   );
 }

@@ -12,6 +12,7 @@ import { PremiumTrustPanel } from "./premium-trust-panel";
 import { PaymentMethodSelector, type MethodId } from "./PaymentMethodSelector";
 import ShippingForm, { type ShippingFormValues, validateShippingForm } from "./ShippingForm";
 import { CJShippingSelector } from "./CJShippingSelector";
+import { CheckoutTrustSignals } from "@/components/growth/CheckoutTrustSignals";
 
 import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -566,6 +567,7 @@ export function CheckoutExperience({
                   </div>
 
                   <aside className="lg:col-span-5 lg:sticky lg:top-[calc(var(--navbar-height,64px)+16px)] space-y-4">
+                     <CheckoutTrustSignals />
                      <PremiumTrustPanel
                         deliveryHint={
                            isAllDigital

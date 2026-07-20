@@ -11,6 +11,7 @@ import {
   CheckoutResultShell,
   CheckoutResultCard,
 } from "@/components/checkout/checkout-result-shell";
+import { PostPurchaseCrossSell } from "@/components/growth/PostPurchaseCrossSell";
 import type { CheckoutSuccessOrder } from "./page";
 
 interface FlutterwaveTransaction {
@@ -233,6 +234,7 @@ export function CheckoutSuccessClient({
             ))}
           </ul>
         </CheckoutResultCard>
+        <PostPurchaseCrossSell />
 
         {/* CTAs */}
         <div className="flex flex-col gap-3 pt-2 sm:flex-row">
