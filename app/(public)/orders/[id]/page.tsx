@@ -13,6 +13,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { OrderStatusBadge } from "@/components/orders/OrderStatusBadge";
 import { TrackingCard } from "@/components/orders/TrackingCard";
+import { LeaveReviewCta } from "@/components/orders/leave-review-cta";
 import { toast } from "sonner";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -581,12 +582,14 @@ function OrderItemRow({
             </Link>
           )}
           {canReview && item.product_id && !hasReview && (
-            <Link
-              href={`/products/${item.product_id}/review?order_item=${item.id}`}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-accent)]"
-            >
-              <Star className="h-3 w-3" /> Leave a review
-            </Link>
+            <LeaveReviewCta
+              productSlug={
+                (item as { product_slug?: string }).product_slug ||
+                item.product_id
+              }
+              productName={item.product_name}
+              orderItemId={item.id}
+            />
           )}
           {hasReview && (
             <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-text-muted)]">
