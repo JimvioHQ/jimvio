@@ -54,13 +54,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .eq("status", "active")
       .is("deleted_at", null)
       .order("updated_at", { ascending: false })
-      .limit(1000),
+      // Single sitemap remains under the protocol's 50k URL limit; shard when
+      // the public catalog approaches that ceiling.
+      .limit(45_000),
     admin
       .from("communities")
       .select("slug, updated_at")
       .eq("is_active", true)
       .order("updated_at", { ascending: false })
-      .limit(500),
+      .limit(4_000),
     admin
       .from("blog_posts")
       .select("slug, published_at")
