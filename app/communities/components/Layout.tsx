@@ -36,6 +36,8 @@ import {
   isPrimaryNavActive,
   PRIMARY_NAV_ITEMS,
 } from "@/lib/navigation/primary-nav";
+import { CommunityAiPanel } from "@/components/community/hub/CommunityAiPanel";
+import { HubSearchDialog } from "@/components/community/hub/HubSearchDialog";
 
 type Profile = Pick<DbProfile, "id" | "username" | "full_name" | "avatar_url">;
 
@@ -126,6 +128,8 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [aiOpen, setAiOpen] = useState(false);
 
     const pageTitle = usePageTitle(pathname);
     const communitySlug = getCommunitySlugFromPath(pathname);
@@ -136,6 +140,18 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
     // Close mobile nav on route change
     useEffect(() => { setMobileNavOpen(false); }, [pathname]);
+
+    // ⌘K / Ctrl+K opens hub search
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+                e.preventDefault();
+                setSearchOpen(true);
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, []);
 
     // Close mobile nav when returning to desktop width
     useEffect(() => {
@@ -278,22 +294,26 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
                 <div className="col-start-3 ml-auto flex shrink-0 items-center justify-end gap-1.5">
                     {/* Search */}
-                    <div className="hidden h-9 w-[132px] items-center gap-1.5 rounded-full border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface-secondary,#f4f4f5)] px-2.5 min-[1060px]:flex xl:w-[152px]">
+                    <button
+                        type="button"
+                        onClick={() => setSearchOpen(true)}
+                        aria-label="Search communities"
+                        className="hidden h-9 w-[132px] items-center gap-1.5 rounded-full border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface-secondary,#f4f4f5)] px-2.5 text-left min-[1060px]:flex xl:w-[152px]"
+                    >
                         <Search className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
-                        <input
-                            placeholder="Search…"
-                            aria-label="Search"
-                            className="min-w-0 flex-1 bg-transparent text-[12px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
-                        />
+                        <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--color-text-muted)]">Search…</span>
                         <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] px-1 py-px text-[9px] font-semibold text-[var(--color-text-muted)] 2xl:block">⌘K</kbd>
-                    </div>
+                    </button>
 
                     {/* Create */}
                     <CreateMenuDropdown variant="compact" />
 
-                    {/* AI */}
+                    {/* AI — community panel on hub routes; global copilot otherwise */}
                     <button
-                        onClick={() => openAssistant()}
+                        onClick={() => {
+                            if (pathname.startsWith("/communities")) setAiOpen(true);
+                            else openAssistant();
+                        }}
                         aria-label="AI assistant"
                         className="hidden h-9 w-9 shrink-0 place-items-center rounded-full text-[#fd5000] hover:bg-[#fd5000]/10 sm:grid"
                     >
@@ -302,7 +322,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
                     {/* Notifications */}
                     <Link
-                        href="/notifications"
+                        href="/dashboard/notifications"
                         aria-label={`Notifications${unreadNotifications > 0 ? ` (${unreadNotifications} unread)` : ""}`}
                         className="relative grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                     >
@@ -462,6 +482,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 </button>
                 </nav>
             )}
+
+            <HubSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
+            <CommunityAiPanel open={aiOpen} onClose={() => setAiOpen(false)} />
         </div>
     );
 }

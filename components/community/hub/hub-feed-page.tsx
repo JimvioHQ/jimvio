@@ -107,6 +107,9 @@ export function HubFeedPage() {
   const [data, setData] = useState<HubDashboard | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiReply, setAiReply] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const activeFilter = FEED_TABS.find((tab) => tab.label === activeTab)?.filter ?? "for-you";
 
@@ -427,7 +430,51 @@ export function HubFeedPage() {
               <li>• Your audience is most active during evenings.</li>
               <li>• Post clips today to boost reach.</li>
             </ul>
-            <Input placeholder="Ask AI anything…" inputSize="sm" className="mt-3 rounded-md" />
+            {aiReply && (
+              <p className="mt-2 max-h-24 overflow-y-auto whitespace-pre-wrap rounded-md bg-[var(--color-surface-secondary)] p-2 text-[11px] text-[var(--color-text-secondary)]">
+                {aiReply}
+              </p>
+            )}
+            <form
+              className="mt-3 flex gap-1.5"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const prompt = aiPrompt.trim();
+                if (!prompt || aiLoading) return;
+                setAiLoading(true);
+                setAiReply(null);
+                try {
+                  const res = await fetch("/api/c/ai", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt, mode: "ask" }),
+                  });
+                  const json = (await res.json()) as { text?: string; error?: string };
+                  setAiReply(json.text ?? json.error ?? "No response");
+                  if (res.ok) setAiPrompt("");
+                } catch {
+                  setAiReply("Network error — try again");
+                } finally {
+                  setAiLoading(false);
+                }
+              }}
+            >
+              <Input
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="Ask AI anything…"
+                inputSize="sm"
+                className="rounded-md"
+                disabled={aiLoading || needsAuth}
+              />
+              <button
+                type="submit"
+                disabled={aiLoading || !aiPrompt.trim() || needsAuth}
+                className="shrink-0 rounded-md bg-[#fd5000] px-2.5 text-[11px] font-bold text-white disabled:opacity-40"
+              >
+                {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Ask"}
+              </button>
+            </form>
           </HubCard>
 
           {(data?.stories?.length ?? 0) > 0 && (
