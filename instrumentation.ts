@@ -7,6 +7,8 @@
 export async function register() {
   // Only run this on the server-side Node.js environment
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { logger } = await import("./lib/ops/logger");
+    logger.info("server_boot", { runtime: process.env.NEXT_RUNTIME, environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV });
     const { validateLiveStudioEnvAtBoot } = await import("./lib/live/env");
     try {
       validateLiveStudioEnvAtBoot();
