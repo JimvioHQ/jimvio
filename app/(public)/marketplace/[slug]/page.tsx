@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductPageData, getUserCountry, getProductBySlug } from "@/services/db";
 import { getFollowedVendorIds } from "@/lib/actions/marketplace";
-import { DigitalProductDetail } from "@/components/marketplace/product-detail-digital";
-import { PhysicalProductDetail } from "@/components/marketplace/product-detail-physical";
 import { ProductJsonLd } from "@/components/seo/ProductJsonLd";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
@@ -82,6 +80,9 @@ export default async function ProductDetailPage({ params }: PageProps) {
   );
 
   if (isDigital) {
+    const { DigitalProductDetail } = await import(
+      "@/components/marketplace/product-detail-digital"
+    );
     return (
       <>
         {breadcrumb}
@@ -94,6 +95,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
       </>
     );
   }
+
+  const { PhysicalProductDetail } = await import(
+    "@/components/marketplace/product-detail-physical"
+  );
 
   return (
     <>

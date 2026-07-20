@@ -3,7 +3,6 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import DOMPurify from "isomorphic-dompurify";
 import {
   Star, ShieldCheck, Clock, BadgeCheck,
   ShoppingBag, Shield, Truck, Info, ArrowRight,

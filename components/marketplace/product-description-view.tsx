@@ -1,40 +1,29 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import DOMPurify from "isomorphic-dompurify";
 import { CheckCircle2 } from "lucide-react";
 import {
   cleanCJDescription,
   parseCJDescriptionSections,
   type CJFeatureHighlight,
 } from "@/lib/cj/render";
-import { sanitizeSupplierFacingText } from "@/lib/cj/customer-facing";
+import {
+  sanitizeProductDescriptionHtml,
+  sanitizeSupplierFacingText,
+} from "@/lib/cj/customer-facing";
 
-const ALLOWED_HTML_TAGS = [
-  "p",
-  "ul",
-  "ol",
-  "li",
-  "strong",
-  "b",
-  "em",
-  "i",
-  "br",
-  "h3",
-  "h4",
-  "h5",
-  "span",
-  "table",
-  "thead",
-  "tbody",
-  "tr",
-  "td",
-  "th",
-  "div",
-  "img",
-];
-
-const ALLOWED_HTML_ATTR = ["class", "src", "alt", "title", "width", "height", "loading"];
+/**
+ * SSR-safe sanitizer — avoids isomorphic-dompurify/jsdom, which breaks
+ * Vercel serverless SSR for /marketplace/[slug] when pulled into the page graph.
+ */
+function sanitizeDescriptionHtml(html: string): string {
+  return sanitizeProductDescriptionHtml(html)
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<\/?(iframe|object|embed|link|meta|form)\b[^>]*>/gi, "")
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript:/gi, "");
+}
 
 function FeatureList({ features }: { features: CJFeatureHighlight[] }) {
   return (
@@ -79,11 +68,7 @@ export function ProductDescriptionView({
 
   const safeHtml = useMemo(() => {
     if (!description?.trim()) return "";
-    const cleaned = cleanCJDescription(description);
-    return DOMPurify.sanitize(cleaned, {
-      ALLOWED_TAGS: ALLOWED_HTML_TAGS,
-      ALLOWED_ATTR: ALLOWED_HTML_ATTR,
-    });
+    return sanitizeDescriptionHtml(cleanCJDescription(description));
   }, [description]);
 
   const bullets = useMemo(() => {
