@@ -8,6 +8,7 @@ import { ChevronLeft, Pencil, Package, Truck, ChevronRight, Loader2 } from "luci
 
 import { CheckoutFooter } from "./CheckoutFooter";
 import { OrderSummaryCard } from "./OrderSummaryCard";
+import { PremiumTrustPanel } from "./premium-trust-panel";
 import { PaymentMethodSelector, type MethodId } from "./PaymentMethodSelector";
 import ShippingForm, { type ShippingFormValues, validateShippingForm } from "./ShippingForm";
 import { CJShippingSelector } from "./CJShippingSelector";
@@ -564,7 +565,14 @@ export function CheckoutExperience({
                      </AnimatePresence>
                   </div>
 
-                  <aside className="lg:col-span-5 lg:sticky lg:top-[calc(var(--navbar-height,64px)+16px)]">
+                  <aside className="lg:col-span-5 lg:sticky lg:top-[calc(var(--navbar-height,64px)+16px)] space-y-4">
+                     <PremiumTrustPanel
+                        deliveryHint={
+                           isAllDigital
+                              ? "Digital access is delivered instantly after payment."
+                              : "Shipping options and ETA are confirmed before you pay."
+                        }
+                     />
                      <OrderSummaryCard
                         orders={orders}
                         items={allItems}
