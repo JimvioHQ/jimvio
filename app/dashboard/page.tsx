@@ -28,6 +28,8 @@ import {
   DashboardStatSkeleton,
   DashboardGridSkeleton,
 } from "@/components/dashboard/dashboard-skeleton";
+import { ProgressTracker } from "@/components/growth/ProgressTracker";
+import { FirstRunTips } from "@/components/growth/FirstRunTips";
 
 import type { StatCard, ActivityItem, Product, Community } from "@/types/dashboard";
 import { QUICK_ACTIONS } from "@/data/dashboard";
@@ -586,6 +588,12 @@ export default function DashboardHomePage() {
             </>
           }
         />
+        {!loading && (
+          <div className="space-y-3">
+            <ProgressTracker />
+            <FirstRunTips />
+          </div>
+        )}
 
         {loading ? (
           <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
