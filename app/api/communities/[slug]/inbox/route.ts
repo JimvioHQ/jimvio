@@ -31,7 +31,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   if (!membership) return NextResponse.json({ error: "Not a member" }, { status: 403 });
 
   // Fetch inbox conversations with peer profiles
-  const { data } = await supabase
+  // last_message_preview may be missing in generated types — select core columns + cast
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase as any)
     .from("community_inbox_conversations")
     .select(`
       id, user_low, user_high, updated_at, last_message_preview,
@@ -43,18 +45,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     .order("updated_at", { ascending: false })
     .limit(50);
 
-  const conversations = (data ?? []).map((conv) => {
+  type InboxConv = {
+    id: string;
+    user_low: string;
+    user_high: string;
+    updated_at: string;
+    last_message_preview?: string | null;
+    user_low_profile?: { full_name: string | null; avatar_url: string | null; username: string | null } | null;
+    user_high_profile?: { full_name: string | null; avatar_url: string | null; username: string | null } | null;
+  };
+
+  const conversations = ((data ?? []) as InboxConv[]).map((conv) => {
     const isLow = conv.user_low === user.id;
-    const peer = (isLow ? conv.user_high_profile : conv.user_low_profile) as
-      | { full_name: string | null; avatar_url: string | null; username: string | null }
-      | null
-      | undefined;
+    const peer = isLow ? conv.user_high_profile : conv.user_low_profile;
     return {
       id: conv.id,
       peerId: isLow ? conv.user_high : conv.user_low,
       peerName: peer?.full_name || peer?.username || "Member",
       peerAvatar: peer?.avatar_url || null,
-      lastMessage: (conv as { last_message_preview?: string | null }).last_message_preview || "",
+      lastMessage: conv.last_message_preview || "",
       updatedAt: conv.updated_at,
     };
   });

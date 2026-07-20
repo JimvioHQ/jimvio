@@ -112,10 +112,13 @@ export async function fetchCollectionBySlug(
       .order("sort_order", { ascending: true })
       .limit(48);
 
-    const products = (links ?? [])
-      .map((row: { products: Record<string, unknown> | null }) => row.products)
+    const products = ((links ?? []) as Array<{ products: Record<string, unknown> | null }>)
+      .map((row) => row.products)
       .filter((p): p is Record<string, unknown> => Boolean(p))
-      .filter((p) => p.status === "active" && p.is_active !== false && !p.deleted_at)
+      .filter(
+        (p) =>
+          p.status === "active" && p.is_active !== false && !p.deleted_at
+      )
       .map((p) => ({
         id: p.id as string,
         name: p.name as string,
