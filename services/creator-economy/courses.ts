@@ -74,13 +74,33 @@ export async function getProgress(courseId: string, userId: string) {
 }
 
 export async function issueCertificate(courseId: string, userId: string) {
-  const course = await assertCreator(courseId, userId).catch(async () => db().from("community_courses").select("*").eq("id", courseId).single().then((r) => r.data));
-  if (!course?.certificate_enabled) throw new Error("Certificates are not enabled");
+  const { data: course, error: courseError } = await db()
+    .from("community_courses")
+    .select("id, certificate_enabled, is_published, creator_id")
+    .eq("id", courseId)
+    .maybeSingle();
+  if (courseError) throw courseError;
+  if (!course) throw new Error("Course not found");
+  if (!course.certificate_enabled) throw new Error("Certificates are not enabled");
+  if (!course.is_published && course.creator_id !== userId) {
+    throw new Error("Course is not published");
+  }
   const progress = await getProgress(courseId, userId);
-  if (!progress.lessons || progress.completed !== progress.lessons) throw new Error("Complete all lessons first");
-  const { data, error } = await db().from("course_certificates").upsert({
-    course_id: courseId, user_id: userId, certificate_code: `JMV-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-  }, { onConflict: "course_id,user_id" }).select().single();
+  if (!progress.lessons || progress.completed !== progress.lessons) {
+    throw new Error("Complete all lessons first");
+  }
+  const { data, error } = await db()
+    .from("course_certificates")
+    .upsert(
+      {
+        course_id: courseId,
+        user_id: userId,
+        certificate_code: `JMV-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+      },
+      { onConflict: "course_id,user_id" }
+    )
+    .select()
+    .single();
   if (error) throw error;
   return data;
 }

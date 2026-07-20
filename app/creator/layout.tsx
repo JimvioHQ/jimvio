@@ -1,5 +1,43 @@
 import Link from "next/link";
+
 export default function CreatorLayout({ children }: { children: React.ReactNode }) {
-  const links = [["Digital", "/creator/digital"], ["Courses", "/creator/courses"], ["Learn", "/creator/learn"], ["Revenue", "/creator/revenue"], ["Payouts", "/creator/payouts"], ["Analytics", "/creator/analytics"]];
-  return <div className="min-h-screen bg-[var(--color-bg)]"><nav aria-label="Creator navigation" className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-surface)]"><div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-3"><Link href="/creator" className="mr-2 whitespace-nowrap text-sm font-bold text-[#fd5000]">Creator</Link>{links.map(([label, href]) => <Link key={href} href={href} className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]">{label}</Link>)}<Link href="/communities" className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)]">Memberships</Link></div></nav><main className="mx-auto w-full max-w-6xl px-4 py-6 sm:py-8">{children}</main></div>;
+  const links = [
+    ["Digital", "/creator/digital"],
+    ["Courses", "/creator/courses"],
+    ["Learn", "/creator/learn"],
+    ["Revenue", "/creator/revenue"],
+    ["Payouts", "/creator/payouts"],
+    ["Analytics", "/creator/analytics"],
+  ] as const;
+
+  return (
+    <div className="min-h-screen bg-[var(--color-bg)]">
+      <nav
+        aria-label="Creator navigation"
+        className="sticky top-0 z-10 border-b border-[var(--color-border)] bg-[var(--color-surface)]"
+      >
+        <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 py-3">
+          <Link href="/creator" className="mr-2 whitespace-nowrap text-sm font-bold text-[#fd5000]">
+            Creator
+          </Link>
+          {links.map(([label, href]) => (
+            <Link
+              key={href}
+              href={href}
+              className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]"
+            >
+              {label}
+            </Link>
+          ))}
+          <Link
+            href="/communities"
+            className="whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)]"
+          >
+            Memberships
+          </Link>
+        </div>
+      </nav>
+      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:py-8">{children}</main>
+    </div>
+  );
 }

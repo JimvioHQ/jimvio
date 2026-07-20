@@ -35,9 +35,19 @@ export async function requestWithdrawal(input: { userId: string; amount: number;
   const method = input.methodId ? methods.find((item) => item.id === input.methodId) : methods.find((item) => item.is_default);
   if (!method) throw new Error("Save a payout method first");
   const { data, error } = await client.from("payouts").insert({
-    user_id: input.userId, type: "vendor_withdrawal", amount: input.amount, currency: wallet.currency ?? "USD", status: "pending",
-    payout_method: method.method, payout_account: JSON.stringify(method.account_details),
-    notes: method.method === "crypto" ? "Future-ready crypto payout; processing pending." : null,
+    user_id: input.userId,
+    type: "vendor_withdrawal",
+    amount: input.amount,
+    fee: 0,
+    net_amount: input.amount,
+    currency: wallet.currency ?? "USD",
+    status: "pending",
+    payout_method: method.method,
+    payout_account: JSON.stringify(method.account_details),
+    notes:
+      method.method === "crypto"
+        ? "Future-ready crypto payout; processing pending."
+        : null,
   }).select().single();
   if (error) throw error;
   const { error: walletError } = await client.from("wallets").update({
