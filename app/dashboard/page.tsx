@@ -30,6 +30,9 @@ import {
 } from "@/components/dashboard/dashboard-skeleton";
 import { ProgressTracker } from "@/components/growth/ProgressTracker";
 import { FirstRunTips } from "@/components/growth/FirstRunTips";
+import { DiscoveryShelf } from "@/components/growth/DiscoveryShelf";
+import { MembershipUpgradeNudge } from "@/components/growth/MembershipUpgradeNudge";
+import { NpsCapture } from "@/components/growth/NpsCapture";
 
 import type { StatCard, ActivityItem, Product, Community } from "@/types/dashboard";
 import { QUICK_ACTIONS } from "@/data/dashboard";
@@ -592,6 +595,9 @@ export default function DashboardHomePage() {
           <div className="space-y-3">
             <ProgressTracker />
             <FirstRunTips />
+            <NpsCapture />
+            <DiscoveryShelf />
+            <MembershipUpgradeNudge />
           </div>
         )}
 
