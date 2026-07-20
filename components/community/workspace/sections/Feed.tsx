@@ -1316,6 +1316,7 @@ function PostCard({
                 <button
                     type="button"
                     onClick={onLike}
+                    aria-label={liked ? "Unlike post" : "Like post"}
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] transition-colors ${liked ? "text-[#fd5000]" : "text-text-muted hover:bg-surface-secondary hover:text-[#fd5000]"}`}
                 >
                     <Heart className={`w-3.5 h-3.5 ${liked ? "fill-[#fd5000]" : ""}`} />
@@ -1326,6 +1327,7 @@ function PostCard({
                 <button
                     type="button"
                     onClick={onSelect}
+                    aria-label="Comment on post"
                     className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] transition-colors ${isDetailOpen ? "text-[#fd5000]" : "text-text-muted hover:bg-surface-secondary hover:text-[#fd5000]"}`}
                 >
                     <MessageCircle className="w-3.5 h-3.5" />

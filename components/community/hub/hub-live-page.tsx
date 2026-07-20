@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
@@ -74,6 +75,7 @@ import { FOCUS_RING, FOCUS_RING_DARK, MOTION_COLORS } from "./live/studio-ui";
 type LoadError = "network" | "server" | null;
 
 export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<LoadError>(null);
   const [data, setData] = useState<LiveDashboard | null>(null);
@@ -476,12 +478,16 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
         communityId,
         roomId,
         title: data?.session.title,
+      }).then((session) => {
+        if (session?.id && !sessionIdProp) {
+          router.replace(`/communities/live/${session.id}`);
+        }
       });
       showToast("You are live");
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Could not start live");
     }
-  }, [data, live, showToast]);
+  }, [data, live, showToast, router, sessionIdProp]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
