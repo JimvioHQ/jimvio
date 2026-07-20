@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { ensureNativeVendorCreditsApplied } from "@/lib/payments/credit-vendors-for-native-order";
+import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
@@ -12,11 +13,8 @@ const adminDb = createClient(
 );
 
 export async function GET(req: NextRequest) {
-  // Auth guard
-  const secret = process.env.CRON_SECRET;
-  if (secret && req.headers.get("x-cron-secret") !== secret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authError = assertCronAuthorized(req);
+  if (authError) return authError;
 
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
