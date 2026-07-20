@@ -75,10 +75,11 @@ export function ChatHeader({
         </div>
       )}
 
-      {/* ── Minimal call buttons (hideHeader mode) ──────────────────── */}
+      {/* ── Minimal actions (hideHeader mode) — keep Search reachable ─ */}
       {(activeConvId || roomName) && hideHeader && (
         <div className="absolute right-4 top-2.5 z-30 flex items-center gap-2">
           <button
+            type="button"
             onClick={onStartAudioCall}
             aria-label="Audio call"
             className={cn(
@@ -89,6 +90,7 @@ export function ChatHeader({
             <Phone className="h-4 w-4 text-[var(--color-accent)]" />
           </button>
           <button
+            type="button"
             onClick={onStartVideoCall}
             aria-label="Video call"
             className={cn(
@@ -97,6 +99,19 @@ export function ChatHeader({
             )}
           >
             <Video className="h-4 w-4 text-[var(--color-accent)]" />
+          </button>
+          <button
+            type="button"
+            onClick={onToggleSearch}
+            aria-label="Search messages"
+            aria-pressed={searchOpen}
+            className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-sm hover:scale-105 transition-all",
+              "bg-[var(--color-surface)] border border-[var(--color-border)]",
+              searchOpen && "ring-1 ring-[var(--color-accent)]"
+            )}
+          >
+            <Search className="h-4 w-4 text-[var(--color-accent)]" />
           </button>
         </div>
       )}

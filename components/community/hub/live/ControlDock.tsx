@@ -121,6 +121,9 @@ function ControlDockImpl({
             <DockBtn onClick={onPresent} label="Present" className="hidden md:flex">
               <Presentation className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
+            <DockBtn onClick={onPoll} label="Poll" hint="P" className="hidden sm:flex">
+              <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
+            </DockBtn>
           </>
         )}
 
