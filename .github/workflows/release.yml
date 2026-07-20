@@ -1,0 +1,217 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "CHANGELOG.md"
+      - "**.md"
+      - "docs/**"
+      - "release-checklist.md"
+      - "branch-protection.md"
+      - "versioning.md"
+      - "rollback-playbook.md"
+  workflow_dispatch:
+    inputs:
+      skip_deploy:
+        description: "Run gates only (no production deploy)"
+        required: false
+        default: false
+        type: boolean
+      bump:
+        description: "Semver bump when tagging"
+        required: false
+        default: patch
+        type: choice
+        options: [patch, minor, major]
+
+concurrency:
+  group: release-production
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  gate:
+    name: Release gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      should_deploy: ${{ steps.decide.outputs.should_deploy }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: CI gate (ci:prepush)
+        run: npm run ci:prepush
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+
+      - name: Migration verification
+        run: node scripts/release/verify-migrations.mjs
+
+      - name: Environment / deploy readiness
+        id: env
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Vercel deploy secrets not configured — gates still run; deploy skipped." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node scripts/release/verify-env.mjs --strict
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+
+      - name: Decide deploy
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.skip_deploy }}" = "true" ]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.env.outputs.configured }}" != "true" ]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    name: Deploy production
+    needs: gate
+    if: needs.gate.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: production
+      url: ${{ steps.meta.outputs.public_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Deploy to Vercel production
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          START=$(date +%s)
+          npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx vercel build --prod --token="$VERCEL_TOKEN"
+          URL=$(npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          END=$(date +%s)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "duration_s=$((END-START))" >> "$GITHUB_OUTPUT"
+          echo "Production deploy URL: $URL" >> "$GITHUB_STEP_SUMMARY"
+          echo "Deploy duration: $((END-START))s" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Resolve public URL
+        id: meta
+        env:
+          PUBLIC_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+        run: |
+          if [ -n "$PUBLIC_URL" ]; then
+            echo "public_url=$PUBLIC_URL" >> "$GITHUB_OUTPUT"
+          else
+            echo "public_url=${{ steps.deploy.outputs.url }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post-deploy health (+ auto-rollback)
+        id: health
+        env:
+          BASE_URL: ${{ steps.meta.outputs.public_url }}
+          AUTO_ROLLBACK: "1"
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          ROLLBACK_CMD: npx vercel rollback --yes --token=${{ secrets.VERCEL_TOKEN }}
+        run: node scripts/release/post-deploy-health.mjs
+
+      - name: Production smoke
+        env:
+          BASE_URL: ${{ steps.meta.outputs.public_url }}
+        run: node scripts/smoke/critical-flows.mjs
+
+      - name: Semantic version + CHANGELOG + GitHub Release
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUMP: ${{ github.event_name == 'workflow_dispatch' && inputs.bump || 'patch' }}
+        run: |
+          set -euo pipefail
+          PREV=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          NEXT=$(node -e '
+            const bump=process.env.BUMP||"patch";
+            const prev=(process.argv[1]||"").replace(/^v/,"");
+            let a=1,b=0,c=0;
+            if (prev && /^\d+\.\d+\.\d+$/.test(prev)) [a,b,c]=prev.split(".").map(Number);
+            else if (!prev) { console.log("v1.0.0"); process.exit(0); }
+            if (bump==="major") { a+=1; b=0; c=0; }
+            else if (bump==="minor") { b+=1; c=0; }
+            else { c+=1; }
+            console.log("v"+a+"."+b+"."+c);
+          ' "${PREV}")
+          {
+            echo "# Jimvio $NEXT"
+            echo
+            echo "Production release from \`${GITHUB_SHA}\`."
+            echo
+            echo "## Changes"
+            if [ -n "${PREV}" ]; then
+              git log --pretty=format:'- %s (%h)' "${PREV}..HEAD"
+            else
+              git log --pretty=format:'- %s (%h)' -30
+            fi
+            echo
+          } > RELEASE_NOTES.md
+          {
+            echo "## $NEXT — $(date -u +%Y-%m-%d)"
+            echo
+            cat RELEASE_NOTES.md
+            echo
+            echo
+            if [ -f CHANGELOG.md ]; then cat CHANGELOG.md; fi
+          } > CHANGELOG.md.tmp
+          mv CHANGELOG.md.tmp CHANGELOG.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore(release): $NEXT [skip ci]" || true
+          git tag -a "$NEXT" -m "Jimvio $NEXT" || true
+          git push origin "HEAD:${{ github.ref_name }}" --tags || true
+          gh release create "$NEXT" --title "Jimvio $NEXT" --notes-file RELEASE_NOTES.md || true
+          echo "Tagged $NEXT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Observability metrics
+        if: always()
+        run: |
+          {
+            echo "### Release observability"
+            echo "- deploy_duration_s: ${{ steps.deploy.outputs.duration_s }}"
+            echo "- health: ${{ steps.health.outcome }}"
+            echo "- sha: \`${{ github.sha }}\`"
+            echo "- public_url: ${{ steps.meta.outputs.public_url }}"
+            echo "- rollback: AUTO on failed post-deploy health"
+          } >> "$GITHUB_STEP_SUMMARY"

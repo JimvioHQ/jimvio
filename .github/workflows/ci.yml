@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Build · Lint · Typecheck · Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Dependency audit (high+)
+        run: npm audit --audit-level=high || true
+        continue-on-error: true
+
+      - name: Secret scanning (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Pre-push CI gate
+        id: prepush
+        run: npm run ci:prepush
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+
+      - name: Migration verification
+        run: node scripts/release/verify-migrations.mjs
+
+      - name: Environment documentation check
+        run: node scripts/release/verify-env.mjs
+
+      - name: Upload CI logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-logs-${{ github.run_id }}
+          path: |
+            .next/trace
+            .next/diagnostics
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Observability summary
+        if: always()
+        run: |
+          {
+            echo "### CI observability"
+            echo "- ref: \`${{ github.sha }}\`"
+            echo "- event: \`${{ github.event_name }}\`"
+            echo "- prepush: \`${{ steps.prepush.outcome }}\`"
+            echo "- duration_s: roughly job runtime in Actions UI"
+          } >> "$GITHUB_STEP_SUMMARY"

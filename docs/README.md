@@ -13,6 +13,7 @@
 | **Building a feature** | [**Ten Commandments**](./ten-commandments/) → [JPOS](./product-operating-system/) → [PRD](./prd/) → [Platform Standards](./platform-standards/) → [Feature Spec](./feature-specs/FEATURE-SPECIFICATION-TEMPLATE.md) |
 | **Engineering implementation** | [Domain Architecture](./domain-architecture/) + [Technical Architecture](./technical-architecture/) + [System Architecture](./system-architecture/) |
 | **On-call and launch operations** | [Launch Operations](./LAUNCH_OPERATIONS.md) + [Incident Response](./INCIDENT_RESPONSE.md) + [Disaster Recovery](./DISASTER_RECOVERY.md) |
+| **Releases / DevOps** | [Release docs](./release/) + root [release-checklist.md](../release-checklist.md) |
 
 ---
 
