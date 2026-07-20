@@ -7,6 +7,8 @@ import {
   type MarketplacePageBundle,
   type MarketplaceProductType,
 } from "@/lib/marketplace/fetch-page-data";
+import { fetchFeaturedCollections } from "@/lib/marketplace/collections";
+import { fetchVerifiedSellers } from "@/lib/marketplace/verified-sellers";
 
 async function fetchMarketplaceStats(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -50,12 +52,15 @@ export async function MarketplacePage({
 
   const supabase = await createClient();
 
-  const [physicalBundle, digitalBundle, hero, stats] = await Promise.all([
-    fetchMarketplacePageBundle(supabase, "physical"),
-    fetchMarketplacePageBundle(supabase, "digital"),
-    fetchHeroProducts(supabase),
-    fetchMarketplaceStats(supabase),
-  ]);
+  const [physicalBundle, digitalBundle, hero, stats, collections, verifiedSellers] =
+    await Promise.all([
+      fetchMarketplacePageBundle(supabase, "physical"),
+      fetchMarketplacePageBundle(supabase, "digital"),
+      fetchHeroProducts(supabase),
+      fetchMarketplaceStats(supabase),
+      fetchFeaturedCollections(supabase, 4),
+      fetchVerifiedSellers(supabase, 8),
+    ]);
 
   const initialBundles: Record<MarketplaceProductType, MarketplacePageBundle> = {
     physical: physicalBundle,
@@ -73,6 +78,8 @@ export async function MarketplacePage({
               initialStats={stats}
               heroPhysical={hero.physical ?? []}
               heroDigital={hero.digital ?? []}
+              initialCollections={collections}
+              initialVerifiedSellers={verifiedSellers}
             />
           </div>
         </div>

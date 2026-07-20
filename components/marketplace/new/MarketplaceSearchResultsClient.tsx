@@ -112,6 +112,7 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
   const searchParams = useSearchParams();
   const q = (searchParams.get("q") ?? "").trim();
   const type = searchParams.get("type") === "digital" ? "digital" : initialType;
+  const aiMode = searchParams.get("ai") === "1";
 
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<DbProduct[]>([]);
@@ -119,6 +120,7 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
   const [recommended, setRecommended] = useState<DbProduct[]>([]);
   const [categories, setCategories] = useState<{ name: string; slug: string }[]>([]);
   const [exactMatch, setExactMatch] = useState(true);
+  const [aiIntent, setAiIntent] = useState<string | null>(null);
 
   useEffect(() => {
     if (!q) {
@@ -126,6 +128,7 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
       setSimilar([]);
       setRecommended([]);
       setCategories([]);
+      setAiIntent(null);
       setLoading(false);
       return;
     }
@@ -133,33 +136,68 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
     let cancelled = false;
     setLoading(true);
 
-    fetch(`/api/marketplace/search?q=${encodeURIComponent(q)}&type=${type}&limit=40`)
-      .then((r) => r.json())
-      .then((data) => {
+    const run = async () => {
+      try {
+        if (aiMode) {
+          const res = await fetch("/api/ai/search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: q, type }),
+          });
+          const data = await res.json();
+          if (cancelled) return;
+          const products = (data.products ?? []) as DbProduct[];
+          setResults(products);
+          setSimilar([]);
+          setRecommended([]);
+          setCategories([]);
+          setExactMatch(products.length > 0);
+          const intent = data.intent as { search_term?: string; category?: string; max_price?: number } | undefined;
+          setAiIntent(
+            intent
+              ? [
+                  intent.category ? `category: ${intent.category}` : null,
+                  intent.max_price ? `under ${intent.max_price}` : null,
+                  data.mode ? `mode: ${data.mode}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ") || "AI search"
+              : "AI search"
+          );
+          return;
+        }
+
+        const res = await fetch(
+          `/api/marketplace/search?q=${encodeURIComponent(q)}&type=${type}&limit=40`
+        );
+        const data = await res.json();
         if (cancelled) return;
         setResults(data.results ?? []);
         setSimilar(data.similar ?? []);
         setRecommended(data.recommended ?? []);
         setCategories(data.categories ?? []);
         setExactMatch(Boolean(data.exactMatch));
-      })
-      .catch(() => {
+        setAiIntent(null);
+      } catch {
         if (!cancelled) {
           setResults([]);
           setSimilar([]);
           setRecommended([]);
           setCategories([]);
           setExactMatch(false);
+          setAiIntent(null);
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoading(false);
-      });
+      }
+    };
+
+    void run();
 
     return () => {
       cancelled = true;
     };
-  }, [q, type]);
+  }, [q, type, aiMode]);
 
   const hasResults = exactMatch && results.length > 0;
   const hasSimilar = !exactMatch && similar.length > 0;
@@ -178,13 +216,20 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
 
       <div className="mb-5 flex items-center gap-3">
         <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--color-accent-light)]">
-          <Search className="size-4 text-[var(--color-accent)]" />
+          {aiMode ? (
+            <Sparkles className="size-4 text-[var(--color-accent)]" />
+          ) : (
+            <Search className="size-4 text-[var(--color-accent)]" />
+          )}
         </span>
         <div>
           <h1 className="text-lg font-bold tracking-[-0.02em] text-[var(--color-text-primary)]">
-            {q ? `Results for “${q}”` : "Search"}
+            {q ? `${aiMode ? "AI results" : "Results"} for “${q}”` : "Search"}
           </h1>
-          {!loading && q && !exactMatch && (
+          {!loading && q && aiIntent && (
+            <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">{aiIntent}</p>
+          )}
+          {!loading && q && !exactMatch && !aiMode && (
             <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
               No exact matches — showing similar picks
             </p>

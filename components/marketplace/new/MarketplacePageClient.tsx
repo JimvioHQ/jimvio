@@ -42,6 +42,9 @@ import {
 } from "./MarketplaceSearchPopover";
 import Link from "next/link";
 import { PersonalizedMarketplaceFeed } from "./personalized/PersonalizedMarketplaceFeed";
+import { CollectionsSection } from "./CollectionsSection";
+import { PopularStoresSection, type StoreVendor } from "@/components/marketplace/popular-stores-section";
+import type { MarketplaceCollection } from "@/lib/marketplace/collections";
 
 type ProductType = MarketplaceProductType;
 
@@ -105,6 +108,8 @@ type Props = {
   initialStats: Stats;
   heroPhysical: HeroProduct[] | null;
   heroDigital: HeroProduct[] | null;
+  initialCollections?: MarketplaceCollection[];
+  initialVerifiedSellers?: StoreVendor[];
 };
 
 // ─── CategoryCard ─────────────────────────────────────────────────────────────
@@ -222,6 +227,8 @@ export function MarketplacePageClient({
   initialStats,
   heroPhysical,
   heroDigital,
+  initialCollections = [],
+  initialVerifiedSellers = [],
 }: Props) {
   const supabase = createClient();
   const startingBundle = initialBundles[initialType];
@@ -998,15 +1005,31 @@ export function MarketplacePageClient({
 
             <button
               type="button"
-              aria-label="Visual search"
-              className="grid size-7 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)]"
+              aria-label="AI visual search — describe what you want"
+              title="Describe a product with AI"
+              onClick={() => {
+                const q = search.trim();
+                if (q) {
+                  router.push(`/marketplace/search?q=${encodeURIComponent(q)}&ai=1&type=${type}`);
+                } else {
+                  openAssistant("Help me find a product. Describe what you're looking for.");
+                }
+              }}
+              className="grid size-7 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[#fd5000]"
             >
               <Camera className="size-4" />
             </button>
 
             <button
               type="button"
-              onClick={() => openAssistant(search.trim() || undefined)}
+              onClick={() => {
+                const q = search.trim();
+                if (q) {
+                  router.push(`/marketplace/search?q=${encodeURIComponent(q)}&ai=1&type=${type}`);
+                } else {
+                  openAssistant("Search Jimvio marketplace with AI");
+                }
+              }}
               className="flex shrink-0 items-center gap-1 rounded-lg bg-gradient-to-r from-[#fd5000] via-[#ff6a1a] to-[#ff8c00] px-2.5 py-1.5 text-xs font-bold text-white shadow-sm transition-opacity hover:opacity-90"
             >
               <Sparkles className="size-3.5" />
@@ -1148,6 +1171,16 @@ export function MarketplacePageClient({
               ))}
             </div>
           </section>
+        )}
+
+        {/* ── Collections ── */}
+        {initialCollections.length > 0 && (
+          <CollectionsSection collections={initialCollections} />
+        )}
+
+        {/* ── Verified Sellers ── */}
+        {initialVerifiedSellers.length > 0 && (
+          <PopularStoresSection stores={initialVerifiedSellers} />
         )}
 
         {/* ── Trending Products — skeleton only this section while loading ── */}
