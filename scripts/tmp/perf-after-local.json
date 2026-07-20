@@ -1,0 +1,274 @@
+[
+  {
+    "label": "home",
+    "path": "/",
+    "vitals": {
+      "ttfb": 8380,
+      "fcp": 11296,
+      "lcp": null,
+      "dcl": 12632,
+      "docDecoded": 1273845,
+      "docTransfer": 120315,
+      "imgTransfer": 219509,
+      "jsTransfer": 603787,
+      "linkTransfer": 370869,
+      "resourceCount": 86,
+      "slowest": [
+        {
+          "name": "https://img.freepik.com/free-vector/forex-trading-background_52683-42356.jpg?semt=ais_hybrid&w=740&q=80",
+          "ms": 6048,
+          "transfer": 0,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1778241368/jimvio/community-covers/yifn2vyuyf8p2q82y4hk.jpg",
+          "ms": 5026,
+          "transfer": 75268,
+          "type": "img"
+        },
+        {
+          "name": "https://ifccd.net/uploads/image/what-is-forex.jpg",
+          "ms": 4807,
+          "transfer": 0,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1775867717/jimvio/community-covers/zcnm8tgv5wx5nzxb2c7k.png",
+          "ms": 4650,
+          "transfer": 17374,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1775780534/jimvio/community-covers/bzkwtidbuww9dtrn9kkt.jpg",
+          "ms": 4547,
+          "transfer": 27594,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1778444661/jimvio/community-covers/fzjcsfwleckd8usbqbyl.png",
+          "ms": 4164,
+          "transfer": 60529,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_160,q_auto,f_auto,c_fill/v1775380722/jimvio/avatars/syekh6ozlwtoobslyidn.jpg",
+          "ms": 3635,
+          "transfer": 2884,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_320,q_auto,f_auto,c_fill/v1775509357/jimvio/ugc/iqbdsqwgkwqhvg15wsjg.jpg",
+          "ms": 3530,
+          "transfer": 18814,
+          "type": "img"
+        }
+      ]
+    },
+    "preloadImages": 14,
+    "largestInlineKb": 14
+  },
+  {
+    "label": "marketplace",
+    "path": "/marketplace",
+    "vitals": {
+      "ttfb": 12747,
+      "fcp": 13184,
+      "lcp": null,
+      "dcl": 13852,
+      "docDecoded": 453581,
+      "docTransfer": 63091,
+      "imgTransfer": 3088325,
+      "jsTransfer": 444843,
+      "linkTransfer": 126494,
+      "resourceCount": 50,
+      "slowest": [
+        {
+          "name": "https://oss-cf.cjdropshipping.com/product/2024/07/25/05/b39a3814-fc2f-4ee8-9e57-98ee1d680856_trans.jpeg",
+          "ms": 5071,
+          "transfer": 0,
+          "type": "img"
+        },
+        {
+          "name": "https://cf.cjdropshipping.com/1533784781239-QQ%E6%88%AA%E5%9B%BE20180807103949.jpg",
+          "ms": 5070,
+          "transfer": 0,
+          "type": "img"
+        },
+        {
+          "name": "https://oss-cf.cjdropshipping.com/product/2023/11/08/02/22d0e7ec-0e05-442b-9253-c466356fc054.jpg",
+          "ms": 4861,
+          "transfer": 0,
+          "type": "img"
+        },
+        {
+          "name": "https://oss-cf.cjdropshipping.com/product/2024/07/26/09/030e2215-45c7-4c10-890d-6077833fff95.jpg",
+          "ms": 4650,
+          "transfer": 0,
+          "type": "img"
+        },
+        {
+          "name": "https://cf.cjdropshipping.com/quick/product/59708450-a71f-4e1c-9ad5-bde197527c54.jpg",
+          "ms": 4302,
+          "transfer": 0,
+          "type": "img"
+        },
+        {
+          "name": "https://cf.cjdropshipping.com/1622959698333.jpg",
+          "ms": 4241,
+          "transfer": 0,
+          "type": "img"
+        },
+        {
+          "name": "https://vsfhwfimudpdipdkxbww.supabase.co/rest/v1/products?select=delivery_time&status=eq.active&product_type=in.%28physical%29&delivery_time",
+          "ms": 3689,
+          "transfer": 0,
+          "type": "fetch"
+        },
+        {
+          "name": "https://vsfhwfimudpdipdkxbww.supabase.co/rest/v1/products?select=category_id&status=eq.active&is_active=eq.true&deleted_at=is.null&product_t",
+          "ms": 3162,
+          "transfer": 0,
+          "type": "fetch"
+        }
+      ]
+    },
+    "preloadImages": 6,
+    "largestInlineKb": 120
+  },
+  {
+    "label": "communities",
+    "path": "/communities",
+    "vitals": {
+      "ttfb": 17,
+      "fcp": 344,
+      "lcp": null,
+      "dcl": 351,
+      "docDecoded": 119405,
+      "docTransfer": 20283,
+      "imgTransfer": 0,
+      "jsTransfer": 560606,
+      "linkTransfer": 126494,
+      "resourceCount": 107,
+      "slowest": [
+        {
+          "name": "https://picsum.photos/seed/chrisclips/80/80",
+          "ms": 3121,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/david/40/40",
+          "ms": 2761,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/kim/40/40",
+          "ms": 2724,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/barick-activity/72/72",
+          "ms": 2722,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/editing-help/72/72",
+          "ms": 2721,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/sarahchen/80/80",
+          "ms": 2719,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/chris-feed/800/450",
+          "ms": 2717,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/cinematic-transitions/800/450",
+          "ms": 2689,
+          "transfer": 0,
+          "type": "link"
+        }
+      ]
+    },
+    "preloadImages": 19,
+    "largestInlineKb": 5
+  },
+  {
+    "label": "cart",
+    "path": "/cart",
+    "vitals": {
+      "ttfb": 288,
+      "fcp": 628,
+      "lcp": null,
+      "dcl": 617,
+      "docDecoded": 79960,
+      "docTransfer": 17323,
+      "imgTransfer": 0,
+      "jsTransfer": 332920,
+      "linkTransfer": 126494,
+      "resourceCount": 70,
+      "slowest": [
+        {
+          "name": "http://127.0.0.1:3010/api/growth/events",
+          "ms": 418,
+          "transfer": 311,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/api/growth/events",
+          "ms": 366,
+          "transfer": 311,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/api/growth/events",
+          "ms": 298,
+          "transfer": 311,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/3kkwzttnpqls6.js",
+          "ms": 268,
+          "transfer": 9301,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/195s4d4cr1yw0.js",
+          "ms": 267,
+          "transfer": 5779,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/0rk9_5t7gidnk.js",
+          "ms": 263,
+          "transfer": 19368,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/3cifuef4i9jib.js",
+          "ms": 254,
+          "transfer": 15780,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/37hbg0k0k4wp4.js",
+          "ms": 252,
+          "transfer": 21687,
+          "type": "script"
+        }
+      ]
+    },
+    "preloadImages": 2,
+    "largestInlineKb": 5
+  }
+]

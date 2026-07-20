@@ -1,0 +1,926 @@
+[
+  {
+    "label": "home",
+    "path": "/",
+    "best": {
+      "ttfb": 317,
+      "fcp": 544,
+      "lcp": null,
+      "docDecoded": 323150,
+      "docTransfer": 87098,
+      "img": 146856,
+      "js": 5955,
+      "link": 0,
+      "rscInlineChars": 69070,
+      "slowest": [
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1778241368/jimvio/community-covers/yifn2vy",
+          "ms": 604,
+          "transfer": 75268,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1775780534/jimvio/community-covers/bzkwtid",
+          "ms": 221,
+          "transfer": 27594,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1775867717/jimvio/community-covers/zcnm8tg",
+          "ms": 151,
+          "transfer": 17374,
+          "type": "img"
+        },
+        {
+          "name": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop",
+          "ms": 521,
+          "transfer": 5833,
+          "type": "img"
+        },
+        {
+          "name": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop",
+          "ms": 566,
+          "transfer": 5814,
+          "type": "img"
+        }
+      ],
+      "preloadImages": 2,
+      "paintBudget": 227
+    },
+    "median": {
+      "ttfb": 350,
+      "fcp": 576,
+      "lcp": null,
+      "docDecoded": 323150,
+      "docTransfer": 87098,
+      "img": 1500,
+      "js": 149481,
+      "link": 0,
+      "rscInlineChars": 69070,
+      "slowest": [
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/2pim924554om3.js",
+          "ms": 65,
+          "transfer": 146971,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/api/rates",
+          "ms": 6,
+          "transfer": 2357,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/3aof-_4gy_w8-.js",
+          "ms": 18,
+          "transfer": 2068,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/marketplace?_rsc=5CB68i4pnAekjehf",
+          "ms": 9,
+          "transfer": 466,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/careers?_rsc=5CB68i4pnAekjehf",
+          "ms": 45,
+          "transfer": 463,
+          "type": "fetch"
+        }
+      ],
+      "preloadImages": 2,
+      "paintBudget": 226
+    },
+    "samples": [
+      {
+        "ttfb": 317,
+        "fcp": 544,
+        "lcp": null,
+        "docDecoded": 323150,
+        "docTransfer": 87098,
+        "img": 146856,
+        "js": 5955,
+        "link": 0,
+        "rscInlineChars": 69070,
+        "slowest": [
+          {
+            "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1778241368/jimvio/community-covers/yifn2vy",
+            "ms": 604,
+            "transfer": 75268,
+            "type": "img"
+          },
+          {
+            "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1775780534/jimvio/community-covers/bzkwtid",
+            "ms": 221,
+            "transfer": 27594,
+            "type": "img"
+          },
+          {
+            "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1775867717/jimvio/community-covers/zcnm8tg",
+            "ms": 151,
+            "transfer": 17374,
+            "type": "img"
+          },
+          {
+            "name": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop",
+            "ms": 521,
+            "transfer": 5833,
+            "type": "img"
+          },
+          {
+            "name": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop",
+            "ms": 566,
+            "transfer": 5814,
+            "type": "img"
+          }
+        ],
+        "preloadImages": 2,
+        "paintBudget": 227
+      },
+      {
+        "ttfb": 350,
+        "fcp": 576,
+        "lcp": null,
+        "docDecoded": 323150,
+        "docTransfer": 87098,
+        "img": 1500,
+        "js": 149481,
+        "link": 0,
+        "rscInlineChars": 69070,
+        "slowest": [
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/2pim924554om3.js",
+            "ms": 65,
+            "transfer": 146971,
+            "type": "script"
+          },
+          {
+            "name": "http://127.0.0.1:3010/api/rates",
+            "ms": 6,
+            "transfer": 2357,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/3aof-_4gy_w8-.js",
+            "ms": 18,
+            "transfer": 2068,
+            "type": "script"
+          },
+          {
+            "name": "http://127.0.0.1:3010/marketplace?_rsc=5CB68i4pnAekjehf",
+            "ms": 9,
+            "transfer": 466,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/careers?_rsc=5CB68i4pnAekjehf",
+            "ms": 45,
+            "transfer": 463,
+            "type": "fetch"
+          }
+        ],
+        "preloadImages": 2,
+        "paintBudget": 226
+      },
+      {
+        "ttfb": 402,
+        "fcp": 760,
+        "lcp": null,
+        "docDecoded": 323150,
+        "docTransfer": 87098,
+        "img": 218557,
+        "js": 5355,
+        "link": 0,
+        "rscInlineChars": 69070,
+        "slowest": [
+          {
+            "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1778241368/jimvio/community-covers/yifn2vy",
+            "ms": 886,
+            "transfer": 75268,
+            "type": "img"
+          },
+          {
+            "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1778444661/jimvio/community-covers/fzjcsfw",
+            "ms": 496,
+            "transfer": 60529,
+            "type": "img"
+          },
+          {
+            "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1775780534/jimvio/community-covers/bzkwtid",
+            "ms": 603,
+            "transfer": 27594,
+            "type": "img"
+          },
+          {
+            "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_320,q_auto,f_auto,c_fill/v1775509357/jimvio/ugc/iqbdsqwgkwqhvg15wsjg",
+            "ms": 274,
+            "transfer": 18814,
+            "type": "img"
+          },
+          {
+            "name": "https://res.cloudinary.com/devgclwyi/image/upload/w_640,q_auto,f_auto,c_fill/v1775867717/jimvio/community-covers/zcnm8tg",
+            "ms": 542,
+            "transfer": 17374,
+            "type": "img"
+          }
+        ],
+        "preloadImages": 2,
+        "paintBudget": 358
+      }
+    ]
+  },
+  {
+    "label": "marketplace",
+    "path": "/marketplace",
+    "best": {
+      "ttfb": 367,
+      "fcp": 580,
+      "lcp": null,
+      "docDecoded": 24906,
+      "docTransfer": 7453,
+      "img": 0,
+      "js": 0,
+      "link": 0,
+      "rscInlineChars": 19626,
+      "slowest": [
+        {
+          "name": "http://127.0.0.1:3010/_next/static/media/051742360c26797e-s.p.1bkzbscqrt8rl.woff2",
+          "ms": 0,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/media/5c285b27cdda1fe8-s.p.2_mbdogr7ni8i.woff2",
+          "ms": 0,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/006dqtow4x-yj.css",
+          "ms": 0,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/0wkqrt2hhf_ot.css",
+          "ms": 0,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/37v5ulr6qjozi.js",
+          "ms": 0,
+          "transfer": 0,
+          "type": "link"
+        }
+      ],
+      "preloadImages": 0,
+      "paintBudget": 213
+    },
+    "median": {
+      "ttfb": 269,
+      "fcp": 1056,
+      "lcp": null,
+      "docDecoded": 24906,
+      "docTransfer": 7453,
+      "img": 0,
+      "js": 0,
+      "link": 0,
+      "rscInlineChars": 19626,
+      "slowest": [
+        {
+          "name": "http://127.0.0.1:3010/_next/static/media/051742360c26797e-s.p.1bkzbscqrt8rl.woff2",
+          "ms": 0,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/media/5c285b27cdda1fe8-s.p.2_mbdogr7ni8i.woff2",
+          "ms": 0,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/006dqtow4x-yj.css",
+          "ms": 0,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/0wkqrt2hhf_ot.css",
+          "ms": 0,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/37v5ulr6qjozi.js",
+          "ms": 0,
+          "transfer": 0,
+          "type": "link"
+        }
+      ],
+      "preloadImages": 0,
+      "paintBudget": 787
+    },
+    "samples": [
+      {
+        "ttfb": 367,
+        "fcp": 580,
+        "lcp": null,
+        "docDecoded": 24906,
+        "docTransfer": 7453,
+        "img": 0,
+        "js": 0,
+        "link": 0,
+        "rscInlineChars": 19626,
+        "slowest": [
+          {
+            "name": "http://127.0.0.1:3010/_next/static/media/051742360c26797e-s.p.1bkzbscqrt8rl.woff2",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/media/5c285b27cdda1fe8-s.p.2_mbdogr7ni8i.woff2",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/006dqtow4x-yj.css",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/0wkqrt2hhf_ot.css",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/37v5ulr6qjozi.js",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          }
+        ],
+        "preloadImages": 0,
+        "paintBudget": 213
+      },
+      {
+        "ttfb": 269,
+        "fcp": 1056,
+        "lcp": null,
+        "docDecoded": 24906,
+        "docTransfer": 7453,
+        "img": 0,
+        "js": 0,
+        "link": 0,
+        "rscInlineChars": 19626,
+        "slowest": [
+          {
+            "name": "http://127.0.0.1:3010/_next/static/media/051742360c26797e-s.p.1bkzbscqrt8rl.woff2",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/media/5c285b27cdda1fe8-s.p.2_mbdogr7ni8i.woff2",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/006dqtow4x-yj.css",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/0wkqrt2hhf_ot.css",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/37v5ulr6qjozi.js",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          }
+        ],
+        "preloadImages": 0,
+        "paintBudget": 787
+      },
+      {
+        "ttfb": 262,
+        "fcp": 1324,
+        "lcp": null,
+        "docDecoded": 24906,
+        "docTransfer": 7453,
+        "img": 0,
+        "js": 0,
+        "link": 0,
+        "rscInlineChars": 19626,
+        "slowest": [
+          {
+            "name": "http://127.0.0.1:3010/_next/static/media/051742360c26797e-s.p.1bkzbscqrt8rl.woff2",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/media/5c285b27cdda1fe8-s.p.2_mbdogr7ni8i.woff2",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/006dqtow4x-yj.css",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/0wkqrt2hhf_ot.css",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/37v5ulr6qjozi.js",
+            "ms": 0,
+            "transfer": 0,
+            "type": "link"
+          }
+        ],
+        "preloadImages": 0,
+        "paintBudget": 1062
+      }
+    ]
+  },
+  {
+    "label": "communities",
+    "path": "/communities",
+    "best": {
+      "ttfb": 11,
+      "fcp": 424,
+      "lcp": null,
+      "docDecoded": 119405,
+      "docTransfer": 300,
+      "img": 0,
+      "js": 69049,
+      "link": 0,
+      "rscInlineChars": 18414,
+      "slowest": [
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/3tyfdxcxx4b4h.js",
+          "ms": 419,
+          "transfer": 51906,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/244avh2_a6m5a.js",
+          "ms": 369,
+          "transfer": 16543,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/ugc?_rsc=l3VpqciLi5MYbINZ",
+          "ms": 33,
+          "transfer": 2702,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/api/rates",
+          "ms": 53,
+          "transfer": 2357,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/?_rsc=J6L4UTxmWgUI2fwY",
+          "ms": 51,
+          "transfer": 2138,
+          "type": "fetch"
+        }
+      ],
+      "preloadImages": 19,
+      "paintBudget": 413
+    },
+    "median": {
+      "ttfb": 8,
+      "fcp": 464,
+      "lcp": null,
+      "docDecoded": 119405,
+      "docTransfer": 300,
+      "img": 0,
+      "js": 5955,
+      "link": 0,
+      "rscInlineChars": 18414,
+      "slowest": [
+        {
+          "name": "http://127.0.0.1:3010/ugc?_rsc=l3VpqciLi5MYbINZ",
+          "ms": 78,
+          "transfer": 2702,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/api/rates",
+          "ms": 30,
+          "transfer": 2357,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/3411aqcf3v45n.js",
+          "ms": 201,
+          "transfer": 2357,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/?_rsc=J6L4UTxmWgUI2fwY",
+          "ms": 104,
+          "transfer": 2139,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/communities?_rsc=4ewdp9KxPcAHWdcx",
+          "ms": 38,
+          "transfer": 2106,
+          "type": "fetch"
+        }
+      ],
+      "preloadImages": 19,
+      "paintBudget": 456
+    },
+    "samples": [
+      {
+        "ttfb": 11,
+        "fcp": 424,
+        "lcp": null,
+        "docDecoded": 119405,
+        "docTransfer": 300,
+        "img": 0,
+        "js": 69049,
+        "link": 0,
+        "rscInlineChars": 18414,
+        "slowest": [
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/3tyfdxcxx4b4h.js",
+            "ms": 419,
+            "transfer": 51906,
+            "type": "script"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/244avh2_a6m5a.js",
+            "ms": 369,
+            "transfer": 16543,
+            "type": "script"
+          },
+          {
+            "name": "http://127.0.0.1:3010/ugc?_rsc=l3VpqciLi5MYbINZ",
+            "ms": 33,
+            "transfer": 2702,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/api/rates",
+            "ms": 53,
+            "transfer": 2357,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/?_rsc=J6L4UTxmWgUI2fwY",
+            "ms": 51,
+            "transfer": 2138,
+            "type": "fetch"
+          }
+        ],
+        "preloadImages": 19,
+        "paintBudget": 413
+      },
+      {
+        "ttfb": 8,
+        "fcp": 464,
+        "lcp": null,
+        "docDecoded": 119405,
+        "docTransfer": 300,
+        "img": 0,
+        "js": 5955,
+        "link": 0,
+        "rscInlineChars": 18414,
+        "slowest": [
+          {
+            "name": "http://127.0.0.1:3010/ugc?_rsc=l3VpqciLi5MYbINZ",
+            "ms": 78,
+            "transfer": 2702,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/api/rates",
+            "ms": 30,
+            "transfer": 2357,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/3411aqcf3v45n.js",
+            "ms": 201,
+            "transfer": 2357,
+            "type": "script"
+          },
+          {
+            "name": "http://127.0.0.1:3010/?_rsc=J6L4UTxmWgUI2fwY",
+            "ms": 104,
+            "transfer": 2139,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/communities?_rsc=4ewdp9KxPcAHWdcx",
+            "ms": 38,
+            "transfer": 2106,
+            "type": "fetch"
+          }
+        ],
+        "preloadImages": 19,
+        "paintBudget": 456
+      },
+      {
+        "ttfb": 8,
+        "fcp": 928,
+        "lcp": null,
+        "docDecoded": 119405,
+        "docTransfer": 300,
+        "img": 0,
+        "js": 5955,
+        "link": 0,
+        "rscInlineChars": 18414,
+        "slowest": [
+          {
+            "name": "http://127.0.0.1:3010/ugc?_rsc=l3VpqciLi5MYbINZ",
+            "ms": 52,
+            "transfer": 2703,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/api/rates",
+            "ms": 7,
+            "transfer": 2357,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/3411aqcf3v45n.js",
+            "ms": 8,
+            "transfer": 2357,
+            "type": "script"
+          },
+          {
+            "name": "http://127.0.0.1:3010/?_rsc=J6L4UTxmWgUI2fwY",
+            "ms": 70,
+            "transfer": 2138,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/communities?_rsc=4ewdp9KxPcAHWdcx",
+            "ms": 25,
+            "transfer": 2106,
+            "type": "fetch"
+          }
+        ],
+        "preloadImages": 19,
+        "paintBudget": 920
+      }
+    ]
+  },
+  {
+    "label": "cart",
+    "path": "/cart",
+    "best": {
+      "ttfb": 363,
+      "fcp": 520,
+      "lcp": null,
+      "docDecoded": 79960,
+      "docTransfer": 17321,
+      "img": 0,
+      "js": 168353,
+      "link": 0,
+      "rscInlineChars": 19326,
+      "slowest": [
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/33l_hcmzp4m9f.js",
+          "ms": 38,
+          "transfer": 97602,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/44mmhzewqrish.js",
+          "ms": 32,
+          "transfer": 19385,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/35j-oo55wdvyk.js",
+          "ms": 40,
+          "transfer": 13712,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/3nmrf87zqslo7.js",
+          "ms": 14,
+          "transfer": 13049,
+          "type": "script"
+        },
+        {
+          "name": "http://127.0.0.1:3010/_next/static/chunks/3miuc8lkjyipz.js",
+          "ms": 32,
+          "transfer": 12433,
+          "type": "script"
+        }
+      ],
+      "preloadImages": 2,
+      "paintBudget": 157
+    },
+    "median": {
+      "ttfb": 519,
+      "fcp": 808,
+      "lcp": null,
+      "docDecoded": 79960,
+      "docTransfer": 80260,
+      "img": 0,
+      "js": 600,
+      "link": 0,
+      "rscInlineChars": 19326,
+      "slowest": [
+        {
+          "name": "http://127.0.0.1:3010/ugc?_rsc=6zlNcMEvQv3dLRNF",
+          "ms": 12,
+          "transfer": 2704,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/api/rates",
+          "ms": 57,
+          "transfer": 2357,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/?_rsc=XtGPxDbe_Mfh2O43",
+          "ms": 22,
+          "transfer": 2140,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/communities?_rsc=tVwX2VaT8ButppUt",
+          "ms": 115,
+          "transfer": 2106,
+          "type": "fetch"
+        },
+        {
+          "name": "http://127.0.0.1:3010/affiliates?_rsc=XtGPxDbe_Mfh2O43",
+          "ms": 164,
+          "transfer": 2061,
+          "type": "fetch"
+        }
+      ],
+      "preloadImages": 2,
+      "paintBudget": 289
+    },
+    "samples": [
+      {
+        "ttfb": 363,
+        "fcp": 520,
+        "lcp": null,
+        "docDecoded": 79960,
+        "docTransfer": 17321,
+        "img": 0,
+        "js": 168353,
+        "link": 0,
+        "rscInlineChars": 19326,
+        "slowest": [
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/33l_hcmzp4m9f.js",
+            "ms": 38,
+            "transfer": 97602,
+            "type": "script"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/44mmhzewqrish.js",
+            "ms": 32,
+            "transfer": 19385,
+            "type": "script"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/35j-oo55wdvyk.js",
+            "ms": 40,
+            "transfer": 13712,
+            "type": "script"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/3nmrf87zqslo7.js",
+            "ms": 14,
+            "transfer": 13049,
+            "type": "script"
+          },
+          {
+            "name": "http://127.0.0.1:3010/_next/static/chunks/3miuc8lkjyipz.js",
+            "ms": 32,
+            "transfer": 12433,
+            "type": "script"
+          }
+        ],
+        "preloadImages": 2,
+        "paintBudget": 157
+      },
+      {
+        "ttfb": 519,
+        "fcp": 808,
+        "lcp": null,
+        "docDecoded": 79960,
+        "docTransfer": 80260,
+        "img": 0,
+        "js": 600,
+        "link": 0,
+        "rscInlineChars": 19326,
+        "slowest": [
+          {
+            "name": "http://127.0.0.1:3010/ugc?_rsc=6zlNcMEvQv3dLRNF",
+            "ms": 12,
+            "transfer": 2704,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/api/rates",
+            "ms": 57,
+            "transfer": 2357,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/?_rsc=XtGPxDbe_Mfh2O43",
+            "ms": 22,
+            "transfer": 2140,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/communities?_rsc=tVwX2VaT8ButppUt",
+            "ms": 115,
+            "transfer": 2106,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/affiliates?_rsc=XtGPxDbe_Mfh2O43",
+            "ms": 164,
+            "transfer": 2061,
+            "type": "fetch"
+          }
+        ],
+        "preloadImages": 2,
+        "paintBudget": 289
+      },
+      {
+        "ttfb": 410,
+        "fcp": 812,
+        "lcp": null,
+        "docDecoded": 79960,
+        "docTransfer": 80260,
+        "img": 0,
+        "js": 600,
+        "link": 0,
+        "rscInlineChars": 19326,
+        "slowest": [
+          {
+            "name": "http://127.0.0.1:3010/ugc?_rsc=6zlNcMEvQv3dLRNF",
+            "ms": 15,
+            "transfer": 2704,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/api/rates",
+            "ms": 70,
+            "transfer": 2357,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/?_rsc=XtGPxDbe_Mfh2O43",
+            "ms": 212,
+            "transfer": 2140,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/communities?_rsc=tVwX2VaT8ButppUt",
+            "ms": 15,
+            "transfer": 2106,
+            "type": "fetch"
+          },
+          {
+            "name": "http://127.0.0.1:3010/affiliates?_rsc=XtGPxDbe_Mfh2O43",
+            "ms": 29,
+            "transfer": 2060,
+            "type": "fetch"
+          }
+        ],
+        "preloadImages": 2,
+        "paintBudget": 402
+      }
+    ]
+  }
+]

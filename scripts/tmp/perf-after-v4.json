@@ -1,0 +1,374 @@
+[
+  {
+    "label": "home",
+    "best": {
+      "ttfb": 320,
+      "fcp": 496,
+      "lcp": null,
+      "docDecoded": 471695,
+      "img": 305336,
+      "js": 5355,
+      "rscInlineChars": 83804,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "median": {
+      "ttfb": 470,
+      "fcp": 972,
+      "lcp": null,
+      "docDecoded": 471695,
+      "img": 246400,
+      "js": 5955,
+      "rscInlineChars": 83804,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "worst": {
+      "ttfb": 744,
+      "fcp": 1692,
+      "lcp": null,
+      "docDecoded": 471695,
+      "img": 29343,
+      "js": 5355,
+      "rscInlineChars": 83804,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "samples": [
+      {
+        "ttfb": 470,
+        "fcp": 972,
+        "lcp": null,
+        "docDecoded": 471695,
+        "img": 246400,
+        "js": 5955,
+        "rscInlineChars": 83804,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 744,
+        "fcp": 1692,
+        "lcp": null,
+        "docDecoded": 471695,
+        "img": 29343,
+        "js": 5355,
+        "rscInlineChars": 83804,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 690,
+        "fcp": 1032,
+        "lcp": null,
+        "docDecoded": 471695,
+        "img": 180672,
+        "js": 0,
+        "rscInlineChars": 83804,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 320,
+        "fcp": 496,
+        "lcp": null,
+        "docDecoded": 471695,
+        "img": 305336,
+        "js": 5355,
+        "rscInlineChars": 83804,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 373,
+        "fcp": 856,
+        "lcp": null,
+        "docDecoded": 471695,
+        "img": 157366,
+        "js": 5355,
+        "rscInlineChars": 83804,
+        "isError": false,
+        "preloadImages": 2
+      }
+    ]
+  },
+  {
+    "label": "marketplace",
+    "best": {
+      "ttfb": 595,
+      "fcp": 1104,
+      "lcp": null,
+      "docDecoded": 457373,
+      "img": 223005,
+      "js": 0,
+      "rscInlineChars": 98474,
+      "isError": false,
+      "preloadImages": 6
+    },
+    "median": {
+      "ttfb": 281,
+      "fcp": 1264,
+      "lcp": null,
+      "docDecoded": 457373,
+      "img": 176706,
+      "js": 5355,
+      "rscInlineChars": 98474,
+      "isError": false,
+      "preloadImages": 6
+    },
+    "worst": {
+      "ttfb": 985,
+      "fcp": 1708,
+      "lcp": null,
+      "docDecoded": 457373,
+      "img": 417086,
+      "js": 0,
+      "rscInlineChars": 98474,
+      "isError": false,
+      "preloadImages": 6
+    },
+    "samples": [
+      {
+        "ttfb": 649,
+        "fcp": 1616,
+        "lcp": null,
+        "docDecoded": 457373,
+        "img": 173203,
+        "js": 0,
+        "rscInlineChars": 98474,
+        "isError": false,
+        "preloadImages": 6
+      },
+      {
+        "ttfb": 281,
+        "fcp": 1264,
+        "lcp": null,
+        "docDecoded": 457373,
+        "img": 176706,
+        "js": 5355,
+        "rscInlineChars": 98474,
+        "isError": false,
+        "preloadImages": 6
+      },
+      {
+        "ttfb": 595,
+        "fcp": 1104,
+        "lcp": null,
+        "docDecoded": 457373,
+        "img": 223005,
+        "js": 0,
+        "rscInlineChars": 98474,
+        "isError": false,
+        "preloadImages": 6
+      },
+      {
+        "ttfb": 445,
+        "fcp": 1148,
+        "lcp": null,
+        "docDecoded": 457373,
+        "img": 165206,
+        "js": 0,
+        "rscInlineChars": 98474,
+        "isError": false,
+        "preloadImages": 6
+      },
+      {
+        "ttfb": 985,
+        "fcp": 1708,
+        "lcp": null,
+        "docDecoded": 457373,
+        "img": 417086,
+        "js": 0,
+        "rscInlineChars": 98474,
+        "isError": false,
+        "preloadImages": 6
+      }
+    ]
+  },
+  {
+    "label": "communities",
+    "best": {
+      "ttfb": 26,
+      "fcp": 224,
+      "lcp": null,
+      "docDecoded": 119405,
+      "img": 0,
+      "js": 222169,
+      "rscInlineChars": 18414,
+      "isError": false,
+      "preloadImages": 19
+    },
+    "median": {
+      "ttfb": 19,
+      "fcp": 260,
+      "lcp": null,
+      "docDecoded": 119405,
+      "img": 0,
+      "js": 74404,
+      "rscInlineChars": 18414,
+      "isError": false,
+      "preloadImages": 19
+    },
+    "worst": {
+      "ttfb": 8,
+      "fcp": 540,
+      "lcp": null,
+      "docDecoded": 119405,
+      "img": 0,
+      "js": 74404,
+      "rscInlineChars": 18414,
+      "isError": false,
+      "preloadImages": 19
+    },
+    "samples": [
+      {
+        "ttfb": 26,
+        "fcp": 224,
+        "lcp": null,
+        "docDecoded": 119405,
+        "img": 0,
+        "js": 222169,
+        "rscInlineChars": 18414,
+        "isError": false,
+        "preloadImages": 19
+      },
+      {
+        "ttfb": 8,
+        "fcp": 540,
+        "lcp": null,
+        "docDecoded": 119405,
+        "img": 0,
+        "js": 74404,
+        "rscInlineChars": 18414,
+        "isError": false,
+        "preloadImages": 19
+      },
+      {
+        "ttfb": 16,
+        "fcp": 276,
+        "lcp": null,
+        "docDecoded": 119405,
+        "img": 0,
+        "js": 74404,
+        "rscInlineChars": 18414,
+        "isError": false,
+        "preloadImages": 19
+      },
+      {
+        "ttfb": 10,
+        "fcp": 256,
+        "lcp": null,
+        "docDecoded": 119405,
+        "img": 0,
+        "js": 74404,
+        "rscInlineChars": 18414,
+        "isError": false,
+        "preloadImages": 19
+      },
+      {
+        "ttfb": 19,
+        "fcp": 260,
+        "lcp": null,
+        "docDecoded": 119405,
+        "img": 0,
+        "js": 74404,
+        "rscInlineChars": 18414,
+        "isError": false,
+        "preloadImages": 19
+      }
+    ]
+  },
+  {
+    "label": "cart",
+    "best": {
+      "ttfb": 334,
+      "fcp": 532,
+      "lcp": null,
+      "docDecoded": 79960,
+      "img": 0,
+      "js": 309905,
+      "rscInlineChars": 19326,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "median": {
+      "ttfb": 384,
+      "fcp": 664,
+      "lcp": null,
+      "docDecoded": 79960,
+      "img": 0,
+      "js": 309905,
+      "rscInlineChars": 19326,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "worst": {
+      "ttfb": 550,
+      "fcp": 860,
+      "lcp": null,
+      "docDecoded": 79960,
+      "img": 0,
+      "js": 600,
+      "rscInlineChars": 19326,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "samples": [
+      {
+        "ttfb": 544,
+        "fcp": 740,
+        "lcp": null,
+        "docDecoded": 79960,
+        "img": 0,
+        "js": 309082,
+        "rscInlineChars": 19326,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 384,
+        "fcp": 664,
+        "lcp": null,
+        "docDecoded": 79960,
+        "img": 0,
+        "js": 309905,
+        "rscInlineChars": 19326,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 334,
+        "fcp": 532,
+        "lcp": null,
+        "docDecoded": 79960,
+        "img": 0,
+        "js": 309905,
+        "rscInlineChars": 19326,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 239,
+        "fcp": 532,
+        "lcp": null,
+        "docDecoded": 79960,
+        "img": 0,
+        "js": 309905,
+        "rscInlineChars": 19326,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 550,
+        "fcp": 860,
+        "lcp": null,
+        "docDecoded": 79960,
+        "img": 0,
+        "js": 600,
+        "rscInlineChars": 19326,
+        "isError": false,
+        "preloadImages": 2
+      }
+    ]
+  }
+]

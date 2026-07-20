@@ -1,0 +1,286 @@
+[
+  {
+    "label": "home",
+    "best": {
+      "ttfb": 634,
+      "fcp": 940,
+      "lcp": null,
+      "docDecoded": 535612,
+      "img": 246400,
+      "js": 5955,
+      "rscInlineChars": 122933,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "median": {
+      "ttfb": 696,
+      "fcp": 2044,
+      "lcp": null,
+      "docDecoded": 535612,
+      "img": 1500,
+      "js": 0,
+      "rscInlineChars": 122933,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "worst": {
+      "ttfb": 1809,
+      "fcp": 3760,
+      "lcp": null,
+      "docDecoded": 535612,
+      "img": 26620,
+      "js": 5355,
+      "rscInlineChars": 122933,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "samples": [
+      {
+        "ttfb": 634,
+        "fcp": 940,
+        "lcp": null,
+        "docDecoded": 535612,
+        "img": 246400,
+        "js": 5955,
+        "rscInlineChars": 122933,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 696,
+        "fcp": 2044,
+        "lcp": null,
+        "docDecoded": 535612,
+        "img": 1500,
+        "js": 0,
+        "rscInlineChars": 122933,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 1809,
+        "fcp": 3760,
+        "lcp": null,
+        "docDecoded": 535612,
+        "img": 26620,
+        "js": 5355,
+        "rscInlineChars": 122933,
+        "isError": false,
+        "preloadImages": 2
+      }
+    ]
+  },
+  {
+    "label": "marketplace",
+    "best": {
+      "ttfb": 549,
+      "fcp": 964,
+      "lcp": null,
+      "docDecoded": 457373,
+      "img": 126904,
+      "js": 0,
+      "rscInlineChars": 98474,
+      "isError": false,
+      "preloadImages": 6
+    },
+    "median": {
+      "ttfb": 448,
+      "fcp": 1128,
+      "lcp": null,
+      "docDecoded": 457373,
+      "img": 126904,
+      "js": 3521,
+      "rscInlineChars": 98474,
+      "isError": false,
+      "preloadImages": 6
+    },
+    "worst": {
+      "ttfb": 805,
+      "fcp": 1384,
+      "lcp": null,
+      "docDecoded": 457373,
+      "img": 164518,
+      "js": 5355,
+      "rscInlineChars": 98474,
+      "isError": false,
+      "preloadImages": 6
+    },
+    "samples": [
+      {
+        "ttfb": 549,
+        "fcp": 964,
+        "lcp": null,
+        "docDecoded": 457373,
+        "img": 126904,
+        "js": 0,
+        "rscInlineChars": 98474,
+        "isError": false,
+        "preloadImages": 6
+      },
+      {
+        "ttfb": 448,
+        "fcp": 1128,
+        "lcp": null,
+        "docDecoded": 457373,
+        "img": 126904,
+        "js": 3521,
+        "rscInlineChars": 98474,
+        "isError": false,
+        "preloadImages": 6
+      },
+      {
+        "ttfb": 805,
+        "fcp": 1384,
+        "lcp": null,
+        "docDecoded": 457373,
+        "img": 164518,
+        "js": 5355,
+        "rscInlineChars": 98474,
+        "isError": false,
+        "preloadImages": 6
+      }
+    ]
+  },
+  {
+    "label": "communities",
+    "best": {
+      "ttfb": 10,
+      "fcp": 172,
+      "lcp": null,
+      "docDecoded": 119405,
+      "img": 0,
+      "js": 427114,
+      "rscInlineChars": 18414,
+      "isError": false,
+      "preloadImages": 19
+    },
+    "median": {
+      "ttfb": 6,
+      "fcp": 180,
+      "lcp": null,
+      "docDecoded": 119405,
+      "img": 0,
+      "js": 427114,
+      "rscInlineChars": 18414,
+      "isError": false,
+      "preloadImages": 19
+    },
+    "worst": {
+      "ttfb": 6,
+      "fcp": 200,
+      "lcp": null,
+      "docDecoded": 119405,
+      "img": 0,
+      "js": 0,
+      "rscInlineChars": 18414,
+      "isError": false,
+      "preloadImages": 19
+    },
+    "samples": [
+      {
+        "ttfb": 10,
+        "fcp": 172,
+        "lcp": null,
+        "docDecoded": 119405,
+        "img": 0,
+        "js": 427114,
+        "rscInlineChars": 18414,
+        "isError": false,
+        "preloadImages": 19
+      },
+      {
+        "ttfb": 6,
+        "fcp": 180,
+        "lcp": null,
+        "docDecoded": 119405,
+        "img": 0,
+        "js": 427114,
+        "rscInlineChars": 18414,
+        "isError": false,
+        "preloadImages": 19
+      },
+      {
+        "ttfb": 6,
+        "fcp": 200,
+        "lcp": null,
+        "docDecoded": 119405,
+        "img": 0,
+        "js": 0,
+        "rscInlineChars": 18414,
+        "isError": false,
+        "preloadImages": 19
+      }
+    ]
+  },
+  {
+    "label": "cart",
+    "best": {
+      "ttfb": 282,
+      "fcp": 488,
+      "lcp": null,
+      "docDecoded": 79960,
+      "img": 0,
+      "js": 600,
+      "rscInlineChars": 19326,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "median": {
+      "ttfb": 379,
+      "fcp": 588,
+      "lcp": null,
+      "docDecoded": 79960,
+      "img": 0,
+      "js": 240633,
+      "rscInlineChars": 19326,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "worst": {
+      "ttfb": 429,
+      "fcp": 624,
+      "lcp": null,
+      "docDecoded": 79960,
+      "img": 0,
+      "js": 240633,
+      "rscInlineChars": 19326,
+      "isError": false,
+      "preloadImages": 2
+    },
+    "samples": [
+      {
+        "ttfb": 282,
+        "fcp": 488,
+        "lcp": null,
+        "docDecoded": 79960,
+        "img": 0,
+        "js": 600,
+        "rscInlineChars": 19326,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 379,
+        "fcp": 588,
+        "lcp": null,
+        "docDecoded": 79960,
+        "img": 0,
+        "js": 240633,
+        "rscInlineChars": 19326,
+        "isError": false,
+        "preloadImages": 2
+      },
+      {
+        "ttfb": 429,
+        "fcp": 624,
+        "lcp": null,
+        "docDecoded": 79960,
+        "img": 0,
+        "js": 240633,
+        "rscInlineChars": 19326,
+        "isError": false,
+        "preloadImages": 2
+      }
+    ]
+  }
+]

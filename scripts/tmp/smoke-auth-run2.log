@@ -1,0 +1,54 @@
+
+Authenticated production smoke → https://www.jimvio.com
+Account: imanishimwevalens51@gmail.com | Community: jimvio-community | Role: owner
+
+✓ [Auth] Login
+✓ [Auth] Session cookie present
+✓ [Community] Open owned community
+✓ [Community] Feed composer visible
+✓ [Community] Create post
+✓ [Community] Like post
+✗ [Community] Comment on post — locator.click: Timeout 40000ms exceeded.
+Call log:
+  - waiting for locator('article, div').filter({ hasText: 'Smoke 1784555703187' }).first().locator('button').nth(1)
+    - locator resolved to <button aria-label="Open navigation menu" class="grid h-9 w-9 shrink-0 place-items-cent
+✗ [Community] Reply to comment — locator.waitFor: Timeout 15000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: /^reply$/i }).first() to be visible
+
+✓ [Community] Poll creation
+✓ [Community] Poll voting
+✓ [Community] AI assist
+✓ [Community] Notifications
+✓ [Chat] Join General Chat
+✓ [Chat] Send message
+✓ [Chat] Emoji picker
+✓ [Chat] GIF tab
+✓ [Chat] Typing indicator plumbing
+✓ [Chat] Presence / online affordance
+✓ [Chat] Search messages
+✗ [Chat] Pin message (owner) — locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator('div').filter({ hasText: 'Smoke chat 1784555779446' }).last().getByLabel(/more options/i)
+
+✓ [Live] Create Live Session
+✓ [Live] Join Live (host in session)
+✗ [Live] Viewer join — Could not resolve live session id for viewer
+✓ [Live] Co-host invite control
+✓ [Live] Poll creation
+✓ [Live] Poll voting
+✗ [Live] Chat during live — locator.waitFor: Timeout 15000ms exceeded.
+Call log:
+  - waiting for getByPlaceholder(/^message/i).first() to be visible
+
+✓ [Live] End session
+✓ [Marketplace] Product page
+✓ [Marketplace] Vendor page
+✓ [Marketplace] Checkout flow entry
+✓ [Marketplace] Orders
+✓ [Marketplace] Seller analytics
+
+════════════════════════════════════════
+SMOKE SUMMARY { PASS: 28, FAIL: 5, WARN: 0, BLOCKED: 0 }
+════════════════════════════════════════
+

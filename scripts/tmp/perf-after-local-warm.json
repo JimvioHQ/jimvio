@@ -1,0 +1,62 @@
+[
+  {
+    "label": "home",
+    "vitals": {
+      "ttfb": 474,
+      "fcp": 5028,
+      "lcp": null,
+      "dcl": 5058,
+      "docDecoded": 1273845,
+      "imgTransfer": 0,
+      "jsTransfer": 600,
+      "resourceCount": 96
+    },
+    "preloadImages": 14,
+    "largestInlineKb": 14
+  },
+  {
+    "label": "marketplace",
+    "vitals": {
+      "ttfb": 3036,
+      "fcp": 4428,
+      "lcp": null,
+      "dcl": 3509,
+      "docDecoded": 453581,
+      "imgTransfer": 126904,
+      "jsTransfer": 0,
+      "resourceCount": 58
+    },
+    "preloadImages": 6,
+    "largestInlineKb": 120
+  },
+  {
+    "label": "communities",
+    "vitals": {
+      "ttfb": 35,
+      "fcp": 368,
+      "lcp": null,
+      "dcl": 323,
+      "docDecoded": 119405,
+      "imgTransfer": 0,
+      "jsTransfer": 15538,
+      "resourceCount": 107
+    },
+    "preloadImages": 19,
+    "largestInlineKb": 5
+  },
+  {
+    "label": "cart",
+    "vitals": {
+      "ttfb": 1369,
+      "fcp": 1608,
+      "lcp": null,
+      "dcl": 1706,
+      "docDecoded": 79960,
+      "imgTransfer": 0,
+      "jsTransfer": 600,
+      "resourceCount": 70
+    },
+    "preloadImages": 2,
+    "largestInlineKb": 5
+  }
+]

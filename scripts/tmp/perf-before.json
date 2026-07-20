@@ -1,0 +1,206 @@
+[
+  {
+    "label": "home",
+    "url": "https://www.jimvio.com/",
+    "at": "2026-07-20T18:37:09.241Z",
+    "vitals": {
+      "ttfb": 481,
+      "fcp": 3012,
+      "lcp": null,
+      "dcl": 3710,
+      "docDecoded": 1280069,
+      "docTransfer": 92930,
+      "imgTransfer": 7231511,
+      "jsTransfer": 612132,
+      "linkTransfer": 388497,
+      "resourceCount": 70,
+      "slowest": [
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/v1775867717/jimvio/community-covers/zcnm8tgv5wx5nzxb2c7k.png",
+          "ms": 4693,
+          "transfer": 1973214,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/v1778241368/jimvio/community-covers/yifn2vyuyf8p2q82y4hk.jpg",
+          "ms": 4192,
+          "transfer": 324203,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/v1775780534/jimvio/community-covers/bzkwtidbuww9dtrn9kkt.jpg",
+          "ms": 3498,
+          "transfer": 333464,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/v1775936950/jimvio/ugc/tm8skgu0hj8kkobslhpx.png",
+          "ms": 3356,
+          "transfer": 611612,
+          "type": "img"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/v1778444661/jimvio/community-covers/fzjcsfwleckd8usbqbyl.png",
+          "ms": 3260,
+          "transfer": 1594686,
+          "type": "img"
+        }
+      ]
+    },
+    "preloadImages": 15,
+    "rscPush": 16
+  },
+  {
+    "label": "marketplace",
+    "url": "https://www.jimvio.com/marketplace",
+    "at": "2026-07-20T18:37:21.823Z",
+    "vitals": {
+      "ttfb": 643,
+      "fcp": 4560,
+      "lcp": null,
+      "dcl": 6350,
+      "docDecoded": 1227119,
+      "docTransfer": 117714,
+      "imgTransfer": 0,
+      "jsTransfer": 458506,
+      "linkTransfer": 3457984,
+      "resourceCount": 65,
+      "slowest": [
+        {
+          "name": "https://cf.cjdropshipping.com/20200518/1762657249327.jpg",
+          "ms": 6266,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://cf.cjdropshipping.com/fa0f82cf-f637-4d06-b981-016e8fb8051d.jpg",
+          "ms": 6001,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://cf.cjdropshipping.com/quick/product/d7fa1477-1511-4431-b4a2-54560b2ac42c.jpg",
+          "ms": 5699,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://cf.cjdropshipping.com/17551296/1955892494965411840.jpg",
+          "ms": 5376,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://res.cloudinary.com/devgclwyi/image/upload/v1778012721/jimvio/products/lcmwrvkceyx0hrbxylmz.png",
+          "ms": 5311,
+          "transfer": 1618167,
+          "type": "link"
+        }
+      ]
+    },
+    "preloadImages": 187,
+    "rscPush": 11
+  },
+  {
+    "label": "communities",
+    "url": "https://www.jimvio.com/communities",
+    "at": "2026-07-20T18:37:29.155Z",
+    "vitals": {
+      "ttfb": 419,
+      "fcp": 2036,
+      "lcp": null,
+      "dcl": 1934,
+      "docDecoded": 125852,
+      "docTransfer": 20403,
+      "imgTransfer": 0,
+      "jsTransfer": 563698,
+      "linkTransfer": 124072,
+      "resourceCount": 80,
+      "slowest": [
+        {
+          "name": "https://picsum.photos/seed/chris-feed/800/450",
+          "ms": 3802,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/cinematic-transitions/800/450",
+          "ms": 3504,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/barick-activity/72/72",
+          "ms": 3393,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/kim/40/40",
+          "ms": 3392,
+          "transfer": 0,
+          "type": "link"
+        },
+        {
+          "name": "https://picsum.photos/seed/sarahchen/80/80",
+          "ms": 3392,
+          "transfer": 0,
+          "type": "link"
+        }
+      ]
+    },
+    "preloadImages": 19,
+    "rscPush": 11
+  },
+  {
+    "label": "cart",
+    "url": "https://www.jimvio.com/cart",
+    "at": "2026-07-20T18:37:35.669Z",
+    "vitals": {
+      "ttfb": 403,
+      "fcp": 1024,
+      "lcp": null,
+      "dcl": 1359,
+      "docDecoded": 87118,
+      "docTransfer": 15549,
+      "imgTransfer": 0,
+      "jsTransfer": 496502,
+      "linkTransfer": 124072,
+      "resourceCount": 70,
+      "slowest": [
+        {
+          "name": "https://www.jimvio.com/_next/static/chunks/1s2x9yd0zxxfy.js?dpl=dpl_Aoz9v36ubnPrQ26izxp9Nj5aKDrD",
+          "ms": 536,
+          "transfer": 10124,
+          "type": "script"
+        },
+        {
+          "name": "https://www.jimvio.com/api/growth/events",
+          "ms": 516,
+          "transfer": 311,
+          "type": "fetch"
+        },
+        {
+          "name": "https://www.jimvio.com/_next/static/chunks/195s4d4cr1yw0.js?dpl=dpl_Aoz9v36ubnPrQ26izxp9Nj5aKDrD",
+          "ms": 494,
+          "transfer": 6033,
+          "type": "script"
+        },
+        {
+          "name": "https://www.jimvio.com/ugc?_rsc=z0wyxdPQsgvRMaIZ",
+          "ms": 484,
+          "transfer": 416,
+          "type": "fetch"
+        },
+        {
+          "name": "https://www.jimvio.com/api/growth/events",
+          "ms": 474,
+          "transfer": 311,
+          "type": "fetch"
+        }
+      ]
+    },
+    "preloadImages": 2,
+    "rscPush": 8
+  }
+]

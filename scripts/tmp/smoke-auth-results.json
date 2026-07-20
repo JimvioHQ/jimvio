@@ -1,0 +1,213 @@
+{
+  "base": "https://www.jimvio.com",
+  "email": "imanishimwevalens51@gmail.com",
+  "slug": "jimvio-community",
+  "role": "owner",
+  "browser": "Chromium (Playwright)",
+  "counts": {
+    "PASS": 33,
+    "FAIL": 0,
+    "WARN": 0,
+    "BLOCKED": 0
+  },
+  "results": [
+    {
+      "module": "Auth",
+      "name": "Login",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Auth",
+      "name": "Session cookie present",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Community",
+      "name": "Open owned community",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Community",
+      "name": "Feed composer visible",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Community",
+      "name": "Create post",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Community",
+      "name": "Like post",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Community",
+      "name": "Comment on post",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Community",
+      "name": "Reply to comment",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Community",
+      "name": "Poll creation",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Community",
+      "name": "Poll voting",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Community",
+      "name": "AI assist",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Community",
+      "name": "Notifications",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Chat",
+      "name": "Join General Chat",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Chat",
+      "name": "Send message",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Chat",
+      "name": "Emoji picker",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Chat",
+      "name": "GIF tab",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Chat",
+      "name": "Typing indicator plumbing",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Chat",
+      "name": "Presence / online affordance",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Chat",
+      "name": "Search messages",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Chat",
+      "name": "Pin message (owner)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Live",
+      "name": "Create Live Session",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Live",
+      "name": "Join Live (host in session)",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Live",
+      "name": "Viewer join",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Live",
+      "name": "Co-host invite control",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Live",
+      "name": "Poll creation",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Live",
+      "name": "Poll voting",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Live",
+      "name": "Chat during live",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Live",
+      "name": "End session",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Marketplace",
+      "name": "Product page",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Marketplace",
+      "name": "Vendor page",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Marketplace",
+      "name": "Checkout flow entry",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Marketplace",
+      "name": "Orders",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "module": "Marketplace",
+      "name": "Seller analytics",
+      "status": "PASS",
+      "detail": ""
+    }
+  ]
+}

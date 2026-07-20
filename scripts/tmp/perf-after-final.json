@@ -1,0 +1,50 @@
+[
+  {
+    "label": "home",
+    "vitals": {
+      "ttfb": 437,
+      "fcp": 2152,
+      "lcp": null,
+      "docDecoded": 323563,
+      "img": 147997,
+      "js": 0
+    },
+    "preloadImages": 14
+  },
+  {
+    "label": "marketplace",
+    "vitals": {
+      "ttfb": 2888,
+      "fcp": 3444,
+      "lcp": null,
+      "docDecoded": 440960,
+      "img": 1200,
+      "js": 600
+    },
+    "preloadImages": 6
+  },
+  {
+    "label": "communities",
+    "vitals": {
+      "ttfb": 15,
+      "fcp": 148,
+      "lcp": null,
+      "docDecoded": 119405,
+      "img": 0,
+      "js": 600
+    },
+    "preloadImages": 19
+  },
+  {
+    "label": "cart",
+    "vitals": {
+      "ttfb": 266,
+      "fcp": 376,
+      "lcp": null,
+      "docDecoded": 79960,
+      "img": 0,
+      "js": 600
+    },
+    "preloadImages": 2
+  }
+]
