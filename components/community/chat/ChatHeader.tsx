@@ -24,6 +24,7 @@ interface ChatHeaderProps {
   activeConvPeer: ActiveConvPeer | null;
   isChatting: boolean;
   hideHeader?: boolean;
+  onlineCount?: number;
   searchOpen: boolean;
   searchQuery: string;
   chatFilter: ChatFilter;
@@ -42,6 +43,7 @@ export function ChatHeader({
   activeConvPeer,
   isChatting,
   hideHeader,
+  onlineCount,
   searchOpen,
   searchQuery,
   chatFilter,
@@ -137,7 +139,11 @@ export function ChatHeader({
               {activeConvId ? activeConvPeer?.name : `#${roomName}`}
             </p>
             <p className="text-[12px] text-[var(--color-accent)]">
-              {activeConvId ? "Online" : "● Live"}
+              {activeConvId
+                ? "Online"
+                : onlineCount
+                  ? `● ${onlineCount} online`
+                  : "● Live"}
             </p>
           </div>
 

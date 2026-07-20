@@ -12,10 +12,23 @@ type CommunityChatPageProps = {
   useLiveChat?: boolean;
 };
 
-export function CommunityChatPage({ useLiveChat = false }: CommunityChatPageProps) {
+export function CommunityChatPage({ useLiveChat = true }: CommunityChatPageProps) {
   const { overview, communityName } = useWorkspace();
   const online = overview?.membersOnline ?? MOCK_COMMUNITY.membersOnline;
   const name = communityName || MOCK_COMMUNITY.name;
+
+  // Production path: always prefer live ChatRoom stack.
+  if (useLiveChat) {
+    return (
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)]">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white lg:m-4 lg:rounded-2xl lg:shadow-[0_0_0_1px_rgba(0,0,0,0.05)]">
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <CommunityChats />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)]">
@@ -26,20 +39,14 @@ export function CommunityChatPage({ useLiveChat = false }: CommunityChatPageProp
         />
         <PinnedBanner author={PINNED_MESSAGE.author} text={PINNED_MESSAGE.text} />
 
-        {useLiveChat ? (
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <CommunityChats />
-          </div>
-        ) : (
-          <div className="min-h-0 flex-1 overflow-y-auto py-2">
-            {CHAT_MESSAGES.map((msg) => (
-              <ChatMessageBubble key={msg.id} {...msg} />
-            ))}
-            <TypingIndicator name="Sarah Chen" />
-          </div>
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto py-2">
+          {CHAT_MESSAGES.map((msg) => (
+            <ChatMessageBubble key={msg.id} {...msg} />
+          ))}
+          <TypingIndicator name="Sarah Chen" />
+        </div>
 
-        {!useLiveChat && <ChatComposer />}
+        <ChatComposer />
       </div>
     </div>
   );

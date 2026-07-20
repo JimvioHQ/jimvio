@@ -170,7 +170,7 @@ export function ChatRoom({
         </DialogContent>
       </Dialog>
 
-      {/* ── Emoji picker ────────────────────────────────────────────── */}
+      {/* ── Emoji + GIF picker ──────────────────────────────────────── */}
       <ChatEmojiPickerDialog
         open={hook.emojiOpen}
         onOpenChange={hook.setEmojiOpen}
@@ -179,6 +179,8 @@ export function ChatRoom({
             ? hook.setThreadReplyText((hook.threadReplyText || "") + n)
             : hook.setText((hook.text || "") + n)
         }
+        onSelectGif={(gif) => void hook.sendGif(gif)}
+        sendingGif={hook.sendingGif}
       />
 
       {/* ── Active call overlay ─────────────────────────────────────── */}
@@ -232,6 +234,7 @@ export function ChatRoom({
           activeConvPeer={hook.activeConvPeer}
           isChatting={hook.isChatting}
           hideHeader={hideHeader}
+          onlineCount={hook.onlineUserIds.length}
           searchOpen={hook.searchOpen}
           searchQuery={hook.searchQuery}
           chatFilter={hook.chatFilter}
@@ -311,6 +314,7 @@ export function ChatRoom({
                         isOwn={!!hook.userId && m.sender_id === hook.userId}
                         userId={hook.userId}
                         isDM={!!hook.activeConvId}
+                        isStaff={hook.isStaff}
                         onOpenThread={() => hook.openThread(m)}
                         onToggleReaction={hook.toggleReaction}
                         onDelete={hook.deleteMessage}
@@ -319,12 +323,22 @@ export function ChatRoom({
                           hook.setEditBody(msg.body);
                         }}
                         onReply={(msg) => hook.setReplyingTo(msg)}
+                        onTogglePin={hook.togglePin}
+                        onReport={hook.reportMessage}
                       />
                     )
                   )}
                 </div>
               </div>
             ))
+          )}
+
+          {/* Typing indicator */}
+          {!hook.activeConvId && hook.typingUsers.length > 0 && (
+            <p className="px-1 py-1 text-xs italic text-[var(--color-text-muted)]">
+              {hook.typingUsers.map((t) => t.name).join(", ")}
+              {hook.typingUsers.length === 1 ? " is" : " are"} typing…
+            </p>
           )}
 
           {/* Scroll-to-bottom FAB */}
@@ -351,7 +365,10 @@ export function ChatRoom({
         {/* Input zone */}
         <ChatInputZone
           text={hook.text}
-          setText={hook.setText}
+          setText={(v) => {
+            hook.setText(v);
+            hook.setTyping(v.trim().length > 0);
+          }}
           pendingMain={hook.pendingMain}
           setPendingMain={hook.setPendingMain}
           replyingTo={hook.replyingTo}

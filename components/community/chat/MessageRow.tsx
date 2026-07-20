@@ -1,5 +1,5 @@
 import { parseAttachments, cn } from "@/lib/utils";
-import { Msg, QUICK_REACTIONS } from "@/types";
+import { LinkPreview, Msg, QUICK_REACTIONS } from "@/types";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -14,6 +14,10 @@ import {
   Copy,
   Pencil,
   Trash2,
+  Pin,
+  PinOff,
+  Flag,
+  Link as LinkIcon,
 } from "lucide-react";
 import { ReplyQuote } from "./ReplyQuote";
 import { WaAudioPlayer } from "./WaAudioPlayer";
@@ -26,11 +30,14 @@ interface MessageRowProps {
   isOwn?: boolean;
   userId: string | null;
   isDM?: boolean;
+  isStaff?: boolean;
   onOpenThread: () => void;
   onToggleReaction: (id: string, emoji: string) => void;
   onDelete: (id: string) => void;
   onEdit: (msg: Msg) => void;
   onReply: (msg: Msg) => void;
+  onTogglePin?: (id: string, pin: boolean) => void;
+  onReport?: (id: string) => void;
 }
 
 export function MessageRow({
@@ -39,11 +46,14 @@ export function MessageRow({
   isOwn,
   userId,
   isDM,
+  isStaff,
   onOpenThread,
   onToggleReaction,
   onDelete,
   onEdit,
   onReply,
+  onTogglePin,
+  onReport,
 }: MessageRowProps) {
   const p = m.profiles;
   const attachments = parseAttachments(m.attachments);
@@ -61,6 +71,16 @@ export function MessageRow({
     (a) => !a.mime?.startsWith("audio/")
   );
   const hasReplyQuote = !!m.reply_to_id && !!m.reply_to_body;
+  const linkPreview = (m.metadata?.link_preview ?? null) as LinkPreview | null;
+  const linkPreviewHost = linkPreview
+    ? (() => {
+        try {
+          return new URL(linkPreview.url).hostname;
+        } catch {
+          return linkPreview.url;
+        }
+      })()
+    : "";
 
   function userReacted(emoji: string) {
     const ids = reactions[emoji];
@@ -193,8 +213,51 @@ export function MessageRow({
               </>
             )}
 
+            {/* Link preview */}
+            {linkPreview && !isAudio && (
+              <a
+                href={linkPreview.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "mt-1.5 block overflow-hidden rounded-sm border",
+                  "border-[var(--color-border)] bg-[var(--color-surface)]"
+                )}
+              >
+                {linkPreview.image && (
+                  <Image
+                    src={linkPreview.image}
+                    alt=""
+                    width={280}
+                    height={140}
+                    className="h-32 w-full object-cover"
+                    unoptimized
+                  />
+                )}
+                <div className="px-2.5 py-1.5">
+                  <p className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
+                    <LinkIcon className="h-3 w-3" />
+                    {linkPreview.siteName || linkPreviewHost}
+                  </p>
+                  {linkPreview.title && (
+                    <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-[var(--color-text-primary)]">
+                      {linkPreview.title}
+                    </p>
+                  )}
+                  {linkPreview.description && (
+                    <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--color-text-muted)]">
+                      {linkPreview.description}
+                    </p>
+                  )}
+                </div>
+              </a>
+            )}
+
             {/* Timestamp + read ticks */}
             <div className="absolute bottom-1 right-1.5 flex items-center gap-1 pointer-events-none">
+              {m.is_pinned && (
+                <Pin className="h-3 w-3 text-[var(--color-accent)]" aria-label="Pinned" />
+              )}
               {m.is_edited && (
                 <span className="text-[9px] text-[var(--color-text-muted)]">
                   edited
@@ -331,6 +394,30 @@ export function MessageRow({
                       <Trash2 className="mr-2 h-4 w-4" /> Delete
                     </DropdownMenuItem>
                   </>
+                )}
+                {!isOwn && onReport && (
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => onReport(m.id)}
+                  >
+                    <Flag className="mr-2 h-4 w-4" /> Report
+                  </DropdownMenuItem>
+                )}
+                {isStaff && isRoot && !isDM && onTogglePin && (
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => onTogglePin(m.id, !m.is_pinned)}
+                  >
+                    {m.is_pinned ? (
+                      <>
+                        <PinOff className="mr-2 h-4 w-4" /> Unpin
+                      </>
+                    ) : (
+                      <>
+                        <Pin className="mr-2 h-4 w-4" /> Pin message
+                      </>
+                    )}
+                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>

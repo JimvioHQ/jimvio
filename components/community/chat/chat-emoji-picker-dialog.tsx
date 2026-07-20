@@ -6,6 +6,8 @@ import { Loader2 } from "lucide-react";
 import data from "@emoji-mart/data";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GifSearchPanel } from "./GifSearchPanel";
+import { GifResult } from "@/types";
 
 const Picker = dynamic(() => import("@emoji-mart/react"), {
   ssr: false,
@@ -22,15 +24,25 @@ export function ChatEmojiPickerDialog({
   open,
   onOpenChange,
   onSelect,
+  onSelectGif,
+  sendingGif,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSelect: (native: string) => void;
+  /** Optional — when provided, the "GIFs" tab lets users search and send a Tenor GIF. */
+  onSelectGif?: (gif: GifResult) => void;
+  sendingGif?: boolean;
 }) {
   const [tab, setTab] = useState("emoji");
 
   function handleEmoji(emoji: EmojiSelect) {
     onSelect(emoji.native);
+    onOpenChange(false);
+  }
+
+  function handleGif(gif: GifResult) {
+    onSelectGif?.(gif);
     onOpenChange(false);
   }
 
@@ -48,8 +60,8 @@ export function ChatEmojiPickerDialog({
             <TabsTrigger value="emoji" className="flex-1 text-xs font-black">
               Emoji
             </TabsTrigger>
-            <TabsTrigger value="stickers" className="flex-1 text-xs font-black">
-              Stickers
+            <TabsTrigger value="gifs" className="flex-1 text-xs font-black">
+              GIFs
             </TabsTrigger>
           </TabsList>
           <TabsContent value="emoji" className="mt-3 max-h-[min(45vh,360px)] overflow-y-auto overflow-x-hidden rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] p-1">
@@ -61,16 +73,8 @@ export function ChatEmojiPickerDialog({
               onEmojiSelect={handleEmoji}
             />
           </TabsContent>
-          <TabsContent value="stickers" className="mt-3 max-h-[min(45vh,360px)] overflow-y-auto overflow-x-hidden rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] p-1">
-            <Picker
-              data={data}
-              theme="light"
-              previewPosition="none"
-              skinTonePosition="search"
-              emojiSize={36}
-              perLine={6}
-              onEmojiSelect={handleEmoji}
-            />
+          <TabsContent value="gifs" className="mt-3 h-[min(45vh,360px)] overflow-hidden rounded-sm border border-[var(--color-border)] bg-[var(--color-bg)] p-2">
+            <GifSearchPanel onSelect={handleGif} disabled={sendingGif} />
           </TabsContent>
         </Tabs>
       </DialogContent>

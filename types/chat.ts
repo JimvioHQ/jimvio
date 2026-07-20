@@ -22,6 +22,26 @@ export type Msg = {
   reply_to_id?: string | null;
   reply_to_body?: string | null;
   reply_to_sender?: string | null;
+  metadata?: Record<string, unknown> | null;
+  is_pinned?: boolean | null;
+  is_deleted?: boolean | null;
+};
+
+export type LinkPreview = {
+  url: string;
+  title: string | null;
+  description: string | null;
+  image: string | null;
+  siteName: string | null;
+};
+
+export type GifResult = {
+  id: string;
+  title: string;
+  url: string;
+  previewUrl: string;
+  width: number;
+  height: number;
 };
 
 export type Attachment = {

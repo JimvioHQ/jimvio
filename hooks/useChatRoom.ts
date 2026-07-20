@@ -46,6 +46,14 @@ type RealtimePayload = {
     new: Record<string, unknown>;
 };
 
+type TypingBroadcastPayload = {
+    user_id: string;
+    name: string;
+    typing: boolean;
+};
+
+export type TypingUser = { id: string; name: string };
+
 // ─── Hook ──────────────────────────────────────────────────────────────────────
 
 export interface UseChatRoomOptions {
@@ -509,6 +517,114 @@ export function useChatRoom({
         setIncomingCall,
     ]);
 
+    // ── Presence (online members) + typing broadcast ────────────────────────────
+    const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
+    const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+    const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+    const typingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+    const typingSelfRef = useRef<{ active: boolean; lastSentAt: number }>({
+        active: false,
+        lastSentAt: 0,
+    });
+    const typingStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        // Presence only applies to the group room stack, not 1:1 DMs.
+        if (!roomId || !userId || activeConvId) {
+            setOnlineUserIds([]);
+            setTypingUsers([]);
+            return;
+        }
+
+        const channel = supabase.channel(`presence:room:${roomId}`, {
+            config: { presence: { key: userId } },
+        });
+
+        channel
+            .on("presence", { event: "sync" }, () => {
+                const state = channel.presenceState() as Record<string, unknown[]>;
+                setOnlineUserIds(Object.keys(state));
+            })
+            .on(
+                "broadcast",
+                { event: "typing" },
+                ({ payload }: { payload: TypingBroadcastPayload }) => {
+                    if (!payload || payload.user_id === userId) return;
+                    const { user_id, name, typing } = payload;
+
+                    if (typingTimeoutsRef.current[user_id]) {
+                        clearTimeout(typingTimeoutsRef.current[user_id]);
+                        delete typingTimeoutsRef.current[user_id];
+                    }
+
+                    setTypingUsers((prev) => {
+                        const rest = prev.filter((t) => t.id !== user_id);
+                        return typing ? [...rest, { id: user_id, name }] : rest;
+                    });
+
+                    if (typing) {
+                        typingTimeoutsRef.current[user_id] = setTimeout(() => {
+                            setTypingUsers((prev) => prev.filter((t) => t.id !== user_id));
+                        }, 4000);
+                    }
+                }
+            )
+            .subscribe((status: string) => {
+                if (status === "SUBSCRIBED") {
+                    void channel.track({ online_at: new Date().toISOString() });
+                }
+            });
+
+        presenceChannelRef.current = channel;
+
+        return () => {
+            Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
+            typingTimeoutsRef.current = {};
+            if (typingStopTimerRef.current) clearTimeout(typingStopTimerRef.current);
+            typingSelfRef.current = { active: false, lastSentAt: 0 };
+            setOnlineUserIds([]);
+            setTypingUsers([]);
+            supabase.removeChannel(channel);
+            presenceChannelRef.current = null;
+        };
+    }, [roomId, userId, activeConvId, supabase]);
+
+    const sendTypingBroadcast = useCallback(
+        (isTyping: boolean) => {
+            const channel = presenceChannelRef.current;
+            if (!channel || !userId) return;
+            const me = sidebarMembers.find((m) => m.user_id === userId);
+            const name = me?.profile?.full_name || me?.profile?.username || "Someone";
+            typingSelfRef.current = { active: isTyping, lastSentAt: Date.now() };
+            void channel.send({
+                type: "broadcast",
+                event: "typing",
+                payload: { user_id: userId, name, typing: isTyping },
+            });
+        },
+        [userId, sidebarMembers]
+    );
+
+    const setTyping = useCallback(
+        (isTyping: boolean) => {
+            if (typingStopTimerRef.current) {
+                clearTimeout(typingStopTimerRef.current);
+                typingStopTimerRef.current = null;
+            }
+
+            const shouldSend =
+                isTyping !== typingSelfRef.current.active ||
+                Date.now() - typingSelfRef.current.lastSentAt > 2000;
+
+            if (shouldSend) sendTypingBroadcast(isTyping);
+
+            if (isTyping) {
+                typingStopTimerRef.current = setTimeout(() => sendTypingBroadcast(false), 3000);
+            }
+        },
+        [sendTypingBroadcast]
+    );
+
     // ── Input state ──────────────────────────────────────────────────────────────
     const [text, setText] = useState("");
     const [threadReplyText, setThreadReplyText] = useState("");
@@ -542,6 +658,20 @@ export function useChatRoom({
         [communityId, roomId]
     );
 
+    // ── Link previews ────────────────────────────────────────────────────────────
+    const fetchLinkPreview = useCallback(async (body: string) => {
+        const match = body.match(/https?:\/\/[^\s]+/i);
+        if (!match) return undefined;
+        try {
+            const res = await fetch(`/api/c/chat/link-preview?url=${encodeURIComponent(match[0])}`);
+            if (!res.ok) return undefined;
+            const data = await res.json();
+            return data?.preview ? { link_preview: data.preview } : undefined;
+        } catch {
+            return undefined;
+        }
+    }, []);
+
     // ── Send ─────────────────────────────────────────────────────────────────────
     const sendMessage = useCallback(
         async (threadId?: string | null) => {
@@ -550,7 +680,9 @@ export function useChatRoom({
             const queue = isThread ? pendingThread : pendingMain;
             if ((!t && queue.length === 0) || sending) return;
             setSending(true);
+            if (!isThread) setTyping(false);
             try {
+                const metadata = queue.length === 0 && t ? await fetchLinkPreview(t) : undefined;
                 const ep = activeConvId
                     ? `/api/communities/${slug}/inbox/${activeConvId}/messages`
                     : `/api/messages/${roomId}`;
@@ -567,6 +699,7 @@ export function useChatRoom({
                         reply_to_sender: !isThread && replyingTo
                             ? (replyingTo.profiles?.full_name ?? replyingTo.profiles?.username ?? "Member")
                             : null,
+                        metadata,
                     }),
                 });
                 const data = await res.json();
@@ -612,7 +745,55 @@ export function useChatRoom({
             roomId,
             replyingTo,
             upsertMessage,
+            setTyping,
+            fetchLinkPreview,
         ]
+    );
+
+    // ── GIFs (Tenor) ──────────────────────────────────────────────────────────────
+    const [sendingGif, setSendingGif] = useState(false);
+
+    const sendGif = useCallback(
+        async (gif: { url: string; title?: string }) => {
+            if (sending || sendingGif) return;
+            setSendingGif(true);
+            try {
+                const ep = activeConvId
+                    ? `/api/communities/${slug}/inbox/${activeConvId}/messages`
+                    : `/api/messages/${roomId}`;
+                const res = await fetch(ep, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        body: "",
+                        threadId: null,
+                        attachments: [
+                            {
+                                url: gif.url,
+                                name: gif.title || "GIF",
+                                mime: "image/gif",
+                                size: 0,
+                            },
+                        ],
+                        message_type: "image",
+                        metadata: { gif: true },
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                upsertMessage((data.message ?? data.row) as Msg);
+                setAtBottom(true);
+                requestAnimationFrame(() =>
+                    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+                );
+            } catch (e: unknown) {
+                console.error(e);
+                toast.error(e instanceof Error ? e.message : "Failed to send GIF");
+            } finally {
+                setSendingGif(false);
+            }
+        },
+        [sending, sendingGif, activeConvId, slug, roomId, upsertMessage]
     );
 
     // ── Voice recording ──────────────────────────────────────────────────────────
@@ -774,6 +955,73 @@ export function useChatRoom({
         [roomId, activeConvId, slug, patchMessage]
     );
 
+    // ── Staff role (pin gating) ──────────────────────────────────────────────────
+    const [isStaff, setIsStaff] = useState(false);
+
+    useEffect(() => {
+        if (!userId || !communityId) {
+            setIsStaff(false);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            const { data } = await supabase
+                .from("community_memberships")
+                .select("role")
+                .eq("community_id", communityId)
+                .eq("user_id", userId)
+                .eq("status", "active")
+                .maybeSingle();
+            if (!cancelled) {
+                setIsStaff(["owner", "admin", "moderator"].includes(data?.role ?? ""));
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [userId, communityId, supabase]);
+
+    // ── Pin / Report (staff pin, anyone can report) ─────────────────────────────
+    const togglePin = useCallback(
+        async (messageId: string, pin: boolean) => {
+            if (activeConvId) return; // pin only applies to room messages
+            try {
+                const res = await fetch(`/api/messages/${roomId}/${messageId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ pin }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                patchMessage(messageId, data.message as Msg);
+            } catch (e: unknown) {
+                console.error(e);
+                toast.error(e instanceof Error ? e.message : "Failed to update pin");
+            }
+        },
+        [roomId, activeConvId, patchMessage]
+    );
+
+    const reportMessage = useCallback(
+        async (messageId: string, reason?: string) => {
+            if (activeConvId) return;
+            try {
+                const res = await fetch(`/api/messages/${roomId}/${messageId}/report`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ reason: reason ?? "other" }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                toast.success("Message reported to moderators.");
+            } catch (e: unknown) {
+                console.error(e);
+                toast.error(e instanceof Error ? e.message : "Failed to report message");
+            }
+        },
+        [roomId, activeConvId]
+    );
+
     // ── Delete ───────────────────────────────────────────────────────────────────
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -837,9 +1085,43 @@ export function useChatRoom({
     const [chatFilter, setChatFilter] = useState<ChatFilter>("all");
     const [emojiOpen, setEmojiOpen] = useState(false);
 
+    // Server-backed search (full room history, not just the loaded window).
+    const [serverSearchResults, setServerSearchResults] = useState<Msg[] | null>(null);
+    const [serverSearching, setServerSearching] = useState(false);
+
+    useEffect(() => {
+        const q = searchQuery.trim();
+        if (activeConvId || !roomId || !searchOpen || q.length < 2) {
+            setServerSearchResults(null);
+            setServerSearching(false);
+            return;
+        }
+        const controller = new AbortController();
+        setServerSearching(true);
+        const timer = setTimeout(async () => {
+            try {
+                const res = await fetch(
+                    `/api/messages/${roomId}/search?q=${encodeURIComponent(q)}`,
+                    { signal: controller.signal }
+                );
+                const data = await res.json();
+                if (res.ok) setServerSearchResults((data.messages ?? []) as Msg[]);
+            } catch (e: unknown) {
+                if (e instanceof Error && e.name !== "AbortError") console.error(e);
+            } finally {
+                setServerSearching(false);
+            }
+        }, 300);
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [searchQuery, searchOpen, roomId, activeConvId]);
+
     // ── Derived ──────────────────────────────────────────────────────────────────
     const filteredMessages = useMemo(() => {
-        let list = messages.filter(
+        const base = serverSearchResults ?? messages;
+        let list = base.filter(
             (m) => m.message_type !== "call_signal" && m.message_type !== "call_start"
         );
         if (chatFilter === "media")
@@ -848,6 +1130,7 @@ export function useChatRoom({
                     parseAttachments(m.attachments).length > 0 ||
                     ["image", "file", "audio"].includes(m.message_type)
             );
+        if (serverSearchResults) return list;
         const q = searchQuery.trim().toLowerCase();
         if (!q) return list;
         return list.filter(
@@ -856,7 +1139,7 @@ export function useChatRoom({
                 (m.profiles?.full_name ?? "").toLowerCase().includes(q) ||
                 (m.profiles?.username ?? "").toLowerCase().includes(q)
         );
-    }, [messages, searchQuery, chatFilter]);
+    }, [messages, searchQuery, chatFilter, serverSearchResults]);
 
     // ── DM inbox creation ────────────────────────────────────────────────────────
     const openDmWith = useCallback(
@@ -952,6 +1235,9 @@ export function useChatRoom({
         scrollToBottom,
         onScrollMain,
         toggleReaction,
+        isStaff,
+        togglePin,
+        reportMessage,
         confirmDelete,
         setConfirmDelete,
         deleteMessage,
@@ -966,9 +1252,15 @@ export function useChatRoom({
         setSearchQuery,
         searchOpen,
         setSearchOpen,
+        serverSearching,
         chatFilter,
         setChatFilter,
         emojiOpen,
         setEmojiOpen,
+        onlineUserIds,
+        typingUsers,
+        setTyping,
+        sendGif,
+        sendingGif,
     };
 }

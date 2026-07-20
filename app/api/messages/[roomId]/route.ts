@@ -4,6 +4,15 @@ import { canAccessRoom } from "@/services/accessControl";
 
 export const dynamic = "force-dynamic";
 
+/** Untyped access for columns added in migration 085 before generated types catch up. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function untyped(supabase: Awaited<ReturnType<typeof createClient>>): any {
+  return supabase;
+}
+
+const SELECT_WITH_PROFILE =
+  "*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username)";
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ roomId: string }> }
@@ -20,18 +29,28 @@ export async function GET(
 
   const { searchParams } = new URL(req.url);
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
+  const before = searchParams.get("before");
+  const q = searchParams.get("q")?.trim();
 
-  const { data, error } = await supabase
+  let query = untyped(supabase)
     .from("community_messages")
-    .select("*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username)")
+    .select(SELECT_WITH_PROFILE)
     .eq("room_id", roomId)
     .eq("is_deleted", false)
-    .is("thread_id", null)
-    .order("created_at", { ascending: true })
-    .limit(limit);
+    .is("thread_id", null);
+
+  if (before) query = query.lt("created_at", before);
+  if (q) query = query.ilike("body", `%${q}%`);
+
+  // Newest-first for pagination, reversed below to chronological order.
+  const { data, error } = await query.order("created_at", { ascending: false }).limit(limit);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ messages: data });
+
+  const messages = ((data ?? []) as { created_at: string }[]).slice().reverse();
+  const nextCursor = messages.length === limit ? messages[0]?.created_at ?? null : null;
+
+  return NextResponse.json({ messages, nextCursor });
 }
 
 export async function POST(
@@ -48,11 +67,24 @@ export async function POST(
   const hasAccess = await canAccessRoom(user.id, roomId);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
 
-  const { body, threadId, attachments, message_type } = (await req.json()) as {
+  const {
+    body,
+    threadId,
+    attachments,
+    message_type,
+    reply_to_id,
+    reply_to_body,
+    reply_to_sender,
+    metadata,
+  } = (await req.json()) as {
     body?: string;
     threadId?: string | null;
     attachments?: unknown;
     message_type?: string;
+    reply_to_id?: string | null;
+    reply_to_body?: string | null;
+    reply_to_sender?: string | null;
+    metadata?: Record<string, unknown> | null;
   };
 
   const attachmentList = Array.isArray(attachments) ? attachments : [];
@@ -75,18 +107,42 @@ export async function POST(
   const { data: room } = await supabase.from("rooms").select("community_id").eq("id", roomId).single();
   if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
 
-  const { data, error } = await supabase
+  // Metadata is a passthrough bag (link previews, gif hints, etc). Cap its
+  // serialized size defensively — this is untrusted client input.
+  let safeMetadata: Record<string, unknown> = {};
+  if (metadata && typeof metadata === "object") {
+    try {
+      const serialized = JSON.stringify(metadata);
+      if (serialized.length <= 8000) safeMetadata = metadata;
+    } catch {
+      safeMetadata = {};
+    }
+  }
+
+  const insertRow: Record<string, unknown> = {
+    room_id: roomId,
+    community_id: room.community_id,
+    sender_id: user.id,
+    body: bodyTrim,
+    thread_id: threadId || null,
+    attachments: attachmentList,
+    message_type: resolvedType,
+    metadata: safeMetadata,
+  };
+
+  // Reply-to snapshot only applies to top-level messages, not thread replies.
+  if (!threadId && typeof reply_to_id === "string" && reply_to_id) {
+    insertRow.reply_to_id = reply_to_id;
+    insertRow.reply_to_body =
+      typeof reply_to_body === "string" ? reply_to_body.slice(0, 200) : null;
+    insertRow.reply_to_sender =
+      typeof reply_to_sender === "string" ? reply_to_sender.slice(0, 120) : null;
+  }
+
+  const { data, error } = await untyped(supabase)
     .from("community_messages")
-    .insert({
-      room_id: roomId,
-      community_id: room.community_id,
-      sender_id: user.id,
-      body: bodyTrim,
-      thread_id: threadId || null,
-      attachments: attachmentList,
-      message_type: resolvedType,
-    })
-    .select("*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username)")
+    .insert(insertRow)
+    .select(SELECT_WITH_PROFILE)
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
