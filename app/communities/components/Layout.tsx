@@ -404,7 +404,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 )}
 
                 {/* Page content */}
-                <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isLiveStudio && "bg-[#f4f4f5]")}>
+                <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isLiveStudio && "bg-[#f7f7f8]")}>
                     {/* Mobile page title bar */}
                     {!isLiveStudio && (
                     <div className="flex h-11 items-center border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-4 lg:hidden">

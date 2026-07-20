@@ -747,6 +747,7 @@ export async function getHubLiveRooms(userId: string): Promise<HubLiveRoom[]> {
       return {
         id: room.id,
         name: room.name,
+        community_id: room.community_id as string | null,
         community_name: community?.name ?? "Community",
         community_slug: community?.slug ?? "",
         space_slug: space?.slug ?? "",
@@ -915,6 +916,8 @@ export async function getHubLiveDashboard(userId: string) {
       href: sessionHref,
       tag: primaryRoom?.community_name ?? "Live Room",
       roomId: primaryRoom?.id ?? null,
+      communityId: (primaryRoom as { community_id?: string | null } | null)?.community_id ?? null,
+      liveSessionId: null,
     },
   };
 }

@@ -8,9 +8,11 @@
     "components/**/*.tsx",
     "lib/**/*.ts",
     "lib/**/*.tsx",
+    "hooks/**/*.ts",
+    "hooks/**/*.tsx",
     "services/**/*.ts",
     "types/**/*.ts",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "scripts"]
+  "exclude": ["node_modules", "scripts", "e2e"]
 }

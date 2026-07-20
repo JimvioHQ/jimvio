@@ -41,4 +41,9 @@ Thumbs.db
 # Antigravity Scratch
 scratch/
 
+# Playwright / Live Studio E2E (local only)
+.auth/
+test-results/
+playwright-report/
+
 /lib/generated/prisma

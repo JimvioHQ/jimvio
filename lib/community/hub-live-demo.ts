@@ -27,6 +27,8 @@ export function getEmptyHubLiveDashboard(): LiveDashboard {
       href: "/communities/live",
       tag: "Live Room",
       roomId: null,
+      communityId: null,
+      liveSessionId: null,
     },
   };
 }

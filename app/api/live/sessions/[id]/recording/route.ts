@@ -1,0 +1,108 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { canRecord } from "@/lib/live/roles";
+import { assertLiveStudioInfra, LiveStudioEnvError } from "@/lib/live/env";
+import { liveStudioLog } from "@/lib/live/observability";
+import { getParticipant, getSession } from "@/services/live/session-service";
+import { startSessionEgress, stopSessionEgress } from "@/lib/live/egress";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * POST /api/live/sessions/[id]/recording
+ * Body: { action: "start" | "stop" }
+ * Host/cohost only — starts/stops LiveKit Egress (survives browser close).
+ */
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: sessionId } = await params;
+
+  try {
+    assertLiveStudioInfra();
+  } catch (e) {
+    if (e instanceof LiveStudioEnvError) {
+      liveStudioLog("error", "recording_failed", {
+        sessionId,
+        reason: "env_missing",
+        missing: e.missing.join(","),
+      });
+      return NextResponse.json({ error: e.message, missing: e.missing }, { status: 503 });
+    }
+    throw e;
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    liveStudioLog("warn", "security_denied", { action: "recording", reason: "unauthorized" });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = (await req.json().catch(() => ({}))) as { action?: string };
+  const session = await getSession(sessionId);
+  if (!session || session.status !== "live") {
+    liveStudioLog("warn", "recording_failed", { sessionId, reason: "session_not_live" });
+    return NextResponse.json({ error: "Session not live" }, { status: 400 });
+  }
+
+  const me = await getParticipant(sessionId, user.id);
+  const role = me?.role ?? (session.host_id === user.id ? "host" : "viewer");
+  if (!canRecord(role)) {
+    liveStudioLog("warn", "security_denied", {
+      action: "recording",
+      sessionId,
+      userId: user.id,
+      role,
+    });
+    return NextResponse.json({ error: "Only host/co-host may record" }, { status: 403 });
+  }
+
+  if (body.action === "start") {
+    const result = await startSessionEgress({
+      sessionId,
+      communityId: session.community_id,
+      userId: user.id,
+    });
+    if ("error" in result) {
+      liveStudioLog("error", "recording_failed", {
+        sessionId,
+        userId: user.id,
+        action: "start",
+        error: result.error,
+      });
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    liveStudioLog("info", "recording_start", {
+      sessionId,
+      userId: user.id,
+      egressId: result.egressId,
+      recordingId: result.recordingId,
+    });
+    return NextResponse.json(result);
+  }
+
+  if (body.action === "stop") {
+    const result = await stopSessionEgress({ sessionId, userId: user.id });
+    if ("error" in result) {
+      liveStudioLog("error", "recording_failed", {
+        sessionId,
+        userId: user.id,
+        action: "stop",
+        error: result.error,
+      });
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+    liveStudioLog("info", "recording_stop", {
+      sessionId,
+      userId: user.id,
+      recordingId: result.recordingId,
+    });
+    return NextResponse.json(result);
+  }
+
+  return NextResponse.json({ error: "action must be start|stop" }, { status: 400 });
+}

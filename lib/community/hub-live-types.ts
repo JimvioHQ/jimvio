@@ -1,6 +1,7 @@
 export type LiveRoom = {
   id: string;
   name: string;
+  community_id?: string | null;
   community_name: string;
   message_count: number;
   href: string;
@@ -50,5 +51,13 @@ export type LiveDashboard = {
     watchTimeMinutes: number;
     revenue: number;
   };
-  session: { title: string; host: string; href: string; tag: string; roomId: string | null };
+  session: {
+    title: string;
+    host: string;
+    href: string;
+    tag: string;
+    roomId: string | null;
+    communityId?: string | null;
+    liveSessionId?: string | null;
+  };
 };

@@ -60,6 +60,8 @@
     "http-message-signatures": "^1.0.4",
     "input-otp": "^1.4.2",
     "isomorphic-dompurify": "^3.13.0",
+    "livekit-client": "^2.20.1",
+    "livekit-server-sdk": "^2.17.0",
     "lucide-react": "^0.469.0",
     "maplibre-gl": "^5.24.0",
     "next": "^16.2.4",
@@ -96,6 +98,7 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^22.19.15",
     "@types/pdfkit": "^0.17.6",
     "@types/pg": "^8.20.0",

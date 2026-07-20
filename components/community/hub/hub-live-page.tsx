@@ -1,818 +1,1425 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Radio, Users, Heart, UserPlus, Share2, Monitor, Mic, Video,
-  ScreenShare, UsersRound, MessageSquare, Subtitles, Square, Circle,
-  Loader2, TrendingUp, Smile, Paperclip, Send, Activity, Wifi,
-  QrCode, Camera, UserCheck, Settings, BarChart3, Layers, Package,
-  Copy, Check, Home, Calendar,
-  Flame, Volume2, Disc, ThumbsUp, LayoutGrid, ChevronDown,
-  Crown, Star, RotateCcw, Bot, MoreHorizontal, Wand2,
+  Check,
+  Copy,
+  Loader2,
+  MessageSquare,
+  MonitorPlay,
+  Radio,
+  Users,
+  Wifi,
+  WifiOff,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { HubAvatar, HubBadge, HubCard, HubLinkButton, HubSectionTitle, HubStatCard } from "./hub-ui";
-import type { LiveDashboard, Speaker } from "@/lib/community/hub-live-types";
+import type { LiveDashboard } from "@/lib/community/hub-live-types";
 import { normalizeHubLiveDashboard } from "@/lib/community/hub-live-demo";
+import { useLiveMediaPlane } from "@/hooks/live/useLiveMediaPlane";
+import { useLiveSession } from "@/hooks/live/useLiveSession";
+import { useLiveChat } from "@/hooks/live/useLiveChat";
+import { useLiveKitRoom } from "@/hooks/live/useLiveKitRoom";
+import {
+  canEndLive,
+  canInviteSpeaker,
+  canLaunchPoll,
+  canPublishAv,
+  canRecord,
+  canShareScreen,
+} from "@/lib/live/roles";
+import { uploadLiveRecording } from "@/lib/live/upload-recording";
+import { AiFab } from "./live/AiFab";
+import { CommandPalette, defaultLiveCommands } from "./live/CommandPalette";
+import { ControlDock, useEphemeralToast } from "./live/ControlDock";
+import { ChatWorkspace } from "./live/ChatWorkspace";
+import { StageMediaPreview } from "./live/StageMediaPreview";
+import { RemoteAudioSink } from "./live/RemoteAudioSink";
+import {
+  AnalyticsPanel,
+  ClipsPanel,
+  DrawerHeader,
+  EventsPanel,
+  LayoutPanel,
+  PeoplePanel,
+  PollsPanel,
+  QaPanel,
+  RoomsPanel,
+  SettingsPanel,
+} from "./live/panels";
+import { SpeakerStrip } from "./live/SpeakerStrip";
+import {
+  LEFT_TOOLS,
+  RIGHT_TABS,
+  LAYOUTS,
+  type ActivityMode,
+  type DrawerState,
+  type LeftPanel,
+  type RightTab,
+  type SpeakerUi,
+  type StudioMode,
+} from "./live/studio-types";
+import {
+  formatCount,
+  formatElapsed,
+  formatTime,
+  readDrawerState,
+  readMode,
+  writeDrawerState,
+  writeMode,
+} from "./live/studio-utils";
+import { FOCUS_RING, FOCUS_RING_DARK, MOTION_COLORS } from "./live/studio-ui";
 
-/* ── Config ── */
-const LIVE_NOW_NAV = [
-  { id: "overview", label: "Overview" },
-  { id: "participants", label: "Participants", countKey: "liveViewers" as const },
-  { id: "chat", label: "Chat" },
-  { id: "qa", label: "Q&A", badge: true },
-  { id: "polls", label: "Polls" },
-  { id: "reactions", label: "Reactions" },
-  { id: "rooms", label: "Rooms" },
-  { id: "monetization", label: "Monetization", tag: "New" },
-  { id: "ecommerce", label: "E-commerce" },
-  { id: "engine", label: "Engine" },
-  { id: "analytics", label: "Analytics" },
-  { id: "recordings", label: "Recordings" },
-  { id: "settings", label: "Settings" },
-] as const;
+type LoadError = "network" | "server" | null;
 
-const QUICK_TOOLS = [
-  { label: "Backstage", icon: Layers },
-  { label: "Stream Health", icon: Activity },
-  { label: "Layouts", icon: LayoutGrid },
-  { label: "Duos", icon: Package },
-  { label: "Integrations", icon: Settings },
-];
-
-const QUICK_ACTIONS = [
-  { label: "Go Live", icon: Radio, href: "/communities/live", accent: true },
-  { label: "Start Recording", icon: Disc },
-  { label: "Take Screenshot", icon: Camera },
-  { label: "Add Co-host", icon: UserCheck },
-  { label: "Invite Speakers", icon: UsersRound },
-];
-
-const MODE_TABS = [
-  "Promote",
-  "Presentation Slides/Screen",
-  "Polls & Quizzes",
-  "Screen Share/Video",
-  "Trading Charts Only",
-  "Classroom Layout",
-];
-
-const STAGE_CONTROLS = [
-  { icon: Volume2, label: "Sounds" },
-  { icon: Video, label: "Start Video" },
-  { icon: ScreenShare, label: "Share Screen", active: true },
-  { icon: Wand2, label: "Jiff" },
-  { icon: UsersRound, label: "Invite" },
-  { icon: Disc, label: "Record", danger: true },
-  { icon: RotateCcw, label: "Reset" },
-  { icon: BarChart3, label: "Polls" },
-  { icon: Subtitles, label: "Subtitles" },
-  { icon: Bot, label: "AI Tools" },
-  { icon: MoreHorizontal, label: "More" },
-];
-
-const RIGHT_FOOTER_NAV = [
-  { label: "Home", href: "/communities", icon: Home },
-  { label: "Products", href: "/marketplace", icon: Package },
-  { label: "Chats", href: "/communities/messages", icon: MessageSquare },
-  { label: "Events", href: "/communities/events", icon: Calendar },
-];
-
-/* ── Helpers ── */
-function formatElapsed(seconds: number) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-function formatOnlineDuration(seconds: number) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")} online`;
-  return `${m}:${String(s).padStart(2, "0")} online`;
-}
-
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function formatCount(n: number) {
-  if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
-  return n.toLocaleString();
-}
-
-function formatMoney(n: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
-}
-
-/* ── Page ── */
-export function HubLivePage() {
+export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }) {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<LoadError>(null);
   const [data, setData] = useState<LiveDashboard | null>(null);
-  const [activeNav, setActiveNav] = useState("overview");
-  const [activeMode, setActiveMode] = useState(1);
+  const [mode, setMode] = useState<StudioMode>(() => readMode());
+  const [drawer, setDrawer] = useState<DrawerState>(() => readDrawerState());
+  const [layout, setLayout] = useState<(typeof LAYOUTS)[number]>("Presentation");
+  const [activity, setActivity] = useState<ActivityMode>("live");
+  const [focusMode, setFocusMode] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [activeSpeakerId, setActiveSpeakerId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [chatInput, setChatInput] = useState("");
-  const [hideChat, setHideChat] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showPip, setShowPip] = useState(true);
+  const [online, setOnline] = useState(true);
+  const [connection, setConnection] = useState<"excellent" | "good" | "poor">("excellent");
+  const [modeMenuOpen, setModeMenuOpen] = useState(false);
+  const [peopleQuery, setPeopleQuery] = useState("");
+  const [chatIdle, setChatIdle] = useState(false);
+  const [hasPolls, setHasPolls] = useState(false);
+  const [egressRecording, setEgressRecording] = useState(false);
+  const chatIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { msg: toast, show: showToast } = useEphemeralToast();
 
-  const sessionUrl = typeof window !== "undefined" ? `${window.location.origin}/communities/live` : "jimvio.com/communities/live";
+  const media = useLiveMediaPlane(true);
+  const live = useLiveSession(sessionIdProp ?? null);
+  const chatRoomId = live.session?.room_id ?? data?.session.roomId ?? null;
+  const liveChat = useLiveChat(chatRoomId);
+
+  const livekit = useLiveKitRoom({
+    sessionId: live.session?.status === "live" ? live.session.id : null,
+    enabled: true,
+    localAvStream: media.cameraStream,
+    camOn: media.camOn,
+    micOn: media.micOn,
+    shareStream: media.shareStream,
+    sharing: media.sharing,
+    preferLocalStage: live.myRole === "host" || live.myRole === "cohost" || live.myRole === "speaker",
+  });
+
+  const micOn = media.micOn;
+  const camOn = media.camOn;
+  const recording = media.recordingState === "recording" || media.recordingState === "paused";
+  const stageStream = livekit.stageStream ?? media.previewStream;
+
+  const sessionUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/communities/live`
+      : "jimvio.com/communities/live";
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await fetch("/api/c/live");
+      if (!res.ok) {
+        setLoadError("server");
+        setData(normalizeHubLiveDashboard(null));
+        return;
+      }
+      const json = (await res.json()) as LiveDashboard;
+      const normalized = normalizeHubLiveDashboard(json);
+      setData(normalized);
+      if (normalized.speakers[0]) setActiveSpeakerId(normalized.speakers[0].id);
+    } catch {
+      setLoadError("network");
+      setData(normalizeHubLiveDashboard(null));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateDrawer = useCallback((patch: Partial<DrawerState>) => {
+    setDrawer((prev) => {
+      const next = { ...prev, ...patch };
+      if (persistTimer.current) clearTimeout(persistTimer.current);
+      persistTimer.current = setTimeout(() => writeDrawerState(next), 200);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
       try {
         const res = await fetch("/api/c/live");
-        let json: LiveDashboard | null = null;
-        if (res.ok) {
-          json = (await res.json()) as LiveDashboard;
+        if (cancelled) return;
+        if (!res.ok) {
+          setLoadError("server");
+          setData(normalizeHubLiveDashboard(null));
+          return;
         }
-        if (!cancelled) {
-          const normalized = normalizeHubLiveDashboard(json);
-          setData(normalized);
-          if (normalized.speakers[0]) setActiveSpeakerId(normalized.speakers[0].id);
-        }
+        const json = (await res.json()) as LiveDashboard;
+        if (cancelled) return;
+        const normalized = normalizeHubLiveDashboard(json);
+        setData(normalized);
+        if (normalized.speakers[0]) setActiveSpeakerId(normalized.speakers[0].id);
+      } catch {
+        if (cancelled) return;
+        setLoadError("network");
+        setData(normalizeHubLiveDashboard(null));
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  /* Resume active live session, or join viewer sessionId from route */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        if (sessionIdProp) {
+          await live.join(sessionIdProp);
+          return;
+        }
+        const res = await fetch("/api/c/live/sessions");
+        if (!res.ok || cancelled) return;
+        const json = (await res.json()) as { sessions?: Array<{ id: string }> };
+        const first = json.sessions?.[0];
+        if (first?.id) await live.join(first.id);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionIdProp]);
+
+  useEffect(() => {
+    if (media.lastError) showToast(media.lastError);
+  }, [media.lastError, showToast]);
+
+  useEffect(() => {
+    if (livekit.error) showToast(livekit.error);
+  }, [livekit.error, showToast]);
+
+  /* Keep activity mode in sync when share track ends externally */
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mirror media plane share flag into existing activity chrome
+    setActivity((prev) => {
+      if (media.sharing) return "share";
+      return prev === "share" ? "live" : prev;
+    });
+  }, [media.sharing]);
+
+  const inviteAcceptedRef = useRef(false);
+  useEffect(() => {
+    if (!live.userId || !live.session) return;
+    const me = live.participants.find((p) => p.user_id === live.userId);
+    if (me?.status === "invited" && !inviteAcceptedRef.current) {
+      inviteAcceptedRef.current = true;
+      showToast("Speaker invite received — accepting");
+      void live.acceptInvite().catch(() => {
+        inviteAcceptedRef.current = false;
+      });
+    }
+    if (me?.status === "joined") inviteAcceptedRef.current = false;
+  }, [live.participants, live.userId, live.session, live, showToast]);
 
   useEffect(() => {
     const t = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => clearInterval(t);
   }, []);
 
-  const speakers = useMemo(() => data?.speakers ?? [], [data?.speakers]);
+  useEffect(() => {
+    const sync = () => {
+      const on = typeof navigator !== "undefined" ? navigator.onLine : true;
+      setOnline(on);
+      if (!on) {
+        setConnection("poor");
+        return;
+      }
+      if (String(livekit.connectionState) === "reconnecting") setConnection("good");
+      else setConnection("excellent");
+      void media.recover();
+      if (live.session?.status === "live" && !livekit.connected) {
+        void livekit.reconnect().catch(() => undefined);
+      }
+    };
+    sync();
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reconnect on network only; livekit object identity churns
+  }, [
+    media,
+    livekit.connectionState,
+    livekit.connected,
+    livekit.reconnect,
+    live.session?.status,
+  ]); // narrowed livekit deps — avoid reconnect loops
 
-  const speakerLabel = (s: Speaker, index: number) => {
-    if (index === 0) return "You (Host/Leader)";
-    if (s.id === activeSpeakerId) return `${s.name.split(" ")[0]} (Speaker - Active)`;
-    return s.name;
-  };
+  useEffect(() => {
+    if (mode === "minimal" || focusMode) return;
+    const bump = () => {
+      setChatIdle(false);
+      if (chatIdleTimer.current) clearTimeout(chatIdleTimer.current);
+      chatIdleTimer.current = setTimeout(() => setChatIdle(true), 90_000);
+    };
+    bump();
+    return () => {
+      if (chatIdleTimer.current) clearTimeout(chatIdleTimer.current);
+    };
+  }, [mode, focusMode, chatInput, drawer.rightTab]);
 
-  const clipCount = useMemo(
-    () => (data?.chatMessages ?? []).filter((m) => m.body.length > 15).length,
-    [data?.chatMessages],
+  useEffect(() => {
+    if (chatIdle && drawer.rightOpen && drawer.rightTab === "chat" && mode !== "minimal") {
+      updateDrawer({ rightOpen: false });
+    }
+  }, [chatIdle]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const persistMode = useCallback(
+    (next: StudioMode) => {
+      setMode(next);
+      writeMode(next);
+      setModeMenuOpen(false);
+      if (next === "minimal") updateDrawer({ leftPanel: "none", rightOpen: true });
+    },
+    [updateDrawer]
   );
 
+  const toggleLeft = useCallback(
+    (id: Exclude<LeftPanel, "none">) => {
+      updateDrawer({ leftPanel: drawer.leftPanel === id ? "none" : id });
+    },
+    [drawer.leftPanel, updateDrawer]
+  );
+
+  const closeDrawers = useCallback(() => {
+    updateDrawer({ leftPanel: "none" });
+    setModeMenuOpen(false);
+    setPaletteOpen(false);
+  }, [updateDrawer]);
+
+  const openRight = useCallback(
+    (tab: RightTab) => {
+      updateDrawer({ rightOpen: true, rightTab: tab });
+      setChatIdle(false);
+      setFocusMode(false);
+    },
+    [updateDrawer]
+  );
+
+  const gate = useCallback(
+    (allowed: boolean, message: string) => {
+      if (allowed) return true;
+      showToast(message);
+      return false;
+    },
+    [showToast]
+  );
+
+  const toggleMic = useCallback(async () => {
+    if (live.session && !gate(canPublishAv(live.myRole), "Speakers only")) return;
+    const on = await media.toggleMic();
+    void live.syncMedia({ micOn: on });
+  }, [gate, live, media]);
+
+  const toggleCam = useCallback(async () => {
+    if (live.session && !gate(canPublishAv(live.myRole), "Speakers only")) return;
+    const on = await media.toggleCamera();
+    void live.syncMedia({ camOn: on });
+  }, [gate, live, media]);
+
+  const toggleRecord = useCallback(async () => {
+    if (!online) {
+      showToast("Recording unavailable offline");
+      return;
+    }
+    if (live.session && !gate(canRecord(live.myRole), "Host controls only")) return;
+
+    /* Prefer LiveKit Egress when a live session is active (survives browser close). */
+    if (live.session?.status === "live") {
+      try {
+        if (egressRecording || recording) {
+          const res = await fetch(`/api/live/sessions/${live.session.id}/recording`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "stop" }),
+          });
+          const json = (await res.json().catch(() => ({}))) as { error?: string };
+          if (!res.ok) throw new Error(json.error ?? "Stop recording failed");
+          setEgressRecording(false);
+          if (media.recordingState !== "idle") await media.stopRecording({ download: false });
+          showToast("Recording stopping — replay will appear when ready");
+          return;
+        }
+        const res = await fetch(`/api/live/sessions/${live.session.id}/recording`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "start" }),
+        });
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        if (!res.ok) throw new Error(json.error ?? "Start recording failed");
+        setEgressRecording(true);
+        showToast("Recording started (LiveKit Egress)");
+        return;
+      } catch (e) {
+        showToast(e instanceof Error ? e.message : "Recording failed");
+        /* fall through to local MediaRecorder only if egress unavailable */
+        if (!(e instanceof Error && /not configured|503/i.test(e.message))) return;
+      }
+    }
+
+    if (recording) {
+      if (media.recordingState === "paused") {
+        media.resumeRecording();
+        showToast("Recording resumed");
+        return;
+      }
+      const blob = await media.stopRecording({ download: true });
+      showToast("Recording saved");
+      if (blob && data?.session.communityId && chatRoomId) {
+        const up = await uploadLiveRecording(blob, {
+          communityId: data.session.communityId,
+          roomId: chatRoomId,
+        });
+        if (up.ok && "url" in up && up.url) showToast("Recording uploaded");
+        else if (!up.ok) showToast(up.error);
+      }
+      return;
+    }
+    const ok = await media.startRecording();
+    showToast(ok ? "Recording started" : media.lastError ?? "Recording failed");
+  }, [
+    online,
+    gate,
+    live,
+    recording,
+    egressRecording,
+    media,
+    showToast,
+    data,
+    chatRoomId,
+  ]);
+
+  const recordingActive = recording || egressRecording;
+
+  const startShare = useCallback(async () => {
+    if (live.session && !gate(canShareScreen(live.myRole), "Speakers only")) return;
+    const ok = await media.startScreenShare();
+    if (ok) {
+      setActivity("share");
+      void live.syncMedia({ sharing: true });
+    }
+  }, [gate, live, media]);
+
+  const stopShare = useCallback(() => {
+    media.stopScreenShare();
+    setActivity("live");
+    void live.syncMedia({ sharing: false });
+  }, [live, media]);
+
+  const endLive = useCallback(async () => {
+    if (!live.session) {
+      showToast("No active live session");
+      return;
+    }
+    if (!gate(canEndLive(live.myRole), "Only the host can end live")) return;
+    try {
+      media.stopScreenShare();
+      if (egressRecording && live.session) {
+        await fetch(`/api/live/sessions/${live.session.id}/recording`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "stop" }),
+        }).catch(() => undefined);
+        setEgressRecording(false);
+      }
+      if (recording) await media.stopRecording({ download: true });
+      await live.endLive();
+      showToast("Live ended");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Could not end live");
+    }
+  }, [live, gate, media, recording, egressRecording, showToast]);
+
+  const createOrJoinLive = useCallback(async () => {
+    const communityId = data?.session.communityId ?? data?.rooms[0]?.community_id;
+    const roomId = data?.session.roomId ?? data?.rooms[0]?.id ?? null;
+    if (!communityId) {
+      showToast("Join a community to go live");
+      return;
+    }
+    try {
+      if (live.session?.status === "live") {
+        showToast("Already live");
+        return;
+      }
+      await live.createLive({
+        communityId,
+        roomId,
+        title: data?.session.title,
+      });
+      showToast("You are live");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Could not start live");
+    }
+  }, [data, live, showToast]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+        return;
+      }
+      const tag = (e.target as HTMLElement)?.tagName;
+      const typing =
+        tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable;
+      if (typing) {
+        if (e.key === "Escape") {
+          (e.target as HTMLElement).blur();
+          closeDrawers();
+        }
+        return;
+      }
+      if (e.key === "Escape") {
+        if (focusMode) {
+          setFocusMode(false);
+          return;
+        }
+        closeDrawers();
+        return;
+      }
+      if (meta || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (k === "m") void toggleMic();
+      if (k === "v") void toggleCam();
+      if (k === "s") {
+        if (media.sharing) stopShare();
+        else void startShare();
+      }
+      if (k === "r") void toggleRecord();
+      if (k === "p") {
+        if (live.session && !gate(canLaunchPoll(live.myRole), "Moderators only")) return;
+        setHasPolls(true);
+        openRight("polls");
+        void live
+          .launchPoll("Which pair are you watching?", ["EUR/USD", "GBP/USD", "XAU/USD"])
+          .catch(() => undefined);
+      }
+      if (k === "f" && !meta) setFocusMode((v) => !v);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [
+    closeDrawers,
+    focusMode,
+    openRight,
+    toggleCam,
+    toggleMic,
+    toggleRecord,
+    media.sharing,
+    startShare,
+    stopShare,
+    gate,
+    live,
+  ]);
+
+  const speakersFromLive = useMemo(() => {
+    if (live.speakers.length) {
+      return live.speakers.map((p) => {
+        const dash = data?.speakers.find((s) => s.id === p.user_id);
+        const remote = livekit.remotes.find((r) => r.identity === p.user_id);
+        return {
+          id: p.user_id,
+          name: dash?.name ?? remote?.name ?? (p.user_id === live.userId ? "You" : "Speaker"),
+          avatar_url: dash?.avatar_url ?? null,
+          role: p.role,
+        };
+      });
+    }
+    if (livekit.remotes.length) {
+      return livekit.remotes
+        .filter((r) => r.role !== "viewer")
+        .map((r) => ({
+          id: r.identity,
+          name: r.name,
+          avatar_url: null as string | null,
+          role: r.role === "unknown" ? "speaker" : r.role,
+        }));
+    }
+    return null;
+  }, [live.speakers, live.userId, data?.speakers, livekit.remotes]);
+
+  const speakers = useMemo(
+    () => speakersFromLive ?? data?.speakers ?? [],
+    [speakersFromLive, data?.speakers]
+  );
+  const analytics = data?.analytics;
+  const session = data?.session ?? {
+    title: "Community Live Room",
+    host: "Jimvio",
+    href: "/communities/live",
+    tag: "Live Room",
+    roomId: null,
+  };
+  const hasSession = Boolean(live.session?.status === "live" || data?.session.roomId);
+
+  const speakerUi = useMemo(() => {
+    const map: Record<string, SpeakerUi> = {};
+    speakers.forEach((s, i) => {
+      const liveP = live.participants.find((p) => p.user_id === s.id);
+      const remote = livekit.remotes.find((r) => r.identity === s.id);
+      const isSelf = s.id === live.userId;
+      map[s.id] = {
+        micOn: isSelf
+          ? micOn
+          : remote
+            ? remote.micOn
+            : liveP
+              ? liveP.mic_on
+              : i === 0
+                ? micOn
+                : true,
+        camOn: isSelf
+          ? camOn
+          : remote
+            ? remote.camOn
+            : liveP
+              ? liveP.cam_on
+              : i === 0
+                ? camOn
+                : i !== 2,
+        handRaised: liveP?.hand_raised ?? false,
+        connection: String(livekit.connectionState) === "reconnecting" ? "warn" : "good",
+        role:
+          (liveP?.role as SpeakerUi["role"]) ??
+          (remote?.role === "host" || remote?.role === "cohost" || remote?.role === "speaker"
+            ? remote.role
+            : i === 0
+              ? "host"
+              : i === 1
+                ? "cohost"
+                : "speaker"),
+        speaking:
+          (livekit.activeSpeakerId ?? activeSpeakerId) === s.id ||
+          Boolean(remote?.speaking),
+      };
+    });
+    return map;
+  }, [
+    speakers,
+    micOn,
+    camOn,
+    activeSpeakerId,
+    live.participants,
+    live.userId,
+    livekit.remotes,
+    livekit.connectionState,
+    livekit.activeSpeakerId,
+  ]);
+
   const clips = useMemo(() => {
-    const msgs = data?.chatMessages ?? [];
+    const msgs = liveChat.messages.length ? liveChat.messages : data?.chatMessages ?? [];
     return msgs
       .filter((m) => m.body.length > 15)
-      .slice(-3)
+      .slice(-5)
       .reverse()
       .map((m) => ({
         id: m.id,
         author: m.sender_name.split(" ")[0],
-        text: m.body.slice(0, 72) + (m.body.length > 72 ? "…" : ""),
+        text: m.body.slice(0, 90) + (m.body.length > 90 ? "…" : ""),
         time: formatTime(m.created_at),
       }));
-  }, [data?.chatMessages]);
+  }, [data?.chatMessages, liveChat.messages]);
+
+  const chatMessages = liveChat.messages.length ? liveChat.messages : data?.chatMessages ?? [];
+
+  const visibleRightTabs = useMemo(() => {
+    return RIGHT_TABS.filter((t) => {
+      if (t.id === "polls" && !hasPolls && drawer.rightTab !== "polls") return false;
+      if (t.id === "clips" && clips.length === 0 && drawer.rightTab !== "clips") return false;
+      if (
+        t.id === "events" &&
+        (data?.upcomingSessions?.length ?? 0) === 0 &&
+        (data?.relatedRooms?.length ?? 0) === 0 &&
+        drawer.rightTab !== "events"
+      )
+        return false;
+      return true;
+    });
+  }, [hasPolls, clips.length, data, drawer.rightTab]);
 
   const copyUrl = async () => {
     try {
       await navigator.clipboard.writeText(sessionUrl);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* ignore */ }
+      showToast("Link copied");
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* ignore */
+    }
   };
+
+  const commands = useMemo(
+    () =>
+      defaultLiveCommands({
+        invite: () => {
+          if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
+          toggleLeft("people");
+          showToast("Invite speakers");
+        },
+        muteAll: () => showToast("Muted all guests"),
+        poll: () => {
+          if (live.session && !gate(canLaunchPoll(live.myRole), "Moderators only")) return;
+          setHasPolls(true);
+          openRight("polls");
+          void live
+            .launchPoll("Which pair are you watching?", ["EUR/USD", "GBP/USD", "XAU/USD"])
+            .catch(() => undefined);
+        },
+        clip: () => {
+          openRight("clips");
+          showToast("Moment clipped");
+        },
+        share: () => void startShare(),
+        record: () => void toggleRecord(),
+        analytics: () => openRight("analytics"),
+        searchPeople: () => toggleLeft("people"),
+      }),
+    [openRight, showToast, toggleLeft, toggleRecord, startShare, gate, live]
+  );
+
+  const showLeftRail = mode === "studio" && !focusMode;
+  const showSpeakers = mode !== "minimal" && !focusMode && hasSession;
+  const showRight =
+    !focusMode &&
+    (mode === "minimal" || mode === "creator" || mode === "studio") &&
+    (drawer.rightOpen || mode === "minimal");
+  const immersive = activity === "share" || focusMode;
 
   if (loading) {
     return (
-      <div className="flex min-h-[calc(100vh-56px)] items-center justify-center bg-[#f4f4f5]">
-        <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
+      <div
+        className="flex min-h-[calc(100vh-56px)] items-center justify-center bg-[#f7f7f8]"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <Loader2 className="h-4 w-4 animate-spin text-neutral-300" aria-hidden />
+        <span className="sr-only">Loading live studio</span>
       </div>
     );
   }
 
-  const analytics = data?.analytics;
-  const session = data?.session ?? { title: "Community Live Room", host: "Jimvio", href: "/communities/live", tag: "Live Room", roomId: null };
-  const hasSession = Boolean(data?.session.roomId);
-  const extraSpeakers = Math.max(speakers.length - 4, 0);
-  const extraViewers = Math.max((analytics?.viewers ?? 0) - speakers.slice(0, 4).length, 0);
-  const returningViewers = Math.max((analytics?.viewers ?? 0) - (analytics?.newJoins ?? 0), 0);
-  const reactionsTotal = Math.max(analytics?.comments ?? 0, analytics?.likes ?? 0);
-  const rankLabel = hasSession && session.tag ? `#1 ${session.tag.split(" ")[0]}` : "—";
-
   return (
-    <div className="relative min-h-full bg-[#f4f4f5] pb-20">
-      <div className="w-full space-y-3 px-3 py-3 sm:px-6 lg:px-8 lg:py-4">
-        {/* ═══ SESSION HEADER ═══ */}
-        <HubCard className="!p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                {hasSession && <HubBadge variant="live">LIVE</HubBadge>}
-                <h1 className="truncate text-[17px] font-black tracking-tight">{session.title}</h1>
-                <HubBadge variant="orange">{session.tag}</HubBadge>
-              </div>
-              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-zinc-500">
-                <span>{formatOnlineDuration(elapsed)}</span>
-                <span>·</span>
-                <span>Streaming {formatElapsed(elapsed)}</span>
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <HubLinkButton href="#" variant="secondary" className="!text-[11px]">
-                <Share2 className="mr-1 h-3.5 w-3.5" />Invite
-              </HubLinkButton>
-              <div className="flex max-w-[220px] items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-2.5 py-1.5">
-                <span className="min-w-0 flex-1 truncate text-[10px] text-zinc-500">{sessionUrl}</span>
-                <button type="button" onClick={copyUrl} className="shrink-0 rounded-lg p-1 text-zinc-400 hover:bg-white hover:text-[#fd5000]">
-                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                </button>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="flex -space-x-2">
-                  {speakers.slice(0, 4).map((s) => (
-                    <HubAvatar key={s.id} name={s.name} src={s.avatar_url} size={26} className="ring-2 ring-white" />
-                  ))}
-                </div>
-                {extraViewers > 0 && (
-                  <span className="text-[10px] font-bold text-zinc-500">+{extraViewers}</span>
-                )}
-              </div>
-              <span className="inline-flex items-center rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-600">
-                <Wifi className="mr-1 h-3 w-3" />Excellent
-              </span>
-              {session.href && <HubLinkButton href={session.href} className="!text-[11px]">Join Room</HubLinkButton>}
-            </div>
-          </div>
-        </HubCard>
-
-        {/* ═══ MODE TOOLBAR ═══ */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-          {MODE_TABS.map((tab, i) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveMode(i)}
-              className={cn(
-                "shrink-0 rounded-xl px-3 py-1.5 text-[10px] font-semibold transition-colors sm:text-[11px]",
-                activeMode === i
-                  ? "bg-[#fd5000] text-white shadow-sm"
-                  : "border border-zinc-200 bg-white text-zinc-500 hover:border-[#fd5000]/30"
-              )}
-            >
-              {tab}
-            </button>
-          ))}
+    <div
+      className={cn(
+        "relative flex h-[calc(100vh-56px)] min-h-[520px] flex-col text-neutral-900 motion-safe:transition-colors motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
+        immersive ? "bg-neutral-950" : "bg-[#f7f7f8]"
+      )}
+    >
+      {/* Status banners — offline / load errors */}
+      {(!online || loadError) && !focusMode && (
+        <div
+          role="alert"
+          className="flex shrink-0 items-center justify-between gap-3 bg-neutral-900 px-4 py-2 text-[12px] text-white"
+        >
+          <p className="min-w-0 truncate tracking-[-0.01em]">
+            {!online
+              ? "You’re offline — reconnect to restore chat and controls."
+              : loadError === "network"
+                ? "Couldn’t reach the live service."
+                : "Live data temporarily unavailable."}
+          </p>
+          <button
+            type="button"
+            onClick={() => void loadDashboard()}
+            className={cn(
+              "shrink-0 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium hover:bg-white/15",
+              FOCUS_RING_DARK
+            )}
+          >
+            Retry
+          </button>
         </div>
-
-        {/* ═══ LIVE STATS ROW (mockup inline counters) ═══ */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <HubStatCard label="Viewers" value={formatCount(analytics?.viewers ?? 0)} icon={<Users className="h-4 w-4" />} />
-          <HubStatCard label="Likes" value={formatCount(analytics?.likes ?? 0)} icon={<Heart className="h-4 w-4" />} accent="#ef4444" />
-          <HubStatCard label="New joiners" value={formatCount(analytics?.newJoins ?? 0)} icon={<UserPlus className="h-4 w-4" />} accent="#22c55e" />
-          <HubStatCard label="Rank" value={rankLabel} icon={<Star className="h-4 w-4" />} accent="#f59e0b" />
-        </div>
-
-        {/* ═══ MOBILE LIVE NOW NAV (visible below lg) ═══ */}
-        <HubCard className="!p-2 md:hidden">
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-            {LIVE_NOW_NAV.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveNav(item.id)}
+      )}
+      {/* Header */}
+      {!focusMode && (
+        <header
+          className={cn(
+            "flex h-10 shrink-0 items-center gap-3 px-3 transition-colors duration-[180ms] sm:px-5",
+            immersive
+              ? "bg-black/30 text-white backdrop-blur-xl"
+              : "bg-white/50 backdrop-blur-xl"
+          )}
+        >
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            {hasSession ? (
+              <span
                 className={cn(
-                  "shrink-0 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold",
-                  activeNav === item.id ? "bg-[#fd5000]/10 text-[#fd5000]" : "text-zinc-500"
+                  "inline-flex items-center gap-1.5 text-[10px] font-medium tracking-[0.06em]",
+                  immersive ? "text-red-400/90" : "text-red-600/90"
                 )}
               >
-                {item.label}
-              </button>
-            ))}
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                {live.session?.status === "live" ? "LIVE" : "LIVE"}
+              </span>
+            ) : (
+              <span className={cn("text-[10px] font-medium tracking-[0.06em]", immersive ? "text-white/35" : "text-neutral-400")}>
+                OFFLINE
+              </span>
+            )}
+            <h1
+              className={cn(
+                "truncate text-[13px] font-medium tracking-[-0.02em]",
+                immersive ? "text-white/95" : "text-neutral-900"
+              )}
+            >
+              {session.title}
+            </h1>
+            <span
+              className={cn(
+                "hidden tabular-nums text-[11px] sm:inline",
+                immersive ? "text-white/35" : "text-neutral-400"
+              )}
+            >
+              {formatElapsed(elapsed)}
+            </span>
           </div>
-        </HubCard>
 
-        {/* ═══ THREE-COLUMN BODY ═══ */}
-        <div className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)_320px]">
-          {/* ── Left: Live controls ── */}
-          <aside className="hidden space-y-2.5 md:block">
-            <HubCard padding className="!p-2.5">
-              <p className="mb-2 px-1 text-[10px] font-black uppercase tracking-wider text-zinc-400">Live Now</p>
-              <div className="max-h-[280px] space-y-0.5 overflow-y-auto scrollbar-hide">
-                {LIVE_NOW_NAV.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setActiveNav(item.id)}
-                    className={cn(
-                      "flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-left text-[11px] font-semibold transition-colors",
-                      activeNav === item.id ? "bg-[#fd5000]/10 text-[#fd5000]" : "text-zinc-500 hover:bg-zinc-50"
-                    )}
-                  >
-                    <span>{item.label}</span>
-                    {"tag" in item && item.tag && <HubBadge variant="new">{item.tag}</HubBadge>}
-                    {"countKey" in item && analytics && (
-                      <span className="text-[9px] text-zinc-400">{formatCount(analytics.liveViewers)}</span>
-                    )}
-                    {"badge" in item && item.badge && analytics && (
-                      <span className="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[9px]">{Math.min(analytics.comments, 99)}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </HubCard>
+          <div
+            className={cn(
+              "flex items-center gap-2.5 text-[12px]",
+              immersive ? "text-white/45" : "text-neutral-500"
+            )}
+          >
+            <span className="inline-flex items-center gap-1 tabular-nums tracking-[-0.01em]">
+              <Users className="h-3.5 w-3.5 opacity-50" strokeWidth={1.6} />
+              {formatCount(live.viewerCount || analytics?.viewers || 0)}
+            </span>
+            <ConnectionPill quality={connection} dark={immersive} />
+          </div>
 
-            <HubCard padding className="!p-2.5">
-              <p className="mb-2 px-1 text-[10px] font-black uppercase tracking-wider text-zinc-400">Quick Tools</p>
-              {QUICK_TOOLS.map(({ label, icon: Icon }) => (
-                <button key={label} type="button" className="flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-[11px] font-semibold text-zinc-500 hover:bg-zinc-50">
-                  <Icon className="h-3.5 w-3.5" />{label}
-                </button>
-              ))}
-            </HubCard>
-
-            {/* Scan to Join */}
-            <HubCard padding className="!p-2.5">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Scan to Join</p>
-                <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
-              </div>
-              <div className="mt-2 flex items-center gap-3">
-                <div className="flex h-16 w-16 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-zinc-50">
-                  <QrCode className="h-8 w-8 text-zinc-300" />
-                </div>
-                <div className="text-[10px] text-zinc-500">
-                  <p className="font-semibold text-zinc-700">Code</p>
-                  <p className="mt-0.5">Latency ~480ms</p>
-                </div>
-              </div>
-            </HubCard>
-
-            {/* Quick Actions */}
-            <HubCard padding className="!p-2.5">
-              <p className="mb-2 px-1 text-[10px] font-black uppercase tracking-wider text-zinc-400">Quick Actions</p>
-              {QUICK_ACTIONS.map(({ label, icon: Icon, href, accent }) => {
-                const cls = cn(
-                  "flex w-full items-center gap-2 rounded-xl px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
-                  accent ? "text-emerald-600 hover:bg-emerald-50" : "text-zinc-500 hover:bg-zinc-50"
-                );
-                return href ? (
-                  <Link key={label} href={href} className={cls}><Icon className="h-3.5 w-3.5" />{label}</Link>
-                ) : (
-                  <button key={label} type="button" className={cls}><Icon className="h-3.5 w-3.5" />{label}</button>
-                );
-              })}
-            </HubCard>
-
-            {/* Scheduled */}
-            <HubCard padding className="!p-2.5">
-              <p className="mb-1 truncate text-[11px] font-bold">{session.title}</p>
-              <p className="text-[10px] text-zinc-400">{session.tag}</p>
-            </HubCard>
-
-            <button type="button" className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-3 py-2.5 text-[11px] font-bold text-red-600 transition hover:bg-red-100">
-              <Square className="h-3.5 w-3.5" fill="currentColor" />End Live Room
+          <div className="flex items-center gap-0.5">
+            <ModeSwitcher
+              mode={mode}
+              open={modeMenuOpen}
+              dark={immersive}
+              onOpenChange={setModeMenuOpen}
+              onSelect={persistMode}
+            />
+            <button
+              type="button"
+              onClick={copyUrl}
+              title="Copy link"
+              className={cn(
+                "inline-flex h-8 w-8 items-center justify-center rounded-full",
+                MOTION_COLORS,
+                immersive ? FOCUS_RING_DARK : FOCUS_RING,
+                immersive
+                  ? "text-white/50 hover:bg-white/10 hover:text-white"
+                  : "text-neutral-400 hover:bg-black/[0.04] hover:text-neutral-700"
+              )}
+            >
+              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" aria-hidden /> : <Copy className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />}
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (live.session) {
+                  if (!gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
+                  toggleLeft("people");
+                  return;
+                }
+                void createOrJoinLive();
+              }}
+              className={cn(
+                "ml-0.5 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium tracking-[-0.01em] active:scale-[0.98]",
+                MOTION_COLORS,
+                immersive ? FOCUS_RING_DARK : FOCUS_RING,
+                immersive
+                  ? "bg-white text-neutral-900 hover:bg-white/90"
+                  : "bg-neutral-900 text-white hover:bg-neutral-800"
+              )}
+            >
+              {live.session ? "Invite" : "Go Live"}
+            </button>
+            <button
+              type="button"
+              onClick={() => updateDrawer({ rightOpen: !drawer.rightOpen })}
+              className={cn(
+                "inline-flex h-8 w-8 items-center justify-center rounded-full lg:hidden",
+                MOTION_COLORS,
+                immersive ? FOCUS_RING_DARK : FOCUS_RING,
+                immersive
+                  ? "text-white/50 hover:bg-white/10"
+                  : "text-neutral-400 hover:bg-black/[0.04]"
+              )}
+              aria-label={drawer.rightOpen ? "Hide side panel" : "Show side panel"}
+              aria-expanded={drawer.rightOpen}
+            >
+              <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
+            </button>
+          </div>
+        </header>
+      )}
+
+      {/* Body */}
+      <div className="relative flex min-h-0 flex-1">
+        {showLeftRail && (
+          <aside className="relative z-20 hidden w-11 shrink-0 flex-col items-center gap-0.5 bg-transparent py-3 md:flex">
+            {LEFT_TOOLS.map(({ id, label, icon: Icon }) => (
+              <RailIcon
+                key={id}
+                label={label}
+                active={drawer.leftPanel === id}
+                onClick={() => toggleLeft(id)}
+              >
+                <Icon className="h-4 w-4" strokeWidth={1.6} />
+              </RailIcon>
+            ))}
           </aside>
+        )}
 
-          {/* ── Center: Stage ── */}
-          <div className="min-w-0 space-y-3">
-            {/* Video + vertical speaker rail */}
-            <HubCard className="overflow-hidden !p-0">
-              <div className="flex">
-                {/* Vertical speakers */}
-                <div className="hidden w-[84px] shrink-0 flex-col gap-1 border-r border-zinc-100 bg-zinc-50 p-1.5 sm:flex">
-                  {speakers.slice(0, 6).map((s, i) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setActiveSpeakerId(s.id)}
-                      className={cn(
-                        "flex flex-col items-center rounded-xl p-1 transition-colors",
-                        activeSpeakerId === s.id ? "bg-[#fd5000]/10 ring-1 ring-[#fd5000]/30" : "hover:bg-white"
-                      )}
-                    >
-                      <HubAvatar name={s.name} src={s.avatar_url} size={32} />
-                      <span className="mt-1 max-w-full truncate text-center text-[7px] font-semibold leading-tight text-zinc-600">
-                        {speakerLabel(s, i)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+        {/* Left drawer */}
+        {!focusMode && drawer.leftPanel !== "none" && (
+          <>
+            <aside
+              className={cn(
+                "absolute inset-y-0 z-30 hidden w-[272px] flex-col bg-white/97 shadow-[8px_0_40px_rgba(0,0,0,0.06)] backdrop-blur-xl md:flex",
+                "animate-in fade-in slide-in-from-left-1 duration-[180ms]",
+                showLeftRail ? "left-11" : "left-0"
+              )}
+            >
+              <DrawerHeader
+                title={LEFT_TOOLS.find((t) => t.id === drawer.leftPanel)?.label ?? ""}
+                onClose={() => updateDrawer({ leftPanel: "none" })}
+              />
+              <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+                {drawer.leftPanel === "people" && (
+                  <PeoplePanel
+                    speakers={speakers}
+                    viewers={live.viewerCount || analytics?.liveViewers || 0}
+                    activeSpeakerId={activeSpeakerId}
+                    onSelect={(id) => {
+                      setActiveSpeakerId(id);
+                      if (
+                        live.session &&
+                        canInviteSpeaker(live.myRole) &&
+                        id !== live.userId
+                      ) {
+                        void live
+                          .invite(id)
+                          .then(() => showToast("Invite sent"))
+                          .catch((e) =>
+                            showToast(e instanceof Error ? e.message : "Invite failed")
+                          );
+                      }
+                    }}
+                    query={peopleQuery}
+                    onQuery={setPeopleQuery}
+                  />
+                )}
+                {drawer.leftPanel === "rooms" && (
+                  <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
+                )}
+                {drawer.leftPanel === "layout" && (
+                  <LayoutPanel layout={layout} onChange={setLayout} />
+                )}
+                {drawer.leftPanel === "settings" && (
+                  <SettingsPanel mode={mode} onMode={persistMode} />
+                )}
+              </div>
+            </aside>
 
-                {/* Main viewport */}
-                <div className="relative min-h-[220px] flex-1 bg-zinc-900 sm:min-h-[360px]">
-                  <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 via-zinc-900 to-black" />
-                  {hasSession ? (
-                    <>
-                      <div className="absolute inset-0 flex items-center justify-center p-4">
-                        <div className="w-full max-w-[92%] overflow-hidden rounded-lg border border-white/10 bg-white shadow-2xl">
-                          <div className="flex items-center gap-1.5 border-b border-zinc-100 bg-zinc-50 px-3 py-2">
-                            <span className="h-2 w-2 rounded-full bg-red-400" />
-                            <span className="h-2 w-2 rounded-full bg-amber-400" />
-                            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                            <span className="ml-2 truncate text-[9px] text-zinc-400">jimvio.com — shared screen</span>
-                          </div>
-                          <div className="bg-gradient-to-br from-orange-50 via-white to-zinc-50 px-4 py-6 text-center">
-                            <p className="text-[11px] font-bold text-[#fd5000]">{session.host}</p>
-                            <p className="mt-2 text-[13px] font-black text-zinc-800">{session.title}</p>
-                            <p className="mt-1 text-[10px] text-zinc-500">{MODE_TABS[activeMode]}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <HubBadge variant="live" className="absolute left-3 top-3">LIVE</HubBadge>
-                      <div className="absolute bottom-3 left-3 flex gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setHideChat((v) => !v)}
-                          className="rounded-lg bg-black/50 px-2 py-1 text-[10px] font-semibold text-white hover:bg-black/70"
-                        >
-                          {hideChat ? "Show Chat" : "Hide Chat"}
-                        </button>
-                        <span className="rounded-lg bg-[#fd5000] px-2 py-1 text-[10px] font-bold text-white">GRID</span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center text-white">
-                      <Radio className="mb-2 h-10 w-10 opacity-30" />
-                      <p className="text-[14px] font-bold">No active live session</p>
-                      <p className="mt-1 text-[11px] text-white/40">Join a community room to start streaming</p>
-                      <HubLinkButton href="/communities" variant="secondary" className="mt-3 !border-white/20 !bg-white/10 !text-white">Discover</HubLinkButton>
-                    </div>
+            <div className="fixed inset-0 z-50 md:hidden">
+              <button
+                type="button"
+                className="absolute inset-0 bg-black/25"
+                aria-label="Close"
+                onClick={() => updateDrawer({ leftPanel: "none" })}
+              />
+              <div className="absolute inset-y-0 left-0 flex w-[min(300px,88vw)] flex-col bg-white shadow-2xl animate-in fade-in slide-in-from-left-2 duration-200">
+                <DrawerHeader
+                  title={LEFT_TOOLS.find((t) => t.id === drawer.leftPanel)?.label ?? ""}
+                  onClose={() => updateDrawer({ leftPanel: "none" })}
+                />
+                <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+                  {drawer.leftPanel === "people" && (
+                    <PeoplePanel
+                      speakers={speakers}
+                      viewers={live.viewerCount || analytics?.liveViewers || 0}
+                      activeSpeakerId={activeSpeakerId}
+                      onSelect={(id) => {
+                        setActiveSpeakerId(id);
+                        if (
+                          live.session &&
+                          canInviteSpeaker(live.myRole) &&
+                          id !== live.userId
+                        ) {
+                          void live
+                            .invite(id)
+                            .then(() => showToast("Invite sent"))
+                            .catch((e) =>
+                              showToast(e instanceof Error ? e.message : "Invite failed")
+                            );
+                        }
+                      }}
+                      query={peopleQuery}
+                      onQuery={setPeopleQuery}
+                    />
+                  )}
+                  {drawer.leftPanel === "rooms" && (
+                    <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
+                  )}
+                  {drawer.leftPanel === "layout" && (
+                    <LayoutPanel layout={layout} onChange={setLayout} />
+                  )}
+                  {drawer.leftPanel === "settings" && (
+                    <SettingsPanel mode={mode} onMode={persistMode} />
                   )}
                 </div>
               </div>
-            </HubCard>
-
-            {/* Speaker thumbnail row */}
-            {hasSession && speakers.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {speakers.slice(0, 4).map((s) => (
-                <div key={s.id} className="relative h-[80px] w-[110px] shrink-0 overflow-hidden rounded-2xl bg-zinc-800">
-                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-zinc-700 to-zinc-900">
-                    <HubAvatar name={s.name} src={s.avatar_url} size={36} />
-                  </div>
-                  <Mic className="absolute right-2 top-2 h-3.5 w-3.5 text-emerald-400" />
-                  <span className="absolute bottom-1.5 left-1.5 right-1.5 truncate rounded-lg bg-black/65 px-1.5 py-0.5 text-[9px] font-semibold text-white">{s.name}</span>
-                </div>
-              ))}
-              {extraSpeakers > 0 && (
-              <div className="flex h-[80px] w-[110px] shrink-0 flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-white text-[10px] font-semibold text-zinc-400">
-                <Users className="mb-1 h-4 w-4" />
-                +{extraSpeakers} more
-              </div>
-              )}
             </div>
-            )}
+          </>
+        )}
 
-            {/* Stage control bar */}
-            <HubCard padding className="!p-2">
-              <div className="flex flex-wrap items-center justify-center gap-0.5">
-                {STAGE_CONTROLS.map(({ icon: Icon, label, active, danger }) => (
-                  <button
-                    key={label}
-                    type="button"
+        {/* Stage */}
+        <main className="relative flex min-w-0 flex-1 flex-col">
+          <div
+            className={cn(
+              "flex min-h-0 flex-1 flex-col transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+              immersive ? "p-0 sm:p-1.5" : "p-2 sm:p-3 lg:p-5"
+            )}
+          >
+            <div
+              role="presentation"
+              onDoubleClick={() => setFocusMode((v) => !v)}
+              className={cn(
+                "relative flex min-h-0 flex-1 cursor-default overflow-hidden bg-neutral-950",
+                immersive ? "rounded-none sm:rounded-[16px]" : "rounded-[20px]",
+                activity === "share" && "motion-safe:sm:scale-[1.002]",
+                "motion-safe:transition-transform motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]"
+              )}
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,#171717_0%,#050505_72%)]" />
+              <StageMediaPreview stream={stageStream} />
+              {livekit.remotes.map((r) => (
+                <RemoteAudioSink key={`audio-${r.identity}`} stream={r.audioStream} />
+              ))}
+
+              {hasSession ? (
+                <div className="relative z-[1] flex h-full w-full flex-col">
+                  <div
                     className={cn(
-                      "flex flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 text-[9px] font-semibold transition-colors",
-                      active && "bg-emerald-50 text-emerald-600",
-                      danger && "text-red-500 hover:bg-red-50",
-                      !active && !danger && "text-zinc-400 hover:bg-zinc-50 hover:text-zinc-700"
+                      "flex min-h-0 flex-1 items-center justify-center",
+                      immersive ? "p-4 sm:p-8 lg:p-14" : "p-5 sm:p-10 lg:p-14"
                     )}
                   >
-                    <Icon className={cn("h-4 w-4", danger && "fill-red-500")} />{label}
-                  </button>
-                ))}
-                <button type="button" className="ml-1 rounded-xl bg-red-500 px-3.5 py-2 text-[10px] font-bold text-white hover:bg-red-600">
-                  End Room
-                </button>
-              </div>
-            </HubCard>
+                    <div
+                      className={cn(
+                        "w-full overflow-hidden rounded-2xl bg-white/98 shadow-[0_24px_80px_rgba(0,0,0,0.4)] transition-all duration-[180ms]",
+                        activity === "share" ? "max-w-5xl" : "max-w-4xl"
+                      )}
+                    >
+                      <div className="flex items-center gap-1.5 px-4 py-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-neutral-200" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-neutral-200" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-neutral-200" />
+                        <span className="ml-2 text-[10px] tracking-[-0.01em] text-neutral-400">
+                          {activity === "share"
+                            ? "Screen share"
+                            : activity === "present"
+                              ? "Presentation"
+                              : layout}{" "}
+                          · {session.host}
+                        </span>
+                      </div>
+                      <div
+                        className={cn(
+                          "border-t border-neutral-100/80 bg-gradient-to-b from-neutral-50/80 to-white text-center",
+                          immersive ? "px-10 py-24 sm:py-28" : "px-8 py-16 sm:py-20 lg:py-24"
+                        )}
+                      >
+                        <p className="text-[11px] font-normal tracking-[0.04em] text-neutral-400">
+                          {session.tag}
+                        </p>
+                        <p className="mt-2.5 text-[1.45rem] font-medium tracking-[-0.04em] text-neutral-900 sm:text-[1.75rem] lg:text-[2rem]">
+                          {session.title}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-            {/* Analytics dashboard */}
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-              <StreamHealthCard />
-              <AudienceGaugeCard
-                viewers={analytics?.viewers ?? 0}
-                newJoins={analytics?.newJoins ?? 0}
-                returning={returningViewers}
-              />
-              <EngagementCard
-                likes={analytics?.likes ?? 0}
-                reactions={reactionsTotal}
-                comments={analytics?.comments ?? 0}
-                retentionPct={analytics?.reactionsPct ?? 0}
-              />
-              <StreamStatsCard
-                views={analytics?.viewers ?? 0}
-                peak={analytics?.peakViewers ?? 0}
-                chats={analytics?.messages ?? 0}
-                revenue={analytics?.revenue ?? 0}
-                watchMinutes={analytics?.watchTimeMinutes ?? 0}
-              />
-              <SourcePreviewCard title={session.title} viewers={analytics?.liveViewers ?? 0} />
+                  {showSpeakers && (
+                    <div className="relative z-[2] flex justify-center px-3 pb-5 sm:pb-6">
+                      <SpeakerStrip
+                        speakers={speakers}
+                        ui={speakerUi}
+                        activeId={activeSpeakerId}
+                        onSelect={setActiveSpeakerId}
+                        onInvite={() => toggleLeft("people")}
+                      />
+                    </div>
+                  )}
+
+                  {focusMode && (
+                    <button
+                      type="button"
+                      onClick={() => setFocusMode(false)}
+                      className={cn(
+                        "absolute right-4 top-4 z-10 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium tracking-[-0.01em] text-white/75 backdrop-blur-md hover:bg-white/15",
+                        MOTION_COLORS,
+                        FOCUS_RING_DARK
+                      )}
+                    >
+                      Exit Focus
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="relative z-[1] flex h-full w-full flex-col items-center justify-center px-6 text-center">
+                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.06]">
+                    <Radio className="h-6 w-6 text-white/35" strokeWidth={1.5} />
+                  </div>
+                  <p className="text-[15px] font-medium tracking-[-0.02em] text-white">
+                    Ready when you are
+                  </p>
+                  <p className="mt-1.5 max-w-sm text-[13px] text-white/40">
+                    Open a community room to start streaming.
+                  </p>
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void createOrJoinLive()}
+                      className="rounded-full bg-white px-4 py-2 text-[12px] font-medium text-neutral-900 transition-opacity duration-200 hover:opacity-90"
+                    >
+                      Go Live
+                    </button>
+                    <Link
+                      href="/communities/explore"
+                      className="rounded-full bg-white/10 px-4 py-2 text-[12px] font-medium text-white/80 transition-opacity duration-200 hover:opacity-90"
+                    >
+                      Browse communities
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
+
+            <ControlDock
+              activity={activity}
+              micOn={micOn}
+              camOn={camOn}
+              recording={recordingActive}
+              focusMode={focusMode}
+              onMic={() => void toggleMic()}
+              onCam={() => void toggleCam()}
+              onShare={() => void startShare()}
+              onStopShare={stopShare}
+              onPresent={() => setActivity((a) => (a === "present" ? "live" : "present"))}
+              onRecord={() => void toggleRecord()}
+              onPoll={() => {
+                if (live.session && !gate(canLaunchPoll(live.myRole), "Moderators only")) return;
+                setHasPolls(true);
+                openRight("polls");
+                void live
+                  .launchPoll("Which pair are you watching?", ["EUR/USD", "GBP/USD", "XAU/USD"])
+                  .catch(() => undefined);
+              }}
+              onInvite={() => {
+                if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
+                toggleLeft("people");
+              }}
+              onAnnotate={() => showToast("Annotate")}
+              onLaser={() => showToast("Laser pointer")}
+              onFullscreen={() => setFocusMode(true)}
+              onPrev={() => showToast("Previous slide")}
+              onNext={() => showToast("Next slide")}
+              onTimer={() => showToast("Timer started")}
+              onSlides={() => showToast("Slides")}
+              onEnd={() => void endLive()}
+            />
           </div>
+        </main>
 
-          {/* ── Right: Chat & widgets ── */}
-          <aside className={cn("flex flex-col gap-2.5", hideChat && "hidden lg:flex")}>
-            <HubCard className="flex min-h-[420px] flex-1 flex-col !p-0 xl:min-h-[480px]">
-              <div className="border-b border-zinc-100 px-3 py-2.5">
-                <HubSectionTitle title="Top Chat" badge={String(data?.chatMessages.length ?? 0)} />
-              </div>
-              <div className="flex-1 space-y-2 overflow-y-auto p-2.5">
-                {(data?.chatMessages ?? []).length === 0 ? (
-                  <p className="py-6 text-center text-[11px] text-zinc-400">No messages yet — join a room to chat.</p>
-                ) : (
-                  data!.chatMessages.map((m) => (
-                    <div key={m.id} className="rounded-xl bg-zinc-50 px-2.5 py-2">
-                      <div className="flex items-center gap-2">
-                        <HubAvatar name={m.sender_name} src={m.sender_avatar} size={22} />
-                        <p className="text-[10px] font-bold text-[#fd5000]">{m.sender_name}</p>
-                        <span className="ml-auto text-[9px] text-zinc-400">{formatTime(m.created_at)}</span>
-                      </div>
-                      <p className="mt-1 text-[11px] leading-relaxed text-zinc-700">{m.body}</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <button type="button" className="inline-flex items-center gap-0.5 text-[10px] text-zinc-400 hover:text-red-500">
-                          <Heart className="h-3 w-3" />{Math.max(m.reaction_count, 0)}
-                        </button>
-                        {m.reaction_count > 0 && <Flame className="h-3 w-3 text-orange-400" />}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="border-t border-zinc-100 p-2">
-                <div className="flex items-center gap-1">
-                  <button type="button" className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-50"><Smile className="h-4 w-4" /></button>
-                  <button type="button" className="rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-50"><Paperclip className="h-4 w-4" /></button>
-                  <input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Say something…"
-                    className="min-w-0 flex-1 rounded-xl border border-zinc-200 px-3 py-1.5 text-[11px] focus:border-[#fd5000]/40 focus:outline-none"
-                  />
-                  <button type="button" disabled={!chatInput.trim()} className="rounded-xl bg-[#fd5000]/12 p-1.5 text-[#fd5000] disabled:opacity-40">
-                    <Send className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </HubCard>
-
-            {/* Clipped */}
-            <HubCard padding className="!p-2.5">
-              <HubSectionTitle title="/ Clipped" badge={clipCount > 0 ? String(clipCount) : undefined} />
-              {clips.length === 0 ? (
-                <p className="py-3 text-[10px] text-zinc-400">No clips yet from this session.</p>
-              ) : (
-                clips.map((clip) => (
-                <div key={clip.id} className="border-t border-zinc-100 py-2 first:border-0">
-                  <p className="text-[10px] font-bold text-[#fd5000]">{clip.author} · {clip.time}</p>
-                  <ul className="mt-1 space-y-0.5 text-[11px] text-zinc-600">
-                    {clip.text.split(/[.!?]+/).filter(Boolean).slice(0, 3).map((line, i) => (
-                      <li key={i} className="flex gap-1.5">
-                        <span className="text-[#fd5000]">•</span>
-                        <span>{line.trim()}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                ))
-              )}
-              {clips.length > 0 && (
-              <button type="button" className="mt-1 w-full rounded-xl bg-zinc-50 py-1.5 text-[10px] font-semibold text-[#fd5000] hover:bg-zinc-100">
-                View more clips
-              </button>
-              )}
-            </HubCard>
-
-            {/* Related channels */}
-            <HubCard padding className="!p-2.5">
-              <HubSectionTitle title="Related Channels" />
-              {(data?.relatedRooms ?? []).length === 0 ? (
-                <p className="text-[10px] text-zinc-400">No other active rooms.</p>
-              ) : (
-                data!.relatedRooms.map((ch) => (
-                  <Link key={ch.id} href={ch.href} className="flex items-center justify-between border-t border-zinc-100 py-2 first:border-0">
-                    <div className="min-w-0">
-                      <p className="truncate text-[11px] font-semibold">{ch.name}</p>
-                      <p className="text-[9px] text-zinc-400">{formatCount(ch.message_count)} watching · {ch.community_name}</p>
-                    </div>
-                    <span className="shrink-0 rounded-lg bg-red-500 px-2 py-0.5 text-[9px] font-bold text-white">LIVE</span>
-                  </Link>
-                ))
-              )}
-            </HubCard>
-
-            {/* Upcoming live sessions */}
-            <HubCard padding className="!p-2.5">
-              <HubSectionTitle title="Upcoming Live" />
-              {(data?.upcomingSessions ?? []).length === 0 ? (
-                <p className="text-[10px] text-zinc-400">No scheduled sessions.</p>
-              ) : (
-                data!.upcomingSessions.map((ev) => (
-                  <Link key={ev.id} href={ev.href} className="flex items-center gap-2 border-t border-zinc-100 py-2 first:border-0">
-                    <HubAvatar name={ev.host} size={28} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[11px] font-semibold">{ev.title}</p>
-                      <p className="text-[9px] text-zinc-400">{formatTime(ev.start_date)} · {ev.host}</p>
-                    </div>
-                    <span className="shrink-0 rounded-lg bg-[#fd5000]/10 px-2 py-0.5 text-[9px] font-bold text-[#fd5000]">Join</span>
-                  </Link>
-                ))
-              )}
-            </HubCard>
-
-            {/* Footer nav */}
-            <div className="flex items-center justify-around rounded-2xl border border-zinc-200 bg-white py-2">
-              {RIGHT_FOOTER_NAV.map(({ label, href, icon: Icon }) => (
-                <Link key={label} href={href} className="flex flex-col items-center gap-0.5 text-[9px] font-semibold text-zinc-400 hover:text-[#fd5000]">
-                  <Icon className="h-4 w-4" />{label}
-                </Link>
+        {/* Right workspace */}
+        {showRight && (
+          <aside
+            className={cn(
+              "flex w-full max-w-[340px] shrink-0 flex-col bg-white/90 backdrop-blur-xl sm:w-[300px]",
+              "fixed inset-y-0 right-0 z-40",
+              "transition-transform duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+              "lg:static lg:z-auto lg:max-w-none",
+              drawer.rightOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
+              !drawer.rightOpen && mode !== "minimal" && "lg:hidden"
+            )}
+          >
+            <div
+              role="tablist"
+              aria-label="Workspace panels"
+              className="flex items-end gap-0 overflow-x-auto px-2 pt-1 scrollbar-hide"
+            >
+              {visibleRightTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={drawer.rightTab === tab.id}
+                  onClick={() => openRight(tab.id)}
+                  className={cn(
+                    "shrink-0 border-b-2 px-2.5 py-2.5 text-[12px] tracking-[-0.01em]",
+                    MOTION_COLORS,
+                    FOCUS_RING,
+                    drawer.rightTab === tab.id
+                      ? "border-neutral-900 font-medium text-neutral-900"
+                      : "border-transparent font-normal text-neutral-400 hover:text-neutral-600"
+                  )}
+                >
+                  {tab.label}
+                </button>
               ))}
+              <button
+                type="button"
+                onClick={() => updateDrawer({ rightOpen: false })}
+                className={cn(
+                  "ml-auto mb-1.5 rounded-lg p-1.5 text-neutral-400 hover:text-neutral-600 lg:hidden",
+                  MOTION_COLORS,
+                  FOCUS_RING
+                )}
+                aria-label="Close side panel"
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col">
+              {drawer.rightTab === "chat" && (
+                <ChatWorkspace
+                  messages={chatMessages}
+                  scrollTop={drawer.chatScroll}
+                  onScrollSave={(y) => updateDrawer({ chatScroll: y })}
+                  chatInput={chatInput}
+                  setChatInput={(v) => {
+                    setChatInput(v);
+                    liveChat.signalTyping();
+                  }}
+                  onSend={async (body) => {
+                    try {
+                      await liveChat.send(body);
+                    } catch (e) {
+                      showToast(e instanceof Error ? e.message : "Message failed");
+                    }
+                  }}
+                />
+              )}
+              {drawer.rightTab === "qa" && <QaPanel />}
+              {drawer.rightTab === "polls" && <PollsPanel hasPolls={hasPolls} />}
+              {drawer.rightTab === "clips" && <ClipsPanel clips={clips} />}
+              {drawer.rightTab === "events" && (
+                <EventsPanel
+                  upcoming={data?.upcomingSessions ?? []}
+                  related={data?.relatedRooms ?? []}
+                />
+              )}
+              {drawer.rightTab === "analytics" && <AnalyticsPanel analytics={analytics} />}
             </div>
           </aside>
-        </div>
+        )}
       </div>
 
-      {/* ═══ FLOATING STATUS BAR ═══ */}
-      <div className="pointer-events-none fixed bottom-4 left-1/2 z-30 hidden -translate-x-1/2 md:block">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-zinc-200 bg-white/95 px-4 py-2 shadow-lg backdrop-blur-sm">
-          <div className="flex -space-x-1.5">
-            {speakers.slice(0, 4).map((s) => (
-              <HubAvatar key={s.id} name={s.name} src={s.avatar_url} size={22} className="ring-2 ring-white" />
-            ))}
-          </div>
-          <span className="text-[11px] font-semibold text-zinc-700">
-            {formatCount(data?.stats.membersOnline ?? 0)} creators online
-          </span>
-          <span className="h-1 w-1 rounded-full bg-zinc-300" />
-          <span className="text-[11px] font-semibold text-[#fd5000]">
-            {data?.stats.liveSessions ?? 0} live sessions happening
-          </span>
-        </div>
-      </div>
+      {/* Floating AI — never permanent chrome */}
+      <AiFab
+        hidden={focusMode}
+        onAction={(id) => {
+          if (id === "poll") {
+            setHasPolls(true);
+            openRight("polls");
+          }
+          if (id === "summarize" || id === "announce") openRight("chat");
+          if (id === "moments" || id === "clips") openRight("clips");
+        }}
+      />
 
-      {/* ═══ PiP MINI PLAYER ═══ */}
-      {showPip && hasSession && (
-        <div className="fixed bottom-4 right-4 z-30 hidden w-[200px] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-900 shadow-2xl lg:block">
-          <div className="relative aspect-video">
-            <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-black" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Circle className="h-6 w-6 fill-red-500 text-red-500" />
-            </div>
-            <HubBadge variant="live" className="absolute left-2 top-2">LIVE</HubBadge>
-            <button
-              type="button"
-              onClick={() => setShowPip(false)}
-              className="absolute right-2 top-2 rounded-full bg-black/50 p-0.5 text-[10px] text-white hover:bg-black/70"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="flex items-center justify-between bg-zinc-900 px-2 py-1.5">
-            <span className="truncate text-[10px] font-semibold text-white">{session.title}</span>
-            <span className="text-[9px] text-zinc-400">{formatCount(analytics?.liveViewers ?? 0)}</span>
-          </div>
-          <div className="flex items-center justify-center gap-1 bg-zinc-800 py-1">
-            {["❤️", "🔥", "👏", "😂"].map((e) => (
-              <button key={e} type="button" className="rounded-lg px-1.5 py-0.5 text-sm hover:bg-zinc-700">{e}</button>
-            ))}
-          </div>
+      <CommandPalette
+        key={paletteOpen ? "open" : "closed"}
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        actions={commands}
+      />
+
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-24 left-1/2 z-50 -translate-x-1/2 rounded-full bg-neutral-900/90 px-3 py-1.5 text-[11px] font-medium tracking-[-0.01em] text-white backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in motion-safe:duration-150"
+        >
+          {toast}
         </div>
       )}
     </div>
   );
 }
 
-/* ── Analytics sub-components ── */
-function StreamHealthCard() {
-  const rows: [string, string, string][] = [
-    ["Status", "Excellent", "text-emerald-600"],
-    ["CPU", "14%", ""],
-    ["RAM", "512 MB", ""],
-    ["FPS", "60 fps", ""],
-    ["Bitrate", "8 mbps", ""],
-  ];
-  return (
-    <HubCard padding className="!p-3">
-      <div className="mb-2 flex items-center gap-1.5">
-        <Activity className="h-3.5 w-3.5 text-[#fd5000]" />
-        <p className="text-[11px] font-bold">Stream Health</p>
-      </div>
-      {rows.map(([k, v, color]) => (
-        <div key={k} className="flex justify-between py-0.5 text-[10px]">
-          <span className="text-zinc-400">{k}</span>
-          <span className={cn("font-semibold", color || "text-zinc-800")}>{v}</span>
-        </div>
-      ))}
-    </HubCard>
-  );
-}
-
-function AudienceGaugeCard({ viewers, newJoins, returning }: { viewers: number; newJoins: number; returning: number }) {
-  const pct = Math.min(100, Math.round((newJoins / Math.max(viewers, 1)) * 100));
-  return (
-    <HubCard padding className="!p-3">
-      <div className="mb-2 flex items-center gap-1.5">
-        <Users className="h-3.5 w-3.5 text-[#fd5000]" />
-        <p className="text-[11px] font-bold">Audience Overview</p>
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
-          <svg className="absolute inset-0 -rotate-90" viewBox="0 0 36 36">
-            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#f4f4f5" strokeWidth="3" />
-            <circle cx="18" cy="18" r="15.5" fill="none" stroke="#fd5000" strokeWidth="3" strokeDasharray={`${pct} 100`} strokeLinecap="round" />
-          </svg>
-          <span className="text-[9px] font-black">{formatCount(viewers)}</span>
-        </div>
-        <div className="flex-1 space-y-0.5 text-[10px]">
-          {[["New", formatCount(newJoins)], ["Returning", formatCount(returning)]].map(([k, v]) => (
-            <div key={k} className="flex justify-between">
-              <span className="text-zinc-400">{k}</span>
-              <span className="font-semibold">{v}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </HubCard>
-  );
-}
-
-function EngagementCard({ likes, reactions, comments, retentionPct }: { likes: number; reactions: number; comments: number; retentionPct: number }) {
-  return (
-    <HubCard padding className="!p-3">
-      <div className="mb-2 flex items-center gap-1.5">
-        <Heart className="h-3.5 w-3.5 text-[#fd5000]" />
-        <p className="text-[11px] font-bold">Engagement</p>
-      </div>
-      {[
-        ["Likes", formatCount(likes)],
-        ["Reactions", formatCount(reactions)],
-        ["Comments", formatCount(comments)],
-        ["Retention", `${retentionPct}%`],
-      ].map(([k, v]) => (
-        <div key={k} className="flex justify-between py-0.5 text-[10px]">
-          <span className="text-zinc-400">{k}</span>
-          <span className="font-semibold">{v}</span>
-        </div>
-      ))}
-    </HubCard>
-  );
-}
-
-function StreamStatsCard({
-  views,
-  peak,
-  chats,
-  revenue,
-  watchMinutes,
+function ConnectionPill({
+  quality,
+  dark,
 }: {
-  views: number;
-  peak: number;
-  chats: number;
-  revenue: number;
-  watchMinutes: number;
+  quality: "excellent" | "good" | "poor";
+  dark?: boolean;
+}) {
+  const Icon = quality === "poor" ? WifiOff : Wifi;
+  const label = quality === "excellent" ? "Excellent" : quality === "good" ? "Good" : "Poor";
+  return (
+    <span
+      className={cn(
+        "hidden sm:inline-flex",
+        dark
+          ? "text-white/40"
+          : quality === "excellent"
+            ? "text-emerald-600/80"
+            : quality === "good"
+              ? "text-amber-600/80"
+              : "text-red-500/80"
+      )}
+      title={`Connection: ${label}`}
+      aria-label={`Connection ${label}`}
+    >
+      <Icon className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
+    </span>
+  );
+}
+
+function RailIcon({
+  children,
+  label,
+  active,
+  onClick,
+}: {
+  children: React.ReactNode;
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <HubCard padding className="!p-3">
-      <div className="mb-2 flex items-center gap-1.5">
-        <TrendingUp className="h-3.5 w-3.5 text-[#fd5000]" />
-        <p className="text-[11px] font-bold">Stream Stats</p>
-      </div>
-      {[
-        ["Viewers", formatCount(views)],
-        ["Watch time", formatCount(watchMinutes)],
-        ["Peak", formatCount(peak)],
-        ["Revenue", revenue > 0 ? formatMoney(revenue) : "—"],
-        ["Chats", formatCount(chats)],
-      ].map(([k, v]) => (
-        <div key={k} className="flex justify-between py-0.5 text-[10px]">
-          <span className="text-zinc-400">{k}</span>
-          <span className={cn("font-semibold", k === "Revenue" && revenue > 0 && "text-emerald-600")}>{v}</span>
-        </div>
-      ))}
-    </HubCard>
+    <div className="group/item relative">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        aria-pressed={active}
+        className={cn(
+          "flex h-9 w-9 items-center justify-center rounded-xl",
+          MOTION_COLORS,
+          FOCUS_RING,
+          active
+            ? "bg-neutral-900 text-white"
+            : "text-neutral-400 hover:bg-black/[0.04] hover:text-neutral-700"
+        )}
+      >
+        {children}
+      </button>
+      <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-x-0.5 -translate-y-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-lg motion-safe:transition-all motion-safe:duration-150 group-hover/item:translate-x-0 group-hover/item:opacity-100">
+        {label}
+      </span>
+    </div>
   );
 }
 
-function SourcePreviewCard({ title, viewers }: { title: string; viewers: number }) {
+function ModeSwitcher({
+  mode,
+  open,
+  dark,
+  onOpenChange,
+  onSelect,
+}: {
+  mode: StudioMode;
+  open: boolean;
+  dark?: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSelect: (m: StudioMode) => void;
+}) {
+  const labels: Record<StudioMode, string> = {
+    minimal: "Minimal",
+    creator: "Creator",
+    studio: "Studio",
+  };
   return (
-    <HubCard padding className="!p-3">
-      <div className="mb-2 flex items-center gap-1.5">
-        <Monitor className="h-3.5 w-3.5 text-[#fd5000]" />
-        <p className="text-[11px] font-bold">Source</p>
-      </div>
-      <div className="relative aspect-video overflow-hidden rounded-xl bg-zinc-900">
-        <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-black" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Circle className="h-5 w-5 fill-red-500 text-red-500" />
-        </div>
-        <HubBadge variant="live" className="absolute left-2 top-2">LIVE</HubBadge>
-      </div>
-      <p className="mt-2 truncate text-[10px] font-semibold text-zinc-700">{title}</p>
-      <p className="text-[9px] text-zinc-400">{formatCount(viewers)} watching</p>
-    </HubCard>
+    <div className="relative hidden sm:block">
+      <button
+        type="button"
+        onClick={() => onOpenChange(!open)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label={`Workspace mode: ${labels[mode]}`}
+        className={cn(
+          "inline-flex h-8 items-center gap-1 rounded-full px-2 text-[11px] font-normal tracking-[-0.01em]",
+          MOTION_COLORS,
+          dark ? FOCUS_RING_DARK : FOCUS_RING,
+          dark
+            ? "text-white/40 hover:bg-white/10 hover:text-white/80"
+            : "text-neutral-400 hover:bg-black/[0.04] hover:text-neutral-700"
+        )}
+      >
+        <MonitorPlay className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
+        {labels[mode]}
+      </button>
+      {open && (
+        <>
+          <button type="button" className="fixed inset-0 z-40" aria-label="Close mode menu" onClick={() => onOpenChange(false)} />
+          <div
+            role="menu"
+            className="absolute right-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-xl bg-white p-1 shadow-[0_12px_40px_rgba(0,0,0,0.1)] motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-150"
+          >
+            {(
+              [
+                ["minimal", "Minimal", "Stage + Chat"],
+                ["creator", "Creator", "Stage + Speakers"],
+                ["studio", "Studio", "Full tools"],
+              ] as const
+            ).map(([id, title, desc]) => (
+              <button
+                key={id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={mode === id}
+                onClick={() => onSelect(id)}
+                className={cn(
+                  "flex w-full flex-col rounded-lg px-3 py-2 text-left",
+                  MOTION_COLORS,
+                  FOCUS_RING,
+                  mode === id ? "bg-neutral-900 text-white" : "hover:bg-neutral-50"
+                )}
+              >
+                <span className="text-[12px] font-medium tracking-[-0.01em]">{title}</span>
+                <span className={cn("text-[10px]", mode === id ? "text-white/50" : "text-neutral-400")}>
+                  {desc}
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
