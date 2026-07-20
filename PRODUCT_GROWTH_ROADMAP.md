@@ -203,11 +203,13 @@ Days 85–90  Hardening, NPS baseline, growth review
 | ID | Status | Commit | Notes |
 |----|--------|--------|-------|
 | ROADMAP | ✅ | (this file) | Published |
-| M1.1 | ⏳ | | Welcome flow |
-| M1.2 | ⏳ | | Progress tracker |
-| M1.3 | ⏳ | | Role checklists |
-| M1.4 | ⏳ | | Empty states + samples |
-| M1.5 | ⏳ | | Interactive tips |
+| M1.1 | ✅ | pending | Welcome flow + intent instrumentation |
+| M1.2 | ✅ | pending | Persistent onboarding checklist + progress |
+| M1.3 | ✅ | pending | Additive role activation checklist |
+| M1.4 | ✅ | pending | Feed/chat/live/library empty-state presets |
+| M1.5 | ✅ | pending | Dismissible first-run tips |
+| M2.1 | ✅ | pending | Notification preference center |
+| M2.2 | ◐ | pending | Dry-run weekly digest queue + in-app delivery |
 | M2.x–M6.x | ⏳ | | Per sprint below |
 
 ---
