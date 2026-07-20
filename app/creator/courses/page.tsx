@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function CreatorCoursesPage() { return <section><h1 className="text-xl font-bold text-[var(--color-text-primary)]">Courses</h1><p className="mt-1 text-sm text-[var(--color-text-muted)]">Course creation remains connected to the community where it is published.</p><Link href="/communities" className="mt-5 inline-flex rounded-lg bg-[#fd5000] px-4 py-2 text-sm font-semibold text-white">Choose a community</Link></section>; }

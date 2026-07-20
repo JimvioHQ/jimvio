@@ -1,0 +1,7 @@
+"use client";
+import { FormEvent, useState } from "react";
+export function CourseBuilder({ courseId }: { courseId: string }) {
+  const [title, setTitle] = useState(""); const [message, setMessage] = useState<string | null>(null);
+  async function save(event: FormEvent) { event.preventDefault(); const res = await fetch("/api/creator/courses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "module", courseId, title }) }); const data = await res.json(); setMessage(res.ok ? "Module saved." : data.error || "Unable to save module."); if (res.ok) setTitle(""); }
+  return <section className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4"><h2 className="font-semibold text-[var(--color-text-primary)]">Course builder</h2><p className="mt-1 text-sm text-[var(--color-text-muted)]">Add structured modules to your course.</p><form onSubmit={save} className="mt-4 flex flex-col gap-2 sm:flex-row"><label className="sr-only" htmlFor="module-title">Module title</label><input id="module-title" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="Module title" className="min-h-10 flex-1 rounded-lg border border-[var(--color-border)] bg-transparent px-3 text-sm text-[var(--color-text-primary)]" /><button className="min-h-10 rounded-lg bg-[#fd5000] px-4 text-sm font-semibold text-white">Add module</button></form>{message && <p className="mt-3 text-sm text-[var(--color-text-muted)]">{message}</p>}</section>;
+}
