@@ -16,6 +16,8 @@ import { cn, normalizeImages, getEffectiveCompareAtPrice, getProductDiscountPerc
 import { ProductActionModule } from "@/components/marketplace/product-action-module";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { ReviewForm } from "@/components/marketplace/review-form";
+import { ProductQA, ProductAiSummary } from "@/components/marketplace/product-qa";
+import { StickyPurchaseCard } from "@/components/marketplace/sticky-purchase-card";
 import { ImageGallery } from "@/components/marketplace/image-gallery";
 import { ProductDescriptionView } from "@/components/marketplace/product-description-view";
 import { resolveProductVideoUrls } from "@/lib/product-videos";
@@ -105,19 +107,8 @@ function htmlToPlainText(html: string): string {
 // ─── Live Viewers ─────────────────────────────────────────────────────────────
 
 function useLiveViewers(baseCount: number = 0) {
-  const base = Math.max(baseCount, 3);
-  const [viewers, setViewers] = useState(base);
-  useEffect(() => {
-    setViewers(base + Math.floor(Math.random() * 8));
-    const interval = setInterval(() => {
-      setViewers((prev) => {
-        const delta = Math.random() > 0.5 ? 1 : -1;
-        return Math.max(base, Math.min(prev + delta, base + 15));
-      });
-    }, 4500);
-    return () => clearInterval(interval);
-  }, [base]);
-  return viewers;
+  // Real social proof from product view_count — no fabricated jitter
+  return Math.max(0, baseCount);
 }
 
 // ─── Recently Viewed ──────────────────────────────────────────────────────────
@@ -244,20 +235,24 @@ function LiveActivityToast({ realActivity }: { realActivity?: ActivityEvent[] })
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const realIndexRef = useRef(0);
   useEffect(() => {
+    // Only show when we have real activity events — never fabricate
+    if (!realActivity || realActivity.length === 0) return;
     function showToast() {
-      if (realActivity && realActivity.length > 0) {
-        const event = realActivity[realIndexRef.current % realActivity.length];
-        realIndexRef.current++;
-        setMessage({ city: event.city, action: FAKE_ACTION_LABELS[event.action] ?? "is viewing this" });
-      } else {
-        setMessage({ city: FAKE_CITIES[Math.floor(Math.random() * FAKE_CITIES.length)], action: ["just purchased this", "added to cart", "is viewing this now"][Math.floor(Math.random() * 3)] });
-      }
+      const event = realActivity![realIndexRef.current % realActivity!.length];
+      realIndexRef.current++;
+      setMessage({ city: event.city, action: FAKE_ACTION_LABELS[event.action] ?? "is viewing this" });
       setVisible(true);
-      timerRef.current = setTimeout(() => { setVisible(false); timerRef.current = setTimeout(showToast, 8000 + Math.random() * 6000); }, 4000);
+      timerRef.current = setTimeout(() => {
+        setVisible(false);
+        timerRef.current = setTimeout(showToast, 10000);
+      }, 4000);
     }
-    timerRef.current = setTimeout(showToast, 5000 + Math.random() * 4000);
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+    timerRef.current = setTimeout(showToast, 6000);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [realActivity]);
+  if (!realActivity?.length) return null;
   return (
     <div className={cn("fixed bottom-6 left-6 z-50 flex items-center gap-3 px-4 py-3 rounded-md shadow-lg border transition-all duration-500 max-w-[280px]", "bg-[var(--color-surface)] border-[var(--color-border)]", visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none")}>
       <div className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0"><ShoppingBag className="h-4 w-4 text-orange-500" /></div>
@@ -1532,6 +1527,8 @@ export function PhysicalProductDetail({
                 <div className="p-5 lg:p-6">
                   {/* Overview tab */}
                   {activeTab === "overview" && (
+                    <div className="space-y-6">
+                      <ProductAiSummary productId={product.id} />
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8">
                       <div className="space-y-6">
                         <div>
@@ -1592,6 +1589,7 @@ export function PhysicalProductDetail({
                           </p>
                         )}
                       </div>
+                    </div>
                     </div>
                   )}
 
@@ -1672,7 +1670,7 @@ export function PhysicalProductDetail({
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">
                                     <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">{review.reviewer_name ?? "Anonymous"}</p>
-                                    {review.is_verified && <span className="flex items-center gap-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="h-3 w-3" /> Verified</span>}
+                                    {review.is_verified_purchase && <span className="flex items-center gap-1 text-[9px] font-semibold text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="h-3 w-3" /> Verified</span>}
                                   </div>
                                   <div className="flex items-center gap-1">{[1, 2, 3, 4, 5].map((i) => <Star key={i} className={cn("h-3 w-3", i <= (review.rating ?? 0) ? "fill-amber-400 text-amber-400" : "fill-amber-200 text-amber-200")} />)}</div>
                                 </div>
@@ -1693,6 +1691,9 @@ export function PhysicalProductDetail({
                         <span>Reviews marked with a badge are from verified purchasers</span>
                       </div>
                       <ReviewForm productId={product.id} vendorId={product.vendor_id} />
+                      <div className="mt-6">
+                        <ProductQA productId={product.id} />
+                      </div>
                     </div>
                   )}
 
@@ -1747,7 +1748,17 @@ export function PhysicalProductDetail({
             <RecentlyViewedSection currentId={product.id} formatMoney={formatMoney} />
           </div>
           <aside className="lg:col-span-3 hidden lg:block">
-            <div className="sticky top-24 space-y-4">
+            <div className="space-y-4">
+              <StickyPurchaseCard
+                product={productProps}
+                vendor={vendorProps}
+                currentPath={`/marketplace/${product.slug}`}
+                activePrice={activePrice}
+                compareAt={activeCompareAt}
+                selectedVariantId={selectedVariant?.id ?? null}
+                selectedVariantOutOfStock={isOutOfStock}
+                requiresVariantSelection={needsVariantSelection}
+              />
               {shippingCards}
               <CompactBuyerProtectionCard />
               <WhyChooseSection vendor={vendor} product={product} />

@@ -1360,17 +1360,39 @@ export async function submitReview({
   rating,
   title,
   body,
+  orderItemId,
+  productSlug,
 }: {
   productId?: string;
   vendorId?: string;
   rating: number;
   title?: string;
   body?: string;
+  orderItemId?: string;
+  productSlug?: string;
 }) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Authentication required" };
+
+    let isVerifiedPurchase = false;
+    if (orderItemId) {
+      const { data: item } = await supabase
+        .from("order_items")
+        .select("id, order_id, product_id, orders!inner(buyer_id, payment_status)")
+        .eq("id", orderItemId)
+        .maybeSingle();
+      const order = item?.orders as { buyer_id?: string; payment_status?: string } | null;
+      if (
+        item &&
+        order?.buyer_id === user.id &&
+        order.payment_status === "paid" &&
+        (!productId || item.product_id === productId)
+      ) {
+        isVerifiedPurchase = true;
+      }
+    }
 
     const { data, error } = await supabase
       .from("reviews")
@@ -1382,6 +1404,8 @@ export async function submitReview({
           rating,
           title,
           body,
+          order_item_id: orderItemId || null,
+          is_verified_purchase: isVerifiedPurchase,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "product_id, buyer_id" }
@@ -1390,10 +1414,21 @@ export async function submitReview({
       .single();
 
     if (error) throw error;
-    if (productId) {
-      try { revalidatePath(`/marketplace/${productId}`); } catch {}
-      try { revalidatePath("/marketplace"); } catch {}
+
+    let slug = productSlug;
+    if (!slug && productId) {
+      const { data: prod } = await supabase
+        .from("products")
+        .select("slug")
+        .eq("id", productId)
+        .maybeSingle();
+      slug = prod?.slug ?? undefined;
     }
+
+    if (slug) {
+      try { revalidatePath(`/marketplace/${slug}`); } catch {}
+    }
+    try { revalidatePath("/marketplace"); } catch {}
     if (vendorId) {
       try { revalidatePath(`/vendors/${vendorId}`); } catch {}
     }
