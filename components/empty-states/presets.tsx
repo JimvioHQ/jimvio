@@ -33,6 +33,10 @@ export type EmptyStatePreset =
   | "payments"
   | "vendors"
   | "submissions"
+  | "feedEmpty"
+  | "chatEmpty"
+  | "liveEmpty"
+  | "libraryEmpty"
   | "search"
   | "generic";
 
@@ -211,6 +215,42 @@ export function resolveEmptyStatePreset(
           : "Creator content for your campaigns will show up here for review.",
         query: query?.trim(),
         illustration: <CampaignsIllustration />,
+      };
+
+    case "feedEmpty":
+      return {
+        eyebrow: "Your feed",
+        title: "Your feed is ready for you",
+        description: "Join communities and follow creators to make this space yours.",
+        illustration: <EmptyBoxIllustration />,
+        actions: [{ label: "Browse communities", href: "/communities", icon: Users, variant: "primary" }],
+      };
+
+    case "chatEmpty":
+      return {
+        eyebrow: "Chat",
+        title: "Start a conversation",
+        description: "Meet people in a community or ask for help to get moving.",
+        illustration: <MessagesIllustration />,
+        actions: [{ label: "Browse communities", href: "/communities", icon: Users, variant: "primary" }],
+      };
+
+    case "liveEmpty":
+      return {
+        eyebrow: "Live",
+        title: "No live sessions right now",
+        description: "Explore communities to find upcoming sessions and creator events.",
+        illustration: <EmptyBoxIllustration />,
+        actions: [{ label: "Explore communities", href: "/communities", icon: Users, variant: "primary" }],
+      };
+
+    case "libraryEmpty":
+      return {
+        eyebrow: "Library",
+        title: "Your library is waiting",
+        description: "Save products, courses, and content you want to return to.",
+        illustration: <ProductsShelfIllustration />,
+        actions: [{ label: "Browse marketplace", href: "/marketplace", icon: ShoppingBag, variant: "primary" }],
       };
 
     case "search":
