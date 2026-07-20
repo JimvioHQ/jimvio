@@ -1,0 +1,6 @@
+{
+  "maxBuildMs": 900000,
+  "maxStaticKb": 20000,
+  "maxChunksKb": 45000,
+  "notes": "Guardrails from production build artifacts. Tighten after CI baseline."
+}

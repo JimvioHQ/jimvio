@@ -34,10 +34,26 @@ Or Vercel Dashboard → Project → Deployments → ⋮ → **Promote** previous
 
 ## Database rollbacks
 
-- Prefer **forward fixes** (additive migrations)
+- Prefer **forward fixes** (additive migrations numbered after the broken one)
 - Do not drop columns/tables in emergency without backup confirmation
 - Use Supabase PITR / backup restore only with on-call + CPO approval
 - Record RPO/RTO against `docs/DISASTER_RECOVERY.md`
+
+### Migration rollback checklist
+
+1. Identify last good migration number under `database/migrations/`
+2. Confirm whether the bad migration is **schema-only** vs **data-mutating**
+3. Prefer a new `NNN_fix_*.sql` that restores invariants (nullable columns, backfill, feature flag off)
+4. If restore is required: pause deploys → Supabase dashboard → Backups / PITR → restore to pre-migration timestamp
+5. Re-run `node scripts/release/verify-migrations.mjs`
+6. Redeploy previous app SHA if schema and app code are mismatched
+7. Verify `/api/ops/health` + critical smoke
+
+### Verification in CI
+
+- `ci:prepush` runs migration verification before build
+- `.github/workflows/ci.yml` and `release.yml` re-run `scripts/release/verify-migrations.mjs`
+- Empty files, duplicate numbers, and order regressions fail the gate
 
 ## Feature kill switches
 

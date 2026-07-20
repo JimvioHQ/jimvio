@@ -250,12 +250,25 @@ function writeStamp(fp) {
   console.log(`\n✅ CI stamp written: ${stampPath}`);
 }
 
+function timedBuild() {
+  log("build", "Production build with timing");
+  const started = Date.now();
+  run("build", "npm", ["run", "build"]);
+  const durationMs = Date.now() - started;
+  const nextDir = join(root, ".next");
+  mkdirSync(nextDir, { recursive: true });
+  writeFileSync(join(nextDir, "build-timing.json"), JSON.stringify({ durationMs, at: new Date().toISOString() }, null, 2));
+  console.log(`Build duration: ${durationMs}ms`);
+}
+
 function main() {
   console.log("Jimvio PRE-PUSH CI — fail closed");
   scanAppRouter();
   scanServerClientBoundaries();
   scanEnvExample();
-  run("build", "npm", ["run", "build"]);
+  run("migrations", process.execPath, [join(root, "scripts", "release", "verify-migrations.mjs")]);
+  timedBuild();
+  run("perf", process.execPath, [join(root, "scripts", "release", "performance-budget.mjs")]);
   run("lint", "npm", ["run", "lint"]);
   run("type-check", "npm", ["run", "type-check"]);
   runVerifies();

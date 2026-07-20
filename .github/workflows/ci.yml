@@ -12,6 +12,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   ci:
@@ -31,8 +32,19 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Workflow / Dependabot structure
+        run: node scripts/release/verify-workflows.mjs
+
+      - name: Dependency audit (critical)
+        run: npm audit --audit-level=critical
+
       - name: Dependency audit (high+)
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Dependency review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
         continue-on-error: true
 
       - name: Secret scanning (gitleaks)
@@ -53,6 +65,17 @@ jobs:
       - name: Environment documentation check
         run: node scripts/release/verify-env.mjs
 
+      - name: Performance report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report-${{ github.run_id }}
+          path: |
+            .next/performance-report.json
+            .next/build-timing.json
+          if-no-files-found: ignore
+          retention-days: 30
+
       - name: Upload CI logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -72,5 +95,10 @@ jobs:
             echo "- ref: \`${{ github.sha }}\`"
             echo "- event: \`${{ github.event_name }}\`"
             echo "- prepush: \`${{ steps.prepush.outcome }}\`"
-            echo "- duration_s: roughly job runtime in Actions UI"
+            if [ -f .next/performance-report.json ]; then
+              echo "- performance report: present"
+              echo '```json'
+              cat .next/performance-report.json
+              echo '```'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
