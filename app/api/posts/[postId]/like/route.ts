@@ -54,6 +54,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
+import { notifyPostAuthor } from "@/lib/community/notify-community";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,7 @@ export async function POST(
 
   const { data: post } = await supabase
     .from("community_posts")
-    .select("room_id")
+    .select("room_id, author_id, title, community_id")
     .eq("id", postId)
     .maybeSingle();
 
@@ -94,5 +95,35 @@ export async function POST(
   await supabase.from("community_post_likes").insert({ post_id: postId, user_id: user.id });
   await supabase.rpc("increment_post_like_count" as any, { p_post_id: postId });
 
+  void notifyPostAuthorOfLike(supabase, post, postId, user.id);
+
   return NextResponse.json({ liked: true });
+}
+
+async function notifyPostAuthorOfLike(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  post: { author_id: string; title: string | null; community_id: string },
+  postId: string,
+  actorId: string
+): Promise<void> {
+  if (post.author_id === actorId) return;
+  try {
+    const [{ data: actorProfile }, { data: community }] = await Promise.all([
+      supabase.from("profiles").select("full_name, username").eq("id", actorId).maybeSingle(),
+      supabase.from("communities").select("slug").eq("id", post.community_id).maybeSingle(),
+    ]);
+    if (!community?.slug) return;
+
+    await notifyPostAuthor(supabase, {
+      postAuthorId: post.author_id,
+      actorId,
+      actorName: actorProfile?.full_name || actorProfile?.username || "Someone",
+      postId,
+      communitySlug: community.slug,
+      postTitle: post.title,
+      event: "like",
+    });
+  } catch (err) {
+    console.error("[posts/like] notify failed:", err);
+  }
 }

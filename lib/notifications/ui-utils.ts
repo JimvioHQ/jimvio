@@ -9,6 +9,7 @@ export type NotificationUiCategory =
     | "shipping"
     | "message"
     | "payment"
+    | "community"
     | "system";
 
 export function getNotificationUiCategory(n: Pick<DbNotification, "type" | "title" | "data">): NotificationUiCategory {
@@ -16,6 +17,7 @@ export function getNotificationUiCategory(n: Pick<DbNotification, "type" | "titl
     const title = (n.title ?? "").toLowerCase();
 
     if (n.type === "message") return "message";
+    if (n.type === "community") return "community";
     if (n.type === "payment" || n.type === "affiliate") return "payment";
     if (
         title.includes("shipped") ||
@@ -25,7 +27,7 @@ export function getNotificationUiCategory(n: Pick<DbNotification, "type" | "titl
         return "shipping";
     }
     if (n.type === "order") return "order";
-    if (n.type === "system" || n.type === "review" || n.type === "community" || n.type === "influencer") {
+    if (n.type === "system" || n.type === "review" || n.type === "influencer") {
         return "system";
     }
     return "system";

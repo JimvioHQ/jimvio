@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { notifyCommunityOwnerOnJoin } from "@/lib/community/notify-community";
 
 function getService() {
   return createServiceRoleClient();
@@ -152,7 +153,7 @@ export async function joinFreeCommunity(userId: string, communityId: string) {
   const supabase = getService();
   const { data: community } = await supabase
     .from("communities")
-    .select("id, is_free, member_count")
+    .select("id, is_free, member_count, owner_id, slug, name")
     .eq("id", communityId)
     .eq("is_active", true)
     .single();
@@ -181,6 +182,24 @@ export async function joinFreeCommunity(userId: string, communityId: string) {
     .from("communities")
     .update({ member_count: (community.member_count ?? 0) + 1 })
     .eq("id", communityId);
+
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, username")
+      .eq("id", userId)
+      .maybeSingle();
+    await notifyCommunityOwnerOnJoin(supabase, {
+      ownerId: community.owner_id,
+      memberId: userId,
+      memberName: profile?.full_name || profile?.username || "Someone",
+      communityId: community.id,
+      communitySlug: community.slug,
+      communityName: community.name,
+    });
+  } catch (err) {
+    console.error("[joinFreeCommunity] notify failed:", err);
+  }
 
   return membership;
 }

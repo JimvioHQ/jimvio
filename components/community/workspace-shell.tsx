@@ -259,7 +259,7 @@ export function WorkspaceShell({
               </span>
 
               <Link
-                href={`${base}/notifications`}
+                href="/dashboard/notifications"
                 className="relative flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)]"
                 aria-label="Notifications"
               >

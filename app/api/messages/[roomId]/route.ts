@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
+import { notifyMentionedUsers } from "@/lib/community/notify-community";
 
 export const dynamic = "force-dynamic";
 
@@ -146,5 +147,38 @@ export async function POST(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  if (bodyTrim) void notifyMentionsInMessage(supabase, room.community_id, roomId, bodyTrim, user.id, data);
+
   return NextResponse.json({ message: data });
+}
+
+async function notifyMentionsInMessage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  communityId: string,
+  roomId: string,
+  body: string,
+  actorId: string,
+  message: { profiles?: { full_name: string | null; username: string | null } | null } | null
+): Promise<void> {
+  try {
+    const { data: community } = await supabase
+      .from("communities")
+      .select("slug")
+      .eq("id", communityId)
+      .maybeSingle();
+    if (!community?.slug) return;
+
+    const actorProfile = message?.profiles;
+    await notifyMentionedUsers(supabase, {
+      body,
+      communityId,
+      communitySlug: community.slug,
+      actorId,
+      actorName: actorProfile?.full_name || actorProfile?.username || "Someone",
+      actionUrl: `/communities/${community.slug}?room=${roomId}`,
+    });
+  } catch (err) {
+    console.error("[messages] mention notify failed:", err);
+  }
 }

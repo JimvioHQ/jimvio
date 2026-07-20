@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
+import { notifyPostAuthor } from "@/lib/community/notify-community";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export async function POST(
 
   const { data: post } = await supabase
     .from("community_posts")
-    .select("room_id")
+    .select("room_id, author_id, title, community_id")
     .eq("id", postId)
     .maybeSingle();
 
@@ -77,5 +78,38 @@ export async function POST(
 
   await supabase.rpc("increment_post_comment_count" as any, { p_post_id: postId });
 
+  void notifyPostAuthorOfComment(supabase, post, postId, user.id, data);
+
   return NextResponse.json({ comment: data });
+}
+
+async function notifyPostAuthorOfComment(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  post: { author_id: string; title: string | null; community_id: string },
+  postId: string,
+  actorId: string,
+  comment: { profiles?: { full_name: string | null; username: string | null } | null } | null
+): Promise<void> {
+  if (post.author_id === actorId) return;
+  try {
+    const { data: community } = await supabase
+      .from("communities")
+      .select("slug")
+      .eq("id", post.community_id)
+      .maybeSingle();
+    if (!community?.slug) return;
+
+    const actorProfile = comment?.profiles;
+    await notifyPostAuthor(supabase, {
+      postAuthorId: post.author_id,
+      actorId,
+      actorName: actorProfile?.full_name || actorProfile?.username || "Someone",
+      postId,
+      communitySlug: community.slug,
+      postTitle: post.title,
+      event: "comment",
+    });
+  } catch (err) {
+    console.error("[posts/comments] notify failed:", err);
+  }
 }

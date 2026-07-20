@@ -2,13 +2,14 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
     Bell, BellOff, Package, Truck, MessageSquare,
-    DollarSign, ShieldCheck, ArrowUpRight, Check, X, Loader2,
+    DollarSign, ShieldCheck, Users, ArrowUpRight, Check, X, Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui/admin";
-import { DashboardPage, DashboardPanel } from "@/components/dashboard/dashboard-page";
+import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { cn } from "@/lib/utils";
 import {
     dismissNotification,
@@ -22,11 +23,23 @@ import {
     type NotificationUiCategory,
 } from "@/lib/notifications/ui-utils";
 
+const VALID_CATEGORIES = new Set<NotificationUiCategory>([
+    "order", "shipping", "message", "payment", "community", "system",
+]);
+
+function initialFilterFromSearch(raw: string | null): NotificationUiCategory | "all" {
+    if (raw && VALID_CATEGORIES.has(raw as NotificationUiCategory)) {
+        return raw as NotificationUiCategory;
+    }
+    return "all";
+}
+
 const CATEGORY: Record<NotificationUiCategory, { icon: React.ReactNode; label: string; accent: string }> = {
     order: { icon: <Package className="h-4 w-4" />, label: "Order", accent: "#0ea5e9" },
     shipping: { icon: <Truck className="h-4 w-4" />, label: "Shipping", accent: "#6366f1" },
     message: { icon: <MessageSquare className="h-4 w-4" />, label: "Message", accent: "#10b981" },
     payment: { icon: <DollarSign className="h-4 w-4" />, label: "Payment", accent: "#f59e0b" },
+    community: { icon: <Users className="h-4 w-4" />, label: "Community", accent: "#fd5000" },
     system: { icon: <ShieldCheck className="h-4 w-4" />, label: "System", accent: "#f43f5e" },
 };
 
@@ -162,11 +175,16 @@ function Skeleton() {
 }
 
 export default function NotificationsPage() {
+    const searchParams = useSearchParams();
     const [notifications, setNotifications] = useState<DbNotification[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<NotificationUiCategory | "all">("all");
     const [busyId, setBusyId] = useState<string | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setFilter(initialFilterFromSearch(searchParams.get("category")));
+    }, [searchParams]);
 
     const loadNotifications = useCallback(async () => {
         const supabase = createClient();
@@ -261,6 +279,7 @@ export default function NotificationsPage() {
         { key: "shipping", label: "Shipping" },
         { key: "message", label: "Messages" },
         { key: "payment", label: "Payments" },
+        { key: "community", label: "Community" },
         { key: "system", label: "System" },
     ];
 
