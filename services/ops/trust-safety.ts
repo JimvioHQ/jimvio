@@ -3,41 +3,47 @@ import { writeAuditEvent } from "@/services/ops/audit";
 
 type ReportSource = "ugc_reports" | "community_content_reports";
 
-function admin() {
-  return getAdminDB();
-}
+type UnifiedReport = {
+  id: string;
+  source: ReportSource;
+  created_at: string | null;
+  status?: string | null;
+  reason?: string | null;
+  [key: string]: unknown;
+};
 
-async function safeRows<T>(query: PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
-  const result = await query;
-  return result.error ? [] : result.data ?? [];
-}
+export async function listUnifiedReports(limit = 100): Promise<UnifiedReport[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getAdminDB() as any;
 
-export async function listUnifiedReports(limit = 100) {
-  const [ugc, community] = await Promise.all([
-    safeRows(
-      admin()
-        .from("ugc_reports")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(limit)
-    ),
-    safeRows(
-      admin()
-        .from("community_content_reports")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(limit)
-    ),
+  const [ugcRes, communityRes] = await Promise.all([
+    db.from("ugc_reports").select("*").order("created_at", { ascending: false }).limit(limit),
+    db
+      .from("community_content_reports")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit),
   ]);
 
-  return [
-    ...ugc.map((row) => ({ ...row, source: "ugc_reports" as const })),
-    ...community.map((row) => ({
+  const ugc: UnifiedReport[] = (ugcRes.error ? [] : ugcRes.data ?? []).map(
+    (row: Record<string, unknown>) => ({
       ...row,
+      id: String(row.id),
+      created_at: (row.created_at as string | null) ?? null,
+      source: "ugc_reports" as const,
+    })
+  );
+  const community: UnifiedReport[] = (communityRes.error ? [] : communityRes.data ?? []).map(
+    (row: Record<string, unknown>) => ({
+      ...row,
+      id: String(row.id),
+      created_at: (row.created_at as string | null) ?? null,
       source: "community_content_reports" as const,
-    })),
-  ]
-    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    })
+  );
+
+  return [...ugc, ...community]
+    .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))
     .slice(0, limit);
 }
 
@@ -48,9 +54,11 @@ export async function resolveReport(input: {
   resolution?: string;
 }) {
   const now = new Date().toISOString();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = getAdminDB() as any;
 
   if (input.source === "ugc_reports") {
-    const { error } = await admin()
+    const { error } = await db
       .from("ugc_reports")
       .update({
         status: "resolved",
@@ -60,7 +68,7 @@ export async function resolveReport(input: {
       .eq("id", input.id);
     if (error) throw error;
   } else {
-    const { error } = await admin()
+    const { error } = await db
       .from("community_content_reports")
       .update({
         status: "resolved",
@@ -80,9 +88,7 @@ export async function resolveReport(input: {
 }
 
 export async function listSuspendedUsers(limit = 30) {
-  // Account status lives on auth user metadata; surface recent profiles as a
-  // lightweight ops hint. Detailed enforcement remains in admin-users actions.
-  const { data, error } = await admin()
+  const { data, error } = await getAdminDB()
     .from("profiles")
     .select("id, email, full_name, updated_at, is_active")
     .eq("is_active", false)
