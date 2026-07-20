@@ -66,6 +66,7 @@ const navSections = [
       { label: "Command Center", href: "/admin/command-center", icon: SlidersHorizontal },
       { label: "Trust & Safety", href: "/admin/trust-safety", icon: Siren },
       { label: "Growth", href: "/admin/growth", icon: Megaphone },
+      { label: "Growth KPIs", href: "/admin/growth-kpis", icon: TrendingUp },
       { label: "Settings", href: "/admin/settings", icon: SlidersHorizontal },
     ],
   },
