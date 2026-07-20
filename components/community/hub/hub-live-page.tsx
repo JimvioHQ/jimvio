@@ -199,7 +199,10 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
         if (!res.ok || cancelled) return;
         const json = (await res.json()) as { sessions?: Array<{ id: string }> };
         const first = json.sessions?.[0];
-        if (first?.id) await live.join(first.id);
+        if (first?.id) {
+          await live.join(first.id);
+          router.replace(`/communities/live/${first.id}`);
+        }
       } catch {
         /* ignore */
       }

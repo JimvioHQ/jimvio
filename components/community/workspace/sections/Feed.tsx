@@ -1565,9 +1565,9 @@ function PostDetailPanel({
                     value={text}
                     onChange={(e) => { setText(e.target.value); setSendError(null); }}
                     onKeyDown={(e) => {
-                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                        if (e.key === "Enter" && !e.shiftKey) {
                             e.preventDefault();
-                            sendComment();
+                            void sendComment();
                         }
                     }}
                     placeholder={replyTo ? "Write a reply…" : "Add a comment…"}
