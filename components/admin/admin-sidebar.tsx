@@ -62,6 +62,10 @@ const navSections = [
     label: "System",
     items: [
       { label: "System analysis", href: "/admin/system-analysis", icon: Activity },
+      { label: "Operations", href: "/admin/operations", icon: Activity },
+      { label: "Command Center", href: "/admin/command-center", icon: SlidersHorizontal },
+      { label: "Trust & Safety", href: "/admin/trust-safety", icon: Siren },
+      { label: "Growth", href: "/admin/growth", icon: Megaphone },
       { label: "Settings", href: "/admin/settings", icon: SlidersHorizontal },
     ],
   },
@@ -105,18 +109,6 @@ export function AdminSidebar({
       .toUpperCase() ||
     user.email?.[0]?.toUpperCase() ||
     "A";
-
-  // ⌘K shortcut — wire to your command palette
-  React.useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        // TODO: open command palette
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
 
   const content = (
     <div className="flex flex-col h-full">
@@ -170,6 +162,7 @@ export function AdminSidebar({
         <div className="px-3 pb-3 shrink-0">
           <button
             type="button"
+            onClick={() => window.dispatchEvent(new Event("admin-command-palette"))}
             className={cn(
               "flex w-full items-center gap-2 rounded-lg px-2.5 py-2",
               "border border-[var(--color-border)] bg-[var(--color-surface-secondary)]",

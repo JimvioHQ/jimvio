@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { getAdminDB } from "@/services/base";
+import { requirePlatformAdmin } from "@/lib/ops/require-platform-admin";
 
 export const dynamic = "force-dynamic";
 
 /** Lightweight counts for admin sidebar / mobile nav badges. */
 export async function GET() {
+    const auth = await requirePlatformAdmin();
+    if ("error" in auth) return auth.error;
     try {
         const admin = getAdminDB();
 

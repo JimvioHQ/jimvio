@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { AdminCommandPalette } from "@/components/admin/AdminCommandPalette";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -101,6 +102,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         onMobileClose={() => setMobileOpen(false)}
         badges={badges}
       />
+      <AdminCommandPalette />
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
 
