@@ -63,8 +63,13 @@ export async function resolvePostLoginPath(
     const topRole = ROLE_PRIORITY.find(r => roles.includes(r))
 
     if (!topRole) {
-      // No known roles — send to dashboard or requested path
-      return hasExplicitNext ? safe : "/dashboard"
+      if (hasExplicitNext) return safe
+      const { data: onboarding } = await adminDb()
+        .from("user_onboarding")
+        .select("welcome_completed_at")
+        .eq("user_id", userId)
+        .maybeSingle()
+      return onboarding?.welcome_completed_at ? "/dashboard" : "/welcome"
     }
 
     const roleHome = ROLE_HOME[topRole]
@@ -72,8 +77,22 @@ export async function resolvePostLoginPath(
     // Admin always goes to /admin regardless of `next`
     if (topRole === "admin") return roleHome
 
-    // For everyone else: honor an explicit `next`, otherwise use role home
-    return hasExplicitNext ? safe : roleHome
+    // Explicit destinations win; do not interrupt a user who deliberately
+    // entered a protected route before authenticating.
+    if (hasExplicitNext) return safe
+
+    const { data: onboarding, error: onboardingError } = await adminDb()
+      .from("user_onboarding")
+      .select("welcome_completed_at")
+      .eq("user_id", userId)
+      .maybeSingle()
+    if (onboardingError) {
+      console.error("[resolvePostLoginPath] onboarding lookup failed:", onboardingError.message)
+    } else if (!onboarding?.welcome_completed_at) {
+      return "/welcome"
+    }
+
+    return roleHome
 
   } catch (err) {
     console.error("[resolvePostLoginPath] unexpected error:", err)
