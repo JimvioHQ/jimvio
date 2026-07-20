@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Crown, Search, Trophy, Users as UsersIcon } from "lucide-react";
@@ -26,7 +27,7 @@ interface Props {
   isAdmin: boolean;
 }
 
-export function MembersSection({ community, currentUserId, view, isAdmin }: Props) {
+export function MembersSection({ community, view, isAdmin }: Props) {
   const supabase = createClient();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,10 +99,13 @@ export function MembersSection({ community, currentUserId, view, isAdmin }: Prop
                 >
                   <div className="relative inline-block mb-2">
                     {m.profiles?.avatar_url ? (
-                      <img
+                      <Image
                         src={m.profiles.avatar_url}
                         alt={name}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-full object-cover ring-2 ring-border"
+                        unoptimized
                       />
                     ) : (
                       <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ring-2 ring-border" style={{ background: "#fd5000" }}>
@@ -148,33 +152,53 @@ export function MembersSection({ community, currentUserId, view, isAdmin }: Prop
       ) : filtered.length === 0 ? (
         <div className="bg-surface border border-border rounded-2xl p-12 flex flex-col items-center text-center">
           <UsersIcon className="w-7 h-7 text-text-muted mb-2" />
-          <p className="text-[12px] text-text-muted">No members match "{search}"</p>
+          <p className="text-[12px] text-text-muted">No members match &ldquo;{search}&rdquo;</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {filtered.map((m) => <MemberCard key={m.user_id} member={m} canModerate={isAdmin && view === "admin"} />)}
+          {filtered.map((m) => (
+            <MemberCard
+              key={m.user_id}
+              member={m}
+              canModerate={isAdmin && view === "admin"}
+              communitySlug={community.slug}
+            />
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function MemberCard({ member, canModerate }: { member: Member; canModerate: boolean }) {
+function MemberCard({
+  member,
+  canModerate,
+  communitySlug,
+}: {
+  member: Member;
+  canModerate: boolean;
+  communitySlug: string;
+}) {
   const p = member.profiles;
   const name = p?.full_name ?? p?.username ?? "Member";
   const isStaff = member.role === "admin" || member.role === "moderator" || member.role === "owner";
+  const profileKey = p?.username || member.user_id;
+  const href = `/communities/${communitySlug}/members/${encodeURIComponent(profileKey)}`;
 
   return (
     <Link
-      href={p?.username ? `/u/${p.username}` : "#"}
+      href={href}
       className="group bg-surface border border-border rounded-xl p-3 flex flex-col items-center text-center hover:border-[#fd5000]/30 transition-all"
     >
       <div className="relative mb-2">
         {p?.avatar_url ? (
-          <img
+          <Image
             src={p.avatar_url}
             alt={name}
+            width={48}
+            height={48}
             className="w-12 h-12 rounded-full object-cover ring-2 ring-border group-hover:ring-[#fd5000]/40 transition-all"
+            unoptimized
           />
         ) : (
           <div

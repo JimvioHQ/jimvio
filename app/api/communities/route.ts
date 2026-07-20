@@ -11,6 +11,74 @@ function slugify(name: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+/** Bootstrap default spaces/rooms when a community has none yet (additive / safe). */
+async function bootstrapDefaultSpaces(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  communityId: string
+) {
+  const { count } = await supabase
+    .from("spaces")
+    .select("id", { count: "exact", head: true })
+    .eq("community_id", communityId);
+
+  if ((count ?? 0) > 0) return;
+
+  const defaults: {
+    name: string;
+    slug: string;
+    sort_order: number;
+    room: { name: string; slug: string; room_type: string };
+  }[] = [
+    {
+      name: "General",
+      slug: "general",
+      sort_order: 0,
+      room: { name: "General chat", slug: "general-chat", room_type: "chat" },
+    },
+    {
+      name: "Announcements",
+      slug: "announcements",
+      sort_order: 1,
+      room: { name: "Announcements", slug: "announcements", room_type: "posts" },
+    },
+    {
+      name: "Resources",
+      slug: "resources",
+      sort_order: 2,
+      room: { name: "Resources", slug: "resources", room_type: "resources" },
+    },
+  ];
+
+  for (const def of defaults) {
+    const { data: space, error } = await supabase
+      .from("spaces")
+      .insert({
+        community_id: communityId,
+        name: def.name,
+        slug: def.slug,
+        sort_order: def.sort_order,
+        access_type: "free",
+        is_active: true,
+        room_count: 1,
+      })
+      .select("id")
+      .single();
+
+    if (error || !space) continue;
+
+    await supabase.from("rooms").insert({
+      space_id: space.id,
+      community_id: communityId,
+      name: def.room.name,
+      slug: def.room.slug,
+      room_type: def.room.room_type,
+      access_type: "inherit",
+      sort_order: 0,
+      is_active: true,
+    });
+  }
+}
+
 export async function GET(req: NextRequest) {
   const supabase = getAdminDB();
   const { searchParams } = new URL(req.url);
@@ -85,6 +153,13 @@ export async function POST(req: NextRequest) {
     plan_type: "lifetime",
     status: "active",
   });
+
+  // Additive: only creates defaults when the community has zero spaces.
+  try {
+    await bootstrapDefaultSpaces(supabase, data.id);
+  } catch {
+    // Never fail community create if bootstrap fails.
+  }
 
   return NextResponse.json({ community: data });
 }

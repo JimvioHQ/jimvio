@@ -7,6 +7,7 @@ import { MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CommunityInboxDialog } from "@/components/community/chat/community-inbox-dialog";
 
 export type MemberRow = {
   user_id: string;
@@ -24,11 +25,25 @@ function roleLabel(role: string) {
   return "Member";
 }
 
+function memberProfileHref(slug: string, m: MemberRow) {
+  const key = m.profile?.username || m.user_id;
+  return `/communities/${slug}/members/${encodeURIComponent(key)}`;
+}
+
 const FILTERS = ["All", "Admins", "Online"] as const;
 
-export function WorkspaceMembersClient({ slug, members }: { slug: string; members: MemberRow[] }) {
+export function WorkspaceMembersClient({
+  slug,
+  members,
+  currentUserId,
+}: {
+  slug: string;
+  members: MemberRow[];
+  currentUserId?: string | null;
+}) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const [inboxPeer, setInboxPeer] = useState<MemberRow | null>(null);
 
   const filtered = useMemo(() => {
     if (filter === "Online") return [];
@@ -45,6 +60,20 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
 
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+      <CommunityInboxDialog
+        open={!!inboxPeer}
+        onOpenChange={(o) => !o && setInboxPeer(null)}
+        communityId={slug}
+        peerUserId={inboxPeer?.user_id ?? null}
+        peerName={
+          inboxPeer
+            ? inboxPeer.profile?.full_name || inboxPeer.profile?.username || "Member"
+            : ""
+        }
+        peerAvatarUrl={inboxPeer?.profile?.avatar_url ?? null}
+        currentUserId={currentUserId ?? null}
+      />
+
       <header className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4">
         <h1 className="text-xl font-black text-[var(--color-text-primary)]">Members</h1>
         <p className="text-sm text-[var(--color-text-muted)] mt-1">People in this community</p>
@@ -63,7 +92,9 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
                 onClick={() => setFilter(f)}
                 className={cn(
                   "px-3 py-1.5 rounded-sm text-xs font-black",
-                  filter === f ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]" : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
+                  filter === f
+                    ? "bg-[var(--color-accent-light)] text-[var(--color-accent)]"
+                    : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
                 )}
               >
                 {f}
@@ -75,48 +106,78 @@ export function WorkspaceMembersClient({ slug, members }: { slug: string; member
       </header>
       <div className="flex-1 overflow-y-auto p-4">
         {filter === "Online" ? (
-          <p className="text-sm text-[var(--color-text-muted)] text-center py-12">Online presence is coming soon.</p>
+          <p className="text-sm text-[var(--color-text-muted)] text-center py-12">
+            Online presence is coming soon.
+          </p>
         ) : filtered.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-muted)] text-center py-12">No members match your search.</p>
+          <p className="text-sm text-[var(--color-text-muted)] text-center py-12">
+            No members match your search.
+          </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {filtered.map((m) => (
-              <div key={m.user_id} className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-none flex flex-col gap-3">
-                <div className="flex items-start gap-3">
-                  <div className="h-12 w-12 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
-                    {m.profile?.avatar_url && m.profile?.avatar_url.trim() ? (
-                      <Image src={m.profile.avatar_url} alt="" width={48} height={48} className="object-cover h-full w-full" unoptimized />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center font-black text-[var(--color-accent)]">
-                        {(m.profile?.full_name || m.profile?.username || "?")[0]}
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-black text-[var(--color-text-primary)] truncate">{m.profile?.full_name || m.profile?.username || "Member"}</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-sm bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]">
-                        {roleLabel(m.role)}
-                      </span>
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-sm bg-[var(--color-accent-light)] text-[var(--color-accent)]">Lvl {m.level}</span>
+            {filtered.map((m) => {
+              const href = memberProfileHref(slug, m);
+              const isSelf = !!currentUserId && currentUserId === m.user_id;
+              return (
+                <div
+                  key={m.user_id}
+                  className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-none flex flex-col gap-3"
+                >
+                  <Link href={href} className="flex items-start gap-3 group">
+                    <div className="h-12 w-12 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
+                      {m.profile?.avatar_url && m.profile?.avatar_url.trim() ? (
+                        <Image
+                          src={m.profile.avatar_url}
+                          alt=""
+                          width={48}
+                          height={48}
+                          className="object-cover h-full w-full"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center font-black text-[var(--color-accent)]">
+                          {(m.profile?.full_name || m.profile?.username || "?")[0]}
+                        </div>
+                      )}
                     </div>
-                    <p className="text-xs text-[var(--color-text-muted)] mt-1">{m.total_points.toLocaleString()} pts</p>
-                    {m.joined_at && (
-                      <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">Joined {new Date(m.joined_at).toLocaleDateString()}</p>
-                    )}
-                  </div>
-                </div>
-                <Button asChild variant="outline" className="rounded-sm border-[var(--color-border)] font-bold w-full">
-                  <Link href="/dashboard/messages">
-                    <MessageCircle className="h-4 w-4 mr-2" /> Message
+                    <div className="min-w-0 flex-1">
+                      <p className="font-black text-[var(--color-text-primary)] truncate group-hover:text-[var(--color-accent)]">
+                        {m.profile?.full_name || m.profile?.username || "Member"}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-sm bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]">
+                          {roleLabel(m.role)}
+                        </span>
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-sm bg-[var(--color-accent-light)] text-[var(--color-accent)]">
+                          Lvl {m.level}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[var(--color-text-muted)] mt-1">
+                        {m.total_points.toLocaleString()} pts
+                      </p>
+                      {m.joined_at && (
+                        <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
+                          Joined {new Date(m.joined_at).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
                   </Link>
-                </Button>
-              </div>
-            ))}
+                  {!isSelf && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-sm border-[var(--color-border)] font-bold w-full"
+                      onClick={() => setInboxPeer(m)}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" /> Message
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
 }
-

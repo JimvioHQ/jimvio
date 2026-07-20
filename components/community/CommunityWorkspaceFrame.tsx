@@ -8,7 +8,19 @@ import { useWorkspace } from "@/components/community/workspace-context";
  * Desktop renders the sidebar; mobile uses HubLayout drawer.
  */
 export function CommunityWorkspaceFrame({ children }: { children: React.ReactNode }) {
-  const { slug, communityName, overview } = useWorkspace();
+  const { slug, communityName, overview, spacesWithRooms } = useWorkspace();
+
+  const spaces = spacesWithRooms.map((space) => {
+    const firstRoom = space.rooms[0];
+    const href = firstRoom
+      ? `/room?space=${space.id}&room=${firstRoom.id}`
+      : `/chat?space=${encodeURIComponent(space.slug)}`;
+    return {
+      id: space.id,
+      label: space.name,
+      href,
+    };
+  });
 
   return (
     <div className="flex min-h-0 flex-1 bg-[var(--color-bg,#f4f4f5)]">
@@ -17,6 +29,7 @@ export function CommunityWorkspaceFrame({ children }: { children: React.ReactNod
           slug={slug}
           communityName={communityName}
           membersOnline={overview?.membersOnline}
+          spaces={spaces}
         />
       </div>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>

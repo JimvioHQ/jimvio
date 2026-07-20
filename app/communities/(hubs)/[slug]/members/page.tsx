@@ -96,5 +96,5 @@ export default async function WorkspaceMembersPage({
     return an.localeCompare(bn);
   });
 
-  return <WorkspaceMembersClient slug={slug} members={members} />;
+  return <WorkspaceMembersClient slug={slug} members={members} currentUserId={user.id} />;
 }

@@ -1405,6 +1405,7 @@ import type { CommunityOverviewStats } from "@/services/community/hub-data";
 import type { MembershipLite } from "@/lib/community-workspace-access";
 import { WorkspaceRoomOverlay } from "../workspace-room-overlay";
 import { RoomContent } from "./room-content";
+import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 
@@ -1674,6 +1675,8 @@ function Sidebar({
   onToggleSpace: (id: string) => void;
   onNavigateRoom: (spaceId: string, roomId: string) => void;
 }) {
+  const router = useRouter();
+  const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
   const isPremium = false; // TODO: wire to community_memberships.plan_type !== 'free'
 
   const isActive = (item: NavItem) => {
@@ -1684,7 +1687,12 @@ function Sidebar({
 
   return (
     <div className="sticky top-0 flex flex-col h-[calc(100vh-var(--hub-topbar-h,56px))] overflow-y-auto pb-4">
-
+      <CreateSpaceDialog
+        open={createSpaceOpen}
+        onOpenChange={setCreateSpaceOpen}
+        communityId={community.id}
+        onCreated={() => router.refresh()}
+      />
       {/* Community header */}
       <div className="px-3 py-3 flex-shrink-0 space-y-2.5">
         <div className="flex items-center gap-2.5">
@@ -1878,6 +1886,7 @@ function Sidebar({
         {isAdmin && view === "admin" && (
           <button
             type="button"
+            onClick={() => setCreateSpaceOpen(true)}
             className="w-full flex items-center gap-2.5 px-5 py-1.5 mt-1 rounded-md text-[12px] font-medium text-text-muted hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all"
           >
             <Plus className="w-3.5 h-3.5" />

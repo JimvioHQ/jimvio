@@ -8,7 +8,8 @@ import {
   Folder, CheckSquare, LayoutList, Hash, Plus, Lock,
   type LucideIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
 import type { WorkspaceCommunity } from "@/types/workspace";
 
@@ -33,6 +34,8 @@ function roomTypeIcon(roomType: string): LucideIcon {
 
 export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isOwner = false }: Props) {
   const router = useRouter();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creatingRoomFor, setCreatingRoomFor] = useState<string | null>(null);
   const [expandedSpaces, setExpandedSpaces] = useState<Record<string, boolean>>(
     spacesWithRooms.reduce((acc, space) => {
       acc[space.id] = true;
@@ -40,11 +43,43 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
     }, {} as Record<string, boolean>)
   );
 
+  const canCreate = isOwner || isAdmin;
   const hasContent = spacesWithRooms.length > 0;
+
+  async function createRoom(spaceId: string) {
+    if (creatingRoomFor) return;
+    const name = window.prompt("Room name");
+    if (!name?.trim()) return;
+    setCreatingRoomFor(spaceId);
+    try {
+      const res = await fetch(`/api/rooms/${spaceId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), room_type: "chat" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Could not create room");
+        return;
+      }
+      toast.success("Room created");
+      router.refresh();
+    } catch {
+      toast.error("Could not create room");
+    } finally {
+      setCreatingRoomFor(null);
+    }
+  }
 
   if (!hasContent) {
     return (
       <div className="flex flex-col gap-5 max-w-3xl mx-auto px-4 lg:px-6">
+        <CreateSpaceDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          communityId={community.id}
+          onCreated={() => router.refresh()}
+        />
         <div className="flex items-center justify-between">
           <h2 className="text-[18px] font-bold text-text-primary">Spaces & Rooms</h2>
         </div>
@@ -54,13 +89,14 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
           </div>
           <h3 className="text-[15px] font-bold text-text-primary mb-1">No spaces yet</h3>
           <p className="text-[12px] text-text-muted max-w-sm">
-            {isOwner
+            {canCreate
               ? "Create your first space to organize conversations and build your community."
               : "This community doesn't have any spaces yet. Check back soon!"}
           </p>
-          {isOwner && (
+          {canCreate && (
             <button
               type="button"
+              onClick={() => setCreateOpen(true)}
               className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-white px-4 py-2 rounded-lg transition-all"
               style={{ background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
             >
@@ -75,6 +111,12 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
 
   return (
     <div className="flex flex-col gap-5 max-w-4xl mx-auto px-4 lg:px-6">
+      <CreateSpaceDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        communityId={community.id}
+        onCreated={() => router.refresh()}
+      />
       <div className="flex items-center justify-between">
         <h2 className="text-[18px] font-bold text-text-primary">Spaces & Rooms</h2>
         <span className="text-[12px] text-text-muted">
@@ -82,9 +124,10 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
         </span>
       </div>
 
-      {isOwner && (
+      {canCreate && (
         <button
           type="button"
+          onClick={() => setCreateOpen(true)}
           className="w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[#fd5000] px-4 py-3 rounded-lg border border-[#fd5000]/30 hover:bg-[#fd5000]/5 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -95,7 +138,6 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
       <div className="space-y-3">
         {spacesWithRooms.map((space) => {
           const isExpanded = expandedSpaces[space.id] ?? true;
-          const Icon = space.icon ? (LayoutList) : (Folder);
 
           return (
             <div
@@ -146,7 +188,7 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
                         type="button"
                         onClick={() => {
                           router.push(
-                            `/communities/${community.slug}/workspace/room?space=${room.space_id}&room=${room.id}`
+                            `/communities/${community.slug}/room?space=${room.space_id}&room=${room.id}`
                           );
                         }}
                         className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-surface transition-colors text-left group"
@@ -175,6 +217,16 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
                       </button>
                     );
                   })}
+                  {canCreate && (
+                    <button
+                      type="button"
+                      onClick={() => void createRoom(space.id)}
+                      disabled={creatingRoomFor === space.id}
+                      className="w-full px-4 py-2.5 text-left text-[11px] text-[#fd5000] font-medium hover:bg-surface transition-colors"
+                    >
+                      + Create room
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -182,9 +234,11 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
               {isExpanded && space.rooms.length === 0 && (
                 <div className="border-t border-border bg-surface-secondary/30 px-4 py-6 text-center">
                   <p className="text-[12px] text-text-muted">No rooms in this space yet</p>
-                  {isAdmin && (
+                  {canCreate && (
                     <button
                       type="button"
+                      onClick={() => void createRoom(space.id)}
+                      disabled={creatingRoomFor === space.id}
                       className="mt-2 text-[11px] text-[#fd5000] font-medium hover:underline"
                     >
                       + Create room
@@ -199,14 +253,3 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-

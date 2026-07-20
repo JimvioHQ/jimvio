@@ -83,3 +83,8 @@ export function useWorkspace() {
   if (!v) throw new Error("useWorkspace must be used inside WorkspaceProvider");
   return v;
 }
+
+/** Returns null when rendered outside WorkspaceProvider (e.g. hub chrome). */
+export function useWorkspaceOptional() {
+  return useContext(WorkspaceContext);
+}

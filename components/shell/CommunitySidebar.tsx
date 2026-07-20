@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_COMMUNITY } from "@/lib/community/dashboard-mock-data";
+import { useWorkspaceOptional } from "@/components/community/workspace-context";
 
 type CommunityNavItem =
   | "overview"
@@ -75,13 +76,19 @@ const NAV_ITEMS: {
   { id: "about", label: "About", icon: FileText, href: "/about" },
 ];
 
-const DEFAULT_SPACES: SpaceItem[] = [
-  { id: "general", label: "General Chat", href: "/chat", unread: 3 },
-  { id: "live-trading", label: "Live Trading", href: "/chat?space=live-trading", live: true, unread: 12 },
-  { id: "signals", label: "Signals", href: "/chat?space=signals", unread: 5 },
-  { id: "resources", label: "Resources", href: "/chat?space=resources" },
-  { id: "voice", label: "Voice Room", href: "/chat?space=voice" },
-];
+const DEFAULT_SPACES: SpaceItem[] = [];
+
+function mapWorkspaceSpaces(
+  spacesWithRooms: { id: string; name: string; slug: string; rooms: { id: string; space_id: string }[] }[]
+): SpaceItem[] {
+  return spacesWithRooms.map((space) => {
+    const firstRoom = space.rooms[0];
+    const href = firstRoom
+      ? `/room?space=${space.id}&room=${firstRoom.id}`
+      : `/chat?space=${encodeURIComponent(space.slug)}`;
+    return { id: space.id, label: space.name, href };
+  });
+}
 
 const TOOLS = [
   { label: "Community Calendar", icon: Calendar, href: "/events" },
@@ -130,13 +137,14 @@ function SidebarBody({
 
   function spaceActive(space: SpaceItem) {
     if (activeSpaceId) return activeSpaceId === space.id;
-    if (!pathname.includes("/chat")) return false;
-    const spaceQuery = space.href.includes("space=")
-      ? space.href.split("space=")[1]
-      : null;
-    const currentSpace = searchParams.get("space");
-    if (spaceQuery) return currentSpace === spaceQuery;
-    return space.id === "general" && !currentSpace;
+    if (pathname.includes("/room") || pathname.includes("/chat")) {
+      const spaceQuery = space.href.includes("space=")
+        ? space.href.split("space=")[1]?.split("&")[0]
+        : null;
+      const currentSpace = searchParams.get("space");
+      if (spaceQuery && currentSpace) return currentSpace === spaceQuery;
+    }
+    return false;
   }
 
   return (
@@ -236,35 +244,39 @@ function SidebarBody({
         </button>
         {spacesOpen && (
           <nav className="mb-5 space-y-0.5">
-            {spaces.map((space) => {
-              const active = spaceActive(space);
-              return (
-                <Link
-                  key={space.id}
-                  href={`${base}${space.href}`}
-                  onClick={onNavigate}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
-                    active
-                      ? "bg-orange-50 font-semibold text-orange-600"
-                      : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  )}
-                >
-                  <MessageSquare className="h-4 w-4 shrink-0 text-gray-400" />
-                  <span className="truncate">{space.label}</span>
-                  {space.live && (
-                    <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                      Live
-                    </span>
-                  )}
-                  {!space.live && space.unread ? (
-                    <span className="ml-auto rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
-                      {space.unread}
-                    </span>
-                  ) : null}
-                </Link>
-              );
-            })}
+            {spaces.length === 0 ? (
+              <p className="px-3 py-2 text-[12px] text-gray-400">No spaces yet</p>
+            ) : (
+              spaces.map((space) => {
+                const active = spaceActive(space);
+                return (
+                  <Link
+                    key={space.id}
+                    href={`${base}${space.href}`}
+                    onClick={onNavigate}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
+                      active
+                        ? "bg-orange-50 font-semibold text-orange-600"
+                        : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    )}
+                  >
+                    <MessageSquare className="h-4 w-4 shrink-0 text-gray-400" />
+                    <span className="truncate">{space.label}</span>
+                    {space.live && (
+                      <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                        Live
+                      </span>
+                    )}
+                    {!space.live && space.unread ? (
+                      <span className="ml-auto rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
+                        {space.unread}
+                      </span>
+                    ) : null}
+                  </Link>
+                );
+              })
+            )}
           </nav>
         )}
 
@@ -307,10 +319,18 @@ export function CommunitySidebar({
   membersOnline = MOCK_COMMUNITY.membersOnline,
   activeNav,
   activeSpaceId,
-  spaces = DEFAULT_SPACES,
+  spaces: spacesProp,
   mobileOpen,
   onMobileClose,
 }: CommunitySidebarProps) {
+  const workspace = useWorkspaceOptional();
+  const spaces =
+    spacesProp !== undefined
+      ? spacesProp
+      : workspace?.spacesWithRooms?.length
+        ? mapWorkspaceSpaces(workspace.spacesWithRooms)
+        : DEFAULT_SPACES;
+
   const bodyProps = {
     slug,
     communityName,
