@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect, Fragment, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useRef, Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
-  ArrowRight, Check, ShieldCheck, Globe, Zap, Sparkles,
+  ArrowRight, Check, ShieldCheck, Globe, Sparkles,
   Bot, Wand2, Search, Clapperboard, Share2, Star,
   ChevronDown, TrendingUp, Wallet, Target, Award, BarChart3, LineChart,
 } from "lucide-react";
@@ -62,35 +62,62 @@ function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: stri
   );
 }
 
-/** Two rows, horizontal scroll — columns grow with content (mockup-style carousels) */
-function TwoRowHorizontalScroll({
+/** One row, horizontal scroll — responsive visible card counts */
+function OneRowHorizontalScroll({
   children,
-  cardMinWidth = 168,
-  gap = "gap-2.5",
+  gapPx = 10,
 }: {
   children: ReactNode[];
-  cardMinWidth?: number;
-  gap?: string;
+  gapPx?: number;
 }) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const [cardWidth, setCardWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const w = el.clientWidth;
+      const cols = w >= 1280 ? 6 : w >= 1024 ? 5 : w >= 768 ? 3 : 2;
+      const width = (w - gapPx * (cols - 1)) / cols;
+      setCardWidth(width > 0 ? width : null);
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [gapPx]);
+
   if (!children.length) return null;
+
   return (
-    <div className="-mx-4 overflow-x-auto px-4 pb-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[var(--color-border)] sm:-mx-6 sm:px-6">
+    <div ref={viewportRef} className="-mx-4 overflow-hidden sm:-mx-6">
       <div
-        className={cn("grid w-max grid-flow-col grid-rows-2", gap)}
-        style={{ gridAutoColumns: `minmax(${cardMinWidth}px, ${cardMinWidth + 24}px)` }}
+        className="flex w-full gap-2.5 overflow-x-auto px-4 pb-1 snap-x snap-mandatory scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[var(--color-border)] sm:px-6"
+        style={{
+          gap: gapPx,
+          visibility: cardWidth == null ? "hidden" : "visible",
+        }}
       >
-        {children}
+        {children.map((child, i) => (
+          <div
+            key={i}
+            className="shrink-0 snap-start"
+            style={cardWidth != null ? { width: cardWidth } : undefined}
+          >
+            {child}
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-/** Mobile: compact two-row carousel. Desktop (lg+): spacious responsive grid. */
+/** Single-row horizontal showcase on all breakpoints. */
 function HomepageShowcaseLayout({
   children,
-  cardMinWidth = 168,
-  gap = "gap-2.5",
-  desktopCols = "lg:grid-cols-3 xl:grid-cols-4",
 }: {
   children: ReactNode[];
   cardMinWidth?: number;
@@ -98,16 +125,7 @@ function HomepageShowcaseLayout({
   desktopCols?: string;
 }) {
   if (!children.length) return null;
-  return (
-    <>
-      <div className="lg:hidden">
-        <TwoRowHorizontalScroll cardMinWidth={cardMinWidth} gap={gap}>
-          {children}
-        </TwoRowHorizontalScroll>
-      </div>
-      <div className={cn("hidden gap-3 lg:grid", desktopCols)}>{children}</div>
-    </>
-  );
+  return <OneRowHorizontalScroll>{children}</OneRowHorizontalScroll>;
 }
 
 /* ═══ 1. What do you want to do today ═══ */
@@ -641,7 +659,39 @@ export function HowJimvioWorks() {
   );
 }
 
-/* ═══ 6. Trending products ═══ */
+/* ═══ 6. Flash Deals (one-row product strip) ═══ */
+function FlashDealsHeaderCountdown() {
+  const [t, setT] = useState({ h: 0, m: 0, s: 0 });
+
+  useEffect(() => {
+    function calc() {
+      const now = new Date();
+      const end = new Date();
+      end.setHours(23, 59, 59, 0);
+      const diff = Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000));
+      return {
+        h: Math.floor(diff / 3600),
+        m: Math.floor((diff % 3600) / 60),
+        s: diff % 60,
+      };
+    }
+    setT(calc());
+    const id = setInterval(() => setT(calc()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-text-muted)] sm:text-[12px]">
+      <span>Ends in</span>
+      <span className="rounded-md bg-[var(--color-surface)] px-2 py-0.5 font-bold tabular-nums text-[var(--color-text-primary)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-[var(--color-border)]">
+        {pad(t.h)}h {pad(t.m)}m {pad(t.s)}s
+      </span>
+    </span>
+  );
+}
+
 function truncateLabel(text: string, max: number) {
   const t = text.trim();
   if (t.length <= max) return t;
@@ -650,25 +700,38 @@ function truncateLabel(text: string, max: number) {
 
 export function TrendingProductsRow({
   products = [],
+  flashDeals,
   total,
 }: {
   products?: TrendingProductCardProduct[];
+  flashDeals?: TrendingProductCardProduct[];
   total?: number;
 }) {
-  if (!products.length) return null;
+  const deals =
+    flashDeals && flashDeals.length > 0 ? flashDeals : products;
+  if (!deals.length) return null;
 
   return (
     <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Trending Products</h2>
-          <Link href="/marketplace" className="inline-flex shrink-0 items-center gap-1 text-[12px] font-bold sm:text-[13px]" style={{ color: ORANGE }}>
-            Explore All <ArrowRight className="size-3" />
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
+            <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">
+              🔥 Trending Products
+            </h2>
+            <FlashDealsHeaderCountdown />
+          </div>
+          <Link
+            href="/marketplace"
+            className="inline-flex shrink-0 items-center gap-1 text-[12px] font-bold sm:text-[13px]"
+            style={{ color: ORANGE }}
+          >
+            View All <ArrowRight className="size-3" />
           </Link>
         </div>
         <HomepageTrendingProductsClient
-          initialProducts={products}
-          initialTotal={total ?? products.length}
+          initialProducts={deals}
+          initialTotal={total ?? deals.length}
         />
       </div>
     </section>

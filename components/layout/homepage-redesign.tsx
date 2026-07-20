@@ -1711,6 +1711,7 @@ interface HomepageRedesignProps {
     campaigns?: SharedCampaignRow[];
     communities?: Community[];
     products?: any[];
+    flashDeals?: any[];
     trendingProductsTotal?: number;
     creators?: any[];
     platform?: {
@@ -3088,6 +3089,7 @@ export function HomepageRedesign({
     campaigns = [],
     communities = [],
     products = [],
+    flashDeals = [],
     trendingProductsTotal,
     creators = [],
     platform,
@@ -3100,12 +3102,17 @@ export function HomepageRedesign({
             <Hero />
 
             <WhatToDoToday />
-            <TrustedStrip />
 
-            {/* Live marketplace proof — show real products, campaigns, and communities before the feature map */}
-            <TrendingProductsRow products={products} total={trendingProductsTotal} />
+            {/* Trending Products / Flash Deals — directly below WhatToDoToday, above Featured UGC */}
+            <TrendingProductsRow
+                products={products}
+                flashDeals={flashDeals}
+                total={trendingProductsTotal}
+            />
             <FeaturedUGCCampaigns campaigns={campaigns} />
             <FeaturedCommunities communities={communities} />
+
+            <TrustedStrip />
 
             <PlatformOverviewBar />
             <ChooseYourJourney />

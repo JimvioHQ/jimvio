@@ -65,6 +65,7 @@ async function HomepageContent() {
   ]);
 
   const trendingProducts = homepageProducts.trending;
+  const flashDeals = homepageProducts.flashDeals;
   const trendingProductsTotal = homepageProducts.total;
 
   return (
@@ -72,6 +73,7 @@ async function HomepageContent() {
       campaigns={campaigns as never}
       communities={communitiesList as never}
       products={trendingProducts as never}
+      flashDeals={flashDeals as never}
       trendingProductsTotal={trendingProductsTotal}
       creators={topCreators as never}
       platform={{

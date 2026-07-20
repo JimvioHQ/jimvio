@@ -3,18 +3,17 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchProductVideosMap, attachProductVideos } from "@/lib/product-videos";
-import {
-  MarketplaceTrendingProductCard,
-  type TrendingProductCardProduct,
-} from "@/components/marketplace/new/TrendingProductsClient";
+import { HomepageFlashDealCard } from "@/components/layout/homepage-flash-deal-card";
 import { usePrefersReducedMotion } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 import { dedupeProductsByIdentity } from "@/lib/marketplace/homepage-ranking";
+import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
 
 const PAGE_SIZE = 12;
 /** ~25px/s at 60fps — premium, non-distracting marquee speed */
 const SCROLL_SPEED = 0.42;
 const INTERACTION_RESUME_MS = 3500;
+const GAP_PX = 14; // gap-3.5
 
 const PRODUCT_SELECT = `
   id, name, slug, price, currency, compare_at_price, images, product_type,
@@ -25,48 +24,13 @@ const PRODUCT_SELECT = `
   vendors(id, verification_status)
 `;
 
-type ProductPair = {
-  top: TrendingProductCardProduct;
-  bottom: TrendingProductCardProduct | null;
-  key: string;
-};
-
-function pairProducts(products: TrendingProductCardProduct[]): ProductPair[] {
-  const pairs: ProductPair[] = [];
-  for (let i = 0; i < products.length; i += 2) {
-    pairs.push({
-      top: products[i],
-      bottom: products[i + 1] ?? null,
-      key: products[i].id,
-    });
-  }
-  return pairs;
+function getVisibleCount(width: number) {
+  if (width >= 1280) return 6;
+  if (width >= 1024) return 5;
+  if (width >= 768) return 3;
+  /* Mobile: ~2 cards with partial peek of the next */
+  return 1.75;
 }
-
-const CARD_SLOT_MIN = "min-h-[276px] sm:min-h-[296px]";
-
-const TrendingColumn = memo(function TrendingColumn({
-  top,
-  bottom,
-}: {
-  top: TrendingProductCardProduct;
-  bottom: TrendingProductCardProduct | null;
-}) {
-  return (
-    <div className="flex w-[148px] shrink-0 flex-col gap-3.5 sm:w-[168px]">
-      <div className="shrink-0">
-        <MarketplaceTrendingProductCard p={top} />
-      </div>
-      <div className="shrink-0">
-        {bottom ? (
-          <MarketplaceTrendingProductCard p={bottom} />
-        ) : (
-          <div className={cn("w-full", CARD_SLOT_MIN)} aria-hidden />
-        )}
-      </div>
-    </div>
-  );
-});
 
 type HomepageTrendingProductsClientProps = {
   initialProducts: TrendingProductCardProduct[];
@@ -83,7 +47,9 @@ export function HomepageTrendingProductsClient({
   );
   const [total, setTotal] = useState(initialTotal);
   const [paused, setPaused] = useState(false);
+  const [cardWidth, setCardWidth] = useState<number | null>(null);
 
+  const viewportRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const singleWidthRef = useRef(0);
@@ -97,9 +63,11 @@ export function HomepageTrendingProductsClient({
   const dragScrollLeftRef = useRef(0);
   const programmaticScrollRef = useRef(false);
 
-  const pairs = useMemo(() => pairProducts(products), [products]);
-  const loopPairs = useMemo(() => [...pairs, ...pairs], [pairs]);
-  const autoScroll = !reducedMotion && pairs.length >= 2;
+  const loopProducts = useMemo(
+    () => (products.length >= 2 ? [...products, ...products] : products),
+    [products],
+  );
+  const autoScroll = !reducedMotion && products.length >= 2;
 
   useEffect(() => {
     productsRef.current = products;
@@ -112,6 +80,22 @@ export function HomepageTrendingProductsClient({
   useEffect(() => {
     pausedRef.current = paused || reducedMotion;
   }, [paused, reducedMotion]);
+
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const cols = getVisibleCount(el.clientWidth);
+      const width = (el.clientWidth - GAP_PX * (cols - 1)) / cols;
+      setCardWidth(width > 0 ? width : null);
+    };
+
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const scheduleResume = useCallback(() => {
     setPaused(true);
@@ -174,7 +158,7 @@ export function HomepageTrendingProductsClient({
     const ro = new ResizeObserver(measureLoopWidth);
     ro.observe(track);
     return () => ro.disconnect();
-  }, [autoScroll, loopPairs.length, pairs.length, measureLoopWidth]);
+  }, [autoScroll, loopProducts.length, products.length, measureLoopWidth, cardWidth]);
 
   const wrapScrollPosition = useCallback(() => {
     const scroller = scrollerRef.current;
@@ -201,7 +185,7 @@ export function HomepageTrendingProductsClient({
     if (!autoScroll) return;
 
     const scroller = scrollerRef.current;
-    if (!scroller || pairs.length < 2) return;
+    if (!scroller || products.length < 2) return;
 
     let raf = 0;
 
@@ -217,7 +201,7 @@ export function HomepageTrendingProductsClient({
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [autoScroll, pairs.length, wrapScrollPosition]);
+  }, [autoScroll, products.length, wrapScrollPosition]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -283,16 +267,17 @@ export function HomepageTrendingProductsClient({
 
   if (!products.length) return null;
 
-  const columns = autoScroll ? loopPairs : pairs;
+  const items = autoScroll ? loopProducts : products;
 
   return (
     <div
+      ref={viewportRef}
       className={cn(
-        "relative h-[570px] sm:h-[610px] -mx-4 sm:-mx-6",
+        "relative -mx-4 sm:-mx-6",
         autoScroll ? "overflow-hidden" : "px-4 sm:px-6",
       )}
       role="region"
-      aria-label="Trending products — two-row horizontal browse"
+      aria-label="Flash deals — horizontal browse"
     >
       {autoScroll && (
         <>
@@ -310,12 +295,16 @@ export function HomepageTrendingProductsClient({
       <div
         ref={scrollerRef}
         className={cn(
-          "h-full overscroll-x-contain",
+          "overscroll-x-contain",
           autoScroll
             ? "overflow-x-auto overflow-y-hidden cursor-grab active:cursor-grabbing [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
             : "overflow-x-auto overflow-y-hidden pb-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[var(--color-border)]",
         )}
-        style={autoScroll ? { WebkitOverflowScrolling: "touch", touchAction: "pan-x" } : undefined}
+        style={
+          autoScroll
+            ? { WebkitOverflowScrolling: "touch", touchAction: "pan-x" }
+            : undefined
+        }
       >
         <div
           ref={trackRef}
@@ -323,16 +312,21 @@ export function HomepageTrendingProductsClient({
             "flex w-max gap-3.5 px-4 sm:px-6",
             autoScroll && "will-change-scroll",
           )}
+          style={{ visibility: cardWidth == null ? "hidden" : "visible" }}
         >
-          {columns.map((col, index) => (
-            <TrendingColumn
-              key={autoScroll ? `${col.key}-${index}` : col.key}
-              top={col.top}
-              bottom={col.bottom}
-            />
+          {items.map((product, index) => (
+            <div
+              key={autoScroll ? `${product.id}-${index}` : product.id}
+              className="shrink-0 snap-start"
+              style={cardWidth != null ? { width: cardWidth } : undefined}
+            >
+              <HomepageFlashDealCard p={product} />
+            </div>
           ))}
         </div>
       </div>
     </div>
   );
 }
+
+export const HomepageFlashDealsClient = memo(HomepageTrendingProductsClient);

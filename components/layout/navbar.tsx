@@ -500,8 +500,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
             {/* Right side — fixed-width cluster, never overlaps nav */}
             <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 min-w-0">
 
-              {/* Desktop search + Ask AI */}
-              <div className="hidden min-[1240px]:flex items-center gap-2 shrink-0">
+              {/* Desktop search */}
+              <div className="hidden min-[1240px]:flex items-center shrink-0">
                 <NavbarSearch
                   searchQ={searchQ}
                   setSearchQ={setSearchQ}
@@ -510,15 +510,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   runSearch={runSearch}
                   navLinks={navLinks}
                 />
-
-                <ConsoleButton
-                  orange
-                  className="hidden min-[1320px]:inline-flex h-9 shrink-0 gap-1.5 px-3.5 py-0 text-[11px] uppercase tracking-widest"
-                  onClick={() => openAssistant()}
-                >
-                  <Sparkles className="h-3.5 w-3.5 fill-white stroke-none" />
-                  <span>Ask AI</span>
-                </ConsoleButton>
               </div>
 
               {/* Messages */}
