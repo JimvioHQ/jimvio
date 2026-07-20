@@ -20,6 +20,14 @@ import {
     ChevronDown,
     Users,
     Lock,
+    Sparkles,
+    BarChart3,
+    Flag,
+    Quote,
+    FileText,
+    Package,
+    Radio,
+    MoreHorizontal,
 } from "lucide-react";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 import { formatDistanceToNow } from "date-fns";
@@ -41,14 +49,19 @@ interface Post {
     body: string;
     post_type: string;
     images: unknown;
+    attachments?: Record<string, unknown> | null;
     like_count: number;
     comment_count: number;
+    share_count?: number;
     is_pinned: boolean | null;
+    is_published?: boolean | null;
     created_at: string;
     community_id: string;
     room_id: string;
     space_id: string;
     author_id: string;
+    quote_of_post_id?: string | null;
+    quoted_post?: { id: string; body: string; profiles?: Profile | null } | null;
     profiles?: Profile | null;
     author?: Profile | null;
     content?: string;
@@ -56,6 +69,8 @@ interface Post {
     comments_count?: number;
     user_has_liked?: boolean;
 }
+
+type ComposerMode = "discussion" | "poll";
 
 interface Comment {
     id: string;
@@ -142,6 +157,14 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
     const [cursor, setCursor] = useState<string | null>(null);
 
     const [composer, setComposer] = useState("");
+    const [composerMode, setComposerMode] = useState<ComposerMode>("discussion");
+    const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+    const [quoteOfPostId, setQuoteOfPostId] = useState<string | null>(null);
+    const [quotePreview, setQuotePreview] = useState<Post | null>(null);
+    const [productAttachId, setProductAttachId] = useState("");
+    const [liveAttachId, setLiveAttachId] = useState("");
+    const [showAttachPanel, setShowAttachPanel] = useState(false);
+    const [aiBusy, setAiBusy] = useState(false);
     const [saving, setSaving] = useState(false);
     const [composerError, setComposerError] = useState<string | null>(null);
     const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
@@ -152,11 +175,14 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
     >([]);
     const [uploading, setUploading] = useState(false);
     const [showCommunityPicker, setShowCommunityPicker] = useState(false);
+    const [showDrafts, setShowDrafts] = useState(false);
+    const [drafts, setDrafts] = useState<Post[]>([]);
 
     const imageInputRef = useRef<HTMLInputElement>(null);
     const composerRef = useRef<HTMLTextAreaElement>(null);
     const realtimeRef = useRef<RealtimeChannel | null>(null);
     const communityPickerRef = useRef<HTMLDivElement>(null);
+    const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
 
     // ── Bootstrap current user + memberships ──────────────────────────────────
     useEffect(() => {
@@ -282,6 +308,21 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
 
     useEffect(() => { load(); }, [load]);
 
+    // ── Infinite scroll ───────────────────────────────────────────────────────
+    useEffect(() => {
+        const el = loadMoreSentinelRef.current;
+        if (!el || !hasMore) return;
+        const obs = new IntersectionObserver(
+            (entries) => {
+                if (entries[0]?.isIntersecting) void loadMore();
+            },
+            { rootMargin: "240px" }
+        );
+        obs.observe(el);
+        return () => obs.disconnect();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [hasMore, cursor, loadingMore]);
+
     // ── Load more (pagination) ────────────────────────────────────────────────
     async function loadMore() {
         if (!cursor || loadingMore) return;
@@ -302,6 +343,13 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
         } finally {
             setLoadingMore(false);
         }
+    }
+
+    async function loadDrafts() {
+        const params = new URLSearchParams({ drafts: "1", limit: "20" });
+        const res = await fetch(`/api/posts/feed?${params}`);
+        const data = await res.json();
+        if (res.ok) setDrafts((data.posts ?? []).map(normalizePost));
     }
 
     // ── Load saved post ids ───────────────────────────────────────────────────
@@ -403,10 +451,19 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
     }
 
     // ── Submit post ───────────────────────────────────────────────────────────
-    async function submitPost() {
+    async function submitPost(asDraft = false) {
         setComposerError(null);
 
-        if (!composer.trim()) return;
+        const trimmed = composer.trim();
+        const cleanPoll = pollOptions.map((o) => o.trim()).filter(Boolean);
+        if (composerMode === "poll") {
+            if (cleanPoll.length < 2) {
+                setComposerError("Add at least 2 poll options.");
+                return;
+            }
+        } else if (!trimmed && pendingImages.every((i) => !i.url)) {
+            return;
+        }
 
         if (!currentUserId) {
             setComposerError("You must be signed in to post.");
@@ -432,18 +489,26 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
             return;
         }
 
+        const attachments: Record<string, unknown> = {};
+        if (productAttachId.trim()) attachments.product_id = productAttachId.trim();
+        if (liveAttachId.trim()) attachments.live_session_id = liveAttachId.trim();
+
         setSaving(true);
         try {
             const res = await fetch(`/api/posts/feed`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    body: composer.trim(),
-                    post_type: "discussion",
+                    body: trimmed || (composerMode === "poll" ? "Poll" : ""),
+                    post_type: composerMode === "poll" ? "poll" : "discussion",
                     community_id: selectedCommunity.id,
                     room_id: selectedCommunity.default_room_id,
                     space_id: selectedCommunity.default_space_id,
                     images: pendingImages.filter((i) => i.url).map((i) => i.url),
+                    attachments,
+                    poll_options: composerMode === "poll" ? cleanPoll : undefined,
+                    is_published: !asDraft,
+                    quote_of_post_id: quoteOfPostId,
                 }),
             });
 
@@ -454,14 +519,87 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
             }
 
             setComposer("");
+            setPollOptions(["", ""]);
+            setComposerMode("discussion");
             setPendingImages([]);
-            // Realtime will inject the new post; no manual reload needed.
-            // But reload to get server-computed like state etc.
-            await load();
+            setQuoteOfPostId(null);
+            setQuotePreview(null);
+            setProductAttachId("");
+            setLiveAttachId("");
+            setShowAttachPanel(false);
+            if (asDraft) {
+                await loadDrafts();
+                setShowDrafts(true);
+            } else {
+                await load();
+            }
         } catch {
             setComposerError("Network error. Please try again.");
         } finally {
             setSaving(false);
+        }
+    }
+
+    async function runAiAssist(mode: "improve" | "shorten" | "expand" | "engaging" = "improve") {
+        if (!composer.trim() || aiBusy) return;
+        setAiBusy(true);
+        setComposerError(null);
+        try {
+            const res = await fetch("/api/c/feed/assist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: composer, mode }),
+            });
+            const data = await res.json();
+            if (data.text) setComposer(data.text);
+            else setComposerError(data.error ?? "AI assist unavailable");
+        } catch {
+            setComposerError("AI assist failed. Try again.");
+        } finally {
+            setAiBusy(false);
+        }
+    }
+
+    function startQuote(post: Post) {
+        setQuoteOfPostId(post.id);
+        setQuotePreview(post);
+        composerRef.current?.focus();
+    }
+
+    async function reportPost(postId: string) {
+        const reason = window.prompt("Report reason (spam, harassment, misinformation, other):", "other");
+        if (!reason) return;
+        const res = await fetch(`/api/posts/${postId}/report`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason }),
+        });
+        if (res.ok) {
+            window.alert("Thanks — moderators will review this post.");
+        } else {
+            const err = await res.json().catch(() => ({}));
+            window.alert(err.error ?? "Could not submit report");
+        }
+    }
+
+    async function votePoll(postId: string, optionIndex: number) {
+        const res = await fetch(`/api/posts/${postId}/poll/vote`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ optionIndex }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.options) {
+            setPosts((prev) =>
+                prev.map((p) => {
+                    if (p.id !== postId) return p;
+                    const attachments = { ...(p.attachments ?? {}), poll: { options: data.options } };
+                    return { ...p, attachments };
+                })
+            );
+        } else {
+            await load(false);
         }
     }
 
@@ -544,6 +682,12 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
             } else {
                 await navigator.clipboard?.writeText(url);
             }
+            void fetch(`/api/posts/${postId}/share`, { method: "POST" });
+            setPosts((prev) =>
+                prev.map((p) =>
+                    p.id === postId ? { ...p, share_count: (p.share_count ?? 0) + 1 } : p
+                )
+            );
         } catch {
             // Ignore share abort
         }
@@ -647,6 +791,59 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                     </div>
                 )}
 
+                {/* Mode tabs */}
+                <div className="flex items-center gap-1 mb-2 overflow-x-auto">
+                    {(
+                        [
+                            { id: "discussion" as const, label: "Post", icon: FileText },
+                            { id: "poll" as const, label: "Poll", icon: BarChart3 },
+                        ] as const
+                    ).map((m) => (
+                        <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setComposerMode(m.id)}
+                            className={cn(
+                                "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-colors",
+                                composerMode === m.id
+                                    ? "bg-[#fd5000]/12 text-[#fd5000]"
+                                    : "text-text-muted hover:bg-surface-secondary"
+                            )}
+                        >
+                            <m.icon className="w-3.5 h-3.5" />
+                            {m.label}
+                        </button>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            setShowDrafts((v) => !v);
+                            if (!showDrafts) await loadDrafts();
+                        }}
+                        className={cn(
+                            "ml-auto inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg",
+                            showDrafts ? "text-[#fd5000]" : "text-text-muted hover:bg-surface-secondary"
+                        )}
+                    >
+                        Drafts
+                    </button>
+                </div>
+
+                {quotePreview && (
+                    <div className="mb-2 flex items-start gap-2 rounded-xl border border-border bg-surface-secondary/60 px-3 py-2">
+                        <Quote className="w-3.5 h-3.5 text-[#fd5000] mt-0.5 shrink-0" />
+                        <p className="text-[12px] text-text-muted line-clamp-2 flex-1">{quotePreview.body}</p>
+                        <button
+                            type="button"
+                            onClick={() => { setQuoteOfPostId(null); setQuotePreview(null); }}
+                            className="text-text-muted hover:text-[#fd5000]"
+                            aria-label="Remove quote"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                )}
+
                 <textarea
                     id={isHub ? "hub-community-composer" : undefined}
                     ref={composerRef}
@@ -655,7 +852,9 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                     placeholder={
                         !selectedCommunity
                             ? "Select a community above to post…"
-                            : `Share something in ${selectedCommunity.name}…`
+                            : composerMode === "poll"
+                              ? `Ask a question in ${selectedCommunity.name}…`
+                              : `Share something in ${selectedCommunity.name}…`
                     }
                     rows={isHub ? 2 : 3}
                     disabled={!isMemberOfSelected && communities.length > 0}
@@ -664,6 +863,68 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                         isHub ? "min-h-[56px] bg-transparent" : "bg-transparent"
                     )}
                 />
+
+                {composerMode === "poll" && (
+                    <div className="mt-2 space-y-2">
+                        {pollOptions.map((opt, i) => (
+                            <div key={i} className="flex items-center gap-2">
+                                <input
+                                    value={opt}
+                                    onChange={(e) =>
+                                        setPollOptions((prev) =>
+                                            prev.map((p, j) => (j === i ? e.target.value : p))
+                                        )
+                                    }
+                                    placeholder={`Option ${i + 1}`}
+                                    className="flex-1 rounded-lg border border-border bg-surface-secondary px-3 py-2 text-[13px] text-text-primary focus:outline-none"
+                                />
+                                {pollOptions.length > 2 && (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setPollOptions((prev) => prev.filter((_, j) => j !== i))
+                                        }
+                                        className="p-1.5 text-text-muted hover:text-red-500"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        {pollOptions.length < 6 && (
+                            <button
+                                type="button"
+                                onClick={() => setPollOptions((prev) => [...prev, ""])}
+                                className="text-[11px] font-semibold text-[#fd5000]"
+                            >
+                                + Add option
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {showAttachPanel && (
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        <label className="text-[11px] text-text-muted">
+                            Product ID
+                            <input
+                                value={productAttachId}
+                                onChange={(e) => setProductAttachId(e.target.value)}
+                                placeholder="product uuid"
+                                className="mt-1 w-full rounded-lg border border-border bg-surface-secondary px-3 py-2 text-[12px] text-text-primary focus:outline-none"
+                            />
+                        </label>
+                        <label className="text-[11px] text-text-muted">
+                            Live session ID
+                            <input
+                                value={liveAttachId}
+                                onChange={(e) => setLiveAttachId(e.target.value)}
+                                placeholder="live session uuid"
+                                className="mt-1 w-full rounded-lg border border-border bg-surface-secondary px-3 py-2 text-[12px] text-text-primary focus:outline-none"
+                            />
+                        </label>
+                    </div>
+                )}
 
                 {/* Pending images */}
                 {pendingImages.length > 0 && (
@@ -691,6 +952,29 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                     </div>
                 )}
 
+                {showDrafts && (
+                    <div className="mt-3 rounded-xl border border-border bg-surface-secondary/40 p-2 space-y-1 max-h-40 overflow-y-auto">
+                        {drafts.length === 0 ? (
+                            <p className="text-[11px] text-text-muted px-2 py-1">No drafts yet.</p>
+                        ) : (
+                            drafts.map((d) => (
+                                <button
+                                    key={d.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setComposer(d.body);
+                                        setComposerMode(d.post_type === "poll" ? "poll" : "discussion");
+                                        setShowDrafts(false);
+                                    }}
+                                    className="w-full text-left rounded-lg px-2 py-1.5 text-[12px] text-text-primary hover:bg-surface"
+                                >
+                                    <span className="line-clamp-1">{d.body || "Untitled draft"}</span>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                )}
+
                 {/* Composer error */}
                 {composerError && (
                     <div className="flex items-center gap-1.5 text-[11px] text-red-500 mt-2">
@@ -699,8 +983,8 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                     </div>
                 )}
 
-                <div className={cn("flex items-center justify-between pt-3 border-t border-border", isHub ? "mt-2" : "mt-3")}>
-                    <div className="flex items-center gap-1">
+                <div className={cn("flex items-center justify-between pt-3 border-t border-border gap-2", isHub ? "mt-2" : "mt-3")}>
+                    <div className="flex items-center gap-0.5 flex-wrap">
                         <button
                             type="button"
                             onClick={() => imageInputRef.current?.click()}
@@ -710,22 +994,60 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                         >
                             <ImageIcon className="w-4 h-4" />
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowAttachPanel((v) => !v)}
+                            disabled={!isMemberOfSelected}
+                            className={cn(
+                                "p-2 rounded-lg transition-colors disabled:opacity-40",
+                                showAttachPanel ? "text-[#fd5000] bg-[#fd5000]/10" : "text-text-muted hover:bg-surface-secondary hover:text-[#fd5000]"
+                            )}
+                            aria-label="Attach product or live"
+                            title="Product / Live"
+                        >
+                            <Package className="w-4 h-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => runAiAssist("improve")}
+                            disabled={!isMemberOfSelected || !composer.trim() || aiBusy}
+                            className="p-2 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors disabled:opacity-40"
+                            aria-label="AI Assist"
+                            title="AI Assist"
+                        >
+                            {aiBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                        </button>
                     </div>
-                    <button
-                        type="button"
-                        disabled={!composer.trim() || saving || uploading || !isMemberOfSelected}
-                        onClick={submitPost}
-                        className={cn(
-                            "inline-flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all",
-                            isHub
-                                ? "bg-[#fd5000]/15 text-[#fd5000] hover:bg-[#fd5000]/22"
-                                : "text-white"
-                        )}
-                        style={isHub ? undefined : { background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
-                    >
-                        {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                        Post
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                            type="button"
+                            disabled={saving || uploading || !isMemberOfSelected}
+                            onClick={() => submitPost(true)}
+                            className="text-[11px] font-semibold px-3 py-2 rounded-xl text-text-muted hover:bg-surface-secondary disabled:opacity-40"
+                        >
+                            Save draft
+                        </button>
+                        <button
+                            type="button"
+                            disabled={
+                                (composerMode === "discussion" && !composer.trim() && pendingImages.every((i) => !i.url)) ||
+                                saving ||
+                                uploading ||
+                                !isMemberOfSelected
+                            }
+                            onClick={() => submitPost(false)}
+                            className={cn(
+                                "inline-flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all",
+                                isHub
+                                    ? "bg-[#fd5000]/15 text-[#fd5000] hover:bg-[#fd5000]/22"
+                                    : "text-white"
+                            )}
+                            style={isHub ? undefined : { background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
+                        >
+                            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                            Post
+                        </button>
+                    </div>
                 </div>
 
                 <input
@@ -757,11 +1079,15 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                             onSelect={() => setDetailId(detailId === p.id ? null : p.id)}
                             onDelete={() => deletePost(p.id)}
                             onShare={() => sharePost(p.id)}
+                            onQuote={() => startQuote(p)}
+                            onReport={() => reportPost(p.id)}
+                            onVotePoll={(idx) => votePoll(p.id, idx)}
                             isDetailOpen={detailId === p.id}
                         />
                     ))}
 
-                    {/* Load more */}
+                    {/* Infinite scroll sentinel */}
+                    <div ref={loadMoreSentinelRef} className="h-4" aria-hidden />
                     {hasMore && (
                         <button
                             type="button"
@@ -809,6 +1135,9 @@ function PostCard({
     onSelect,
     onDelete,
     onShare,
+    onQuote,
+    onReport,
+    onVotePoll,
     isDetailOpen,
 }: {
     post: Post;
@@ -820,6 +1149,9 @@ function PostCard({
     onSelect: () => void;
     onDelete: () => void;
     onShare: () => void;
+    onQuote: () => void;
+    onReport: () => void;
+    onVotePoll: (optionIndex: number) => void;
     isDetailOpen: boolean;
 }) {
     const profile = post.profiles ?? post.author ?? null;
@@ -828,6 +1160,11 @@ function PostCard({
         ? (post.images as string[]).filter(Boolean)
         : [];
     const isOwn = currentUserId && post.author_id === currentUserId;
+    const poll = (post.attachments as { poll?: { options?: Array<{ text: string; votes?: number }> } } | null)
+        ?.poll;
+    const productId = (post.attachments as { product_id?: string } | null)?.product_id;
+    const liveSessionId = (post.attachments as { live_session_id?: string } | null)?.live_session_id;
+    const [menuOpen, setMenuOpen] = useState(false);
 
     return (
         <article
@@ -862,26 +1199,103 @@ function PostCard({
                     {profile?.username && (
                         <p className="text-[11px] text-text-muted truncate">
                             @{profile.username} · {timeAgo(post.created_at)}
+                            {post.post_type === "poll" ? " · Poll" : ""}
                         </p>
                     )}
                 </div>
 
-                {/* Delete (own posts only) */}
-                {isOwn && (
+                <div className="relative flex items-center gap-1">
+                    {isOwn && (
+                        <button
+                            type="button"
+                            onClick={onDelete}
+                            className="p-1.5 rounded-lg text-text-muted hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 transition-colors"
+                            aria-label="Delete post"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                     <button
                         type="button"
-                        onClick={onDelete}
-                        className="p-1.5 rounded-lg text-text-muted hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 transition-colors"
-                        aria-label="Delete post"
+                        onClick={() => setMenuOpen((v) => !v)}
+                        className="p-1.5 rounded-lg text-text-muted hover:bg-surface-secondary"
+                        aria-label="More actions"
                     >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <MoreHorizontal className="w-3.5 h-3.5" />
                     </button>
-                )}
+                    {menuOpen && (
+                        <div className="absolute right-0 top-full mt-1 z-20 min-w-[140px] rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
+                            <button
+                                type="button"
+                                onClick={() => { onQuote(); setMenuOpen(false); }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-text-primary hover:bg-surface-secondary"
+                            >
+                                <Quote className="w-3.5 h-3.5" /> Quote
+                            </button>
+                            {!isOwn && (
+                                <button
+                                    type="button"
+                                    onClick={() => { onReport(); setMenuOpen(false); }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-red-600 hover:bg-red-50"
+                                >
+                                    <Flag className="w-3.5 h-3.5" /> Report
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
             </header>
 
             <p className="text-[14px] text-text-primary leading-relaxed whitespace-pre-wrap mb-3">
                 {post.body}
             </p>
+
+            {post.quoted_post && (
+                <div className="mb-3 rounded-xl border border-border bg-surface-secondary/50 px-3 py-2">
+                    <p className="text-[12px] text-text-muted line-clamp-3">{post.quoted_post.body}</p>
+                </div>
+            )}
+
+            {poll?.options && poll.options.length > 0 && (
+                <div className="mb-3 space-y-1.5">
+                    {poll.options.map((opt, i) => {
+                        const total = poll.options!.reduce((s, o) => s + (o.votes ?? 0), 0) || 1;
+                        const pct = Math.round(((opt.votes ?? 0) / total) * 100);
+                        return (
+                            <button
+                                key={i}
+                                type="button"
+                                onClick={() => onVotePoll(i)}
+                                className="relative w-full overflow-hidden rounded-xl border border-border px-3 py-2 text-left text-[12px] font-medium text-text-primary hover:border-[#fd5000]/40"
+                            >
+                                <span
+                                    className="absolute inset-y-0 left-0 bg-[#fd5000]/12"
+                                    style={{ width: `${pct}%` }}
+                                />
+                                <span className="relative flex justify-between gap-2">
+                                    <span>{opt.text}</span>
+                                    <span className="text-text-muted">{pct}%</span>
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
+            {(productId || liveSessionId) && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                    {productId && (
+                        <span className="inline-flex items-center gap-1 rounded-lg bg-surface-secondary px-2 py-1 text-[11px] font-semibold text-text-muted">
+                            <Package className="w-3 h-3 text-[#fd5000]" /> Product attached
+                        </span>
+                    )}
+                    {liveSessionId && (
+                        <span className="inline-flex items-center gap-1 rounded-lg bg-surface-secondary px-2 py-1 text-[11px] font-semibold text-text-muted">
+                            <Radio className="w-3 h-3 text-[#fd5000]" /> Live attached
+                        </span>
+                    )}
+                </div>
+            )}
 
             {imgs.length > 0 && (
                 <div className="flex gap-2 flex-wrap mb-3">
@@ -938,6 +1352,7 @@ function PostCard({
                     className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
                 >
                     <Share2 className="w-3.5 h-3.5" />
+                    {(post.share_count ?? 0) > 0 && <span className="font-semibold">{post.share_count}</span>}
                 </button>
             </div>
         </article>

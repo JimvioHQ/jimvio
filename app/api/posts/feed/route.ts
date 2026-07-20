@@ -17,6 +17,8 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(Number(searchParams.get("limit") ?? PAGE_SIZE), 50);
   const cursor = searchParams.get("cursor");
   const filter = searchParams.get("filter") ?? "for-you";
+  const communityId = searchParams.get("community_id");
+  const draftsOnly = searchParams.get("drafts") === "1";
 
   const { data: memberships, error: membershipError } = await supabase
     .from("community_memberships")
@@ -33,12 +35,20 @@ export async function GET(req: NextRequest) {
   }
 
   const communityIds = memberships.map((m) => m.community_id);
+  if (communityId && !communityIds.includes(communityId)) {
+    return NextResponse.json({ error: "No access" }, { status: 403 });
+  }
 
   let query = supabase
     .from("community_posts")
     .select("*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username)")
-    .in("community_id", communityIds)
-    .eq("is_published", true);
+    .in("community_id", communityId ? [communityId] : communityIds);
+
+  if (draftsOnly) {
+    query = query.eq("author_id", user.id).eq("is_published", false);
+  } else {
+    query = query.eq("is_published", true);
+  }
 
   if (cursor) {
     query = query.lt("created_at", cursor);
@@ -99,10 +109,28 @@ export async function GET(req: NextRequest) {
       : { data: [] as { post_id: string }[] };
 
   const likedSet = new Set((likedRows ?? []).map((row) => row.post_id));
-  const enriched = posts.map((post) => ({
-    ...post,
-    user_has_liked: likedSet.has(post.id),
-  }));
+
+  // Enrich quote posts (best-effort; quote_of_post_id may be missing pre-migration)
+  const quoteIds = posts
+    .map((p) => (p as { quote_of_post_id?: string | null }).quote_of_post_id)
+    .filter((id): id is string => Boolean(id));
+  let quotedById = new Map<string, { id: string; body: string; profiles?: unknown }>();
+  if (quoteIds.length > 0) {
+    const { data: quoted } = await supabase
+      .from("community_posts")
+      .select("id, body, profiles!community_posts_author_id_fkey(full_name, avatar_url, username)")
+      .in("id", quoteIds);
+    quotedById = new Map((quoted ?? []).map((q) => [q.id, q]));
+  }
+
+  const enriched = posts.map((post) => {
+    const quoteId = (post as { quote_of_post_id?: string | null }).quote_of_post_id;
+    return {
+      ...post,
+      user_has_liked: likedSet.has(post.id),
+      quoted_post: quoteId ? quotedById.get(quoteId) ?? null : null,
+    };
+  });
 
   const next_cursor =
     hasMore && posts.length > 0 ? posts[posts.length - 1].created_at : null;
@@ -118,7 +146,9 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = (await req.json()) as {
-    community_id: string;
+    community_id?: string;
+    room_id?: string;
+    space_id?: string;
     title?: string | null;
     body?: string;
     post_type?: string;
@@ -127,41 +157,96 @@ export async function POST(req: NextRequest) {
     video_url?: string | null;
     is_pinned?: boolean;
     is_exclusive?: boolean;
+    is_published?: boolean;
+    quote_of_post_id?: string | null;
+    poll_options?: string[];
   };
 
-  const { community_id } = body;
-  if (!community_id)
+  const communityId = body.community_id;
+  if (!communityId) {
     return NextResponse.json({ error: "community_id is required" }, { status: 400 });
+  }
 
   const { data: membership } = await supabase
     .from("community_memberships")
     .select("id")
-    .eq("community_id", community_id)
+    .eq("community_id", communityId)
     .eq("user_id", user.id)
-    .single();
+    .eq("status", "active")
+    .maybeSingle();
 
   if (!membership) return NextResponse.json({ error: "No access" }, { status: 403 });
 
-  const content = body.body?.trim();
-  if (!content) return NextResponse.json({ error: "body is required" }, { status: 400 });
+  let roomId = body.room_id?.trim() || "";
+  let spaceId = body.space_id?.trim() || "";
 
-  const { data, error } = await supabase
+  if (!roomId || !spaceId) {
+    const { data: room } = await supabase
+      .from("rooms")
+      .select("id, space_id")
+      .eq("community_id", communityId)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    roomId = roomId || room?.id || "";
+    spaceId = spaceId || room?.space_id || "";
+  }
+
+  if (!roomId || !spaceId) {
+    return NextResponse.json({ error: "Community has no room for posts" }, { status: 400 });
+  }
+
+  const postType = body.post_type ?? "discussion";
+  const pollOptions = (body.poll_options ?? [])
+    .map((o) => o.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+
+  if (postType === "poll" && pollOptions.length < 2) {
+    return NextResponse.json({ error: "Poll needs at least 2 options" }, { status: 400 });
+  }
+
+  const content = body.body?.trim() ?? "";
+  if (!content && postType !== "poll") {
+    return NextResponse.json({ error: "body is required" }, { status: 400 });
+  }
+
+  const attachments: Record<string, unknown> = {
+    ...((body.attachments as Record<string, unknown> | null) ?? {}),
+  };
+  if (postType === "poll") {
+    attachments.poll = {
+      options: pollOptions.map((text) => ({ text, votes: 0 })),
+    };
+  }
+
+  const isPublished = body.is_published !== false;
+
+  const insertPayload = {
+    community_id: communityId,
+    room_id: roomId,
+    space_id: spaceId,
+    author_id: user.id,
+    title: body.title ?? null,
+    body: content || (postType === "poll" ? "Poll" : ""),
+    post_type: postType,
+    images: (body.images ?? []) as never,
+    attachments: attachments as never,
+    video_url: body.video_url ?? null,
+    is_pinned: body.is_pinned ?? false,
+    is_exclusive: body.is_exclusive ?? false,
+    is_published: isPublished,
+    published_at: isPublished ? new Date().toISOString() : null,
+    ...(body.quote_of_post_id ? { quote_of_post_id: body.quote_of_post_id } : {}),
+  };
+
+  // quote_of_post_id may not be in generated types until types refresh
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
     .from("community_posts")
-    .insert({
-      community_id,
-      room_id: "",
-      space_id: "",
-      author_id: user.id,
-      title: body.title ?? null,
-      body: content,
-      post_type: body.post_type ?? "discussion",
-      images: body.images,
-      attachments: body.attachments,
-      video_url: body.video_url ?? null,
-      is_pinned: body.is_pinned ?? false,
-      is_exclusive: body.is_exclusive ?? false,
-    })
-    .select()
+    .insert(insertPayload)
+    .select("*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username)")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
