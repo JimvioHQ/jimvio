@@ -92,8 +92,18 @@ export default async function VendorStorePage({ params }: PageProps) {
       />
     <div className="min-h-screen bg-[var(--color-bg)]">
       {/* Vendor Cover */}
-      <div className="h-64 bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-hover)] relative">
-        <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+      <div className="h-64 relative bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-accent-hover)] overflow-hidden">
+        {vendor.business_banner ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={vendor.business_banner}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
       </div>
 
       <div className="max-w-[var(--container-max)] mx-auto px-4 sm:px-6 -mt-32 relative z-10 pb-20">
@@ -116,25 +126,32 @@ export default async function VendorStorePage({ params }: PageProps) {
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-3 mb-3">
                     <h1 className="text-3xl font-black text-[var(--color-text-primary)]">{vendor.business_name}</h1>
-                    <Badge className="bg-green-50 text-green-600 border border-green-200 font-bold">
-                      <ShieldCheck className="h-3 w-3 mr-1" /> VERIFIED SUPPLIER
-                    </Badge>
+                    {vendor.verification_status === "verified" && (
+                      <Badge className="bg-green-50 text-green-600 border border-green-200 font-bold">
+                        <ShieldCheck className="h-3 w-3 mr-1" /> VERIFIED SUPPLIER
+                      </Badge>
+                    )}
                   </div>
                   
                   <p className="text-[var(--color-text-secondary)] mb-6 max-w-2xl">
-                    {vendor.about || `Welcome to ${vendor.business_name}. We are a professional manufacturer and distributor based in ${vendor.business_country || "Africa"}, dedicated to providing high-quality products to creators and businesses globally.`}
+                    {vendor.business_description || vendor.about || `Welcome to ${vendor.business_name}. Shop creator-ready products from this Jimvio storefront.`}
                   </p>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                     <div>
                       <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Rating</p>
                       <div className="flex items-center gap-1 font-black text-lg">
-                        <Star className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" /> {vendor.rating || "4.9"}
+                        <Star className="h-4 w-4 fill-[#f59e0b] text-[#f59e0b]" />{" "}
+                        {vendor.rating != null ? Number(vendor.rating).toFixed(1) : "—"}
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Experience</p>
-                      <p className="font-black text-lg">5+ Years</p>
+                      <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Sales</p>
+                      <p className="font-black text-lg">
+                        {(vendor.total_sales || 0) >= 1000
+                          ? `${((vendor.total_sales || 0) / 1000).toFixed(1)}k`
+                          : vendor.total_sales || 0}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Followers</p>
