@@ -9,6 +9,8 @@
     "start": "cross-env NODE_OPTIONS=--use-system-ca next start",
     "lint": "eslint .",
     "type-check": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" tsc --noEmit",
+    "ci:prepush": "node scripts/pre-push-ci.mjs",
+    "test": "node scripts/run-verifies.mjs",
     "pesapal:verify": "node scripts/pesapal-verify.mjs",
     "pawapay:generate-signing-key": "node scripts/generate-pawapay-signing-key.mjs",
     "icons:generate": "node scripts/generate-icons.mjs"

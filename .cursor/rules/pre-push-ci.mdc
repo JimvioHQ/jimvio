@@ -1,0 +1,38 @@
+---
+description: Non-negotiable pre-push CI — never commit/push without green local production gates
+alwaysApply: true
+---
+
+# Pre-Push CI Policy (NON-NEGOTIABLE)
+
+Never commit or push until **all** gates are green on the **exact** worktree you are shipping.
+
+## Mandatory command
+
+```bash
+npm run ci:prepush
+```
+
+This runs App Router conflict scans, server/client boundary scans, env documentation checks, `npm run build`, `npm run lint`, `npm run type-check`, and `scripts/tmp/verify-*.mjs`.
+
+For a faster check during iteration: `npm test` (verifies only). **Push still requires** `npm run ci:prepush`.
+
+## Rules
+
+1. If **any** gate fails: STOP. Fix. Re-run the **entire** `npm run ci:prepush` pipeline.
+2. Do **not** commit or push on a red build.
+3. Do **not** assume Vercel will succeed — local `npm run build` must pass first.
+4. Do **not** use `--no-verify` or bypass hooks.
+5. After CI passes, a stamp is written to `.git/jimvio-ci-pass.json`.
+6. Reject duplicate App Router URLs (`page` / `route` / `loading` / `error` resolving to the same path).
+7. Reject `"use client"` files importing server-only modules (`next/headers`, `@/lib/supabase/server`, etc.).
+
+## Commit / push order
+
+1. Finish code changes
+2. `npm run ci:prepush` (must exit 0)
+3. `git add` + `git commit` (only if step 2 was green on that tree)
+4. `npm run ci:prepush` again on the clean committed HEAD
+5. `git push`
+
+Cursor blocks `git push` unless the CI stamp matches the clean HEAD being pushed.
