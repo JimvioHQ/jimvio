@@ -69,7 +69,8 @@ export async function resolvePostLoginPath(
         .select("welcome_completed_at")
         .eq("user_id", userId)
         .maybeSingle()
-      return onboarding?.welcome_completed_at ? "/dashboard" : "/welcome"
+      const row = onboarding as { welcome_completed_at?: string | null } | null
+      return row?.welcome_completed_at ? "/dashboard" : "/welcome"
     }
 
     const roleHome = ROLE_HOME[topRole]
@@ -88,8 +89,9 @@ export async function resolvePostLoginPath(
       .maybeSingle()
     if (onboardingError) {
       console.error("[resolvePostLoginPath] onboarding lookup failed:", onboardingError.message)
-    } else if (!onboarding?.welcome_completed_at) {
-      return "/welcome"
+    } else {
+      const row = onboarding as { welcome_completed_at?: string | null } | null
+      if (!row?.welcome_completed_at) return "/welcome"
     }
 
     return roleHome

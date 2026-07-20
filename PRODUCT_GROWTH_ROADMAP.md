@@ -202,15 +202,20 @@ Days 85–90  Hardening, NPS baseline, growth review
 
 | ID | Status | Commit | Notes |
 |----|--------|--------|-------|
-| ROADMAP | ✅ | (this file) | Published |
-| M1.1 | ✅ | pending | Welcome flow + intent instrumentation |
-| M1.2 | ✅ | pending | Persistent onboarding checklist + progress |
-| M1.3 | ✅ | pending | Additive role activation checklist |
-| M1.4 | ✅ | pending | Feed/chat/live/library empty-state presets |
-| M1.5 | ✅ | pending | Dismissible first-run tips |
-| M2.1 | ✅ | pending | Notification preference center |
-| M2.2 | ◐ | pending | Dry-run weekly digest queue + in-app delivery |
-| M2.x–M6.x | ⏳ | | Per sprint below |
+| ROADMAP | ✅ | c92566f | Published |
+| M1.1–M1.2 | ✅ | c8a7218 | Welcome + progress tracker |
+| M1.5 | ✅ | 81124f5 | First-run tips |
+| M1.3 | ✅ | fedfb7f | Role activation checklists |
+| M1.4 | ✅ | 70be71a | Empty-state presets |
+| M2.1–M2.2 | ✅ | b7f8190 | Prefs + digest dry-run |
+| M3.1–M3.2 | ✅ | (sprint3) | Discovery shelves + feed ranking helper |
+| M4.1–M4.4 | ✅ | (sprint4) | Monetization nudges |
+| M5.1–M5.4 | ✅ | (sprint5) | Growth KPIs + NPS |
+| M6.1–M6.4 | ✅ | (sprint6) | Experiments + remote config |
+
+### Experiment kill switch
+- Growth experiments are governed by `platform_feature_flags`. Disable the relevant key in Command Center to immediately serve the control experience.
+- `growth.remote_config` is a feature flag whose `metadata` JSON is returned by `getRemoteConfig()` for safe copy/configuration values. Keep secrets and authorization settings out of remote config.
 
 ---
 
@@ -227,4 +232,4 @@ Days 85–90  Hardening, NPS baseline, growth review
 
 ---
 
-*Owner: CPO / CGO · Review cadence: weekly · Next action: execute M1.1 Welcome flow*
+*Owner: CPO / CGO · Review cadence: weekly · Status: 90-day milestones M1–M6 implemented; operate via weekly KPI review.*

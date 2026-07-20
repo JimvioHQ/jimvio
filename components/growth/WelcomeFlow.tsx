@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Compass, Handshake, Store, Wand2 } from "lucide-react";
 
@@ -14,6 +14,24 @@ const intents = [
 export function WelcomeFlow() {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
+  const [variant, setVariant] = useState<"control" | "variant">("control");
+
+  useEffect(() => {
+    fetch("/api/growth/experiments?key=welcome_cta_copy")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        const assignedVariant = data?.variant === "variant" ? "variant" : "control";
+        if (assignedVariant === "variant") {
+          setVariant("variant");
+        }
+        void fetch("/api/growth/experiments", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ key: "welcome_cta_copy", variant: assignedVariant }),
+        });
+      })
+      .catch(() => undefined);
+  }, []);
 
   async function selectIntent(intent: (typeof intents)[number]) {
     setPending(intent.id);
@@ -51,7 +69,7 @@ export function WelcomeFlow() {
               <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-[#fd5000] dark:bg-orange-950/30">
                 <Icon className="h-5 w-5" />
               </span>
-              <span className="block font-semibold text-[var(--color-text-primary)]">{pending === intent.id ? "Saving…" : intent.title}</span>
+              <span className="block font-semibold text-[var(--color-text-primary)]">{pending === intent.id ? "Saving…" : variant === "variant" ? `Start with ${intent.title}` : intent.title}</span>
               <span className="mt-1 block text-sm text-[var(--color-text-muted)]">{intent.description}</span>
             </button>
           );
