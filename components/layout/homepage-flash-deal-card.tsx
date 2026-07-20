@@ -18,6 +18,7 @@ import { addToCart, getCartProductIds, toggleWishlist } from "@/lib/actions/mark
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
 import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 function fmtSold(n: number | null | undefined) {
   if (n == null || n <= 0) return null;
@@ -35,7 +36,7 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
   const [wishlisted, setWishlisted] = useState(false);
   const [wishlistBusy, setWishlistBusy] = useState(false);
 
-  const displayImage = getImage(p.images);
+  const displayImage = safeMediaUrl(getImage(p.images), 480);
   const [prevImage, setPrevImage] = useState(displayImage);
   if (prevImage !== displayImage) {
     setPrevImage(displayImage);
@@ -173,7 +174,7 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
             imageSrc={displayImage}
             previewImages={previewImages}
             hovered={hovered}
-            useNextImage={false}
+            useNextImage={true}
             layout="fill"
             imageFit="cover"
             imageClassName={cn(

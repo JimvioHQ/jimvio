@@ -260,7 +260,6 @@ export function MarketplacePageClient({
   });
   const loadGenRef = useRef(0);
   const skipInitialFetchRef = useRef(true);
-  const hydrateAllRef = useRef<string | null>(null);
   const prefetchRef = useRef<Map<string, DbProduct[]>>(new Map());
   const prefetchingRef = useRef<Set<string>>(new Set());
 
@@ -287,7 +286,6 @@ export function MarketplacePageClient({
     setNewProductIds(new Set());
     prefetchRef.current.clear();
     prefetchingRef.current.clear();
-    hydrateAllRef.current = null;
     applyCachedType(t);
     setLoading(false);
     setProductsLoading(false);
@@ -521,7 +519,6 @@ export function MarketplacePageClient({
     if (filterOrSearchChanged || typeChanged) {
       prefetchRef.current.clear();
       prefetchingRef.current.clear();
-      hydrateAllRef.current = null;
       setNewProductIds(new Set());
       setLoadingMore(false);
     }
@@ -549,10 +546,14 @@ export function MarketplacePageClient({
     }
 
     if (typeChanged && defaultBrowse && !debouncedSearch && cacheRef.current[type]) {
-      applyCachedType(type);
-      setLoading(false);
-      setProductsLoading(false);
-      return;
+      const cached = cacheRef.current[type];
+      // Empty stub from deferred SSR — fall through and load the tab.
+      if (cached.trending.length > 0 || cached.listingCount > 0) {
+        applyCachedType(type);
+        setLoading(false);
+        setProductsLoading(false);
+        return;
+      }
     }
 
     const loadGeneration = ++loadGenRef.current;
@@ -751,7 +752,6 @@ export function MarketplacePageClient({
 
     prefetchRef.current.clear();
     prefetchingRef.current.clear();
-    hydrateAllRef.current = null;
     setNewProductIds(new Set());
     setLoadingMore(false);
 
@@ -798,48 +798,8 @@ export function MarketplacePageClient({
     };
   }, [debouncedSearch, type]);
 
-  // Hydrate any remaining published products if SSR bundle was partial.
-  useEffect(() => {
-    if (debouncedSearch || !isDefaultBrowseState(filters, debouncedSearch)) return;
-
-    const hydrateKey = `${type}:${filtersKey}`;
-    if (hydrateAllRef.current === hydrateKey) return;
-
-    const cached = cacheRef.current[type];
-    if (!cached || cached.trending.length >= cached.listingCount) {
-      hydrateAllRef.current = hydrateKey;
-      return;
-    }
-
-    let cancelled = false;
-
-    (async () => {
-      let offset = cached.trending.length;
-      const target = cached.listingCount;
-
-      while (!cancelled && offset < target) {
-        const generation = loadGenRef.current;
-        const batch = await fetchTrendingSlice(offset, generation);
-        if (!batch?.length || cancelled || generation !== loadGenRef.current) break;
-
-        setTrending((prev) => {
-          const merged = dedupeProductsByIdentity([...prev, ...batch]);
-          offset = merged.length;
-          return merged;
-        });
-
-        if (batch.length < MARKETPLACE_PAGE_SIZE) break;
-      }
-
-      if (!cancelled) {
-        hydrateAllRef.current = hydrateKey;
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [type, filtersKey, debouncedSearch, fetchTrendingSlice]);
+  // Intentionally no "hydrate all remaining products" effect.
+  // SSR ships one page; Load more / pagination grows the list on demand.
 
   // Flash deals — unique IDs only (server bundle already ranked)
   const displayTrending = useMemo(

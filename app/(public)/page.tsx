@@ -23,6 +23,16 @@ export const metadata: Metadata = pageMetadata("home");
 
 export const revalidate = 60;
 
+/** Drop data-URI blobs from SSR props — they inflate HTML/RSC and block FCP. */
+function stripDataUriProps<T>(value: T): T {
+  return JSON.parse(
+    JSON.stringify(value, (_key, v) => {
+      if (typeof v === "string" && v.trimStart().startsWith("data:")) return null;
+      return v;
+    }),
+  ) as T;
+}
+
 const DEFAULT_STATS = {
   totalUsers: 0,
   totalVendors: 0,
@@ -64,18 +74,18 @@ async function HomepageContent() {
     getTopCreators(6).catch(() => []),
   ]);
 
-  const trendingProducts = homepageProducts.trending;
-  const flashDeals = homepageProducts.flashDeals;
+  const trendingProducts = stripDataUriProps(homepageProducts.trending);
+  const flashDeals = stripDataUriProps(homepageProducts.flashDeals);
   const trendingProductsTotal = homepageProducts.total;
 
   return (
     <HomepageRedesign
-      campaigns={campaigns as never}
-      communities={communitiesList as never}
+      campaigns={stripDataUriProps(campaigns) as never}
+      communities={stripDataUriProps(communitiesList) as never}
       products={trendingProducts as never}
       flashDeals={flashDeals as never}
       trendingProductsTotal={trendingProductsTotal}
-      creators={topCreators as never}
+      creators={stripDataUriProps(topCreators) as never}
       platform={{
         totalUsers: PLATFORM_STATS.users,
         totalProducts: PLATFORM_STATS.products,

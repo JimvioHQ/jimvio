@@ -41,9 +41,10 @@ export function WorldMap({
   const svgRef = useRef<SVGSVGElement>(null);
 
   const mapImage = useMemo(() => {
-    const map = new DottedMap({ height: 100, grid: "diagonal" });
+    // Smaller grid keeps the dotted SVG compact while looking the same at card size.
+    const map = new DottedMap({ height: 60, grid: "diagonal" });
     const svg = map.getSVG({
-      radius: 0.22,
+      radius: 0.28,
       color: "#94a3b8",
       shape: "circle",
       backgroundColor: "transparent",

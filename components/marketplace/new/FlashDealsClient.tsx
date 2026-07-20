@@ -9,10 +9,10 @@ import {
   getDiscount,
   getEffectiveCompareAtPrice,
   normalizeImages,
-  isRenderableImageSrc,
 } from "@/lib/utils";
 import { dedupeProductsByIdentity } from "@/lib/marketplace/homepage-ranking";
 import { ProductCardVideoMedia, type ProductVideoSource } from "@/components/marketplace/product-card-video-media";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 type FlashDealProduct = DbProduct & {
   currency?: string | null;
@@ -78,9 +78,13 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
   const compareAtPrice = getEffectiveCompareAtPrice(d);
   const [hovered, setHovered] = useState(false);
   const [imgReady, setImgReady] = useState(false);
-  const displayImage = getImage(d.images);
+  const displayImage = safeMediaUrl(getImage(d.images), 480);
   const previewImages = useMemo(
-    () => normalizeImages(d.images).filter(isRenderableImageSrc).slice(0, 3),
+    () =>
+      normalizeImages(d.images)
+        .map((src) => safeMediaUrl(src, 480))
+        .filter((src): src is string => Boolean(src))
+        .slice(0, 3),
     [d.images],
   );
 
@@ -127,7 +131,7 @@ export function FlashDealCard({ d }: { d: FlashDealProduct }) {
           imageSrc={displayImage}
           previewImages={previewImages}
           hovered={hovered}
-          useNextImage={false}
+          useNextImage={true}
           layout="fill"
           imageFit="cover"
           imageClassName={`transition-opacity duration-300 ease-out ${imgReady ? "opacity-100" : "opacity-0"}`}

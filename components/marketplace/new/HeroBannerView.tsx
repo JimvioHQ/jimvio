@@ -13,6 +13,7 @@ import { getProductDiscountLabel, getEffectiveCompareAtPrice } from "@/lib/utils
 import { HeroBannerClient } from "./HeroBannerClient";
 import type { HeroProduct } from "@/types";
 import { JIMVIO_ORANGE } from "@/lib/marketplace/category-catalog";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 // ─── Theme ────────────────────────────────────────────────────────────────────
 
@@ -622,8 +623,10 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
 
   const safeActiveIdx = products.length > 0 ? Math.min(activeIdx, products.length - 1) : 0;
   const product = products[safeActiveIdx];
-  const image = product ? getProductImage(product) : null;
-  const stageProfile = useAdaptiveStageProfile(image);
+  const imageRaw = product ? getProductImage(product) : null;
+  const image = safeMediaUrl(imageRaw, 800) ?? null;
+  const stageProfileImage = safeMediaUrl(imageRaw, 200) ?? null;
+  const stageProfile = useAdaptiveStageProfile(stageProfileImage);
   const { formatMoney } = useCurrency();
   const router = useRouter();
 

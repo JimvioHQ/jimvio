@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { MarketplaceProvider } from "@/components/marketplace/new/marketplace-context";
 import { MarketplacePageClient } from "@/components/marketplace/new/MarketplacePageClient";
 import { fetchHeroProducts } from "@/components/marketplace/new/HeroBanner";
@@ -9,9 +9,11 @@ import {
 } from "@/lib/marketplace/fetch-page-data";
 import { fetchFeaturedCollections } from "@/lib/marketplace/collections";
 import { fetchVerifiedSellers } from "@/lib/marketplace/verified-sellers";
+import { slimListingImages } from "@/lib/media/optimize-url";
+import { unstable_cache } from "next/cache";
 
 async function fetchMarketplaceStats(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: ReturnType<typeof createAdminClient>,
 ) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -22,7 +24,8 @@ async function fetchMarketplaceStats(
       .from("orders")
       .select("total_amount")
       .eq("payment_status", "paid")
-      .gte("paid_at", today.toISOString()),
+      .gte("paid_at", today.toISOString())
+      .limit(200),
     supabase
       .from("short_videos")
       .select("creator_id", { count: "exact", head: true })
@@ -42,6 +45,56 @@ async function fetchMarketplaceStats(
   };
 }
 
+/** Cookie-free admin client — required inside unstable_cache scopes. */
+const getCachedMarketplacePageBundle = (type: MarketplaceProductType) =>
+  unstable_cache(
+    async () => {
+      const supabase = createAdminClient();
+      return fetchMarketplacePageBundle(supabase, type);
+    },
+    ["marketplace-page-bundle-v3", type],
+    { revalidate: 60 },
+  )();
+
+const getCachedMarketplaceStats = unstable_cache(
+  async () => {
+    const supabase = createAdminClient();
+    return fetchMarketplaceStats(supabase);
+  },
+  ["marketplace-stats-v2"],
+  { revalidate: 60 },
+);
+
+const getCachedMarketplaceChrome = unstable_cache(
+  async () => {
+    const supabase = createAdminClient();
+    const [hero, collections, verifiedSellers] = await Promise.all([
+      fetchHeroProducts(supabase),
+      fetchFeaturedCollections(supabase, 4),
+      fetchVerifiedSellers(supabase, 8),
+    ]);
+    const slimHero = (list: typeof hero.physical) =>
+      list.map((p) => ({
+        ...p,
+        images: slimListingImages(p.images, 1, 720),
+        short_description:
+          typeof p.short_description === "string"
+            ? p.short_description.slice(0, 160)
+            : p.short_description,
+      }));
+    return {
+      hero: {
+        physical: slimHero(hero.physical ?? []),
+        digital: slimHero(hero.digital ?? []),
+      },
+      collections,
+      verifiedSellers,
+    };
+  },
+  ["marketplace-chrome-v2"],
+  { revalidate: 60 },
+);
+
 export async function MarketplacePage({
   searchParams,
 }: {
@@ -50,21 +103,23 @@ export async function MarketplacePage({
   const initialType: MarketplaceProductType =
     searchParams?.type === "digital" ? "digital" : "physical";
 
-  const supabase = await createClient();
+  const emptyBundle: MarketplacePageBundle = {
+    flashDeals: [],
+    trending: [],
+    categories: [],
+    listingCount: 0,
+  };
 
-  const [physicalBundle, digitalBundle, hero, stats, collections, verifiedSellers] =
-    await Promise.all([
-      fetchMarketplacePageBundle(supabase, "physical"),
-      fetchMarketplacePageBundle(supabase, "digital"),
-      fetchHeroProducts(supabase),
-      fetchMarketplaceStats(supabase),
-      fetchFeaturedCollections(supabase, 4),
-      fetchVerifiedSellers(supabase, 8),
-    ]);
+  // SSR only the active tab bundle — the other type loads on tab switch.
+  const [primaryBundle, chrome, stats] = await Promise.all([
+    getCachedMarketplacePageBundle(initialType),
+    getCachedMarketplaceChrome(),
+    getCachedMarketplaceStats(),
+  ]);
 
   const initialBundles: Record<MarketplaceProductType, MarketplacePageBundle> = {
-    physical: physicalBundle,
-    digital: digitalBundle,
+    physical: initialType === "physical" ? primaryBundle : emptyBundle,
+    digital: initialType === "digital" ? primaryBundle : emptyBundle,
   };
 
   return (
@@ -76,10 +131,10 @@ export async function MarketplacePage({
               initialType={initialType}
               initialBundles={initialBundles}
               initialStats={stats}
-              heroPhysical={hero.physical ?? []}
-              heroDigital={hero.digital ?? []}
-              initialCollections={collections}
-              initialVerifiedSellers={verifiedSellers}
+              heroPhysical={chrome.hero.physical ?? []}
+              heroDigital={chrome.hero.digital ?? []}
+              initialCollections={chrome.collections}
+              initialVerifiedSellers={chrome.verifiedSellers}
             />
           </div>
         </div>

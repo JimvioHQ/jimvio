@@ -22,6 +22,7 @@ import {
   ImagePreviewEngine,
   preloadPreviewImages,
 } from "@/lib/marketplace/image-preview-engine";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 export type ProductVideoSource = {
   product_videos?: Array<{ url?: string | null; video_url?: string | null; sort_order?: number | null; thumbnail_url?: string | null }> | null;
@@ -99,9 +100,15 @@ export function ProductCardVideoMedia({
   const slideshowImages = useMemo(() => {
     if (hasVideo) return [] as string[];
     const fromProp = (previewImages ?? []).filter(isRenderableImageSrc).slice(0, 3);
-    if (fromProp.length > 0) return fromProp;
-    if (imageSrc && isRenderableImageSrc(imageSrc)) return [imageSrc];
-    return [] as string[];
+    const raw =
+      fromProp.length > 0
+        ? fromProp
+        : imageSrc && isRenderableImageSrc(imageSrc)
+          ? [imageSrc]
+          : ([] as string[]);
+    return raw
+      .map((src) => safeMediaUrl(src, 480))
+      .filter((src): src is string => Boolean(src));
   }, [hasVideo, previewImages, imageSrc]);
   const enableImagePreview = !hasVideo && slideshowImages.length > 1 && !reducedMotion;
   const videoUrl = useMemo(() => resolveProductVideoUrls(product)[0] ?? null, [product]);
@@ -159,11 +166,6 @@ export function ProductCardVideoMedia({
       motionMq.removeEventListener("change", syncMotion);
     };
   }, []);
-
-  useEffect(() => {
-    if (slideshowImages.length < 2) return;
-    preloadPreviewImages(slideshowImages.slice(0, 2));
-  }, [slideshowImages]);
 
   useEffect(() => {
     if (!enableImagePreview) return;
@@ -332,6 +334,8 @@ export function ProductCardVideoMedia({
       {/* Poster / smart image preview / fallback */}
       {enableImagePreview && !imageError ? (
         slideshowImages.map((src, i) => {
+          // Only mount secondary slides while previewing — avoids eager network for every card.
+          if (i > 0 && !previewActive) return null;
           const visibleIndex = previewActive ? slideIndex : 0;
           const isVisibleLayer = i === visibleIndex;
           const fitClass =
@@ -359,6 +363,7 @@ export function ProductCardVideoMedia({
                 fill
                 sizes={sizes}
                 priority={priority && i === 0}
+                loading={priority && i === 0 ? "eager" : "lazy"}
                 className={cn("absolute inset-0", sharedClass)}
                 style={transitionStyle}
                 onError={i === 0 ? onImageError : undefined}
@@ -378,8 +383,10 @@ export function ProductCardVideoMedia({
                   src={src}
                   alt={i === 0 ? alt : ""}
                   aria-hidden={i !== 0}
-                  loading={i === 0 ? "lazy" : "eager"}
+                  loading="lazy"
                   decoding="async"
+                  width={480}
+                  height={480}
                   className={cn("max-h-full max-w-full", sharedClass)}
                   onError={i === 0 ? onImageError : undefined}
                 />
@@ -394,8 +401,10 @@ export function ProductCardVideoMedia({
               src={src}
               alt={i === 0 ? alt : ""}
               aria-hidden={i !== 0}
-              loading={i === 0 ? "lazy" : "eager"}
+              loading="lazy"
               decoding="async"
+              width={480}
+              height={480}
               className={cn("absolute inset-0 h-full w-full", sharedClass)}
               style={transitionStyle}
               onError={i === 0 ? onImageError : undefined}

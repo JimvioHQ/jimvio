@@ -524,7 +524,7 @@ function ProductCard({
             imageSrc={displayImage}
             previewImages={previewImages}
             hovered={hovered}
-            useNextImage={false}
+            useNextImage={true}
             layout="fill"
             imageFit="cover"
             imageClassName={cn(

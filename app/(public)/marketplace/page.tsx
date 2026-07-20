@@ -4,6 +4,9 @@ import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata("marketplace");
 
+/** Public catalog HTML can be briefly cached; data fetchers also use unstable_cache. */
+export const revalidate = 60;
+
 export default async function Page({
   searchParams,
 }: {

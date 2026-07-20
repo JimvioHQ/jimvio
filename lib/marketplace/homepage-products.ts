@@ -4,9 +4,10 @@
  */
 
 import { unstable_cache } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
-import { getMarketplaceVisibilitySets } from "@/lib/cj/premium-intelligence/marketplace-filter";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { MarketplaceVisibilitySets } from "@/lib/cj/premium-intelligence/marketplace-filter";
 import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos";
+import { slimListingImages } from "@/lib/media/optimize-url";
 import type { DbProduct } from "@/lib/utils";
 import type { HeroProduct } from "@/types";
 import {
@@ -23,12 +24,23 @@ import {
 
 const POOL_LIMIT = 120;
 
+/** Empty sets → published-active fallback (same SSR path as marketplace). */
+const SSR_VISIBILITY_SETS: MarketplaceVisibilitySets = {
+  visibleCjPids: new Set(),
+  autoPublishReadyPids: new Set(),
+  livePublishedPids: new Set(),
+  pidTiers: new Map(),
+  adminOverrideProductIds: new Set(),
+  blacklistedSupplierIds: new Set(),
+  blacklistedSupplierNames: new Set(),
+};
+
 const HOMEPAGE_PRODUCT_SELECT = `
   id, name, slug, price, currency, compare_at_price, images, product_type,
   status, is_active, is_flash_deal, discount_label, shipping_from,
   delivery_time, affiliate_commission_rate, sale_count, view_count,
   rating, review_count, is_free_shipping, vendor_id, category_id,
-  created_at, auto_unpublished, deleted_at, sku, source, source_metadata,
+  created_at, auto_unpublished, deleted_at, sku, source,
   published_by_admin_override,
   vendors(id, verification_status)
 `;
@@ -69,24 +81,23 @@ async function fetchPhysicalProductPool(): Promise<{
   pool: DbProduct[];
   total: number;
 }> {
-  const supabase = await createClient();
-  const visibilitySets = await getMarketplaceVisibilitySets();
+  const supabase = createAdminClient();
 
   const { data, count } = await supabase
     .from("products")
-    .select(HOMEPAGE_PRODUCT_SELECT, { count: "exact" })
+    .select(HOMEPAGE_PRODUCT_SELECT, { count: "estimated" })
     .eq("status", "active")
     .eq("is_active", true)
     .is("deleted_at", null)
     .eq("product_type", "physical")
-    .order("created_at", { ascending: false })
+    .order("view_count", { ascending: false })
     .limit(POOL_LIMIT);
 
   const raw = (data ?? []) as unknown as DbProduct[];
   const total = count ?? raw.length;
   const pool = resolveMarketplaceProductPool(
     dedupeProductsByIdentity(raw),
-    visibilitySets,
+    SSR_VISIBILITY_SETS,
     total,
   );
 
@@ -95,7 +106,7 @@ async function fetchPhysicalProductPool(): Promise<{
 
 async function attachVideos(products: DbProduct[]): Promise<DbProduct[]> {
   if (products.length === 0) return [];
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const videoMap = await fetchProductVideosMap(
     supabase,
     products.map((p) => p.id),
@@ -159,11 +170,20 @@ async function buildHomepageProductBundle(): Promise<HomepageProductBundle> {
   const enriched = await attachVideos(ids);
   const byId = new Map(enriched.map((p) => [p.id, p]));
 
+  const slim = <T extends DbProduct>(p: T): T =>
+    ({
+      ...p,
+      images: slimListingImages(p.images, 3, 480),
+      source_metadata: null,
+    }) as T;
+
   return {
-    trending: trending.map((p) => byId.get(p.id) ?? p),
-    flashDeals: flashDeals.map((p) => byId.get(p.id) ?? p),
+    trending: trending.map((p) => slim(byId.get(p.id) ?? p)),
+    flashDeals: flashDeals.map((p) => slim(byId.get(p.id) ?? p)),
     hero: heroPick
-      ? ((byId.get(heroPick.id) ?? heroPick) as unknown as HeroProduct)
+      ? (slim(
+          (byId.get(heroPick.id) ?? heroPick) as unknown as DbProduct,
+        ) as unknown as HeroProduct)
       : null,
     total,
   };
@@ -171,7 +191,7 @@ async function buildHomepageProductBundle(): Promise<HomepageProductBundle> {
 
 export const getHomepageProductBundle = unstable_cache(
   buildHomepageProductBundle,
-  ["homepage-product-bundle-v2"],
+  ["homepage-product-bundle-v4"],
   { revalidate: 120 },
 );
 

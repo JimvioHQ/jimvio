@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { HeroBannerView } from "./HeroBannerView";
 import type { HeroProduct } from "@/types";
-import { getMarketplaceVisibilitySets } from "@/lib/cj/premium-intelligence/marketplace-filter";
+import type { MarketplaceVisibilitySets } from "@/lib/cj/premium-intelligence/marketplace-filter";
 import {
   resolveMarketplaceProductPool,
   selectTrendingProducts,
@@ -20,16 +20,23 @@ const HERO_SELECT = `
   sale_count, claimed_pct, product_type, rating, review_count,
   is_featured, is_flash_deal, view_count, delivery_time, created_at,
   status, is_active, auto_unpublished, deleted_at,
-  source, source_metadata, published_by_admin_override,
   vendors(id, verification_status)
 `;
+
+const SSR_VISIBILITY_SETS: MarketplaceVisibilitySets = {
+  visibleCjPids: new Set(),
+  autoPublishReadyPids: new Set(),
+  livePublishedPids: new Set(),
+  pidTiers: new Map(),
+  adminOverrideProductIds: new Set(),
+  blacklistedSupplierIds: new Set(),
+  blacklistedSupplierNames: new Set(),
+};
 
 async function fetchFeaturedProducts(
   supabase: Awaited<ReturnType<typeof createClient>>,
   typeFilter: string | readonly string[],
 ): Promise<HeroProduct[]> {
-  const visibilitySets = await getMarketplaceVisibilitySets();
-
   const applyType = (q: any) =>
     typeof typeFilter === "string"
       ? q.eq("product_type", typeFilter)
@@ -38,15 +45,17 @@ async function fetchFeaturedProducts(
   const applyActive = (q: any) =>
     q.eq("status", "active").eq("is_active", true).is("deleted_at", null);
 
-  const { data, count } = await applyActive(
-    applyType(supabase.from("products").select(HERO_SELECT, { count: "exact" })),
+  const { data } = await applyActive(
+    applyType(supabase.from("products").select(HERO_SELECT)),
   )
-    .order("created_at", { ascending: false })
-    .limit(48);
+    .order("view_count", { ascending: false })
+    .limit(24);
 
-  const raw = (data ?? []) as HeroProduct[];
-  const listingCount = count ?? raw.length;
-  const pool = resolveMarketplaceProductPool(raw, visibilitySets, listingCount);
+  const raw = ((data ?? []) as HeroProduct[]).map((p) => ({
+    ...p,
+    images: Array.isArray(p.images) ? p.images.slice(0, 2) : p.images,
+  }));
+  const pool = resolveMarketplaceProductPool(raw, SSR_VISIBILITY_SETS, raw.length);
 
   const ranked = selectTrendingProducts(pool, 5) as HeroProduct[];
   if (ranked.length > 0) return ranked;

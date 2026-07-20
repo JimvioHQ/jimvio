@@ -13,7 +13,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { getImage, fmtCount, cn } from "@/lib/utils";
 import { DEFAULT_PROFILE_IMAGE, resolveProfileImage } from "@/lib/profile-image";
 import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
-import { WorldMap, type WorldMapPin } from "@/components/ui/world-map";
+import { type WorldMapPin } from "@/components/ui/world-map";
 import { TakeJimvioDevicesSkeleton } from "@/components/layout/take-jimvio-phones-client";
 import { Slider } from "@/components/ui/slider";
 import { CommunityLetterAvatar } from "@/components/community/community-letter-avatar";
@@ -24,6 +24,7 @@ import {
 import { HomepageTrendingProductsClient } from "@/components/layout/homepage-trending-products-client";
 import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
 import { PLATFORM_STATS } from "@/lib/platform-stats";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 const TakeJimvioPhonesClient = dynamic(
   () =>
@@ -31,6 +32,20 @@ const TakeJimvioPhonesClient = dynamic(
       (m) => m.TakeJimvioPhonesClient
     ),
   { ssr: false, loading: () => <TakeJimvioDevicesSkeleton /> }
+);
+
+/** Defer dotted-map (~1MB data-URI) out of SSR HTML — identical UI after hydrate. */
+const WorldMap = dynamic(
+  () => import("@/components/ui/world-map").then((m) => m.WorldMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="relative aspect-[2/1] w-full overflow-hidden rounded-xl bg-[var(--color-surface-secondary)]"
+        aria-hidden
+      />
+    ),
+  }
 );
 
 /* ─── Design tokens (match mockup) ─── */
@@ -202,7 +217,16 @@ export function TrustedStrip() {
       <div className={`${shell} flex flex-wrap items-center justify-center gap-4 py-4 sm:gap-6`}>
         <div className="flex -space-x-2.5">
           {AVATARS.map((src, i) => (
-            <img key={i} src={src} alt="" className="size-8 rounded-full border-2 border-[var(--color-surface)] object-cover sm:size-9" />
+            <img
+              key={i}
+              src={src}
+              alt=""
+              width={36}
+              height={36}
+              loading="lazy"
+              decoding="async"
+              className="size-8 rounded-full border-2 border-[var(--color-surface)] object-cover sm:size-9"
+            />
           ))}
         </div>
         <PlatformStatsRotatingBadge showLiveDot={false} className="shadow-none" />
@@ -775,10 +799,26 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
         )}
       >
         <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-surface-secondary)] lg:size-[4.5rem] lg:rounded-2xl">
-          {banner ? (
-            <img src={banner} alt="" className="size-full object-cover" loading="lazy" />
-          ) : logoUrl ? (
-            <img src={logoUrl} alt="" className="size-full object-cover" loading="lazy" />
+          {safeMediaUrl(banner, 320) ? (
+            <img
+              src={safeMediaUrl(banner, 320)}
+              alt=""
+              width={72}
+              height={72}
+              className="size-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : safeMediaUrl(logoUrl, 160) ? (
+            <img
+              src={safeMediaUrl(logoUrl, 160)}
+              alt=""
+              width={72}
+              height={72}
+              className="size-full object-cover"
+              loading="lazy"
+              decoding="async"
+            />
           ) : (
             <Clapperboard className="size-5 text-[var(--color-text-muted)] lg:size-7" />
           )}
@@ -902,13 +942,16 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
       >
         {/* ── Mobile: compact horizontal row (unchanged) ── */}
         <div className="flex min-w-0 flex-1 items-start gap-2.5 lg:hidden">
-          {profileImage ? (
+          {safeMediaUrl(profileImage, 160) ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={profileImage}
+              src={safeMediaUrl(profileImage, 160)}
               alt={c.name}
+              width={48}
+              height={48}
               className="size-12 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
               loading="lazy"
+              decoding="async"
             />
           ) : (
             <CommunityLetterAvatar
@@ -937,13 +980,16 @@ export function FeaturedCommunities({ communities = [] }: { communities: Communi
         {/* ── Desktop: compact vertical community card ── */}
         <div className="hidden lg:flex lg:flex-col lg:h-full">
           <div className="relative h-24 w-full shrink-0 overflow-hidden bg-[var(--color-surface-secondary)] 2xl:h-28">
-            {heroImage ? (
+            {safeMediaUrl(heroImage, 640) ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={heroImage}
+                src={safeMediaUrl(heroImage, 640)}
                 alt={c.name}
+                width={640}
+                height={280}
                 className="size-full object-cover"
                 loading="lazy"
+                decoding="async"
               />
             ) : (
               <CommunityLetterAvatar
@@ -1296,9 +1342,13 @@ export function TopCreatorsEarnings({ creators = [] }: { creators: TopCreatorRow
               {list.slice(0, 3).map((c, i) => (
                 <div key={c.id} className={`flex items-center gap-3 rounded-xl p-3 ${i === 0 ? "bg-[var(--color-surface-secondary)]" : ""}`}>
                   <img
-                    src={c.image}
+                    src={safeMediaUrl(c.image, 128)}
                     alt={c.name}
+                    width={44}
+                    height={44}
                     className="size-11 shrink-0 rounded-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => { e.currentTarget.src = DEFAULT_PROFILE_IMAGE; }}
                   />
                   <div className="min-w-0 flex-1">
@@ -1761,7 +1811,16 @@ export function TrustedBrands() {
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
           {BRANDS.map((b) => (
-            <img key={b.src} src={b.src} alt="" className={`${b.h} w-auto object-contain opacity-50 grayscale dark:opacity-70 dark:invert`} />
+            <img
+              key={b.src}
+              src={b.src}
+              alt=""
+              width={88}
+              height={24}
+              loading="lazy"
+              decoding="async"
+              className={`${b.h} w-auto object-contain opacity-50 grayscale dark:opacity-70 dark:invert`}
+            />
           ))}
         </div>
       </div>
@@ -1829,6 +1888,8 @@ export function TakeJimvioEverywhere() {
                   alt="Download on the App Store"
                   width={180}
                   height={60}
+                  loading="lazy"
+                  decoding="async"
                   className="h-10 w-auto sm:h-11"
                 />
               </a>
@@ -1843,6 +1904,8 @@ export function TakeJimvioEverywhere() {
                   alt="Get it on Google Play"
                   width={200}
                   height={60}
+                  loading="lazy"
+                  decoding="async"
                   className="h-10 w-auto sm:h-11"
                 />
               </a>
@@ -1864,6 +1927,8 @@ export function TakeJimvioEverywhere() {
                   alt="Download on the App Store"
                   width={180}
                   height={60}
+                  loading="lazy"
+                  decoding="async"
                   className="h-11 w-auto"
                 />
               </a>
@@ -1878,6 +1943,8 @@ export function TakeJimvioEverywhere() {
                   alt="Get it on Google Play"
                   width={200}
                   height={60}
+                  loading="lazy"
+                  decoding="async"
                   className="h-11 w-auto"
                 />
               </a>

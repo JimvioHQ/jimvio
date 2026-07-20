@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn, formatNumber } from "@/lib/utils";
 import { CommunityLetterAvatar, communityInitial } from "@/components/community/community-letter-avatar";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 export type CommunityRow = {
   id: string;
@@ -95,14 +96,13 @@ export function SharedCommunityCard({
             featured ? "h-[148px] sm:h-[168px]" : "h-[112px]"
           )}
         >
-          {c.cover_image ? (
+          {safeMediaUrl(c.cover_image, featured ? 800 : 480) ? (
             <Image
-              src={c.cover_image}
+              src={safeMediaUrl(c.cover_image, featured ? 800 : 480)!}
               alt=""
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
               sizes={featured ? "(max-width: 768px) 100vw, 40vw" : "(max-width: 768px) 50vw, 20vw"}
-              unoptimized
             />
           ) : (
             <CommunityLetterAvatar
@@ -128,14 +128,13 @@ export function SharedCommunityCard({
               featured ? "h-10 w-10" : "h-8 w-8"
             )}
           >
-            {avatarSrc ? (
+            {safeMediaUrl(avatarSrc, 96) ? (
               <Image
-                src={avatarSrc}
+                src={safeMediaUrl(avatarSrc, 96)!}
                 alt=""
                 width={40}
                 height={40}
                 className="h-full w-full object-cover"
-                unoptimized
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-[var(--color-accent-light)] text-[12px] font-bold text-[var(--color-accent)]">
