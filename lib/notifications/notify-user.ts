@@ -7,6 +7,7 @@ import {
     sendPaymentFailedEmail,
     sendPaymentSuccessEmail,
     sendPayoutSentEmail,
+    sendWelcomeEmail,
 } from "@/lib/email/transactional";
 
 type NotificationType = Database["public"]["Enums"]["notification_type"];
@@ -23,6 +24,7 @@ type EmailPayload = {
     trackingNumber?: string | null;
     trackingUrl?: string | null;
     destinationLabel?: string;
+    intent?: string | null;
 };
 
 export type NotifyUserInput = {
@@ -84,6 +86,11 @@ async function dispatchEmail(
                 amount: email.amount,
                 currency: email.currency,
                 destinationLabel: email.destinationLabel,
+            });
+            break;
+        case "welcome":
+            await sendWelcomeEmail(recipient, {
+                intent: email.intent,
             });
             break;
     }

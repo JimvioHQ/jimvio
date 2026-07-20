@@ -7,6 +7,7 @@ const labels: Array<[keyof Omit<GrowthKpis, "funnel">, string]> = [
   ["dau", "DAU"], ["wau", "WAU"], ["mau", "MAU"],
   ["postsToday", "Posts today"], ["messagesToday", "Messages today"], ["liveSessionsToday", "Live sessions today"],
   ["gmvToday", "GMV today"], ["creatorRevenueToday", "Creator revenue"], ["affiliateCommissionsToday", "Affiliate commissions"],
+  ["nps", "NPS (30d)"], ["npsResponses", "NPS responses"],
 ];
 
 export default function GrowthKpisPage() {
@@ -22,7 +23,13 @@ export default function GrowthKpisPage() {
         {labels.map(([key, label]) => (
           <article key={key} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
             <p className="text-xs text-[var(--color-text-muted)]">{label}</p>
-            <p className="mt-2 text-2xl font-bold text-[var(--color-text-primary)]">{kpis ? Number(kpis[key]).toLocaleString() : "—"}</p>
+            <p className="mt-2 text-2xl font-bold text-[var(--color-text-primary)]">
+              {kpis
+                ? key === "nps" && kpis.nps == null
+                  ? "—"
+                  : Number(kpis[key]).toLocaleString()
+                : "—"}
+            </p>
           </article>
         ))}
       </div>

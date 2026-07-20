@@ -7,6 +7,8 @@ export type GrowthKpis = {
   dau: number; wau: number; mau: number;
   postsToday: number; messagesToday: number; liveSessionsToday: number;
   gmvToday: number; creatorRevenueToday: number; affiliateCommissionsToday: number;
+  nps: number | null;
+  npsResponses: number;
   funnel: Record<string, number>;
 };
 
@@ -38,7 +40,9 @@ export async function getGrowthKpis(now = new Date()): Promise<GrowthKpis> {
   };
 
   const [events, postsToday, messagesToday, liveSessionsToday, paidOrders, completedPayments, commissions] = await Promise.all([
-    safe<TimestampRow & { event_name?: string }>(db.from("growth_events").select("user_id, event_name, created_at").gte("created_at", mauStart)),
+    safe<TimestampRow & { event_name?: string; properties?: { score?: number } }>(
+      db.from("growth_events").select("user_id, event_name, properties, created_at").gte("created_at", mauStart),
+    ),
     countSince("community_posts", today, (q) => q.eq("is_published", true)),
     countSince("community_messages", today, (q) => q.eq("is_deleted", false)),
     countSince("live_sessions", today),
@@ -48,8 +52,31 @@ export async function getGrowthKpis(now = new Date()): Promise<GrowthKpis> {
   ]);
 
   const sum = (rows: AmountRow[], field: keyof AmountRow) => rows.reduce((total, row) => total + Number(row[field] ?? 0), 0);
-  const eventRows = events as Array<TimestampRow & { event_name?: string }>;
-  const funnelNames = ["growth.welcome_intent_selected", "growth.checklist_completed", "growth.nps_score", "growth.experiment_exposure"];
+  const eventRows = events as Array<TimestampRow & { event_name?: string; properties?: { score?: number } }>;
+  const funnelNames = [
+    "growth.welcome_intent_selected",
+    "growth.welcome_completed",
+    "growth.welcome_email_sent",
+    "growth.checklist_completed",
+    "growth.nps_score",
+    "growth.feedback_submitted",
+    "growth.session_start",
+    "growth.client_error",
+    "growth.web_vital_lcp",
+    "growth.experiment_exposure",
+  ];
+
+  const npsScores = eventRows
+    .filter((row) => row.event_name === "growth.nps_score")
+    .map((row) => Number(row.properties?.score))
+    .filter((score) => Number.isFinite(score) && score >= 0 && score <= 10);
+  const promoters = npsScores.filter((score) => score >= 9).length;
+  const detractors = npsScores.filter((score) => score <= 6).length;
+  const nps =
+    npsScores.length > 0
+      ? Math.round(((promoters - detractors) / npsScores.length) * 100)
+      : null;
+
   return {
     dau: distinctUsersSince(eventRows, today),
     wau: distinctUsersSince(eventRows, windowStart(7, now)),
@@ -60,6 +87,8 @@ export async function getGrowthKpis(now = new Date()): Promise<GrowthKpis> {
     gmvToday: sum(paidOrders, "total_amount"),
     creatorRevenueToday: sum(completedPayments, "creator_earnings"),
     affiliateCommissionsToday: sum(commissions, "commission_amount"),
+    nps,
+    npsResponses: npsScores.length,
     funnel: Object.fromEntries(funnelNames.map((name) => [name, eventRows.filter((row) => row.event_name === name).length])),
   };
 }

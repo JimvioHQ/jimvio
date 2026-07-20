@@ -15,6 +15,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { PlatformStatsProvider } from "@/components/platform/platform-stats-provider";
 import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
+import { SoftLaunchProviders } from "@/components/soft-launch/SoftLaunchProviders";
 
 export const metadata: Metadata = constructMetadata();
 
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <CurrencyProvider>{children}</CurrencyProvider>
           </PlatformStatsProvider>
           <JimvioCopilotLoader />
+          <SoftLaunchProviders />
           <Toaster
             richColors
             position="top-right"

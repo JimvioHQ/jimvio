@@ -5,6 +5,8 @@ import {
   type Checklist,
   type WelcomeIntent,
 } from "@/lib/growth/onboarding-checklist";
+import { notifyUser } from "@/lib/notifications/notify-user";
+import { trackGrowthEvent } from "@/services/growth/events";
 
 export { computeProgress, listChecklistForIntent };
 export type { Checklist, WelcomeIntent };
@@ -38,7 +40,37 @@ export async function completeWelcome(userId: string, intent: WelcomeIntent) {
     .select()
     .single();
   if (error) throw error;
+
+  // Best-effort welcome email once (never blocks onboarding).
+  void maybeSendWelcomeEmail(userId, intent, data?.welcome_email_sent_at ?? null);
+
   return data;
+}
+
+async function maybeSendWelcomeEmail(
+  userId: string,
+  intent: WelcomeIntent,
+  alreadySentAt: string | null,
+) {
+  if (alreadySentAt) return;
+  try {
+    await notifyUser(db(), {
+      userId,
+      type: "system",
+      title: "Welcome to Jimvio",
+      message: "Your account is ready. Open your dashboard to continue setup.",
+      actionUrl: "/dashboard",
+      email: { kind: "welcome", intent },
+    });
+    await db()
+      .from("user_onboarding")
+      .update({ welcome_email_sent_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .is("welcome_email_sent_at", null);
+    void trackGrowthEvent(userId, "growth.welcome_email_sent", { intent });
+  } catch (error) {
+    console.warn("[onboarding] welcome email failed:", error);
+  }
 }
 
 export async function markChecklistItem(userId: string, key: string) {

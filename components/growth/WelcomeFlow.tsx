@@ -53,8 +53,13 @@ export function WelcomeFlow() {
       <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[#fd5000]">Welcome to Jimvio</p>
       <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text-primary)] sm:text-4xl">What brings you here?</h1>
       <p className="mt-3 max-w-xl text-[15px] leading-6 text-[var(--color-text-muted)]">
-        Pick a starting point. You can explore every part of Jimvio whenever you&apos;re ready.
+        Pick a starting point. We&apos;ll personalize your first steps — you can explore everything else anytime.
       </p>
+      <ol className="mt-4 list-decimal space-y-1 pl-5 text-sm text-[var(--color-text-muted)]">
+        <li>Choose how you want to start</li>
+        <li>Follow the checklist on your dashboard</li>
+        <li>Use Feedback anytime to report bugs or ideas</li>
+      </ol>
       <div className="mt-7 grid gap-3 sm:grid-cols-2">
         {intents.map((intent) => {
           const Icon = intent.icon;

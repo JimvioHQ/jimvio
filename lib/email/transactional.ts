@@ -7,7 +7,8 @@ export type TransactionalEmailKind =
     | "payment_success"
     | "payment_failed"
     | "order_shipped"
-    | "payout_sent";
+    | "payout_sent"
+    | "welcome";
 
 type EmailRecipient = {
     to: string;
@@ -208,5 +209,39 @@ export async function sendPayoutSentEmail(
         subject: `Payout sent — ${formatMoney(params.amount, params.currency)}`,
         html,
         text: `Your payout of ${formatMoney(params.amount, params.currency)} was sent. Wallet: ${walletUrl}`,
+    });
+}
+
+export async function sendWelcomeEmail(
+    recipient: EmailRecipient,
+    params: {
+        intent?: string | null;
+        dashboardUrl?: string;
+    } = {}
+) {
+    const dashboardUrl = params.dashboardUrl || `${getAppBaseUrl()}/dashboard`;
+    const intentLine = params.intent
+        ? `<p style="margin:0 0 12px;">You chose to start with <strong>${escapeHtml(params.intent)}</strong> — we tailored a few next steps around that.</p>`
+        : "";
+
+    const html = wrapEmailHtml({
+        preview: "Welcome to Jimvio — your creator platform is ready.",
+        heading: "Welcome to Jimvio",
+        bodyHtml: `
+          <p style="margin:0 0 12px;">${greeting(recipient.toName)}</p>
+          <p style="margin:0 0 12px;">You're in. Jimvio brings community, commerce, live, and creator tools together in one place.</p>
+          ${intentLine}
+          <p style="margin:0 0 12px;">Open your dashboard to finish setup, explore communities, or start creating.</p>
+          <p style="margin:0;">If anything feels off, use the in-app Feedback button — we read every note during soft launch.</p>
+        `,
+        ctaLabel: "Open dashboard",
+        ctaUrl: dashboardUrl,
+    });
+
+    return sendEmail({
+        to: recipient.to,
+        subject: "Welcome to Jimvio",
+        html,
+        text: `Welcome to Jimvio. Open your dashboard: ${dashboardUrl}`,
     });
 }

@@ -7,6 +7,7 @@ import { Search, X } from "lucide-react";
 const commands = [
   ["Operations", "/admin/operations"], ["Command Center", "/admin/command-center"],
   ["Trust & Safety", "/admin/trust-safety"], ["Growth", "/admin/growth"],
+  ["Feedback", "/admin/feedback"], ["Growth KPIs", "/admin/growth-kpis"],
   ["System analysis", "/admin/system-analysis"], ["Users", "/admin/users"], ["Orders", "/admin/orders"],
 ] as const;
 

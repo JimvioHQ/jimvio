@@ -27,6 +27,8 @@ const CRITICAL = [
   { name: "admin_gate", path: "/admin", expectStatus: [200, 307, 302, 303], allowRedirect: true },
   { name: "ops_health", path: "/api/ops/health", expectStatus: [200, 503], expectBodyIncludes: ["status"] },
   { name: "ops_alerts_auth", path: "/api/ops/alerts", expectStatus: [401, 403, 200] },
+  { name: "feedback_auth", path: "/api/feedback", expectStatus: [401, 403, 404, 405] },
+  { name: "welcome", path: "/welcome", expectStatus: [200, 307, 302, 303], allowRedirect: true },
 ];
 
 async function probe(item) {

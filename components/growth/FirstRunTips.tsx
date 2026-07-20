@@ -1,19 +1,35 @@
 "use client";
 
+import Link from "next/link";
 import { Lightbulb, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const TIPS = [
-  { id: "profile", text: "Complete your profile so people recognize you across Jimvio." },
-  { id: "notifications", text: "Choose which updates you want to receive." },
-  { id: "explore", text: "Follow a community or creator to personalize your feed." },
+  {
+    id: "profile",
+    text: "Complete your profile so people recognize you across Jimvio.",
+    href: "/dashboard/settings",
+    cta: "Edit profile",
+  },
+  {
+    id: "notifications",
+    text: "Choose which updates you want — stay in control of your inbox.",
+    href: "/settings/notifications",
+    cta: "Notification settings",
+  },
+  {
+    id: "explore",
+    text: "Join a community or follow creators to personalize your feed.",
+    href: "/communities",
+    cta: "Explore communities",
+  },
 ];
 
 export function FirstRunTips({ dismissed = [] }: { dismissed?: string[] }) {
   const [hidden, setHidden] = useState(dismissed);
   useEffect(() => {
     fetch("/api/growth/onboarding")
-      .then((response) => response.ok ? response.json() : null)
+      .then((response) => (response.ok ? response.json() : null))
       .then((onboarding) => {
         if (Array.isArray(onboarding?.tips_dismissed)) setHidden(onboarding.tips_dismissed);
       })
@@ -36,11 +52,21 @@ export function FirstRunTips({ dismissed = [] }: { dismissed?: string[] }) {
       <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
         <Lightbulb className="h-4 w-4 text-[#fd5000]" /> Getting started
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {visible.map((tip) => (
           <div key={tip.id} className="flex items-start justify-between gap-3 text-sm text-[var(--color-text-muted)]">
-            <p>{tip.text}</p>
-            <button type="button" aria-label="Dismiss tip" onClick={() => dismiss(tip.id)} className="text-[var(--color-text-muted)] hover:text-[#fd5000]">
+            <div>
+              <p>{tip.text}</p>
+              <Link href={tip.href} className="mt-1 inline-block text-xs font-semibold text-[#fd5000] hover:underline">
+                {tip.cta}
+              </Link>
+            </div>
+            <button
+              type="button"
+              aria-label="Dismiss tip"
+              onClick={() => dismiss(tip.id)}
+              className="text-[var(--color-text-muted)] hover:text-[#fd5000]"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
