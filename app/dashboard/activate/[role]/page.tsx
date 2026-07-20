@@ -144,6 +144,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { RoleActivationChecklist } from "@/components/growth/RoleActivationChecklist";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -376,6 +377,7 @@ export default function ActivateRolePage() {
 
   return (
     <div className="max-w-lg mx-auto py-8 px-4">
+      <RoleActivationChecklist role={activeRole} />
 
       {/* Role switcher */}
       <div className="flex gap-1.5 p-1.5 bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-2xl mb-6">
