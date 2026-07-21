@@ -21,6 +21,7 @@ import {
   Trash2,
   Plug,
   Image as ImageIcon,
+  MessageSquarePlus,
 } from "lucide-react";
 import { StyledTextarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,6 +34,7 @@ import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
 import CustomSelect from "@/components/ui/select-2";
 import { AccountSettingsHeader } from "@/components/dashboard/account-settings-header";
+import { ProductFeedbackForm } from "@/components/soft-launch/ProductFeedbackWidget";
 import {
   BrandBtn,
   Divider,
@@ -664,6 +666,10 @@ export default function DashboardSettingsClient() {
                 <Shield className="size-4 shrink-0" />
                 Privacy
               </TabsTrigger>
+              <TabsTrigger value="feedback" className={tabTriggerClass}>
+                <MessageSquarePlus className="size-4 shrink-0" />
+                Feedback
+              </TabsTrigger>
             </TabsList>
 
             <Link
@@ -1286,6 +1292,14 @@ export default function DashboardSettingsClient() {
             >
               Deactivate account
             </BrandBtn>
+          </TabsContent>
+
+          <TabsContent value="feedback" className="mt-0 space-y-6">
+            <Divider label="Product feedback" />
+            <p className="text-[13px] text-[var(--color-text-muted)]">
+              Share bugs, feature ideas, or general notes. Soft-launch feedback is reviewed by the Jimvio team.
+            </p>
+            <ProductFeedbackForm />
           </TabsContent>
         </div>
       </Tabs>

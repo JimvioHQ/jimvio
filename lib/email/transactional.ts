@@ -232,7 +232,7 @@ export async function sendWelcomeEmail(
           <p style="margin:0 0 12px;">You're in. Jimvio brings community, commerce, live, and creator tools together in one place.</p>
           ${intentLine}
           <p style="margin:0 0 12px;">Open your dashboard to finish setup, explore communities, or start creating.</p>
-          <p style="margin:0;">If anything feels off, use the in-app Feedback button — we read every note during soft launch.</p>
+          <p style="margin:0;">If anything feels off, send a note from Settings → Feedback or Help → Send Feedback — we read every note during soft launch.</p>
         `,
         ctaLabel: "Open dashboard",
         ctaUrl: dashboardUrl,

@@ -2,10 +2,6 @@
 
 import dynamic from "next/dynamic";
 
-const ProductFeedbackWidget = dynamic(
-  () => import("./ProductFeedbackWidget").then((m) => m.ProductFeedbackWidget),
-  { ssr: false },
-);
 const SessionAnalytics = dynamic(
   () => import("./SessionAnalytics").then((m) => m.SessionAnalytics),
   { ssr: false },
@@ -19,14 +15,13 @@ const PerformanceAnalytics = dynamic(
   { ssr: false },
 );
 
-/** Soft-launch instrumentation + feedback surface for signed-in product users. */
+/** Soft-launch instrumentation for signed-in product users (no floating UI). */
 export function SoftLaunchProviders() {
   return (
     <>
       <SessionAnalytics />
       <CrashAnalytics />
       <PerformanceAnalytics />
-      <ProductFeedbackWidget />
     </>
   );
 }

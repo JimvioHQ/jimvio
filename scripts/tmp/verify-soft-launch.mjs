@@ -45,6 +45,43 @@ if (!layout.includes("SoftLaunchProviders")) {
   errors += 1;
 }
 
+const softLaunchProviders = readFileSync(
+  join(root, "components/soft-launch/SoftLaunchProviders.tsx"),
+  "utf8"
+);
+if (softLaunchProviders.includes("ProductFeedbackWidget")) {
+  console.error("Floating ProductFeedbackWidget must not be mounted in SoftLaunchProviders");
+  errors += 1;
+}
+
+const feedbackWidget = readFileSync(
+  join(root, "components/soft-launch/ProductFeedbackWidget.tsx"),
+  "utf8"
+);
+if (!feedbackWidget.includes("ProductFeedbackForm") || !feedbackWidget.includes("/api/feedback")) {
+  console.error("ProductFeedbackForm must post to /api/feedback");
+  errors += 1;
+}
+if (feedbackWidget.includes("fixed bottom-")) {
+  console.error("Floating feedback button styles must not remain in ProductFeedbackWidget");
+  errors += 1;
+}
+
+const settingsClient = readFileSync(
+  join(root, "components/dashboard/settings/dashboard-settings-client.tsx"),
+  "utf8"
+);
+if (!settingsClient.includes("ProductFeedbackForm") || !settingsClient.includes('value="feedback"')) {
+  console.error("Settings must expose Feedback via ProductFeedbackForm");
+  errors += 1;
+}
+
+const helpPage = readFileSync(join(root, "app/(public)/help/page.tsx"), "utf8");
+if (!helpPage.includes("ProductFeedbackForm") || !helpPage.includes("Send Feedback")) {
+  console.error("Help & Support must expose Send Feedback via ProductFeedbackForm");
+  errors += 1;
+}
+
 if (errors) {
   console.error(`verify-soft-launch failed (${errors})`);
   process.exit(1);

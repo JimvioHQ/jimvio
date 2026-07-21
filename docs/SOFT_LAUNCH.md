@@ -16,7 +16,7 @@ Ask before every commit: *Does this change measurably improve Jimvio?* If no —
 |------------|--------|
 | First-run onboarding | `/welcome`, dashboard checklist + tips |
 | Welcome email | Sent once on welcome completion (`sendWelcomeEmail`) |
-| Feedback / bug / feature widget | Floating **Feedback** control (signed-in) |
+| Feedback / bug / feature form | Settings → Feedback · Help → Send Feedback |
 | Feedback triage | `/admin/feedback` |
 | NPS survey | Dashboard — after 2 days post-welcome, 45-day cooldown + optional comment |
 | Session analytics | `growth.session_start`, `growth.page_view` |

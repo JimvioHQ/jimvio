@@ -58,7 +58,7 @@ export function WelcomeFlow() {
       <ol className="mt-4 list-decimal space-y-1 pl-5 text-sm text-[var(--color-text-muted)]">
         <li>Choose how you want to start</li>
         <li>Follow the checklist on your dashboard</li>
-        <li>Use Feedback anytime to report bugs or ideas</li>
+        <li>Use Settings → Feedback or Help → Send Feedback anytime</li>
       </ol>
       <div className="mt-7 grid gap-3 sm:grid-cols-2">
         {intents.map((intent) => {

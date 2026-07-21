@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { ProductFeedbackForm } from "@/components/soft-launch/ProductFeedbackWidget";
 
 export default function HelpCenterPage() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -171,6 +172,26 @@ export default function HelpCenterPage() {
                       <Mail className="h-64 w-64" />
                    </div>
                </div>
+            </div>
+
+            <div id="send-feedback" className="mt-10 scroll-mt-24 rounded-sm border border-zinc-100 dark:border-border bg-white dark:bg-surface p-8 sm:p-12">
+              <div className="mb-8 max-w-2xl">
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-sm bg-orange-50 text-[#f97316] text-[11px] font-black uppercase tracking-widest">
+                  Help &amp; Support
+                </span>
+                <h2 className="mt-4 text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
+                  Send Feedback
+                </h2>
+                <p className="mt-3 text-[15px] font-medium text-zinc-500">
+                  Report bugs, request features, or share product notes. You can also find this under Settings → Feedback.
+                </p>
+              </div>
+              <div className="max-w-xl">
+                <ProductFeedbackForm
+                  title="Send feedback"
+                  description="Choose a category and tell us what happened. Soft-launch notes go straight to the product team."
+                />
+              </div>
             </div>
          </div>
       </section>
