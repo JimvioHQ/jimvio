@@ -4,21 +4,18 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
-  Bookmark,
+  Calendar,
   ChevronDown,
   ChevronUp,
   Compass,
   Crown,
   GraduationCap,
+  Hash,
   Home,
   Layers,
   MessageSquare,
   Radio,
   Target,
-  User,
-  Wallet,
-  Calendar,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn, getInitials } from "@/lib/utils";
@@ -27,15 +24,12 @@ export type SidebarItem =
   | "feed"
   | "explore"
   | "live"
-  | "spaces"
   | "messages"
+  | "groups"
+  | "channels"
   | "missions"
   | "courses"
-  | "events"
-  | "wallet"
-  | "analytics"
-  | "bookmarks"
-  | "profile";
+  | "events";
 
 type NavItem = {
   id: SidebarItem;
@@ -49,15 +43,12 @@ const NAV_ITEMS: NavItem[] = [
   { id: "feed", label: "Feed", href: "/communities", icon: Home },
   { id: "explore", label: "Explore", href: "/communities/explore", icon: Compass },
   { id: "live", label: "Live", href: "/communities/live", icon: Radio, badge: { type: "live" } },
-  { id: "spaces", label: "Spaces", href: "/communities/spaces", icon: Layers },
   { id: "messages", label: "Messages", href: "/communities/messages", icon: MessageSquare, badge: { type: "count", value: 4 } },
+  { id: "groups", label: "Groups", href: "/communities/spaces", icon: Layers },
+  { id: "channels", label: "Channels", href: "/communities/channels", icon: Hash },
   { id: "missions", label: "Missions", href: "/communities/missions", icon: Target, badge: { type: "new" } },
   { id: "courses", label: "Courses", href: "/communities/courses", icon: GraduationCap },
   { id: "events", label: "Events", href: "/communities/events", icon: Calendar },
-  { id: "wallet", label: "Wallet", href: "/communities/wallet", icon: Wallet },
-  { id: "analytics", label: "Analytics", href: "/communities/analytics", icon: BarChart3 },
-  { id: "bookmarks", label: "Bookmarks", href: "/communities/bookmarks", icon: Bookmark },
-  { id: "profile", label: "My Profile", href: "/communities/profile", icon: User },
 ];
 
 type CommunityRow = { id: string; name: string; slug: string; unread?: boolean };
@@ -81,14 +72,11 @@ export function resolveSidebarActiveItem(pathname: string): SidebarItem {
   if (pathname.startsWith("/communities/explore")) return "explore";
   if (pathname.startsWith("/communities/live")) return "live";
   if (pathname.startsWith("/communities/messages")) return "messages";
-  if (pathname.startsWith("/communities/spaces")) return "spaces";
+  if (pathname.startsWith("/communities/channels")) return "channels";
+  if (pathname.startsWith("/communities/spaces")) return "groups";
   if (pathname.startsWith("/communities/missions")) return "missions";
   if (pathname.startsWith("/communities/courses")) return "courses";
   if (pathname.startsWith("/communities/events")) return "events";
-  if (pathname.startsWith("/communities/wallet")) return "wallet";
-  if (pathname.startsWith("/communities/analytics")) return "analytics";
-  if (pathname.startsWith("/communities/bookmarks")) return "bookmarks";
-  if (pathname.startsWith("/communities/profile")) return "profile";
   return "feed";
 }
 
