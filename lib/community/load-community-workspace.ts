@@ -31,6 +31,7 @@ export type CommunityWorkspacePayload = {
   spacesWithRooms: WorkspaceSpaceRow[];
   overview: CommunityOverviewStats;
   ownerName: string | null;
+  joinedAt: string | null;
 };
 
 export async function loadCommunityWorkspace(slug: string): Promise<CommunityWorkspacePayload | null> {
@@ -145,5 +146,6 @@ export async function loadCommunityWorkspace(slug: string): Promise<CommunityWor
     spacesWithRooms,
     overview,
     ownerName: ownerRes.data?.full_name ?? ownerRes.data?.username ?? null,
+    joinedAt: membership?.created_at ?? null,
   };
 }

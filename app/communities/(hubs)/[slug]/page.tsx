@@ -5,7 +5,7 @@ import {
   type CommunityDetailPayload,
   type MembershipPayload,
 } from "@/components/community/community-detail-view";
-import { FeedSection } from "@/components/community/workspace/sections/Feed";
+import { HubCommunityOverview } from "@/components/community/hub/hub-community-overview";
 import { loadCommunityWorkspace } from "@/lib/community/load-community-workspace";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
@@ -125,14 +125,7 @@ export default async function CommunitySlugPage({
 
   const payload = user ? await loadCommunityWorkspace(slug) : null;
   if (payload?.membership?.status === "active") {
-    // Nav label is "Feed" — mount the production FeedSection (post/poll/AI), not Overview mock chrome.
-    return (
-      <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--color-bg,#f4f4f5)]">
-        <div className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-4">
-          <FeedSection />
-        </div>
-      </div>
-    );
+    return <HubCommunityOverview />;
   }
 
   const community = await loadPublicCommunity(slug);

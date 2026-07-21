@@ -50,6 +50,8 @@ export default async function CommunitySlugLayout({
       spacesWithRooms={payload.spacesWithRooms}
       membership={payload.membership as any}
       overview={payload.overview}
+      ownerName={payload.ownerName}
+      joinedAt={payload.joinedAt}
       basePath={`/communities/${slug}`}
       hideSidebar
     >

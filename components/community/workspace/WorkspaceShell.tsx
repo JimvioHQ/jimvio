@@ -1410,7 +1410,10 @@ import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 /* ─── Types ──────────────────────────────────────────────────────── */
 
 interface Props {
-  community: WorkspaceCommunity;
+  community: WorkspaceCommunity & {
+    is_private?: boolean | null;
+    tagline?: string | null;
+  };
   currentUserId: string;
   role: WorkspaceRole;
   isAdmin: boolean;
@@ -1421,6 +1424,8 @@ interface Props {
   spacesWithRooms?: WorkspaceSpaceRow[];
   membership?: MembershipLite | null;
   overview?: CommunityOverviewStats | null;
+  ownerName?: string | null;
+  joinedAt?: string | null;
   basePath?: string;
   hideSidebar?: boolean;
   children: React.ReactNode;
@@ -1437,17 +1442,18 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "", label: "Feed", icon: Home, matchExact: true },
-  { href: "/chats", label: "Chats", icon: MessageCircle },
+  { href: "", label: "Overview", icon: Home, matchExact: true },
+  { href: "/feed", label: "Feed", icon: FileText },
+  { href: "/chat", label: "Chats", icon: MessageCircle },
   { href: "/live", label: "Live", icon: Radio },
 ];
 
 const MOBILE_NAV_ITEMS: NavItem[] = [
-  { href: "", label: "Feed", icon: Home, matchExact: true },
-  { href: "/chats", label: "Chats", icon: MessageCircle },
+  { href: "", label: "Home", icon: Home, matchExact: true },
+  { href: "/feed", label: "Feed", icon: FileText },
+  { href: "/chat", label: "Chats", icon: MessageCircle },
   { href: "/courses", label: "Courses", icon: GraduationCap },
   { href: "/members", label: "Members", icon: Users },
-  { href: "/leaderboard", label: "Ranks", icon: Trophy },
 ];
 
 function roomTypeIcon(t: string): LucideIcon {
@@ -1500,7 +1506,8 @@ export function WorkspaceLayout({
   community, currentUserId, role, isAdmin, isOwner,
   initialView,
   profile = null, points = null, spacesWithRooms = [],
-  membership = null, overview = null, basePath: basePathProp,
+  membership = null, overview = null, ownerName = null, joinedAt = null,
+  basePath: basePathProp,
   hideSidebar = false,
   children,
 }: Props) {
@@ -1522,15 +1529,18 @@ export function WorkspaceLayout({
     communityId: community.id,
     communityName: community.name,
     ownerId: community.owner_id,
+    ownerName,
     memberCount: community.member_count,
     avatarUrl: community.avatar_url,
     coverUrl: community.cover_image ?? null,
-    tagline: (community as { tagline?: string | null }).tagline ?? null,
-    ownerName: null as string | null,
+    tagline: community.tagline ?? null,
+    isPrivate: !!community.is_private,
+    joinedAt,
     userId: currentUserId,
     currentUserId,
     view,
     isAdmin,
+    isOwner,
     profile,
     membership,
     spacesWithRooms,
@@ -1755,12 +1765,13 @@ function Sidebar({
         <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted">Overview</p>
         <nav className="space-y-0.5">
           {[
-            { href: "", label: "Announcements", icon: Megaphone, badge: overview?.messagesThisWeek ? String(Math.min(overview.messagesThisWeek, 99)) : null, matchExact: true },
+            { href: "", label: "Overview", icon: Home, badge: null as string | null, matchExact: true },
+            { href: "/feed", label: "Feed", icon: FileText, badge: overview?.messagesThisWeek ? String(Math.min(overview.messagesThisWeek, 99)) : null },
             { href: "/live", label: "Events", icon: Calendar, badge: overview?.upcomingEvents?.length ? String(overview.upcomingEvents.length) : null },
             { href: "/courses", label: "Courses", icon: GraduationCap, badge: overview?.courseCount ? String(overview.courseCount) : null },
-            { href: "/members", label: "Members", icon: Users },
-            { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-            { href: "/communities/missions", label: "Challenges", icon: Target, external: true },
+            { href: "/members", label: "Members", icon: Users, badge: null as string | null },
+            { href: "/leaderboard", label: "Leaderboard", icon: Trophy, badge: null as string | null },
+            { href: "/communities/missions", label: "Challenges", icon: Target, external: true, badge: null as string | null },
           ].map((item) => {
             const active = isActive(item);
             const Icon = item.icon;
@@ -1799,7 +1810,7 @@ function Sidebar({
           const Icon = item.icon;
           return (
             <Link
-              key={item.href || "feed"}
+              key={item.href || "overview"}
               href={`${basePath}${item.href}`}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all",
@@ -2004,7 +2015,7 @@ function MobileBottomNav({ basePath, pathname }: { basePath: string; pathname: s
           const Icon = item.icon;
           return (
             <Link
-              key={item.href || "feed"}
+              key={item.href || "overview"}
               href={fullPath}
               className={cn(
                 "relative flex flex-col items-center justify-center gap-0.5 transition-colors",

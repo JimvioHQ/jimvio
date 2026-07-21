@@ -67,13 +67,12 @@ const NAV_ITEMS: {
   dot?: boolean;
 }[] = [
   { id: "overview", label: "Overview", icon: LayoutGrid, href: "" },
-  { id: "announcements", label: "Announcements", icon: Megaphone, href: "/announcements", dot: true },
-  { id: "events", label: "Events", icon: Calendar, href: "/events" },
+  { id: "announcements", label: "Feed", icon: Megaphone, href: "/feed" },
+  { id: "events", label: "Events", icon: Calendar, href: "/live" },
   { id: "courses", label: "Courses", icon: BookOpen, href: "/courses" },
   { id: "members", label: "Members", icon: Users, href: "/members" },
   { id: "leaderboard", label: "Leaderboard", icon: Trophy, href: "/leaderboard" },
   { id: "challenges", label: "Challenges", icon: Target, href: "/missions" },
-  { id: "about", label: "About", icon: FileText, href: "/about" },
 ];
 
 const DEFAULT_SPACES: SpaceItem[] = [];

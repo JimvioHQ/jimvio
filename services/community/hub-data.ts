@@ -138,6 +138,87 @@ export type HubLiveRoom = {
   href: string;
 };
 
+export type OverviewMember = {
+  id: string;
+  name: string;
+  avatar_url: string | null;
+  username?: string | null;
+  status?: string;
+  role?: string;
+};
+
+export type OverviewCourse = {
+  id: string;
+  title: string;
+  difficulty: string;
+  total_lessons: number;
+  progress: number;
+  href: string;
+  cover_image?: string | null;
+};
+
+export type OverviewPost = {
+  id: string;
+  title: string | null;
+  body: string;
+  like_count: number;
+  comment_count: number;
+  created_at: string;
+  href: string;
+  image_url: string | null;
+  author: OverviewMember;
+};
+
+export type OverviewGalleryItem = {
+  id: string;
+  url: string;
+  label: string;
+};
+
+export type OverviewChallenge = {
+  id: string;
+  title: string;
+  due_date: string | null;
+  href: string;
+};
+
+export type OverviewAchievement = {
+  id: string;
+  title: string;
+  description: string;
+  unlocked: boolean;
+};
+
+export type OverviewFaq = {
+  question: string;
+  answer: string;
+};
+
+export type OverviewSimilarCommunity = {
+  id: string;
+  name: string;
+  slug: string;
+  avatar_url: string | null;
+  cover_image: string | null;
+  member_count: number;
+  tagline: string | null;
+};
+
+export type OverviewInsight = {
+  id: string;
+  icon: "sparkles" | "trending" | "users" | "clock" | "flame";
+  headline: string;
+  subtext: string;
+};
+
+export type OverviewLiveSession = {
+  id: string;
+  title: string;
+  room_name: string;
+  href: string;
+  active_count: number;
+} | null;
+
 export type CommunityOverviewStats = {
   membersOnline: number;
   membersOnlineDelta: string | null;
@@ -152,28 +233,39 @@ export type CommunityOverviewStats = {
   activeRoomCount: number;
   messagesThisWeek: number;
   description: string | null;
+  tagline: string | null;
+  coverImage: string | null;
+  avatarUrl: string | null;
+  isPrivate: boolean;
+  isFeatured: boolean;
+  isVerified: boolean;
+  isFree: boolean;
+  category: string | null;
+  tags: string[];
+  memberCount: number;
+  postCount: number;
   rules: string[];
-  courses: Array<{
-    id: string;
-    title: string;
-    difficulty: string;
-    total_lessons: number;
-    progress: number;
-    href: string;
-    cover_image?: string | null;
-  }>;
+  founder: OverviewMember | null;
+  moderators: OverviewMember[];
+  memberAvatars: OverviewMember[];
+  gallery: OverviewGalleryItem[];
+  featuredPosts: OverviewPost[];
+  featuredCourse: OverviewCourse | null;
+  challenges: OverviewChallenge[];
+  activeLiveSession: OverviewLiveSession;
+  achievements: OverviewAchievement[];
+  faq: OverviewFaq[];
+  similarCommunities: OverviewSimilarCommunity[];
+  insights: OverviewInsight[];
+  weeklyActivity: number[];
+  courses: OverviewCourse[];
   upcomingEvents: Array<{
     id: string;
     title: string;
     start_date: string;
     href: string;
   }>;
-  activeMembers: Array<{
-    id: string;
-    name: string;
-    avatar_url: string | null;
-    status: string;
-  }>;
+  activeMembers: OverviewMember[];
   recentActivity: Array<{
     id: string;
     text: string;
@@ -922,6 +1014,35 @@ export async function getHubLiveDashboard(userId: string) {
   };
 }
 
+function extractPostImage(images: unknown): string | null {
+  if (!images) return null;
+  if (typeof images === "string" && images.startsWith("http")) return images;
+  if (Array.isArray(images)) {
+    for (const item of images) {
+      if (typeof item === "string" && item.startsWith("http")) return item;
+      if (item && typeof item === "object" && "url" in item) {
+        const url = (item as { url?: unknown }).url;
+        if (typeof url === "string" && url.startsWith("http")) return url;
+      }
+    }
+  }
+  return null;
+}
+
+function mapProfileMember(
+  id: string,
+  profile: { full_name: string | null; avatar_url: string | null; username: string | null } | null,
+  extras?: Partial<OverviewMember>
+): OverviewMember {
+  return {
+    id,
+    name: profile?.full_name ?? profile?.username ?? "Member",
+    avatar_url: profile?.avatar_url ?? null,
+    username: profile?.username ?? null,
+    ...extras,
+  };
+}
+
 export async function getCommunityOverviewStats(
   communityId: string,
   userId: string
@@ -948,10 +1069,18 @@ export async function getCommunityOverviewStats(
     memberCountRes,
     missionsRes,
     memberPointsAllRes,
+    moderatorsRes,
+    recentMembersRes,
+    featuredPostsRes,
+    galleryPostsRes,
+    walletRes,
+    challengesRes,
   ] = await Promise.all([
     supabase
       .from("communities")
-      .select("description, long_description, tagline")
+      .select(
+        "slug, name, description, long_description, tagline, cover_image, avatar_url, is_private, is_featured, is_free, category, tags, member_count, post_count, owner_id, owner:profiles!communities_owner_id_fkey(id, full_name, avatar_url, username)"
+      )
       .eq("id", communityId)
       .maybeSingle(),
     supabase
@@ -1003,7 +1132,7 @@ export async function getCommunityOverviewStats(
       .eq("community_id", communityId)
       .gte("last_active_at", onlineCutoff)
       .order("last_active_at", { ascending: false })
-      .limit(5),
+      .limit(8),
     supabase
       .from("lesson_progress")
       .select("course_id, is_completed")
@@ -1014,7 +1143,7 @@ export async function getCommunityOverviewStats(
       .eq("community_id", communityId)
       .eq("is_deleted", false)
       .order("created_at", { ascending: false })
-      .limit(8),
+      .limit(10),
     supabase
       .from("member_points")
       .select("user_id, total_points, profiles!member_points_user_id_fkey(full_name, avatar_url, username)")
@@ -1035,27 +1164,104 @@ export async function getCommunityOverviewStats(
       .from("member_points")
       .select("user_id, total_points")
       .eq("community_id", communityId),
+    supabase
+      .from("community_memberships")
+      .select("user_id, role, profiles!community_memberships_user_id_fkey(full_name, avatar_url, username)")
+      .eq("community_id", communityId)
+      .eq("status", "active")
+      .in("role", ["moderator", "admin", "owner"])
+      .limit(8),
+    supabase
+      .from("community_memberships")
+      .select("user_id, profiles!community_memberships_user_id_fkey(full_name, avatar_url, username)")
+      .eq("community_id", communityId)
+      .eq("status", "active")
+      .order("subscribed_at", { ascending: false, nullsFirst: false })
+      .limit(12),
+    supabase
+      .from("community_posts")
+      .select(
+        "id, title, body, like_count, comment_count, images, created_at, is_pinned, author_id, profiles!community_posts_author_id_fkey(full_name, avatar_url, username)"
+      )
+      .eq("community_id", communityId)
+      .eq("is_published", true)
+      .order("is_pinned", { ascending: false })
+      .order("like_count", { ascending: false })
+      .limit(4),
+    supabase
+      .from("community_posts")
+      .select("id, title, images, created_at")
+      .eq("community_id", communityId)
+      .eq("is_published", true)
+      .not("images", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(12),
+    supabase
+      .from("wallets")
+      .select("total_earned")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("community_tasks")
+      .select("id, title, due_date")
+      .eq("community_id", communityId)
+      .eq("is_active", true)
+      .order("due_date", { ascending: true, nullsFirst: false })
+      .limit(4),
   ]);
 
   const community = communityRes.data;
+  const slug = community?.slug ?? "";
+  const base = `/communities/${slug}`;
+  const communityName = community?.name ?? "Community";
   const description =
     community?.description ??
     community?.long_description ??
     community?.tagline ??
     null;
+  const tagline = community?.tagline ?? null;
+  const coverImage = community?.cover_image ?? null;
+  const avatarUrl = community?.avatar_url ?? null;
+  const isPrivate = !!community?.is_private;
+  const isFeatured = !!community?.is_featured;
+  const isFree = community?.is_free !== false;
+  const category = community?.category ?? null;
+  const tags = (community?.tags ?? []).filter(Boolean);
+  const memberCount = memberCountRes.count ?? community?.member_count ?? 0;
+  const postCount = community?.post_count ?? 0;
 
-  const rules = (community?.long_description ?? community?.description ?? "")
+  const parsedRules = (community?.long_description ?? community?.description ?? "")
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && line.length < 120)
     .slice(0, 6);
 
-  const chatRoomIds = new Set(
-    (roomsRes.data ?? []).filter((r) => r.room_type === "chat").map((r) => r.id)
-  );
+  const defaultRules = [
+    "Be respectful to all members",
+    "No spam or self-promotion without permission",
+    "Keep discussions on-topic for each space",
+    "Share knowledge and help others grow",
+    "Report issues to moderators privately",
+  ];
+  const rules = parsedRules.length > 0 ? parsedRules : defaultRules;
+
+  const chatRooms = (roomsRes.data ?? []).filter((r) => r.room_type === "chat");
+  const chatRoomIds = new Set(chatRooms.map((r) => r.id));
   const activeRoomIds = new Set((recentMessagesRes.data ?? []).map((m) => m.room_id));
-  const liveNow = [...activeRoomIds].filter((id) => chatRoomIds.has(id)).length;
+  const liveRoomIds = [...activeRoomIds].filter((id) => chatRoomIds.has(id));
+  const liveNow = liveRoomIds.length;
   const voiceRooms = liveNow;
+  const roomNameById = new Map((roomsRes.data ?? []).map((r) => [r.id, r.name]));
+  const activeLiveSession: OverviewLiveSession =
+    liveNow > 0
+      ? {
+          id: liveRoomIds[0],
+          title: `Live in ${communityName}`,
+          room_name: roomNameById.get(liveRoomIds[0]) ?? "Live Room",
+          href: `${base}/live`,
+          active_count: liveNow,
+        }
+      : null;
 
   const courseIds = (coursesRes.data ?? []).map((c) => c.id);
   const progressByCourse = new Map<string, number>();
@@ -1066,22 +1272,22 @@ export async function getCommunityOverviewStats(
     }
   }
 
-  const slugRes = await supabase
-    .from("communities")
-    .select("slug")
-    .eq("id", communityId)
-    .maybeSingle();
-  const slug = slugRes.data?.slug ?? "";
-  const base = `/communities/${slug}`;
-  const roomNameById = new Map((roomsRes.data ?? []).map((r) => [r.id, r.name]));
-
-  const defaultRules = [
-    "Be respectful to all members",
-    "No spam or self-promotion without permission",
-    "Keep discussions on-topic for each space",
-    "Share knowledge and help others grow",
-    "Report issues to moderators privately",
-  ];
+  const courses: OverviewCourse[] = (coursesRes.data ?? []).map((course) => {
+    const completed = progressByCourse.get(course.id) ?? 0;
+    const totalLessons = course.total_lessons ?? 0;
+    const progress =
+      totalLessons > 0 ? Math.min(Math.round((completed / totalLessons) * 100), 100) : 0;
+    return {
+      id: course.id,
+      title: course.title,
+      difficulty: course.difficulty ?? "beginner",
+      total_lessons: totalLessons,
+      progress,
+      cover_image: course.thumbnail_url ?? null,
+      href: `${base}/courses`,
+    };
+  });
+  const featuredCourse = courses[0] ?? null;
 
   const recentActivity = (activityRes.data ?? []).map((row) => {
     const profile = row.profiles as { full_name: string | null; username: string | null } | null;
@@ -1092,15 +1298,15 @@ export async function getCommunityOverviewStats(
       id: row.id,
       text: `${name} posted in ${room}${preview ? `: ${preview}` : ""}`,
       time: row.created_at ?? new Date().toISOString(),
-      href: `${base}/chats`,
+      href: `${base}/chat`,
     };
   });
 
-  const popularThisWeek = (coursesRes.data ?? []).slice(0, 4).map((course) => ({
+  const popularThisWeek = courses.slice(0, 4).map((course) => ({
     id: course.id,
     title: course.title,
-    meta: `${course.total_lessons ?? 0} lessons · ${course.difficulty ?? "beginner"}`,
-    href: `${base}/courses`,
+    meta: `${course.total_lessons} lessons · ${course.difficulty}`,
+    href: course.href,
   }));
 
   const topContributors = (topPointsRes.data ?? []).map((row) => {
@@ -1117,20 +1323,262 @@ export async function getCommunityOverviewStats(
     };
   });
 
-  const membersTotal = memberCountRes.count ?? 0;
-  const prevLive = Math.max(0, liveNow - 1);
+  const activeMembers = (activeMembersRes.data ?? []).map((member) => {
+    const profile = member.profiles as {
+      full_name: string | null;
+      avatar_url: string | null;
+      username: string | null;
+    } | null;
+    return mapProfileMember(member.user_id, profile, { status: "Active now" });
+  });
+
+  const ownerProfile = community?.owner as
+    | { id: string; full_name: string | null; avatar_url: string | null; username: string | null }
+    | null
+    | undefined;
+  const founder: OverviewMember | null = ownerProfile
+    ? mapProfileMember(ownerProfile.id, ownerProfile, { role: "owner", status: "Founder" })
+    : community?.owner_id
+      ? { id: community.owner_id, name: "Founder", avatar_url: null, role: "owner", status: "Founder" }
+      : null;
+
+  const moderators: OverviewMember[] = (moderatorsRes.data ?? [])
+    .filter((row) => row.role !== "owner" || row.user_id !== founder?.id)
+    .map((row) => {
+      const profile = row.profiles as {
+        full_name: string | null;
+        avatar_url: string | null;
+        username: string | null;
+      } | null;
+      return mapProfileMember(row.user_id, profile, {
+        role: row.role ?? "moderator",
+        status: row.role === "admin" ? "Admin" : "Moderator",
+      });
+    })
+    .filter((m) => m.id !== founder?.id)
+    .slice(0, 6);
+
+  const memberAvatars: OverviewMember[] = (recentMembersRes.data ?? []).map((row) => {
+    const profile = row.profiles as {
+      full_name: string | null;
+      avatar_url: string | null;
+      username: string | null;
+    } | null;
+    return mapProfileMember(row.user_id, profile);
+  });
+
+  const featuredPosts: OverviewPost[] = (featuredPostsRes.data ?? []).map((post) => {
+    const profile = post.profiles as {
+      full_name: string | null;
+      avatar_url: string | null;
+      username: string | null;
+    } | null;
+    return {
+      id: post.id,
+      title: post.title,
+      body: post.body ?? "",
+      like_count: post.like_count ?? 0,
+      comment_count: post.comment_count ?? 0,
+      created_at: post.created_at ?? new Date().toISOString(),
+      href: `${base}/feed`,
+      image_url: extractPostImage(post.images),
+      author: mapProfileMember(post.author_id, profile),
+    };
+  });
+
+  const gallery: OverviewGalleryItem[] = [];
+  if (coverImage) {
+    gallery.push({ id: "cover", url: coverImage, label: `${communityName} cover` });
+  }
+  if (avatarUrl) {
+    gallery.push({ id: "avatar", url: avatarUrl, label: `${communityName} logo` });
+  }
+  for (const post of galleryPostsRes.data ?? []) {
+    const url = extractPostImage(post.images);
+    if (!url) continue;
+    if (gallery.some((g) => g.url === url)) continue;
+    gallery.push({
+      id: post.id,
+      url,
+      label: post.title || "Community moment",
+    });
+    if (gallery.length >= 8) break;
+  }
+
+  const challenges: OverviewChallenge[] = (challengesRes.data ?? []).map((task) => ({
+    id: task.id,
+    title: task.title,
+    due_date: task.due_date,
+    href: `${base}/live`,
+  }));
 
   const allMemberPoints = memberPointsAllRes.data ?? [];
   const totalCommunityXp = allMemberPoints.reduce((sum, row) => sum + (row.total_points ?? 0), 0);
   const communityLevel = levelFromTotalPoints(totalCommunityXp);
   const communityProgress = progressPercentInLevel(totalCommunityXp, communityLevel);
-
   const userPointsRow = allMemberPoints.find((row) => row.user_id === userId);
   const userTotalPoints = userPointsRow?.total_points ?? 0;
   const membersWithPoints = allMemberPoints.length || 1;
   const rank =
     allMemberPoints.filter((row) => (row.total_points ?? 0) > userTotalPoints).length + 1;
   const memberTopPercent = Math.max(1, Math.ceil((rank / membersWithPoints) * 100));
+  const challengeCount = missionsRes.count ?? 0;
+  const messagesThisWeek = messagesWeekRes.count ?? 0;
+  const totalEarned = Number(walletRes.data?.total_earned ?? 0);
+  const prevLive = Math.max(0, liveNow - 1);
+  const isVerified = isFeatured || memberCount >= 100;
+
+  const achievements: OverviewAchievement[] = [
+    {
+      id: "founding",
+      title: "Community Founded",
+      description: "This space is live on Jimvio",
+      unlocked: true,
+    },
+    {
+      id: "members-50",
+      title: "Growing Circle",
+      description: "Reach 50 members",
+      unlocked: memberCount >= 50,
+    },
+    {
+      id: "members-500",
+      title: "Thriving Hub",
+      description: "Reach 500 members",
+      unlocked: memberCount >= 500,
+    },
+    {
+      id: "first-course",
+      title: "Knowledge Drop",
+      description: "Publish your first course",
+      unlocked: courses.length > 0,
+    },
+    {
+      id: "level-5",
+      title: "Level 5 Collective",
+      description: "Community reaches Level 5",
+      unlocked: communityLevel >= 5,
+    },
+    {
+      id: "weekly-buzz",
+      title: "Weekly Buzz",
+      description: "100+ messages this week",
+      unlocked: messagesThisWeek >= 100,
+    },
+  ];
+
+  const faq: OverviewFaq[] = [
+    {
+      question: `What is ${communityName}?`,
+      answer:
+        description ??
+        `${communityName} is a creator community on Jimvio for learning, collaborating, and growing together.`,
+    },
+    {
+      question: "How do I join live sessions?",
+      answer: `Open Live from the community navigation or jump in when an Active Live Session appears on Overview.`,
+    },
+    {
+      question: "Where can I find courses and challenges?",
+      answer: `Browse Courses for lessons and Challenges for missions. Featured picks also appear on this Overview.`,
+    },
+    {
+      question: isFree ? "Is membership free?" : "How does membership work?",
+      answer: isFree
+        ? "This community is free to join for eligible members."
+        : "Paid plans unlock premium spaces, courses, and live access. Manage membership from Subscribe.",
+    },
+  ];
+
+  const insights: OverviewInsight[] = [
+    {
+      id: "online",
+      icon: "users",
+      headline: `${(onlineNowRes.count ?? 0).toLocaleString()} members active now`,
+      subtext: "Great moment to post, go live, or invite collaborators.",
+    },
+    {
+      id: "messages",
+      icon: "trending",
+      headline: `${messagesThisWeek.toLocaleString()} messages this week`,
+      subtext:
+        messagesThisWeek > 50
+          ? "Conversation momentum is strong across spaces."
+          : "Spark a discussion in Feed or Chat to boost engagement.",
+    },
+    {
+      id: "courses",
+      icon: "sparkles",
+      headline:
+        courses.length > 0
+          ? `${courses.length} published course${courses.length === 1 ? "" : "s"}`
+          : "No courses published yet",
+      subtext:
+        featuredCourse
+          ? `Featured: ${featuredCourse.title}`
+          : "Add a course to give members a clear learning path.",
+    },
+    {
+      id: "live",
+      icon: liveNow > 0 ? "flame" : "clock",
+      headline: liveNow > 0 ? `${liveNow} live room${liveNow === 1 ? "" : "s"} right now` : "No live rooms active",
+      subtext: liveNow > 0 ? "Jump in while energy is high." : "Schedule a live to rally members.",
+    },
+  ];
+
+  // Lightweight weekly sparkline from message volume heuristic
+  const weeklyActivity = [0.35, 0.45, 0.4, 0.55, 0.5, 0.7, 1].map((w, i) =>
+    Math.max(4, Math.round(messagesThisWeek * w * (0.55 + (i % 3) * 0.12)))
+  );
+
+  let similarCommunities: OverviewSimilarCommunity[] = [];
+  if (category || tags.length > 0) {
+    let similarQuery = supabase
+      .from("communities")
+      .select("id, name, slug, avatar_url, cover_image, member_count, tagline, category, tags")
+      .eq("is_active", true)
+      .neq("id", communityId)
+      .limit(8);
+    if (category) {
+      similarQuery = similarQuery.eq("category", category);
+    }
+    const { data: similarRows } = await similarQuery;
+    similarCommunities = (similarRows ?? [])
+      .filter((row) => {
+        if (category && row.category === category) return true;
+        const rowTags = row.tags ?? [];
+        return tags.some((t) => rowTags.includes(t));
+      })
+      .slice(0, 4)
+      .map((row) => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        avatar_url: row.avatar_url,
+        cover_image: row.cover_image,
+        member_count: row.member_count ?? 0,
+        tagline: row.tagline,
+      }));
+  }
+
+  if (similarCommunities.length === 0) {
+    const { data: featuredSimilar } = await supabase
+      .from("communities")
+      .select("id, name, slug, avatar_url, cover_image, member_count, tagline")
+      .eq("is_active", true)
+      .neq("id", communityId)
+      .order("member_count", { ascending: false })
+      .limit(4);
+    similarCommunities = (featuredSimilar ?? []).map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      avatar_url: row.avatar_url,
+      cover_image: row.cover_image,
+      member_count: row.member_count ?? 0,
+      tagline: row.tagline,
+    }));
+  }
 
   return {
     membersOnline: onlineNowRes.count ?? 0,
@@ -1139,55 +1587,53 @@ export async function getCommunityOverviewStats(
     liveNowDelta: formatDelta(liveNow, prevLive),
     voiceRooms,
     voiceRoomsDelta: formatDelta(voiceRooms, Math.max(0, voiceRooms - 1)),
-    courseCount: coursesRes.data?.length ?? 0,
-    courseCountDelta: coursesRes.data?.length ? `+${coursesRes.data.length} active` : null,
-    totalEarned: 0,
-    totalEarnedDelta: null,
+    courseCount: courses.length,
+    courseCountDelta: courses.length ? `+${courses.length} active` : null,
+    totalEarned,
+    totalEarnedDelta: totalEarned > 0 ? "Lifetime" : null,
     activeRoomCount: roomsRes.data?.length ?? 0,
-    messagesThisWeek: messagesWeekRes.count ?? 0,
+    messagesThisWeek,
     description,
-    rules: rules.length > 0 ? rules : defaultRules,
-    courses: (coursesRes.data ?? []).map((course) => {
-      const completed = progressByCourse.get(course.id) ?? 0;
-      const totalLessons = course.total_lessons ?? 0;
-      const progress =
-        totalLessons > 0 ? Math.min(Math.round((completed / totalLessons) * 100), 100) : 0;
-      return {
-        id: course.id,
-        title: course.title,
-        difficulty: course.difficulty ?? "beginner",
-        total_lessons: totalLessons,
-        progress,
-        cover_image: course.thumbnail_url ?? null,
-        href: `${base}/courses`,
-      };
-    }),
+    tagline,
+    coverImage,
+    avatarUrl,
+    isPrivate,
+    isFeatured,
+    isVerified,
+    isFree,
+    category,
+    tags,
+    memberCount,
+    postCount,
+    rules,
+    founder,
+    moderators,
+    memberAvatars,
+    gallery,
+    featuredPosts,
+    featuredCourse,
+    challenges,
+    activeLiveSession,
+    achievements,
+    faq,
+    similarCommunities,
+    insights,
+    weeklyActivity,
+    courses,
     upcomingEvents: (tasksRes.data ?? []).map((task) => ({
       id: task.id,
       title: task.title,
       start_date: task.due_date!,
       href: `${base}/live`,
     })),
-    activeMembers: (activeMembersRes.data ?? []).map((member) => {
-      const profile = member.profiles as {
-        full_name: string | null;
-        avatar_url: string | null;
-        username: string | null;
-      } | null;
-      return {
-        id: member.user_id,
-        name: profile?.full_name ?? profile?.username ?? "Member",
-        avatar_url: profile?.avatar_url ?? null,
-        status: "Active now",
-      };
-    }),
+    activeMembers,
     recentActivity,
     popularThisWeek,
     topContributors,
     progressBreakdown: {
-      challenges: missionsRes.count ?? 0,
-      riddles: Math.min(membersTotal, 99),
-      members: membersTotal,
+      challenges: challengeCount,
+      riddles: Math.min(memberCount, 99),
+      members: memberCount,
       rankPercent: memberTopPercent,
       communityLevel,
       communityProgress,
