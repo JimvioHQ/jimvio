@@ -13,12 +13,10 @@ import {
   ChevronDown,
   Crown,
   Flame,
-  GraduationCap,
   Heart,
   Lock,
   MessageCircle,
   Play,
-  Radio,
   Shield,
   Sparkles,
   Target,
@@ -36,19 +34,15 @@ import {
   HubLinkButton,
   HubProgressBar,
   HubSectionTitle,
-  HubStatCard,
 } from "./hub-ui";
 import { cn } from "@/lib/utils";
 import type { OverviewInsight } from "@/services/community/hub-data";
 import {
-  AiWeeklySummaryCard,
   CalendarPreviewCard,
   CommunityMilestonesCard,
   LiveStatusBanner,
-  MemberGrowthChart,
   MissionVisionCard,
   OverviewIntelligenceStrip,
-  WeeklyHighlightsCard,
 } from "./overview-intelligence";
 
 function formatJoined(iso: string | null) {
@@ -201,7 +195,6 @@ export function HubCommunityOverview() {
     membership,
     isOwner,
     isAdmin,
-    points,
     overview,
   } = useWorkspace();
 
@@ -228,9 +221,6 @@ export function HubCommunityOverview() {
       ? "Free"
       : "Member";
 
-  const communityLevel = overview?.progressBreakdown.communityLevel ?? points?.level ?? 1;
-  const communityProgress = overview?.progressBreakdown.communityProgress ?? 0;
-  const memberTopPercent = overview?.progressBreakdown.memberTopPercent ?? 1;
   const founder = overview?.founder;
   const founderName = founder?.name ?? ownerName ?? "Founder";
 
@@ -371,76 +361,21 @@ export function HubCommunityOverview() {
                 )}
                 <span aria-hidden>·</span>
                 <span>{members.toLocaleString()} members</span>
-                {(overview?.membersOnline ?? 0) > 0 && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span className="text-emerald-600">
-                      {(overview?.membersOnline ?? 0).toLocaleString()} online
-                    </span>
-                  </>
-                )}
               </div>
 
               {/* 9 · Member avatars */}
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="mt-4">
                 <MemberAvatarStack
                   members={overview?.memberAvatars?.length ? overview.memberAvatars : overview?.activeMembers ?? []}
                   total={members}
                 />
-                <div className="flex min-w-[160px] flex-1 flex-col gap-1.5 sm:max-w-xs">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-[var(--color-text-primary)]">
-                      Level {communityLevel}
-                    </span>
-                    <span className="text-[var(--color-text-muted)]">Top {memberTopPercent}%</span>
-                  </div>
-                  <HubProgressBar value={communityProgress} max={100} />
-                </div>
               </div>
             </div>
           </section>
         </FadeIn>
 
-        {/* 5 · Statistics */}
-        <FadeIn delay={0.05} className="mt-5 sm:mt-6">
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 xl:grid-cols-5">
-            <HubStatCard
-              label="Members Online"
-              value={(overview?.membersOnline ?? 0).toLocaleString()}
-              delta={overview?.membersOnlineDelta ?? undefined}
-              icon={<Users className="h-4 w-4" />}
-              accent="#22c55e"
-            />
-            <HubStatCard
-              label="Live Now"
-              value={String(overview?.liveNow ?? 0)}
-              delta={overview?.liveNowDelta ?? undefined}
-              icon={<Radio className="h-4 w-4" />}
-              accent="#ef4444"
-            />
-            <HubStatCard
-              label="Messages / Week"
-              value={(overview?.messagesThisWeek ?? 0).toLocaleString()}
-              icon={<MessageCircle className="h-4 w-4" />}
-              accent="#0ea5e9"
-            />
-            <HubStatCard
-              label="Courses"
-              value={String(overview?.courseCount ?? 0)}
-              delta={overview?.courseCountDelta ?? undefined}
-              icon={<GraduationCap className="h-4 w-4" />}
-            />
-            <HubStatCard
-              label="Challenges"
-              value={String(overview?.progressBreakdown.challenges ?? 0)}
-              icon={<Target className="h-4 w-4" />}
-              accent="#f59e0b"
-            />
-          </div>
-        </FadeIn>
-
         {overview && (
-          <FadeIn delay={0.055} className="mt-5 sm:mt-6">
+          <FadeIn delay={0.05} className="mt-5 sm:mt-6">
             <OverviewIntelligenceStrip overview={overview} base={base} />
           </FadeIn>
         )}
@@ -456,7 +391,12 @@ export function HubCommunityOverview() {
 
             {/* 6–7 · Founder + Moderators */}
             <FadeIn delay={0.06}>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div
+                className={cn(
+                  "grid gap-3",
+                  (overview?.moderators?.length ?? 0) > 0 ? "sm:grid-cols-2" : "sm:grid-cols-1"
+                )}
+              >
                 <HubCard className="!p-4">
                   <HubSectionTitle title="Founder" />
                   <div className="flex items-center gap-3">
@@ -481,16 +421,12 @@ export function HubCommunityOverview() {
                   </div>
                 </HubCard>
 
-                <HubCard className="!p-4">
-                  <HubSectionTitle
-                    title="Moderators"
-                    badge={overview?.moderators?.length ? String(overview.moderators.length) : undefined}
-                  />
-                  {(overview?.moderators?.length ?? 0) === 0 ? (
-                    <p className="text-[12px] text-[var(--color-text-muted)]">
-                      Moderators will appear here once assigned.
-                    </p>
-                  ) : (
+                {(overview?.moderators?.length ?? 0) > 0 && (
+                  <HubCard className="!p-4">
+                    <HubSectionTitle
+                      title="Moderators"
+                      badge={String(overview!.moderators.length)}
+                    />
                     <ul className="space-y-2.5">
                       {overview!.moderators.slice(0, 4).map((mod) => (
                         <li key={mod.id} className="flex items-center gap-2.5">
@@ -505,22 +441,10 @@ export function HubCommunityOverview() {
                         </li>
                       ))}
                     </ul>
-                  )}
-                </HubCard>
+                  </HubCard>
+                )}
               </div>
             </FadeIn>
-
-            {overview && overview.memberGrowth.length > 0 && (
-              <FadeIn delay={0.065}>
-                <MemberGrowthChart overview={overview} />
-              </FadeIn>
-            )}
-
-            {overview && overview.weeklyHighlights.length > 0 && (
-              <FadeIn delay={0.068}>
-                <WeeklyHighlightsCard overview={overview} />
-              </FadeIn>
-            )}
 
             {/* 14 · Active Live Session */}
             {(overview?.activeLiveSession || (overview?.liveNow ?? 0) > 0) && (
@@ -560,23 +484,17 @@ export function HubCommunityOverview() {
             )}
 
             {/* 10 · Gallery */}
-            <FadeIn delay={0.08}>
-              <section>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
-                    Community Gallery
-                  </h2>
-                  <span className="text-[11px] text-[var(--color-text-muted)]">
-                    {(overview?.gallery.length ?? 0) || "No"} moments
-                  </span>
-                </div>
-                {(overview?.gallery.length ?? 0) === 0 ? (
-                  <HubCard>
-                    <p className="text-[12px] text-[var(--color-text-muted)]">
-                      Gallery moments will appear as members share images in posts.
-                    </p>
-                  </HubCard>
-                ) : (
+            {(overview?.gallery.length ?? 0) > 0 && (
+              <FadeIn delay={0.08}>
+                <section>
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
+                      Community Gallery
+                    </h2>
+                    <span className="text-[11px] text-[var(--color-text-muted)]">
+                      {overview!.gallery.length} moments
+                    </span>
+                  </div>
                   <div className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pb-1 scrollbar-hide">
                     {overview!.gallery.map((item, i) => (
                       <div
@@ -597,31 +515,22 @@ export function HubCommunityOverview() {
                       </div>
                     ))}
                   </div>
-                )}
-              </section>
-            </FadeIn>
+                </section>
+              </FadeIn>
+            )}
 
             {/* 11 · Featured Posts */}
-            <FadeIn delay={0.09}>
-              <section>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
-                    Featured Posts
-                  </h2>
-                  <Link href={`${base}/feed`} className="text-[12px] font-semibold text-[#fd5000] hover:underline">
-                    Open feed
-                  </Link>
-                </div>
-                {(overview?.featuredPosts.length ?? 0) === 0 ? (
-                  <HubCard>
-                    <p className="text-[12px] text-[var(--color-text-muted)]">
-                      Pin or engage with posts to feature them here.
-                    </p>
-                    <HubLinkButton href={`${base}/feed`} variant="soft" className="mt-3 !rounded-full">
-                      Go to Feed
-                    </HubLinkButton>
-                  </HubCard>
-                ) : (
+            {(overview?.featuredPosts.length ?? 0) > 0 && (
+              <FadeIn delay={0.09}>
+                <section>
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
+                      Featured Posts
+                    </h2>
+                    <Link href={`${base}/chat`} className="text-[12px] font-semibold text-[#fd5000] hover:underline">
+                      General Chat
+                    </Link>
+                  </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     {overview!.featuredPosts.map((post) => (
                       <Link
@@ -663,28 +572,22 @@ export function HubCommunityOverview() {
                       </Link>
                     ))}
                   </div>
-                )}
-              </section>
-            </FadeIn>
+                </section>
+              </FadeIn>
+            )}
 
             {/* 12 · Featured Course */}
-            <FadeIn delay={0.1}>
-              <section>
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
-                    Featured Course
-                  </h2>
-                  <Link href={`${base}/courses`} className="text-[12px] font-semibold text-[#fd5000] hover:underline">
-                    All courses
-                  </Link>
-                </div>
-                {!overview?.featuredCourse ? (
-                  <HubCard>
-                    <p className="text-[12px] text-[var(--color-text-muted)]">
-                      No published courses yet. Courses will showcase here first.
-                    </p>
-                  </HubCard>
-                ) : (
+            {overview?.featuredCourse && (
+              <FadeIn delay={0.1}>
+                <section>
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
+                      Featured Course
+                    </h2>
+                    <Link href={`${base}/courses`} className="text-[12px] font-semibold text-[#fd5000] hover:underline">
+                      All courses
+                    </Link>
+                  </div>
                   <Link
                     href={overview.featuredCourse.href}
                     className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] transition hover:border-[#fd5000]/35 sm:flex-row"
@@ -720,118 +623,117 @@ export function HubCommunityOverview() {
                       </p>
                     </div>
                   </Link>
-                )}
-              </section>
-            </FadeIn>
+                </section>
+              </FadeIn>
+            )}
 
             {/* 13 + 15 · Events + Challenges */}
-            <FadeIn delay={0.11}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <HubCard>
-                  <div className="mb-3 flex items-center justify-between">
-                    <HubSectionTitle title="Upcoming Events" />
-                    <Calendar className="h-4 w-4 text-[var(--color-text-muted)]" aria-hidden />
-                  </div>
-                  {(overview?.upcomingEvents.length ?? 0) === 0 ? (
-                    <p className="text-[12px] text-[var(--color-text-muted)]">No upcoming events.</p>
-                  ) : (
-                    <ul className="space-y-2.5">
-                      {overview!.upcomingEvents.map((ev) => (
-                        <li key={ev.id}>
-                          <Link
-                            href={ev.href}
-                            className="flex items-center gap-3 rounded-lg p-1.5 transition hover:bg-[var(--color-surface-secondary)]"
-                          >
-                            <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-[#fd5000]/10 text-[#fd5000]">
-                              <span className="text-[9px] font-bold uppercase leading-none">
-                                {format(new Date(ev.start_date), "MMM")}
-                              </span>
-                              <span className="text-[14px] font-black leading-none">
-                                {format(new Date(ev.start_date), "d")}
-                              </span>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="truncate text-[12.5px] font-semibold">{ev.title}</p>
-                              <p className="text-[10px] text-[var(--color-text-muted)]">
-                                {format(new Date(ev.start_date), "h:mm a")}
-                              </p>
-                            </div>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+            {((overview?.upcomingEvents.length ?? 0) > 0 || (overview?.challenges.length ?? 0) > 0) && (
+              <FadeIn delay={0.11}>
+                <div
+                  className={cn(
+                    "grid gap-3",
+                    (overview?.upcomingEvents.length ?? 0) > 0 && (overview?.challenges.length ?? 0) > 0
+                      ? "sm:grid-cols-2"
+                      : "sm:grid-cols-1"
                   )}
-                </HubCard>
-
-                <HubCard>
-                  <div className="mb-3 flex items-center justify-between">
-                    <HubSectionTitle title="Challenges" />
-                    <Target className="h-4 w-4 text-[var(--color-text-muted)]" aria-hidden />
-                  </div>
-                  {(overview?.challenges.length ?? 0) === 0 ? (
-                    <p className="text-[12px] text-[var(--color-text-muted)]">No active challenges.</p>
-                  ) : (
-                    <ul className="space-y-2.5">
-                      {overview!.challenges.map((ch) => (
-                        <li key={ch.id}>
-                          <Link
-                            href={ch.href}
-                            className="flex items-start gap-2.5 rounded-lg p-1.5 transition hover:bg-[var(--color-surface-secondary)]"
-                          >
-                            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
-                              <Flame className="h-3.5 w-3.5" />
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-[12.5px] font-semibold">{ch.title}</p>
-                              {ch.due_date && (
+                >
+                  {(overview?.upcomingEvents.length ?? 0) > 0 && (
+                    <HubCard>
+                      <div className="mb-3 flex items-center justify-between">
+                        <HubSectionTitle title="Upcoming Events" />
+                        <Calendar className="h-4 w-4 text-[var(--color-text-muted)]" aria-hidden />
+                      </div>
+                      <ul className="space-y-2.5">
+                        {overview!.upcomingEvents.map((ev) => (
+                          <li key={ev.id}>
+                            <Link
+                              href={ev.href}
+                              className="flex items-center gap-3 rounded-lg p-1.5 transition hover:bg-[var(--color-surface-secondary)]"
+                            >
+                              <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-[#fd5000]/10 text-[#fd5000]">
+                                <span className="text-[9px] font-bold uppercase leading-none">
+                                  {format(new Date(ev.start_date), "MMM")}
+                                </span>
+                                <span className="text-[14px] font-black leading-none">
+                                  {format(new Date(ev.start_date), "d")}
+                                </span>
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate text-[12.5px] font-semibold">{ev.title}</p>
                                 <p className="text-[10px] text-[var(--color-text-muted)]">
-                                  Due {format(new Date(ch.due_date), "MMM d")}
+                                  {format(new Date(ev.start_date), "h:mm a")}
                                 </p>
-                              )}
-                            </div>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                              </div>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </HubCard>
                   )}
-                </HubCard>
-              </div>
-            </FadeIn>
+
+                  {(overview?.challenges.length ?? 0) > 0 && (
+                    <HubCard>
+                      <div className="mb-3 flex items-center justify-between">
+                        <HubSectionTitle title="Challenges" />
+                        <Target className="h-4 w-4 text-[var(--color-text-muted)]" aria-hidden />
+                      </div>
+                      <ul className="space-y-2.5">
+                        {overview!.challenges.map((ch) => (
+                          <li key={ch.id}>
+                            <Link
+                              href={ch.href}
+                              className="flex items-start gap-2.5 rounded-lg p-1.5 transition hover:bg-[var(--color-surface-secondary)]"
+                            >
+                              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+                                <Flame className="h-3.5 w-3.5" />
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-[12.5px] font-semibold">{ch.title}</p>
+                                {ch.due_date && (
+                                  <p className="text-[10px] text-[var(--color-text-muted)]">
+                                    Due {format(new Date(ch.due_date), "MMM d")}
+                                  </p>
+                                )}
+                              </div>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </HubCard>
+                  )}
+                </div>
+              </FadeIn>
+            )}
 
             {/* 17 · Achievements */}
-            <FadeIn delay={0.12}>
-              <section>
-                <h2 className="mb-3 text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
-                  Community Achievements
-                </h2>
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                  {(overview?.achievements ?? []).map((a) => (
-                    <div
-                      key={a.id}
-                      className={cn(
-                        "rounded-xl border p-3.5 transition",
-                        a.unlocked
-                          ? "border-[#fd5000]/25 bg-[#fd5000]/[0.04]"
-                          : "border-[var(--color-border)] bg-[var(--color-surface)] opacity-60"
-                      )}
-                    >
-                      <Award
-                        className={cn(
-                          "h-5 w-5",
-                          a.unlocked ? "text-[#fd5000]" : "text-[var(--color-text-muted)]"
-                        )}
-                      />
-                      <p className="mt-2 text-[12.5px] font-bold text-[var(--color-text-primary)]">
-                        {a.title}
-                      </p>
-                      <p className="mt-0.5 text-[10.5px] leading-snug text-[var(--color-text-muted)]">
-                        {a.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </FadeIn>
+            {(overview?.achievements ?? []).some((a) => a.unlocked) && (
+              <FadeIn delay={0.12}>
+                <section>
+                  <h2 className="mb-3 text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
+                    Community Achievements
+                  </h2>
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                    {overview!.achievements
+                      .filter((a) => a.unlocked)
+                      .map((a) => (
+                        <div
+                          key={a.id}
+                          className="rounded-xl border border-[#fd5000]/25 bg-[#fd5000]/[0.04] p-3.5"
+                        >
+                          <Award className="h-5 w-5 text-[#fd5000]" />
+                          <p className="mt-2 text-[12.5px] font-bold text-[var(--color-text-primary)]">
+                            {a.title}
+                          </p>
+                          <p className="mt-0.5 text-[10.5px] leading-snug text-[var(--color-text-muted)]">
+                            {a.description}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                </section>
+              </FadeIn>
+            )}
 
             {overview && overview.milestones.length > 0 && (
               <FadeIn delay={0.125}>
@@ -840,50 +742,45 @@ export function HubCommunityOverview() {
             )}
 
             {/* 18 · Rules */}
-            <FadeIn delay={0.13}>
-              <HubCard>
-                <HubSectionTitle title="Community Rules" />
-                <ol className="space-y-2.5">
-                  {(overview?.rules ?? []).map((rule, i) => (
-                    <li key={`${i}-${rule}`} className="flex gap-3 text-[13px] text-[var(--color-text-secondary)]">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fd5000]/10 text-[11px] font-bold text-[#fd5000]">
-                        {i + 1}
-                      </span>
-                      <span className="pt-0.5 leading-relaxed">{rule}</span>
-                    </li>
-                  ))}
-                </ol>
-              </HubCard>
-            </FadeIn>
+            {(overview?.rules.length ?? 0) > 0 && (
+              <FadeIn delay={0.13}>
+                <HubCard>
+                  <HubSectionTitle title="Community Rules" />
+                  <ol className="space-y-2.5">
+                    {overview!.rules.map((rule, i) => (
+                      <li key={`${i}-${rule}`} className="flex gap-3 text-[13px] text-[var(--color-text-secondary)]">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#fd5000]/10 text-[11px] font-bold text-[#fd5000]">
+                          {i + 1}
+                        </span>
+                        <span className="pt-0.5 leading-relaxed">{rule}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </HubCard>
+              </FadeIn>
+            )}
 
             {/* 19 · FAQ */}
-            <FadeIn delay={0.14}>
-              <HubCard>
-                <HubSectionTitle title="FAQ" />
-                <div>
-                  {(overview?.faq ?? []).map((item) => (
-                    <FaqItem key={item.question} question={item.question} answer={item.answer} />
-                  ))}
-                </div>
-              </HubCard>
-            </FadeIn>
+            {(overview?.faq.length ?? 0) > 0 && (
+              <FadeIn delay={0.14}>
+                <HubCard>
+                  <HubSectionTitle title="FAQ" />
+                  <div>
+                    {overview!.faq.map((item) => (
+                      <FaqItem key={item.question} question={item.question} answer={item.answer} />
+                    ))}
+                  </div>
+                </HubCard>
+              </FadeIn>
+            )}
 
             {/* 20 · Similar Communities */}
-            <FadeIn delay={0.15}>
-              <section>
-                <h2 className="mb-3 text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
-                  Similar Communities
-                </h2>
-                {(overview?.similarCommunities.length ?? 0) === 0 ? (
-                  <HubCard>
-                    <p className="text-[12px] text-[var(--color-text-muted)]">
-                      Discover more communities from Explore.
-                    </p>
-                    <HubLinkButton href="/communities/explore" variant="soft" className="mt-3 !rounded-full">
-                      Explore
-                    </HubLinkButton>
-                  </HubCard>
-                ) : (
+            {(overview?.similarCommunities.length ?? 0) > 0 && (
+              <FadeIn delay={0.15}>
+                <section>
+                  <h2 className="mb-3 text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
+                    Similar Communities
+                  </h2>
                   <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide">
                     {overview!.similarCommunities.map((c) => (
                       <Link
@@ -923,22 +820,23 @@ export function HubCommunityOverview() {
                       </Link>
                     ))}
                   </div>
-                )}
-              </section>
-            </FadeIn>
+                </section>
+              </FadeIn>
+            )}
 
             {/* 21 · Activity timeline */}
-            <FadeIn delay={0.16}>
-              <HubCard>
-                <HubSectionTitle title="Latest Activity" badge="Live" />
-                {(overview?.recentActivity.length ?? 0) === 0 ? (
-                  <p className="text-[12px] text-[var(--color-text-muted)]">No recent activity yet.</p>
-                ) : (
-                  <ol className="relative space-y-0 border-l border-[var(--color-border)] ml-2">
+            {(overview?.recentActivity.length ?? 0) > 0 && (
+              <FadeIn delay={0.16}>
+                <HubCard>
+                  <HubSectionTitle title="Latest Activity" badge="Live" />
+                  <ol className="relative ml-2 space-y-0 border-l border-[var(--color-border)]">
                     {overview!.recentActivity.map((item) => (
-                      <li key={item.id} className="relative pl-5 py-2.5">
+                      <li key={item.id} className="relative py-2.5 pl-5">
                         <span className="absolute -left-[5px] top-4 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-surface)] bg-[#fd5000]" />
-                        <Link href={item.href} className="block rounded-lg hover:bg-[var(--color-surface-secondary)]/80 -ml-1 px-2 py-1">
+                        <Link
+                          href={item.href}
+                          className="-ml-1 block rounded-lg px-2 py-1 hover:bg-[var(--color-surface-secondary)]/80"
+                        >
                           <p className="text-[12.5px] font-medium leading-snug text-[var(--color-text-primary)]">
                             {item.text}
                           </p>
@@ -949,19 +847,13 @@ export function HubCommunityOverview() {
                       </li>
                     ))}
                   </ol>
-                )}
-              </HubCard>
-            </FadeIn>
+                </HubCard>
+              </FadeIn>
+            )}
           </div>
 
           {/* ── Right rail ── */}
           <aside className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:self-start">
-            {overview?.aiWeeklySummary && (
-              <FadeIn delay={0.07}>
-                <AiWeeklySummaryCard overview={overview} />
-              </FadeIn>
-            )}
-
             {overview && overview.upcomingEvents.length > 0 && (
               <FadeIn delay={0.075}>
                 <CalendarPreviewCard overview={overview} base={base} />
@@ -969,6 +861,7 @@ export function HubCommunityOverview() {
             )}
 
             {/* 16 · Leaderboard preview */}
+            {(overview?.topContributors.length ?? 0) > 0 && (
             <FadeIn delay={0.08}>
               <HubCard>
                 <div className="mb-1 flex items-center justify-between">
@@ -977,9 +870,6 @@ export function HubCommunityOverview() {
                     Full ranks
                   </Link>
                 </div>
-                {(overview?.topContributors.length ?? 0) === 0 ? (
-                  <p className="text-[12px] text-[var(--color-text-muted)]">No rankings yet.</p>
-                ) : (
                   <ol className="space-y-1">
                     {overview!.topContributors.map((u, i) => (
                       <li
@@ -1011,18 +901,16 @@ export function HubCommunityOverview() {
                       </li>
                     ))}
                   </ol>
-                )}
               </HubCard>
             </FadeIn>
+            )}
 
             {/* Active now */}
+            {(overview?.activeMembers.length ?? 0) > 0 && (
             <FadeIn delay={0.09}>
               <HubCard>
                 <HubSectionTitle title="Active Now" />
-                {(overview?.activeMembers.length ?? 0) === 0 ? (
-                  <p className="text-[12px] text-[var(--color-text-muted)]">No one active right now.</p>
-                ) : (
-                  overview!.activeMembers.map((u) => (
+                  {overview!.activeMembers.map((u) => (
                     <div
                       key={u.id}
                       className="flex items-center justify-between border-t border-[var(--color-border)] py-2.5 first:border-0 first:pt-0"
@@ -1035,47 +923,13 @@ export function HubCommunityOverview() {
                         </div>
                       </div>
                     </div>
-                  ))
-                )}
+                  ))}
               </HubCard>
             </FadeIn>
-
-            {/* Weekly pulse */}
-            {(overview?.weeklyActivity?.length ?? 0) > 0 && (
-              <FadeIn delay={0.1}>
-                <HubCard>
-                  <HubSectionTitle title="Weekly Pulse" badge="7d" />
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { label: "Messages", value: (overview?.messagesThisWeek ?? 0).toLocaleString() },
-                      { label: "Online", value: (overview?.membersOnline ?? 0).toLocaleString() },
-                      { label: "Courses", value: String(overview?.courseCount ?? 0) },
-                      { label: "Rooms", value: String(overview?.activeRoomCount ?? 0) },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="rounded-lg bg-[var(--color-surface-secondary)] p-2.5">
-                        <p className="text-[10px] text-[var(--color-text-muted)]">{label}</p>
-                        <p className="text-[15px] font-black tracking-tight">{value}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex h-16 items-end gap-1" aria-hidden>
-                    {overview!.weeklyActivity.map((h, i) => {
-                      const max = Math.max(...overview!.weeklyActivity, 1);
-                      const pct = Math.max(12, Math.round((h / max) * 100));
-                      return (
-                        <div
-                          key={i}
-                          className="flex-1 rounded-t bg-[#fd5000]/25 transition-all"
-                          style={{ height: `${pct}%` }}
-                        />
-                      );
-                    })}
-                  </div>
-                </HubCard>
-              </FadeIn>
             )}
 
             {/* 22 · Insights */}
+            {(overview?.insights.length ?? 0) > 0 && (
             <FadeIn delay={0.11}>
               <HubCard>
                 <HubSectionTitle title="Community Insights" />
@@ -1101,20 +955,21 @@ export function HubCommunityOverview() {
                 </ul>
               </HubCard>
             </FadeIn>
+            )}
 
             <FadeIn delay={0.12}>
               <div className="grid grid-cols-2 gap-2">
-                <HubLinkButton href={`${base}/feed`} variant="secondary" className="!rounded-xl !py-2.5">
-                  Feed
-                </HubLinkButton>
                 <HubLinkButton href={`${base}/chat`} variant="secondary" className="!rounded-xl !py-2.5">
-                  Chats
+                  General Chat
+                </HubLinkButton>
+                <HubLinkButton href={`${base}/live`} className="!rounded-xl !py-2.5">
+                  Go Live
                 </HubLinkButton>
                 <HubLinkButton href={`${base}/courses`} variant="secondary" className="!rounded-xl !py-2.5">
                   Courses
                 </HubLinkButton>
-                <HubLinkButton href={`${base}/live`} className="!rounded-xl !py-2.5">
-                  Go Live
+                <HubLinkButton href={`${base}/members`} variant="secondary" className="!rounded-xl !py-2.5">
+                  Members
                 </HubLinkButton>
               </div>
             </FadeIn>

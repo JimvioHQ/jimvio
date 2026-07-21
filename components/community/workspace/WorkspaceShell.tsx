@@ -1443,17 +1443,16 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "", label: "Overview", icon: Home, matchExact: true },
-  { href: "/feed", label: "Feed", icon: FileText },
-  { href: "/chat", label: "Chats", icon: MessageCircle },
+  { href: "/chat", label: "General Chat", icon: MessageCircle },
   { href: "/live", label: "Live", icon: Radio },
 ];
 
 const MOBILE_NAV_ITEMS: NavItem[] = [
   { href: "", label: "Home", icon: Home, matchExact: true },
-  { href: "/feed", label: "Feed", icon: FileText },
-  { href: "/chat", label: "Chats", icon: MessageCircle },
+  { href: "/chat", label: "Chat", icon: MessageCircle },
   { href: "/courses", label: "Courses", icon: GraduationCap },
   { href: "/members", label: "Members", icon: Users },
+  { href: "/leaderboard", label: "Ranks", icon: Trophy },
 ];
 
 function roomTypeIcon(t: string): LucideIcon {
@@ -1766,7 +1765,7 @@ function Sidebar({
         <nav className="space-y-0.5">
           {[
             { href: "", label: "Overview", icon: Home, badge: null as string | null, matchExact: true },
-            { href: "/feed", label: "Feed", icon: FileText, badge: overview?.messagesThisWeek ? String(Math.min(overview.messagesThisWeek, 99)) : null },
+            { href: "/chat", label: "General Chat", icon: MessageCircle, badge: overview?.messagesThisWeek ? String(Math.min(overview.messagesThisWeek, 99)) : null },
             { href: "/live", label: "Events", icon: Calendar, badge: overview?.upcomingEvents?.length ? String(overview.upcomingEvents.length) : null },
             { href: "/courses", label: "Courses", icon: GraduationCap, badge: overview?.courseCount ? String(overview.courseCount) : null },
             { href: "/members", label: "Members", icon: Users, badge: null as string | null },

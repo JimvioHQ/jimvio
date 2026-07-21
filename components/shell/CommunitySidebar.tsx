@@ -13,7 +13,6 @@ import {
   FileText,
   HelpCircle,
   LayoutGrid,
-  Megaphone,
   MessageSquare,
   Mic,
   Settings,
@@ -67,7 +66,7 @@ const NAV_ITEMS: {
   dot?: boolean;
 }[] = [
   { id: "overview", label: "Overview", icon: LayoutGrid, href: "" },
-  { id: "announcements", label: "Feed", icon: Megaphone, href: "/feed" },
+  { id: "announcements", label: "General Chat", icon: MessageSquare, href: "/chat" },
   { id: "events", label: "Events", icon: Calendar, href: "/live" },
   { id: "courses", label: "Courses", icon: BookOpen, href: "/courses" },
   { id: "members", label: "Members", icon: Users, href: "/members" },

@@ -18,7 +18,6 @@ import {
   Target,
   Trophy,
   UserPlus,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -205,7 +204,7 @@ export function QuickActionsGrid({ overview }: Pick<IntelligenceProps, "overview
   if (!actions.length) return null;
 
   return (
-    <nav aria-label="Quick actions" className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+    <nav aria-label="Quick actions" className="grid grid-cols-3 gap-2 sm:grid-cols-5">
       {actions.map((action) => {
         const Icon = ACTION_ICONS[action.icon];
         return (
@@ -438,36 +437,25 @@ export function AiWeeklySummaryCard({
   );
 }
 
-/** Compact intelligence strip used under the stats row */
+/** Compact strip under hero — badges + actions only (no metric clutter) */
 export function OverviewIntelligenceStrip({
   overview,
   base,
 }: Pick<IntelligenceProps, "overview" | "base">) {
-  const hasHealth = !!overview.healthScore;
   const hasBadges = overview.trustedBadges.length > 0;
   const hasActions = overview.quickActions.length > 0;
-  if (!hasHealth && !hasBadges && !hasActions) return null;
+  if (!hasBadges && !hasActions) return null;
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      {hasHealth && <CommunityHealthScoreCard overview={overview} />}
       {hasBadges && <TrustedBadgesRow overview={overview} />}
       {hasActions && <QuickActionsGrid overview={overview} />}
-      {(overview.membersOnline > 0 || overview.membersJoinedThisWeek > 0) && (
-        <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
-          <Users className="h-3.5 w-3.5" aria-hidden />
-          <span>
-            {overview.membersOnline.toLocaleString()} online
-            {overview.membersJoinedThisWeek > 0
-              ? ` · +${overview.membersJoinedThisWeek} joined this week`
-              : ""}
-          </span>
-          <HubLinkButton href={`${base}/members`} variant="ghost" className="!px-2 !py-1 !text-[11px]">
-            <HeartHandshake className="mr-1 h-3 w-3" aria-hidden />
-            Members
-          </HubLinkButton>
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
+        <HubLinkButton href={`${base}/members`} variant="ghost" className="!px-2 !py-1 !text-[11px]">
+          <HeartHandshake className="mr-1 h-3 w-3" aria-hidden />
+          Members
+        </HubLinkButton>
+      </div>
     </div>
   );
 }
