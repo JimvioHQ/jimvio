@@ -219,6 +219,59 @@ export type OverviewLiveSession = {
   active_count: number;
 } | null;
 
+export type OverviewHealthScore = {
+  score: number;
+  label: "Excellent" | "Strong" | "Steady" | "Building";
+  summary: string;
+  factors: Array<{ id: string; label: string; score: number }>;
+};
+
+export type OverviewMissionVision = {
+  mission: string | null;
+  vision: string | null;
+};
+
+export type OverviewGrowthPoint = {
+  label: string;
+  joins: number;
+};
+
+export type OverviewHighlight = {
+  id: string;
+  title: string;
+  meta: string;
+  href: string;
+  kind: "post" | "course" | "contributor" | "activity" | "challenge";
+};
+
+export type OverviewTrustedBadge = {
+  id: string;
+  label: string;
+  description: string;
+  tone: "verified" | "featured" | "secure" | "active" | "learning" | "staff";
+};
+
+export type OverviewQuickAction = {
+  id: string;
+  label: string;
+  href: string;
+  icon: "feed" | "chat" | "live" | "courses" | "invite" | "ranks" | "events";
+};
+
+export type OverviewMilestone = {
+  id: string;
+  title: string;
+  description: string;
+  reached: boolean;
+  dateLabel: string | null;
+};
+
+export type OverviewAiWeeklySummary = {
+  headline: string;
+  paragraphs: string[];
+  generatedFrom: string[];
+};
+
 export type CommunityOverviewStats = {
   membersOnline: number;
   membersOnlineDelta: string | null;
@@ -244,6 +297,7 @@ export type CommunityOverviewStats = {
   tags: string[];
   memberCount: number;
   postCount: number;
+  createdAt: string | null;
   rules: string[];
   founder: OverviewMember | null;
   moderators: OverviewMember[];
@@ -258,6 +312,15 @@ export type CommunityOverviewStats = {
   similarCommunities: OverviewSimilarCommunity[];
   insights: OverviewInsight[];
   weeklyActivity: number[];
+  healthScore: OverviewHealthScore | null;
+  missionVision: OverviewMissionVision | null;
+  memberGrowth: OverviewGrowthPoint[];
+  membersJoinedThisWeek: number;
+  weeklyHighlights: OverviewHighlight[];
+  trustedBadges: OverviewTrustedBadge[];
+  quickActions: OverviewQuickAction[];
+  milestones: OverviewMilestone[];
+  aiWeeklySummary: OverviewAiWeeklySummary | null;
   courses: OverviewCourse[];
   upcomingEvents: Array<{
     id: string;
@@ -1075,11 +1138,13 @@ export async function getCommunityOverviewStats(
     galleryPostsRes,
     walletRes,
     challengesRes,
+    recentJoinsRes,
+    joinsThisWeekRes,
   ] = await Promise.all([
     supabase
       .from("communities")
       .select(
-        "slug, name, description, long_description, tagline, cover_image, avatar_url, is_private, is_featured, is_free, category, tags, member_count, post_count, owner_id, owner:profiles!communities_owner_id_fkey(id, full_name, avatar_url, username)"
+        "slug, name, description, long_description, tagline, cover_image, avatar_url, is_private, is_featured, is_free, category, tags, member_count, post_count, owner_id, created_at, owner:profiles!communities_owner_id_fkey(id, full_name, avatar_url, username)"
       )
       .eq("id", communityId)
       .maybeSingle(),
@@ -1208,6 +1273,19 @@ export async function getCommunityOverviewStats(
       .eq("is_active", true)
       .order("due_date", { ascending: true, nullsFirst: false })
       .limit(4),
+    supabase
+      .from("community_memberships")
+      .select("subscribed_at, created_at")
+      .eq("community_id", communityId)
+      .eq("status", "active")
+      .order("subscribed_at", { ascending: false, nullsFirst: false })
+      .limit(400),
+    supabase
+      .from("community_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", communityId)
+      .eq("status", "active")
+      .gte("subscribed_at", weekAgo),
   ]);
 
   const community = communityRes.data;
@@ -1526,11 +1604,6 @@ export async function getCommunityOverviewStats(
     },
   ];
 
-  // Lightweight weekly sparkline from message volume heuristic
-  const weeklyActivity = [0.35, 0.45, 0.4, 0.55, 0.5, 0.7, 1].map((w, i) =>
-    Math.max(4, Math.round(messagesThisWeek * w * (0.55 + (i % 3) * 0.12)))
-  );
-
   let similarCommunities: OverviewSimilarCommunity[] = [];
   if (category || tags.length > 0) {
     let similarQuery = supabase
@@ -1580,6 +1653,287 @@ export async function getCommunityOverviewStats(
     }));
   }
 
+  const createdAt = community?.created_at ?? null;
+  const longDescription = community?.long_description?.trim() || null;
+  const shortDescription = community?.description?.trim() || null;
+
+  const missionVision: OverviewMissionVision | null = (() => {
+    const mission = tagline?.trim() || null;
+    const visionCandidate =
+      longDescription && longDescription !== mission && longDescription !== shortDescription
+        ? longDescription
+        : shortDescription && shortDescription !== mission
+          ? shortDescription
+          : null;
+    if (!mission && !visionCandidate) return null;
+    return { mission, vision: visionCandidate };
+  })();
+
+  const fourWeekMs = 28 * DAY_MS;
+  const weekBuckets = [0, 0, 0, 0];
+  const weekLabels = ["3w ago", "2w ago", "Last week", "This week"];
+  const nowMs = Date.now();
+  for (const row of recentJoinsRes.data ?? []) {
+    const raw = row.subscribed_at ?? row.created_at;
+    if (!raw) continue;
+    const t = new Date(raw).getTime();
+    if (Number.isNaN(t) || nowMs - t > fourWeekMs) continue;
+    const weekIndex = Math.min(3, Math.floor((nowMs - t) / (7 * DAY_MS)));
+    // weekIndex 0 = most recent week → bucket 3
+    weekBuckets[3 - weekIndex] += 1;
+  }
+  const memberGrowth: OverviewGrowthPoint[] = weekBuckets.some((n) => n > 0)
+    ? weekLabels.map((label, i) => ({ label, joins: weekBuckets[i] }))
+    : [];
+  const membersJoinedThisWeek =
+    joinsThisWeekRes.count ?? weekBuckets[3] ?? 0;
+
+  const onlineRatio =
+    memberCount > 0 ? Math.min(1, (onlineNowRes.count ?? 0) / memberCount) : 0;
+  const activityFactor = Math.min(100, Math.round((messagesThisWeek / Math.max(memberCount, 1)) * 40 + Math.min(messagesThisWeek, 80)));
+  const presenceFactor = Math.round(onlineRatio * 100);
+  const learningFactor = Math.min(100, courses.length * 22 + (featuredCourse ? 10 : 0));
+  const liveFactor = Math.min(100, liveNow * 35 + (challengeCount > 0 ? 15 : 0));
+  const healthRaw = Math.round(
+    presenceFactor * 0.3 + activityFactor * 0.35 + learningFactor * 0.2 + liveFactor * 0.15
+  );
+  const healthScoreValue = Math.max(12, Math.min(98, healthRaw || 18));
+  const healthLabel: OverviewHealthScore["label"] =
+    healthScoreValue >= 80
+      ? "Excellent"
+      : healthScoreValue >= 62
+        ? "Strong"
+        : healthScoreValue >= 42
+          ? "Steady"
+          : "Building";
+  const healthScore: OverviewHealthScore | null =
+    memberCount > 0
+      ? {
+          score: healthScoreValue,
+          label: healthLabel,
+          summary:
+            healthLabel === "Excellent"
+              ? "This community is highly engaged right now."
+              : healthLabel === "Strong"
+                ? "Healthy momentum across members and spaces."
+                : healthLabel === "Steady"
+                  ? "Solid foundation — room to spark more activity."
+                  : "Early stage — invite members and start conversations.",
+          factors: [
+            { id: "presence", label: "Presence", score: presenceFactor },
+            { id: "activity", label: "Activity", score: activityFactor },
+            { id: "learning", label: "Learning", score: learningFactor },
+            { id: "live", label: "Live pulse", score: liveFactor },
+          ],
+        }
+      : null;
+
+  const weeklyHighlights: OverviewHighlight[] = [];
+  if (featuredPosts[0]) {
+    weeklyHighlights.push({
+      id: `post-${featuredPosts[0].id}`,
+      title: featuredPosts[0].title || featuredPosts[0].body.slice(0, 80),
+      meta: `${featuredPosts[0].like_count} likes · ${featuredPosts[0].author.name}`,
+      href: featuredPosts[0].href,
+      kind: "post",
+    });
+  }
+  if (featuredCourse) {
+    weeklyHighlights.push({
+      id: `course-${featuredCourse.id}`,
+      title: featuredCourse.title,
+      meta: `${featuredCourse.total_lessons} lessons · ${featuredCourse.difficulty}`,
+      href: featuredCourse.href,
+      kind: "course",
+    });
+  }
+  if (topContributors[0]) {
+    weeklyHighlights.push({
+      id: `contrib-${topContributors[0].id}`,
+      title: topContributors[0].name,
+      meta: `${topContributors[0].points.toLocaleString()} XP this season`,
+      href: `${base}/leaderboard`,
+      kind: "contributor",
+    });
+  }
+  if (challenges[0]) {
+    weeklyHighlights.push({
+      id: `challenge-${challenges[0].id}`,
+      title: challenges[0].title,
+      meta: challenges[0].due_date
+        ? `Due ${new Date(challenges[0].due_date).toLocaleDateString()}`
+        : "Active challenge",
+      href: challenges[0].href,
+      kind: "challenge",
+    });
+  }
+  if (messagesThisWeek > 0) {
+    weeklyHighlights.push({
+      id: "messages-week",
+      title: `${messagesThisWeek.toLocaleString()} messages this week`,
+      meta: "Conversation across community spaces",
+      href: `${base}/chat`,
+      kind: "activity",
+    });
+  }
+
+  const trustedBadges: OverviewTrustedBadge[] = [];
+  if (isVerified) {
+    trustedBadges.push({
+      id: "verified",
+      label: "Verified",
+      description: "Trusted community on Jimvio",
+      tone: "verified",
+    });
+  }
+  if (isFeatured) {
+    trustedBadges.push({
+      id: "featured",
+      label: "Featured",
+      description: "Highlighted by the platform",
+      tone: "featured",
+    });
+  }
+  if (isPrivate) {
+    trustedBadges.push({
+      id: "private",
+      label: "Private",
+      description: "Members-only access",
+      tone: "secure",
+    });
+  }
+  if (moderators.length > 0 || founder) {
+    trustedBadges.push({
+      id: "moderated",
+      label: "Moderated",
+      description: "Active staff & founder presence",
+      tone: "staff",
+    });
+  }
+  if ((onlineNowRes.count ?? 0) > 0) {
+    trustedBadges.push({
+      id: "active",
+      label: "Active now",
+      description: `${(onlineNowRes.count ?? 0).toLocaleString()} members online`,
+      tone: "active",
+    });
+  }
+  if (courses.length > 0) {
+    trustedBadges.push({
+      id: "learning",
+      label: "Learning hub",
+      description: `${courses.length} published course${courses.length === 1 ? "" : "s"}`,
+      tone: "learning",
+    });
+  }
+
+  const quickActions: OverviewQuickAction[] = [
+    { id: "feed", label: "Feed", href: `${base}/feed`, icon: "feed" },
+    { id: "chat", label: "Chats", href: `${base}/chat`, icon: "chat" },
+    { id: "live", label: "Live", href: `${base}/live`, icon: "live" },
+    { id: "courses", label: "Courses", href: `${base}/courses`, icon: "courses" },
+    { id: "invite", label: "Invite", href: `${base}/members`, icon: "invite" },
+    { id: "ranks", label: "Ranks", href: `${base}/leaderboard`, icon: "ranks" },
+  ];
+  if ((tasksRes.data ?? []).length > 0) {
+    quickActions.push({ id: "events", label: "Events", href: `${base}/live`, icon: "events" });
+  }
+
+  const milestones: OverviewMilestone[] = [
+    {
+      id: "founded",
+      title: "Community founded",
+      description: `${communityName} went live on Jimvio`,
+      reached: true,
+      dateLabel: createdAt
+        ? new Date(createdAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })
+        : null,
+    },
+    {
+      id: "members-10",
+      title: "First 10 members",
+      description: "Core circle formed",
+      reached: memberCount >= 10,
+      dateLabel: memberCount >= 10 ? "Reached" : null,
+    },
+    {
+      id: "members-100",
+      title: "100 members",
+      description: "Growing community hub",
+      reached: memberCount >= 100,
+      dateLabel: memberCount >= 100 ? "Reached" : null,
+    },
+    {
+      id: "first-course",
+      title: "First course published",
+      description: "Learning path unlocked",
+      reached: courses.length > 0,
+      dateLabel: courses.length > 0 ? "Published" : null,
+    },
+    {
+      id: "level-5",
+      title: "Community Level 5",
+      description: "Collective XP milestone",
+      reached: communityLevel >= 5,
+      dateLabel: communityLevel >= 5 ? `Level ${communityLevel}` : null,
+    },
+  ].filter((m) => m.reached);
+
+  const summarySignals: string[] = [];
+  if (messagesThisWeek > 0) summarySignals.push("messages");
+  if ((onlineNowRes.count ?? 0) > 0) summarySignals.push("presence");
+  if (membersJoinedThisWeek > 0) summarySignals.push("growth");
+  if (courses.length > 0) summarySignals.push("courses");
+  if (liveNow > 0) summarySignals.push("live");
+
+  const aiWeeklySummary: OverviewAiWeeklySummary | null =
+    summarySignals.length >= 2
+      ? {
+          headline: `${communityName} · weekly pulse`,
+          paragraphs: [
+            [
+              membersJoinedThisWeek > 0
+                ? `${membersJoinedThisWeek.toLocaleString()} new member${membersJoinedThisWeek === 1 ? "" : "s"} joined this week.`
+                : null,
+              messagesThisWeek > 0
+                ? `Members exchanged ${messagesThisWeek.toLocaleString()} messages across spaces.`
+                : null,
+              (onlineNowRes.count ?? 0) > 0
+                ? `${(onlineNowRes.count ?? 0).toLocaleString()} people are active right now.`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" "),
+            [
+              courses.length > 0
+                ? `Learning stays central with ${courses.length} published course${courses.length === 1 ? "" : "s"}${featuredCourse ? ` — featured: ${featuredCourse.title}` : ""}.`
+                : null,
+              liveNow > 0
+                ? `Live energy is up with ${liveNow} active room${liveNow === 1 ? "" : "s"}.`
+                : challengeCount > 0
+                  ? `${challengeCount} challenge${challengeCount === 1 ? "" : "s"} are available for members.`
+                  : null,
+              topContributors[0]
+                ? `${topContributors[0].name} leads the board with ${topContributors[0].points.toLocaleString()} XP.`
+                : null,
+            ]
+              .filter(Boolean)
+              .join(" "),
+          ].filter((p) => p.length > 0),
+          generatedFrom: summarySignals,
+        }
+      : null;
+
+  // Prefer real join-based weekly series when available; else message heuristic only if messages exist
+  const weeklyActivitySeries =
+    memberGrowth.length > 0
+      ? memberGrowth.map((p) => Math.max(p.joins, 0))
+      : messagesThisWeek > 0
+        ? [0.35, 0.45, 0.4, 0.55, 0.5, 0.7, 1].map((w, i) =>
+            Math.max(1, Math.round(messagesThisWeek * w * (0.55 + (i % 3) * 0.12)))
+          )
+        : [];
+
   return {
     membersOnline: onlineNowRes.count ?? 0,
     membersOnlineDelta: formatDelta(onlineNowRes.count ?? 0, onlinePrevRes.count ?? 0),
@@ -1605,6 +1959,7 @@ export async function getCommunityOverviewStats(
     tags,
     memberCount,
     postCount,
+    createdAt,
     rules,
     founder,
     moderators,
@@ -1618,7 +1973,16 @@ export async function getCommunityOverviewStats(
     faq,
     similarCommunities,
     insights,
-    weeklyActivity,
+    weeklyActivity: weeklyActivitySeries,
+    healthScore,
+    missionVision,
+    memberGrowth,
+    membersJoinedThisWeek,
+    weeklyHighlights: weeklyHighlights.slice(0, 5),
+    trustedBadges,
+    quickActions,
+    milestones,
+    aiWeeklySummary,
     courses,
     upcomingEvents: (tasksRes.data ?? []).map((task) => ({
       id: task.id,

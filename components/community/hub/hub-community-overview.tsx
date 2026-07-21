@@ -40,6 +40,16 @@ import {
 } from "./hub-ui";
 import { cn } from "@/lib/utils";
 import type { OverviewInsight } from "@/services/community/hub-data";
+import {
+  AiWeeklySummaryCard,
+  CalendarPreviewCard,
+  CommunityMilestonesCard,
+  LiveStatusBanner,
+  MemberGrowthChart,
+  MissionVisionCard,
+  OverviewIntelligenceStrip,
+  WeeklyHighlightsCard,
+} from "./overview-intelligence";
 
 function formatJoined(iso: string | null) {
   if (!iso) return null;
@@ -227,6 +237,8 @@ export function HubCommunityOverview() {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-[1120px] px-3 pb-16 pt-3 sm:px-5 sm:pb-20 sm:pt-5 lg:px-6">
+        {overview && <LiveStatusBanner overview={overview} base={base} />}
+
         {/* 1–4 · Hero + identity */}
         <FadeIn>
           <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -427,9 +439,21 @@ export function HubCommunityOverview() {
           </div>
         </FadeIn>
 
+        {overview && (
+          <FadeIn delay={0.055} className="mt-5 sm:mt-6">
+            <OverviewIntelligenceStrip overview={overview} base={base} />
+          </FadeIn>
+        )}
+
         <div className="mt-5 grid gap-5 sm:mt-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6">
           {/* ── Main column ── */}
           <div className="min-w-0 space-y-5 sm:space-y-6">
+            {overview?.missionVision && (
+              <FadeIn delay={0.058}>
+                <MissionVisionCard overview={overview} />
+              </FadeIn>
+            )}
+
             {/* 6–7 · Founder + Moderators */}
             <FadeIn delay={0.06}>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -485,6 +509,18 @@ export function HubCommunityOverview() {
                 </HubCard>
               </div>
             </FadeIn>
+
+            {overview && overview.memberGrowth.length > 0 && (
+              <FadeIn delay={0.065}>
+                <MemberGrowthChart overview={overview} />
+              </FadeIn>
+            )}
+
+            {overview && overview.weeklyHighlights.length > 0 && (
+              <FadeIn delay={0.068}>
+                <WeeklyHighlightsCard overview={overview} />
+              </FadeIn>
+            )}
 
             {/* 14 · Active Live Session */}
             {(overview?.activeLiveSession || (overview?.liveNow ?? 0) > 0) && (
@@ -797,6 +833,12 @@ export function HubCommunityOverview() {
               </section>
             </FadeIn>
 
+            {overview && overview.milestones.length > 0 && (
+              <FadeIn delay={0.125}>
+                <CommunityMilestonesCard overview={overview} />
+              </FadeIn>
+            )}
+
             {/* 18 · Rules */}
             <FadeIn delay={0.13}>
               <HubCard>
@@ -914,6 +956,18 @@ export function HubCommunityOverview() {
 
           {/* ── Right rail ── */}
           <aside className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:self-start">
+            {overview?.aiWeeklySummary && (
+              <FadeIn delay={0.07}>
+                <AiWeeklySummaryCard overview={overview} />
+              </FadeIn>
+            )}
+
+            {overview && overview.upcomingEvents.length > 0 && (
+              <FadeIn delay={0.075}>
+                <CalendarPreviewCard overview={overview} base={base} />
+              </FadeIn>
+            )}
+
             {/* 16 · Leaderboard preview */}
             <FadeIn delay={0.08}>
               <HubCard>
@@ -987,37 +1041,39 @@ export function HubCommunityOverview() {
             </FadeIn>
 
             {/* Weekly pulse */}
-            <FadeIn delay={0.1}>
-              <HubCard>
-                <HubSectionTitle title="Weekly Pulse" badge="7d" />
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { label: "Messages", value: (overview?.messagesThisWeek ?? 0).toLocaleString() },
-                    { label: "Online", value: (overview?.membersOnline ?? 0).toLocaleString() },
-                    { label: "Courses", value: String(overview?.courseCount ?? 0) },
-                    { label: "Rooms", value: String(overview?.activeRoomCount ?? 0) },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="rounded-lg bg-[var(--color-surface-secondary)] p-2.5">
-                      <p className="text-[10px] text-[var(--color-text-muted)]">{label}</p>
-                      <p className="text-[15px] font-black tracking-tight">{value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 flex h-16 items-end gap-1" aria-hidden>
-                  {(overview?.weeklyActivity ?? [20, 35, 28, 45, 40, 55, 62]).map((h, i) => {
-                    const max = Math.max(...(overview?.weeklyActivity ?? [62]), 1);
-                    const pct = Math.max(12, Math.round((h / max) * 100));
-                    return (
-                      <div
-                        key={i}
-                        className="flex-1 rounded-t bg-[#fd5000]/25 transition-all"
-                        style={{ height: `${pct}%` }}
-                      />
-                    );
-                  })}
-                </div>
-              </HubCard>
-            </FadeIn>
+            {(overview?.weeklyActivity?.length ?? 0) > 0 && (
+              <FadeIn delay={0.1}>
+                <HubCard>
+                  <HubSectionTitle title="Weekly Pulse" badge="7d" />
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: "Messages", value: (overview?.messagesThisWeek ?? 0).toLocaleString() },
+                      { label: "Online", value: (overview?.membersOnline ?? 0).toLocaleString() },
+                      { label: "Courses", value: String(overview?.courseCount ?? 0) },
+                      { label: "Rooms", value: String(overview?.activeRoomCount ?? 0) },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="rounded-lg bg-[var(--color-surface-secondary)] p-2.5">
+                        <p className="text-[10px] text-[var(--color-text-muted)]">{label}</p>
+                        <p className="text-[15px] font-black tracking-tight">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex h-16 items-end gap-1" aria-hidden>
+                    {overview!.weeklyActivity.map((h, i) => {
+                      const max = Math.max(...overview!.weeklyActivity, 1);
+                      const pct = Math.max(12, Math.round((h / max) * 100));
+                      return (
+                        <div
+                          key={i}
+                          className="flex-1 rounded-t bg-[#fd5000]/25 transition-all"
+                          style={{ height: `${pct}%` }}
+                        />
+                      );
+                    })}
+                  </div>
+                </HubCard>
+              </FadeIn>
+            )}
 
             {/* 22 · Insights */}
             <FadeIn delay={0.11}>
