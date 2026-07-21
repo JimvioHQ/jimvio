@@ -56,10 +56,10 @@ export default function HubSpacesPage() {
           <div>
             <h1 className="flex items-center gap-2 text-xl font-black tracking-tight">
               <Layers className="h-5 w-5 text-[#fd5000]" />
-              Spaces
+              Groups
             </h1>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Communities and rooms you belong to
+              Sub-communities across communities you joined
             </p>
           </div>
           <HubLinkButton href="/communities" variant="secondary">
@@ -73,7 +73,7 @@ export default function HubSpacesPage() {
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search spaces or communities…"
+            placeholder="Search groups or communities…"
             className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-2.5 pl-10 pr-4 text-[13px] focus:border-[#fd5000]/40 focus:outline-none"
           />
         </div>
@@ -85,9 +85,9 @@ export default function HubSpacesPage() {
         ) : filtered.length === 0 ? (
           <HubCard className="py-12 text-center">
             <Layers className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
-            <p className="text-[14px] font-bold">No spaces yet</p>
+            <p className="text-[14px] font-bold">No groups yet</p>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Join a community to access its spaces and rooms.
+              Join a community to access its groups.
             </p>
             <HubLinkButton href="/communities" className="mt-4">
               Browse communities

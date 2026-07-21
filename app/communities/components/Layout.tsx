@@ -82,7 +82,8 @@ function usePageTitle(pathname: string): string {
     else if (pathname.startsWith("/communities/messages")) staticTitle = "Messages";
     else if (pathname.startsWith("/communities/bookmarks")) staticTitle = "Bookmarks";
     else if (pathname.startsWith("/communities/live")) staticTitle = "Live";
-    else if (pathname.startsWith("/communities/spaces")) staticTitle = "Spaces";
+    else if (pathname.startsWith("/communities/channels")) staticTitle = "Channels";
+    else if (pathname.startsWith("/communities/spaces")) staticTitle = "Groups";
     else if (pathname.startsWith("/communities/wallet")) staticTitle = "Wallet";
     else if (pathname.startsWith("/communities/analytics")) staticTitle = "Analytics";
     else if (pathname.startsWith("/communities/missions")) staticTitle = "Missions";
@@ -447,7 +448,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 {[
                     { label: "Feed", href: "/communities", auth: false, icon: Home },
                     { label: "Live", href: "/communities/live", auth: true, icon: Radio },
-                    { label: "Spaces", href: "/communities/spaces", auth: true, icon: Layers },
+                    { label: "Groups", href: "/communities/spaces", auth: true, icon: Layers },
                     { label: "Messages", href: "/communities/messages", auth: true, icon: MessageSquare },
                     { label: "Missions", href: "/communities/missions", auth: true, icon: Target },
                 ].map(({ label, href, auth, icon: Icon }) => {

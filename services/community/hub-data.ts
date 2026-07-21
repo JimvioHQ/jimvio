@@ -737,10 +737,24 @@ export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
   );
 }
 
+export type HubChannelItem = {
+  id: string;
+  name: string;
+  slug: string;
+  room_type: string;
+  community_name: string;
+  community_slug: string;
+  space_id: string;
+  space_name: string;
+  href: string;
+};
+
 export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
   const supabase = await createClient();
   const communityIds = await getUserCommunityIds(supabase, userId);
   if (communityIds.length === 0) return [];
+
+  const systemSlugs = new Set(["general", "announcements", "resources", "channels"]);
 
   const { data: spaces } = await supabase
     .from("spaces")
@@ -750,21 +764,63 @@ export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
     .order("sort_order", { ascending: true })
     .limit(50);
 
-  return (spaces ?? []).map((space) => {
-    const community = space.communities as { name: string; slug: string } | null;
-    return {
-      id: space.id,
-      name: space.name,
-      slug: space.slug,
-      description: space.description,
-      community_id: space.community_id,
-      community_name: community?.name ?? "Community",
-      community_slug: community?.slug ?? "",
-      room_count: space.room_count ?? 0,
-      member_count: space.member_count ?? 0,
-      href: community ? `/communities/${community.slug}` : "/communities",
-    };
-  });
+  return (spaces ?? [])
+    .filter((space) => !systemSlugs.has(space.slug))
+    .map((space) => {
+      const community = space.communities as { name: string; slug: string } | null;
+      return {
+        id: space.id,
+        name: space.name,
+        slug: space.slug,
+        description: space.description,
+        community_id: space.community_id,
+        community_name: community?.name ?? "Community",
+        community_slug: community?.slug ?? "",
+        room_count: space.room_count ?? 0,
+        member_count: space.member_count ?? 0,
+        href: community ? `/communities/${community.slug}` : "/communities",
+      };
+    });
+}
+
+export async function getHubChannels(userId: string): Promise<HubChannelItem[]> {
+  const supabase = await createClient();
+  const communityIds = await getUserCommunityIds(supabase, userId);
+  if (communityIds.length === 0) return [];
+
+  const { data: rooms } = await supabase
+    .from("rooms")
+    .select(
+      "id, name, slug, room_type, space_id, community_id, spaces(name, slug), communities(name, slug)"
+    )
+    .in("community_id", communityIds)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true })
+    .limit(100);
+
+  return (rooms ?? [])
+    .filter((room) => room.room_type !== "posts" && !/announcement/i.test(room.name ?? ""))
+    .map((room) => {
+      const community = room.communities as { name: string; slug: string } | null;
+      const space = room.spaces as { name: string; slug: string } | null;
+      const href =
+        community && room.space_id
+          ? `/communities/${community.slug}/room?space=${room.space_id}&room=${room.id}`
+          : community
+            ? `/communities/${community.slug}/chat`
+            : "/communities/messages";
+      return {
+        id: room.id,
+        name: room.name,
+        slug: room.slug,
+        room_type: room.room_type,
+        community_name: community?.name ?? "Community",
+        community_slug: community?.slug ?? "",
+        space_id: room.space_id,
+        space_name: space?.name ?? "Group",
+        href,
+      };
+    });
 }
 
 export async function getHubMissions(userId: string): Promise<HubMissionItem[]> {

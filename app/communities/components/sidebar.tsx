@@ -651,6 +651,11 @@ const Icons = {
             <path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" />
         </svg>
     ),
+    Channels: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 9h16" /><path d="M4 15h16" /><path d="M10 3L8 21" /><path d="M16 3l-2 18" />
+        </svg>
+    ),
     Missions: () => (
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
@@ -739,15 +744,12 @@ const NAV_ITEMS = [
     { id: "feed", label: "Feed", href: "/communities", icon: Icons.Feed },
     { id: "explore", label: "Explore", href: "/communities/explore", icon: Icons.Explore },
     { id: "live", label: "Live", href: "/communities/live", icon: Icons.Live, badgeKey: "live" },
-    { id: "spaces", label: "Spaces", href: "/communities/spaces", icon: Icons.Spaces },
     { id: "messages", label: "Messages", href: "/communities/messages", icon: Icons.Messages, badgeKey: "messages" },
+    { id: "groups", label: "Groups", href: "/communities/spaces", icon: Icons.Spaces },
+    { id: "channels", label: "Channels", href: "/communities/channels", icon: Icons.Channels },
     { id: "missions", label: "Missions", href: "/communities/missions", icon: Icons.Missions, badgeKey: "new" },
     { id: "courses", label: "Courses", href: "/communities/courses", icon: Icons.Courses },
     { id: "events", label: "Events", href: "/communities/events", icon: Icons.Events },
-    { id: "wallet", label: "Wallet", href: "/communities/wallet", icon: Icons.Wallet },
-    { id: "analytics", label: "Analytics", href: "/communities/analytics", icon: Icons.Analytics },
-    { id: "bookmarks", label: "Bookmarks", href: "/communities/bookmarks", icon: Icons.Bookmarks },
-    { id: "profile", label: "My Profile", href: "/communities/profile/__username__", icon: Icons.Profile },
 ];
 
 // ── Fetch joined communities ──────────────────────────────────────────────────

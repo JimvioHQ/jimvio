@@ -15,7 +15,6 @@ import {
   Plus,
   Settings,
   Target,
-  Trophy,
   Users,
   X,
 } from "lucide-react";
@@ -34,8 +33,6 @@ type CommunityNavItem =
   | "announcements"
   | "events"
   | "courses"
-  | "members"
-  | "leaderboard"
   | "challenges"
   | "about";
 
@@ -93,14 +90,6 @@ const DEFAULT_CHANNEL_DEFS: {
   fallbackHref: string;
 }[] = [
   {
-    key: "announcements",
-    label: "Announcements",
-    emoji: "📢",
-    roomTypes: ["posts"],
-    nameMatch: /announcement/i,
-    fallbackHref: "/chat",
-  },
-  {
     key: "general",
     label: "General",
     emoji: "💬",
@@ -139,11 +128,24 @@ const NAV_ITEMS: NavLink[] = [
   { id: "announcements", label: "Announcements", icon: Megaphone, href: "/chat" },
   { id: "events", label: "Events", icon: Calendar, href: "/live" },
   { id: "courses", label: "Courses", icon: BookOpen, href: "/courses" },
-  { id: "members", label: "Members", icon: Users, href: "/members" },
-  { id: "leaderboard", label: "Leaderboard", icon: Trophy, href: "/leaderboard" },
   { id: "challenges", label: "Challenges", icon: Target, href: "/missions" },
   { id: "about", label: "About", icon: Info, href: "/about" },
 ];
+
+function formatMemberCount(count: number): string {
+  if (count >= 1_000_000) {
+    const n = count / 1_000_000;
+    return `${n % 1 === 0 ? n.toFixed(0) : n.toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  if (count >= 10_000) {
+    return `${Math.round(count / 1000)}K`;
+  }
+  if (count >= 1000) {
+    const n = count / 1000;
+    return `${n.toFixed(1).replace(/\.0$/, "")}K`;
+  }
+  return count.toLocaleString();
+}
 
 function roomHref(spaceId: string, roomId: string) {
   return `/room?space=${spaceId}&room=${roomId}`;
@@ -200,6 +202,8 @@ function buildChannels(spacesWithRooms: WorkspaceSpaceRow[]): ChannelItem[] {
 
   for (const room of allRooms) {
     if (used.has(room.id)) continue;
+    // Announcements stay in top-level nav, not under Channels
+    if (room.room_type === "posts" || /announcement/i.test(room.name)) continue;
     channels.push({
       id: room.id,
       label: room.name,
@@ -234,11 +238,15 @@ function resolveChannelsHomeSpaceId(spacesWithRooms: WorkspaceSpaceRow[]): strin
 }
 
 function resolveAnnouncementsHref(
-  channels: ChannelItem[],
+  spacesWithRooms: WorkspaceSpaceRow[],
   base: string
 ): string {
-  const ann = channels.find((c) => c.label === "Announcements" && c.roomId);
-  if (ann) return `${base}${ann.href}`;
+  for (const space of spacesWithRooms) {
+    const room = space.rooms.find(
+      (r) => r.room_type === "posts" || /announcement/i.test(r.name)
+    );
+    if (room) return `${base}${roomHref(space.id, room.id)}`;
+  }
   return `${base}/chat`;
 }
 
@@ -246,11 +254,12 @@ function SidebarBody({
   slug,
   communityName,
   visibility,
-  membersOnline,
+  memberCount,
   activeNav,
   activeSpaceId,
   groups,
   channels,
+  spacesWithRooms,
   canManage,
   communityId,
   channelsHomeSpaceId,
@@ -259,11 +268,12 @@ function SidebarBody({
   slug: string;
   communityName: string;
   visibility: string;
-  membersOnline: number;
+  memberCount: number;
   activeNav?: CommunityNavItem;
   activeSpaceId?: string;
   groups: GroupItem[];
   channels: ChannelItem[];
+  spacesWithRooms: WorkspaceSpaceRow[];
   canManage: boolean;
   communityId: string | null;
   channelsHomeSpaceId: string | null;
@@ -278,13 +288,17 @@ function SidebarBody({
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
 
-  const announcementsHref = resolveAnnouncementsHref(channels, base);
+  const announcementsHref = resolveAnnouncementsHref(spacesWithRooms, base);
 
   function navActive(id: CommunityNavItem, href: string) {
     if (activeNav) return activeNav === id;
     if (id === "announcements") {
-      const roomId = channels.find((c) => c.label === "Announcements")?.roomId;
-      if (roomId && searchParams.get("room") === roomId) return true;
+      for (const space of spacesWithRooms) {
+        const room = space.rooms.find(
+          (r) => r.room_type === "posts" || /announcement/i.test(r.name)
+        );
+        if (room && searchParams.get("room") === room.id) return true;
+      }
       return pathname.startsWith(`${base}/chat`);
     }
     if (id === "about") {
@@ -350,17 +364,20 @@ function SidebarBody({
             </div>
             <p className="text-[12px] text-gray-500">{visibility}</p>
             <p className="text-[12px] text-gray-400">
-              {membersOnline.toLocaleString()} online
+              {formatMemberCount(memberCount)}{" "}
+              {memberCount === 1 ? "Member" : "Members"}
             </p>
           </div>
-          <Link
-            href={`${base}/members`}
-            onClick={onNavigate}
-            aria-label="Community settings"
-            className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
-          >
-            <Settings className="h-4 w-4" />
-          </Link>
+          {canManage && (
+            <Link
+              href={`${base}/members`}
+              onClick={onNavigate}
+              aria-label="Community settings"
+              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
+          )}
         </div>
 
         <Link
@@ -583,15 +600,21 @@ export function CommunitySidebar({
         : "Public"
       : visibility;
 
+  const memberCount =
+    workspace?.overview?.memberCount ??
+    workspace?.memberCount ??
+    (typeof membersOnline === "number" && membersOnline > 0 ? membersOnline : 0);
+
   const bodyProps = {
     slug,
     communityName: workspace?.communityName ?? communityName,
     visibility: resolvedVisibility,
-    membersOnline: workspace?.overview?.membersOnline ?? membersOnline,
+    memberCount,
     activeNav,
     activeSpaceId,
     groups,
     channels,
+    spacesWithRooms,
     canManage,
     communityId,
     channelsHomeSpaceId,

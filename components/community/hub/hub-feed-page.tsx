@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Radio, Mic, Users, Image as ImageIcon, Video, Scissors, BarChart3,
-  Layers, Target, Bot, DollarSign, Play, ChevronRight, Loader2, Flame,
-  Sparkles, Plus, GraduationCap, Calendar, Wallet,
+  Layers, Target, Bot, DollarSign, Play, Loader2, Flame,
+  Sparkles, Plus, GraduationCap, Calendar,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { FeedSection } from "@/components/community/workspace/sections/Feed";
@@ -28,15 +28,7 @@ const HUB_QUICK_LINKS = [
   { icon: Target, label: "Missions", href: "/communities/missions", color: "#3b82f6" },
   { icon: GraduationCap, label: "Courses", href: "/communities/courses", color: "#8b5cf6" },
   { icon: Calendar, label: "Events", href: "/communities/events", color: "#f59e0b" },
-  { icon: Wallet, label: "Wallet", href: "/communities/wallet", color: "#22c55e" },
-  { icon: Layers, label: "Spaces", href: "/communities/spaces", color: "#fd5000" },
-] as const;
-
-const CREATE_LINKS = [
-  { icon: Radio, label: "Go Live", desc: "Start a live session", href: "/communities/live", color: "#ef4444" },
-  { icon: Mic, label: "Voice Room", desc: "Host audio chat", href: "/communities/live", color: "#8b5cf6" },
-  { icon: Scissors, label: "Upload Clip", desc: "Share a short video", href: "/communities", color: "#fd5000" },
-  { icon: Target, label: "Create Mission", desc: "Challenge your community", href: "/communities/missions", color: "#3b82f6" },
+  { icon: Layers, label: "Groups", href: "/communities/spaces", color: "#fd5000" },
 ] as const;
 
 type HubDashboard = {
@@ -352,26 +344,8 @@ export function HubFeedPage() {
           <FeedSection key={activeFilter} filter={activeFilter} variant="hub" />
         </div>
 
-        {/* ── Right sidebar — matches mockup widgets ── */}
+        {/* ── Right sidebar ── */}
         <aside className="hidden w-[280px] shrink-0 space-y-4 lg:block xl:w-[300px]">
-          <HubCard>
-            <HubSectionTitle title="Create" badge="Quick" />
-            <div className="space-y-0.5">
-              {CREATE_LINKS.map(({ icon: Icon, label, desc, href, color }) => (
-                <Link key={label} href={href} className="flex items-center gap-2.5 rounded-md px-2 py-2 transition hover:bg-[var(--color-surface-secondary)]">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md" style={{ background: `${color}14`, color }}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">{label}</p>
-                    <p className="truncate text-[10px] text-[var(--color-text-muted)]">{desc}</p>
-                  </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
-                </Link>
-              ))}
-            </div>
-          </HubCard>
-
           {/* Live Now — featured from API */}
           {data?.featuredLive && (
             <HubCard className="overflow-hidden !p-0">
