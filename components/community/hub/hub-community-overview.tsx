@@ -190,7 +190,6 @@ export function HubCommunityOverview() {
     coverUrl,
     tagline,
     isPrivate,
-    joinedAt,
     ownerName,
     membership,
     isOwner,
@@ -199,7 +198,7 @@ export function HubCommunityOverview() {
   } = useWorkspace();
 
   const base = `/communities/${slug}`;
-  const joinedLabel = formatJoined(joinedAt);
+  const createdLabel = formatJoined(overview?.createdAt ?? null);
   const cover = overview?.coverImage ?? coverUrl;
   const logo = overview?.avatarUrl ?? avatarUrl;
   const members = overview?.memberCount ?? memberCount ?? 0;
@@ -307,31 +306,38 @@ export function HubCommunityOverview() {
                     )}
                   </div>
                   <div className="min-w-0 pb-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-secondary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-text-secondary)]">
-                        {isPrivate || overview?.isPrivate ? (
-                          <>
-                            <Lock className="h-3 w-3" /> Private
-                          </>
-                        ) : (
-                          "Public"
-                        )}
-                      </span>
-                      {overview?.category && (
-                        <span className="rounded-full bg-[#fd5000]/10 px-2.5 py-1 text-[11px] font-semibold text-[#fd5000]">
-                          {overview.category}
+                    {/* Compact identity metadata */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-[var(--color-text-muted)]">
+                      {verified && (
+                        <span className="inline-flex items-center gap-1 font-semibold text-sky-700">
+                          <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
+                          Verified
                         </span>
                       )}
-                      {verified && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700">
-                          <BadgeCheck className="h-3 w-3" /> Verified
-                        </span>
+                      {verified && <span aria-hidden>·</span>}
+                      <span>{members.toLocaleString()} members</span>
+                      <span aria-hidden>·</span>
+                      <span className="inline-flex items-center gap-1">
+                        {(isPrivate || overview?.isPrivate) && <Lock className="h-3 w-3" aria-hidden />}
+                        {isPrivate || overview?.isPrivate ? "Private" : "Public"}
+                      </span>
+                      {overview?.category && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span>{overview.category}</span>
+                        </>
+                      )}
+                      {createdLabel && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <span>Created {createdLabel}</span>
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* 8 · Join status */}
+                {/* Join status */}
                 <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[12px] font-semibold text-emerald-700">
                     <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -346,35 +352,30 @@ export function HubCommunityOverview() {
                 </div>
               </div>
 
-              {/* 3 · Description */}
+              {/* Description */}
               <p className="mt-4 max-w-3xl text-[13.5px] leading-relaxed text-[var(--color-text-secondary)] sm:text-[14px]">
                 {desc}
               </p>
 
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-[var(--color-text-muted)]">
-                <span>Created by {founderName}</span>
-                {joinedLabel && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span>Joined {joinedLabel}</span>
-                  </>
-                )}
-                <span aria-hidden>·</span>
-                <span>{members.toLocaleString()} members</span>
-              </div>
-
-              {/* 9 · Member avatars */}
-              <div className="mt-4">
-                <MemberAvatarStack
-                  members={overview?.memberAvatars?.length ? overview.memberAvatars : overview?.activeMembers ?? []}
-                  total={members}
-                />
-              </div>
+              {/* Member avatars */}
+              {(overview?.memberAvatars?.length || overview?.activeMembers?.length) ? (
+                <div className="mt-4">
+                  <MemberAvatarStack
+                    members={
+                      overview?.memberAvatars?.length
+                        ? overview.memberAvatars
+                        : overview?.activeMembers ?? []
+                    }
+                    total={members}
+                  />
+                </div>
+              ) : null}
             </div>
           </section>
         </FadeIn>
 
-        {overview && (
+        {/* Quick Actions — directly below hero */}
+        {overview && overview.quickActions.length > 0 && (
           <FadeIn delay={0.05} className="mt-5 sm:mt-6">
             <OverviewIntelligenceStrip overview={overview} base={base} />
           </FadeIn>

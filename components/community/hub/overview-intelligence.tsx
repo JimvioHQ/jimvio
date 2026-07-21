@@ -9,7 +9,6 @@ import {
   Calendar,
   Flag,
   GraduationCap,
-  HeartHandshake,
   Lock,
   MessageCircle,
   Radio,
@@ -22,7 +21,6 @@ import {
 } from "lucide-react";
 import {
   HubCard,
-  HubLinkButton,
   HubProgressBar,
   HubSectionTitle,
 } from "@/components/community/hub/hub-ui";
@@ -204,26 +202,39 @@ export function QuickActionsGrid({ overview }: Pick<IntelligenceProps, "overview
   if (!actions.length) return null;
 
   return (
-    <nav aria-label="Quick actions" className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-      {actions.map((action) => {
-        const Icon = ACTION_ICONS[action.icon];
-        return (
-          <Link
-            key={action.id}
-            href={action.href}
-            className="flex flex-col items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-3 text-center transition hover:border-[#fd5000]/35 hover:bg-[#fd5000]/[0.04]"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#fd5000]/10 text-[#fd5000]">
-              <Icon className="h-4 w-4" aria-hidden />
-            </span>
-            <span className="text-[11px] font-semibold text-[var(--color-text-primary)]">
-              {action.label}
-            </span>
-          </Link>
-        );
-      })}
-    </nav>
+    <section aria-label="Quick actions">
+      <h2 className="mb-3 text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
+        Quick Actions
+      </h2>
+      <nav className="grid grid-cols-2 gap-2.5 sm:grid-cols-5 sm:gap-3">
+        {actions.map((action) => {
+          const Icon = ACTION_ICONS[action.icon] ?? MessageCircle;
+          return (
+            <Link
+              key={action.id}
+              href={action.href}
+              className="group flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-3.5 transition hover:border-[#fd5000]/35 hover:bg-[#fd5000]/[0.03] sm:flex-col sm:items-center sm:gap-2.5 sm:px-2 sm:py-4 sm:text-center"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fd5000]/10 text-[#fd5000] transition group-hover:bg-[#fd5000]/15">
+                <Icon className="h-[18px] w-[18px]" aria-hidden />
+              </span>
+              <span className="text-[12.5px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[11.5px]">
+                {action.label}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
+    </section>
   );
+}
+
+/** Quick Actions strip directly under the hero */
+export function OverviewIntelligenceStrip({
+  overview,
+}: Pick<IntelligenceProps, "overview" | "base">) {
+  if (!overview.quickActions.length) return null;
+  return <QuickActionsGrid overview={overview} />;
 }
 
 export function MissionVisionCard({ overview }: Pick<IntelligenceProps, "overview">) {
@@ -434,28 +445,5 @@ export function AiWeeklySummaryCard({
         </p>
       )}
     </HubCard>
-  );
-}
-
-/** Compact strip under hero — badges + actions only (no metric clutter) */
-export function OverviewIntelligenceStrip({
-  overview,
-  base,
-}: Pick<IntelligenceProps, "overview" | "base">) {
-  const hasBadges = overview.trustedBadges.length > 0;
-  const hasActions = overview.quickActions.length > 0;
-  if (!hasBadges && !hasActions) return null;
-
-  return (
-    <div className="space-y-3 sm:space-y-4">
-      {hasBadges && <TrustedBadgesRow overview={overview} />}
-      {hasActions && <QuickActionsGrid overview={overview} />}
-      <div className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
-        <HubLinkButton href={`${base}/members`} variant="ghost" className="!px-2 !py-1 !text-[11px]">
-          <HeartHandshake className="mr-1 h-3 w-3" aria-hidden />
-          Members
-        </HubLinkButton>
-      </div>
-    </div>
   );
 }

@@ -1829,14 +1829,11 @@ export async function getCommunityOverviewStats(
 
   const quickActions: OverviewQuickAction[] = [
     { id: "chat", label: "General Chat", href: `${base}/chat`, icon: "chat" },
-    { id: "live", label: "Live", href: `${base}/live`, icon: "live" },
+    { id: "feed", label: "View Feed", href: `${base}/feed`, icon: "feed" },
     { id: "courses", label: "Courses", href: `${base}/courses`, icon: "courses" },
+    { id: "events", label: "Events", href: `${base}/live`, icon: "events" },
     { id: "invite", label: "Invite", href: `${base}/members`, icon: "invite" },
-    { id: "ranks", label: "Ranks", href: `${base}/leaderboard`, icon: "ranks" },
   ];
-  if ((tasksRes.data ?? []).length > 0) {
-    quickActions.push({ id: "events", label: "Events", href: `${base}/live`, icon: "events" });
-  }
 
   const milestones: OverviewMilestone[] = [
     {
