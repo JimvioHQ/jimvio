@@ -25,11 +25,14 @@ export function CreateSpaceDialog({
   onOpenChange,
   communityId,
   onCreated,
+  entityLabel = "Group",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   communityId: string;
   onCreated?: (space: { id: string; name: string; slug: string }) => void;
+  /** UI label — Groups are spaces under the hood. */
+  entityLabel?: "Group" | "Space";
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -61,15 +64,15 @@ export function CreateSpaceDialog({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Could not create space");
+        toast.error(data.error || `Could not create ${entityLabel.toLowerCase()}`);
         return;
       }
-      toast.success("Space created");
+      toast.success(`${entityLabel} created`);
       onCreated?.(data.space);
       reset();
       onOpenChange(false);
     } catch {
-      toast.error("Could not create space");
+      toast.error(`Could not create ${entityLabel.toLowerCase()}`);
     } finally {
       setSaving(false);
     }
@@ -85,9 +88,11 @@ export function CreateSpaceDialog({
     >
       <DialogContent className="max-w-md border-[var(--color-border)] bg-[var(--color-surface)]">
         <DialogHeader>
-          <DialogTitle className="text-base font-bold">Create Space</DialogTitle>
+          <DialogTitle className="text-base font-bold">Create {entityLabel}</DialogTitle>
           <DialogDescription className="text-sm text-[var(--color-text-muted)]">
-            Organize rooms for chat, posts, or resources in this community.
+            {entityLabel === "Group"
+              ? "Create a sub-community for a segment of your members."
+              : "Organize rooms for chat, posts, or resources in this community."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="mt-2 space-y-3">
@@ -98,7 +103,7 @@ export function CreateSpaceDialog({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. General"
+              placeholder={entityLabel === "Group" ? "e.g. Beginners" : "e.g. General"}
               className="rounded-sm border-[var(--color-border)]"
               maxLength={80}
               required
@@ -112,7 +117,11 @@ export function CreateSpaceDialog({
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What is this space for?"
+              placeholder={
+                entityLabel === "Group"
+                  ? "Who is this group for?"
+                  : "What is this space for?"
+              }
               rows={2}
               className="resize-none rounded-sm border-[var(--color-border)]"
               maxLength={300}
@@ -120,7 +129,7 @@ export function CreateSpaceDialog({
           </div>
           <div>
             <label className="mb-1 block text-xs font-bold text-[var(--color-text-secondary)]">
-              Default room type
+              Default channel type
             </label>
             <select
               value={defaultRoomType}

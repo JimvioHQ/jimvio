@@ -1443,13 +1443,13 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "", label: "Overview", icon: Home, matchExact: true },
-  { href: "/chat", label: "General Chat", icon: MessageCircle },
+  { href: "/chat", label: "Channels", icon: MessageCircle },
   { href: "/live", label: "Live", icon: Radio },
 ];
 
 const MOBILE_NAV_ITEMS: NavItem[] = [
-  { href: "", label: "Home", icon: Home, matchExact: true },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "", label: "Overview", icon: Home, matchExact: true },
+  { href: "/chat", label: "Channels", icon: MessageCircle },
   { href: "/courses", label: "Courses", icon: GraduationCap },
   { href: "/members", label: "Members", icon: Users },
   { href: "/leaderboard", label: "Ranks", icon: Trophy },
@@ -1700,6 +1700,7 @@ function Sidebar({
         open={createSpaceOpen}
         onOpenChange={setCreateSpaceOpen}
         communityId={community.id}
+        entityLabel="Group"
         onCreated={() => router.refresh()}
       />
       {/* Community header */}
@@ -1765,7 +1766,7 @@ function Sidebar({
         <nav className="space-y-0.5">
           {[
             { href: "", label: "Overview", icon: Home, badge: null as string | null, matchExact: true },
-            { href: "/chat", label: "General Chat", icon: MessageCircle, badge: overview?.messagesThisWeek ? String(Math.min(overview.messagesThisWeek, 99)) : null },
+            { href: "/chat", label: "Channels", icon: MessageCircle, badge: overview?.messagesThisWeek ? String(Math.min(overview.messagesThisWeek, 99)) : null },
             { href: "/live", label: "Events", icon: Calendar, badge: overview?.upcomingEvents?.length ? String(overview.upcomingEvents.length) : null },
             { href: "/courses", label: "Courses", icon: GraduationCap, badge: overview?.courseCount ? String(overview.courseCount) : null },
             { href: "/members", label: "Members", icon: Users, badge: null as string | null },
@@ -1830,7 +1831,7 @@ function Sidebar({
       {/* Spaces tree */}
       <div className="flex-shrink-0 py-3">
         <div className="flex items-center justify-between px-3 mb-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Spaces</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Groups</p>
           {isAdmin && view === "admin" && (
             <button
               type="button"
@@ -1900,7 +1901,7 @@ function Sidebar({
             className="w-full flex items-center gap-2.5 px-5 py-1.5 mt-1 rounded-md text-[12px] font-medium text-text-muted hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
-            Create Space
+            Create Group
           </button>
         )}
       </div>

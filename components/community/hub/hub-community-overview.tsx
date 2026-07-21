@@ -18,13 +18,8 @@ import {
   MessageCircle,
   Play,
   Shield,
-  Sparkles,
   Target,
-  TrendingUp,
   Trophy,
-  Users,
-  Clock,
-  type LucideIcon,
 } from "lucide-react";
 import { useWorkspace } from "@/components/community/workspace-context";
 import {
@@ -36,7 +31,6 @@ import {
   HubSectionTitle,
 } from "./hub-ui";
 import { cn } from "@/lib/utils";
-import type { OverviewInsight } from "@/services/community/hub-data";
 import {
   CalendarPreviewCard,
   CommunityMilestonesCard,
@@ -53,14 +47,6 @@ function formatJoined(iso: string | null) {
     return null;
   }
 }
-
-const INSIGHT_ICONS: Record<OverviewInsight["icon"], LucideIcon> = {
-  sparkles: Sparkles,
-  trending: TrendingUp,
-  users: Users,
-  clock: Clock,
-  flame: Flame,
-};
 
 function FadeIn({
   children,
@@ -225,7 +211,7 @@ export function HubCommunityOverview() {
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
-      <div className="mx-auto w-full max-w-[1120px] px-3 pb-16 pt-3 sm:px-5 sm:pb-20 sm:pt-5 lg:px-6">
+      <div className="mx-auto w-full max-w-[1200px] px-3 pb-16 pt-3 sm:px-5 sm:pb-20 sm:pt-5 lg:px-6">
         {overview && <LiveStatusBanner overview={overview} base={base} />}
 
         {/* 1–4 · Hero + identity */}
@@ -381,8 +367,8 @@ export function HubCommunityOverview() {
           </FadeIn>
         )}
 
-        <div className="mt-5 grid gap-5 sm:mt-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6">
-          {/* ── Main column ── */}
+        <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
+          {/* ── Continuous main column ── */}
           <div className="min-w-0 space-y-5 sm:space-y-6">
             {overview?.missionVision && (
               <FadeIn delay={0.058}>
@@ -529,7 +515,7 @@ export function HubCommunityOverview() {
                       Featured Posts
                     </h2>
                     <Link href={`${base}/chat`} className="text-[12px] font-semibold text-[#fd5000] hover:underline">
-                      General Chat
+                      Open channels
                     </Link>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -851,27 +837,23 @@ export function HubCommunityOverview() {
                 </HubCard>
               </FadeIn>
             )}
-          </div>
 
-          {/* ── Right rail ── */}
-          <aside className="min-w-0 space-y-4 lg:sticky lg:top-4 lg:self-start">
             {overview && overview.upcomingEvents.length > 0 && (
-              <FadeIn delay={0.075}>
+              <FadeIn delay={0.105}>
                 <CalendarPreviewCard overview={overview} base={base} />
               </FadeIn>
             )}
 
-            {/* 16 · Leaderboard preview */}
             {(overview?.topContributors.length ?? 0) > 0 && (
-            <FadeIn delay={0.08}>
-              <HubCard>
-                <div className="mb-1 flex items-center justify-between">
-                  <HubSectionTitle title="Leaderboard" />
-                  <Link href={`${base}/leaderboard`} className="text-[11px] font-semibold text-[#fd5000]">
-                    Full ranks
-                  </Link>
-                </div>
-                  <ol className="space-y-1">
+              <FadeIn delay={0.11}>
+                <HubCard>
+                  <div className="mb-1 flex items-center justify-between">
+                    <HubSectionTitle title="Leaderboard" />
+                    <Link href={`${base}/leaderboard`} className="text-[11px] font-semibold text-[#fd5000]">
+                      Full ranks
+                    </Link>
+                  </div>
+                  <ol className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
                     {overview!.topContributors.map((u, i) => (
                       <li
                         key={u.id}
@@ -902,79 +884,34 @@ export function HubCommunityOverview() {
                       </li>
                     ))}
                   </ol>
-              </HubCard>
-            </FadeIn>
+                </HubCard>
+              </FadeIn>
             )}
 
-            {/* Active now */}
             {(overview?.activeMembers.length ?? 0) > 0 && (
-            <FadeIn delay={0.09}>
-              <HubCard>
-                <HubSectionTitle title="Active Now" />
-                  {overview!.activeMembers.map((u) => (
-                    <div
-                      key={u.id}
-                      className="flex items-center justify-between border-t border-[var(--color-border)] py-2.5 first:border-0 first:pt-0"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <HubAvatar name={u.name} src={u.avatar_url} size={32} live />
-                        <div>
-                          <p className="text-[12px] font-semibold">{u.name}</p>
-                          <p className="text-[10px] text-emerald-600">{u.status ?? "Online"}</p>
+              <FadeIn delay={0.115}>
+                <HubCard>
+                  <HubSectionTitle title="Active Now" />
+                  <div className="grid gap-1 sm:grid-cols-2">
+                    {overview!.activeMembers.map((u) => (
+                      <div
+                        key={u.id}
+                        className="flex items-center justify-between border-t border-[var(--color-border)] py-2.5 first:border-0 first:pt-0 sm:border-0 sm:py-2"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <HubAvatar name={u.name} src={u.avatar_url} size={32} live />
+                          <div>
+                            <p className="text-[12px] font-semibold">{u.name}</p>
+                            <p className="text-[10px] text-emerald-600">{u.status ?? "Online"}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-              </HubCard>
-            </FadeIn>
+                    ))}
+                  </div>
+                </HubCard>
+              </FadeIn>
             )}
-
-            {/* 22 · Insights */}
-            {(overview?.insights.length ?? 0) > 0 && (
-            <FadeIn delay={0.11}>
-              <HubCard>
-                <HubSectionTitle title="Community Insights" />
-                <ul className="space-y-3">
-                  {(overview?.insights ?? []).map((insight) => {
-                    const Icon = INSIGHT_ICONS[insight.icon] ?? Sparkles;
-                    return (
-                      <li key={insight.id} className="flex gap-2.5">
-                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#fd5000]/10 text-[#fd5000]">
-                          <Icon className="h-3.5 w-3.5" />
-                        </span>
-                        <div>
-                          <p className="text-[12.5px] font-semibold leading-snug text-[var(--color-text-primary)]">
-                            {insight.headline}
-                          </p>
-                          <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--color-text-muted)]">
-                            {insight.subtext}
-                          </p>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </HubCard>
-            </FadeIn>
-            )}
-
-            <FadeIn delay={0.12}>
-              <div className="grid grid-cols-2 gap-2">
-                <HubLinkButton href={`${base}/chat`} variant="secondary" className="!rounded-xl !py-2.5">
-                  General Chat
-                </HubLinkButton>
-                <HubLinkButton href={`${base}/live`} className="!rounded-xl !py-2.5">
-                  Go Live
-                </HubLinkButton>
-                <HubLinkButton href={`${base}/courses`} variant="secondary" className="!rounded-xl !py-2.5">
-                  Courses
-                </HubLinkButton>
-                <HubLinkButton href={`${base}/members`} variant="secondary" className="!rounded-xl !py-2.5">
-                  Members
-                </HubLinkButton>
-              </div>
-            </FadeIn>
-          </aside>
+          </div>
         </div>
       </div>
     </div>

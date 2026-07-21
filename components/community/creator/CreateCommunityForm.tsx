@@ -921,7 +921,7 @@ export function CreateCommunityForm() {
             <div className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
               <p className="text-[12px] font-medium text-[var(--color-text-primary)]">What happens next</p>
               <ul className="mt-1.5 space-y-1 text-[12px] text-[var(--color-text-muted)]">
-                <li>• Default spaces are created (General, Announcements, Resources)</li>
+                <li>• Default channels are created (Announcements, General, Signals, Resources, Voice)</li>
                 <li>• You become the owner with admin access</li>
                 <li>• Community {isPrivate ? "stays hidden until you invite people" : "appears in search after 24 hours"}</li>
               </ul>

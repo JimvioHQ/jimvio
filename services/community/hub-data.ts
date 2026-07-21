@@ -1828,7 +1828,7 @@ export async function getCommunityOverviewStats(
   }
 
   const quickActions: OverviewQuickAction[] = [
-    { id: "chat", label: "General Chat", href: `${base}/chat`, icon: "chat" },
+    { id: "chat", label: "General", href: `${base}/chat`, icon: "chat" },
     { id: "feed", label: "View Feed", href: `${base}/feed`, icon: "feed" },
     { id: "courses", label: "Courses", href: `${base}/courses`, icon: "courses" },
     { id: "events", label: "Events", href: `${base}/live`, icon: "events" },

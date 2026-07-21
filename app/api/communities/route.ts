@@ -27,25 +27,19 @@ async function bootstrapDefaultSpaces(
     name: string;
     slug: string;
     sort_order: number;
-    room: { name: string; slug: string; room_type: string };
+    rooms: { name: string; slug: string; room_type: string; sort_order: number }[];
   }[] = [
     {
-      name: "General",
-      slug: "general",
+      name: "Channels",
+      slug: "channels",
       sort_order: 0,
-      room: { name: "General chat", slug: "general-chat", room_type: "chat" },
-    },
-    {
-      name: "Announcements",
-      slug: "announcements",
-      sort_order: 1,
-      room: { name: "Announcements", slug: "announcements", room_type: "posts" },
-    },
-    {
-      name: "Resources",
-      slug: "resources",
-      sort_order: 2,
-      room: { name: "Resources", slug: "resources", room_type: "resources" },
+      rooms: [
+        { name: "Announcements", slug: "announcements", room_type: "posts", sort_order: 0 },
+        { name: "General", slug: "general", room_type: "chat", sort_order: 1 },
+        { name: "Signals", slug: "signals", room_type: "chat", sort_order: 2 },
+        { name: "Resources", slug: "resources", room_type: "resources", sort_order: 3 },
+        { name: "Voice Room", slug: "voice-room", room_type: "voice", sort_order: 4 },
+      ],
     },
   ];
 
@@ -59,23 +53,25 @@ async function bootstrapDefaultSpaces(
         sort_order: def.sort_order,
         access_type: "free",
         is_active: true,
-        room_count: 1,
+        room_count: def.rooms.length,
       })
       .select("id")
       .single();
 
     if (error || !space) continue;
 
-    await supabase.from("rooms").insert({
-      space_id: space.id,
-      community_id: communityId,
-      name: def.room.name,
-      slug: def.room.slug,
-      room_type: def.room.room_type,
-      access_type: "inherit",
-      sort_order: 0,
-      is_active: true,
-    });
+    await supabase.from("rooms").insert(
+      def.rooms.map((room) => ({
+        space_id: space.id,
+        community_id: communityId,
+        name: room.name,
+        slug: room.slug,
+        room_type: room.room_type,
+        access_type: "inherit",
+        sort_order: room.sort_order,
+        is_active: true,
+      }))
+    );
   }
 }
 

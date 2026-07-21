@@ -1,30 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
-  BarChart3,
   BookOpen,
   Calendar,
   ChevronDown,
   ChevronUp,
-  FileText,
-  HelpCircle,
+  Info,
   LayoutGrid,
-  MessageSquare,
-  Mic,
+  Megaphone,
+  Plus,
   Settings,
   Target,
   Trophy,
   Users,
-  Wrench,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_COMMUNITY } from "@/lib/community/dashboard-mock-data";
-import { useWorkspaceOptional } from "@/components/community/workspace-context";
+import {
+  useWorkspaceOptional,
+  type WorkspaceRoomRow,
+  type WorkspaceSpaceRow,
+} from "@/components/community/workspace-context";
+import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
+import { CreateChannelDialog } from "@/components/community/CreateChannelDialog";
 
 type CommunityNavItem =
   | "overview"
@@ -34,15 +37,30 @@ type CommunityNavItem =
   | "members"
   | "leaderboard"
   | "challenges"
-  | "about"
-  | "chat";
+  | "about";
 
-type SpaceItem = {
+type NavLink = {
+  id: CommunityNavItem;
+  label: string;
+  icon: typeof LayoutGrid;
+  href: string;
+};
+
+type GroupItem = {
   id: string;
   label: string;
   href: string;
   unread?: number;
   live?: boolean;
+};
+
+type ChannelItem = {
+  id: string;
+  label: string;
+  emoji: string;
+  href: string;
+  roomId?: string;
+  spaceId?: string;
 };
 
 type CommunitySidebarProps = {
@@ -52,51 +70,177 @@ type CommunitySidebarProps = {
   membersOnline?: number;
   activeNav?: CommunityNavItem;
   activeSpaceId?: string;
-  spaces?: SpaceItem[];
+  spaces?: GroupItem[];
   /** Mobile drawer mode (rendered from HubLayout). */
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 };
 
-const NAV_ITEMS: {
-  id: CommunityNavItem;
+/** Spaces that hold community-wide channels (not member Groups). */
+const SYSTEM_SPACE_SLUGS = new Set([
+  "general",
+  "announcements",
+  "resources",
+  "channels",
+]);
+
+const DEFAULT_CHANNEL_DEFS: {
+  key: string;
   label: string;
-  icon: typeof LayoutGrid;
-  href: string;
-  dot?: boolean;
+  emoji: string;
+  roomTypes: string[];
+  nameMatch: RegExp;
+  fallbackHref: string;
 }[] = [
+  {
+    key: "announcements",
+    label: "Announcements",
+    emoji: "📢",
+    roomTypes: ["posts"],
+    nameMatch: /announcement/i,
+    fallbackHref: "/chat",
+  },
+  {
+    key: "general",
+    label: "General",
+    emoji: "💬",
+    roomTypes: ["chat"],
+    nameMatch: /^general(\s|chat|$)/i,
+    fallbackHref: "/chat",
+  },
+  {
+    key: "signals",
+    label: "Signals",
+    emoji: "📈",
+    roomTypes: ["chat"],
+    nameMatch: /signal/i,
+    fallbackHref: "/chat",
+  },
+  {
+    key: "resources",
+    label: "Resources",
+    emoji: "📚",
+    roomTypes: ["resources"],
+    nameMatch: /resource/i,
+    fallbackHref: "/chat",
+  },
+  {
+    key: "voice",
+    label: "Voice Room",
+    emoji: "🎤",
+    roomTypes: ["voice", "live"],
+    nameMatch: /voice/i,
+    fallbackHref: "/live",
+  },
+];
+
+const NAV_ITEMS: NavLink[] = [
   { id: "overview", label: "Overview", icon: LayoutGrid, href: "" },
-  { id: "announcements", label: "General Chat", icon: MessageSquare, href: "/chat" },
+  { id: "announcements", label: "Announcements", icon: Megaphone, href: "/chat" },
   { id: "events", label: "Events", icon: Calendar, href: "/live" },
   { id: "courses", label: "Courses", icon: BookOpen, href: "/courses" },
   { id: "members", label: "Members", icon: Users, href: "/members" },
   { id: "leaderboard", label: "Leaderboard", icon: Trophy, href: "/leaderboard" },
   { id: "challenges", label: "Challenges", icon: Target, href: "/missions" },
+  { id: "about", label: "About", icon: Info, href: "/about" },
 ];
 
-const DEFAULT_SPACES: SpaceItem[] = [];
-
-function mapWorkspaceSpaces(
-  spacesWithRooms: { id: string; name: string; slug: string; rooms: { id: string; space_id: string }[] }[]
-): SpaceItem[] {
-  return spacesWithRooms.map((space) => {
-    const firstRoom = space.rooms[0];
-    const href = firstRoom
-      ? `/room?space=${space.id}&room=${firstRoom.id}`
-      : `/chat?space=${encodeURIComponent(space.slug)}`;
-    return { id: space.id, label: space.name, href };
-  });
+function roomHref(spaceId: string, roomId: string) {
+  return `/room?space=${spaceId}&room=${roomId}`;
 }
 
-const TOOLS = [
-  { label: "Community Calendar", icon: Calendar, href: "/events" },
-  { label: "Creator Toolkit", icon: Wrench, href: "/toolkit" },
-  { label: "Live Schedule", icon: Mic, href: "/live" },
-  { label: "Polls", icon: BarChart3, href: "/polls" },
-  { label: "File Center", icon: FileText, href: "/files" },
-  { label: "Question & Answers", icon: HelpCircle, href: "/qa" },
-  { label: "Feedback & Ideas", icon: MessageSquare, href: "/feedback" },
-];
+function channelEmoji(room: WorkspaceRoomRow): string {
+  if (room.room_type === "posts" || /announcement/i.test(room.name)) return "📢";
+  if (room.room_type === "resources" || /resource/i.test(room.name)) return "📚";
+  if (room.room_type === "voice" || /voice/i.test(room.name)) return "🎤";
+  if (/signal/i.test(room.name)) return "📈";
+  return "💬";
+}
+
+function buildChannels(spacesWithRooms: WorkspaceSpaceRow[]): ChannelItem[] {
+  type FlatRoom = WorkspaceRoomRow & { spaceId: string };
+  const allRooms: FlatRoom[] = spacesWithRooms.flatMap((s) =>
+    s.rooms.map((r) => ({ ...r, spaceId: s.id }))
+  );
+  const used = new Set<string>();
+  const channels: ChannelItem[] = [];
+
+  for (const def of DEFAULT_CHANNEL_DEFS) {
+    const byName = allRooms.find(
+      (r) => !used.has(r.id) && def.nameMatch.test(r.name)
+    );
+    const byType = allRooms.find(
+      (r) => !used.has(r.id) && def.roomTypes.includes(r.room_type)
+    );
+    // Signals / Voice: name-only so we don't steal unrelated chat rooms
+    const match =
+      def.key === "signals" || def.key === "voice"
+        ? byName
+        : byName ?? byType;
+
+    if (match) {
+      used.add(match.id);
+      channels.push({
+        id: match.id,
+        label: def.label,
+        emoji: def.emoji,
+        href: roomHref(match.spaceId, match.id),
+        roomId: match.id,
+        spaceId: match.spaceId,
+      });
+    } else {
+      channels.push({
+        id: `default-${def.key}`,
+        label: def.label,
+        emoji: def.emoji,
+        href: def.fallbackHref,
+      });
+    }
+  }
+
+  for (const room of allRooms) {
+    if (used.has(room.id)) continue;
+    channels.push({
+      id: room.id,
+      label: room.name,
+      emoji: channelEmoji(room),
+      href: roomHref(room.spaceId, room.id),
+      roomId: room.id,
+      spaceId: room.spaceId,
+    });
+  }
+
+  return channels;
+}
+
+function buildGroups(spacesWithRooms: WorkspaceSpaceRow[]): GroupItem[] {
+  return spacesWithRooms
+    .filter((space) => !SYSTEM_SPACE_SLUGS.has(space.slug))
+    .map((space) => {
+      const firstRoom = space.rooms[0];
+      const href = firstRoom
+        ? roomHref(space.id, firstRoom.id)
+        : `/chat?space=${encodeURIComponent(space.slug)}`;
+      return { id: space.id, label: space.name, href };
+    });
+}
+
+function resolveChannelsHomeSpaceId(spacesWithRooms: WorkspaceSpaceRow[]): string | null {
+  const channelsSpace = spacesWithRooms.find((s) => s.slug === "channels");
+  if (channelsSpace) return channelsSpace.id;
+  const general = spacesWithRooms.find((s) => s.slug === "general");
+  if (general) return general.id;
+  return spacesWithRooms[0]?.id ?? null;
+}
+
+function resolveAnnouncementsHref(
+  channels: ChannelItem[],
+  base: string
+): string {
+  const ann = channels.find((c) => c.label === "Announcements" && c.roomId);
+  if (ann) return `${base}${ann.href}`;
+  return `${base}/chat`;
+}
 
 function SidebarBody({
   slug,
@@ -105,7 +249,11 @@ function SidebarBody({
   membersOnline,
   activeNav,
   activeSpaceId,
-  spaces,
+  groups,
+  channels,
+  canManage,
+  communityId,
+  channelsHomeSpaceId,
   onNavigate,
 }: {
   slug: string;
@@ -114,35 +262,60 @@ function SidebarBody({
   membersOnline: number;
   activeNav?: CommunityNavItem;
   activeSpaceId?: string;
-  spaces: SpaceItem[];
+  groups: GroupItem[];
+  channels: ChannelItem[];
+  canManage: boolean;
+  communityId: string | null;
+  channelsHomeSpaceId: string | null;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const base = `/communities/${slug}`;
-  const [spacesOpen, setSpacesOpen] = useState(true);
-  const [toolsOpen, setToolsOpen] = useState(true);
+  const [groupsOpen, setGroupsOpen] = useState(true);
+  const [channelsOpen, setChannelsOpen] = useState(true);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+  const [createChannelOpen, setCreateChannelOpen] = useState(false);
+
+  const announcementsHref = resolveAnnouncementsHref(channels, base);
 
   function navActive(id: CommunityNavItem, href: string) {
-    const full = href ? `${base}${href.split("?")[0]}` : base;
     if (activeNav) return activeNav === id;
+    if (id === "announcements") {
+      const roomId = channels.find((c) => c.label === "Announcements")?.roomId;
+      if (roomId && searchParams.get("room") === roomId) return true;
+      return pathname.startsWith(`${base}/chat`);
+    }
+    if (id === "about") {
+      return pathname === `${base}/about` || pathname.startsWith(`${base}/about/`);
+    }
+    const full = href ? `${base}${href.split("?")[0]}` : base;
     if (!href) {
       return pathname === base || pathname === `${base}/`;
     }
-    if (id === "chat") return pathname.startsWith(`${base}/chat`);
     return pathname === full || pathname.startsWith(`${full}/`);
   }
 
-  function spaceActive(space: SpaceItem) {
-    if (activeSpaceId) return activeSpaceId === space.id;
+  function groupActive(group: GroupItem) {
+    if (activeSpaceId) return activeSpaceId === group.id;
     if (pathname.includes("/room") || pathname.includes("/chat")) {
-      const spaceQuery = space.href.includes("space=")
-        ? space.href.split("space=")[1]?.split("&")[0]
+      const spaceQuery = group.href.includes("space=")
+        ? group.href.split("space=")[1]?.split("&")[0]
         : null;
       const currentSpace = searchParams.get("space");
       if (spaceQuery && currentSpace) return currentSpace === spaceQuery;
     }
     return false;
+  }
+
+  function channelActive(channel: ChannelItem) {
+    if (!channel.roomId) {
+      if (channel.href === "/chat") return pathname.startsWith(`${base}/chat`);
+      if (channel.href === "/live") return pathname.startsWith(`${base}/live`);
+      return false;
+    }
+    return searchParams.get("room") === channel.roomId;
   }
 
   return (
@@ -180,31 +353,38 @@ function SidebarBody({
               {membersOnline.toLocaleString()} online
             </p>
           </div>
-          <button
-            type="button"
+          <Link
+            href={`${base}/members`}
+            onClick={onNavigate}
             aria-label="Community settings"
             className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
           >
             <Settings className="h-4 w-4" />
-          </button>
+          </Link>
         </div>
 
-        <button
-          type="button"
-          className="w-full rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+        <Link
+          href={`${base}/members`}
+          onClick={onNavigate}
+          className="flex w-full items-center justify-center rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
         >
           Invite People
-        </button>
+        </Link>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2.5 py-3 scrollbar-hide">
+        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+          Community
+        </p>
         <nav className="mb-5 space-y-0.5">
-          {NAV_ITEMS.map(({ id, label, icon: Icon, href, dot }) => {
+          {NAV_ITEMS.map(({ id, label, icon: Icon, href }) => {
             const active = navActive(id, href);
+            const linkHref =
+              id === "announcements" ? announcementsHref : href ? `${base}${href}` : base;
             return (
               <Link
                 key={id}
-                href={href ? `${base}${href}` : base}
+                href={linkHref}
                 onClick={onNavigate}
                 className={cn(
                   "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
@@ -220,37 +400,47 @@ function SidebarBody({
                   )}
                 />
                 <span className="truncate">{label}</span>
-                {dot && (
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-orange-500" />
-                )}
               </Link>
             );
           })}
         </nav>
 
-        <button
-          type="button"
-          onClick={() => setSpacesOpen((o) => !o)}
-          className="mb-1.5 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400"
-        >
-          Spaces
-          {spacesOpen ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
-          )}
-        </button>
-        {spacesOpen && (
-          <nav className="mb-5 space-y-0.5">
-            {spaces.length === 0 ? (
-              <p className="px-3 py-2 text-[12px] text-gray-400">No spaces yet</p>
+        {/* GROUPS */}
+        <div className="mb-1.5 flex items-center justify-between px-3">
+          <button
+            type="button"
+            onClick={() => setGroupsOpen((o) => !o)}
+            className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400"
+          >
+            Groups
+            {groupsOpen ? (
+              <ChevronUp className="h-3.5 w-3.5" />
             ) : (
-              spaces.map((space) => {
-                const active = spaceActive(space);
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </button>
+          {canManage && communityId && (
+            <button
+              type="button"
+              aria-label="Create group"
+              onClick={() => setCreateGroupOpen(true)}
+              className="rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-50 hover:text-orange-500"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        {groupsOpen && (
+          <nav className="mb-5 space-y-0.5">
+            {groups.length === 0 ? (
+              <p className="px-3 py-2 text-[12px] text-gray-400">No groups yet</p>
+            ) : (
+              groups.map((group) => {
+                const active = groupActive(group);
                 return (
                   <Link
-                    key={space.id}
-                    href={`${base}${space.href}`}
+                    key={group.id}
+                    href={`${base}${group.href}`}
                     onClick={onNavigate}
                     className={cn(
                       "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
@@ -259,16 +449,16 @@ function SidebarBody({
                         : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     )}
                   >
-                    <MessageSquare className="h-4 w-4 shrink-0 text-gray-400" />
-                    <span className="truncate">{space.label}</span>
-                    {space.live && (
+                    <Users className="h-4 w-4 shrink-0 text-gray-400" />
+                    <span className="truncate">{group.label}</span>
+                    {group.live && (
                       <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
                         Live
                       </span>
                     )}
-                    {!space.live && space.unread ? (
+                    {!group.live && group.unread ? (
                       <span className="ml-auto rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
-                        {space.unread}
+                        {group.unread}
                       </span>
                     ) : null}
                   </Link>
@@ -278,34 +468,79 @@ function SidebarBody({
           </nav>
         )}
 
-        <button
-          type="button"
-          onClick={() => setToolsOpen((o) => !o)}
-          className="mb-1.5 flex w-full items-center justify-between px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400"
-        >
-          Tools
-          {toolsOpen ? (
-            <ChevronUp className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5" />
+        {/* CHANNELS */}
+        <div className="mb-1.5 flex items-center justify-between px-3">
+          <button
+            type="button"
+            onClick={() => setChannelsOpen((o) => !o)}
+            className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400"
+          >
+            Channels
+            {channelsOpen ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </button>
+          {canManage && (
+            <button
+              type="button"
+              aria-label="Create channel"
+              onClick={() => setCreateChannelOpen(true)}
+              className="rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-50 hover:text-orange-500"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
           )}
-        </button>
-        {toolsOpen && (
+        </div>
+        {channelsOpen && (
           <nav className="space-y-0.5">
-            {TOOLS.map(({ label, icon: Icon, href }) => (
-              <Link
-                key={label}
-                href={`${base}${href}`}
-                onClick={onNavigate}
-                className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
-              >
-                <Icon className="h-4 w-4 shrink-0 text-gray-400" />
-                <span className="truncate">{label}</span>
-              </Link>
-            ))}
+            {channels.map((channel) => {
+              const active = channelActive(channel);
+              return (
+                <Link
+                  key={channel.id}
+                  href={`${base}${channel.href}`}
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
+                    active
+                      ? "bg-orange-50 font-semibold text-orange-600"
+                      : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
+                >
+                  <span className="w-4 shrink-0 text-center text-[13px]" aria-hidden>
+                    {channel.emoji}
+                  </span>
+                  <span className="truncate">{channel.label}</span>
+                </Link>
+              );
+            })}
           </nav>
         )}
       </div>
+
+      {communityId && (
+        <CreateSpaceDialog
+          open={createGroupOpen}
+          onOpenChange={setCreateGroupOpen}
+          communityId={communityId}
+          entityLabel="Group"
+          onCreated={() => {
+            router.refresh();
+            onNavigate?.();
+          }}
+        />
+      )}
+      <CreateChannelDialog
+        open={createChannelOpen}
+        onOpenChange={setCreateChannelOpen}
+        spaceId={channelsHomeSpaceId}
+        onCreated={() => {
+          router.refresh();
+          onNavigate?.();
+        }}
+      />
     </>
   );
 }
@@ -322,21 +557,44 @@ export function CommunitySidebar({
   onMobileClose,
 }: CommunitySidebarProps) {
   const workspace = useWorkspaceOptional();
-  const spaces =
-    spacesProp !== undefined
-      ? spacesProp
-      : workspace?.spacesWithRooms?.length
-        ? mapWorkspaceSpaces(workspace.spacesWithRooms)
-        : DEFAULT_SPACES;
+  const spacesWithRooms = workspace?.spacesWithRooms ?? [];
+
+  const groups = useMemo(() => {
+    if (spacesProp !== undefined) return spacesProp;
+    return buildGroups(spacesWithRooms);
+  }, [spacesProp, spacesWithRooms]);
+
+  const channels = useMemo(
+    () => buildChannels(spacesWithRooms),
+    [spacesWithRooms]
+  );
+
+  const channelsHomeSpaceId = useMemo(
+    () => resolveChannelsHomeSpaceId(spacesWithRooms),
+    [spacesWithRooms]
+  );
+
+  const canManage = Boolean(workspace?.isOwner || workspace?.isAdmin);
+  const communityId = workspace?.communityId ?? null;
+  const resolvedVisibility =
+    workspace?.isPrivate != null
+      ? workspace.isPrivate
+        ? "Private"
+        : "Public"
+      : visibility;
 
   const bodyProps = {
     slug,
-    communityName,
-    visibility,
-    membersOnline,
+    communityName: workspace?.communityName ?? communityName,
+    visibility: resolvedVisibility,
+    membersOnline: workspace?.overview?.membersOnline ?? membersOnline,
     activeNav,
     activeSpaceId,
-    spaces,
+    groups,
+    channels,
+    canManage,
+    communityId,
+    channelsHomeSpaceId,
   };
 
   if (mobileOpen !== undefined) {
