@@ -30,7 +30,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("community_messages")
-    .select("*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username)")
+    .select("*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username, is_verified)")
     .eq("room_id", roomId)
     .eq("is_deleted", false)
     .ilike("body", `%${q}%`)

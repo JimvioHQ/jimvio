@@ -6,6 +6,7 @@ import type {
   WorkspaceChannel,
   WorkspaceGroup,
 } from "@/lib/community/workspace";
+import { cn } from "@/lib/utils";
 import { ChannelHeader } from "./ChannelHeader";
 import { ChannelTabs } from "./ChannelTabs";
 import { ChannelRightDrawer } from "./ChannelRightDrawer";
@@ -31,6 +32,7 @@ export function ChannelWorkspace({
   drawer,
   initialTab = "discussion",
   onSearch,
+  roomId,
 }: {
   channel: WorkspaceChannel;
   group: WorkspaceGroup | null;
@@ -43,6 +45,8 @@ export function ChannelWorkspace({
   drawer?: ReactNode;
   initialTab?: ChannelTabId;
   onSearch?: () => void;
+  /** Enables Files / Media / Pinned panels via shared message index */
+  roomId?: string;
 }) {
   const [tab, setTab] = useState<ChannelTabId>(initialTab);
 
@@ -67,12 +71,24 @@ export function ChannelWorkspace({
           aria-labelledby={`channel-tab-${tab}`}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          {tab === "discussion" && (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{discussion}</div>
+          {/* Keep discussion mounted so ChatRoom / message index stay warm */}
+          <div
+            className={cn(
+              "flex min-h-0 flex-1 flex-col overflow-hidden",
+              tab !== "discussion" && "hidden"
+            )}
+            hidden={tab !== "discussion"}
+          >
+            {discussion}
+          </div>
+          {tab === "files" && <FilesPanel roomId={roomId ?? channel.id} />}
+          {tab === "media" && <MediaPanel roomId={roomId ?? channel.id} />}
+          {tab === "pinned" && (
+            <PinnedPanel
+              roomId={roomId ?? channel.id}
+              pinnedCount={channel.pinnedCount}
+            />
           )}
-          {tab === "files" && <FilesPanel />}
-          {tab === "media" && <MediaPanel />}
-          {tab === "pinned" && <PinnedPanel pinnedCount={channel.pinnedCount} />}
           {tab === "members" && <MembersPanel members={members} />}
         </div>
       </div>

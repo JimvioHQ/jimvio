@@ -11,13 +11,17 @@ import {
   X,
   Loader2,
   Send,
+  Bold,
+  Italic,
+  List,
+  Sparkles,
+  AtSign,
 } from "lucide-react";
-import { useId, useRef } from "react";
+import { useCallback, useId, useRef, useState, type DragEvent, type ClipboardEvent } from "react";
 import { ReplyBar } from "./ReplyBar";
 import { VoicePreview } from "./VoicePreview";
 import { WaIconBtn } from "./WaIconBtn";
-import { formatDuration } from "@/lib/utils";
-import { cn } from "@/lib/utils";
+import { formatDuration, cn } from "@/lib/utils";
 
 interface ChatInputZoneProps {
   text: string;
@@ -39,6 +43,14 @@ interface ChatInputZoneProps {
   onOpenEmojiPicker: () => void;
   onAttachImage: (files: FileList | null) => void;
   onAttachFile: (files: FileList | null) => void;
+  onOpenAi?: () => void;
+}
+
+function filesFromList(list: FileList | File[]): FileList {
+  if (typeof FileList !== "undefined" && list instanceof FileList) return list;
+  const dt = new DataTransfer();
+  for (const f of Array.from(list as File[])) dt.items.add(f);
+  return dt.files;
 }
 
 export function ChatInputZone({
@@ -61,12 +73,15 @@ export function ChatInputZone({
   onOpenEmojiPicker,
   onAttachImage,
   onAttachFile,
+  onOpenAi,
 }: ChatInputZoneProps) {
   const uid = useId();
   const imgInputId = `${uid}-img`;
   const fileInputId = `${uid}-file`;
   const imgRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const [dragging, setDragging] = useState(false);
 
   function pickImage(files: FileList | null) {
     onAttachImage(files);
@@ -78,13 +93,89 @@ export function ChatInputZone({
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  const wrapSelection = useCallback(
+    (before: string, after = before) => {
+      const el = taRef.current;
+      if (!el) {
+        setText(`${before}${text}${after}`);
+        return;
+      }
+      const start = el.selectionStart ?? text.length;
+      const end = el.selectionEnd ?? text.length;
+      const selected = text.slice(start, end) || "text";
+      const next =
+        text.slice(0, start) + before + selected + after + text.slice(end);
+      setText(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + before.length + selected.length + after.length;
+        el.setSelectionRange(pos, pos);
+      });
+    },
+    [text, setText]
+  );
+
+  function onPaste(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    const images: File[] = [];
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith("image/")) {
+        const f = item.getAsFile();
+        if (f) images.push(f);
+      }
+    }
+    if (images.length) {
+      e.preventDefault();
+      pickImage(filesFromList(images));
+    }
+  }
+
+  function onDrop(e: DragEvent) {
+    e.preventDefault();
+    setDragging(false);
+    const files = e.dataTransfer?.files;
+    if (!files?.length) return;
+    const imgs = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const rest = Array.from(files).filter((f) => !f.type.startsWith("image/"));
+    if (imgs.length) pickImage(filesFromList(imgs));
+    if (rest.length) pickFile(filesFromList(rest));
+  }
+
   return (
     <div
       className={cn(
-        "flex shrink-0 flex-col",
+        "relative flex shrink-0 flex-col",
         "border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
       )}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setDragging(false);
+      }}
+      onDrop={onDrop}
     >
+      {dragging && (
+        <div
+          className={cn(
+            "pointer-events-none absolute inset-0 z-20 flex items-center justify-center",
+            "border-2 border-dashed border-[var(--color-accent)] bg-[var(--color-accent-subtle)]/80",
+            "text-sm font-semibold text-[var(--color-accent)]"
+          )}
+          aria-hidden
+        >
+          Drop files to attach
+        </div>
+      )}
+
       {replyingTo && <ReplyBar msg={replyingTo} onClose={onCancelReply} />}
 
       {voiceBlob && !voiceRecording && (
@@ -141,143 +232,229 @@ export function ChatInputZone({
       )}
 
       {!voiceRecording && !voiceBlob && (
-        <div className="flex min-h-[62px] items-end gap-1 px-3 py-[9px] pb-[max(9px,env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(3.5rem+max(9px,env(safe-area-inset-bottom,0px)))]">
-          <WaIconBtn aria-label="Emoji picker" onClick={onOpenEmojiPicker}>
-            <Smile className="h-6 w-6" />
-          </WaIconBtn>
-
-          <div className="flex items-center gap-0.5">
-            <label
-              htmlFor={imgInputId}
-              className={cn(
-                "flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm transition-colors",
-                uploading ? "pointer-events-none opacity-50" : "hover:bg-[var(--color-border)]"
-              )}
-              aria-label="Attach image"
-            >
-              {uploading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-[var(--color-text-muted)]" />
-              ) : (
-                <ImageIcon className="h-5 w-5 text-[var(--color-text-muted)]" />
-              )}
-            </label>
-            <input
-              ref={imgRef}
-              id={imgInputId}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={uploading || sending}
-              onChange={(e) => pickImage(e.target.files)}
+        <>
+          {/* Formatting toolbar */}
+          <div className="flex items-center gap-0.5 px-3 pt-2">
+            <FormatBtn
+              label="Bold"
+              onClick={() => wrapSelection("**")}
+              icon={Bold}
             />
-            <label
-              htmlFor={fileInputId}
-              className={cn(
-                "flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm transition-colors",
-                uploading ? "pointer-events-none opacity-50" : "hover:bg-[var(--color-border)]"
-              )}
-              aria-label="Attach file"
-            >
-              <FileIcon className="h-5 w-5 text-[var(--color-text-muted)]" />
-            </label>
-            <input
-              ref={fileRef}
-              id={fileInputId}
-              type="file"
-              accept="*/*"
-              className="hidden"
-              disabled={uploading || sending}
-              onChange={(e) => pickFile(e.target.files)}
+            <FormatBtn
+              label="Italic"
+              onClick={() => wrapSelection("_")}
+              icon={Italic}
             />
+            <FormatBtn
+              label="List"
+              onClick={() => setText(text ? `${text}\n- ` : "- ")}
+              icon={List}
+            />
+            <FormatBtn
+              label="Mention"
+              onClick={() => {
+                setText(`${text}@`);
+                taRef.current?.focus();
+              }}
+              icon={AtSign}
+            />
+            <span className="mx-1 h-4 w-px bg-[var(--color-border)]" />
+            <FormatBtn
+              label="AI assist (coming soon)"
+              onClick={() => onOpenAi?.()}
+              icon={Sparkles}
+              disabled={!onOpenAi}
+            />
+            <span className="ml-auto hidden text-[10px] text-[var(--color-text-muted)] sm:inline">
+              Enter to send · Shift+Enter newline
+            </span>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col">
-            {pendingMain.length > 0 && (
-              <div className="mb-1 flex flex-wrap gap-1.5 rounded-sm bg-[var(--color-border)] px-1 py-1.5">
-                {pendingMain.map((a, i) => (
-                  <div
-                    key={a.url}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-sm border border-[var(--color-border)] px-2 py-1 text-[11px] font-medium",
-                      "bg-[var(--color-surface)] text-[var(--color-text-primary)]"
-                    )}
-                  >
-                    <FileIcon size={11} className="text-[var(--color-accent)]" />
-                    <span className="max-w-[90px] truncate">{a.name}</span>
-                    <button
-                      type="button"
-                      aria-label={`Remove ${a.name}`}
-                      onClick={() =>
-                        setPendingMain((p) => p.filter((_, j) => j !== i))
-                      }
-                    >
-                      <X
-                        size={12}
-                        className="text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-danger)]"
-                      />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="flex min-h-[62px] items-end gap-1 px-3 py-[9px] pb-[max(9px,env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(3.5rem+max(9px,env(safe-area-inset-bottom,0px)))]">
+            <WaIconBtn aria-label="Emoji picker" onClick={onOpenEmojiPicker}>
+              <Smile className="h-6 w-6" />
+            </WaIconBtn>
 
-            <div className="flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5">
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Type a message"
-                rows={1}
-                disabled={sending || uploading}
+            <div className="flex items-center gap-0.5">
+              <label
+                htmlFor={imgInputId}
                 className={cn(
-                  "max-h-32 min-h-[24px] w-full resize-none border-0 bg-transparent p-0 text-sm outline-none",
-                  "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
-                  "disabled:cursor-not-allowed disabled:opacity-60"
+                  "flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm transition-colors",
+                  uploading
+                    ? "pointer-events-none opacity-50"
+                    : "hover:bg-[var(--color-border)]"
                 )}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    onSend();
-                  }
-                }}
+                aria-label="Attach image"
+              >
+                {uploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-[var(--color-text-muted)]" />
+                ) : (
+                  <ImageIcon className="h-5 w-5 text-[var(--color-text-muted)]" />
+                )}
+              </label>
+              <input
+                ref={imgRef}
+                id={imgInputId}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={uploading || sending}
+                onChange={(e) => pickImage(e.target.files)}
+              />
+              <label
+                htmlFor={fileInputId}
+                className={cn(
+                  "flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm transition-colors",
+                  uploading
+                    ? "pointer-events-none opacity-50"
+                    : "hover:bg-[var(--color-border)]"
+                )}
+                aria-label="Attach file"
+              >
+                <FileIcon className="h-5 w-5 text-[var(--color-text-muted)]" />
+              </label>
+              <input
+                ref={fileRef}
+                id={fileInputId}
+                type="file"
+                accept="*/*"
+                multiple
+                className="hidden"
+                disabled={uploading || sending}
+                onChange={(e) => pickFile(e.target.files)}
               />
             </div>
-          </div>
 
-          {text.trim() || pendingMain.length > 0 ? (
-            <button
-              type="button"
-              disabled={sending || uploading}
-              aria-label="Send message"
-              onClick={onSend}
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                "bg-[var(--color-accent)] text-white",
-                "transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+            <div className="flex min-w-0 flex-1 flex-col">
+              {pendingMain.length > 0 && (
+                <div className="mb-1 flex flex-wrap gap-1.5 rounded-sm bg-[var(--color-border)] px-1 py-1.5">
+                  {pendingMain.map((a, i) => (
+                    <div
+                      key={a.url}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-sm border border-[var(--color-border)] px-2 py-1 text-[11px] font-medium",
+                        "bg-[var(--color-surface)] text-[var(--color-text-primary)]"
+                      )}
+                    >
+                      <FileIcon size={11} className="text-[var(--color-accent)]" />
+                      <span className="max-w-[90px] truncate">{a.name}</span>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${a.name}`}
+                        onClick={() =>
+                          setPendingMain((p) => p.filter((_, j) => j !== i))
+                        }
+                      >
+                        <X
+                          size={12}
+                          className="text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-danger)]"
+                        />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
-            >
-              {sending ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={sending || uploading}
-              aria-label="Record voice message"
-              onClick={() => void onStartVoice()}
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                "bg-[var(--color-accent)] text-white",
-                "transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-              )}
-            >
-              <Mic className="h-6 w-6" />
-            </button>
-          )}
-        </div>
+
+              <div className="flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 focus-within:ring-2 focus-within:ring-[var(--color-accent)]">
+                <textarea
+                  ref={taRef}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onPaste={onPaste}
+                  placeholder="Message… @mention, #topic, or drop files"
+                  rows={1}
+                  disabled={sending || uploading}
+                  aria-label="Message composer"
+                  className={cn(
+                    "max-h-32 min-h-[24px] w-full resize-none border-0 bg-transparent p-0 text-sm outline-none",
+                    "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
+                    "disabled:cursor-not-allowed disabled:opacity-60"
+                  )}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      onSend();
+                    }
+                    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+                      e.preventDefault();
+                      wrapSelection("**");
+                    }
+                    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "i") {
+                      e.preventDefault();
+                      wrapSelection("_");
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {text.trim() || pendingMain.length > 0 ? (
+              <button
+                type="button"
+                disabled={sending || uploading}
+                aria-label="Send message"
+                onClick={onSend}
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                  "bg-[var(--color-accent)] text-white",
+                  "transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+                )}
+              >
+                {sending ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Send className="h-5 w-5" />
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={sending || uploading}
+                aria-label="Record voice message"
+                title="Voice message"
+                onClick={() => void onStartVoice()}
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                  "bg-[var(--color-accent)] text-white",
+                  "transition-all hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+                )}
+              >
+                <Mic className="h-6 w-6" />
+              </button>
+            )}
+          </div>
+        </>
       )}
     </div>
+  );
+}
+
+function FormatBtn({
+  label,
+  onClick,
+  icon: Icon,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  icon: typeof Bold;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-7 w-7 items-center justify-center rounded-sm",
+        "text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-border)] hover:text-[var(--color-text-primary)]",
+        "disabled:cursor-not-allowed disabled:opacity-40"
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </button>
   );
 }

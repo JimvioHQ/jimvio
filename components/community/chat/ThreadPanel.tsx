@@ -1,17 +1,30 @@
+"use client";
+
 import { ChatAttachmentPayload } from "@/lib/community-chat-upload";
 import { Msg } from "@/types";
-import { FileIcon, Loader2, Paperclip, Send, Smile, X } from "lucide-react";
-import { useRef } from "react";
+import {
+  CheckCircle2,
+  FileIcon,
+  Loader2,
+  Paperclip,
+  Pin,
+  Send,
+  Smile,
+  X,
+} from "lucide-react";
+import { useMemo, useRef } from "react";
 import { MessageRow } from "./MessageRow";
 import { WaIconBtn } from "./WaIconBtn";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { displayName } from "@/lib/community/chat/message-experience";
 
 interface ThreadPanelProps {
   threadRoot: Msg;
   threadReplies: Msg[];
   threadBottomRef: React.RefObject<HTMLDivElement | null>;
   userId: string | null;
+  isStaff?: boolean;
   threadReplyText: string;
   setThreadReplyText: (v: string) => void;
   pendingThread: ChatAttachmentPayload[];
@@ -26,6 +39,8 @@ interface ThreadPanelProps {
   onReply: (msg: Msg) => void;
   onOpenEmojiPicker: () => void;
   onAttachFile: (files: FileList | null) => void;
+  onOpenAi?: (msg: Msg) => void;
+  onTogglePin?: (id: string, pin: boolean) => void;
 }
 
 export function ThreadPanel({
@@ -33,6 +48,7 @@ export function ThreadPanel({
   threadReplies,
   threadBottomRef,
   userId,
+  isStaff,
   threadReplyText,
   setThreadReplyText,
   pendingThread,
@@ -46,9 +62,24 @@ export function ThreadPanel({
   onReply,
   onOpenEmojiPicker,
   onAttachFile,
+  onOpenAi,
+  onTogglePin,
 }: ThreadPanelProps) {
   const threadFileRef = useRef<HTMLInputElement>(null);
   const MAX_ATTACH = 6;
+
+  const participants = useMemo(() => {
+    const map = new Map<string, string>();
+    map.set(threadRoot.sender_id, displayName(threadRoot));
+    for (const r of threadReplies) {
+      map.set(r.sender_id, displayName(r));
+    }
+    return [...map.values()];
+  }, [threadRoot, threadReplies]);
+
+  const lastReply = threadReplies[threadReplies.length - 1];
+  const solved = !!threadRoot.thread_solved;
+  const pinned = !!threadRoot.is_pinned;
 
   return (
     <aside
@@ -57,29 +88,47 @@ export function ThreadPanel({
         "absolute inset-0 z-30 lg:static lg:inset-auto lg:z-auto lg:w-[360px]",
         "bg-[var(--color-surface)] border-l border-[var(--color-border)]"
       )}
+      aria-label="Thread"
     >
-      {/* ── Header ──────────────────────────────────────────────────── */}
       <div
         className={cn(
-          "flex items-center justify-between px-4 py-3 shrink-0",
-          "bg-[var(--color-surface-secondary)] border-b border-[var(--color-border)]"
+          "flex shrink-0 items-center justify-between px-4 py-3",
+          "border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
         )}
       >
-        <div>
+        <div className="min-w-0">
           <span className="text-sm font-semibold text-[var(--color-text-primary)]">
             Thread
           </span>
-          <p className="text-xs text-[var(--color-text-muted)]">
-            {threadReplies.length} repl
-            {threadReplies.length === 1 ? "y" : "ies"}
+          <p className="truncate text-xs text-[var(--color-text-muted)]">
+            {threadReplies.length}{" "}
+            {threadReplies.length === 1 ? "reply" : "replies"}
+            {participants.length > 0
+              ? ` · ${participants.length} participant${participants.length === 1 ? "" : "s"}`
+              : ""}
+            {lastReply
+              ? ` · last ${new Date(lastReply.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+              : ""}
           </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {solved && (
+              <span className="inline-flex items-center gap-0.5 rounded-sm bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600">
+                <CheckCircle2 className="h-3 w-3" /> Solved
+              </span>
+            )}
+            {pinned && (
+              <span className="inline-flex items-center gap-0.5 rounded-sm bg-[var(--color-accent-subtle)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--color-accent)]">
+                <Pin className="h-3 w-3" /> Pinned
+              </span>
+            )}
+          </div>
         </div>
         <button
           type="button"
           aria-label="Close thread"
           className={cn(
-            "h-8 w-8 flex items-center justify-center rounded-sm",
-            "text-[var(--color-text-muted)] hover:bg-[var(--color-border)] transition-colors"
+            "flex h-8 w-8 items-center justify-center rounded-sm",
+            "text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-border)]"
           )}
           onClick={onClose}
         >
@@ -87,12 +136,12 @@ export function ThreadPanel({
         </button>
       </div>
 
-      {/* ── Messages ────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0 bg-[var(--color-bg)]">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-[var(--color-bg)] p-4">
         <MessageRow
           m={threadRoot}
           isOwn={!!userId && threadRoot.sender_id === userId}
           userId={userId}
+          isStaff={isStaff}
           onOpenThread={() => {}}
           onToggleReaction={onToggleReaction}
           onDelete={onDelete}
@@ -101,8 +150,10 @@ export function ThreadPanel({
             onReply(msg);
             onClose();
           }}
+          onOpenAi={onOpenAi}
+          onTogglePin={onTogglePin}
         />
-        <div className="pt-2 space-y-1 border-t border-[var(--color-border)]">
+        <div className="space-y-1 border-t border-[var(--color-border)] pt-2">
           {threadReplies.map((r) => (
             <MessageRow
               key={r.id}
@@ -110,21 +161,22 @@ export function ThreadPanel({
               compact
               isOwn={!!userId && r.sender_id === userId}
               userId={userId}
+              isStaff={isStaff}
               onOpenThread={() => {}}
               onToggleReaction={onToggleReaction}
               onDelete={onDelete}
               onEdit={onEdit}
               onReply={() => {}}
+              onOpenAi={onOpenAi}
             />
           ))}
           <div ref={threadBottomRef} />
         </div>
       </div>
 
-      {/* ── Input zone ──────────────────────────────────────────────── */}
       <div
         className={cn(
-          "border-t border-[var(--color-border)] p-3 space-y-2 shrink-0",
+          "shrink-0 space-y-2 border-t border-[var(--color-border)] p-3",
           "bg-[var(--color-surface-secondary)]",
           "pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         )}
@@ -136,20 +188,19 @@ export function ThreadPanel({
           onChange={(e) => onAttachFile(e.target.files)}
         />
 
-        {/* Pending attachments */}
         {pendingThread.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {pendingThread.map((a, i) => (
               <span
                 key={`${a.url}-${i}`}
                 className={cn(
-                  "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-sm",
-                  "bg-[var(--color-surface)] border border-[var(--color-border)]",
+                  "inline-flex items-center gap-1 rounded-sm px-2 py-1 text-[10px] font-semibold",
+                  "border border-[var(--color-border)] bg-[var(--color-surface)]",
                   "text-[var(--color-text-primary)]"
                 )}
               >
                 <FileIcon className="h-3 w-3 text-[var(--color-accent)]" />
-                <span className="truncate max-w-[120px]">{a.name}</span>
+                <span className="max-w-[120px] truncate">{a.name}</span>
                 <button
                   type="button"
                   aria-label={`Remove ${a.name}`}
@@ -157,14 +208,13 @@ export function ThreadPanel({
                     setPendingThread((p) => p.filter((_, j) => j !== i))
                   }
                 >
-                  <X className="h-3 w-3 text-[var(--color-text-muted)] hover:text-[var(--color-danger)] transition-colors" />
+                  <X className="h-3 w-3 text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-danger)]" />
                 </button>
               </span>
             ))}
           </div>
         )}
 
-        {/* Input row */}
         <div className="flex items-end gap-2">
           <WaIconBtn
             aria-label="Attach file to thread"
@@ -177,16 +227,16 @@ export function ThreadPanel({
             <Smile className="h-5 w-5" />
           </WaIconBtn>
 
-          {/* Textarea */}
           <div
             className={cn(
               "flex-1 rounded-lg px-4 py-2",
-              "bg-[var(--color-surface)] border border-[var(--color-border)]"
+              "border border-[var(--color-border)] bg-[var(--color-surface)]"
             )}
           >
             <Textarea
               rows={2}
               placeholder="Reply in thread…"
+              aria-label="Thread reply"
               className={cn(
                 "w-full resize-none border-0 bg-transparent p-0 text-sm",
                 "focus-visible:ring-0",
@@ -203,19 +253,17 @@ export function ThreadPanel({
             />
           </div>
 
-          {/* Send button */}
           <button
             type="button"
             aria-label="Send thread reply"
             className={cn(
-              "h-10 w-10 shrink-0 flex items-center justify-center rounded-full",
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
               "bg-[var(--color-accent)] text-white",
-              "disabled:opacity-50 transition-all hover:scale-105"
+              "transition-all hover:scale-105 disabled:opacity-50"
             )}
             onClick={onSendReply}
             disabled={
-              sending ||
-              (!threadReplyText.trim() && pendingThread.length === 0)
+              sending || (!threadReplyText.trim() && pendingThread.length === 0)
             }
           >
             {sending ? (

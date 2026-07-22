@@ -4,6 +4,7 @@ export type Profile = {
   full_name: string | null;
   avatar_url: string | null;
   username: string | null;
+  is_verified?: boolean | null;
 };
 
 export type Msg = {
@@ -25,6 +26,14 @@ export type Msg = {
   metadata?: Record<string, unknown> | null;
   is_pinned?: boolean | null;
   is_deleted?: boolean | null;
+  /** Migration 085+ — present when API returns pin metadata */
+  pinned_at?: string | null;
+  pinned_by?: string | null;
+  /** Optional community role label for MessageCard header */
+  sender_role?: string | null;
+  /** Thread UX flags (client + future server) */
+  thread_solved?: boolean | null;
+  thread_unread_count?: number | null;
 };
 
 export type LinkPreview = {
@@ -63,7 +72,7 @@ export type InboxConversation = {
   peerAvatar: string | null;
 };
 
-export type ChatFilter = "all" | "media";
+export type ChatFilter = "all" | "media" | "files" | "pinned" | "threads";
 
 export type SidebarFilter = "all" | "unread" | "group" | "inbox" | "calls";
 

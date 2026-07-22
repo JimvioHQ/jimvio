@@ -12,7 +12,7 @@ function untyped(supabase: Awaited<ReturnType<typeof createClient>>): any {
 }
 
 const SELECT_WITH_PROFILE =
-  "*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username)";
+  "*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username, is_verified)";
 
 export async function GET(
   req: NextRequest,

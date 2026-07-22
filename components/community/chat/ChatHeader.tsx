@@ -35,6 +35,8 @@ interface ChatHeaderProps {
   onStartAudioCall: () => void;
   onStartVideoCall: () => void;
   onBack: () => void;
+  /** When true, MessageSearchBar owns the search UI */
+  hideLegacySearchBar?: boolean;
 }
 
 export function ChatHeader({
@@ -54,6 +56,7 @@ export function ChatHeader({
   onStartAudioCall,
   onStartVideoCall,
   onBack,
+  hideLegacySearchBar,
 }: ChatHeaderProps) {
   return (
     <>
@@ -194,14 +197,22 @@ export function ChatHeader({
                 >
                   <Copy className="mr-2 h-4 w-4" /> Copy link
                 </DropdownMenuItem>
-                {(["all", "media"] as ChatFilter[]).map((key) => (
+                {(
+                  [
+                    ["all", "All messages"],
+                    ["media", "Media"],
+                    ["files", "Files"],
+                    ["pinned", "Pinned"],
+                    ["threads", "Threads"],
+                  ] as [ChatFilter, string][]
+                ).map(([key, label]) => (
                   <DropdownMenuItem key={key} onClick={() => onSetChatFilter(key)}>
                     {chatFilter === key ? (
                       <Check className="mr-2 h-4 w-4 text-[var(--color-accent)]" />
                     ) : (
-                      <span className="mr-2 h-4 w-4 inline-block" />
+                      <span className="mr-2 inline-block h-4 w-4" />
                     )}
-                    {key === "all" ? "All messages" : "Media & files"}
+                    {label}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -210,8 +221,8 @@ export function ChatHeader({
         </header>
       )}
 
-      {/* ── Search bar ──────────────────────────────────────────────── */}
-      {searchOpen && (
+      {/* ── Legacy search bar (MessageSearchBar replaces this when hideLegacySearchBar) */}
+      {searchOpen && !hideLegacySearchBar && (
         <div
           className={cn(
             "flex shrink-0 items-center gap-2 px-3 py-2",
@@ -219,7 +230,7 @@ export function ChatHeader({
           )}
         >
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-[var(--color-text-muted)]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
             <input
               type="search"
               placeholder="Search messages…"
@@ -235,7 +246,7 @@ export function ChatHeader({
           </div>
           <button
             type="button"
-            className="text-sm font-semibold shrink-0 text-[var(--color-accent)]"
+            className="shrink-0 text-sm font-semibold text-[var(--color-accent)]"
             onClick={onCancelSearch}
           >
             Cancel

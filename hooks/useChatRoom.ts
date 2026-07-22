@@ -1124,12 +1124,23 @@ export function useChatRoom({
         let list = base.filter(
             (m) => m.message_type !== "call_signal" && m.message_type !== "call_start"
         );
-        if (chatFilter === "media")
+        if (chatFilter === "media") {
             list = list.filter(
                 (m) =>
-                    parseAttachments(m.attachments).length > 0 ||
-                    ["image", "file", "audio"].includes(m.message_type)
+                    parseAttachments(m.attachments).some((a) =>
+                        (a.mime ?? "").startsWith("image/") ||
+                        (a.mime ?? "").startsWith("video/") ||
+                        (a.mime ?? "").startsWith("audio/") ||
+                        /\.(png|jpe?g|gif|webp|mp4|webm|mp3|wav)(\?|$)/i.test(a.url)
+                    ) || ["image", "audio", "video"].includes(m.message_type)
             );
+        } else if (chatFilter === "files") {
+            list = list.filter((m) => parseAttachments(m.attachments).length > 0);
+        } else if (chatFilter === "pinned") {
+            list = list.filter((m) => !!m.is_pinned);
+        } else if (chatFilter === "threads") {
+            list = list.filter((m) => !m.thread_id && (m.reply_count ?? 0) > 0);
+        }
         if (serverSearchResults) return list;
         const q = searchQuery.trim().toLowerCase();
         if (!q) return list;
@@ -1137,7 +1148,10 @@ export function useChatRoom({
             (m) =>
                 (m.body ?? "").toLowerCase().includes(q) ||
                 (m.profiles?.full_name ?? "").toLowerCase().includes(q) ||
-                (m.profiles?.username ?? "").toLowerCase().includes(q)
+                (m.profiles?.username ?? "").toLowerCase().includes(q) ||
+                parseAttachments(m.attachments).some((a) =>
+                    (a.name ?? "").toLowerCase().includes(q)
+                )
         );
     }, [messages, searchQuery, chatFilter, serverSearchResults]);
 

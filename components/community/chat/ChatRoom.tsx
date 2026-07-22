@@ -1,13 +1,16 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { DialogHeader } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useChatRoom } from "@/hooks/useChatRoom";
 import { cn } from "@/lib/utils";
+import type { MessageSearchScope } from "@/lib/community/chat/message-experience";
+import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
 import { Msg } from "@/types";
 import { Dialog, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
-import { format, isSameDay } from "date-fns";
 import { Loader2, ChevronDown } from "lucide-react";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCall } from "../call-context";
 import { CallOverlay } from "./CallOverlay";
 import { ChatEmojiPickerDialog } from "./chat-emoji-picker-dialog";
@@ -19,6 +22,11 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { IncomingCallModal } from "./IncomingCallModal";
 import { MessageRow } from "./MessageRow";
 import { ThreadPanel } from "./ThreadPanel";
+import {
+  MessageAiPanel,
+  MessageSearchBar,
+  VirtualMessageList,
+} from "./message-engine";
 
 interface ChatRoomProps {
   roomId: string;
@@ -36,6 +44,7 @@ export function ChatRoom({
   hideHeader,
 }: ChatRoomProps) {
   const hook = useChatRoom({ roomId, roomName, communityId, slug });
+  const syncRoomIndex = useRoomMessageIndex((s) => s.sync);
   const {
     callType,
     setCallType,
@@ -46,6 +55,92 @@ export function ChatRoom({
     pcRef,
     iceQueueRef,
   } = useCall();
+
+  const [aiMsg, setAiMsg] = useState<Msg | null>(null);
+  const [searchScope, setSearchScope] = useState<MessageSearchScope>("messages");
+
+  // Sync live messages into shared index for Files / Media / Pinned tabs
+  useEffect(() => {
+    if (!roomId || hook.activeConvId) return;
+    syncRoomIndex(roomId, hook.messages);
+  }, [roomId, hook.messages, hook.activeConvId, syncRoomIndex]);
+
+  const roleByUser = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const m of hook.sidebarMembers) {
+      if (m.role) map[m.user_id] = m.role;
+    }
+    return map;
+  }, [hook.sidebarMembers]);
+
+  // Keyboard: ⌘/Ctrl+F search, Escape closes overlays
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        hook.setSearchOpen(true);
+      }
+      if (e.key === "Escape") {
+        if (aiMsg) setAiMsg(null);
+        else if (hook.threadOpen) hook.setThreadOpen(false);
+        else if (hook.searchOpen) {
+          hook.setSearchOpen(false);
+          hook.setSearchQuery("");
+        }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [aiMsg, hook]);
+
+  const onScopeChange = useCallback(
+    (scope: MessageSearchScope) => {
+      setSearchScope(scope);
+      if (scope === "media") hook.setChatFilter("media");
+      else if (scope === "files") hook.setChatFilter("files");
+      else if (scope === "pinned") hook.setChatFilter("pinned");
+      else if (scope === "threads") hook.setChatFilter("threads");
+      else hook.setChatFilter("all");
+    },
+    [hook]
+  );
+
+  const scopedMessages = useMemo(() => {
+    if (searchScope !== "members") return hook.filteredMessages;
+    const q = hook.searchQuery.trim().toLowerCase();
+    if (!q) return hook.filteredMessages;
+    const memberIds = new Set(
+      hook.sidebarMembers
+        .filter((m) => {
+          const name = (
+            m.profile?.full_name ||
+            m.profile?.username ||
+            ""
+          ).toLowerCase();
+          return name.includes(q);
+        })
+        .map((m) => m.user_id)
+    );
+    return hook.filteredMessages.filter((m) => memberIds.has(m.sender_id));
+  }, [
+    searchScope,
+    hook.filteredMessages,
+    hook.searchQuery,
+    hook.sidebarMembers,
+  ]);
+
+  const quoteMessage = useCallback(
+    (msg: Msg) => {
+      const quote = (msg.body || "")
+        .split("\n")
+        .map((l) => `> ${l}`)
+        .join("\n");
+      hook.setReplyingTo(msg);
+      hook.setText(quote ? `${quote}\n\n` : "");
+    },
+    [hook]
+  );
 
   // ── WebRTC ──────────────────────────────────────────────────────────────────
   async function sendCallSignal(
@@ -76,10 +171,11 @@ export function ChatRoom({
     });
     pcRef.current = pc;
     stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-    pc.ontrack = (ev) => { void ev.streams[0]; };
+    pc.ontrack = (ev) => {
+      void ev.streams[0];
+    };
     pc.onicecandidate = (ev) => {
-      if (ev.candidate)
-        sendCallSignal("call_signal", { ice: ev.candidate });
+      if (ev.candidate) sendCallSignal("call_signal", { ice: ev.candidate });
     };
     if (isInitiator) {
       const offer = await pc.createOffer();
@@ -103,22 +199,34 @@ export function ChatRoom({
     iceQueueRef.current = [];
   }
 
-  // ── Grouped messages ────────────────────────────────────────────────────────
-  const grouped = useMemo(() => {
-    const rows: { day: Date; items: Msg[] }[] = [];
-    for (const m of hook.filteredMessages) {
-      const d = new Date(m.created_at);
-      const last = rows[rows.length - 1];
-      if (!last || !isSameDay(last.day, d)) rows.push({ day: d, items: [m] });
-      else last.items.push(m);
-    }
-    return rows;
-  }, [hook.filteredMessages]);
+  const renderMessage = useCallback(
+    (m: Msg) => (
+      <MessageRow
+        m={m}
+        isOwn={!!hook.userId && m.sender_id === hook.userId}
+        userId={hook.userId}
+        isDM={!!hook.activeConvId}
+        isStaff={hook.isStaff}
+        communityRole={roleByUser[m.sender_id] ?? null}
+        onOpenThread={() => hook.openThread(m)}
+        onToggleReaction={hook.toggleReaction}
+        onDelete={hook.deleteMessage}
+        onEdit={(msg) => {
+          hook.setEditingMsg(msg);
+          hook.setEditBody(msg.body);
+        }}
+        onReply={(msg) => hook.setReplyingTo(msg)}
+        onQuote={quoteMessage}
+        onTogglePin={hook.togglePin}
+        onReport={hook.reportMessage}
+        onOpenAi={setAiMsg}
+      />
+    ),
+    [hook, roleByUser, quoteMessage]
+  );
 
   return (
     <div className="flex h-full w-full overflow-hidden font-sans">
-
-      {/* ── Confirm delete ──────────────────────────────────────────── */}
       <ConfirmDialog
         open={!!hook.confirmDelete}
         title="Delete message"
@@ -127,7 +235,6 @@ export function ChatRoom({
         onCancel={() => hook.setConfirmDelete(null)}
       />
 
-      {/* ── Edit dialog ─────────────────────────────────────────────── */}
       <Dialog
         open={!!hook.editingMsg}
         onOpenChange={(o) => !o && hook.setEditingMsg(null)}
@@ -170,7 +277,6 @@ export function ChatRoom({
         </DialogContent>
       </Dialog>
 
-      {/* ── Emoji + GIF picker ──────────────────────────────────────── */}
       <ChatEmojiPickerDialog
         open={hook.emojiOpen}
         onOpenChange={hook.setEmojiOpen}
@@ -183,7 +289,6 @@ export function ChatRoom({
         sendingGif={hook.sendingGif}
       />
 
-      {/* ── Active call overlay ─────────────────────────────────────── */}
       {callType && (
         <CallOverlay
           callType={callType}
@@ -195,7 +300,6 @@ export function ChatRoom({
         />
       )}
 
-      {/* ── Sidebar ─────────────────────────────────────────────────── */}
       <ChatSidebar
         roomId={roomId}
         activeConvId={hook.activeConvId}
@@ -219,15 +323,13 @@ export function ChatRoom({
         onOpenDm={hook.openDmWith}
       />
 
-      {/* ── Main chat column ────────────────────────────────────────── */}
       <div
         className={cn(
-          "flex flex-col min-w-0 flex-1 h-full overflow-hidden",
+          "flex h-full min-w-0 flex-1 flex-col overflow-hidden",
           "bg-[var(--color-bg)]",
           hook.isChatting ? "flex" : "hidden md:flex"
         )}
       >
-        {/* Header */}
         <ChatHeader
           roomName={roomName}
           activeConvId={hook.activeConvId}
@@ -243,14 +345,31 @@ export function ChatRoom({
           onCancelSearch={() => {
             hook.setSearchOpen(false);
             hook.setSearchQuery("");
+            hook.setChatFilter("all");
+            setSearchScope("messages");
           }}
           onSetChatFilter={hook.setChatFilter}
           onStartAudioCall={() => void startNativeCall("audio")}
           onStartVideoCall={() => void startNativeCall("video")}
           onBack={() => hook.setForceShowList(true)}
+          hideLegacySearchBar
         />
 
-        {/* ── Messages area ─────────────────────────────────────────── */}
+        <MessageSearchBar
+          open={hook.searchOpen}
+          query={hook.searchQuery}
+          scope={searchScope}
+          searching={hook.serverSearching}
+          onQueryChange={hook.setSearchQuery}
+          onScopeChange={onScopeChange}
+          onClose={() => {
+            hook.setSearchOpen(false);
+            hook.setSearchQuery("");
+            hook.setChatFilter("all");
+            setSearchScope("messages");
+          }}
+        />
+
         <div
           ref={hook.scrollRef}
           onScroll={hook.onScrollMain}
@@ -258,10 +377,7 @@ export function ChatRoom({
           aria-live="polite"
           aria-label="Messages"
           className={cn(
-            "flex-1 min-h-0 overflow-y-auto flex flex-col",
-            // Wallpaper: use --color-bg so dark mode uses #0a0a0a instead of the
-            // hardcoded WhatsApp beige (#efeae2). Override in globals.css if you
-            // want a dedicated chat-bg token (e.g. --color-chat-bg).
+            "flex min-h-0 flex-1 flex-col overflow-y-auto",
             "bg-[var(--color-bg)] px-[5%] py-3 pb-5",
             "scrollbar-thin scrollbar-thumb-[var(--color-border-strong)]",
             hook.loading && "overflow-hidden"
@@ -270,99 +386,55 @@ export function ChatRoom({
           {hook.loading ? (
             <ChatSkeleton />
           ) : hook.messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center flex-1 px-4 py-16 text-center">
+            <div className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center">
               <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                 Start the conversation
               </p>
               <p className="mt-2 max-w-sm text-xs leading-relaxed text-[var(--color-text-muted)]">
-                Type a message below.
+                Every message is a collaboration object — share ideas, files, and
+                threads.
               </p>
             </div>
-          ) : hook.filteredMessages.length === 0 ? (
+          ) : scopedMessages.length === 0 ? (
             <p className="py-12 text-center text-sm text-[var(--color-text-muted)]">
               No messages match your search.
             </p>
           ) : (
-            grouped.map((g) => (
-              <div key={g.day.toISOString()}>
-                {/* Date pill */}
-                <div className="flex justify-center my-2 mb-4">
-                  <span
-                    className={cn(
-                      "px-3 py-[5px] rounded-md text-[12px] font-medium shadow-sm",
-                      "bg-[var(--color-surface)] text-[var(--color-text-secondary)]",
-                      "border border-[var(--color-border)]"
-                    )}
-                  >
-                    {format(g.day, "MMM d, yyyy")}
-                  </span>
-                </div>
-
-                <div className="space-y-0.5">
-                  {g.items.map((m) =>
-                    m.message_type === "system" ? (
-                      <p
-                        key={m.id}
-                        className="py-1 text-center text-xs text-[var(--color-text-muted)]"
-                      >
-                        {m.body}
-                      </p>
-                    ) : (
-                      <MessageRow
-                        key={m.id}
-                        m={m}
-                        isOwn={!!hook.userId && m.sender_id === hook.userId}
-                        userId={hook.userId}
-                        isDM={!!hook.activeConvId}
-                        isStaff={hook.isStaff}
-                        onOpenThread={() => hook.openThread(m)}
-                        onToggleReaction={hook.toggleReaction}
-                        onDelete={hook.deleteMessage}
-                        onEdit={(msg) => {
-                          hook.setEditingMsg(msg);
-                          hook.setEditBody(msg.body);
-                        }}
-                        onReply={(msg) => hook.setReplyingTo(msg)}
-                        onTogglePin={hook.togglePin}
-                        onReport={hook.reportMessage}
-                      />
-                    )
+            <VirtualMessageList
+              messages={scopedMessages}
+              scrollRef={hook.scrollRef}
+              renderMessage={renderMessage}
+              footer={
+                <>
+                  {!hook.activeConvId && hook.typingUsers.length > 0 && (
+                    <p className="px-1 py-1 text-xs italic text-[var(--color-text-muted)]">
+                      {hook.typingUsers.map((t) => t.name).join(", ")}
+                      {hook.typingUsers.length === 1 ? " is" : " are"} typing…
+                    </p>
                   )}
-                </div>
-              </div>
-            ))
+                  {!hook.atBottom && !hook.loading && hook.messages.length > 0 && (
+                    <div className="pointer-events-none sticky bottom-2 z-10 flex justify-center">
+                      <button
+                        type="button"
+                        aria-label="Scroll to latest message"
+                        onClick={() => hook.scrollToBottom()}
+                        className={cn(
+                          "pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full shadow-sm",
+                          "border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-accent)]",
+                          "transition-all hover:scale-105"
+                        )}
+                      >
+                        <ChevronDown className="h-5 w-5" />
+                      </button>
+                    </div>
+                  )}
+                  <div ref={hook.bottomRef} />
+                </>
+              }
+            />
           )}
-
-          {/* Typing indicator */}
-          {!hook.activeConvId && hook.typingUsers.length > 0 && (
-            <p className="px-1 py-1 text-xs italic text-[var(--color-text-muted)]">
-              {hook.typingUsers.map((t) => t.name).join(", ")}
-              {hook.typingUsers.length === 1 ? " is" : " are"} typing…
-            </p>
-          )}
-
-          {/* Scroll-to-bottom FAB */}
-          {!hook.atBottom && !hook.loading && hook.messages.length > 0 && (
-            <div className="pointer-events-none sticky bottom-2 z-10 flex justify-center">
-              <button
-                type="button"
-                aria-label="Scroll to latest message"
-                onClick={() => hook.scrollToBottom()}
-                className={cn(
-                  "pointer-events-auto h-10 w-10 flex items-center justify-center rounded-full shadow-sm",
-                  "bg-[var(--color-surface)] text-[var(--color-accent)]",
-                  "border border-[var(--color-border)]",
-                  "hover:scale-105 transition-all"
-                )}
-              >
-                <ChevronDown className="h-5 w-5" />
-              </button>
-            </div>
-          )}
-          <div ref={hook.bottomRef} />
         </div>
 
-        {/* Input zone */}
         <ChatInputZone
           text={hook.text}
           setText={(v) => {
@@ -389,16 +461,20 @@ export function ChatRoom({
           onOpenEmojiPicker={() => hook.setEmojiOpen(true)}
           onAttachImage={(files) => hook.handleFiles(files, "main")}
           onAttachFile={(files) => hook.handleFiles(files, "main")}
+          onOpenAi={() => {
+            const last = hook.filteredMessages[hook.filteredMessages.length - 1];
+            if (last) setAiMsg(last);
+          }}
         />
       </div>
 
-      {/* ── Thread panel ────────────────────────────────────────────── */}
       {hook.threadOpen && hook.threadRoot && (
         <ThreadPanel
           threadRoot={hook.threadRoot}
           threadReplies={hook.threadReplies}
           threadBottomRef={hook.threadBottomRef}
           userId={hook.userId}
+          isStaff={hook.isStaff}
           threadReplyText={hook.threadReplyText}
           setThreadReplyText={hook.setThreadReplyText}
           pendingThread={hook.pendingThread}
@@ -416,10 +492,18 @@ export function ChatRoom({
           onReply={(msg) => hook.setReplyingTo(msg)}
           onOpenEmojiPicker={() => hook.setEmojiOpen(true)}
           onAttachFile={(files) => hook.handleFiles(files, "thread")}
+          onOpenAi={setAiMsg}
+          onTogglePin={hook.togglePin}
         />
       )}
 
-      {/* ── Incoming call modal ─────────────────────────────────────── */}
+      <MessageAiPanel
+        open={!!aiMsg}
+        message={aiMsg}
+        communityId={communityId}
+        onClose={() => setAiMsg(null)}
+      />
+
       {incomingCall && (
         <IncomingCallModal
           incomingCall={incomingCall}

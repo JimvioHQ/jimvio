@@ -1,0 +1,92 @@
+/**
+ * Message Experience Engine (Phase 2) smoke checks — no network.
+ * Auto-picked up by ci:prepush via scripts/tmp/verify-*.mjs
+ */
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+
+function mustExist(rel) {
+  const p = path.join(root, rel);
+  assert.ok(fs.existsSync(p), `missing ${rel}`);
+  return fs.readFileSync(p, "utf8");
+}
+
+const helpers = mustExist("lib/community/chat/message-experience.ts");
+const index = mustExist("lib/community/chat/room-message-index.ts");
+const bookmarks = mustExist("lib/community/chat/message-bookmarks.ts");
+const card = mustExist(
+  "components/community/chat/message-engine/MessageCard.tsx"
+);
+const virt = mustExist(
+  "components/community/chat/message-engine/VirtualMessageList.tsx"
+);
+const ai = mustExist(
+  "components/community/chat/message-engine/MessageAiPanel.tsx"
+);
+const search = mustExist(
+  "components/community/chat/message-engine/MessageSearchBar.tsx"
+);
+const files = mustExist(
+  "components/community/chat/message-engine/FileAttachmentCard.tsx"
+);
+const engineIndex = mustExist(
+  "components/community/chat/message-engine/index.ts"
+);
+const chatRoom = mustExist("components/community/chat/ChatRoom.tsx");
+const messageRow = mustExist("components/community/chat/MessageRow.tsx");
+const composer = mustExist("components/community/chat/ChatInputZone.tsx");
+const thread = mustExist("components/community/chat/ThreadPanel.tsx");
+const channel = mustExist(
+  "components/community/workspace/channel/ChannelWorkspace.tsx"
+);
+const pinned = mustExist(
+  "components/community/workspace/channel/panels/PinnedPanel.tsx"
+);
+const filesPanel = mustExist(
+  "components/community/workspace/channel/panels/FilesPanel.tsx"
+);
+const mediaPanel = mustExist(
+  "components/community/workspace/channel/panels/MediaPanel.tsx"
+);
+
+assert.match(helpers, /parseRichText/);
+assert.match(helpers, /classifyFile/);
+assert.match(helpers, /extractPinned/);
+assert.match(helpers, /MessageSearchScope/);
+assert.match(index, /useRoomMessageIndex/);
+assert.match(index, /sync/);
+assert.match(bookmarks, /toggleBookmark/);
+assert.match(card, /MessageCard/);
+assert.match(card, /BadgeCheck/);
+assert.match(card, /ThreadPreview/);
+assert.match(virt, /useVirtualizer/);
+assert.match(virt, /VirtualMessageList/);
+assert.match(ai, /MessageAiPanel/);
+assert.match(ai, /summarize/);
+assert.match(search, /MessageSearchBar/);
+assert.match(search, /members/);
+assert.match(files, /FileAttachmentCard/);
+assert.match(engineIndex, /export/);
+assert.match(chatRoom, /VirtualMessageList/);
+assert.match(chatRoom, /MessageAiPanel/);
+assert.match(chatRoom, /useRoomMessageIndex/);
+assert.match(chatRoom, /MessageSearchBar/);
+assert.doesNotMatch(chatRoom, /fork ChatRoom/i);
+assert.match(messageRow, /MessageCard/);
+assert.match(composer, /onDrop/);
+assert.match(composer, /onPaste/);
+assert.match(composer, /Sparkles/);
+assert.match(thread, /Solved/);
+assert.match(thread, /Pinned/);
+assert.match(channel, /roomId/);
+assert.match(channel, /FilesPanel/);
+assert.match(pinned, /Jump to message/);
+assert.match(pinned, /useRoomMessageIndex/);
+assert.match(filesPanel, /FileAttachmentCard/);
+assert.match(mediaPanel, /extractMediaItems/);
+
+console.log("Message experience engine verification passed.");
