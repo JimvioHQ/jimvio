@@ -24,10 +24,19 @@ type RoomMessageIndex = {
   sync: (roomId: string, messages: Msg[]) => void;
   clear: (roomId: string) => void;
   get: (roomId: string) => Msg[];
+  /** Cross-tab request: Threads panel → ChatRoom openThread */
+  openThreadRequest: string | null;
+  convertThreadRequest: string | null;
+  requestOpenThread: (messageId: string) => void;
+  requestConvertThread: (messageId: string) => void;
+  clearOpenThreadRequest: () => void;
+  clearConvertThreadRequest: () => void;
 };
 
 export const useRoomMessageIndex = create<RoomMessageIndex>((set, get) => ({
   byRoom: {},
+  openThreadRequest: null,
+  convertThreadRequest: null,
   sync(roomId, messages) {
     if (!roomId) return;
     set((state) => ({
@@ -46,6 +55,18 @@ export const useRoomMessageIndex = create<RoomMessageIndex>((set, get) => ({
   },
   get(roomId) {
     return get().byRoom[roomId]?.messages ?? [];
+  },
+  requestOpenThread(messageId) {
+    set({ openThreadRequest: messageId });
+  },
+  requestConvertThread(messageId) {
+    set({ convertThreadRequest: messageId });
+  },
+  clearOpenThreadRequest() {
+    set({ openThreadRequest: null });
+  },
+  clearConvertThreadRequest() {
+    set({ convertThreadRequest: null });
   },
 }));
 

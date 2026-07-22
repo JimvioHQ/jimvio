@@ -8,11 +8,17 @@ import type { Attachment, Msg } from "@/types";
 
 export type MessageSearchScope =
   | "messages"
-  | "files"
-  | "members"
+  | "knowledge"
   | "threads"
-  | "pinned"
-  | "media";
+  | "files"
+  | "media"
+  | "members"
+  | "groups"
+  | "channels"
+  | "courses"
+  | "products"
+  | "events"
+  | "pinned";
 
 export type FileKind = "image" | "video" | "audio" | "pdf" | "document" | "other";
 

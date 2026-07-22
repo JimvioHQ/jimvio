@@ -129,19 +129,29 @@ export const SYSTEM_GROUP_SLUGS = [
 export type SystemGroupSlug = (typeof SYSTEM_GROUP_SLUGS)[number];
 
 export const CHANNEL_TAB_IDS = [
+  "home",
   "discussion",
+  "threads",
+  "knowledge",
   "files",
   "media",
   "pinned",
+  "events",
   "members",
+  "ai",
 ] as const;
 
 export type ChannelTabId = (typeof CHANNEL_TAB_IDS)[number];
 
 export const CHANNEL_TABS: { id: ChannelTabId; label: string }[] = [
+  { id: "home", label: "Home" },
   { id: "discussion", label: "Discussion" },
+  { id: "threads", label: "Threads" },
+  { id: "knowledge", label: "Knowledge" },
   { id: "files", label: "Files" },
   { id: "media", label: "Media" },
   { id: "pinned", label: "Pinned" },
+  { id: "events", label: "Events" },
   { id: "members", label: "Members" },
+  { id: "ai", label: "AI" },
 ];

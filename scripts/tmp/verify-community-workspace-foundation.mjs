@@ -28,6 +28,8 @@ assert.match(types, /CHANNEL_TYPES/);
 assert.match(types, /WorkspaceGroup/);
 assert.match(types, /WorkspaceChannel/);
 assert.match(types, /CHANNEL_TABS/);
+assert.match(types, /"knowledge"/);
+assert.match(types, /"threads"/);
 assert.match(perms, /resolveWorkspaceRole/);
 assert.match(perms, /buildPermissions/);
 assert.match(perms, /canEnterChannel/);

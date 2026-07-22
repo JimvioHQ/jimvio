@@ -189,6 +189,8 @@ export function WorkspaceRoomView() {
         memberCount={overview?.memberCount ?? memberCount}
         onlineCount={overview?.membersOnline ?? 0}
         roomId={room.room_type === "chat" ? room.id : undefined}
+        communityId={communityId}
+        canManageKnowledge={channel.permissions.canModerate}
       />
     </WorkspaceRoomOverlay>
   );

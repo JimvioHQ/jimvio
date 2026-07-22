@@ -7,10 +7,17 @@ import { useChatRoom } from "@/hooks/useChatRoom";
 import { cn } from "@/lib/utils";
 import type { MessageSearchScope } from "@/lib/community/chat/message-experience";
 import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
+import {
+  searchKnowledge,
+  useCollaborationStore,
+  type AnswerPick,
+} from "@/lib/community/knowledge";
+import { ConvertToKnowledgeDialog } from "@/components/community/knowledge/ConvertToKnowledgeDialog";
 import { Msg } from "@/types";
 import { Dialog, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
 import { Loader2, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useCall } from "../call-context";
 import { CallOverlay } from "./CallOverlay";
 import { ChatEmojiPickerDialog } from "./chat-emoji-picker-dialog";
@@ -45,6 +52,18 @@ export function ChatRoom({
 }: ChatRoomProps) {
   const hook = useChatRoom({ roomId, roomName, communityId, slug });
   const syncRoomIndex = useRoomMessageIndex((s) => s.sync);
+  const openThreadRequest = useRoomMessageIndex((s) => s.openThreadRequest);
+  const convertThreadRequest = useRoomMessageIndex((s) => s.convertThreadRequest);
+  const clearOpenThreadRequest = useRoomMessageIndex(
+    (s) => s.clearOpenThreadRequest
+  );
+  const clearConvertThreadRequest = useRoomMessageIndex(
+    (s) => s.clearConvertThreadRequest
+  );
+  const markAnswer = useCollaborationStore((s) => s.markAnswer);
+  const getAnswer = useCollaborationStore((s) => s.getAnswer);
+  const answers = useCollaborationStore((s) => s.answers);
+  const knowledgeCards = useCollaborationStore((s) => s.cards);
   const {
     callType,
     setCallType,
@@ -58,12 +77,38 @@ export function ChatRoom({
 
   const [aiMsg, setAiMsg] = useState<Msg | null>(null);
   const [searchScope, setSearchScope] = useState<MessageSearchScope>("messages");
+  const [convertMsg, setConvertMsg] = useState<Msg | null>(null);
+  const [convertMode, setConvertMode] = useState<"message" | "thread" | "discussion">(
+    "message"
+  );
 
-  // Sync live messages into shared index for Files / Media / Pinned tabs
+  // Sync live messages into shared index for Files / Media / Pinned / Knowledge
   useEffect(() => {
     if (!roomId || hook.activeConvId) return;
     syncRoomIndex(roomId, hook.messages);
   }, [roomId, hook.messages, hook.activeConvId, syncRoomIndex]);
+
+  // Threads panel → open thread in ChatRoom
+  useEffect(() => {
+    if (!openThreadRequest) return;
+    const msg = hook.messages.find((m) => m.id === openThreadRequest);
+    if (msg) void hook.openThread(msg);
+    clearOpenThreadRequest();
+  }, [openThreadRequest, hook, clearOpenThreadRequest]);
+
+  // Threads panel → convert thread to knowledge
+  useEffect(() => {
+    if (!convertThreadRequest) return;
+    const msg = hook.messages.find((m) => m.id === convertThreadRequest);
+    if (msg) {
+      setConvertMode("thread");
+      setConvertMsg(msg);
+      if (!hook.threadOpen || hook.threadRoot?.id !== msg.id) {
+        void hook.openThread(msg);
+      }
+    }
+    clearConvertThreadRequest();
+  }, [convertThreadRequest, hook, clearConvertThreadRequest]);
 
   const roleByUser = useMemo(() => {
     const map: Record<string, string> = {};
@@ -107,28 +152,61 @@ export function ChatRoom({
   );
 
   const scopedMessages = useMemo(() => {
-    if (searchScope !== "members") return hook.filteredMessages;
-    const q = hook.searchQuery.trim().toLowerCase();
-    if (!q) return hook.filteredMessages;
-    const memberIds = new Set(
-      hook.sidebarMembers
-        .filter((m) => {
-          const name = (
-            m.profile?.full_name ||
-            m.profile?.username ||
-            ""
-          ).toLowerCase();
-          return name.includes(q);
-        })
-        .map((m) => m.user_id)
-    );
-    return hook.filteredMessages.filter((m) => memberIds.has(m.sender_id));
+    if (searchScope === "knowledge") {
+      const q = hook.searchQuery.trim();
+      const matched = searchKnowledge(
+        knowledgeCards.filter((c) => c.roomId === roomId),
+        q
+      );
+      const ids = new Set(
+        matched.map((c) => c.sourceMessageId).filter(Boolean) as string[]
+      );
+      if (!q) return hook.filteredMessages;
+      return hook.filteredMessages.filter((m) => ids.has(m.id));
+    }
+    if (searchScope === "members") {
+      const q = hook.searchQuery.trim().toLowerCase();
+      if (!q) return hook.filteredMessages;
+      const memberIds = new Set(
+        hook.sidebarMembers
+          .filter((m) => {
+            const name = (
+              m.profile?.full_name ||
+              m.profile?.username ||
+              ""
+            ).toLowerCase();
+            return name.includes(q);
+          })
+          .map((m) => m.user_id)
+      );
+      return hook.filteredMessages.filter((m) => memberIds.has(m.sender_id));
+    }
+    // groups / channels / courses / products / events — filter message bodies for now
+    if (
+      searchScope === "groups" ||
+      searchScope === "channels" ||
+      searchScope === "courses" ||
+      searchScope === "products" ||
+      searchScope === "events"
+    ) {
+      const q = hook.searchQuery.trim().toLowerCase();
+      if (!q) return hook.filteredMessages;
+      return hook.filteredMessages.filter((m) =>
+        (m.body ?? "").toLowerCase().includes(q)
+      );
+    }
+    return hook.filteredMessages;
   }, [
     searchScope,
     hook.filteredMessages,
     hook.searchQuery,
     hook.sidebarMembers,
+    knowledgeCards,
+    roomId,
   ]);
+
+  // Force re-render badges when answers change
+  void answers;
 
   const quoteMessage = useCallback(
     (msg: Msg) => {
@@ -220,9 +298,23 @@ export function ChatRoom({
         onTogglePin={hook.togglePin}
         onReport={hook.reportMessage}
         onOpenAi={setAiMsg}
+        onConvertToKnowledge={(msg) => {
+          setConvertMode(msg.thread_id ? "thread" : "message");
+          setConvertMsg(msg);
+        }}
+        onMarkAnswer={(msg, pick: AnswerPick) => {
+          markAnswer({
+            messageId: msg.id,
+            roomId,
+            pick,
+            markedBy: hook.userId,
+          });
+          toast.success(`Marked as ${pick} answer`);
+        }}
+        answerPick={getAnswer(m.id)?.pick ?? null}
       />
     ),
-    [hook, roleByUser, quoteMessage]
+    [hook, roleByUser, quoteMessage, markAnswer, getAnswer, roomId]
   );
 
   return (
@@ -502,6 +594,29 @@ export function ChatRoom({
         message={aiMsg}
         communityId={communityId}
         onClose={() => setAiMsg(null)}
+      />
+
+      <ConvertToKnowledgeDialog
+        open={!!convertMsg}
+        message={convertMsg}
+        threadReplies={
+          convertMode === "thread" &&
+          convertMsg &&
+          hook.threadRoot?.id === convertMsg.id
+            ? hook.threadReplies
+            : convertMode === "thread" && convertMsg
+              ? []
+              : undefined
+        }
+        roomId={roomId}
+        communityId={communityId}
+        userId={hook.userId}
+        userName={
+          hook.sidebarMembers.find((m) => m.user_id === hook.userId)?.profile
+            ?.full_name ?? null
+        }
+        mode={convertMode}
+        onClose={() => setConvertMsg(null)}
       />
 
       {incomingCall && (

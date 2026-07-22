@@ -14,12 +14,18 @@ import { FilesPanel } from "./panels/FilesPanel";
 import { MediaPanel } from "./panels/MediaPanel";
 import { PinnedPanel } from "./panels/PinnedPanel";
 import { MembersPanel, type ChannelMemberRow } from "./panels/MembersPanel";
+import { HomePanel } from "./panels/HomePanel";
+import { ThreadsPanel } from "./panels/ThreadsPanel";
+import { KnowledgePanel } from "./panels/KnowledgePanel";
+import { EventsPanel } from "./panels/EventsPanel";
+import { ChannelAiPanel } from "./panels/ChannelAiPanel";
+import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
 
 /**
- * Single reusable Channel page layout:
- * Header → Tabs → Content (Discussion / Files / Media / Pinned / Members) → optional Right Drawer.
+ * Single reusable Channel page layout (Phase 3):
+ * Home · Discussion · Threads · Knowledge · Files · Media · Pinned · Events · Members · AI
  *
- * Discussion content is injected so existing ChatRoom / room renderers stay the source of truth.
+ * Discussion is injected so ChatRoom stays the source of truth (never forked).
  */
 export function ChannelWorkspace({
   channel,
@@ -33,6 +39,8 @@ export function ChannelWorkspace({
   initialTab = "discussion",
   onSearch,
   roomId,
+  communityId,
+  canManageKnowledge,
 }: {
   channel: WorkspaceChannel;
   group: WorkspaceGroup | null;
@@ -45,14 +53,23 @@ export function ChannelWorkspace({
   drawer?: ReactNode;
   initialTab?: ChannelTabId;
   onSearch?: () => void;
-  /** Enables Files / Media / Pinned panels via shared message index */
+  /** Enables index-backed panels via shared message index */
   roomId?: string;
+  communityId?: string | null;
+  canManageKnowledge?: boolean;
 }) {
   const [tab, setTab] = useState<ChannelTabId>(initialTab);
+  const resolvedRoomId = roomId ?? channel.id;
+  const requestOpenThread = useRoomMessageIndex((s) => s.requestOpenThread);
+  const requestConvertThread = useRoomMessageIndex(
+    (s) => s.requestConvertThread
+  );
 
   const handleSearch = useCallback(() => {
     onSearch?.();
   }, [onSearch]);
+
+  const openDiscussion = useCallback(() => setTab("discussion"), []);
 
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden bg-[var(--color-bg,#f4f4f5)]">
@@ -81,15 +98,51 @@ export function ChannelWorkspace({
           >
             {discussion}
           </div>
-          {tab === "files" && <FilesPanel roomId={roomId ?? channel.id} />}
-          {tab === "media" && <MediaPanel roomId={roomId ?? channel.id} />}
+
+          {tab === "home" && (
+            <HomePanel
+              roomId={resolvedRoomId}
+              channel={channel}
+              onOpenTab={(id) => setTab(id as ChannelTabId)}
+            />
+          )}
+          {tab === "threads" && (
+            <ThreadsPanel
+              roomId={resolvedRoomId}
+              canManage={canManageKnowledge ?? channel.permissions.canModerate}
+              onOpenThread={(id) => {
+                requestOpenThread(id);
+                openDiscussion();
+              }}
+              onConvertThread={(id) => {
+                requestConvertThread(id);
+                openDiscussion();
+              }}
+            />
+          )}
+          {tab === "knowledge" && <KnowledgePanel roomId={resolvedRoomId} />}
+          {tab === "files" && (
+            <FilesPanel
+              roomId={resolvedRoomId}
+              canManage={canManageKnowledge ?? channel.permissions.canModerate}
+            />
+          )}
+          {tab === "media" && <MediaPanel roomId={resolvedRoomId} />}
           {tab === "pinned" && (
             <PinnedPanel
-              roomId={roomId ?? channel.id}
+              roomId={resolvedRoomId}
               pinnedCount={channel.pinnedCount}
             />
           )}
+          {tab === "events" && <EventsPanel channelName={channel.name} />}
           {tab === "members" && <MembersPanel members={members} />}
+          {tab === "ai" && (
+            <ChannelAiPanel
+              roomId={resolvedRoomId}
+              communityId={communityId}
+              channelName={channel.name}
+            />
+          )}
         </div>
       </div>
 

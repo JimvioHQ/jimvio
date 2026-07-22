@@ -6,11 +6,17 @@ import { Loader2, Search, X } from "lucide-react";
 
 const SCOPES: { id: MessageSearchScope; label: string }[] = [
   { id: "messages", label: "Messages" },
-  { id: "files", label: "Files" },
-  { id: "members", label: "Members" },
+  { id: "knowledge", label: "Knowledge" },
   { id: "threads", label: "Threads" },
-  { id: "pinned", label: "Pinned" },
+  { id: "files", label: "Files" },
   { id: "media", label: "Media" },
+  { id: "members", label: "Members" },
+  { id: "groups", label: "Groups" },
+  { id: "channels", label: "Channels" },
+  { id: "courses", label: "Courses" },
+  { id: "products", label: "Products" },
+  { id: "events", label: "Events" },
+  { id: "pinned", label: "Pinned" },
 ];
 
 export function MessageSearchBar({

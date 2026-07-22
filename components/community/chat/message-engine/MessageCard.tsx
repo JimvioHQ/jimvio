@@ -5,8 +5,10 @@ import Image from "next/image";
 import { format } from "date-fns";
 import {
   BadgeCheck,
+  BookMarked,
   Bookmark,
   CheckCheck,
+  CheckCircle2,
   Copy,
   Flag,
   Forward,
@@ -40,6 +42,12 @@ import {
   isBookmarked,
   toggleBookmark,
 } from "@/lib/community/chat/message-bookmarks";
+import {
+  ANSWER_PICKS,
+  ANSWER_PICK_LABELS,
+  type AnswerPick,
+} from "@/lib/community/knowledge";
+import { AnswerBadge } from "@/components/community/knowledge/KnowledgeCardView";
 import { ReplyQuote } from "../ReplyQuote";
 import { MessageRichBody } from "./MessageRichBody";
 import { FileAttachmentCard } from "./FileAttachmentCard";
@@ -63,6 +71,9 @@ export type MessageCardProps = {
   onReport?: (id: string) => void;
   onOpenAi?: (msg: Msg) => void;
   onJump?: (id: string) => void;
+  onConvertToKnowledge?: (msg: Msg) => void;
+  onMarkAnswer?: (msg: Msg, pick: import("@/lib/community/knowledge").AnswerPick) => void;
+  answerPick?: import("@/lib/community/knowledge").AnswerPick | null;
 };
 
 export function MessageCard({
@@ -82,6 +93,9 @@ export function MessageCard({
   onTogglePin,
   onReport,
   onOpenAi,
+  onConvertToKnowledge,
+  onMarkAnswer,
+  answerPick,
 }: MessageCardProps) {
   const p = m.profiles;
   const name = displayName(m);
@@ -220,6 +234,12 @@ export function MessageCard({
                   </span>
                 )}
               </header>
+            )}
+
+            {answerPick && (
+              <div className="mb-1.5">
+                <AnswerBadge pick={answerPick} />
+              </div>
             )}
 
             {hasReplyQuote && (
@@ -439,6 +459,26 @@ export function MessageCard({
                     label="AI"
                     onClick={() => onOpenAi(m)}
                   />
+                )}
+                {isStaff && onConvertToKnowledge && (
+                  <MenuItem
+                    icon={BookMarked}
+                    label="Convert to Knowledge"
+                    onClick={() => onConvertToKnowledge(m)}
+                  />
+                )}
+                {isStaff && onMarkAnswer && (
+                  <>
+                    <DropdownMenuSeparator className="my-1 h-px bg-[var(--color-border)]" />
+                    {ANSWER_PICKS.map((pick) => (
+                      <MenuItem
+                        key={pick}
+                        icon={CheckCircle2}
+                        label={ANSWER_PICK_LABELS[pick as AnswerPick]}
+                        onClick={() => onMarkAnswer(m, pick as AnswerPick)}
+                      />
+                    ))}
+                  </>
                 )}
                 <DropdownMenuSeparator className="my-1 h-px bg-[var(--color-border)]" />
                 {isOwn && (
