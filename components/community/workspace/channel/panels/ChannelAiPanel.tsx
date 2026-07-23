@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Bot, Loader2, Sparkles } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { ChannelEmptyState } from "../ChannelEmptyState";
 import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
@@ -96,20 +97,28 @@ export function ChannelAiPanel({
   communityId?: string | null;
   channelName?: string;
 }) {
-  const messages = useRoomMessageIndex((s) =>
-    roomId ? (s.byRoom[roomId]?.messages ?? []) : []
+  const messages = useRoomMessageIndex(
+    useShallow((s) => (roomId ? (s.byRoom[roomId]?.messages ?? []) : []))
   );
-  const cards = useCollaborationStore((s) =>
-    roomId ? s.cards.filter((c) => c.roomId === roomId) : []
+  const cards = useCollaborationStore(
+    useShallow((s) =>
+      roomId ? s.cards.filter((c) => c.roomId === roomId) : []
+    )
   );
-  const tasks = useCreatorOSStore((s) =>
-    communityId ? s.tasks.filter((t) => t.communityId === communityId) : []
+  const tasks = useCreatorOSStore(
+    useShallow((s) =>
+      communityId ? s.tasks.filter((t) => t.communityId === communityId) : []
+    )
   );
-  const events = useCreatorOSStore((s) =>
-    communityId ? s.events.filter((e) => e.communityId === communityId) : []
+  const events = useCreatorOSStore(
+    useShallow((s) =>
+      communityId ? s.events.filter((e) => e.communityId === communityId) : []
+    )
   );
-  const commerceItems = useCreatorCommerceStore((s) =>
-    communityId ? s.itemsForCommunity(communityId) : []
+  const commerceItems = useCreatorCommerceStore(
+    useShallow((s) =>
+      communityId ? s.itemsForCommunity(communityId) : []
+    )
   );
   const localRecs = useMemo(() => {
     if (!communityId) return [];

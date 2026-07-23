@@ -59,10 +59,12 @@ export function CommunityIntelligenceHost({
   const messages = useRoomMessageIndex(
     useShallow((s) => (roomId ? (s.byRoom[roomId]?.messages ?? []) : []))
   );
-  const liveKnowledge = useLiveCollabStore((s) => {
-    const entries = Object.values(s.knowledgeBySession);
-    return entries[0] ?? null;
-  });
+  const liveKnowledge = useLiveCollabStore(
+    useShallow((s) => {
+      const entries = Object.values(s.knowledgeBySession);
+      return entries[0] ?? null;
+    })
+  );
   const liveQa = useLiveCollabStore(
     useShallow((s) => {
       const all = Object.values(s.qaBySession).flat();

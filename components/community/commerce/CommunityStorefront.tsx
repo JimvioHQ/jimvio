@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ShoppingBag, Sparkles, Users } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import {
   useCreatorCommerceStore,
   type CommunityStoreItem,
@@ -24,8 +25,8 @@ export function CommunityStorefront({
   courses?: { id: string; title: string; href: string }[];
   recommendedCreators?: { id: string; name: string; href?: string }[];
 }) {
-  const items = useCreatorCommerceStore((s) =>
-    s.featuredForCommunity(communityId)
+  const items = useCreatorCommerceStore(
+    useShallow((s) => s.featuredForCommunity(communityId))
   );
   const products = items.filter(
     (i) => i.kind === "product" || i.kind === "marketplace_item"

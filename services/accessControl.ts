@@ -14,10 +14,6 @@ export async function canAccessRoom(userId: string, roomId: string): Promise<boo
     .single();
 
   if (!room) return false;
-  if (!room.is_locked) return true;
-
-  const membership = await getUserMembership(userId, room.community_id);
-  if (!isMembershipActive(membership)) return false;
 
   const { data: community } = await supabase
     .from("communities")
@@ -25,6 +21,12 @@ export async function canAccessRoom(userId: string, roomId: string): Promise<boo
     .eq("id", room.community_id)
     .single();
   if (community?.owner_id === userId) return true;
+
+  const membership = await getUserMembership(userId, room.community_id);
+  if (!isMembershipActive(membership)) return false;
+
+  // Unlocked rooms still require active membership (or owner above).
+  if (!room.is_locked) return true;
 
   const accessType = room.access_type === "inherit" ? "paid" : room.access_type;
   if (accessType === "free") return true;
@@ -48,7 +50,6 @@ export async function canAccessSpace(userId: string, spaceId: string): Promise<b
     .single();
 
   if (!space) return false;
-  if (space.access_type === "free") return true;
 
   const { data: community } = await supabase
     .from("communities")
@@ -60,6 +61,7 @@ export async function canAccessSpace(userId: string, spaceId: string): Promise<b
   const membership = await getUserMembership(userId, space.community_id);
   if (!isMembershipActive(membership)) return false;
 
+  if (space.access_type === "free") return true;
   if (space.access_type === "paid") return true;
   if (space.access_type === "premium") {
     return (

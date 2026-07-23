@@ -18,15 +18,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { data: membership, error: membershipError } = await supabase
     .from("community_memberships")
-    .select("id")
+    .select("id, role, status")
     .eq("community_id", communityId)
     .eq("user_id", user.id)
-    .single();
+    .eq("status", "active")
+    .maybeSingle();
 
   if (membershipError) {
     console.error("Error checking membership:", membershipError);
-    return NextResponse.json({ error: membershipError.message }, { status: 400 })
-  };
+    return NextResponse.json({ error: membershipError.message }, { status: 400 });
+  }
 
   if (!membership) return NextResponse.json({ error: "No access" }, { status: 403 });
 
@@ -58,13 +59,14 @@ export async function POST(req: NextRequest, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Verify membership
+  // Verify active membership
   const { data: membership } = await supabase
     .from("community_memberships")
-    .select("id")
+    .select("id, role, status")
     .eq("community_id", communityId)
     .eq("user_id", user.id)
-    .single();
+    .eq("status", "active")
+    .maybeSingle();
 
   if (!membership) return NextResponse.json({ error: "No access" }, { status: 403 });
 
@@ -82,6 +84,11 @@ export async function POST(req: NextRequest, { params }: Params) {
   const content = body.body?.trim();
   if (!content) return NextResponse.json({ error: "body is required" }, { status: 400 });
 
+  const canPin =
+    membership.role === "owner" ||
+    membership.role === "admin" ||
+    membership.role === "moderator";
+
   const { data, error } = await supabase
     .from("community_posts")
     .insert({
@@ -95,8 +102,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       images: body.images,
       attachments: body.attachments,
       video_url: body.video_url ?? null,
-      is_pinned: body.is_pinned ?? false,
-      is_exclusive: body.is_exclusive ?? false,
+      is_pinned: canPin ? Boolean(body.is_pinned) : false,
+      is_exclusive: Boolean(body.is_exclusive) && canPin,
     })
     .select()
     .single();

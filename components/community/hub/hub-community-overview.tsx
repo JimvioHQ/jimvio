@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, useSyncExternalStore, Component, type ReactNode } from "react";
+import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
@@ -60,21 +60,6 @@ function formatCount(n: number) {
   return new Intl.NumberFormat("en-US").format(n);
 }
 
-/** Isolate Creator OS so React #185 in that subtree cannot take down overview. */
-class OverviewOsSoftBoundary extends Component<
-  { children: ReactNode },
-  { failed: boolean }
-> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  render() {
-    if (this.state.failed) return null;
-    return this.props.children;
-  }
-}
-
 function FadeIn({
   children,
   className,
@@ -83,7 +68,7 @@ function FadeIn({
   className?: string;
   delay?: number;
 }) {
-  // Static only — motion whileInView remounts were triggering React #185 on overview.
+  // Static only — Framer whileInView remounts were triggering React #185 on overview.
   return <div className={className}>{children}</div>;
 }
 
@@ -418,16 +403,14 @@ export function HubCommunityOverview() {
 
         {/* Creator Collaboration OS — mount after hydration to avoid remount #418/#185 */}
         <FadeIn delay={0.055} className="mt-5 sm:mt-6">
-          <OverviewOsSoftBoundary>
-            <CreatorOSDashboard
-              base={base}
-              communityId={communityId}
-              communityName={communityName}
-              overview={overview}
-              userId={userId}
-              isStaff={isOwner || isAdmin}
-            />
-          </OverviewOsSoftBoundary>
+          <CreatorOSDashboard
+            base={base}
+            communityId={communityId}
+            communityName={communityName}
+            overview={overview}
+            userId={userId}
+            isStaff={isOwner || isAdmin}
+          />
         </FadeIn>
 
         <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">

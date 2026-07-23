@@ -392,12 +392,14 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                     if (!data) return;
                     const normalized = normalizePost(data as Post);
                     setPosts((prev) => {
-                        // Avoid duplicates
                         if (prev.find((p) => p.id === normalized.id)) return prev;
-                        // Pinned posts go first, then newest
-                        return normalized.is_pinned
-                            ? [normalized, ...prev]
-                            : [normalized, ...prev.filter((p) => !p.is_pinned), ...prev.filter((p) => p.is_pinned ? false : false)];
+                        const without = prev.filter((p) => p.id !== normalized.id);
+                        if (normalized.is_pinned) {
+                            return [normalized, ...without];
+                        }
+                        const pinned = without.filter((p) => p.is_pinned);
+                        const rest = without.filter((p) => !p.is_pinned);
+                        return [...pinned, normalized, ...rest];
                     });
                 }
             )

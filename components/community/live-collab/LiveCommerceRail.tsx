@@ -7,6 +7,7 @@ import {
 } from "@/components/community/commerce";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
 import { useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 /** Live shopping rail — reuses Creator Commerce Engine. */
 export function LiveCommerceRail({
@@ -19,8 +20,10 @@ export function LiveCommerceRail({
   onShareOffer?: (title: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const items = useCreatorCommerceStore((s) =>
-    communityId ? s.featuredForCommunity(communityId).slice(0, 6) : []
+  const items = useCreatorCommerceStore(
+    useShallow((s) =>
+      communityId ? s.featuredForCommunity(communityId).slice(0, 6) : []
+    )
   );
 
   return (

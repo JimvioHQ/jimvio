@@ -96,6 +96,14 @@ export async function PATCH(
   for (const k of allowed) {
     if (k in patch) (update as Record<string, unknown>)[k] = patch[k];
   }
+
+  // Authors may edit content; only staff may change pin / exclusivity / publish flags.
+  if (!isStaff) {
+    delete update.is_pinned;
+    delete update.is_exclusive;
+    delete update.is_published;
+  }
+
   const { data, error } = await supabase.from("community_posts").update(update).eq("id", postId).select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
