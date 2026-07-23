@@ -15,7 +15,7 @@ export async function PATCH(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { action, reason } = (await req.json()) as {
+  const { action, reason, role } = (await req.json()) as {
     action?: "suspend" | "unsuspend" | "change_role";
     role?: string;
     reason?: string;
@@ -64,7 +64,12 @@ export async function PATCH(
   }
 
   // Prevent moderators from suspending/managing owners or admins
-  if (isStaff && !isOwner && (membership.role === "owner" || membership.role === "admin")) {
+  if (
+    (action === "suspend" || action === "unsuspend") &&
+    isStaff &&
+    !isOwner &&
+    (membership.role === "owner" || membership.role === "admin")
+  ) {
     return NextResponse.json({ error: "Forbidden: Cannot suspend owners or admins" }, { status: 403 });
   }
 
@@ -115,6 +120,58 @@ export async function PATCH(
     }
 
     return NextResponse.json({ ok: true, message: "Member unsuspended" });
+  }
+
+  if (action === "change_role") {
+    // Only community owner (or membership owner/admin) may change roles.
+    const requesterIsOwnerOrAdmin =
+      isOwner ||
+      requesterMembership?.role === "owner" ||
+      requesterMembership?.role === "admin";
+    if (!requesterIsOwnerOrAdmin) {
+      return NextResponse.json(
+        { error: "Forbidden: Only owner or admin can change roles" },
+        { status: 403 }
+      );
+    }
+
+    if (membership.role === "owner" || membership.user_id === community?.owner_id) {
+      return NextResponse.json(
+        { error: "Forbidden: Cannot change the community owner's role" },
+        { status: 403 }
+      );
+    }
+
+    const nextRole = typeof role === "string" ? role.trim() : "";
+    const allowedRoles = new Set(["member", "moderator", "admin"]);
+    if (!allowedRoles.has(nextRole)) {
+      return NextResponse.json(
+        { error: "Invalid role. Allowed: member, moderator, admin" },
+        { status: 400 }
+      );
+    }
+
+    const { error } = await admin
+      .from("community_memberships")
+      .update({ role: nextRole, updated_at: new Date().toISOString() })
+      .eq("id", membershipId);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    try {
+      await admin.from("community_moderation_logs").insert({
+        community_id: membership.community_id,
+        moderator_id: user.id,
+        target_user_id: membership.user_id,
+        action: "change_role",
+        reason: reason || `role -> ${nextRole}`,
+        created_at: new Date().toISOString(),
+      });
+    } catch {
+      // Ignore logging errors
+    }
+
+    return NextResponse.json({ ok: true, message: "Role updated", role: nextRole });
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });

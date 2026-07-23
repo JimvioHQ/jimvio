@@ -12,6 +12,7 @@ import { useCreatorOSStore } from "@/lib/community/os";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
 import { useLiveCollabStore } from "@/lib/community/live-collab";
 import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
+import { useClientReady } from "@/lib/community/use-client-ready";
 import { IntelligenceDashboard } from "./IntelligenceDashboard";
 import { toast } from "sonner";
 
@@ -44,33 +45,41 @@ export function CommunityIntelligenceHost({
   roomId?: string | null;
   compact?: boolean;
 }) {
-  const cards = useCollaborationStore(
+  const clientReady = useClientReady();
+  const cardsRaw = useCollaborationStore(
     useShallow((s) => s.cards.filter((c) => c.communityId === communityId))
   );
-  const tasks = useCreatorOSStore(
+  const tasksRaw = useCreatorOSStore(
     useShallow((s) => s.tasks.filter((t) => t.communityId === communityId))
   );
-  const events = useCreatorOSStore(
+  const eventsRaw = useCreatorOSStore(
     useShallow((s) => s.events.filter((e) => e.communityId === communityId))
   );
-  const commerceItems = useCreatorCommerceStore(
+  const commerceRaw = useCreatorCommerceStore(
     useShallow((s) => s.itemsForCommunity(communityId))
   );
-  const messages = useRoomMessageIndex(
+  const messagesRaw = useRoomMessageIndex(
     useShallow((s) => (roomId ? (s.byRoom[roomId]?.messages ?? []) : []))
   );
-  const liveKnowledge = useLiveCollabStore(
+  const liveKnowledgeRaw = useLiveCollabStore(
     useShallow((s) => {
       const entries = Object.values(s.knowledgeBySession);
       return entries[0] ?? null;
     })
   );
-  const liveQa = useLiveCollabStore(
+  const liveQaRaw = useLiveCollabStore(
     useShallow((s) => {
       const all = Object.values(s.qaBySession).flat();
       return all.slice(0, 20);
     })
   );
+  const cards = clientReady ? cardsRaw : [];
+  const tasks = clientReady ? tasksRaw : [];
+  const events = clientReady ? eventsRaw : [];
+  const commerceItems = clientReady ? commerceRaw : [];
+  const messages = clientReady ? messagesRaw : [];
+  const liveKnowledge = clientReady ? liveKnowledgeRaw : null;
+  const liveQa = clientReady ? liveQaRaw : [];
   const input: IntelligenceInput = useMemo(
     () => ({
       communityId,

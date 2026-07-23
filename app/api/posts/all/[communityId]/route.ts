@@ -40,8 +40,6 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  console.log({ data });
-
   if (error) {
     console.error("Error fetching posts:", error);
     return NextResponse.json({ error: error.message }, { status: 400 })
@@ -89,12 +87,26 @@ export async function POST(req: NextRequest, { params }: Params) {
     membership.role === "admin" ||
     membership.role === "moderator";
 
+  // Resolve a default room/space — empty UUID strings are invalid.
+  const { data: room } = await supabase
+    .from("rooms")
+    .select("id, space_id")
+    .eq("community_id", communityId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!room?.id || !room.space_id) {
+    return NextResponse.json({ error: "Community has no room for posts" }, { status: 400 });
+  }
+
   const { data, error } = await supabase
     .from("community_posts")
     .insert({
       community_id: communityId,
-      room_id: "",
-      space_id: "",
+      room_id: room.id,
+      space_id: room.space_id,
       author_id: user.id,
       title: body.title ?? null,
       body: content,

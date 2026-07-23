@@ -52,4 +52,15 @@ assert.match(osDash, /CommunityIntelligenceHost/);
 assert.match(storefront, /useShallow/);
 assert.match(storefront, /featuredForCommunity\(communityId\)/);
 
+// Persist-backed store data must wait for client mount (React #418).
+assert.match(storefront, /useClientReady/);
+assert.match(osDash, /useClientReady/);
+assert.match(
+  fs.readFileSync(
+    path.join(root, "components/community/intelligence/CommunityIntelligenceHost.tsx"),
+    "utf8"
+  ),
+  /useClientReady/
+);
+
 console.log("Community permission + Creator OS certification gates passed.");

@@ -685,16 +685,16 @@ export function HubCommunityOverview() {
                               className="flex items-center gap-3 rounded-lg p-1.5 transition hover:bg-[var(--color-surface-secondary)]"
                             >
                               <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-[#fd5000]/10 text-[#fd5000]">
-                                <span className="text-[9px] font-bold uppercase leading-none">
+                                <span className="text-[9px] font-bold uppercase leading-none" suppressHydrationWarning>
                                   {format(new Date(ev.start_date), "MMM")}
                                 </span>
-                                <span className="text-[14px] font-black leading-none">
+                                <span className="text-[14px] font-black leading-none" suppressHydrationWarning>
                                   {format(new Date(ev.start_date), "d")}
                                 </span>
                               </div>
                               <div className="min-w-0">
                                 <p className="truncate text-[12.5px] font-semibold">{ev.title}</p>
-                                <p className="text-[10px] text-[var(--color-text-muted)]">
+                                <p className="text-[10px] text-[var(--color-text-muted)]" suppressHydrationWarning>
                                   {format(new Date(ev.start_date), "h:mm a")}
                                 </p>
                               </div>
@@ -724,7 +724,7 @@ export function HubCommunityOverview() {
                               <div className="min-w-0">
                                 <p className="text-[12.5px] font-semibold">{ch.title}</p>
                                 {ch.due_date && (
-                                  <p className="text-[10px] text-[var(--color-text-muted)]">
+                                  <p className="text-[10px] text-[var(--color-text-muted)]" suppressHydrationWarning>
                                     Due {format(new Date(ch.due_date), "MMM d")}
                                   </p>
                                 )}

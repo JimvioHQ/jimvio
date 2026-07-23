@@ -7,6 +7,7 @@ import {
   useCreatorCommerceStore,
   type CommunityStoreItem,
 } from "@/lib/community/commerce";
+import { useClientReady } from "@/lib/community/use-client-ready";
 import { MessageCommerceEmbed } from "./MessageCommerceEmbed";
 
 /**
@@ -25,9 +26,11 @@ export function CommunityStorefront({
   courses?: { id: string; title: string; href: string }[];
   recommendedCreators?: { id: string; name: string; href?: string }[];
 }) {
-  const items = useCreatorCommerceStore(
+  const clientReady = useClientReady();
+  const itemsRaw = useCreatorCommerceStore(
     useShallow((s) => s.featuredForCommunity(communityId))
   );
+  const items = clientReady ? itemsRaw : [];
   const products = items.filter(
     (i) => i.kind === "product" || i.kind === "marketplace_item"
   );

@@ -32,6 +32,7 @@ import {
 } from "@/components/community/commerce";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
 import { CommunityIntelligenceHost } from "@/components/community/intelligence";
+import { useClientReady } from "@/lib/community/use-client-ready";
 
 type OverviewLite = {
   totalCommunityXp?: number | null;
@@ -121,18 +122,25 @@ export function CreatorOSDashboard({
   userId?: string | null;
   isStaff?: boolean;
 }) {
-  const tasks = useCreatorOSStore(
+  // Persist rehydrates before React hydrates — gate store lists so SSR and
+  // first client paint both render empty store sections (avoids React #418).
+  const clientReady = useClientReady();
+  const tasksRaw = useCreatorOSStore(
     useShallow((s) => s.tasks.filter((t) => t.communityId === communityId).slice(0, 5))
   );
-  const events = useCreatorOSStore(
+  const eventsRaw = useCreatorOSStore(
     useShallow((s) => s.events.filter((e) => e.communityId === communityId).slice(0, 4))
   );
-  const cards = useCollaborationStore(
+  const cardsRaw = useCollaborationStore(
     useShallow((s) => s.cards.filter((c) => c.communityId === communityId).slice(0, 4))
   );
-  const marketplacePicks = useCreatorCommerceStore(
+  const marketplaceRaw = useCreatorCommerceStore(
     useShallow((s) => s.featuredForCommunity(communityId).slice(0, 4))
   );
+  const tasks = clientReady ? tasksRaw : [];
+  const events = clientReady ? eventsRaw : [];
+  const cards = clientReady ? cardsRaw : [];
+  const marketplacePicks = clientReady ? marketplaceRaw : [];
 
   const score = buildScoreFromOverview({
     totalCommunityXp:

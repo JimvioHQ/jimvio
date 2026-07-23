@@ -43,7 +43,7 @@ export function UnifiedAnalyticsStrip({
               <Trend className="h-3 w-3 text-[var(--color-accent)]" />
             </p>
             <p className="mt-0.5 text-lg font-black text-[var(--color-text-primary)]">
-              {m.value.toLocaleString()}
+              {m.value.toLocaleString("en-US")}
             </p>
             <p className="text-[10px] text-[var(--color-text-muted)]">
               {m.unit}
