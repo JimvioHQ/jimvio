@@ -15,6 +15,7 @@ import {
   Target,
   Users,
 } from "lucide-react";
+import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import {
   buildScoreFromOverview,
@@ -120,17 +121,17 @@ export function CreatorOSDashboard({
   userId?: string | null;
   isStaff?: boolean;
 }) {
-  const tasks = useCreatorOSStore((s) =>
-    s.tasks.filter((t) => t.communityId === communityId).slice(0, 5)
+  const tasks = useCreatorOSStore(
+    useShallow((s) => s.tasks.filter((t) => t.communityId === communityId).slice(0, 5))
   );
-  const events = useCreatorOSStore((s) =>
-    s.events.filter((e) => e.communityId === communityId).slice(0, 4)
+  const events = useCreatorOSStore(
+    useShallow((s) => s.events.filter((e) => e.communityId === communityId).slice(0, 4))
   );
-  const cards = useCollaborationStore((s) =>
-    s.cards.filter((c) => c.communityId === communityId).slice(0, 4)
+  const cards = useCollaborationStore(
+    useShallow((s) => s.cards.filter((c) => c.communityId === communityId).slice(0, 4))
   );
-  const marketplacePicks = useCreatorCommerceStore((s) =>
-    s.featuredForCommunity(communityId).slice(0, 4)
+  const marketplacePicks = useCreatorCommerceStore(
+    useShallow((s) => s.featuredForCommunity(communityId).slice(0, 4))
   );
 
   const score = buildScoreFromOverview({

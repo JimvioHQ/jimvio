@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useShallow } from "zustand/react/shallow";
 import {
   buildIntelligenceSnapshot,
   useIntelligenceStore,
@@ -26,6 +27,22 @@ type OverviewBits = {
   challenges?: { title: string }[] | null;
 };
 
+function snapshotFingerprint(snapshot: {
+  communityId: string;
+  domains: unknown;
+  recommendations: unknown;
+  automations: unknown;
+  analytics: unknown;
+}) {
+  return JSON.stringify({
+    communityId: snapshot.communityId,
+    domains: snapshot.domains,
+    recommendations: snapshot.recommendations,
+    automations: snapshot.automations,
+    analytics: snapshot.analytics,
+  });
+}
+
 /**
  * Hook-up component: builds snapshot from phase stores (no new APIs).
  */
@@ -44,30 +61,33 @@ export function CommunityIntelligenceHost({
   roomId?: string | null;
   compact?: boolean;
 }) {
-  const cards = useCollaborationStore((s) =>
-    s.cards.filter((c) => c.communityId === communityId)
+  const cards = useCollaborationStore(
+    useShallow((s) => s.cards.filter((c) => c.communityId === communityId))
   );
-  const tasks = useCreatorOSStore((s) =>
-    s.tasks.filter((t) => t.communityId === communityId)
+  const tasks = useCreatorOSStore(
+    useShallow((s) => s.tasks.filter((t) => t.communityId === communityId))
   );
-  const events = useCreatorOSStore((s) =>
-    s.events.filter((e) => e.communityId === communityId)
+  const events = useCreatorOSStore(
+    useShallow((s) => s.events.filter((e) => e.communityId === communityId))
   );
-  const commerceItems = useCreatorCommerceStore((s) =>
-    s.itemsForCommunity(communityId)
+  const commerceItems = useCreatorCommerceStore(
+    useShallow((s) => s.itemsForCommunity(communityId))
   );
-  const messages = useRoomMessageIndex((s) =>
-    roomId ? (s.byRoom[roomId]?.messages ?? []) : []
+  const messages = useRoomMessageIndex(
+    useShallow((s) => (roomId ? (s.byRoom[roomId]?.messages ?? []) : []))
   );
   const liveKnowledge = useLiveCollabStore((s) => {
     const entries = Object.values(s.knowledgeBySession);
     return entries[0] ?? null;
   });
-  const liveQa = useLiveCollabStore((s) => {
-    const all = Object.values(s.qaBySession).flat();
-    return all.slice(0, 20);
-  });
+  const liveQa = useLiveCollabStore(
+    useShallow((s) => {
+      const all = Object.values(s.qaBySession).flat();
+      return all.slice(0, 20);
+    })
+  );
   const putSnapshot = useIntelligenceStore((s) => s.putSnapshot);
+  const lastFingerprint = useRef<string>("");
 
   const input: IntelligenceInput = useMemo(
     () => ({
@@ -108,6 +128,9 @@ export function CommunityIntelligenceHost({
   const snapshot = useMemo(() => buildIntelligenceSnapshot(input), [input]);
 
   useEffect(() => {
+    const fp = snapshotFingerprint(snapshot);
+    if (fp === lastFingerprint.current) return;
+    lastFingerprint.current = fp;
     putSnapshot(snapshot);
   }, [snapshot, putSnapshot]);
 

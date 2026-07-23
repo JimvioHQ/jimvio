@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
@@ -49,6 +49,14 @@ function formatJoined(iso: string | null) {
   }
 }
 
+function useIsClient() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+}
+
 function FadeIn({
   children,
   className,
@@ -59,7 +67,13 @@ function FadeIn({
   delay?: number;
 }) {
   const reduce = useReducedMotion();
-  if (reduce) return <div className={className}>{children}</div>;
+  const isClient = useIsClient();
+
+  // Keep SSR + first client paint identical to avoid hydration mismatches.
+  if (!isClient || reduce) {
+    return <div className={className}>{children}</div>;
+  }
+
   return (
     <motion.div
       className={className}
@@ -71,6 +85,26 @@ function FadeIn({
       {children}
     </motion.div>
   );
+}
+
+function RelativeTime({ iso }: { iso: string }) {
+  const isClient = useIsClient();
+  const absolute = useMemo(() => {
+    try {
+      return format(new Date(iso), "MMM d, yyyy");
+    } catch {
+      return "";
+    }
+  }, [iso]);
+  const relative = useMemo(() => {
+    if (!isClient) return absolute;
+    try {
+      return formatDistanceToNow(new Date(iso), { addSuffix: true });
+    } catch {
+      return absolute;
+    }
+  }, [absolute, isClient, iso]);
+  return <>{relative}</>;
 }
 
 function EmptyCover({ name }: { name: string }) {
@@ -855,7 +889,7 @@ export function HubCommunityOverview() {
                             {item.text}
                           </p>
                           <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
-                            {formatDistanceToNow(new Date(item.time), { addSuffix: true })}
+                            <RelativeTime iso={item.time} />
                           </p>
                         </Link>
                       </li>

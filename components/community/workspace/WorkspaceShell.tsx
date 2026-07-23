@@ -1386,7 +1386,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -1523,29 +1523,53 @@ export function WorkspaceLayout({
     Object.fromEntries(spacesWithRooms.map((s) => [s.id, true]))
   );
 
-  const ctx = {
-    slug: community.slug,
-    communityId: community.id,
-    communityName: community.name,
-    ownerId: community.owner_id,
-    ownerName,
-    memberCount: community.member_count,
-    avatarUrl: community.avatar_url,
-    coverUrl: community.cover_image ?? null,
-    tagline: community.tagline ?? null,
-    isPrivate: !!community.is_private,
-    joinedAt,
-    userId: currentUserId,
-    currentUserId,
-    view,
-    isAdmin,
-    isOwner,
-    profile,
-    membership,
-    spacesWithRooms,
-    points,
-    overview,
-  };
+  const ctx = useMemo(
+    () => ({
+      slug: community.slug,
+      communityId: community.id,
+      communityName: community.name,
+      ownerId: community.owner_id,
+      ownerName,
+      memberCount: community.member_count,
+      avatarUrl: community.avatar_url,
+      coverUrl: community.cover_image ?? null,
+      tagline: community.tagline ?? null,
+      isPrivate: !!community.is_private,
+      joinedAt,
+      userId: currentUserId,
+      currentUserId,
+      view,
+      isAdmin,
+      isOwner,
+      profile,
+      membership,
+      spacesWithRooms,
+      points,
+      overview,
+    }),
+    [
+      community.slug,
+      community.id,
+      community.name,
+      community.owner_id,
+      community.member_count,
+      community.avatar_url,
+      community.cover_image,
+      community.tagline,
+      community.is_private,
+      ownerName,
+      joinedAt,
+      currentUserId,
+      view,
+      isAdmin,
+      isOwner,
+      profile,
+      membership,
+      spacesWithRooms,
+      points,
+      overview,
+    ]
+  );
 
   // URL helper — only allow whitelisted query params
   const buildParams = (next: { view?: WorkspaceView; space?: string | null; room?: string | null }) => {

@@ -40,17 +40,16 @@ function EventsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const legacyTab = searchParams.get("tab");
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
+  const [events, setEvents] = useState<HubEvent[]>([]);
 
   useEffect(() => {
     if (legacyTab && TAB_REDIRECTS[legacyTab]) {
       router.replace(TAB_REDIRECTS[legacyTab]);
     }
   }, [legacyTab, router]);
-
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
-  const [events, setEvents] = useState<HubEvent[]>([]);
 
   useEffect(() => {
     if (legacyTab && TAB_REDIRECTS[legacyTab]) return;
