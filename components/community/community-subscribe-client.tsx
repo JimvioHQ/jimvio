@@ -140,7 +140,7 @@ export function CommunitySubscribeClient({
             amount, currency,
             orderId: community.slug,
             country: "RW",
-            returnUrl: `${window.location.origin}/communities/${community.slug}/workspace`,
+            returnUrl: `${window.location.origin}/communities/${community.slug}`,
           }),
         });
         const data = await res.json();

@@ -223,6 +223,27 @@ export async function POST(req: NextRequest) {
 
   const isPublished = body.is_published !== false;
 
+  let canPin = false;
+  if (body.is_pinned) {
+    const { data: community } = await supabase
+      .from("communities")
+      .select("owner_id")
+      .eq("id", communityId)
+      .maybeSingle();
+    const { data: staffMembership } = await supabase
+      .from("community_memberships")
+      .select("role, status")
+      .eq("community_id", communityId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    canPin =
+      community?.owner_id === user.id ||
+      (staffMembership?.status === "active" &&
+        (staffMembership.role === "owner" ||
+          staffMembership.role === "admin" ||
+          staffMembership.role === "moderator"));
+  }
+
   const insertPayload = {
     community_id: communityId,
     room_id: roomId,
@@ -234,7 +255,7 @@ export async function POST(req: NextRequest) {
     images: (body.images ?? []) as never,
     attachments: attachments as never,
     video_url: body.video_url ?? null,
-    is_pinned: body.is_pinned ?? false,
+    is_pinned: canPin ? Boolean(body.is_pinned) : false,
     is_exclusive: body.is_exclusive ?? false,
     is_published: isPublished,
     published_at: isPublished ? new Date().toISOString() : null,

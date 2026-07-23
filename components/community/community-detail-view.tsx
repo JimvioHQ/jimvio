@@ -340,11 +340,14 @@ export function CommunityDetailView({
   async function handleJoin() {
     if (!isLoggedIn) { router.push(loginNext); return; }
 
-    if (isPrivate) {
-      router.push(`/communities/${community.slug}/request`);
+    // Paid communities go through subscribe, not free join.
+    if (!isFree) {
+      router.push(`/communities/${community.slug}/subscribe`);
       return;
     }
 
+    // Private free communities still use the join API (active membership + owner notify).
+    // There is no separate pending-approval table in production yet.
     setJoining(true);
     try {
       const res = await fetch(`/api/communities/${community.slug}/join`, { method: "POST" });
@@ -667,7 +670,7 @@ export function CommunityDetailView({
                   )}
                 </>
               ) : isPrivate ? (
-                /* Private — request to join */
+                /* Private free — join API; paid private handled via subscribe in handleJoin */
                 <>
                   <div>
                     <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
@@ -675,14 +678,23 @@ export function CommunityDetailView({
                     </p>
                     <p className="text-xl font-semibold text-[var(--color-text-primary)]">Invite only</p>
                     <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-                      The owner reviews join requests manually.
+                      {isFree
+                        ? "Join to enter this private community. The owner is notified."
+                        : "Choose a plan to request access."}
                     </p>
                   </div>
                   <button
                     onClick={handleJoin}
-                    className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-accent)] text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)]"
+                    disabled={joining}
+                    className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-accent)] text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
                   >
-                    Request to join
+                    {joining ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : isFree ? (
+                      "Join community"
+                    ) : (
+                      "View plans"
+                    )}
                   </button>
                 </>
               ) : isFree ? (

@@ -68,6 +68,27 @@ export async function POST(req: NextRequest) {
   const content = body.body?.trim();
   if (!content) return NextResponse.json({ error: "body is required" }, { status: 400 });
 
+  let canPin = false;
+  if (body.is_pinned) {
+    const { data: community } = await supabase
+      .from("communities")
+      .select("owner_id")
+      .eq("id", room.community_id)
+      .maybeSingle();
+    const { data: membership } = await supabase
+      .from("community_memberships")
+      .select("role, status")
+      .eq("community_id", room.community_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    canPin =
+      community?.owner_id === user.id ||
+      (membership?.status === "active" &&
+        (membership.role === "owner" ||
+          membership.role === "admin" ||
+          membership.role === "moderator"));
+  }
+
   const { data, error } = await supabase
     .from("community_posts")
     .insert({
@@ -81,7 +102,7 @@ export async function POST(req: NextRequest) {
       images: body.images ?? [],
       attachments: body.attachments ?? [],
       video_url: body.video_url ?? null,
-      is_pinned: body.is_pinned ?? false,
+      is_pinned: canPin ? Boolean(body.is_pinned) : false,
       is_exclusive: body.is_exclusive ?? false,
     })
     .select()

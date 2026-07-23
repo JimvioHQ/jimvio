@@ -65,6 +65,8 @@ export const COMMUNITY_AUTH_SUBROUTES = new Set([
   "toolkit",
   "missions",
   "events",
+  "billing",
+  "memberships",
 ]);
 
 /**
