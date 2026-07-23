@@ -3453,51 +3453,102 @@ export type Database = {
       rooms: {
         Row: {
           access_type: string | null
+          archived_at: string | null
+          automation_config: Record<string, unknown> | null
+          behavior_config: Record<string, unknown> | null
+          channel_kind: string | null
+          color: string | null
           community_id: string
           created_at: string | null
           description: string | null
+          emoji: string | null
           icon: string | null
           id: string
           is_active: boolean | null
+          is_featured: boolean | null
+          is_hidden: boolean | null
           is_locked: boolean | null
+          is_pinned: boolean | null
+          last_activity_at: string | null
+          member_count: number | null
+          message_count: number | null
           name: string
+          permission_config: Record<string, unknown> | null
+          pinned_count: number | null
           room_type: string
           slug: string
           sort_order: number | null
           space_id: string
+          tags: string[] | null
           updated_at: string | null
+          visibility: string | null
+          welcome_message: string | null
         }
         Insert: {
           access_type?: string | null
+          archived_at?: string | null
+          automation_config?: Record<string, unknown> | null
+          behavior_config?: Record<string, unknown> | null
+          channel_kind?: string | null
+          color?: string | null
           community_id: string
           created_at?: string | null
           description?: string | null
+          emoji?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
+          is_hidden?: boolean | null
           is_locked?: boolean | null
+          is_pinned?: boolean | null
+          last_activity_at?: string | null
+          member_count?: number | null
+          message_count?: number | null
           name: string
+          permission_config?: Record<string, unknown> | null
+          pinned_count?: number | null
           room_type?: string
           slug: string
           sort_order?: number | null
           space_id: string
+          tags?: string[] | null
           updated_at?: string | null
+          visibility?: string | null
+          welcome_message?: string | null
         }
         Update: {
           access_type?: string | null
+          archived_at?: string | null
+          automation_config?: Record<string, unknown> | null
+          behavior_config?: Record<string, unknown> | null
+          channel_kind?: string | null
+          color?: string | null
           community_id?: string
           created_at?: string | null
           description?: string | null
+          emoji?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
+          is_hidden?: boolean | null
           is_locked?: boolean | null
+          is_pinned?: boolean | null
+          last_activity_at?: string | null
+          member_count?: number | null
+          message_count?: number | null
           name?: string
+          permission_config?: Record<string, unknown> | null
+          pinned_count?: number | null
           room_type?: string
           slug?: string
           sort_order?: number | null
           space_id?: string
+          tags?: string[] | null
           updated_at?: string | null
+          visibility?: string | null
+          welcome_message?: string | null
         }
         Relationships: [
           {
@@ -3512,6 +3563,48 @@ export type Database = {
             columns: ["space_id"]
             isOneToOne: false
             referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_staff: {
+        Row: {
+          created_at: string
+          permissions: Record<string, unknown>
+          room_id: string
+          staff_role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          permissions?: Record<string, unknown>
+          room_id: string
+          staff_role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          permissions?: Record<string, unknown>
+          room_id?: string
+          staff_role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_staff_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_staff_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
