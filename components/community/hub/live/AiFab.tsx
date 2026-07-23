@@ -14,11 +14,13 @@ import { cn } from "@/lib/utils";
 import { FOCUS_RING, MOTION, MOTION_COLORS } from "./studio-ui";
 
 const ACTIONS = [
-  { id: "summarize", label: "Summarize chat", icon: MessageSquareText },
+  { id: "summarize", label: "Session summary", icon: MessageSquareText },
+  { id: "notes", label: "Meeting notes", icon: ClipboardList },
+  { id: "actions", label: "Action items", icon: Sparkles },
+  { id: "resources", label: "Suggest resources", icon: Scissors },
+  { id: "questions", label: "Group questions", icon: ShieldAlert },
   { id: "poll", label: "Generate poll", icon: ClipboardList },
-  { id: "announce", label: "Announcement", icon: Sparkles },
   { id: "moments", label: "Highlight moments", icon: Scissors },
-  { id: "spam", label: "Detect spam", icon: ShieldAlert },
   { id: "captions", label: "Captions", icon: Subtitles },
 ] as const;
 

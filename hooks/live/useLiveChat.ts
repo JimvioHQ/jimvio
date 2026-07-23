@@ -7,6 +7,8 @@ import {
   unsubscribeRealtime,
 } from "@/lib/supabase/realtime-subscribe";
 import type { ChatMessage } from "@/lib/community/hub-live-types";
+import { liveChatToMsg } from "@/lib/community/live-collab";
+import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
 
 type ApiMessage = {
   id: string;
@@ -63,6 +65,17 @@ export function useLiveChat(roomId: string | null | undefined) {
       cancelled = true;
     };
   }, [roomKey, load]);
+
+  // Keep channel message index in sync so Knowledge / Resources / Files reuse history
+  useEffect(() => {
+    if (!roomKey) return;
+    useRoomMessageIndex
+      .getState()
+      .sync(
+        roomKey,
+        messages.map((m) => liveChatToMsg(m, roomKey))
+      );
+  }, [roomKey, messages]);
 
   useEffect(() => {
     if (!roomKey) return;

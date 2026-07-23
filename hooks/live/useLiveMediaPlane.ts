@@ -76,9 +76,15 @@ export function useLiveMediaPlane(enabled = true) {
     return (await planeRef.current?.switchMicrophone(deviceId)) ?? false;
   }, []);
 
-  const startScreenShare = useCallback(async () => {
-    return (await planeRef.current?.startScreenShare()) ?? false;
-  }, []);
+  const startScreenShare = useCallback(
+    async (options?: {
+      target?: "entire_screen" | "window" | "browser_tab";
+      quality?: "standard" | "high";
+    }) => {
+      return (await planeRef.current?.startScreenShare(options)) ?? false;
+    },
+    []
+  );
 
   const stopScreenShare = useCallback(() => {
     planeRef.current?.stopScreenShare();

@@ -49,6 +49,23 @@ import {
   RoomsPanel,
   SettingsPanel,
 } from "./live/panels";
+import {
+  LiveAiPanel,
+  LiveCommerceRail,
+  LiveCreatorTools,
+  LiveKnowledgeCapture,
+  LivePollsCollabPanel,
+  LiveQaCollabPanel,
+  LiveReactionsBar,
+  LiveRecordingPanel,
+  LiveResourcesPanel,
+  LiveRoomTypePicker,
+  LiveSharedNotes,
+  LiveTasksPanel,
+  LiveWhiteboardLazy,
+  ScreenShareMenu,
+} from "@/components/community/live-collab";
+import { useLiveCollabStore } from "@/lib/community/live-collab";
 import { SpeakerStrip } from "./live/SpeakerStrip";
 import {
   LEFT_TOOLS,
@@ -428,9 +445,13 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
 
   const startShare = useCallback(async () => {
     if (live.session && !gate(canShareScreen(live.myRole), "Speakers only")) return;
-    const ok = await media.startScreenShare();
+    const prefs = useLiveCollabStore.getState();
+    const ok = await media.startScreenShare({
+      target: prefs.shareTarget,
+      quality: prefs.shareQuality,
+    });
     if (ok) {
-      setActivity("share");
+      setActivity(prefs.presenterMode ? "present" : "share");
       void live.syncMedia({ sharing: true });
     }
   }, [gate, live, media]);
@@ -665,7 +686,6 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
 
   const visibleRightTabs = useMemo(() => {
     return RIGHT_TABS.filter((t) => {
-      if (t.id === "polls" && !hasPolls && drawer.rightTab !== "polls") return false;
       if (t.id === "clips" && clips.length === 0 && drawer.rightTab !== "clips") return false;
       if (
         t.id === "events" &&
@@ -674,9 +694,10 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
         drawer.rightTab !== "events"
       )
         return false;
+      // Always expose collaboration suite tabs
       return true;
     });
-  }, [hasPolls, clips.length, data, drawer.rightTab]);
+  }, [clips.length, data, drawer.rightTab]);
 
   const copyUrl = async () => {
     try {
@@ -1224,26 +1245,125 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
 
             <div className="flex min-h-0 flex-1 flex-col">
               {drawer.rightTab === "chat" && (
-                <ChatWorkspace
-                  messages={chatMessages}
-                  scrollTop={drawer.chatScroll}
-                  onScrollSave={(y) => updateDrawer({ chatScroll: y })}
-                  chatInput={chatInput}
-                  setChatInput={(v) => {
-                    setChatInput(v);
-                    liveChat.signalTyping();
-                  }}
-                  onSend={async (body) => {
-                    try {
-                      await liveChat.send(body);
-                    } catch (e) {
-                      showToast(e instanceof Error ? e.message : "Message failed");
-                    }
+                <>
+                  <ChatWorkspace
+                    messages={chatMessages}
+                    scrollTop={drawer.chatScroll}
+                    onScrollSave={(y) => updateDrawer({ chatScroll: y })}
+                    chatInput={chatInput}
+                    setChatInput={(v) => {
+                      setChatInput(v);
+                      liveChat.signalTyping();
+                    }}
+                    onSend={async (body) => {
+                      try {
+                        await liveChat.send(body);
+                      } catch (e) {
+                        showToast(e instanceof Error ? e.message : "Message failed");
+                      }
+                    }}
+                  />
+                  {live.session?.id && (
+                    <LiveReactionsBar
+                      sessionId={live.session.id}
+                      userId={live.userId}
+                      userName={null}
+                    />
+                  )}
+                </>
+              )}
+              {drawer.rightTab === "qa" &&
+                (live.session?.id ? (
+                  <LiveQaCollabPanel sessionId={live.session.id} />
+                ) : (
+                  <QaPanel />
+                ))}
+              {drawer.rightTab === "polls" &&
+                (live.session?.id ? (
+                  <LivePollsCollabPanel
+                    sessionId={live.session.id}
+                    canLaunch={canLaunchPoll(live.myRole)}
+                  />
+                ) : (
+                  <PollsPanel hasPolls={hasPolls} />
+                ))}
+              {drawer.rightTab === "whiteboard" && live.session?.id && (
+                <LiveWhiteboardLazy
+                  sessionId={live.session.id}
+                  userId={live.userId}
+                  canEdit={canPublishAv(live.myRole) || live.myRole === "moderator"}
+                />
+              )}
+              {drawer.rightTab === "notes" && live.session?.id && (
+                <LiveSharedNotes
+                  sessionId={live.session.id}
+                  userId={live.userId}
+                  canEdit={!!live.userId}
+                />
+              )}
+              {drawer.rightTab === "resources" && (
+                <LiveResourcesPanel roomId={chatRoomId} />
+              )}
+              {drawer.rightTab === "tasks" && (
+                <LiveTasksPanel
+                  communityId={data?.session.communityId}
+                  roomId={chatRoomId}
+                />
+              )}
+              {drawer.rightTab === "knowledge" && live.session?.id && (
+                <LiveKnowledgeCapture
+                  sessionId={live.session.id}
+                  communityId={data?.session.communityId}
+                  roomId={chatRoomId}
+                  userId={live.userId}
+                  chatSample={chatMessages
+                    .slice(-10)
+                    .map((m) => `- ${m.sender_name}: ${m.body}`)
+                    .join("\n")}
+                />
+              )}
+              {drawer.rightTab === "commerce" && (
+                <LiveCommerceRail
+                  communityId={data?.session.communityId}
+                  canManage={canLaunchPoll(live.myRole)}
+                  onShareOffer={(title) => {
+                    void liveChat.send(`🛒 Live offer: ${title}`);
+                    showToast("Offer shared in chat");
                   }}
                 />
               )}
-              {drawer.rightTab === "qa" && <QaPanel />}
-              {drawer.rightTab === "polls" && <PollsPanel hasPolls={hasPolls} />}
+              {drawer.rightTab === "recording" && live.session?.id && (
+                <LiveRecordingPanel
+                  sessionId={live.session.id}
+                  canManage={canRecord(live.myRole)}
+                />
+              )}
+              {drawer.rightTab === "tools" && live.session?.id && (
+                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+                  <LiveRoomTypePicker
+                    sessionId={live.session.id}
+                    canManage={canEndLive(live.myRole) || live.myRole === "cohost"}
+                  />
+                  <div className="px-3">
+                    <ScreenShareMenu
+                      sharing={media.sharing}
+                      onStart={() => void startShare()}
+                      onStop={stopShare}
+                    />
+                  </div>
+                  <LiveCreatorTools
+                    sessionId={live.session.id}
+                    canManage={canInviteSpeaker(live.myRole)}
+                  />
+                </div>
+              )}
+              {drawer.rightTab === "ai" && (
+                <LiveAiPanel
+                  roomId={chatRoomId}
+                  communityId={data?.session.communityId}
+                  channelName={data?.session.title ?? "Live"}
+                />
+              )}
               {drawer.rightTab === "clips" && <ClipsPanel clips={clips} />}
               {drawer.rightTab === "events" && (
                 <EventsPanel
@@ -1265,8 +1385,12 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
             setHasPolls(true);
             openRight("polls");
           }
-          if (id === "summarize" || id === "announce") openRight("chat");
+          if (id === "summarize" || id === "announce") openRight("knowledge");
           if (id === "moments" || id === "clips") openRight("clips");
+          if (id === "notes") openRight("notes");
+          if (id === "actions") openRight("tasks");
+          if (id === "resources") openRight("resources");
+          if (id === "questions") openRight("qa");
         }}
       />
 

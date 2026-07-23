@@ -11,7 +11,22 @@ import {
 export type StudioMode = "minimal" | "creator" | "studio";
 export type ActivityMode = "live" | "share" | "present";
 export type LeftPanel = "none" | "people" | "rooms" | "layout" | "settings";
-export type RightTab = "chat" | "qa" | "polls" | "clips" | "events" | "analytics";
+export type RightTab =
+  | "chat"
+  | "qa"
+  | "polls"
+  | "clips"
+  | "events"
+  | "analytics"
+  | "whiteboard"
+  | "notes"
+  | "resources"
+  | "tasks"
+  | "knowledge"
+  | "commerce"
+  | "recording"
+  | "tools"
+  | "ai";
 
 export const MODE_KEY = "jimvio-live-studio-mode";
 export const DRAWER_KEY = "jimvio-live-drawer-state";
@@ -28,6 +43,15 @@ export const RIGHT_TABS: { id: RightTab; label: string }[] = [
   { id: "chat", label: "Chat" },
   { id: "qa", label: "Q&A" },
   { id: "polls", label: "Polls" },
+  { id: "whiteboard", label: "Board" },
+  { id: "notes", label: "Notes" },
+  { id: "resources", label: "Resources" },
+  { id: "tasks", label: "Tasks" },
+  { id: "knowledge", label: "Knowledge" },
+  { id: "commerce", label: "Shop" },
+  { id: "recording", label: "Replay" },
+  { id: "tools", label: "Tools" },
+  { id: "ai", label: "AI" },
   { id: "clips", label: "Clips" },
   { id: "events", label: "Events" },
   { id: "analytics", label: "Analytics" },

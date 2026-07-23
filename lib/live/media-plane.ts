@@ -265,7 +265,10 @@ export class LiveMediaPlane {
     return ok;
   }
 
-  async startScreenShare(): Promise<boolean> {
+  async startScreenShare(options?: {
+    target?: "entire_screen" | "window" | "browser_tab";
+    quality?: "standard" | "high";
+  }): Promise<boolean> {
     this.lastError = null;
     if (!navigator.mediaDevices?.getDisplayMedia) {
       this.lastError = "Screen share unavailable";
@@ -273,8 +276,20 @@ export class LiveMediaPlane {
       return false;
     }
     try {
+      const surface =
+        options?.target === "browser_tab"
+          ? "browser"
+          : options?.target === "window"
+            ? "window"
+            : "monitor";
+      const high = options?.quality !== "standard";
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { displaySurface: "monitor" } as MediaTrackConstraints,
+        video: {
+          displaySurface: surface,
+          width: { ideal: high ? 1920 : 1280 },
+          height: { ideal: high ? 1080 : 720 },
+          frameRate: { ideal: high ? 30 : 24 },
+        } as MediaTrackConstraints,
         audio: true,
       });
       this.stopShareTracks();
