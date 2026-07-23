@@ -110,11 +110,23 @@ export function CommunityIntelligenceHost({
       featuredPosts: overview?.featuredPosts ?? undefined,
       challenges: overview?.challenges ?? undefined,
     }),
+    // Depend on primitive overview fields so parent identity churn does not rebuild forever.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional primitive deps
     [
       communityId,
       base,
       communityName,
-      overview,
+      overview?.memberCount,
+      overview?.spacesCount,
+      overview?.courses?.length,
+      overview?.liveNow,
+      overview?.healthScore?.score,
+      overview?.totalCommunityXp,
+      // Stabilize array deps by length + titles so parent remounts don't rebuild forever.
+      overview?.featuredPosts?.length,
+      overview?.featuredPosts?.map((p) => p.title ?? p.body).join("\0"),
+      overview?.challenges?.length,
+      overview?.challenges?.map((c) => c.title).join("\0"),
       messages,
       cards,
       tasks,

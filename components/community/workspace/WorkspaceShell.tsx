@@ -1750,7 +1750,10 @@ function Sidebar({
               {(community as { is_private?: boolean }).is_private ? "Private Community" : "Public Community"}
             </p>
             <p className="text-[10px] text-emerald-600 font-medium">
-              {(overview?.membersOnline ?? community.member_count ?? 0).toLocaleString()} members online
+              {new Intl.NumberFormat("en-US").format(
+                overview?.membersOnline ?? community.member_count ?? 0
+              )}{" "}
+              members online
             </p>
           </div>
         </div>

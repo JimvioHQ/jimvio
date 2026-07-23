@@ -36,8 +36,14 @@ export type IntelligenceInput = {
   challenges?: { title: string }[];
 };
 
-function uid(prefix: string) {
-  return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
+function uid(prefix: string, ...parts: Array<string | number | boolean | null | undefined>) {
+  const raw = `${prefix}|${parts.map((p) => String(p ?? "")).join("|")}`;
+  let hash = 2166136261;
+  for (let i = 0; i < raw.length; i++) {
+    hash ^= raw.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${prefix}-${(hash >>> 0).toString(36)}`;
 }
 
 function clamp(n: number, min = 0, max = 100) {
@@ -490,12 +496,20 @@ export function deriveAnalytics(input: IntelligenceInput): UnifiedInsight[] {
 export function buildIntelligenceSnapshot(
   input: IntelligenceInput
 ): IntelligenceSnapshot {
+  const recommendations = deriveRecommendations(input).map((r, i) => ({
+    ...r,
+    id: uid("rec", r.kind, r.title, i),
+  }));
+  const automations = deriveAutomations(input).map((a, i) => ({
+    ...a,
+    id: uid("auto", a.kind, a.title, i),
+  }));
   return {
     communityId: input.communityId,
     generatedAt: new Date().toISOString(),
     domains: deriveDomainInsights(input),
-    recommendations: deriveRecommendations(input),
-    automations: deriveAutomations(input),
+    recommendations,
+    automations,
     analytics: deriveAnalytics(input),
   };
 }

@@ -57,6 +57,10 @@ function useIsClient() {
   );
 }
 
+function formatCount(n: number) {
+  return new Intl.NumberFormat("en-US").format(n);
+}
+
 function FadeIn({
   children,
   className,
@@ -139,7 +143,7 @@ function MemberAvatarStack({
   const visible = members.slice(0, 7);
   const remaining = Math.max(0, total - visible.length);
   return (
-    <div className="flex items-center" role="list" aria-label={`${total.toLocaleString()} members`}>
+    <div className="flex items-center" role="list" aria-label={`${formatCount(total)} members`}>
       {visible.map((m, i) => (
         <div
           key={m.id}
@@ -338,7 +342,7 @@ export function HubCommunityOverview() {
                         </span>
                       )}
                       {verified && <span aria-hidden>·</span>}
-                      <span>{members.toLocaleString()} members</span>
+                      <span>{formatCount(members)} members</span>
                       <span aria-hidden>·</span>
                       <span className="inline-flex items-center gap-1">
                         {(isPrivate || overview?.isPrivate) && <Lock className="h-3 w-3" aria-hidden />}
@@ -862,7 +866,7 @@ export function HubCommunityOverview() {
                           </div>
                           <p className="truncate text-[13px] font-bold">{c.name}</p>
                           <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--color-text-muted)]">
-                            {c.tagline || `${c.member_count.toLocaleString()} members`}
+                            {c.tagline || `${formatCount(c.member_count)} members`}
                           </p>
                         </div>
                       </Link>
@@ -938,7 +942,7 @@ export function HubCommunityOverview() {
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[12px] font-semibold">{u.name}</p>
                           <p className="text-[10px] text-[var(--color-text-muted)]">
-                            {u.points.toLocaleString()} XP
+                            {formatCount(u.points)} XP
                           </p>
                         </div>
                         {i === 0 && <Trophy className="h-3.5 w-3.5 text-amber-500" aria-hidden />}

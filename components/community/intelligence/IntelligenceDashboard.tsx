@@ -235,7 +235,11 @@ export function IntelligenceDashboard({
           </p>
         </div>
         <p className="text-[10px] text-[var(--color-text-muted)]">
-          Updated {new Date(snapshot.generatedAt).toLocaleTimeString()}
+          Updated{" "}
+          {new Date(snapshot.generatedAt).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+          })}
         </p>
       </header>
 
