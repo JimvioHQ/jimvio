@@ -14,7 +14,7 @@ type CommunityQuickActionsProps = {
 
 const ACTIONS = [
   { icon: Calendar, label: "Community Calendar", href: (s: string) => `/communities/${s}/events` },
-  { icon: FileText, label: "Resources", href: (s: string) => `/communities/${s}/chat?space=resources` },
+  { icon: FileText, label: "Resources", href: (s: string) => `/communities/${s}/chat` },
   { icon: Wrench, label: "Creator Toolkit", href: (s: string) => `/communities/${s}/toolkit` },
   { icon: Radio, label: "Live Schedule", href: (s: string) => `/communities/${s}/live` },
   { icon: Trophy, label: "Leaderboard", href: (s: string) => `/communities/${s}/leaderboard` },

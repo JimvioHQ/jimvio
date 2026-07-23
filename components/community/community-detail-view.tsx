@@ -651,10 +651,18 @@ export function CommunityDetailView({
                   </Link>
                   {(isOwner || isModerator) && (
                     <Link
+                      href={`/community-owner?community=${encodeURIComponent(community.id)}`}
+                      className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-[var(--color-border)] text-[12px] font-medium text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                    >
+                      Owner Console
+                    </Link>
+                  )}
+                  {(isOwner || isModerator) && (
+                    <Link
                       href={`/creator/${community.id}/dashboard`}
                       className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-[var(--color-border)] text-[12px] font-medium text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                     >
-                      Manage community
+                      Creator earnings
                     </Link>
                   )}
                 </>

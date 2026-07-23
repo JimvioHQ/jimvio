@@ -332,12 +332,24 @@ export function HubCommunityOverview() {
                     <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
                     Joined · {roleLabel}
                   </span>
-                  <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)]">
+                  <Link
+                    href={`${base}/billing`}
+                    className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-text-secondary)] transition-colors hover:border-[#fd5000]/40 hover:text-[#fd5000]"
+                  >
                     {planLabel} plan
-                  </span>
+                  </Link>
                   <HubLinkButton href={`${base}/members`} className="!rounded-full !px-4">
                     Invite
                   </HubLinkButton>
+                  {(isOwner || isAdmin) && (
+                    <HubLinkButton
+                      href={`/community-owner?community=${encodeURIComponent(communityId)}`}
+                      variant="secondary"
+                      className="!rounded-full !px-4"
+                    >
+                      Owner Console
+                    </HubLinkButton>
+                  )}
                 </div>
               </div>
 

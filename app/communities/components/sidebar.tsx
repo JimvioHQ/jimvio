@@ -750,6 +750,9 @@ const NAV_ITEMS = [
     { id: "missions", label: "Missions", href: "/communities/missions", icon: Icons.Missions, badgeKey: "new" },
     { id: "courses", label: "Courses", href: "/communities/courses", icon: Icons.Courses },
     { id: "events", label: "Events", href: "/communities/events", icon: Icons.Events },
+    { id: "bookmarks", label: "Bookmarks", href: "/communities/bookmarks", icon: Icons.Bookmarks },
+    { id: "analytics", label: "Analytics", href: "/communities/analytics", icon: Icons.Analytics },
+    { id: "wallet", label: "Wallet", href: "/communities/wallet", icon: Icons.Wallet },
 ];
 
 // ── Fetch joined communities ──────────────────────────────────────────────────

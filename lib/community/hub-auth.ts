@@ -60,6 +60,11 @@ export const COMMUNITY_AUTH_SUBROUTES = new Set([
   "live",
   "courses",
   "members",
+  "request",
+  "settings",
+  "toolkit",
+  "missions",
+  "events",
 ]);
 
 /**
@@ -128,4 +133,7 @@ export const HUB_AUTH_NAV_IDS = new Set([
   "missions",
   "courses",
   "events",
+  "bookmarks",
+  "analytics",
+  "wallet",
 ]);

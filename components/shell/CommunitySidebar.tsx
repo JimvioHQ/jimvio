@@ -12,6 +12,7 @@ import {
   Info,
   LayoutGrid,
   Megaphone,
+  MessageSquare,
   Plus,
   Settings,
   Target,
@@ -31,6 +32,7 @@ import { CreateChannelDialog } from "@/components/community/CreateChannelDialog"
 type CommunityNavItem =
   | "overview"
   | "announcements"
+  | "feed"
   | "events"
   | "courses"
   | "challenges"
@@ -126,7 +128,8 @@ const DEFAULT_CHANNEL_DEFS: {
 const NAV_ITEMS: NavLink[] = [
   { id: "overview", label: "Overview", icon: LayoutGrid, href: "" },
   { id: "announcements", label: "Announcements", icon: Megaphone, href: "/chat" },
-  { id: "events", label: "Events", icon: Calendar, href: "/live" },
+  { id: "feed", label: "Feed", icon: MessageSquare, href: "/feed" },
+  { id: "events", label: "Events", icon: Calendar, href: "/events" },
   { id: "courses", label: "Courses", icon: BookOpen, href: "/courses" },
   { id: "challenges", label: "Challenges", icon: Target, href: "/missions" },
   { id: "about", label: "About", icon: Info, href: "/about" },
@@ -370,9 +373,14 @@ function SidebarBody({
           </div>
           {canManage && (
             <Link
-              href={`${base}/members`}
+              href={
+                communityId
+                  ? `/community-owner/settings?community=${encodeURIComponent(communityId)}`
+                  : `${base}/settings`
+              }
               onClick={onNavigate}
-              aria-label="Community settings"
+              aria-label="Owner Console"
+              title="Owner Console"
               className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
             >
               <Settings className="h-4 w-4" />
@@ -380,13 +388,24 @@ function SidebarBody({
           )}
         </div>
 
-        <Link
-          href={`${base}/members`}
-          onClick={onNavigate}
-          className="flex w-full items-center justify-center rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
-        >
-          Invite People
-        </Link>
+        <div className="flex flex-col gap-2">
+          <Link
+            href={`${base}/members`}
+            onClick={onNavigate}
+            className="flex w-full items-center justify-center rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+          >
+            Invite People
+          </Link>
+          {canManage && communityId && (
+            <Link
+              href={`/community-owner?community=${encodeURIComponent(communityId)}`}
+              onClick={onNavigate}
+              className="flex w-full items-center justify-center rounded-xl border border-orange-200 bg-orange-50 py-2 text-[12px] font-semibold text-orange-700 transition-colors hover:bg-orange-100"
+            >
+              Owner Console
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2.5 py-3 scrollbar-hide">
