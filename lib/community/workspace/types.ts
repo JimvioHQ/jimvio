@@ -10,12 +10,23 @@ export const WORKSPACE_ROLES = [
   "admin",
   "moderator",
   "creator",
+  "mentor",
   "verified",
+  "vip",
   "member",
   "guest",
 ] as const;
 
 export type WorkspaceRole = (typeof WORKSPACE_ROLES)[number];
+
+/** Reserved for future custom role definitions (Phase A.x). */
+export type CustomRoleDefinition = {
+  id: string;
+  communityId: string;
+  name: string;
+  inheritsFrom: WorkspaceRole;
+  capabilities: string[];
+};
 
 /** Channel product types — maps to DB `rooms.room_type` where possible. */
 export const CHANNEL_TYPES = [

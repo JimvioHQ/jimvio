@@ -1,0 +1,110 @@
+/**
+ * Community Owner Console Foundation (Phase A.1) smoke checks — no network.
+ * Auto-picked up by ci:prepush via scripts/tmp/verify-*.mjs
+ */
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+
+function mustExist(rel) {
+  const p = path.join(root, rel);
+  assert.ok(fs.existsSync(p), `missing ${rel}`);
+  return fs.readFileSync(p, "utf8");
+}
+
+const nav = mustExist("lib/community/owner-console/nav.ts");
+const access = mustExist("lib/community/owner-console/access.ts");
+const store = mustExist("lib/community/owner-console/store.ts");
+const metrics = mustExist("lib/community/owner-console/dashboard-metrics.ts");
+const index = mustExist("lib/community/owner-console/index.ts");
+const layoutUi = mustExist(
+  "components/community/owner-console/OwnerConsoleLayout.tsx"
+);
+const sidebar = mustExist(
+  "components/community/owner-console/OwnerConsoleSidebar.tsx"
+);
+const topbar = mustExist(
+  "components/community/owner-console/OwnerConsoleTopBar.tsx"
+);
+const dash = mustExist(
+  "components/community/owner-console/OwnerDashboardShell.tsx"
+);
+const section = mustExist(
+  "components/community/owner-console/OwnerSectionShell.tsx"
+);
+const gate = mustExist(
+  "components/community/owner-console/OwnerConsoleClientGate.tsx"
+);
+const appLayout = mustExist("app/community-owner/layout.tsx");
+const overview = mustExist("app/community-owner/page.tsx");
+const groups = mustExist("app/community-owner/groups/page.tsx");
+const members = mustExist("app/community-owner/members/page.tsx");
+const settings = mustExist("app/community-owner/settings/page.tsx");
+const moderation = mustExist("app/community-owner/moderation/page.tsx");
+const analytics = mustExist("app/community-owner/analytics/page.tsx");
+const roles = mustExist("app/community-owner/roles/page.tsx");
+const wsTypes = mustExist("lib/community/workspace/types.ts");
+const perms = mustExist("lib/community/workspace/permissions.ts");
+
+assert.match(nav, /OWNER_CONSOLE_BASE/);
+assert.match(nav, /OWNER_NAV_ITEMS/);
+assert.match(nav, /OWNER_NAV_SECTIONS/);
+assert.match(nav, /OWNER_QUICK_ACTIONS/);
+assert.match(nav, /moderation/);
+assert.match(nav, /automations/);
+assert.match(nav, /audit/);
+assert.match(access, /listManageableCommunities/);
+assert.match(access, /canEnterOwnerConsole/);
+assert.match(access, /hasCapability|resolveWorkspaceRole/);
+assert.match(store, /useOwnerConsoleUiStore/);
+assert.match(metrics, /buildOwnerDashboardMetrics/);
+assert.match(index, /export/);
+assert.match(layoutUi, /OwnerConsoleSidebar/);
+assert.match(layoutUi, /OwnerConsoleTopBar/);
+assert.match(layoutUi, /Context panel/);
+assert.match(sidebar, /Keyboard|aria-|Search console|Collapse/i);
+assert.match(topbar, /Quick search|Notifications|ROLE_LABELS/i);
+assert.match(dash, /Quick actions/);
+assert.match(dash, /AI suggestions|Activity feed/);
+assert.match(metrics, /Community Health/);
+assert.match(metrics, /Pending Reports/);
+assert.match(section, /OwnerSectionShell/);
+assert.match(gate, /useSearchParams/);
+assert.match(appLayout, /listManageableCommunities/);
+assert.match(overview, /OwnerDashboardShell/);
+assert.match(groups, /sectionId="groups"/);
+assert.match(members, /sectionId="members"/);
+assert.match(settings, /sectionId="settings"/);
+assert.match(moderation, /sectionId="moderation"/);
+assert.match(analytics, /sectionId="analytics"/);
+assert.match(roles, /sectionId="roles"/);
+assert.match(wsTypes, /mentor/);
+assert.match(wsTypes, /vip/);
+assert.match(wsTypes, /CustomRoleDefinition/);
+assert.match(perms, /mentor:/);
+assert.match(perms, /vip:/);
+
+const requiredRoutes = [
+  "channels",
+  "content",
+  "courses",
+  "events",
+  "live",
+  "commerce",
+  "ai",
+  "automations",
+  "security",
+  "integrations",
+  "audit",
+];
+for (const r of requiredRoutes) {
+  mustExist(`app/community-owner/${r}/page.tsx`);
+}
+
+assert.doesNotMatch(access, /fork ChatRoom/i);
+assert.doesNotMatch(layoutUi, /new WebSocket/);
+
+console.log("Community owner console foundation verification passed.");

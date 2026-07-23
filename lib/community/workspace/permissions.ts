@@ -83,7 +83,23 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "live.manage",
     "intelligence.view",
   ]),
+  mentor: new Set([
+    "channel.read",
+    "channel.write",
+    "members.view",
+    "files.upload",
+    "pins.manage",
+    "knowledge.manage",
+    "intelligence.view",
+  ]),
   verified: new Set([
+    "channel.read",
+    "channel.write",
+    "members.view",
+    "files.upload",
+    "intelligence.view",
+  ]),
+  vip: new Set([
     "channel.read",
     "channel.write",
     "members.view",
@@ -118,6 +134,8 @@ export function resolveWorkspaceRole(input: ResolveRoleInput): WorkspaceRole {
   if (role === "owner") return "owner";
   if (role === "admin") return "admin";
   if (role === "moderator") return "moderator";
+  if (role === "mentor") return "mentor";
+  if (role === "vip") return "vip";
 
   if (!membership || membership.status !== "active") return "guest";
   if (isCreator) return "creator";
