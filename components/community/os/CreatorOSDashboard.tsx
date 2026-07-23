@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import { Component, type ReactNode } from "react";
 import {
   BookOpen,
   Briefcase,
@@ -31,6 +33,28 @@ import {
   MessageCommerceEmbed,
 } from "@/components/community/commerce";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
+
+const CommunityIntelligenceHost = dynamic(
+  () =>
+    import("@/components/community/intelligence").then(
+      (m) => m.CommunityIntelligenceHost
+    ),
+  { ssr: false }
+);
+
+class IntelligenceSoftBoundary extends Component<
+  { children: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (this.state.failed) return null;
+    return this.props.children;
+  }
+}
 
 type OverviewLite = {
   totalCommunityXp?: number | null;
@@ -190,6 +214,16 @@ export function CreatorOSDashboard({
       </header>
 
       <CommunityScoreCard breakdown={score} />
+
+      <IntelligenceSoftBoundary>
+        <CommunityIntelligenceHost
+          communityId={communityId}
+          communityName={communityName}
+          base={base}
+          overview={overview}
+          compact
+        />
+      </IntelligenceSoftBoundary>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionShell
