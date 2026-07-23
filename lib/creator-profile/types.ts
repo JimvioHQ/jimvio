@@ -9,6 +9,7 @@ export type CreatorProfileTab =
   | "posts"
   | "reviews"
   | "contributions"
+  | "intelligence"
   | "about";
 
 export type CreatorLevel = "bronze" | "silver" | "gold" | "platinum" | "diamond";

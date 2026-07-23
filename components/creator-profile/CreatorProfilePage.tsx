@@ -26,6 +26,7 @@ import {
 } from "./CreatorProfileTabs";
 import { CreatorStoreShelf } from "@/components/community/commerce";
 import type { CommerceEmbed } from "@/lib/community/commerce";
+import { CreatorIntelligencePanel } from "@/components/community/intelligence/CreatorIntelligencePanel";
 
 export function CreatorProfilePage({ payload }: { payload: CreatorProfilePayload }) {
   const [activeTab, setActiveTab] = useState<CreatorProfileTab>("products");
@@ -275,6 +276,9 @@ export function CreatorProfilePage({ payload }: { payload: CreatorProfilePayload
                   </div>
                 )}
               </div>
+            )}
+            {activeTab === "intelligence" && (
+              <CreatorIntelligencePanel payload={payload} />
             )}
             {activeTab === "about" && (
               <CreatorProfileAboutTab

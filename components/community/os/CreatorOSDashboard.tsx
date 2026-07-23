@@ -30,6 +30,7 @@ import {
   MessageCommerceEmbed,
 } from "@/components/community/commerce";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
+import { CommunityIntelligenceHost } from "@/components/community/intelligence";
 
 type OverviewLite = {
   totalCommunityXp?: number | null;
@@ -189,6 +190,14 @@ export function CreatorOSDashboard({
       </header>
 
       <CommunityScoreCard breakdown={score} />
+
+      <CommunityIntelligenceHost
+        communityId={communityId}
+        communityName={communityName}
+        base={base}
+        overview={overview}
+        compact
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <SectionShell

@@ -1,11 +1,18 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Bot, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChannelEmptyState } from "../ChannelEmptyState";
 import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
 import { useCollaborationStore } from "@/lib/community/knowledge";
+import {
+  buildIntelligenceSnapshot,
+  formatIntelligenceContext,
+} from "@/lib/community/intelligence";
+import { useCreatorOSStore } from "@/lib/community/os";
+import { useCreatorCommerceStore } from "@/lib/community/commerce";
+import { RecommendationRail } from "@/components/community/intelligence";
 
 const PROMPTS = [
   {
@@ -53,9 +60,33 @@ const PROMPTS = [
     label: "Suggest bookings",
     prompt: "Suggest mentorship, consulting, or coaching sessions that fit the topics discussed.",
   },
+  {
+    id: "intelligence",
+    label: "Platform intelligence",
+    prompt:
+      "Using the intelligence snapshot, recommend communities, groups, courses, products, events, lives, and creators members should engage with next.",
+  },
+  {
+    id: "automate",
+    label: "Suggest automations",
+    prompt:
+      "Suggest FAQs, knowledge cards, guides, learning paths, tasks, events, and community improvements to automate.",
+  },
+  {
+    id: "moderation",
+    label: "Moderation insights",
+    prompt:
+      "Flag potential moderation needs and trust improvements based on discussion tone and unanswered questions.",
+  },
+  {
+    id: "learning",
+    label: "Learning path",
+    prompt:
+      "Propose a short learning path from this channel’s knowledge and courses.",
+  },
 ] as const;
 
-/** Channel-level AI — reuses /api/c/ai, no duplicate AI stack. */
+/** Channel-level AI — reuses /api/c/ai + Intelligence Platform snapshot. */
 export function ChannelAiPanel({
   roomId,
   communityId,
@@ -71,6 +102,26 @@ export function ChannelAiPanel({
   const cards = useCollaborationStore((s) =>
     roomId ? s.cards.filter((c) => c.roomId === roomId) : []
   );
+  const tasks = useCreatorOSStore((s) =>
+    communityId ? s.tasks.filter((t) => t.communityId === communityId) : []
+  );
+  const events = useCreatorOSStore((s) =>
+    communityId ? s.events.filter((e) => e.communityId === communityId) : []
+  );
+  const commerceItems = useCreatorCommerceStore((s) =>
+    communityId ? s.itemsForCommunity(communityId) : []
+  );
+  const localRecs = useMemo(() => {
+    if (!communityId) return [];
+    return buildIntelligenceSnapshot({
+      communityId,
+      messages,
+      knowledgeCards: cards,
+      tasks,
+      events,
+      commerceItems,
+    }).recommendations.slice(0, 4);
+  }, [communityId, messages, cards, tasks, events, commerceItems]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -91,12 +142,26 @@ export function ChannelAiPanel({
         .slice(0, 6)
         .map((c) => `- [${c.kind}] ${c.title}`)
         .join("\n");
+      const intel =
+        communityId
+          ? formatIntelligenceContext(
+              buildIntelligenceSnapshot({
+                communityId,
+                messages,
+                knowledgeCards: cards,
+                tasks,
+                events,
+                commerceItems,
+              })
+            )
+          : "";
 
       const full = [
         prompt,
         channelName ? `Channel: #${channelName}` : "",
         sample ? `\nRecent messages:\n${sample}` : "",
         knowledge ? `\nExisting knowledge:\n${knowledge}` : "",
+        intel ? `\n${intel}` : "",
       ]
         .filter(Boolean)
         .join("\n");
@@ -123,7 +188,7 @@ export function ChannelAiPanel({
         setLoading(false);
       }
     },
-    [messages, cards, channelName, communityId]
+    [messages, cards, channelName, communityId, tasks, events, commerceItems]
   );
 
   if (!roomId) {
@@ -141,10 +206,11 @@ export function ChannelAiPanel({
       <div className="shrink-0 border-b border-[var(--color-border)] px-4 py-3">
         <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
           <Sparkles className="h-4 w-4 text-[var(--color-accent)]" />
-          Channel AI
+          Channel Intelligence
         </p>
         <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-          Turn conversation into searchable, reusable knowledge
+          AI connected to messages, knowledge, commerce, and creator OS — not a
+          separate chatbot.
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {PROMPTS.map((p) => (
@@ -166,7 +232,15 @@ export function ChannelAiPanel({
           ))}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+        {localRecs.length > 0 && !result && !loading && (
+          <div className="space-y-2">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
+              Local recommendations
+            </p>
+            <RecommendationRail recommendations={localRecs} />
+          </div>
+        )}
         {loading && (
           <p className="flex items-center gap-2 text-sm text-[var(--color-text-muted)]">
             <Loader2 className="h-4 w-4 animate-spin" /> Thinking…
@@ -182,7 +256,7 @@ export function ChannelAiPanel({
             {result}
           </div>
         )}
-        {!loading && !result && !error && (
+        {!loading && !result && !error && localRecs.length === 0 && (
           <ChannelEmptyState
             icon={Bot}
             title="Ask the channel"

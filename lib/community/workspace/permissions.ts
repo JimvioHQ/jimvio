@@ -26,7 +26,8 @@ export type PermissionCapability =
   | "settings.manage"
   | "knowledge.manage"
   | "commerce.manage"
-  | "live.manage";
+  | "live.manage"
+  | "intelligence.view";
 
 const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>> = {
   owner: new Set([
@@ -42,6 +43,7 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "knowledge.manage",
     "commerce.manage",
     "live.manage",
+    "intelligence.view",
   ]),
   admin: new Set([
     "channel.read",
@@ -56,6 +58,7 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "knowledge.manage",
     "commerce.manage",
     "live.manage",
+    "intelligence.view",
   ]),
   moderator: new Set([
     "channel.read",
@@ -67,6 +70,7 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "knowledge.manage",
     "commerce.manage",
     "live.manage",
+    "intelligence.view",
   ]),
   creator: new Set([
     "channel.read",
@@ -77,14 +81,22 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "knowledge.manage",
     "commerce.manage",
     "live.manage",
+    "intelligence.view",
   ]),
   verified: new Set([
     "channel.read",
     "channel.write",
     "members.view",
     "files.upload",
+    "intelligence.view",
   ]),
-  member: new Set(["channel.read", "channel.write", "members.view", "files.upload"]),
+  member: new Set([
+    "channel.read",
+    "channel.write",
+    "members.view",
+    "files.upload",
+    "intelligence.view",
+  ]),
   guest: new Set(["channel.read"]),
 };
 
