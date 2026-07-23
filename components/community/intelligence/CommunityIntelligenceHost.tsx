@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import {
   buildIntelligenceSnapshot,
-  useIntelligenceStore,
   type AutomationSuggestion,
   type IntelligenceInput,
 } from "@/lib/community/intelligence";
@@ -26,22 +25,6 @@ type OverviewBits = {
   featuredPosts?: { title: string | null; body: string }[] | null;
   challenges?: { title: string }[] | null;
 };
-
-function snapshotFingerprint(snapshot: {
-  communityId: string;
-  domains: unknown;
-  recommendations: unknown;
-  automations: unknown;
-  analytics: unknown;
-}) {
-  return JSON.stringify({
-    communityId: snapshot.communityId,
-    domains: snapshot.domains,
-    recommendations: snapshot.recommendations,
-    automations: snapshot.automations,
-    analytics: snapshot.analytics,
-  });
-}
 
 /**
  * Hook-up component: builds snapshot from phase stores (no new APIs).
@@ -86,9 +69,6 @@ export function CommunityIntelligenceHost({
       return all.slice(0, 20);
     })
   );
-  const putSnapshot = useIntelligenceStore((s) => s.putSnapshot);
-  const lastFingerprint = useRef<string>("");
-
   const input: IntelligenceInput = useMemo(
     () => ({
       communityId,
@@ -138,14 +118,6 @@ export function CommunityIntelligenceHost({
   );
 
   const snapshot = useMemo(() => buildIntelligenceSnapshot(input), [input]);
-
-  useEffect(() => {
-    const fp = snapshotFingerprint(snapshot);
-    if (fp === lastFingerprint.current) return;
-    lastFingerprint.current = fp;
-    // Fire-and-forget cache; display uses local `snapshot` prop only.
-    putSnapshot(snapshot);
-  }, [snapshot, putSnapshot]);
 
   function onAct(a: AutomationSuggestion) {
     toast.success(`Queued: ${a.title}`, {

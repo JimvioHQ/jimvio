@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
+import { useId, useMemo, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
-import { motion, useReducedMotion } from "framer-motion";
 import {
   Award,
   BadgeCheck,
@@ -61,57 +60,16 @@ function formatCount(n: number) {
   return new Intl.NumberFormat("en-US").format(n);
 }
 
-/** Defer Creator OS until after mount so SSR + first paint match (no remount #418). */
-function ClientOnlyOsDashboard(
-  props: React.ComponentProps<typeof CreatorOSDashboard>
-) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  if (!mounted) {
-    return (
-      <div
-        className="mt-5 h-40 animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] sm:mt-6"
-        aria-hidden
-      />
-    );
-  }
-  return (
-    <FadeIn delay={0.055} className="mt-5 sm:mt-6">
-      <CreatorOSDashboard {...props} />
-    </FadeIn>
-  );
-}
-
 function FadeIn({
   children,
   className,
-  delay = 0,
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
 }) {
-  const reduce = useReducedMotion();
-  const isClient = useIsClient();
-
-  // Keep SSR + first client paint identical to avoid hydration mismatches.
-  if (!isClient || reduce) {
-    return <div className={className}>{children}</div>;
-  }
-
-  return (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay }}
-    >
-      {children}
-    </motion.div>
-  );
+  // Static only — motion whileInView remounts were triggering React #185 on overview.
+  return <div className={className}>{children}</div>;
 }
 
 function RelativeTime({ iso }: { iso: string }) {
@@ -444,14 +402,16 @@ export function HubCommunityOverview() {
         )}
 
         {/* Creator Collaboration OS — mount after hydration to avoid remount #418/#185 */}
-        <ClientOnlyOsDashboard
-          base={base}
-          communityId={communityId}
-          communityName={communityName}
-          overview={overview}
-          userId={userId}
-          isStaff={isOwner || isAdmin}
-        />
+        <FadeIn delay={0.055} className="mt-5 sm:mt-6">
+          <CreatorOSDashboard
+            base={base}
+            communityId={communityId}
+            communityName={communityName}
+            overview={overview}
+            userId={userId}
+            isStaff={isOwner || isAdmin}
+          />
+        </FadeIn>
 
         <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
           {/* ── Continuous main column ── */}
