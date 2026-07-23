@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
+  Bookmark,
   Calendar,
   ChevronDown,
   ChevronUp,
@@ -15,7 +17,9 @@ import {
   Layers,
   MessageSquare,
   Radio,
+  Settings,
   Target,
+  Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn, getInitials } from "@/lib/utils";
@@ -29,7 +33,11 @@ export type SidebarItem =
   | "channels"
   | "missions"
   | "courses"
-  | "events";
+  | "events"
+  | "bookmarks"
+  | "analytics"
+  | "wallet"
+  | "settings";
 
 type NavItem = {
   id: SidebarItem;
@@ -49,6 +57,9 @@ const NAV_ITEMS: NavItem[] = [
   { id: "missions", label: "Missions", href: "/communities/missions", icon: Target, badge: { type: "new" } },
   { id: "courses", label: "Courses", href: "/communities/courses", icon: GraduationCap },
   { id: "events", label: "Events", href: "/communities/events", icon: Calendar },
+  { id: "bookmarks", label: "Bookmarks", href: "/communities/bookmarks", icon: Bookmark },
+  { id: "analytics", label: "Analytics", href: "/communities/analytics", icon: BarChart3 },
+  { id: "wallet", label: "Wallet", href: "/communities/wallet", icon: Wallet },
 ];
 
 type CommunityRow = { id: string; name: string; slug: string; unread?: boolean };
@@ -77,6 +88,10 @@ export function resolveSidebarActiveItem(pathname: string): SidebarItem {
   if (pathname.startsWith("/communities/missions")) return "missions";
   if (pathname.startsWith("/communities/courses")) return "courses";
   if (pathname.startsWith("/communities/events")) return "events";
+  if (pathname.startsWith("/communities/bookmarks")) return "bookmarks";
+  if (pathname.startsWith("/communities/analytics")) return "analytics";
+  if (pathname.startsWith("/communities/wallet")) return "wallet";
+  if (pathname.startsWith("/communities/settings")) return "settings";
   return "feed";
 }
 
@@ -279,17 +294,36 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-gray-200 p-4">
-        <div className="mb-1.5 flex items-center justify-between text-xs">
-          <span className="text-gray-500">XP Progress</span>
-          <span className="font-medium text-gray-900">
-            {profile.xp.toLocaleString()} / {profile.xpGoal.toLocaleString()}
-          </span>
+      <div className="shrink-0 border-t border-gray-200 p-3">
+        <Link
+          href="/communities/settings"
+          className={cn(
+            "mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
+            resolvedActive === "settings"
+              ? "bg-orange-50 font-medium text-orange-500"
+              : "text-gray-700 hover:bg-gray-50"
+          )}
+        >
+          <Settings
+            className={cn(
+              "h-4 w-4 shrink-0",
+              resolvedActive === "settings" ? "text-orange-500" : "text-gray-500"
+            )}
+          />
+          <span>Settings</span>
+        </Link>
+        <div className="px-1">
+          <div className="mb-1.5 flex items-center justify-between text-xs">
+            <span className="text-gray-500">XP Progress</span>
+            <span className="font-medium text-gray-900">
+              {profile.xp.toLocaleString()} / {profile.xpGoal.toLocaleString()}
+            </span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+            <div className="h-full rounded-full bg-orange-500 transition-all" style={{ width: `${xpPct}%` }} />
+          </div>
+          <p className="mt-1.5 text-[11px] text-gray-400">Next reward in {xpRemaining.toLocaleString()} XP</p>
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-          <div className="h-full rounded-full bg-orange-500 transition-all" style={{ width: `${xpPct}%` }} />
-        </div>
-        <p className="mt-1.5 text-[11px] text-gray-400">Next reward in {xpRemaining.toLocaleString()} XP</p>
       </div>
     </aside>
   );
