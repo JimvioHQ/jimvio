@@ -29,10 +29,15 @@ function hasSupabaseSession(request: NextRequest): boolean {
 }
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  const pathname = request.nextUrl.pathname;
+  // Expose pathname to Server Components (layouts) for membership gating.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-jimvio-pathname", pathname);
+  let supabaseResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 
   try {
-    const pathname = request.nextUrl.pathname;
     const protectedPaths = ["/dashboard", "/admin", "/settings"];
     const isProtected =
       protectedPaths.some((p) => pathname.startsWith(p)) || isHubAuthRequired(pathname);
@@ -65,7 +70,9 @@ export async function updateSession(request: NextRequest) {
             cookiesToSet.forEach(({ name, value }) =>
               request.cookies.set(name, value)
             );
-            supabaseResponse = NextResponse.next({ request });
+            supabaseResponse = NextResponse.next({
+              request: { headers: requestHeaders },
+            });
             cookiesToSet.forEach(({ name, value, options }) =>
               supabaseResponse.cookies.set(name, value, options as Parameters<typeof supabaseResponse.cookies.set>[2])
             );

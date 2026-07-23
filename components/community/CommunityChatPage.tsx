@@ -5,17 +5,27 @@ import { ChatColumnHeader, ChatComposer } from "@/components/community/ChatThrea
 import { ChatMessageBubble } from "@/components/community/ChatMessageBubble";
 import { PinnedBanner, TypingIndicator } from "@/components/community/PinnedBanner";
 import { CHAT_MESSAGES, MOCK_COMMUNITY, PINNED_MESSAGE } from "@/lib/community/dashboard-mock-data";
-import { useWorkspace } from "@/components/community/workspace-context";
+import { useWorkspaceOptional } from "@/components/community/workspace-context";
 
 type CommunityChatPageProps = {
   slug: string;
   useLiveChat?: boolean;
 };
 
-export function CommunityChatPage({ useLiveChat = true }: CommunityChatPageProps) {
-  const { overview, communityName } = useWorkspace();
-  const online = overview?.membersOnline ?? MOCK_COMMUNITY.membersOnline;
-  const name = communityName || MOCK_COMMUNITY.name;
+export function CommunityChatPage({ slug, useLiveChat = true }: CommunityChatPageProps) {
+  const workspace = useWorkspaceOptional();
+  const online = workspace?.overview?.membersOnline ?? MOCK_COMMUNITY.membersOnline;
+  const name = workspace?.communityName || MOCK_COMMUNITY.name;
+
+  if (!workspace) {
+    return (
+      <div className="flex h-full min-h-0 flex-1 items-center justify-center bg-[var(--color-bg,#f4f4f5)] text-sm text-[var(--color-text-muted)]">
+        <a href={`/communities/${slug}`} className="font-semibold text-[#fd5000] hover:underline">
+          Join this community to open chat
+        </a>
+      </div>
+    );
+  }
 
   // Production path: always prefer live ChatRoom stack.
   if (useLiveChat) {

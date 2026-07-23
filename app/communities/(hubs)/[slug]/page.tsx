@@ -124,7 +124,11 @@ export default async function CommunitySlugPage({
   } = await supabase.auth.getUser();
 
   const payload = user ? await loadCommunityWorkspace(slug) : null;
-  if (payload?.membership?.status === "active") {
+  const showMemberOverview =
+    !!payload &&
+    (payload.isOwner ||
+      (payload.membership?.status === "active" && Boolean(payload.membership.role)));
+  if (showMemberOverview) {
     return <HubCommunityOverview />;
   }
 

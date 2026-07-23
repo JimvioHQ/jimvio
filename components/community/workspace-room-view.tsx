@@ -4,7 +4,7 @@
 import React, { useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Lock, ArrowRight } from "lucide-react";
-import { useWorkspace } from "@/components/community/workspace-context";
+import { useWorkspaceOptional } from "@/components/community/workspace-context";
 import { WorkspaceRoomOverlay } from "@/components/community/workspace-room-overlay";
 import { PostsRoom } from "@/components/community/rooms/PostsRoom";
 import { CourseRoom } from "@/components/community/rooms/CourseRoom";
@@ -28,16 +28,15 @@ export function WorkspaceRoomView() {
       : Array.isArray(params.slug)
         ? params.slug[0]
         : "";
-  const {
-    spacesWithRooms,
-    communityId,
-    communityName,
-    ownerId,
-    userId,
-    membership,
-    memberCount,
-    overview,
-  } = useWorkspace();
+  const workspace = useWorkspaceOptional();
+  const spacesWithRooms = workspace?.spacesWithRooms ?? [];
+  const communityId = workspace?.communityId ?? "";
+  const communityName = workspace?.communityName ?? "";
+  const ownerId = workspace?.ownerId ?? "";
+  const userId = workspace?.userId ?? "";
+  const membership = workspace?.membership ?? null;
+  const memberCount = workspace?.memberCount ?? 0;
+  const overview = workspace?.overview ?? null;
 
   const spaceId = searchParams.get("space") || "";
   const roomId = searchParams.get("room") || "";
@@ -58,6 +57,23 @@ export function WorkspaceRoomView() {
 
   function closeRoomOverlay() {
     router.push(homeBase);
+  }
+
+  if (!workspace) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+        <p className="text-[14px] font-medium text-[var(--color-text-primary)]">
+          Join this community to open rooms
+        </p>
+        <button
+          type="button"
+          onClick={() => router.push(homeBase)}
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#fd5000] px-4 py-2 text-[13px] font-semibold text-white"
+        >
+          Back to community <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
   }
 
   if (!spaceId || !roomId) {

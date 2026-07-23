@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { buildPointsSnapshot } from "@/lib/community/points";
 import { getCommunityOverviewStats } from "@/services/community/hub-data";
@@ -29,12 +30,14 @@ export type CommunityWorkspacePayload = {
   profile: { full_name: string | null; avatar_url: string | null; username: string | null } | null;
   points: PointsSnapshot | null;
   spacesWithRooms: WorkspaceSpaceRow[];
-  overview: CommunityOverviewStats;
+  overview: CommunityOverviewStats | null;
   ownerName: string | null;
   joinedAt: string | null;
 };
 
-export async function loadCommunityWorkspace(slug: string): Promise<CommunityWorkspacePayload | null> {
+export const loadCommunityWorkspace = cache(async function loadCommunityWorkspace(
+  slug: string
+): Promise<CommunityWorkspacePayload | null> {
   const supabase = await createClient();
   const { data: community } = await supabase
     .from("communities")
@@ -84,7 +87,10 @@ export async function loadCommunityWorkspace(slug: string): Promise<CommunityWor
       .eq("community_id", community.id)
       .eq("is_active", true)
       .order("sort_order"),
-    getCommunityOverviewStats(community.id, user.id),
+    getCommunityOverviewStats(community.id, user.id).catch((err) => {
+      console.error("[loadCommunityWorkspace] overview stats failed:", err);
+      return null;
+    }),
     supabase
       .from("profiles")
       .select("full_name, username")
@@ -148,4 +154,4 @@ export async function loadCommunityWorkspace(slug: string): Promise<CommunityWor
     ownerName: ownerRes.data?.full_name ?? ownerRes.data?.username ?? null,
     joinedAt: membership?.created_at ?? null,
   };
-}
+});

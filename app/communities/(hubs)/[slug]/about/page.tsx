@@ -1,11 +1,31 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { BadgeCheck, Lock } from "lucide-react";
-import { useWorkspace } from "@/components/community/workspace-context";
+import { useWorkspaceOptional } from "@/components/community/workspace-context";
 import { HubCard, HubLinkButton, HubSectionTitle } from "@/components/community/hub/hub-ui";
 
 export default function CommunityAboutPage() {
+  const workspace = useWorkspaceOptional();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!workspace) {
+      // Layout should redirect; this is a defensive fallback for hydration races.
+      router.replace(".");
+    }
+  }, [workspace, router]);
+
+  if (!workspace) {
+    return (
+      <div className="flex min-h-0 flex-1 items-center justify-center text-sm text-[var(--color-text-muted)]">
+        Loading…
+      </div>
+    );
+  }
+
   const {
     communityName,
     slug,
@@ -14,7 +34,7 @@ export default function CommunityAboutPage() {
     isPrivate,
     overview,
     ownerName,
-  } = useWorkspace();
+  } = workspace;
 
   const base = `/communities/${slug}`;
   const description =

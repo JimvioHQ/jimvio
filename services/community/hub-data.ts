@@ -1360,7 +1360,9 @@ export async function getCommunityOverviewStats(
   const isFeatured = !!community?.is_featured;
   const isFree = community?.is_free !== false;
   const category = community?.category ?? null;
-  const tags = (community?.tags ?? []).filter(Boolean);
+  const tags = (Array.isArray(community?.tags) ? community.tags : []).filter(
+    (t): t is string => typeof t === "string" && t.length > 0
+  );
   const memberCount = memberCountRes.count ?? community?.member_count ?? 0;
   const postCount = community?.post_count ?? 0;
 
@@ -1675,7 +1677,7 @@ export async function getCommunityOverviewStats(
     similarCommunities = (similarRows ?? [])
       .filter((row) => {
         if (category && row.category === category) return true;
-        const rowTags = row.tags ?? [];
+        const rowTags = Array.isArray(row.tags) ? row.tags : [];
         return tags.some((t) => rowTags.includes(t));
       })
       .slice(0, 4)

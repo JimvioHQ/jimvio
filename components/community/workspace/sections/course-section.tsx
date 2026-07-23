@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { GraduationCap } from "lucide-react";
-import { useWorkspace } from "@/components/community/workspace-context";
+import { useWorkspaceOptional } from "@/components/community/workspace-context";
 import { HubCard, HubProgressBar, HubSectionTitle } from "@/components/community/hub/hub-ui";
 import { EmptyComingSoon } from "../emptyComingSoon";
 
 export function CoursesSection() {
-  const { slug, overview } = useWorkspace();
+  const workspace = useWorkspaceOptional();
+  if (!workspace) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-[var(--color-text-muted)]">
+        Join this community to view courses.
+      </div>
+    );
+  }
+  const { slug, overview } = workspace;
   const courses = overview?.courses ?? [];
   const base = `/communities/${slug}/courses`;
 

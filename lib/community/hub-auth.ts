@@ -48,8 +48,13 @@ export const HUB_AUTH_REQUIRED_PREFIXES = [
 /** Community sub-routes under /communities/[slug]/ that stay public. */
 export const COMMUNITY_PUBLIC_SUBROUTES = new Set(["leaderboard", "subscribe"]);
 
-/** Community sub-routes under /communities/[slug]/ that require sign-in. */
+/**
+ * Community sub-routes under /communities/[slug]/ that require sign-in.
+ * Keep in sync with pages that assume an authenticated member session.
+ */
 export const COMMUNITY_AUTH_SUBROUTES = new Set([
+  "about",
+  "chat",
   "chats",
   "room",
   "live",
@@ -57,6 +62,29 @@ export const COMMUNITY_AUTH_SUBROUTES = new Set([
   "members",
 ]);
 
+/**
+ * Sub-routes that must render inside WorkspaceProvider (active membership).
+ * Pages that call useWorkspace() without an optional fallback belong here.
+ * Public browse routes (feed, leaderboard, subscribe) stay outside this set.
+ */
+export const COMMUNITY_WORKSPACE_SUBROUTES = new Set([
+  "about",
+  "chat",
+  "chats",
+  "room",
+  "courses",
+]);
+export function getCommunitySubroute(pathname: string): string | null {
+  const slug = getCommunitySlugFromPath(pathname);
+  if (!slug) return null;
+  const match = pathname.match(new RegExp(`^/communities/${slug}/([^/]+)`));
+  return match?.[1] ?? null;
+}
+
+export function isCommunityWorkspaceSubroute(pathname: string): boolean {
+  const sub = getCommunitySubroute(pathname);
+  return Boolean(sub && COMMUNITY_WORKSPACE_SUBROUTES.has(sub));
+}
 export function getCommunitySlugFromPath(pathname: string): string | null {
   const legacyMatch = pathname.match(/^\/communities\/community\/([^/]+)/);
   if (legacyMatch) return legacyMatch[1];
