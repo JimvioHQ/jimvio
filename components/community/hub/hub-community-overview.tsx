@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
@@ -59,6 +59,29 @@ function useIsClient() {
 
 function formatCount(n: number) {
   return new Intl.NumberFormat("en-US").format(n);
+}
+
+/** Defer Creator OS until after mount so SSR + first paint match (no remount #418). */
+function ClientOnlyOsDashboard(
+  props: React.ComponentProps<typeof CreatorOSDashboard>
+) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  if (!mounted) {
+    return (
+      <div
+        className="mt-5 h-40 animate-pulse rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] sm:mt-6"
+        aria-hidden
+      />
+    );
+  }
+  return (
+    <FadeIn delay={0.055} className="mt-5 sm:mt-6">
+      <CreatorOSDashboard {...props} />
+    </FadeIn>
+  );
 }
 
 function FadeIn({
@@ -420,17 +443,15 @@ export function HubCommunityOverview() {
           </FadeIn>
         )}
 
-        {/* Creator Collaboration OS — Community Home dashboard */}
-        <FadeIn delay={0.055} className="mt-5 sm:mt-6">
-          <CreatorOSDashboard
-            base={base}
-            communityId={communityId}
-            communityName={communityName}
-            overview={overview}
-            userId={userId}
-            isStaff={isOwner || isAdmin}
-          />
-        </FadeIn>
+        {/* Creator Collaboration OS — mount after hydration to avoid remount #418/#185 */}
+        <ClientOnlyOsDashboard
+          base={base}
+          communityId={communityId}
+          communityName={communityName}
+          overview={overview}
+          userId={userId}
+          isStaff={isOwner || isAdmin}
+        />
 
         <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
           {/* ── Continuous main column ── */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import {
   Calendar,
   CheckCircle2,
@@ -166,8 +166,6 @@ export function EventCard({
           )}
           <p className="mt-1.5 text-[11px] text-[var(--color-text-muted)]">
             {format(new Date(event.startsAt), "EEE, MMM d · HH:mm")}
-            {" · "}
-            {formatDistanceToNow(new Date(event.startsAt), { addSuffix: true })}
           </p>
           {event.speakers.length > 0 && (
             <p className="mt-1 text-[11px] text-[var(--color-text-secondary)]">

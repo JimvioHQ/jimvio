@@ -110,8 +110,8 @@ export function AutomationSuggestions({
   onAct?: (a: AutomationSuggestion) => void;
 }) {
   const dismiss = useIntelligenceStore((s) => s.dismissAutomation);
-  const isDismissed = useIntelligenceStore((s) => s.isDismissed);
-  const visible = automations.filter((a) => !isDismissed(a.id));
+  const dismissedIds = useIntelligenceStore((s) => s.dismissedAutomationIds);
+  const visible = automations.filter((a) => !dismissedIds.includes(a.id));
 
   if (visible.length === 0) {
     return (
@@ -234,12 +234,8 @@ export function IntelligenceDashboard({
             fetches.
           </p>
         </div>
-        <p className="text-[10px] text-[var(--color-text-muted)]">
-          Updated{" "}
-          {new Date(snapshot.generatedAt).toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          })}
+        <p className="text-[10px] text-[var(--color-text-muted)]" suppressHydrationWarning>
+          Intelligence snapshot
         </p>
       </header>
 

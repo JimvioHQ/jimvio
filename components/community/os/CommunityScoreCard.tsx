@@ -32,7 +32,7 @@ export function CommunityScoreCard({
             Community Score
           </p>
           <p className="mt-1 text-2xl font-black tracking-tight text-[var(--color-text-primary)]">
-            {breakdown.total.toLocaleString()}
+            {new Intl.NumberFormat("en-US").format(breakdown.total)}
           </p>
           <p className="mt-0.5 text-[12px] font-semibold text-[var(--color-accent)]">
             {tier} · Level {breakdown.level}
@@ -88,7 +88,7 @@ function Metric({
         {label}
       </p>
       <p className="mt-0.5 text-sm font-bold text-[var(--color-text-primary)]">
-        {value.toLocaleString()}
+        {new Intl.NumberFormat("en-US").format(value)}
       </p>
     </div>
   );

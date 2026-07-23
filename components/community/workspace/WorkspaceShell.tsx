@@ -1983,7 +1983,9 @@ function UserProfileCard({
         <Avatar name={name} avatar={profile?.avatar_url} size="sm" />
         <div className="min-w-0 flex-1">
           <p className="text-[12px] font-semibold text-text-primary truncate">{name}</p>
-          <p className="text-[10px] text-text-muted">Level {lvl} · {pts.toLocaleString()} XP</p>
+          <p className="text-[10px] text-text-muted">
+            Level {lvl} · {new Intl.NumberFormat("en-US").format(pts)} XP
+          </p>
         </div>
         {streak > 0 && (
           <div className="flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold text-[#f0b429] bg-[#fffbea] dark:bg-[#2a1f00] rounded-full">
@@ -2015,10 +2017,10 @@ function UserProfileCard({
         <p className="mt-1 text-[10px] text-text-muted">
           {close ? (
             <span className="font-semibold text-[#fd5000]">
-              {remaining.toLocaleString()} XP to level {lvl + 1}!
+              {new Intl.NumberFormat("en-US").format(remaining)} XP to level {lvl + 1}!
             </span>
           ) : (
-            <>{remaining.toLocaleString()} XP to level {lvl + 1}</>
+            <>{new Intl.NumberFormat("en-US").format(remaining)} XP to level {lvl + 1}</>
           )}
         </p>
       </div>

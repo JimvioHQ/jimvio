@@ -143,6 +143,7 @@ export function CommunityIntelligenceHost({
     const fp = snapshotFingerprint(snapshot);
     if (fp === lastFingerprint.current) return;
     lastFingerprint.current = fp;
+    // Fire-and-forget cache; display uses local `snapshot` prop only.
     putSnapshot(snapshot);
   }, [snapshot, putSnapshot]);
 
