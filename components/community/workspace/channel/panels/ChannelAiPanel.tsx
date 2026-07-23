@@ -10,23 +10,33 @@ import { useCollaborationStore } from "@/lib/community/knowledge";
 const PROMPTS = [
   {
     id: "summarize",
-    label: "Summarize channel",
+    label: "Summarize discussions",
     prompt: "Summarize the most important themes and open questions in this channel.",
+  },
+  {
+    id: "resources",
+    label: "Recommend resources",
+    prompt: "Recommend the best resources, files, and links members should revisit from this channel.",
+  },
+  {
+    id: "related",
+    label: "Related knowledge",
+    prompt: "Suggest related knowledge cards, FAQs, and guides connected to recent discussion.",
+  },
+  {
+    id: "answers",
+    label: "Find previous answers",
+    prompt: "Find previous answers and solved threads that address recurring questions here.",
+  },
+  {
+    id: "mentors",
+    label: "Suggest mentors",
+    prompt: "Suggest which members or creators would be good mentors based on helpful contributions.",
   },
   {
     id: "faq",
     label: "Suggest FAQs",
     prompt: "Suggest 5 FAQ entries we should capture as knowledge from recent discussion.",
-  },
-  {
-    id: "knowledge",
-    label: "Knowledge gaps",
-    prompt: "What knowledge is missing that members keep asking about?",
-  },
-  {
-    id: "guides",
-    label: "Guide ideas",
-    prompt: "Propose 3 short guides we could publish from high-value threads.",
   },
 ] as const;
 

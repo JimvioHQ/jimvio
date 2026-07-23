@@ -38,6 +38,7 @@ import {
   MissionVisionCard,
   OverviewIntelligenceStrip,
 } from "./overview-intelligence";
+import { CreatorOSDashboard } from "@/components/community/os/CreatorOSDashboard";
 
 function formatJoined(iso: string | null) {
   if (!iso) return null;
@@ -171,6 +172,7 @@ export function HubCommunityOverview() {
   const {
     communityName,
     slug,
+    communityId,
     memberCount,
     avatarUrl,
     coverUrl,
@@ -181,6 +183,7 @@ export function HubCommunityOverview() {
     isOwner,
     isAdmin,
     overview,
+    userId,
   } = useWorkspace();
 
   const base = `/communities/${slug}`;
@@ -366,6 +369,18 @@ export function HubCommunityOverview() {
             <OverviewIntelligenceStrip overview={overview} base={base} />
           </FadeIn>
         )}
+
+        {/* Creator Collaboration OS — Community Home dashboard */}
+        <FadeIn delay={0.055} className="mt-5 sm:mt-6">
+          <CreatorOSDashboard
+            base={base}
+            communityId={communityId}
+            communityName={communityName}
+            overview={overview}
+            userId={userId}
+            isStaff={isOwner || isAdmin}
+          />
+        </FadeIn>
 
         <div className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
           {/* ── Continuous main column ── */}

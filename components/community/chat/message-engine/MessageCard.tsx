@@ -9,6 +9,7 @@ import {
   Bookmark,
   CheckCheck,
   CheckCircle2,
+  CheckSquare,
   Copy,
   Flag,
   Forward,
@@ -72,6 +73,7 @@ export type MessageCardProps = {
   onOpenAi?: (msg: Msg) => void;
   onJump?: (id: string) => void;
   onConvertToKnowledge?: (msg: Msg) => void;
+  onConvertToTask?: (msg: Msg) => void;
   onMarkAnswer?: (msg: Msg, pick: import("@/lib/community/knowledge").AnswerPick) => void;
   answerPick?: import("@/lib/community/knowledge").AnswerPick | null;
 };
@@ -94,6 +96,7 @@ export function MessageCard({
   onReport,
   onOpenAi,
   onConvertToKnowledge,
+  onConvertToTask,
   onMarkAnswer,
   answerPick,
 }: MessageCardProps) {
@@ -465,6 +468,13 @@ export function MessageCard({
                     icon={BookMarked}
                     label="Convert to Knowledge"
                     onClick={() => onConvertToKnowledge(m)}
+                  />
+                )}
+                {isStaff && onConvertToTask && (
+                  <MenuItem
+                    icon={CheckSquare}
+                    label="Convert to Task"
+                    onClick={() => onConvertToTask(m)}
                   />
                 )}
                 {isStaff && onMarkAnswer && (

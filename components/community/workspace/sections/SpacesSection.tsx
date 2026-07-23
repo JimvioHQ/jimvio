@@ -5,13 +5,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronDown, ChevronRight, MessageCircle, BookOpen, FileText,
-  Folder, CheckSquare, LayoutList, Hash, Plus, Lock,
+  Folder, CheckSquare, LayoutList, Hash, Plus, Lock, LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
-import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
+import { useWorkspace, type WorkspaceSpaceRow } from "@/components/community/workspace-context";
 import type { WorkspaceCommunity } from "@/types/workspace";
+import { GroupWorkspace } from "@/components/community/workspace/group/GroupWorkspace";
 
 interface Props {
   community: WorkspaceCommunity;
@@ -34,8 +35,10 @@ function roomTypeIcon(roomType: string): LucideIcon {
 
 export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isOwner = false }: Props) {
   const router = useRouter();
+  const { ownerId, userId, membership, memberCount } = useWorkspace();
   const [createOpen, setCreateOpen] = useState(false);
   const [creatingRoomFor, setCreatingRoomFor] = useState<string | null>(null);
+  const [workspaceSpaceId, setWorkspaceSpaceId] = useState<string | null>(null);
   const [expandedSpaces, setExpandedSpaces] = useState<Record<string, boolean>>(
     spacesWithRooms.reduce((acc, space) => {
       acc[space.id] = true;
@@ -45,6 +48,7 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
 
   const canCreate = isOwner || isAdmin;
   const hasContent = spacesWithRooms.length > 0;
+  const activeWorkspace = spacesWithRooms.find((s) => s.id === workspaceSpaceId);
 
   async function createRoom(spaceId: string) {
     if (creatingRoomFor) return;
@@ -118,13 +122,35 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
         onCreated={() => router.refresh()}
       />
       <div className="flex items-center justify-between">
-        <h2 className="text-[18px] font-bold text-text-primary">Spaces & Rooms</h2>
+        <h2 className="text-[18px] font-bold text-text-primary">Spaces & Groups</h2>
         <span className="text-[12px] text-text-muted">
-          {spacesWithRooms.length} space{spacesWithRooms.length !== 1 ? "s" : ""} · {spacesWithRooms.reduce((sum, s) => sum + s.rooms.length, 0)} room{spacesWithRooms.reduce((sum, s) => sum + s.rooms.length, 0) !== 1 ? "s" : ""}
+          {spacesWithRooms.length} group{spacesWithRooms.length !== 1 ? "s" : ""} · {spacesWithRooms.reduce((sum, s) => sum + s.rooms.length, 0)} channel{spacesWithRooms.reduce((sum, s) => sum + s.rooms.length, 0) !== 1 ? "s" : ""}
         </span>
       </div>
 
-      {canCreate && (
+      {activeWorkspace && (
+        <div className="min-h-[420px]">
+          <button
+            type="button"
+            onClick={() => setWorkspaceSpaceId(null)}
+            className="mb-2 text-[12px] font-semibold text-[#fd5000] hover:underline"
+          >
+            ← Back to groups
+          </button>
+          <GroupWorkspace
+            space={activeWorkspace}
+            communityId={community.id}
+            communitySlug={community.slug}
+            ownerId={ownerId}
+            userId={userId}
+            membership={membership}
+            memberCount={memberCount}
+            isStaff={canCreate}
+          />
+        </div>
+      )}
+
+      {!activeWorkspace && canCreate && (
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
@@ -135,6 +161,7 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
         </button>
       )}
 
+      {!activeWorkspace && (
       <div className="space-y-3">
         {spacesWithRooms.map((space) => {
           const isExpanded = expandedSpaces[space.id] ?? true;
@@ -145,10 +172,11 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
               className="rounded-xl bg-surface border border-border overflow-hidden"
             >
               {/* Space header */}
+              <div className="flex items-center gap-1 px-2 py-1">
               <button
                 type="button"
                 onClick={() => setExpandedSpaces((prev) => ({ ...prev, [space.id]: !prev[space.id] }))}
-                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-surface-secondary/30 transition-colors"
+                className="flex-1 px-2 py-2 flex items-center gap-3 hover:bg-surface-secondary/30 transition-colors rounded-lg"
               >
                 <div className="flex-shrink-0">
                   {isExpanded ? (
@@ -166,7 +194,7 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
                   <p className="text-[13px] font-semibold text-text-primary truncate">{space.name}</p>
                   {space.rooms.length > 0 && (
                     <p className="text-[11px] text-text-muted">
-                      {space.rooms.length} room{space.rooms.length !== 1 ? "s" : ""}
+                      {space.rooms.length} channel{space.rooms.length !== 1 ? "s" : ""}
                     </p>
                   )}
                 </div>
@@ -175,6 +203,17 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
                   {space.access_type === "paid" ? "Paid" : "Free"}
                 </span>
               </button>
+              <button
+                type="button"
+                title="Open group workspace"
+                aria-label={`Open ${space.name} workspace`}
+                onClick={() => setWorkspaceSpaceId(space.id)}
+                className="shrink-0 inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-semibold text-[#fd5000] hover:bg-[#fd5000]/10"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                Workspace
+              </button>
+              </div>
 
               {/* Rooms list */}
               {isExpanded && space.rooms.length > 0 && (
@@ -250,6 +289,7 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
           );
         })}
       </div>
+      )}
     </div>
   );
 }

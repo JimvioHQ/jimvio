@@ -13,6 +13,7 @@ import {
   type AnswerPick,
 } from "@/lib/community/knowledge";
 import { ConvertToKnowledgeDialog } from "@/components/community/knowledge/ConvertToKnowledgeDialog";
+import { ConvertToTaskDialog } from "@/components/community/os/ConvertToTaskDialog";
 import { Msg } from "@/types";
 import { Dialog, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
 import { Loader2, ChevronDown } from "lucide-react";
@@ -81,6 +82,7 @@ export function ChatRoom({
   const [convertMode, setConvertMode] = useState<"message" | "thread" | "discussion">(
     "message"
   );
+  const [taskMsg, setTaskMsg] = useState<Msg | null>(null);
 
   // Sync live messages into shared index for Files / Media / Pinned / Knowledge
   useEffect(() => {
@@ -302,6 +304,7 @@ export function ChatRoom({
           setConvertMode(msg.thread_id ? "thread" : "message");
           setConvertMsg(msg);
         }}
+        onConvertToTask={(msg) => setTaskMsg(msg)}
         onMarkAnswer={(msg, pick: AnswerPick) => {
           markAnswer({
             messageId: msg.id,
@@ -617,6 +620,15 @@ export function ChatRoom({
         }
         mode={convertMode}
         onClose={() => setConvertMsg(null)}
+      />
+
+      <ConvertToTaskDialog
+        open={!!taskMsg}
+        message={taskMsg}
+        roomId={roomId}
+        communityId={communityId}
+        userId={hook.userId}
+        onClose={() => setTaskMsg(null)}
       />
 
       {incomingCall && (

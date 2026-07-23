@@ -30,6 +30,7 @@ export const CREATOR_PROFILE_TABS: Array<{ id: import("./types").CreatorProfileT
   { id: "videos", label: "Videos" },
   { id: "posts", label: "Posts" },
   { id: "reviews", label: "Reviews" },
+  { id: "contributions", label: "Contributions" },
   { id: "about", label: "About" },
 ];
 

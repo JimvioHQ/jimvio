@@ -130,7 +130,41 @@ export function MemberProfilePanel({
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-8">
+        <section>
+          <h2 className="mb-3 text-sm font-black uppercase tracking-wider text-[var(--color-text-muted)]">
+            Knowledge contributions
+          </h2>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            <li className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+              <p className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                Creator XP
+              </p>
+              <p className="mt-1 text-lg font-black text-[var(--color-text-primary)]">
+                {(member.points?.total_points ?? 0).toLocaleString()}
+              </p>
+            </li>
+            <li className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+              <p className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                Level
+              </p>
+              <p className="mt-1 text-lg font-black text-[var(--color-accent)]">
+                {member.points?.level ?? 1}
+              </p>
+            </li>
+            <li className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-3 sm:col-span-2">
+              <p className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                Helpfulness
+              </p>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                Posts, answers, and knowledge shared in this community fuel your
+                contribution score.
+              </p>
+            </li>
+          </ul>
+        </section>
+
+        <section>
         <h2 className="mb-3 text-sm font-black uppercase tracking-wider text-[var(--color-text-muted)]">
           Recent posts
         </h2>
@@ -157,6 +191,7 @@ export function MemberProfilePanel({
             ))}
           </ul>
         )}
+        </section>
       </div>
     </div>
   );

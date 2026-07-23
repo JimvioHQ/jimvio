@@ -134,7 +134,14 @@ export function ChannelWorkspace({
               pinnedCount={channel.pinnedCount}
             />
           )}
-          {tab === "events" && <EventsPanel channelName={channel.name} />}
+          {tab === "events" && (
+            <EventsPanel
+              channelName={channel.name}
+              roomId={resolvedRoomId}
+              communityId={communityId}
+              canManage={canManageKnowledge ?? channel.permissions.canModerate}
+            />
+          )}
           {tab === "members" && <MembersPanel members={members} />}
           {tab === "ai" && (
             <ChannelAiPanel

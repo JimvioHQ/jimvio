@@ -138,6 +138,71 @@ export function CreatorProfilePage({ payload }: { payload: CreatorProfilePayload
                 }}
               />
             )}
+            {activeTab === "contributions" && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold text-[var(--color-text-primary)]">
+                    Knowledge & collaboration
+                  </h3>
+                  <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+                    Achievements, courses taught, communities led, knowledge
+                    shared, live sessions, and marketplace impact — the Creator
+                    Collaboration OS lens.
+                  </p>
+                </div>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  <li className="rounded-lg border border-[var(--color-border)] p-3">
+                    <p className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                      Communities
+                    </p>
+                    <p className="mt-1 text-xl font-black text-[var(--color-text-primary)]">
+                      {payload.profile.stats.communitiesCount}
+                    </p>
+                  </li>
+                  <li className="rounded-lg border border-[var(--color-border)] p-3">
+                    <p className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                      Courses
+                    </p>
+                    <p className="mt-1 text-xl font-black text-[var(--color-text-primary)]">
+                      {payload.courses.length}
+                    </p>
+                  </li>
+                  <li className="rounded-lg border border-[var(--color-border)] p-3">
+                    <p className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                      Products
+                    </p>
+                    <p className="mt-1 text-xl font-black text-[var(--color-text-primary)]">
+                      {payload.profile.stats.productsCount}
+                    </p>
+                  </li>
+                  <li className="rounded-lg border border-[var(--color-border)] p-3">
+                    <p className="text-[11px] font-bold uppercase text-[var(--color-text-muted)]">
+                      Followers
+                    </p>
+                    <p className="mt-1 text-xl font-black text-[var(--color-text-primary)]">
+                      {payload.profile.stats.followers.toLocaleString()}
+                    </p>
+                  </li>
+                </ul>
+                {payload.communities.length > 0 && (
+                  <div>
+                    <h4 className="text-[12px] font-bold uppercase text-[var(--color-text-muted)]">
+                      Active communities
+                    </h4>
+                    <ul className="mt-2 space-y-1">
+                      {payload.communities.slice(0, 6).map((c) => (
+                        <li
+                          key={c.id}
+                          className="text-sm font-medium text-[var(--color-text-primary)]"
+                        >
+                          {c.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
             {activeTab === "about" && (
               <CreatorProfileAboutTab
                 identity={payload.profile.identity}
