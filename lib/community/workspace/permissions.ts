@@ -24,7 +24,8 @@ export type PermissionCapability =
   | "pins.manage"
   | "files.upload"
   | "settings.manage"
-  | "knowledge.manage";
+  | "knowledge.manage"
+  | "commerce.manage";
 
 const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>> = {
   owner: new Set([
@@ -38,6 +39,7 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "files.upload",
     "settings.manage",
     "knowledge.manage",
+    "commerce.manage",
   ]),
   admin: new Set([
     "channel.read",
@@ -50,6 +52,7 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "files.upload",
     "settings.manage",
     "knowledge.manage",
+    "commerce.manage",
   ]),
   moderator: new Set([
     "channel.read",
@@ -59,6 +62,7 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "pins.manage",
     "files.upload",
     "knowledge.manage",
+    "commerce.manage",
   ]),
   creator: new Set([
     "channel.read",
@@ -67,6 +71,7 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "files.upload",
     "pins.manage",
     "knowledge.manage",
+    "commerce.manage",
   ]),
   verified: new Set([
     "channel.read",

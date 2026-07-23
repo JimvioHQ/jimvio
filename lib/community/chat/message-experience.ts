@@ -17,6 +17,10 @@ export type MessageSearchScope =
   | "channels"
   | "courses"
   | "products"
+  | "services"
+  | "affiliates"
+  | "creators"
+  | "communities"
   | "events"
   | "pinned";
 

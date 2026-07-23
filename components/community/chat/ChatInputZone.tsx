@@ -16,6 +16,7 @@ import {
   List,
   Sparkles,
   AtSign,
+  ShoppingBag,
 } from "lucide-react";
 import { useCallback, useId, useRef, useState, type DragEvent, type ClipboardEvent } from "react";
 import { ReplyBar } from "./ReplyBar";
@@ -44,6 +45,7 @@ interface ChatInputZoneProps {
   onAttachImage: (files: FileList | null) => void;
   onAttachFile: (files: FileList | null) => void;
   onOpenAi?: () => void;
+  onAttachCommerce?: () => void;
 }
 
 function filesFromList(list: FileList | File[]): FileList {
@@ -74,6 +76,7 @@ export function ChatInputZone({
   onAttachImage,
   onAttachFile,
   onOpenAi,
+  onAttachCommerce,
 }: ChatInputZoneProps) {
   const uid = useId();
   const imgInputId = `${uid}-img`;
@@ -324,6 +327,20 @@ export function ChatInputZone({
                 disabled={uploading || sending}
                 onChange={(e) => pickFile(e.target.files)}
               />
+              {onAttachCommerce && (
+                <button
+                  type="button"
+                  aria-label="Attach commerce offer"
+                  onClick={onAttachCommerce}
+                  disabled={sending || uploading}
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-sm transition-colors",
+                    "hover:bg-[var(--color-border)] disabled:opacity-50"
+                  )}
+                >
+                  <ShoppingBag className="h-5 w-5 text-[var(--color-text-muted)]" />
+                </button>
+              )}
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col">

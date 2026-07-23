@@ -1,6 +1,7 @@
 export type CreatorProfileTab =
   | "products"
   | "courses"
+  | "store"
   | "communities"
   | "ugc"
   | "affiliate"

@@ -22,9 +22,16 @@ import {
   Quote,
   Reply,
   Share2,
+  ShoppingBag,
   Sparkles,
   Trash2,
 } from "lucide-react";
+import {
+  parseCommerceEmbed,
+  useCreatorCommerceStore,
+} from "@/lib/community/commerce";
+import { MessageCommerceEmbed } from "@/components/community/commerce/MessageCommerceEmbed";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,8 +81,11 @@ export type MessageCardProps = {
   onJump?: (id: string) => void;
   onConvertToKnowledge?: (msg: Msg) => void;
   onConvertToTask?: (msg: Msg) => void;
+  onAttachCommerce?: (msg: Msg) => void;
   onMarkAnswer?: (msg: Msg, pick: import("@/lib/community/knowledge").AnswerPick) => void;
   answerPick?: import("@/lib/community/knowledge").AnswerPick | null;
+  communityId?: string | null;
+  canManageCommerce?: boolean;
 };
 
 export function MessageCard({
@@ -97,8 +107,11 @@ export function MessageCard({
   onOpenAi,
   onConvertToKnowledge,
   onConvertToTask,
+  onAttachCommerce,
   onMarkAnswer,
   answerPick,
+  communityId,
+  canManageCommerce,
 }: MessageCardProps) {
   const p = m.profiles;
   const name = displayName(m);
@@ -111,6 +124,8 @@ export function MessageCard({
   const replyCount = m.reply_count ?? 0;
   const hasReplyQuote = !!m.reply_to_id && !!m.reply_to_body;
   const linkPreview = (m.metadata?.link_preview ?? null) as LinkPreview | null;
+  const commerceEmbed = parseCommerceEmbed(m);
+  const featureInCommunity = useCreatorCommerceStore((s) => s.featureInCommunity);
   const [bookmarked, setBookmarked] = useState(() =>
     isBookmarked(userId, m.id)
   );
@@ -256,6 +271,12 @@ export function MessageCard({
             {m.body?.trim() && (
               <div className={cn("pr-10", (isOwn || isDM) && "pt-0.5")}>
                 <MessageRichBody body={m.body} />
+              </div>
+            )}
+
+            {commerceEmbed && (
+              <div className={cn("mt-1.5", isOwn && "flex justify-end")}>
+                <MessageCommerceEmbed embed={commerceEmbed} compact />
               </div>
             )}
 
@@ -475,6 +496,28 @@ export function MessageCard({
                     icon={CheckSquare}
                     label="Convert to Task"
                     onClick={() => onConvertToTask(m)}
+                  />
+                )}
+                {canManageCommerce && onAttachCommerce && !commerceEmbed && (
+                  <MenuItem
+                    icon={ShoppingBag}
+                    label="Attach commerce"
+                    onClick={() => onAttachCommerce(m)}
+                  />
+                )}
+                {canManageCommerce && commerceEmbed && communityId && (
+                  <MenuItem
+                    icon={ShoppingBag}
+                    label="Feature in community store"
+                    onClick={() => {
+                      featureInCommunity({
+                        communityId,
+                        embed: commerceEmbed,
+                        createdBy: userId,
+                        featured: true,
+                      });
+                      toast.success("Featured in community store");
+                    }}
                   />
                 )}
                 {isStaff && onMarkAnswer && (

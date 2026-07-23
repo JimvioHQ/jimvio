@@ -24,6 +24,8 @@ import {
   CreatorProfileReviewsTab,
   CreatorProfileVideosTab,
 } from "./CreatorProfileTabs";
+import { CreatorStoreShelf } from "@/components/community/commerce";
+import type { CommerceEmbed } from "@/lib/community/commerce";
 
 export function CreatorProfilePage({ payload }: { payload: CreatorProfilePayload }) {
   const [activeTab, setActiveTab] = useState<CreatorProfileTab>("products");
@@ -117,6 +119,77 @@ export function CreatorProfilePage({ payload }: { payload: CreatorProfilePayload
               <CreatorProfileProductsTab products={payload.products} cartProductIds={cartSet} />
             )}
             {activeTab === "courses" && <CreatorProfileCoursesTab courses={payload.courses} />}
+            {activeTab === "store" && (
+              <CreatorStoreShelf
+                storeHref={payload.profile.identity.storeHref}
+                products={payload.products.map((p): CommerceEmbed => {
+                  const images = p.images;
+                  const imageUrl = Array.isArray(images)
+                    ? String(images[0] ?? "")
+                    : typeof images === "string"
+                      ? images
+                      : null;
+                  return {
+                    kind: "product",
+                    id: p.id,
+                    title: p.name,
+                    price: p.price,
+                    compareAtPrice: p.compareAtPrice ?? null,
+                    imageUrl: imageUrl || null,
+                    href: `/marketplace/${p.slug}`,
+                    rating: p.rating ?? null,
+                    reviewCount: p.reviewCount ?? null,
+                    currency: p.currency || "RWF",
+                  };
+                })}
+                courses={payload.courses.map(
+                  (c): CommerceEmbed => ({
+                    kind: "course",
+                    id: c.id,
+                    title: c.title,
+                    href: `/courses/${c.slug}`,
+                    progress: c.completionRate ?? null,
+                    imageUrl: c.image ?? null,
+                    instructor: payload.profile.identity.displayName,
+                    certificate: true,
+                    rating: c.rating ?? null,
+                  })
+                )}
+                affiliateOffers={payload.affiliateCampaigns.slice(0, 8).map(
+                  (c): CommerceEmbed => ({
+                    kind: "affiliate",
+                    id: c.id,
+                    title: c.title,
+                    affiliateCode: "jimvio",
+                    commissionRate: 10,
+                    href: c.href,
+                  })
+                )}
+                memberships={[
+                  {
+                    kind: "subscription" as const,
+                    id: `mem-${payload.profile.identity.id}`,
+                    title: `${payload.profile.identity.displayName} membership`,
+                    donationMode: "monthly" as const,
+                    sellerName: payload.profile.identity.displayName,
+                    price: 9,
+                    currency: "USD",
+                  },
+                ]}
+                services={[
+                  {
+                    kind: "booking" as const,
+                    id: `book-${payload.profile.identity.id}`,
+                    title: `Mentorship with ${payload.profile.identity.displayName}`,
+                    bookingType: "mentorship" as const,
+                    durationMinutes: 30,
+                    sellerName: payload.profile.identity.displayName,
+                    price: 49,
+                    currency: "USD",
+                  },
+                ]}
+              />
+            )}
             {activeTab === "communities" && (
               <CreatorProfileCommunitiesTab communities={payload.communities} />
             )}

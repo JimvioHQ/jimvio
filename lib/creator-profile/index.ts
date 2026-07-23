@@ -24,6 +24,7 @@ export {
 export const CREATOR_PROFILE_TABS: Array<{ id: import("./types").CreatorProfileTab; label: string }> = [
   { id: "products", label: "Products" },
   { id: "courses", label: "Courses" },
+  { id: "store", label: "Store" },
   { id: "communities", label: "Communities" },
   { id: "ugc", label: "UGC" },
   { id: "affiliate", label: "Affiliate" },

@@ -796,6 +796,65 @@ export function useChatRoom({
         [sending, sendingGif, activeConvId, slug, roomId, upsertMessage]
     );
 
+    const sendCommerceMessage = useCallback(
+        async (embed: import("@/lib/community/commerce").CommerceEmbed, body = "") => {
+            if (sending) return;
+            setSending(true);
+            try {
+                const ep = activeConvId
+                    ? `/api/communities/${slug}/inbox/${activeConvId}/messages`
+                    : `/api/messages/${roomId}`;
+                const messageType =
+                    embed.kind === "product" || embed.kind === "marketplace_item"
+                        ? "product"
+                        : embed.kind === "course"
+                          ? "course"
+                          : "commerce";
+                const res = await fetch(ep, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        body:
+                            body ||
+                            `Shared a ${embed.kind.replace(/_/g, " ")}: ${embed.title}`,
+                        threadId: null,
+                        attachments: [],
+                        message_type: messageType,
+                        metadata: {
+                            commerce: embed,
+                            product_id:
+                                embed.kind === "product" ||
+                                embed.kind === "marketplace_item"
+                                    ? embed.id
+                                    : undefined,
+                            slug: embed.href?.split("/").pop(),
+                            name: embed.title,
+                            price: embed.price,
+                            image: embed.imageUrl,
+                            course_id: embed.kind === "course" ? embed.id : undefined,
+                        },
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                upsertMessage((data.message ?? data.row) as Msg);
+                setAtBottom(true);
+                requestAnimationFrame(() =>
+                    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+                );
+                toast.success("Commerce offer shared");
+            } catch (e: unknown) {
+                console.error(e);
+                toast.error(
+                    e instanceof Error ? e.message : "Failed to share commerce offer"
+                );
+            } finally {
+                setSending(false);
+            }
+        },
+        [sending, activeConvId, slug, roomId, upsertMessage]
+    );
+
     // ── Voice recording ──────────────────────────────────────────────────────────
     const [voiceRecording, setVoiceRecording] = useState(false);
     const [voiceSeconds, setVoiceSeconds] = useState(0);
@@ -1275,6 +1334,7 @@ export function useChatRoom({
         typingUsers,
         setTyping,
         sendGif,
+        sendCommerceMessage,
         sendingGif,
     };
 }

@@ -33,6 +33,7 @@ import { KnowledgeCardView } from "@/components/community/knowledge/KnowledgeCar
 import { useCollaborationStore } from "@/lib/community/knowledge";
 import { ChannelEmptyState } from "@/components/community/workspace/channel/ChannelEmptyState";
 import { createEventFromDraft } from "@/lib/community/os";
+import { CommunityStorefront } from "@/components/community/commerce";
 import { toast } from "sonner";
 
 function roomTypeIcon(roomType: string): LucideIcon {
@@ -265,6 +266,16 @@ export function GroupWorkspace({
             title="Courses"
             description="Course channels in this group will list lessons here. Open a course room to teach or learn."
           />
+        )}
+
+        {tab === "store" && (
+          <div className="min-h-0 flex-1 overflow-y-auto p-4">
+            <CommunityStorefront
+              communityId={communityId}
+              base={`/communities/${communitySlug}`}
+              communityName={group.name}
+            />
+          </div>
         )}
 
         {tab === "events" && (

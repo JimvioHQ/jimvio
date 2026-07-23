@@ -15,6 +15,10 @@ const SCOPES: { id: MessageSearchScope; label: string }[] = [
   { id: "channels", label: "Channels" },
   { id: "courses", label: "Courses" },
   { id: "products", label: "Products" },
+  { id: "services", label: "Services" },
+  { id: "affiliates", label: "Affiliates" },
+  { id: "creators", label: "Creators" },
+  { id: "communities", label: "Communities" },
   { id: "events", label: "Events" },
   { id: "pinned", label: "Pinned" },
 ];

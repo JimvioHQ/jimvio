@@ -14,6 +14,12 @@ import {
 } from "@/lib/community/knowledge";
 import { ConvertToKnowledgeDialog } from "@/components/community/knowledge/ConvertToKnowledgeDialog";
 import { ConvertToTaskDialog } from "@/components/community/os/ConvertToTaskDialog";
+import { AttachCommerceDialog } from "@/components/community/commerce/AttachCommerceDialog";
+import {
+  createBookingDraft,
+  filterMessagesByCommerceKind,
+  useCreatorCommerceStore,
+} from "@/lib/community/commerce";
 import { Msg } from "@/types";
 import { Dialog, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
 import { Loader2, ChevronDown } from "lucide-react";
@@ -83,6 +89,9 @@ export function ChatRoom({
     "message"
   );
   const [taskMsg, setTaskMsg] = useState<Msg | null>(null);
+  const [commerceOpen, setCommerceOpen] = useState(false);
+  const addBooking = useCreatorCommerceStore((s) => s.addBooking);
+  const addDonation = useCreatorCommerceStore((s) => s.addDonation);
 
   // Sync live messages into shared index for Files / Media / Pinned / Knowledge
   useEffect(() => {
@@ -183,13 +192,42 @@ export function ChatRoom({
       );
       return hook.filteredMessages.filter((m) => memberIds.has(m.sender_id));
     }
-    // groups / channels / courses / products / events — filter message bodies for now
+    // Commerce-aware scopes
+    if (searchScope === "products") {
+      return filterMessagesByCommerceKind(
+        hook.filteredMessages,
+        ["product", "marketplace_item", "digital_download", "coupon", "event_ticket"],
+        hook.searchQuery
+      );
+    }
+    if (searchScope === "courses") {
+      return filterMessagesByCommerceKind(
+        hook.filteredMessages,
+        ["course"],
+        hook.searchQuery
+      );
+    }
+    if (searchScope === "services") {
+      return filterMessagesByCommerceKind(
+        hook.filteredMessages,
+        ["booking", "subscription"],
+        hook.searchQuery
+      );
+    }
+    if (searchScope === "affiliates") {
+      return filterMessagesByCommerceKind(
+        hook.filteredMessages,
+        ["affiliate"],
+        hook.searchQuery
+      );
+    }
+    // groups / channels / events / creators / communities — body text
     if (
       searchScope === "groups" ||
       searchScope === "channels" ||
-      searchScope === "courses" ||
-      searchScope === "products" ||
-      searchScope === "events"
+      searchScope === "events" ||
+      searchScope === "creators" ||
+      searchScope === "communities"
     ) {
       const q = hook.searchQuery.trim().toLowerCase();
       if (!q) return hook.filteredMessages;
@@ -305,6 +343,9 @@ export function ChatRoom({
           setConvertMsg(msg);
         }}
         onConvertToTask={(msg) => setTaskMsg(msg)}
+        onAttachCommerce={() => setCommerceOpen(true)}
+        communityId={communityId}
+        canManageCommerce={hook.isStaff}
         onMarkAnswer={(msg, pick: AnswerPick) => {
           markAnswer({
             messageId: msg.id,
@@ -560,6 +601,9 @@ export function ChatRoom({
             const last = hook.filteredMessages[hook.filteredMessages.length - 1];
             if (last) setAiMsg(last);
           }}
+          onAttachCommerce={
+            hook.isStaff ? () => setCommerceOpen(true) : undefined
+          }
         />
       </div>
 
@@ -629,6 +673,41 @@ export function ChatRoom({
         communityId={communityId}
         userId={hook.userId}
         onClose={() => setTaskMsg(null)}
+      />
+
+      <AttachCommerceDialog
+        open={commerceOpen}
+        onClose={() => setCommerceOpen(false)}
+        onAttach={(embed) => {
+          void hook.sendCommerceMessage(embed);
+          if (embed.kind === "booking") {
+            addBooking(
+              createBookingDraft({
+                title: embed.title,
+                bookingType: embed.bookingType ?? "call",
+                communityId,
+                roomId,
+                durationMinutes: embed.durationMinutes ?? 30,
+                price: embed.price,
+                hostName: embed.sellerName,
+                createdBy: hook.userId,
+              })
+            );
+          }
+          if (embed.kind === "donation" || embed.kind === "subscription") {
+            addDonation({
+              id: `don-${Date.now()}`,
+              communityId,
+              creatorId: embed.sellerId ?? hook.userId,
+              mode: embed.donationMode ?? "support",
+              amount: embed.price ?? 0,
+              currency: embed.currency ?? "USD",
+              note: embed.title,
+              sourceMessageId: null,
+              createdAt: new Date().toISOString(),
+            });
+          }
+        }}
       />
 
       {incomingCall && (

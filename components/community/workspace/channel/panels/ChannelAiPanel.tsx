@@ -38,6 +38,21 @@ const PROMPTS = [
     label: "Suggest FAQs",
     prompt: "Suggest 5 FAQ entries we should capture as knowledge from recent discussion.",
   },
+  {
+    id: "commerce",
+    label: "Recommend products",
+    prompt: "Recommend products, courses, or services that would help members based on this channel.",
+  },
+  {
+    id: "affiliates",
+    label: "Affiliate opportunities",
+    prompt: "Suggest affiliate offers or marketplace items worth sharing in this community.",
+  },
+  {
+    id: "bookings",
+    label: "Suggest bookings",
+    prompt: "Suggest mentorship, consulting, or coaching sessions that fit the topics discussed.",
+  },
 ] as const;
 
 /** Channel-level AI — reuses /api/c/ai, no duplicate AI stack. */

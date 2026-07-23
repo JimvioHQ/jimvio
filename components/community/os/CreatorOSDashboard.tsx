@@ -24,6 +24,12 @@ import { EventCard, TaskCard } from "@/components/community/os/TaskEventCards";
 import { useCreatorOSStore } from "@/lib/community/os";
 import { useCollaborationStore } from "@/lib/community/knowledge";
 import { KnowledgeCardView } from "@/components/community/knowledge/KnowledgeCardView";
+import {
+  CommerceDiscovery,
+  CommunityStorefront,
+  MessageCommerceEmbed,
+} from "@/components/community/commerce";
+import { useCreatorCommerceStore } from "@/lib/community/commerce";
 
 type OverviewLite = {
   totalCommunityXp?: number | null;
@@ -121,6 +127,9 @@ export function CreatorOSDashboard({
   );
   const cards = useCollaborationStore((s) =>
     s.cards.filter((c) => c.communityId === communityId).slice(0, 4)
+  );
+  const marketplacePicks = useCreatorCommerceStore((s) =>
+    s.featuredForCommunity(communityId).slice(0, 4)
   );
 
   const score = buildScoreFromOverview({
@@ -316,18 +325,43 @@ export function CreatorOSDashboard({
         </SectionShell>
 
         <SectionShell title="Marketplace picks" icon={ShoppingBag}>
-          <p className="rounded-lg border border-dashed border-[var(--color-border)] px-3 py-3 text-[13px] text-[var(--color-text-muted)]">
-            Featured products and creator offers will surface here from community
-            marketplace shelves.
-          </p>
+          {marketplacePicks.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-[var(--color-border)] px-3 py-3 text-[13px] text-[var(--color-text-muted)]">
+              Feature products and offers from chat — they appear here on the
+              community shelf.
+            </p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {marketplacePicks.map((p) => (
+                <MessageCommerceEmbed
+                  key={`${p.id}-${p.createdAt}`}
+                  embed={p}
+                  compact
+                />
+              ))}
+            </div>
+          )}
         </SectionShell>
+
+        <div className="lg:col-span-2">
+          <CommunityStorefront
+            communityId={communityId}
+            base={base}
+            communityName={communityName}
+            courses={courses}
+          />
+        </div>
+
+        <div className="lg:col-span-2">
+          <CommerceDiscovery base={base} />
+        </div>
 
         <SectionShell title="Creator opportunities" icon={Briefcase}>
           <ul className="space-y-1.5 text-[13px] text-[var(--color-text-secondary)]">
-            <li>· Host a live teaching session</li>
-            <li>· Convert a thread into a guide</li>
-            <li>· Launch a challenge for members</li>
-            <li>· Publish a course lesson</li>
+            <li>· Share a product in chat and sell in-conversation</li>
+            <li>· Attach a course or booking offer</li>
+            <li>· Generate affiliate links and track earnings</li>
+            <li>· Feature offers on the community storefront</li>
           </ul>
         </SectionShell>
 
