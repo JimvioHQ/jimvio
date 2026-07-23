@@ -1,0 +1,224 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  Archive,
+  LayoutGrid,
+  List,
+  Plus,
+  Search,
+  Star,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { hasCapability } from "@/lib/community/workspace/permissions";
+import {
+  GROUP_FILTER_STATUSES,
+  GROUP_SORT_OPTIONS,
+} from "@/lib/community/owner-console/groups";
+import { useOwnerConsole } from "@/components/community/owner-console/OwnerConsoleContext";
+import { CreateGroupWizard } from "./CreateGroupWizard";
+import { GroupsList } from "./GroupsList";
+import { useOwnerGroups } from "./useOwnerGroups";
+
+export function GroupsManagement() {
+  const { community, role } = useOwnerConsole();
+  const searchParams = useSearchParams();
+  const canManage = hasCapability(role, "group.manage");
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const {
+    groups,
+    loading,
+    error,
+    search,
+    setSearch,
+    filter,
+    setFilter,
+    sort,
+    setSort,
+    view,
+    setView,
+    selectedIds,
+    toggleSelect,
+    clearSelection,
+    bulkAction,
+    includeArchived,
+    setIncludeArchived,
+    load,
+    runAction,
+    reorder,
+  } = useOwnerGroups(community?.id ?? null);
+
+  useEffect(() => {
+    if (searchParams.get("action") === "create" && canManage) {
+      setCreateOpen(true);
+    }
+  }, [searchParams, canManage]);
+
+  if (!community) {
+    return (
+      <p className="text-sm text-[var(--color-text-muted)]">
+        Select a community to manage groups.
+      </p>
+    );
+  }
+
+  if (!canManage) {
+    return (
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-10 text-center">
+        <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+          Groups management requires Owner or Admin
+        </p>
+        <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+          Your current role ({role}) does not include group.manage.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search groups…"
+            className="h-10 pl-9"
+            aria-label="Search groups"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={filter}
+            onChange={(e) =>
+              setFilter(e.target.value as (typeof GROUP_FILTER_STATUSES)[number])
+            }
+            className="h-10 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-sm"
+            aria-label="Filter groups"
+          >
+            {GROUP_FILTER_STATUSES.map((f) => (
+              <option key={f} value={f}>
+                {f === "all" ? "All statuses" : f[0].toUpperCase() + f.slice(1)}
+              </option>
+            ))}
+          </select>
+          <select
+            value={sort}
+            onChange={(e) =>
+              setSort(e.target.value as (typeof GROUP_SORT_OPTIONS)[number])
+            }
+            className="h-10 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-sm"
+            aria-label="Sort groups"
+          >
+            <option value="sort_order">Manual order</option>
+            <option value="name">Name</option>
+            <option value="members">Members</option>
+            <option value="channels">Channels</option>
+            <option value="created">Created</option>
+            <option value="activity">Activity</option>
+          </select>
+          <div className="inline-flex rounded-md border border-[var(--color-border)] p-0.5">
+            <button
+              type="button"
+              aria-label="Card view"
+              aria-pressed={view === "cards"}
+              onClick={() => setView("cards")}
+              className={`rounded px-2 py-1.5 ${
+                view === "cards"
+                  ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                  : "text-[var(--color-text-muted)]"
+              }`}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Table view"
+              aria-pressed={view === "table"}
+              onClick={() => setView("table")}
+              className={`rounded px-2 py-1.5 ${
+                view === "table"
+                  ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                  : "text-[var(--color-text-muted)]"
+              }`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+          <label className="flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)]">
+            <input
+              type="checkbox"
+              checked={includeArchived}
+              onChange={(e) => setIncludeArchived(e.target.checked)}
+            />
+            Archived
+          </label>
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Create Group
+          </Button>
+        </div>
+      </div>
+
+      {selectedIds.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/50 px-3 py-2">
+          <span className="text-[12px] font-semibold text-[var(--color-text-secondary)]">
+            {selectedIds.length} selected
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void bulkAction("feature")}
+          >
+            <Star className="mr-1 h-3.5 w-3.5" />
+            Feature
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => void bulkAction("archive")}
+          >
+            <Archive className="mr-1 h-3.5 w-3.5" />
+            Archive
+          </Button>
+          <Button size="sm" variant="ghost" onClick={clearSelection}>
+            Clear
+          </Button>
+        </div>
+      )}
+
+      {error && (
+        <p className="text-sm text-rose-600" role="alert">
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <div className="rounded-2xl border border-[var(--color-border)] px-6 py-16 text-center text-sm text-[var(--color-text-muted)]">
+          Loading groups…
+        </div>
+      ) : (
+        <GroupsList
+          groups={groups}
+          view={view}
+          communityId={community.id}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onAction={(id, action) => void runAction(id, action)}
+          onDragReorder={(ids) => void reorder(ids)}
+        />
+      )}
+
+      <CreateGroupWizard
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        communityId={community.id}
+        onCreated={() => void load()}
+      />
+    </div>
+  );
+}

@@ -3892,57 +3892,96 @@ export type Database = {
       spaces: {
         Row: {
           access_type: string | null
+          archived_at: string | null
+          banner_url: string | null
           color: string | null
           community_id: string
+          cover_url: string | null
           created_at: string | null
           currency: string | null
+          default_content: Record<string, unknown> | null
           description: string | null
           icon: string | null
           id: string
           is_active: boolean | null
+          is_featured: boolean | null
+          is_hidden: boolean | null
+          is_locked: boolean | null
+          is_pinned: boolean | null
+          last_activity_at: string | null
           member_count: number | null
           name: string
+          permission_config: Record<string, unknown> | null
           price: number | null
+          privacy: string | null
           room_count: number | null
+          rules: string | null
           slug: string
           sort_order: number | null
           updated_at: string | null
+          welcome_message: string | null
         }
         Insert: {
           access_type?: string | null
+          archived_at?: string | null
+          banner_url?: string | null
           color?: string | null
           community_id: string
+          cover_url?: string | null
           created_at?: string | null
           currency?: string | null
+          default_content?: Record<string, unknown> | null
           description?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
+          is_hidden?: boolean | null
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
+          last_activity_at?: string | null
           member_count?: number | null
           name: string
+          permission_config?: Record<string, unknown> | null
           price?: number | null
+          privacy?: string | null
           room_count?: number | null
+          rules?: string | null
           slug: string
           sort_order?: number | null
           updated_at?: string | null
+          welcome_message?: string | null
         }
         Update: {
           access_type?: string | null
+          archived_at?: string | null
+          banner_url?: string | null
           color?: string | null
           community_id?: string
+          cover_url?: string | null
           created_at?: string | null
           currency?: string | null
+          default_content?: Record<string, unknown> | null
           description?: string | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
+          is_hidden?: boolean | null
+          is_locked?: boolean | null
+          is_pinned?: boolean | null
+          last_activity_at?: string | null
           member_count?: number | null
           name?: string
+          permission_config?: Record<string, unknown> | null
           price?: number | null
+          privacy?: string | null
           room_count?: number | null
+          rules?: string | null
           slug?: string
           sort_order?: number | null
           updated_at?: string | null
+          welcome_message?: string | null
         }
         Relationships: [
           {
@@ -3950,6 +3989,48 @@ export type Database = {
             columns: ["community_id"]
             isOneToOne: false
             referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      space_staff: {
+        Row: {
+          created_at: string
+          permissions: Record<string, unknown>
+          space_id: string
+          staff_role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          permissions?: Record<string, unknown>
+          space_id: string
+          staff_role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          permissions?: Record<string, unknown>
+          space_id?: string
+          staff_role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "space_staff_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "spaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "space_staff_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

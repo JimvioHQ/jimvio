@@ -38,8 +38,10 @@ export function OwnerSectionShell({
             {item.label}
           </h1>
           <p className="mt-1 max-w-xl text-[13px] text-[var(--color-text-muted)]">
-            {item.description}. This is a foundation shell — management UI
-            arrives in subsequent Owner Console phases.
+            {item.description}
+            {!children
+              ? ". This is a foundation shell — management UI arrives in subsequent Owner Console phases."
+              : "."}
           </p>
         </div>
         {actions}
