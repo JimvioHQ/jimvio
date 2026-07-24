@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CommunityInboxDialog } from "@/components/community/chat/community-inbox-dialog";
+import { useCommunityPresence } from "@/lib/community/presence/use-community-presence";
+import { OnlinePresenceBar } from "@/components/community/presence/OnlinePresenceBar";
+import { useWorkspaceOptional } from "@/components/community/workspace-context";
 
 export type MemberRow = {
   user_id: string;
@@ -44,10 +47,25 @@ export function WorkspaceMembersClient({
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [inboxPeer, setInboxPeer] = useState<MemberRow | null>(null);
+  const workspace = useWorkspaceOptional();
+  const me = members.find((m) => m.user_id === currentUserId);
+
+  const { peers, typing } = useCommunityPresence({
+    communityId: workspace?.communityId,
+    userId: currentUserId,
+    displayName: me?.profile?.full_name || me?.profile?.username || "Member",
+    avatarUrl: me?.profile?.avatar_url ?? null,
+    enabled: Boolean(workspace?.communityId && currentUserId),
+  });
+
+  const onlineIds = useMemo(
+    () => new Set(peers.map((p) => p.userId)),
+    [peers]
+  );
 
   const filtered = useMemo(() => {
-    if (filter === "Online") return [];
     return members.filter((m) => {
+      if (filter === "Online" && !onlineIds.has(m.user_id)) return false;
       if (filter === "Admins") {
         const r = m.role;
         if (!["owner", "admin", "moderator"].includes(r)) return false;
@@ -56,7 +74,7 @@ export function WorkspaceMembersClient({
       if (q.trim() && !name.includes(q.trim().toLowerCase())) return false;
       return true;
     });
-  }, [members, q, filter]);
+  }, [members, q, filter, onlineIds]);
 
   return (
     <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
@@ -77,6 +95,11 @@ export function WorkspaceMembersClient({
       <header className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-4">
         <h1 className="text-xl font-black text-[var(--color-text-primary)]">Members</h1>
         <p className="text-sm text-[var(--color-text-muted)] mt-1">People in this community</p>
+        {workspace?.communityId && (
+          <div className="mt-3">
+            <OnlinePresenceBar peers={peers} typing={typing} />
+          </div>
+        )}
         <div className="mt-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
           <Input
             placeholder="Search by name…"
@@ -98,33 +121,34 @@ export function WorkspaceMembersClient({
                 )}
               >
                 {f}
-                {f === "Online" && <span className="text-[10px] ml-1 opacity-70">(soon)</span>}
+                {f === "Online" && (
+                  <span className="text-[10px] ml-1 opacity-70">({onlineIds.size})</span>
+                )}
               </button>
             ))}
           </div>
         </div>
       </header>
       <div className="flex-1 overflow-y-auto p-4">
-        {filter === "Online" ? (
+        {filtered.length === 0 ? (
           <p className="text-sm text-[var(--color-text-muted)] text-center py-12">
-            Online presence is coming soon.
-          </p>
-        ) : filtered.length === 0 ? (
-          <p className="text-sm text-[var(--color-text-muted)] text-center py-12">
-            No members match your search.
+            {filter === "Online"
+              ? "No online members in presence right now."
+              : "No members match your search."}
           </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((m) => {
               const href = memberProfileHref(slug, m);
               const isSelf = !!currentUserId && currentUserId === m.user_id;
+              const isOnline = onlineIds.has(m.user_id);
               return (
                 <div
                   key={m.user_id}
                   className="rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-none flex flex-col gap-3"
                 >
                   <Link href={href} className="flex items-start gap-3 group">
-                    <div className="h-12 w-12 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
+                    <div className="relative h-12 w-12 rounded-sm overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-secondary)] shrink-0">
                       {m.profile?.avatar_url && m.profile?.avatar_url.trim() ? (
                         <Image
                           src={m.profile.avatar_url}
@@ -139,6 +163,9 @@ export function WorkspaceMembersClient({
                           {(m.profile?.full_name || m.profile?.username || "?")[0]}
                         </div>
                       )}
+                      {isOnline && (
+                        <span className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--color-surface)] bg-emerald-500" />
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-black text-[var(--color-text-primary)] truncate group-hover:text-[var(--color-accent)]">
@@ -151,6 +178,11 @@ export function WorkspaceMembersClient({
                         <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-sm bg-[var(--color-accent-light)] text-[var(--color-accent)]">
                           Lvl {m.level}
                         </span>
+                        {isOnline && (
+                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-700">
+                            Online
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-[var(--color-text-muted)] mt-1">
                         {m.total_points.toLocaleString()} pts

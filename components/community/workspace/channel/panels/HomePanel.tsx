@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
 import {
@@ -60,17 +61,21 @@ export function HomePanel({
   channel: WorkspaceChannel;
   onOpenTab?: (tab: string) => void;
 }) {
-  const messages = useRoomMessageIndex((s) =>
-    roomId ? (s.byRoom[roomId]?.messages ?? []) : []
+  const messages = useRoomMessageIndex(
+    useShallow((s) => (roomId ? (s.byRoom[roomId]?.messages ?? []) : []))
   );
-  const cards = useCollaborationStore((s) =>
-    roomId ? s.cards.filter((c) => c.roomId === roomId) : []
+  const cards = useCollaborationStore(
+    useShallow((s) => (roomId ? s.cards.filter((c) => c.roomId === roomId) : []))
   );
-  const answers = useCollaborationStore((s) =>
-    roomId ? s.answers.filter((a) => a.roomId === roomId) : []
+  const answers = useCollaborationStore(
+    useShallow((s) =>
+      roomId ? s.answers.filter((a) => a.roomId === roomId) : []
+    )
   );
-  const threads = useCollaborationStore((s) =>
-    roomId ? s.threads.filter((t) => t.roomId === roomId) : []
+  const threads = useCollaborationStore(
+    useShallow((s) =>
+      roomId ? s.threads.filter((t) => t.roomId === roomId) : []
+    )
   );
 
   if (!roomId) {

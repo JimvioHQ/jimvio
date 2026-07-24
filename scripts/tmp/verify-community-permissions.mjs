@@ -63,4 +63,26 @@ assert.match(
   /useClientReady/
 );
 
+assert.match(
+  fs.readFileSync(
+    path.join(root, "components/community/hub/hub-community-overview.tsx"),
+    "utf8"
+  ),
+  /CreatorWorkspaceWidgets/
+);
+assert.match(
+  fs.readFileSync(
+    path.join(root, "components/community/hub/hub-community-overview.tsx"),
+    "utf8"
+  ),
+  /OnlinePresenceBar/
+);
+assert.match(
+  fs.readFileSync(
+    path.join(root, "lib/community/presence/use-community-presence.ts"),
+    "utf8"
+  ),
+  /presence:community/
+);
+
 console.log("Community permission + Creator OS certification gates passed.");

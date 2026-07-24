@@ -32,12 +32,21 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CalendarPreviewCard,
+  CommunityHealthScoreCard,
   CommunityMilestonesCard,
   LiveStatusBanner,
+  MemberGrowthChart,
   MissionVisionCard,
   OverviewIntelligenceStrip,
+  TrustedBadgesRow,
+  WeeklyHighlightsCard,
+  AiWeeklySummaryCard,
 } from "./overview-intelligence";
 import { CreatorOSDashboard } from "@/components/community/os/CreatorOSDashboard";
+import { CreatorWorkspaceWidgets } from "@/components/community/os/CreatorWorkspaceWidgets";
+import { CommunityInsightsRail } from "@/components/community/intelligence/CommunityInsightsRail";
+import { OnlinePresenceBar } from "@/components/community/presence/OnlinePresenceBar";
+import { useCommunityPresence } from "@/lib/community/presence/use-community-presence";
 import { useClientReady } from "@/lib/community/use-client-ready";
 import {
   formatUtcDate,
@@ -191,6 +200,7 @@ export function HubCommunityOverview() {
     isAdmin,
     overview,
     userId,
+    profile,
   } = useWorkspace();
 
   const base = `/communities/${slug}`;
@@ -218,6 +228,14 @@ export function HubCommunityOverview() {
 
   const founder = overview?.founder;
   const founderName = founder?.name ?? ownerName ?? "Founder";
+
+  const { peers, typing } = useCommunityPresence({
+    communityId,
+    userId,
+    displayName: profile?.full_name || profile?.username || "Member",
+    avatarUrl: profile?.avatar_url ?? null,
+    enabled: Boolean(communityId && userId),
+  });
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
@@ -389,7 +407,35 @@ export function HubCommunityOverview() {
           </FadeIn>
         )}
 
-        {/* Creator Collaboration OS — mount after hydration to avoid remount #418/#185 */}
+        {/* Live presence + community stats */}
+        <FadeIn delay={0.052} className="mt-5 sm:mt-6 space-y-4">
+          <OnlinePresenceBar
+            peers={peers.length > 0 ? peers : (overview?.activeMembers ?? []).map((m) => ({
+              userId: m.id,
+              name: m.name,
+              avatarUrl: m.avatar_url,
+              onlineAt: new Date().toISOString(),
+            }))}
+            typing={typing}
+            membersHref={`${base}/members`}
+          />
+          {overview && (
+            <>
+              <TrustedBadgesRow overview={overview} />
+              <div className="grid gap-3 lg:grid-cols-2">
+                <CommunityHealthScoreCard overview={overview} />
+                <MemberGrowthChart overview={overview} />
+              </div>
+              <CreatorWorkspaceWidgets base={base} overview={overview} />
+              <div className="grid gap-3 lg:grid-cols-2">
+                <AiWeeklySummaryCard overview={overview} />
+                <CommunityInsightsRail base={base} overview={overview} />
+              </div>
+            </>
+          )}
+        </FadeIn>
+
+        {/* Creator Collaboration OS */}
         <FadeIn delay={0.055} className="mt-5 sm:mt-6">
           <CreatorOSDashboard
             base={base}
@@ -759,6 +805,12 @@ export function HubCommunityOverview() {
             {overview && overview.milestones.length > 0 && (
               <FadeIn delay={0.125}>
                 <CommunityMilestonesCard overview={overview} />
+              </FadeIn>
+            )}
+
+            {(overview?.weeklyHighlights?.length ?? 0) > 0 && (
+              <FadeIn delay={0.125}>
+                <WeeklyHighlightsCard overview={overview!} />
               </FadeIn>
             )}
 
