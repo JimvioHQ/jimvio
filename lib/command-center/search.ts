@@ -1,6 +1,7 @@
 import { ALL_STATIC_COMMANDS } from "./commands";
 import { readCommandRecents, recentToSearchResult } from "./recents";
 import { resolvePinnedCommands } from "./pins";
+import { CREATOR_OS_SEARCH_PROVIDERS } from "./providers";
 import type {
   CommandGroup,
   CommandResult,
@@ -56,6 +57,12 @@ function groupByKind(items: CommandResult[]): CommandGroup[] {
     setting: "Settings",
     help: "Help",
     ai: "AI",
+    "ai-answer": "AI Answers",
+    member: "Members",
+    post: "Posts",
+    channel: "Channels",
+    event: "Events",
+    knowledge: "Knowledge",
   };
 
   const map = new Map<string, CommandResult[]>();
@@ -157,10 +164,14 @@ export const localCommandSearchProvider: CommandSearchProvider = {
 
     const staticMatches = filterStatic(query, limit);
     const remote = await fetchLegacySuggestions(query);
+    const providerResults = await Promise.all(
+      CREATOR_OS_SEARCH_PROVIDERS.map((p) => p.search(input))
+    );
+    const providerFlat = providerResults.flatMap((r) => r.flat);
     const seen = new Set<string>();
     const flat: CommandResult[] = [];
 
-    for (const item of [...staticMatches, ...remote]) {
+    for (const item of [...staticMatches, ...providerFlat, ...remote]) {
       if (seen.has(item.id)) continue;
       seen.add(item.id);
       flat.push(item);
@@ -171,6 +182,36 @@ export const localCommandSearchProvider: CommandSearchProvider = {
   },
 };
 
+/** Composite provider — local + creator OS stubs/scoped providers. */
+export const compositeCommandSearchProvider: CommandSearchProvider = {
+  id: "composite",
+  async search(input: CommandSearchInput): Promise<CommandSearchOutput> {
+    if (!input.query.trim()) {
+      const local = await localCommandSearchProvider.search(input);
+      const scoped = await communityScopedEmptySafe(input);
+      const seen = new Set(local.flat.map((i) => i.id));
+      const extra = scoped.flat.filter((i) => !seen.has(i.id));
+      const flat = [...local.flat, ...extra].slice(0, input.limit ?? 24);
+      const groups = [
+        ...local.groups,
+        ...scoped.groups.filter((g) => g.items.length > 0),
+      ];
+      return { groups, flat };
+    }
+    return localCommandSearchProvider.search(input);
+  },
+};
+
+async function communityScopedEmptySafe(
+  input: CommandSearchInput
+): Promise<CommandSearchOutput> {
+  const provider = CREATOR_OS_SEARCH_PROVIDERS.find(
+    (p) => p.id === "community-scoped"
+  );
+  if (!provider) return { groups: [], flat: [] };
+  return provider.search(input);
+}
+
 export function getCommandSearchProvider(): CommandSearchProvider {
-  return localCommandSearchProvider;
+  return compositeCommandSearchProvider;
 }

@@ -32,13 +32,29 @@ import {
 } from "@/components/community/commerce";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
 import { CommunityIntelligenceHost } from "@/components/community/intelligence";
+import { CreatorCommandCenterShell } from "@/components/community/os/command-center";
 import { useClientReady } from "@/lib/community/use-client-ready";
 
 type OverviewLite = {
   totalCommunityXp?: number | null;
-  healthScore?: { score: number } | null;
+  totalEarned?: number | null;
+  totalEarnedDelta?: string | null;
+  healthScore?: {
+    score: number;
+    label?: string;
+    summary?: string;
+  } | null;
   trustedBadges?: { label: string }[] | null;
   memberCount?: number | null;
+  membersJoinedThisWeek?: number | null;
+  membersOnline?: number | null;
+  messagesThisWeek?: number | null;
+  postCount?: number | null;
+  courseCount?: number | null;
+  aiWeeklySummary?: {
+    headline?: string;
+    paragraphs?: string[];
+  } | null;
   featuredPosts?: {
     id: string;
     title: string | null;
@@ -197,6 +213,12 @@ export function CreatorOSDashboard({
           ))}
         </div>
       </header>
+
+      <CreatorCommandCenterShell
+        base={base}
+        communityId={communityId}
+        overview={overview}
+      />
 
       <CommunityScoreCard breakdown={score} />
 

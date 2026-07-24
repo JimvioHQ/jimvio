@@ -6,7 +6,9 @@ export type CommandCenterFilter =
   | "communities"
   | "campaigns"
   | "commands"
-  | "ai";
+  | "ai"
+  | "members"
+  | "content";
 
 interface CommandCenterStore {
   isOpen: boolean;

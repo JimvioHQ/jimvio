@@ -20,6 +20,8 @@ const FILTERS: Array<{ id: CommandCenterFilter; label: string }> = [
   { id: "all", label: "All" },
   { id: "products", label: "Products" },
   { id: "communities", label: "Communities" },
+  { id: "members", label: "Members" },
+  { id: "content", label: "Content" },
   { id: "campaigns", label: "Campaigns" },
   { id: "commands", label: "Commands" },
   { id: "ai", label: "AI" },
@@ -57,7 +59,11 @@ export function CommandCenter() {
         href: item.href,
       });
 
-      if (item.actionId === "open-ai" || item.kind === "ai") {
+      if (
+        item.actionId === "open-ai" ||
+        item.kind === "ai" ||
+        item.kind === "ai-answer"
+      ) {
         closeCommandCenter();
         openAssistant(query.trim() || undefined);
         return;

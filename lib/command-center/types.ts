@@ -11,8 +11,14 @@ export type CommandResultKind =
   | "setting"
   | "help"
   | "ai"
+  | "ai-answer"
   | "command"
-  | "page";
+  | "page"
+  | "member"
+  | "post"
+  | "channel"
+  | "event"
+  | "knowledge";
 
 export type CommandSection =
   | "pinned"

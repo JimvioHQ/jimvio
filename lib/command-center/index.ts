@@ -27,4 +27,14 @@ export {
   resolvePinnedCommands,
   getDefaultPinnedIds,
 } from "./pins";
-export { getCommandSearchProvider, localCommandSearchProvider } from "./search";
+export {
+  getCommandSearchProvider,
+  localCommandSearchProvider,
+  compositeCommandSearchProvider,
+} from "./search";
+export {
+  setCommandSearchContext,
+  getCommandSearchContext,
+  type CommandSearchContext,
+} from "./search-context";
+export { CREATOR_OS_SEARCH_PROVIDERS } from "./providers";

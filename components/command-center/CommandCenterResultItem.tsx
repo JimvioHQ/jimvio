@@ -3,15 +3,18 @@
 import {
   BookOpen,
   Bot,
+  Calendar,
   Command,
   Flame,
   GraduationCap,
   HelpCircle,
+  Layers,
   LayoutDashboard,
   Megaphone,
   MessageSquare,
   Package,
   Percent,
+  Radio,
   Receipt,
   Search,
   Settings,
@@ -52,6 +55,10 @@ const ICONS: Record<string, LucideIcon> = {
   command: Command,
   bot: Bot,
   course: BookOpen,
+  radio: Radio,
+  calendar: Calendar,
+  book: BookOpen,
+  layers: Layers,
 };
 
 const KIND_COLORS: Partial<Record<CommandResultKind, string>> = {
@@ -60,7 +67,13 @@ const KIND_COLORS: Partial<Record<CommandResultKind, string>> = {
   "ugc-campaign": "#7c3aed",
   "affiliate-campaign": "#2563eb",
   ai: "#fd5000",
+  "ai-answer": "#fd5000",
   command: "#64748b",
+  member: "#0ea5e9",
+  post: "#f59e0b",
+  channel: "#8b5cf6",
+  event: "#ec4899",
+  knowledge: "#14b8a6",
 };
 
 type CommandCenterResultItemProps = {

@@ -84,5 +84,13 @@ assert.match(
   ),
   /presence:community/
 );
+assert.match(osDash, /CreatorCommandCenterShell/);
+assert.match(
+  fs.readFileSync(
+    path.join(root, "lib/command-center/providers/index.ts"),
+    "utf8"
+  ),
+  /communityScopedProvider/
+);
 
 console.log("Community permission + Creator OS certification gates passed.");

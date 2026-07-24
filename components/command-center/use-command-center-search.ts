@@ -7,11 +7,13 @@ import type { CommandCenterFilter } from "@/lib/store/use-command-center-store";
 
 const FILTER_KINDS: Record<CommandCenterFilter, Set<string> | null> = {
   all: null,
-  products: new Set(["product", "store"]),
+  products: new Set(["product", "store", "course"]),
   communities: new Set(["community", "creator"]),
   campaigns: new Set(["affiliate-campaign", "ugc-campaign"]),
-  commands: new Set(["command", "page", "setting", "help", "order", "message"]),
-  ai: new Set(["ai"]),
+  commands: new Set(["command", "page", "setting", "help", "order"]),
+  ai: new Set(["ai", "ai-answer"]),
+  members: new Set(["member"]),
+  content: new Set(["post", "message", "channel", "event", "knowledge"]),
 };
 
 function applyFilter(groups: CommandGroup[], filter: CommandCenterFilter): CommandGroup[] {
