@@ -1,5 +1,6 @@
 /**
  * Guard against Group page infinite-re-render crash from zustand selectors.
+ * Groups are discussion-first — ChatRoom is primary; OS store selectors must stay stable.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -41,8 +42,10 @@ assert.doesNotMatch(
   groupWs,
   /useCollaborationStore\(\(s\)\s*=>\s*\n?\s*s\.cards\.filter/s
 );
-assert.match(groupWs, /const allTasks = useCreatorOSStore/);
-assert.match(groupWs, /useMemo\([\s\S]*allTasks\.filter/);
+assert.match(groupWs, /const allCards = useCollaborationStore/);
+assert.match(groupWs, /useMemo\([\s\S]*allCards\.filter/);
+assert.match(groupWs, /useState<GroupTabId>\("discussion"\)/);
+assert.match(groupWs, /ChatRoom/);
 
 assert.doesNotMatch(
   eventsPanel,

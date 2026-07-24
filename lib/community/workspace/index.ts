@@ -59,3 +59,10 @@ export {
   canonicalFromSpaceRoom,
   roomTypeIcon,
 } from "./navigation";
+
+export {
+  resolveGroupDiscussionRoom,
+  GROUP_DISCUSSION_ROOM_NAME,
+  GROUP_DISCUSSION_ROOM_TYPE,
+  type DiscussionRoomLite,
+} from "./resolve-group-discussion-room";

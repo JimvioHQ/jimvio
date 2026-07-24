@@ -6,13 +6,10 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
-  Calendar,
   ChevronDown,
   ChevronUp,
   Info,
   LayoutGrid,
-  Megaphone,
-  MessageSquare,
   Plus,
   Settings,
   Target,
@@ -35,9 +32,6 @@ import {
 
 type CommunityNavItem =
   | "overview"
-  | "announcements"
-  | "feed"
-  | "events"
   | "courses"
   | "challenges"
   | "about";
@@ -90,11 +84,9 @@ const LEGACY_SYSTEM_SPACE_SLUGS = new Set([
   "channels",
 ]);
 
+/** Default member community nav — management surfaces live in Owner Console. */
 const NAV_ITEMS: NavLink[] = [
   { id: "overview", label: "Overview", icon: LayoutGrid, href: "" },
-  { id: "announcements", label: "Announcements", icon: Megaphone, href: "/feed" },
-  { id: "feed", label: "Feed", icon: MessageSquare, href: "/feed" },
-  { id: "events", label: "Events", icon: Calendar, href: "/events" },
   { id: "courses", label: "Courses", icon: BookOpen, href: "/courses" },
   { id: "challenges", label: "Challenges", icon: Target, href: "/missions" },
   { id: "about", label: "About", icon: Info, href: "/about" },
@@ -173,21 +165,6 @@ function resolveChannelsHomeSpaceId(spacesWithRooms: WorkspaceSpaceRow[]): strin
   return (preferred ?? spacesWithRooms[0]).id;
 }
 
-function resolveAnnouncementsHref(
-  communitySlug: string,
-  spacesWithRooms: WorkspaceSpaceRow[]
-): string {
-  for (const space of spacesWithRooms) {
-    const room = space.rooms.find(
-      (r) => r.room_type === "posts" || /announcement/i.test(r.name)
-    );
-    if (room) {
-      return communityChannelHref(communitySlug, room.slug);
-    }
-  }
-  return `/communities/${communitySlug}/feed`;
-}
-
 function SidebarBody({
   slug,
   communityName,
@@ -225,21 +202,8 @@ function SidebarBody({
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
 
-  const announcementsHref = resolveAnnouncementsHref(slug, spacesWithRooms);
-
   function navActive(id: CommunityNavItem, href: string) {
     if (activeNav) return activeNav === id;
-    if (id === "announcements") {
-      for (const space of spacesWithRooms) {
-        const room = space.rooms.find(
-          (r) => r.room_type === "posts" || /announcement/i.test(r.name)
-        );
-        if (room && pathname.includes(`/channels/${room.slug}`)) {
-          return true;
-        }
-      }
-      return pathname.startsWith(`${base}/chat`);
-    }
     if (id === "about") {
       return pathname === `${base}/about` || pathname.startsWith(`${base}/about/`);
     }
@@ -354,8 +318,7 @@ function SidebarBody({
         <nav className="mb-5 space-y-0.5">
           {NAV_ITEMS.map(({ id, label, icon: Icon, href }) => {
             const active = navActive(id, href);
-            const linkHref =
-              id === "announcements" ? announcementsHref : href ? `${base}${href}` : base;
+            const linkHref = href ? `${base}${href}` : base;
             return (
               <Link
                 key={id}

@@ -86,48 +86,40 @@ export type CommunityScoreBreakdown = {
   badges: string[];
 };
 
+/** Member-facing Group tabs — Discussion first; management lives in Owner Console. */
 export const GROUP_TAB_IDS = [
-  "overview",
   "discussion",
+  "overview",
   "knowledge",
   "resources",
   "courses",
-  "events",
-  "members",
-  "live",
   "store",
-  "activity",
+  "live",
   "ai",
 ] as const;
 
 export type GroupTabId = (typeof GROUP_TAB_IDS)[number];
 
 export const GROUP_TABS: { id: GroupTabId; label: string }[] = [
-  { id: "overview", label: "Overview" },
   { id: "discussion", label: "Discussion" },
+  { id: "overview", label: "Overview" },
   { id: "knowledge", label: "Knowledge" },
   { id: "resources", label: "Resources" },
   { id: "courses", label: "Courses" },
-  { id: "events", label: "Events" },
-  { id: "members", label: "Members" },
-  { id: "live", label: "Live" },
   { id: "store", label: "Store" },
-  { id: "activity", label: "Activity" },
+  { id: "live", label: "Live" },
   { id: "ai", label: "AI" },
 ];
 
-/** Sidebar nav for Group Creator Workspace (Settings is owner-only). */
+/** Sidebar nav for Group workspace (Settings is owner/staff only). */
 export const GROUP_SIDEBAR_IDS = [
-  "overview",
   "discussion",
+  "overview",
   "knowledge",
   "resources",
-  "events",
   "courses",
-  "members",
   "store",
   "live",
-  "activity",
   "ai",
   "settings",
 ] as const;
@@ -135,16 +127,13 @@ export const GROUP_SIDEBAR_IDS = [
 export type GroupSidebarId = (typeof GROUP_SIDEBAR_IDS)[number];
 
 export const GROUP_SIDEBAR: { id: GroupSidebarId; label: string }[] = [
-  { id: "overview", label: "Overview" },
   { id: "discussion", label: "Discussion" },
+  { id: "overview", label: "Overview" },
   { id: "knowledge", label: "Knowledge" },
   { id: "resources", label: "Resources" },
-  { id: "events", label: "Events" },
   { id: "courses", label: "Courses" },
-  { id: "members", label: "Members" },
   { id: "store", label: "Store" },
   { id: "live", label: "Live" },
-  { id: "activity", label: "Activity" },
   { id: "ai", label: "AI" },
   { id: "settings", label: "Settings" },
 ];

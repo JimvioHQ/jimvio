@@ -1,5 +1,6 @@
 /**
  * Flagship Groups/Channels UX — experience layer smoke checks.
+ * Groups are discussion-first (live ChatRoom), Overview is secondary.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -43,11 +44,15 @@ assert.match(channelCard, /signals/);
 assert.match(channelCard, /typingLabel/);
 assert.match(channelCard, /WorkspaceActionMenu/);
 
-assert.match(groupWs, /Featured channels/);
-assert.match(groupWs, /Quick actions/);
-assert.match(groupWs, /Pinned announcement/);
-assert.match(groupWs, /recentSearches|Recent searches/);
-assert.match(groupWs, /highlightMatch/);
+// Discussion-first Group homepage
+assert.match(groupWs, /useState<GroupTabId>\("discussion"\)/);
+assert.match(groupWs, /ChatRoom/);
+assert.match(groupWs, /Welcome to \$\{group\.name\}/);
+assert.match(groupWs, /Start the first conversation/);
+assert.match(groupWs, /Featured resources/);
+assert.match(groupWs, /Back to Discussion/);
+assert.doesNotMatch(groupWs, /Quick actions/);
+assert.doesNotMatch(groupWs, /Pinned announcement/);
 
 assert.match(empty, /WorkspaceEmptyArt|emoji/);
 assert.match(actions, /buildWorkspaceActions/);

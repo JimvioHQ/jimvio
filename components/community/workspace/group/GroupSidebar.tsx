@@ -3,15 +3,13 @@
 import {
   BookOpen,
   Bot,
-  Calendar,
   Folder,
+  GraduationCap,
   LayoutGrid,
-  LayoutList,
   MessageCircle,
   Radio,
   Settings,
   ShoppingBag,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,16 +20,13 @@ import {
 } from "@/lib/community/os";
 
 const ICONS: Record<GroupSidebarId, LucideIcon> = {
-  overview: LayoutGrid,
   discussion: MessageCircle,
+  overview: LayoutGrid,
   knowledge: BookOpen,
   resources: Folder,
-  events: Calendar,
-  courses: BookOpen,
-  members: Users,
+  courses: GraduationCap,
   store: ShoppingBag,
   live: Radio,
-  activity: LayoutList,
   ai: Bot,
   settings: Settings,
 };

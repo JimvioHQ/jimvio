@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  Home, Radio, GraduationCap, Users, Trophy, Layers,
+  Home, GraduationCap, Layers,
   Plus, ChevronDown, ChevronRight, Flame,
-  MessageCircle, Hash,
-  MoreHorizontal, Star, UserPlus, ShieldCheck, Calendar, Megaphone, Target,
+  Hash,
+  MoreHorizontal, Star, UserPlus, ShieldCheck, Target,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,16 +60,16 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "", label: "Overview", icon: Home, matchExact: true },
-  { href: "/chat", label: "Channels", icon: MessageCircle },
-  { href: "/live", label: "Live", icon: Radio },
+  { href: "/courses", label: "Courses", icon: GraduationCap },
+  { href: "/missions", label: "Challenges", icon: Target },
+  { href: "/about", label: "About", icon: ShieldCheck },
 ];
 
 const MOBILE_NAV_ITEMS: NavItem[] = [
   { href: "", label: "Overview", icon: Home, matchExact: true },
-  { href: "/chat", label: "Channels", icon: MessageCircle },
   { href: "/courses", label: "Courses", icon: GraduationCap },
-  { href: "/members", label: "Members", icon: Users },
-  { href: "/leaderboard", label: "Ranks", icon: Trophy },
+  { href: "/missions", label: "Challenges", icon: Target },
+  { href: "/about", label: "About", icon: ShieldCheck },
 ];
 
 function roomTypeIcon(t: string): LucideIcon {
@@ -374,16 +374,13 @@ function Sidebar({
         <nav className="space-y-0.5">
           {[
             { href: "", label: "Overview", icon: Home, badge: null as string | null, matchExact: true },
-            { href: "/chat", label: "Channels", icon: MessageCircle, badge: overview?.messagesThisWeek ? String(Math.min(overview.messagesThisWeek, 99)) : null },
-            { href: "/live", label: "Events", icon: Calendar, badge: overview?.upcomingEvents?.length ? String(overview.upcomingEvents.length) : null },
             { href: "/courses", label: "Courses", icon: GraduationCap, badge: overview?.courseCount ? String(overview.courseCount) : null },
-            { href: "/members", label: "Members", icon: Users, badge: null as string | null },
-            { href: "/leaderboard", label: "Leaderboard", icon: Trophy, badge: null as string | null },
-            { href: "/communities/missions", label: "Challenges", icon: Target, external: true, badge: null as string | null },
+            { href: "/missions", label: "Challenges", icon: Target, badge: null as string | null },
+            { href: "/about", label: "About", icon: ShieldCheck, badge: null as string | null },
           ].map((item) => {
             const active = isActive(item);
             const Icon = item.icon;
-            const linkHref = item.external ? item.href : `${basePath}${item.href}`;
+            const linkHref = `${basePath}${item.href}`;
             return (
               <Link
                 key={item.label}

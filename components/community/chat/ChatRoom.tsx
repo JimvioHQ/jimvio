@@ -50,6 +50,10 @@ interface ChatRoomProps {
   hideHeader?: boolean;
   /** When false, hide composer and show announcement notice. Default true. */
   canPost?: boolean;
+  /** Optional empty-state copy (Group Discussion welcome). */
+  emptyTitle?: string;
+  emptyDescription?: string;
+  emptyActionLabel?: string;
 }
 
 export function ChatRoom({
@@ -59,6 +63,9 @@ export function ChatRoom({
   slug,
   hideHeader,
   canPost = true,
+  emptyTitle,
+  emptyDescription,
+  emptyActionLabel,
 }: ChatRoomProps) {
   const hook = useChatRoom({ roomId, roomName, communityId, slug });
   const syncRoomIndex = useRoomMessageIndex((s) => s.sync);
@@ -539,11 +546,11 @@ export function ChatRoom({
               role="status"
             >
               <p className="text-[15px] font-bold text-[var(--color-text-primary)]">
-                Start the conversation
+                {emptyTitle ?? "Start the conversation"}
               </p>
-              <p className="mt-2 max-w-sm text-[13px] leading-relaxed text-[var(--color-text-muted)]">
-                Share an idea, drop a file, or ask a question — this channel
-                becomes knowledge as you collaborate.
+              <p className="mt-2 max-w-sm whitespace-pre-line text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+                {emptyDescription ??
+                  "Share an idea, drop a file, or ask a question — this channel becomes knowledge as you collaborate."}
               </p>
               <button
                 type="button"
@@ -556,7 +563,7 @@ export function ChatRoom({
                 }}
                 className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
               >
-                Write a message
+                {emptyActionLabel ?? "Write a message"}
               </button>
             </div>
           ) : scopedMessages.length === 0 ? (
