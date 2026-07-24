@@ -42,7 +42,7 @@ export const AI_COMMUNITY_INSIGHTS = [
   {
     icon: "trending",
     headline: "Engagement up 21% this week",
-    subtext: "General Chat and Live Trading drive most activity.",
+    subtext: "Courses and live sessions drive most activity.",
   },
   {
     icon: "clock",
@@ -157,7 +157,7 @@ export const RECENT_ACTIVITY = [
   { id: "2", user: "Bricks", action: "shared a new signal", time: "15m ago", type: "resource" as const },
   { id: "3", user: "Sarah Chen", action: "completed UGC Mastery 101", time: "1h ago", type: "course" as const },
   { id: "4", user: "Alex Rivera", action: "joined Voice Room", time: "2h ago", type: "join" as const },
-  { id: "5", user: "Chris Clips", action: "posted in General Chat", time: "3h ago", type: "resource" as const },
+  { id: "5", user: "Chris Clips", action: "shared a new resource", time: "3h ago", type: "resource" as const },
 ];
 
 export const POPULAR_WEEK = [

@@ -241,7 +241,7 @@ export function CreateChannelWizard({
                   onChange={(e) =>
                     setDraft((d) => ({ ...d, name: e.target.value }))
                   }
-                  placeholder="e.g. General"
+                  placeholder="e.g. Discussion"
                   autoFocus
                 />
               </Field>
