@@ -3,7 +3,7 @@
 import { useId, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import {
   Award,
   BadgeCheck,
@@ -39,27 +39,23 @@ import {
 } from "./overview-intelligence";
 import { CreatorOSDashboard } from "@/components/community/os/CreatorOSDashboard";
 import { useClientReady } from "@/lib/community/use-client-ready";
+import {
+  formatUtcDate,
+  formatUtcDay,
+  formatUtcMonth,
+  formatUtcMonthDay,
+  formatUtcTime12,
+} from "@/lib/community/format-utc";
 
 function formatJoined(iso: string | null) {
   if (!iso) return null;
-  try {
-    return format(new Date(iso), "MMM d, yyyy");
-  } catch {
-    return null;
-  }
+  return formatUtcDate(iso) || null;
 }
 
 function RelativeTime({ iso }: { iso: string }) {
-  // Mount latch (not useSyncExternalStore true/false) so SSR absolute text
-  // matches the hydration pass — then upgrade to relative after mount.
+  // Mount latch so SSR absolute text matches the hydration pass.
   const ready = useClientReady();
-  const absolute = useMemo(() => {
-    try {
-      return format(new Date(iso), "MMM d, yyyy");
-    } catch {
-      return "";
-    }
-  }, [iso]);
+  const absolute = useMemo(() => formatUtcDate(iso), [iso]);
   if (!ready) return <>{absolute}</>;
   try {
     return <>{formatDistanceToNow(new Date(iso), { addSuffix: true })}</>;
@@ -677,17 +673,17 @@ export function HubCommunityOverview() {
                               className="flex items-center gap-3 rounded-lg p-1.5 transition hover:bg-[var(--color-surface-secondary)]"
                             >
                               <div className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-[#fd5000]/10 text-[#fd5000]">
-                                <span className="text-[9px] font-bold uppercase leading-none" suppressHydrationWarning>
-                                  {format(new Date(ev.start_date), "MMM")}
+                                <span className="text-[9px] font-bold uppercase leading-none">
+                                  {formatUtcMonth(ev.start_date)}
                                 </span>
-                                <span className="text-[14px] font-black leading-none" suppressHydrationWarning>
-                                  {format(new Date(ev.start_date), "d")}
+                                <span className="text-[14px] font-black leading-none">
+                                  {formatUtcDay(ev.start_date)}
                                 </span>
                               </div>
                               <div className="min-w-0">
                                 <p className="truncate text-[12.5px] font-semibold">{ev.title}</p>
-                                <p className="text-[10px] text-[var(--color-text-muted)]" suppressHydrationWarning>
-                                  {format(new Date(ev.start_date), "h:mm a")}
+                                <p className="text-[10px] text-[var(--color-text-muted)]">
+                                  {formatUtcTime12(ev.start_date)}
                                 </p>
                               </div>
                             </Link>
@@ -716,8 +712,8 @@ export function HubCommunityOverview() {
                               <div className="min-w-0">
                                 <p className="text-[12.5px] font-semibold">{ch.title}</p>
                                 {ch.due_date && (
-                                  <p className="text-[10px] text-[var(--color-text-muted)]" suppressHydrationWarning>
-                                    Due {format(new Date(ch.due_date), "MMM d")}
+                                  <p className="text-[10px] text-[var(--color-text-muted)]">
+                                    Due {formatUtcMonthDay(ch.due_date)}
                                   </p>
                                 )}
                               </div>
