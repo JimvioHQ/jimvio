@@ -61,12 +61,14 @@ export function ChatRoom({
   const syncRoomIndex = useRoomMessageIndex((s) => s.sync);
   const openThreadRequest = useRoomMessageIndex((s) => s.openThreadRequest);
   const convertThreadRequest = useRoomMessageIndex((s) => s.convertThreadRequest);
+  const searchRequestAt = useRoomMessageIndex((s) => s.searchRequestAt);
   const clearOpenThreadRequest = useRoomMessageIndex(
     (s) => s.clearOpenThreadRequest
   );
   const clearConvertThreadRequest = useRoomMessageIndex(
     (s) => s.clearConvertThreadRequest
   );
+  const clearSearchRequest = useRoomMessageIndex((s) => s.clearSearchRequest);
   const markAnswer = useCollaborationStore((s) => s.markAnswer);
   const getAnswer = useCollaborationStore((s) => s.getAnswer);
   const answers = useCollaborationStore((s) => s.answers);
@@ -120,6 +122,13 @@ export function ChatRoom({
     }
     clearConvertThreadRequest();
   }, [convertThreadRequest, hook, clearConvertThreadRequest]);
+
+  // Channel header search → open MessageSearchBar
+  useEffect(() => {
+    if (!searchRequestAt) return;
+    hook.setSearchOpen(true);
+    clearSearchRequest();
+  }, [searchRequestAt, hook, clearSearchRequest]);
 
   const roleByUser = useMemo(() => {
     const map: Record<string, string> = {};

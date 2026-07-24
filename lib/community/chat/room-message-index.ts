@@ -27,16 +27,21 @@ type RoomMessageIndex = {
   /** Cross-tab request: Threads panel → ChatRoom openThread */
   openThreadRequest: string | null;
   convertThreadRequest: string | null;
+  /** Channel header search → ChatRoom MessageSearchBar */
+  searchRequestAt: number | null;
   requestOpenThread: (messageId: string) => void;
   requestConvertThread: (messageId: string) => void;
+  requestSearch: () => void;
   clearOpenThreadRequest: () => void;
   clearConvertThreadRequest: () => void;
+  clearSearchRequest: () => void;
 };
 
 export const useRoomMessageIndex = create<RoomMessageIndex>((set, get) => ({
   byRoom: {},
   openThreadRequest: null,
   convertThreadRequest: null,
+  searchRequestAt: null,
   sync(roomId, messages) {
     if (!roomId) return;
     set((state) => ({
@@ -62,11 +67,17 @@ export const useRoomMessageIndex = create<RoomMessageIndex>((set, get) => ({
   requestConvertThread(messageId) {
     set({ convertThreadRequest: messageId });
   },
+  requestSearch() {
+    set({ searchRequestAt: Date.now() });
+  },
   clearOpenThreadRequest() {
     set({ openThreadRequest: null });
   },
   clearConvertThreadRequest() {
     set({ convertThreadRequest: null });
+  },
+  clearSearchRequest() {
+    set({ searchRequestAt: null });
   },
 }));
 

@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useCallback, type ReactNode } from "react";
+import {
+  useState,
+  useCallback,
+  useMemo,
+  lazy,
+  Suspense,
+  type ReactNode,
+} from "react";
 import type {
   ChannelTabId,
   WorkspaceChannel,
@@ -10,20 +17,43 @@ import { cn } from "@/lib/utils";
 import { ChannelHeader } from "./ChannelHeader";
 import { ChannelTabs } from "./ChannelTabs";
 import { ChannelRightDrawer } from "./ChannelRightDrawer";
-import { FilesPanel } from "./panels/FilesPanel";
-import { MediaPanel } from "./panels/MediaPanel";
-import { PinnedPanel } from "./panels/PinnedPanel";
-import { MembersPanel, type ChannelMemberRow } from "./panels/MembersPanel";
-import { HomePanel } from "./panels/HomePanel";
-import { ThreadsPanel } from "./panels/ThreadsPanel";
-import { KnowledgePanel } from "./panels/KnowledgePanel";
-import { EventsPanel } from "./panels/EventsPanel";
-import { ChannelAiPanel } from "./panels/ChannelAiPanel";
+import { WorkspaceSkeleton } from "@/components/community/workspace/shared/WorkspaceSkeleton";
+import { useCommunityRoster } from "@/components/community/workspace/shared/useCommunityRoster";
 import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
+import { extractPinned } from "@/lib/community/chat/message-experience";
+import type { ChannelMemberRow } from "./panels/MembersPanel";
+
+const FilesPanel = lazy(() =>
+  import("./panels/FilesPanel").then((m) => ({ default: m.FilesPanel }))
+);
+const MediaPanel = lazy(() =>
+  import("./panels/MediaPanel").then((m) => ({ default: m.MediaPanel }))
+);
+const PinnedPanel = lazy(() =>
+  import("./panels/PinnedPanel").then((m) => ({ default: m.PinnedPanel }))
+);
+const MembersPanel = lazy(() =>
+  import("./panels/MembersPanel").then((m) => ({ default: m.MembersPanel }))
+);
+const HomePanel = lazy(() =>
+  import("./panels/HomePanel").then((m) => ({ default: m.HomePanel }))
+);
+const ThreadsPanel = lazy(() =>
+  import("./panels/ThreadsPanel").then((m) => ({ default: m.ThreadsPanel }))
+);
+const KnowledgePanel = lazy(() =>
+  import("./panels/KnowledgePanel").then((m) => ({ default: m.KnowledgePanel }))
+);
+const EventsPanel = lazy(() =>
+  import("./panels/EventsPanel").then((m) => ({ default: m.EventsPanel }))
+);
+const ChannelAiPanel = lazy(() =>
+  import("./panels/ChannelAiPanel").then((m) => ({ default: m.ChannelAiPanel }))
+);
 
 /**
- * Single reusable Channel page layout (Phase 3):
- * Home · Discussion · Threads · Knowledge · Files · Media · Pinned · Events · Members · AI
+ * Channel Creator Workspace:
+ * Discussion · Threads · Knowledge · Files · Media · Pinned · Events · Members · AI · Overview
  *
  * Discussion is injected so ChatRoom stays the source of truth (never forked).
  */
@@ -33,13 +63,14 @@ export function ChannelWorkspace({
   discussion,
   memberCount,
   onlineCount,
-  members,
+  members: membersProp,
   drawerOpen = false,
   drawer,
   initialTab = "discussion",
   onSearch,
   roomId,
   communityId,
+  userId,
   canManageKnowledge,
 }: {
   channel: WorkspaceChannel;
@@ -56,6 +87,7 @@ export function ChannelWorkspace({
   /** Enables index-backed panels via shared message index */
   roomId?: string;
   communityId?: string | null;
+  userId?: string | null;
   canManageKnowledge?: boolean;
 }) {
   const [tab, setTab] = useState<ChannelTabId>(initialTab);
@@ -64,10 +96,25 @@ export function ChannelWorkspace({
   const requestConvertThread = useRoomMessageIndex(
     (s) => s.requestConvertThread
   );
+  const requestSearch = useRoomMessageIndex((s) => s.requestSearch);
+  const messages = useRoomMessageIndex((s) =>
+    resolvedRoomId ? (s.byRoom[resolvedRoomId]?.messages ?? []) : []
+  );
+  const pinnedCount = useMemo(
+    () => extractPinned(messages).length || channel.pinnedCount,
+    [messages, channel.pinnedCount]
+  );
+
+  const { members: rosterMembers } = useCommunityRoster(
+    membersProp && membersProp.length > 0 ? null : communityId
+  );
+  const members = membersProp && membersProp.length > 0 ? membersProp : rosterMembers;
 
   const handleSearch = useCallback(() => {
     onSearch?.();
-  }, [onSearch]);
+    setTab("discussion");
+    requestSearch();
+  }, [onSearch, requestSearch]);
 
   const openDiscussion = useCallback(() => setTab("discussion"), []);
 
@@ -77,9 +124,12 @@ export function ChannelWorkspace({
         <ChannelHeader
           channel={channel}
           group={group}
-          memberCount={memberCount}
+          memberCount={memberCount ?? members.length}
           onlineCount={onlineCount}
+          pinnedCount={pinnedCount}
           onSearchClick={handleSearch}
+          onOpenMembers={() => setTab("members")}
+          onOpenPinned={() => setTab("pinned")}
         />
         <ChannelTabs active={tab} onChange={setTab} />
 
@@ -99,56 +149,69 @@ export function ChannelWorkspace({
             {discussion}
           </div>
 
-          {tab === "home" && (
-            <HomePanel
-              roomId={resolvedRoomId}
-              channel={channel}
-              onOpenTab={(id) => setTab(id as ChannelTabId)}
-            />
-          )}
-          {tab === "threads" && (
-            <ThreadsPanel
-              roomId={resolvedRoomId}
-              canManage={canManageKnowledge ?? channel.permissions.canModerate}
-              onOpenThread={(id) => {
-                requestOpenThread(id);
-                openDiscussion();
-              }}
-              onConvertThread={(id) => {
-                requestConvertThread(id);
-                openDiscussion();
-              }}
-            />
-          )}
-          {tab === "knowledge" && <KnowledgePanel roomId={resolvedRoomId} />}
-          {tab === "files" && (
-            <FilesPanel
-              roomId={resolvedRoomId}
-              canManage={canManageKnowledge ?? channel.permissions.canModerate}
-            />
-          )}
-          {tab === "media" && <MediaPanel roomId={resolvedRoomId} />}
-          {tab === "pinned" && (
-            <PinnedPanel
-              roomId={resolvedRoomId}
-              pinnedCount={channel.pinnedCount}
-            />
-          )}
-          {tab === "events" && (
-            <EventsPanel
-              channelName={channel.name}
-              roomId={resolvedRoomId}
-              communityId={communityId}
-              canManage={canManageKnowledge ?? channel.permissions.canModerate}
-            />
-          )}
-          {tab === "members" && <MembersPanel members={members} />}
-          {tab === "ai" && (
-            <ChannelAiPanel
-              roomId={resolvedRoomId}
-              communityId={communityId}
-              channelName={channel.name}
-            />
+          {tab !== "discussion" && (
+            <Suspense fallback={<WorkspaceSkeleton rows={5} />}>
+              {tab === "home" && (
+                <HomePanel
+                  roomId={resolvedRoomId}
+                  channel={channel}
+                  onOpenTab={(id) => setTab(id as ChannelTabId)}
+                />
+              )}
+              {tab === "threads" && (
+                <ThreadsPanel
+                  roomId={resolvedRoomId}
+                  canManage={
+                    canManageKnowledge ?? channel.permissions.canModerate
+                  }
+                  onOpenThread={(id) => {
+                    requestOpenThread(id);
+                    openDiscussion();
+                  }}
+                  onConvertThread={(id) => {
+                    requestConvertThread(id);
+                    openDiscussion();
+                  }}
+                />
+              )}
+              {tab === "knowledge" && (
+                <KnowledgePanel roomId={resolvedRoomId} />
+              )}
+              {tab === "files" && (
+                <FilesPanel
+                  roomId={resolvedRoomId}
+                  canManage={
+                    canManageKnowledge ?? channel.permissions.canModerate
+                  }
+                />
+              )}
+              {tab === "media" && <MediaPanel roomId={resolvedRoomId} />}
+              {tab === "pinned" && (
+                <PinnedPanel
+                  roomId={resolvedRoomId}
+                  pinnedCount={pinnedCount}
+                />
+              )}
+              {tab === "events" && (
+                <EventsPanel
+                  channelName={channel.name}
+                  roomId={resolvedRoomId}
+                  communityId={communityId}
+                  userId={userId}
+                  canManage={
+                    canManageKnowledge ?? channel.permissions.canModerate
+                  }
+                />
+              )}
+              {tab === "members" && <MembersPanel members={members} />}
+              {tab === "ai" && (
+                <ChannelAiPanel
+                  roomId={resolvedRoomId}
+                  communityId={communityId}
+                  channelName={channel.name}
+                />
+              )}
+            </Suspense>
           )}
         </div>
       </div>

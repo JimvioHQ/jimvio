@@ -1392,7 +1392,7 @@ import Link from "next/link";
 import {
   Home, Radio, GraduationCap, Users, Trophy, Layers,
   Plus, ChevronDown, ChevronRight, Flame,
-  MessageCircle, FileText, Folder, CheckSquare, LayoutList, Hash,
+  MessageCircle, Hash,
   MoreHorizontal, Star, UserPlus, ShieldCheck, Calendar, Megaphone, Target,
   type LucideIcon,
 } from "lucide-react";
@@ -1406,6 +1406,8 @@ import type { MembershipLite } from "@/lib/community-workspace-access";
 import { WorkspaceRoomOverlay } from "../workspace-room-overlay";
 import { RoomContent } from "./room-content";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
+import { GroupWorkspace } from "./group/GroupWorkspace";
+import { roomTypeIcon as sharedRoomTypeIcon } from "@/lib/community/workspace";
 
 /* ─── Types ──────────────────────────────────────────────────────── */
 
@@ -1456,14 +1458,7 @@ const MOBILE_NAV_ITEMS: NavItem[] = [
 ];
 
 function roomTypeIcon(t: string): LucideIcon {
-  switch (t) {
-    case "chat": return MessageCircle;
-    case "course": return GraduationCap;
-    case "posts": return FileText;
-    case "resources": return Folder;
-    case "tasks": return CheckSquare;
-    default: return LayoutList;
-  }
+  return sharedRoomTypeIcon(t);
 }
 
 const ALLOWED_ROOM_PARAMS = new Set(["view", "space", "room"]);
@@ -1605,7 +1600,9 @@ export function WorkspaceLayout({
   };
 
   const openRoom = (spaceId: string, roomId: string) => {
-    navigateWithParams(buildParams({ space: spaceId, room: roomId }));
+    router.push(
+      `${basePath}/room?space=${encodeURIComponent(spaceId)}&room=${encodeURIComponent(roomId)}`
+    );
   };
 
   const closeRoom = () => {
@@ -1616,7 +1613,11 @@ export function WorkspaceLayout({
   const activeRoomId = searchParams.get("room");
   const activeSpace = activeSpaceId ? spacesWithRooms.find((s) => s.id === activeSpaceId) : null;
   const activeRoom = activeSpace && activeRoomId ? activeSpace.rooms.find((r) => r.id === activeRoomId) : null;
-  const roomOverlayOpen = !!(activeSpace && activeRoom);
+  /** /room page owns ChannelWorkspace — avoid double overlay */
+  const onDedicatedRoomRoute = pathname.endsWith("/room");
+  const roomOverlayOpen = !!(activeSpace && activeRoom) && !onDedicatedRoomRoute;
+  const groupWorkspaceOpen =
+    !!activeSpace && !activeRoomId && !onDedicatedRoomRoute;
 
   return (
     <WorkspaceProvider value={ctx}>
@@ -1626,14 +1627,14 @@ export function WorkspaceLayout({
             className={cn(
               "flex flex-1 min-h-0",
               hideSidebar ? "p-0 pb-14 lg:pb-0" : "px-4 lg:px-6 py-4 lg:py-6 pb-24 lg:pb-6",
-              roomOverlayOpen
+              roomOverlayOpen || groupWorkspaceOpen
                 ? "flex flex-col"
                 : hideSidebar
                   ? "flex flex-col"
                   : "lg:grid lg:grid-cols-[240px_1fr] lg:gap-5",
             )}
           >
-            {!roomOverlayOpen && !hideSidebar && (
+            {!roomOverlayOpen && !groupWorkspaceOpen && !hideSidebar && (
               <aside className="hidden lg:flex flex-col flex-shrink-0">
                 <Sidebar
                   community={community}
@@ -1651,13 +1652,50 @@ export function WorkspaceLayout({
                     setExpandedSpaces((p) => ({ ...p, [id]: !p[id] }))
                   }
                   onNavigateRoom={openRoom}
+                  onOpenGroup={(spaceId) =>
+                    navigateWithParams(buildParams({ space: spaceId, room: null }))
+                  }
                 />
               </aside>
             )}
 
             {/* ── Main content slot ── */}
-            <main className={cn("relative flex min-h-0 min-w-0 flex-1 flex-col", roomOverlayOpen && "overflow-hidden")}>
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
+            <main className={cn("relative flex min-h-0 min-w-0 flex-1 flex-col", (roomOverlayOpen || groupWorkspaceOpen) && "overflow-hidden")}>
+              <div
+                className={cn(
+                  "flex min-h-0 min-w-0 flex-1 flex-col",
+                  (roomOverlayOpen || groupWorkspaceOpen) && "hidden"
+                )}
+              >
+                {children}
+              </div>
+
+              {groupWorkspaceOpen && activeSpace && (
+                <div className="absolute inset-0 z-20 flex min-h-0 flex-col bg-[var(--color-bg)] p-0 sm:p-3">
+                  <div className="mb-2 flex shrink-0 items-center justify-between px-3 sm:px-0">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigateWithParams(buildParams({ space: null, room: null }))
+                      }
+                      className="text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
+                    >
+                      ← Back to community
+                    </button>
+                  </div>
+                  <GroupWorkspace
+                    space={activeSpace}
+                    communityId={community.id}
+                    communitySlug={community.slug}
+                    ownerId={community.owner_id}
+                    userId={currentUserId}
+                    membership={membership ?? null}
+                    memberCount={overview?.memberCount ?? 0}
+                    isStaff={isAdmin || isOwner}
+                    ownerName={ownerName}
+                  />
+                </div>
+              )}
 
               {roomOverlayOpen && (
                 <WorkspaceRoomOverlay
@@ -1673,6 +1711,10 @@ export function WorkspaceLayout({
                     space={activeSpace!}
                     room={activeRoom!}
                     currentUserId={currentUserId}
+                    membership={membership ?? null}
+                    ownerId={community.owner_id ?? null}
+                    memberCount={overview?.memberCount ?? 0}
+                    onlineCount={overview?.membersOnline ?? 0}
                   />
                 </WorkspaceRoomOverlay>
               )}
@@ -1693,6 +1735,7 @@ export function WorkspaceLayout({
 function Sidebar({
   community, basePath, pathname, view, isAdmin, onViewToggle,
   profile, points, overview, spacesWithRooms, expandedSpaces, onToggleSpace, onNavigateRoom,
+  onOpenGroup,
 }: {
   community: WorkspaceCommunity;
   basePath: string;
@@ -1707,6 +1750,7 @@ function Sidebar({
   expandedSpaces: Record<string, boolean>;
   onToggleSpace: (id: string) => void;
   onNavigateRoom: (spaceId: string, roomId: string) => void;
+  onOpenGroup?: (spaceId: string) => void;
 }) {
   const router = useRouter();
   const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
@@ -1878,23 +1922,32 @@ function Sidebar({
               const isOpen = expandedSpaces[space.id] !== false;
               return (
                 <div key={space.id}>
-                  <button
-                    type="button"
-                    onClick={() => onToggleSpace(space.id)}
-                    className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-left hover:bg-surface-secondary transition-colors group"
-                  >
-                    <div className="w-6 h-6 rounded-md bg-[#fd5000]/10 flex items-center justify-center flex-shrink-0">
-                      <Hash className="w-3 h-3 text-[#fd5000]" />
-                    </div>
-                    <span className="flex-1 truncate text-[12px] font-medium text-text-primary">
-                      {space.name}
-                    </span>
-                    {isOpen ? (
-                      <ChevronDown className="w-3 h-3 text-text-muted" />
-                    ) : (
-                      <ChevronRight className="w-3 h-3 text-text-muted" />
-                    )}
-                  </button>
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => onOpenGroup?.(space.id)}
+                      className="min-w-0 flex-1 flex items-center gap-2 px-3 py-1.5 rounded-md text-left hover:bg-surface-secondary transition-colors group"
+                    >
+                      <div className="w-6 h-6 rounded-md bg-[#fd5000]/10 flex items-center justify-center flex-shrink-0">
+                        <Hash className="w-3 h-3 text-[#fd5000]" />
+                      </div>
+                      <span className="flex-1 truncate text-[12px] font-medium text-text-primary">
+                        {space.name}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={isOpen ? "Collapse channels" : "Expand channels"}
+                      onClick={() => onToggleSpace(space.id)}
+                      className="rounded-md p-1.5 text-text-muted hover:bg-surface-secondary"
+                    >
+                      {isOpen ? (
+                        <ChevronDown className="w-3 h-3" />
+                      ) : (
+                        <ChevronRight className="w-3 h-3" />
+                      )}
+                    </button>
+                  </div>
 
                   {isOpen && space.rooms.length > 0 && (
                     <ul className="ml-4 mt-0.5 space-y-px border-l border-border/60 pl-2.5">

@@ -1,36 +1,25 @@
-// components/workspace/sections/SpacesSection.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ChevronDown, ChevronRight, MessageCircle, BookOpen, FileText,
-  Folder, CheckSquare, LayoutList, Hash, Plus, Lock, LayoutGrid,
-  type LucideIcon,
+  ChevronDown, ChevronRight, Folder, Plus, Lock, LayoutGrid, LayoutList,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 import { useWorkspace, type WorkspaceSpaceRow } from "@/components/community/workspace-context";
 import type { WorkspaceCommunity } from "@/types/workspace";
 import { GroupWorkspace } from "@/components/community/workspace/group/GroupWorkspace";
+import {
+  communityRoomHref,
+  roomTypeIcon,
+} from "@/lib/community/workspace";
 
 interface Props {
   community: WorkspaceCommunity;
   spacesWithRooms: WorkspaceSpaceRow[];
   isAdmin?: boolean;
   isOwner?: boolean;
-}
-
-function roomTypeIcon(roomType: string): LucideIcon {
-  switch (roomType) {
-    case "chat": return MessageCircle;
-    case "course": return BookOpen;
-    case "posts": return FileText;
-    case "resources": return Folder;
-    case "tasks": return CheckSquare;
-    case "thread": return Hash;
-    default: return LayoutList;
-  }
 }
 
 export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isOwner = false }: Props) {
@@ -227,7 +216,7 @@ export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isO
                         type="button"
                         onClick={() => {
                           router.push(
-                            `/communities/${community.slug}/room?space=${room.space_id}&room=${room.id}`
+                            communityRoomHref(community.slug, room.space_id, room.id)
                           );
                         }}
                         className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-surface transition-colors text-left group"

@@ -39,3 +39,9 @@ export {
   mapSpaceToGroup,
   mapSpacesToGroups,
 } from "./mappers";
+
+export {
+  communityRoomHref,
+  communityGroupHref,
+  roomTypeIcon,
+} from "./navigation";

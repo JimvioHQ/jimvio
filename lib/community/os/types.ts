@@ -88,32 +88,61 @@ export type CommunityScoreBreakdown = {
 
 export const GROUP_TAB_IDS = [
   "overview",
-  "channels",
+  "discussion",
   "knowledge",
   "resources",
   "courses",
-  "store",
   "events",
   "members",
-  "leaderboard",
-  "pinned",
+  "live",
+  "store",
   "activity",
+  "ai",
 ] as const;
 
 export type GroupTabId = (typeof GROUP_TAB_IDS)[number];
 
 export const GROUP_TABS: { id: GroupTabId; label: string }[] = [
   { id: "overview", label: "Overview" },
-  { id: "channels", label: "Channels" },
+  { id: "discussion", label: "Discussion" },
   { id: "knowledge", label: "Knowledge" },
   { id: "resources", label: "Resources" },
   { id: "courses", label: "Courses" },
-  { id: "store", label: "Store" },
   { id: "events", label: "Events" },
   { id: "members", label: "Members" },
-  { id: "leaderboard", label: "Leaderboard" },
-  { id: "pinned", label: "Pinned" },
+  { id: "live", label: "Live" },
+  { id: "store", label: "Store" },
   { id: "activity", label: "Activity" },
+  { id: "ai", label: "AI" },
+];
+
+/** Sidebar nav for Group Creator Workspace (Settings is owner-only). */
+export const GROUP_SIDEBAR_IDS = [
+  "overview",
+  "discussion",
+  "knowledge",
+  "resources",
+  "events",
+  "courses",
+  "members",
+  "store",
+  "live",
+  "settings",
+] as const;
+
+export type GroupSidebarId = (typeof GROUP_SIDEBAR_IDS)[number];
+
+export const GROUP_SIDEBAR: { id: GroupSidebarId; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "discussion", label: "Channels" },
+  { id: "knowledge", label: "Knowledge" },
+  { id: "resources", label: "Resources" },
+  { id: "events", label: "Events" },
+  { id: "courses", label: "Courses" },
+  { id: "members", label: "Members" },
+  { id: "store", label: "Store" },
+  { id: "live", label: "Live" },
+  { id: "settings", label: "Settings" },
 ];
 
 export const RESOURCE_LIBRARY_SHELVES = [

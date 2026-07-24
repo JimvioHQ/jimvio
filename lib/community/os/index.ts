@@ -4,6 +4,7 @@ export type {
   CollaborationEvent,
   CommunityScoreBreakdown,
   GroupTabId,
+  GroupSidebarId,
   TaskStatus,
   TaskPriority,
   ResourceLibraryShelf,
@@ -16,6 +17,8 @@ export {
   TASK_PRIORITIES,
   GROUP_TAB_IDS,
   GROUP_TABS,
+  GROUP_SIDEBAR_IDS,
+  GROUP_SIDEBAR,
   RESOURCE_LIBRARY_SHELVES,
 } from "./types";
 

@@ -204,8 +204,9 @@ export function WorkspaceRoomView() {
         discussion={discussion}
         memberCount={overview?.memberCount ?? memberCount}
         onlineCount={overview?.membersOnline ?? 0}
-        roomId={room.room_type === "chat" ? room.id : undefined}
+        roomId={room.id}
         communityId={communityId}
+        userId={userId}
         canManageKnowledge={channel.permissions.canModerate}
       />
     </WorkspaceRoomOverlay>
