@@ -21,6 +21,10 @@ export type PermissionCapability =
   | "group.manage"
   | "members.view"
   | "members.invite"
+  | "members.manage"
+  | "members.ban"
+  | "members.remove"
+  | "members.role"
   | "pins.manage"
   | "files.upload"
   | "settings.manage"
@@ -37,6 +41,10 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "group.manage",
     "members.view",
     "members.invite",
+    "members.manage",
+    "members.ban",
+    "members.remove",
+    "members.role",
     "pins.manage",
     "files.upload",
     "settings.manage",
@@ -52,6 +60,10 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "group.manage",
     "members.view",
     "members.invite",
+    "members.manage",
+    "members.ban",
+    "members.remove",
+    "members.role",
     "pins.manage",
     "files.upload",
     "settings.manage",
@@ -65,6 +77,8 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "channel.write",
     "members.view",
     "members.invite",
+    "members.manage",
+    "members.ban",
     "pins.manage",
     "files.upload",
     "knowledge.manage",

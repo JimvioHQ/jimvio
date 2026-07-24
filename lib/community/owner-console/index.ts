@@ -60,3 +60,22 @@ export {
   mapRoomToOwnerChannel,
 } from "./channels";
 
+// Members — import from `@/lib/community/owner-console/members` for full surface.
+export type {
+  OwnerJoinRequest,
+  OwnerMemberAction,
+  OwnerMemberAnalytics,
+  OwnerMemberDetail,
+  OwnerMemberInvite,
+  OwnerMemberListItem,
+  OwnerMemberOverview,
+} from "./members";
+
+export {
+  MEMBER_ASSIGNABLE_ROLES,
+  MEMBER_FILTER_STATUSES,
+  MEMBER_PROFILE_TABS,
+  resolveMemberManageContext,
+  mapMembershipToOwnerMember,
+} from "./members";
+
