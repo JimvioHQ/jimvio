@@ -368,16 +368,16 @@ export function CalendarPreviewCard({ overview, base }: Pick<IntelligenceProps, 
                 className="flex items-center gap-3 rounded-lg p-1.5 transition hover:bg-[var(--color-surface-secondary)]"
               >
                 <div className="flex h-12 w-11 shrink-0 flex-col items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]">
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-[#fd5000]">
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-[#fd5000]" suppressHydrationWarning>
                     {format(d, "MMM")}
                   </span>
-                  <span className="text-[15px] font-black leading-none text-[var(--color-text-primary)]">
+                  <span className="text-[15px] font-black leading-none text-[var(--color-text-primary)]" suppressHydrationWarning>
                     {format(d, "d")}
                   </span>
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-[12.5px] font-semibold">{ev.title}</p>
-                  <p className="text-[10px] text-[var(--color-text-muted)]">
+                  <p className="text-[10px] text-[var(--color-text-muted)]" suppressHydrationWarning>
                     {format(d, "EEE · h:mm a")}
                   </p>
                 </div>

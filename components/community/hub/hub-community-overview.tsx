@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, useSyncExternalStore } from "react";
+import { useId, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
@@ -38,6 +38,7 @@ import {
   OverviewIntelligenceStrip,
 } from "./overview-intelligence";
 import { CreatorOSDashboard } from "@/components/community/os/CreatorOSDashboard";
+import { useClientReady } from "@/lib/community/use-client-ready";
 
 function formatJoined(iso: string | null) {
   if (!iso) return null;
@@ -48,12 +49,23 @@ function formatJoined(iso: string | null) {
   }
 }
 
-function useIsClient() {
-  return useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
+function RelativeTime({ iso }: { iso: string }) {
+  // Mount latch (not useSyncExternalStore true/false) so SSR absolute text
+  // matches the hydration pass — then upgrade to relative after mount.
+  const ready = useClientReady();
+  const absolute = useMemo(() => {
+    try {
+      return format(new Date(iso), "MMM d, yyyy");
+    } catch {
+      return "";
+    }
+  }, [iso]);
+  if (!ready) return <>{absolute}</>;
+  try {
+    return <>{formatDistanceToNow(new Date(iso), { addSuffix: true })}</>;
+  } catch {
+    return <>{absolute}</>;
+  }
 }
 
 function formatCount(n: number) {
@@ -70,26 +82,6 @@ function FadeIn({
 }) {
   // Static only — Framer whileInView remounts were triggering React #185 on overview.
   return <div className={className}>{children}</div>;
-}
-
-function RelativeTime({ iso }: { iso: string }) {
-  const isClient = useIsClient();
-  const absolute = useMemo(() => {
-    try {
-      return format(new Date(iso), "MMM d, yyyy");
-    } catch {
-      return "";
-    }
-  }, [iso]);
-  const relative = useMemo(() => {
-    if (!isClient) return absolute;
-    try {
-      return formatDistanceToNow(new Date(iso), { addSuffix: true });
-    } catch {
-      return absolute;
-    }
-  }, [absolute, isClient, iso]);
-  return <>{relative}</>;
 }
 
 function EmptyCover({ name }: { name: string }) {
