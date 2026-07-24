@@ -13,6 +13,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { WorkspaceGroup } from "@/lib/community/workspace";
 import { WorkspaceIconButton } from "@/components/community/workspace/channel/ChannelEmptyState";
+import {
+  WorkspaceActionMenu,
+  buildWorkspaceActions,
+} from "@/components/community/workspace/shared/WorkspaceActionMenu";
+import { BookmarkButton } from "@/components/community/personalization/BookmarkButton";
 
 export function GroupHeader({
   group,
@@ -26,6 +31,8 @@ export function GroupHeader({
   onJoin,
   searchValue,
   onSearchChange,
+  communityId,
+  bookmarkHref,
   className,
 }: {
   group: WorkspaceGroup;
@@ -39,6 +46,8 @@ export function GroupHeader({
   onJoin?: () => void;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
+  communityId?: string;
+  bookmarkHref?: string;
   className?: string;
 }) {
   const cover =
@@ -149,6 +158,32 @@ export function GroupHeader({
                 <BellOff className="h-4 w-4" />
               )}
             </WorkspaceIconButton>
+            {communityId && bookmarkHref ? (
+              <BookmarkButton
+                id={group.id}
+                kind="group"
+                communityId={communityId}
+                title={group.name}
+                href={bookmarkHref}
+                size="sm"
+              />
+            ) : null}
+            <WorkspaceActionMenu
+              label={`${group.name} actions`}
+              items={buildWorkspaceActions({
+                muted: !notificationsOn,
+                pinned: group.featured,
+                onInvite: () => {
+                  if (onInvite) {
+                    onInvite();
+                    return;
+                  }
+                  void navigator.clipboard?.writeText(window.location.href);
+                  toast.success("Invite link copied");
+                },
+                onMute: onToggleNotifications,
+              })}
+            />
           </div>
         </div>
 

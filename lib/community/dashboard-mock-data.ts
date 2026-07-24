@@ -171,27 +171,27 @@ export const POPULAR_WEEK = [
   },
   {
     id: "2",
-    title: "Voice Room Motivation Talk",
-    type: "Voice",
-    popularity: "980 joined",
-    actionLabel: "Join",
-    href: "/chat?space=voice",
-  },
-  {
-    id: "3",
-    title: "Signals Space",
-    type: "Space",
-    popularity: "612 active",
-    actionLabel: "Open",
-    href: "/chat?space=signals",
-  },
-  {
-    id: "4",
     title: "Clip Challenges",
     type: "Challenge",
     popularity: "489 playing",
     actionLabel: "Enter",
     href: "/missions",
+  },
+  {
+    id: "3",
+    title: "Creator Courses",
+    type: "Course",
+    popularity: "612 enrolled",
+    actionLabel: "Open",
+    href: "/courses",
+  },
+  {
+    id: "4",
+    title: "Community Feed",
+    type: "Feed",
+    popularity: "980 active",
+    actionLabel: "Open",
+    href: "/feed",
   },
 ];
 

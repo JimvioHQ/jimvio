@@ -84,9 +84,23 @@ assert.match(media, /Images|Videos|Audio/);
 assert.match(members, /ROLE_STYLE|role/i);
 assert.match(roomContent, /ChannelWorkspace/);
 assert.doesNotMatch(roomContent, /Chat UI goes here/);
-assert.match(shell, /GroupWorkspace/);
-assert.match(shell, /onDedicatedRoomRoute|\/room/);
+assert.match(shell, /communityGroupHref|communityChannelHref/);
+assert.match(shell, /WorkspaceProvider/);
+assert.doesNotMatch(shell, /searchParams\.get\([\"']space[\"']\)/);
+assert.doesNotMatch(nav, /\?space=/);
+assert.match(nav, /\/groups\//);
+assert.match(nav, /\/channels\//);
 assert.match(roomIndex, /requestSearch/);
 assert.doesNotMatch(channelWs, /fork ChatRoom/i);
+
+mustExist("app/communities/(hubs)/[slug]/groups/[groupSlug]/page.tsx");
+mustExist(
+  "app/communities/(hubs)/[slug]/groups/[groupSlug]/channels/[channelSlug]/page.tsx"
+);
+mustExist("lib/community/workspace/legacy-redirect.ts");
+assert.match(
+  mustExist("lib/community/workspace/legacy-redirect.ts"),
+  /redirectLegacySpaceRoomQuery/
+);
 
 console.log("Creator workspace rebuild verification passed.");

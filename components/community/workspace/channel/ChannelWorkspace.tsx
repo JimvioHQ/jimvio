@@ -68,6 +68,7 @@ export function ChannelWorkspace({
   onSearch,
   roomId,
   communityId,
+  communitySlug,
   userId,
   canManageKnowledge,
 }: {
@@ -85,6 +86,7 @@ export function ChannelWorkspace({
   /** Enables index-backed panels via shared message index */
   roomId?: string;
   communityId?: string | null;
+  communitySlug?: string | null;
   userId?: string | null;
   canManageKnowledge?: boolean;
 }) {
@@ -128,6 +130,12 @@ export function ChannelWorkspace({
           onSearchClick={handleSearch}
           onOpenMembers={() => setTab("members")}
           onOpenPinned={() => setTab("pinned")}
+          communityId={communityId ?? undefined}
+          bookmarkHref={
+            communitySlug && group
+              ? `/communities/${communitySlug}/groups/${group.slug}/channels/${channel.slug}`
+              : undefined
+          }
         />
         <ChannelTabs active={tab} onChange={setTab} />
 

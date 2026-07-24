@@ -19,6 +19,7 @@ import {
 import {
     formatNotificationTime,
     getNotificationUiCategory,
+    sortNotificationsByPriority,
     type DbNotification,
     type NotificationUiCategory,
 } from "@/lib/notifications/ui-utils";
@@ -238,9 +239,11 @@ export default function NotificationsPage() {
 
     const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-    const filtered = filter === "all"
-        ? notifications
-        : notifications.filter((n) => getNotificationUiCategory(n) === filter);
+    const filtered = sortNotificationsByPriority(
+        filter === "all"
+            ? notifications
+            : notifications.filter((n) => getNotificationUiCategory(n) === filter)
+    );
 
     const markRead = async (id: string) => {
         setBusyId(id);

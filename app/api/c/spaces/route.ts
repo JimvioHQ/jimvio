@@ -26,7 +26,7 @@ export async function GET() {
   return NextResponse.json({ spaces });
 }
 
-/** Create a space (and default room) in a community — owner/admin only. */
+/** Create a Group (space) with zero Channels — channels are added intentionally later. */
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const {
@@ -48,10 +48,6 @@ export async function POST(req: NextRequest) {
     typeof body.access_type === "string" && body.access_type.trim()
       ? body.access_type.trim()
       : "free";
-  const defaultRoomType =
-    typeof body.defaultRoomType === "string" && body.defaultRoomType.trim()
-      ? body.defaultRoomType.trim()
-      : "chat";
 
   if (!communityId) {
     return NextResponse.json({ error: "communityId is required" }, { status: 400 });
@@ -105,6 +101,7 @@ export async function POST(req: NextRequest) {
       access_type: accessType,
       sort_order: count ?? 0,
       is_active: true,
+      room_count: 0,
     })
     .select("id, name, slug, description, access_type, sort_order, community_id")
     .single();
@@ -113,38 +110,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const roomName =
-    defaultRoomType === "posts"
-      ? "Announcements"
-      : defaultRoomType === "resources"
-        ? "Resources"
-        : "General";
-  const roomSlug = slugify(roomName) || "general";
-
-  const { data: room, error: roomError } = await supabase
-    .from("rooms")
-    .insert({
-      space_id: space.id,
-      community_id: communityId,
-      name: roomName,
-      slug: roomSlug,
-      room_type: defaultRoomType,
-      access_type: "inherit",
-      sort_order: 0,
-      is_active: true,
-    })
-    .select("id, name, slug, room_type, space_id")
-    .single();
-
-  if (roomError) {
-    // Space already created — return it; room creation is best-effort for UX.
-    return NextResponse.json({ space, room: null, warning: roomError.message });
-  }
-
-  await supabase
-    .from("spaces")
-    .update({ room_count: 1 })
-    .eq("id", space.id);
-
-  return NextResponse.json({ space, room });
+  return NextResponse.json({ space, room: null });
 }

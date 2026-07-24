@@ -53,11 +53,9 @@ export const DEFAULT_PERMISSION_CONFIG: GroupPermissionConfig = {
 };
 
 export const DEFAULT_GROUP_CONTENT: GroupDefaultContent = {
-  welcomeMessage: "Welcome to the group. Introduce yourself and explore the channels.",
-  defaultChannels: [
-    { name: "General", roomType: "chat" },
-    { name: "Announcements", roomType: "posts" },
-  ],
+  welcomeMessage: "Welcome to the group.",
+  /** Empty by design — channels are created intentionally after the group. */
+  defaultChannels: [],
   defaultResources: [],
   defaultRules: "Be respectful. Stay on topic. No spam.",
 };

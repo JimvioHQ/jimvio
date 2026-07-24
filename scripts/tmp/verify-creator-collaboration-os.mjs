@@ -98,7 +98,11 @@ assert.match(aiPanel, /Find previous answers/);
 // Creator OS dashboard remains intact; Overview stays member-first (no OS mount).
 assert.doesNotMatch(overview, /CreatorOSDashboard/);
 assert.doesNotMatch(overview, /Latest Activity/);
-assert.match(overview, /Start Here|Featured Groups|Featured Courses|Meet the Team/);
+assert.match(overview, /Start Here|Featured Courses|Meet the Team|Community Rules/);
+assert.match(overview, /grid-cols-12|max-w-\[1400px\]/);
+assert.doesNotMatch(overview, /Join General/);
+assert.doesNotMatch(overview, /Featured Groups|Featured Channels/);
+assert.doesNotMatch(overview, /max-w-\[880px\]|max-w-2xl space-y-6/);
 assert.match(chatRoom, /ConvertToTaskDialog/);
 assert.match(messageCard, /Convert to Task/);
 assert.match(memberProfile, /Knowledge contributions/);

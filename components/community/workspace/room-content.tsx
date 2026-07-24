@@ -105,6 +105,7 @@ export function RoomContent({
       onlineCount={onlineCount}
       roomId={room.id}
       communityId={community.id}
+      communitySlug={community.slug}
       userId={currentUserId}
       canManageKnowledge={channel.permissions.canModerate}
     />

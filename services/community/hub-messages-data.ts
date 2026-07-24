@@ -145,7 +145,7 @@ export async function getHubMessageThreads(userId: string) {
     const [{ data: rooms }, { data: spaces }] = await Promise.all([
       supabase
         .from("rooms")
-        .select("id, name, community_id, communities(name, slug)")
+        .select("id, name, slug, community_id, spaces(slug), communities(name, slug)")
         .in("community_id", communityIds)
         .eq("room_type", "chat")
         .eq("is_active", true)
@@ -185,6 +185,7 @@ export async function getHubMessageThreads(userId: string) {
 
     for (const room of rooms ?? []) {
       const community = room.communities as { name: string; slug: string } | null;
+      const space = room.spaces as { slug: string } | null;
       const last = roomLastMsg.get(room.id);
       threads.push({
         id: `room:${room.id}`,
@@ -203,7 +204,12 @@ export async function getHubMessageThreads(userId: string) {
         communitySlug: community?.slug ?? "",
         peerId: null,
         roomId: room.id,
-        href: community ? `/communities/${community.slug}/room?room=${room.id}` : null,
+        href:
+          community && space?.slug && room.slug
+            ? `/communities/${community.slug}/groups/${space.slug}/channels/${room.slug}`
+            : community
+              ? `/communities/${community.slug}/chats`
+              : null,
       });
     }
 
@@ -224,7 +230,9 @@ export async function getHubMessageThreads(userId: string) {
         communitySlug: community?.slug ?? "",
         peerId: null,
         roomId: null,
-        href: community ? `/communities/${community.slug}` : null,
+        href: community
+          ? `/communities/${community.slug}/groups/${space.slug}`
+          : null,
       });
     }
   }

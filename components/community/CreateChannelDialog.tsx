@@ -93,7 +93,7 @@ export function CreateChannelDialog({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Signals"
+              placeholder="e.g. Introductions"
               className="rounded-sm border-[var(--color-border)]"
               maxLength={80}
               required

@@ -224,10 +224,10 @@ export async function POST(req: NextRequest) {
 
   let created = asSpaceRow(space);
 
-  const channels =
-    defaultContent.defaultChannels.length > 0
-      ? defaultContent.defaultChannels
-      : [{ name: "General", roomType: "chat" }];
+  // Only create channels when the owner explicitly provided them.
+  const channels = defaultContent.defaultChannels.filter(
+    (ch) => typeof ch.name === "string" && ch.name.trim().length > 0
+  );
 
   let roomCount = 0;
   for (let i = 0; i < channels.length; i++) {

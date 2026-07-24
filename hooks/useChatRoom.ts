@@ -10,6 +10,10 @@ import { useWorkspace } from "@/components/community/workspace-context";
 import { useRouter } from "next/navigation";
 import { deriveMessageType, parseAttachments, pickMime } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  communityChannelHref,
+  resolveSpaceAndRoom,
+} from "@/lib/community/workspace";
 import type {
     ActiveConvPeer,
     ChatFilter,
@@ -1245,9 +1249,16 @@ export function useChatRoom({
             setActiveConvId(null);
             setActiveConvPeer(null);
             setForceShowList(false);
-            router.push(`/communities/${slug}/workspace?space=${spaceId}&room=${rId}`);
+            const hit = resolveSpaceAndRoom(spacesWithRooms, spaceId, rId);
+            if (hit) {
+                router.push(
+                    communityChannelHref(slug, hit.space.slug, hit.room.slug)
+                );
+                return;
+            }
+            router.push(`/communities/${slug}`);
         },
-        [router, slug]
+        [router, slug, spacesWithRooms]
     );
 
     return {

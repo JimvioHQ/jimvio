@@ -56,22 +56,22 @@ function Section({
         {action}
       </div>
       {empty ? (
-        <div className="rounded-2xl bg-[var(--color-surface-secondary)]/60 px-4 py-5">
-          <p className="text-[14px] font-medium text-[var(--color-text-primary)]">
+        <div className="rounded-2xl bg-[var(--color-surface-secondary)]/50 px-5 py-6 ring-1 ring-[var(--color-border)]/50">
+          <p className="text-[14px] font-semibold text-[var(--color-text-primary)]">
             {emptyTitle}
           </p>
-          <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+          <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
             {emptyDescription}
           </p>
-          {emptyActionLabel && onEmptyAction && (
+          {emptyActionLabel && onEmptyAction ? (
             <button
               type="button"
               onClick={onEmptyAction}
-              className="mt-3 text-[13px] font-semibold text-[var(--color-accent)] hover:underline"
+              className="mt-4 inline-flex min-h-10 items-center rounded-full bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90"
             >
               {emptyActionLabel}
             </button>
-          )}
+          ) : null}
         </div>
       ) : (
         children

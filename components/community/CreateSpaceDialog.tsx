@@ -14,12 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-const ROOM_TYPES = [
-  { value: "chat", label: "Chat" },
-  { value: "posts", label: "Posts" },
-  { value: "resources", label: "Resources" },
-] as const;
-
 export function CreateSpaceDialog({
   open,
   onOpenChange,
@@ -36,14 +30,11 @@ export function CreateSpaceDialog({
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [defaultRoomType, setDefaultRoomType] =
-    useState<(typeof ROOM_TYPES)[number]["value"]>("chat");
   const [saving, setSaving] = useState(false);
 
   function reset() {
     setName("");
     setDescription("");
-    setDefaultRoomType("chat");
   }
 
   async function submit(e: FormEvent) {
@@ -59,7 +50,6 @@ export function CreateSpaceDialog({
           communityId,
           name: trimmed,
           description: description.trim() || undefined,
-          defaultRoomType,
         }),
       });
       const data = await res.json();
@@ -91,8 +81,8 @@ export function CreateSpaceDialog({
           <DialogTitle className="text-base font-bold">Create {entityLabel}</DialogTitle>
           <DialogDescription className="text-sm text-[var(--color-text-muted)]">
             {entityLabel === "Group"
-              ? "Create a sub-community for a segment of your members."
-              : "Organize rooms for chat, posts, or resources in this community."}
+              ? "Create a collaboration space. Add channels after the group exists."
+              : "Organize collaboration in this community. Channels are added separately."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="mt-2 space-y-3">
@@ -103,7 +93,7 @@ export function CreateSpaceDialog({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={entityLabel === "Group" ? "e.g. Beginners" : "e.g. General"}
+              placeholder={entityLabel === "Group" ? "e.g. Beginners" : "e.g. Mentorship"}
               className="rounded-sm border-[var(--color-border)]"
               maxLength={80}
               required
@@ -126,24 +116,6 @@ export function CreateSpaceDialog({
               className="resize-none rounded-sm border-[var(--color-border)]"
               maxLength={300}
             />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-bold text-[var(--color-text-secondary)]">
-              Default channel type
-            </label>
-            <select
-              value={defaultRoomType}
-              onChange={(e) =>
-                setDefaultRoomType(e.target.value as (typeof ROOM_TYPES)[number]["value"])
-              }
-              className="w-full rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]"
-            >
-              {ROOM_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button

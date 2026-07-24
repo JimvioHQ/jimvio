@@ -23,10 +23,10 @@ type SearchResult = {
 };
 
 const TYPE_META: Record<SearchType, { label: string; icon: typeof Search }> = {
-  posts: { label: "Posts", icon: FileText },
+  posts: { label: "Messages", icon: FileText },
   members: { label: "Members", icon: Users },
-  spaces: { label: "Spaces", icon: Layers },
-  rooms: { label: "Rooms", icon: MessageSquare },
+  spaces: { label: "Groups", icon: Layers },
+  rooms: { label: "Channels", icon: MessageSquare },
 };
 
 export function HubSearchDialog({
@@ -163,7 +163,7 @@ export function HubSearchDialog({
                 setError(null);
               }
             }}
-            placeholder="Search posts, members, spaces, rooms…"
+            placeholder="Search groups, channels, messages, members…"
             className="h-12 w-full bg-transparent text-[14px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
           />
           {loading ? (

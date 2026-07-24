@@ -804,11 +804,13 @@ export async function getHubChannels(userId: string): Promise<HubChannelItem[]> 
       const community = room.communities as { name: string; slug: string } | null;
       const space = room.spaces as { name: string; slug: string } | null;
       const href =
-        community && room.space_id
-          ? `/communities/${community.slug}/room?space=${room.space_id}&room=${room.id}`
-          : community
+        community && space?.slug && room.slug
+          ? `/communities/${community.slug}/groups/${space.slug}/channels/${room.slug}`
+          : community && room.space_id
             ? `/communities/${community.slug}/chat`
-            : "/communities/messages";
+            : community
+              ? `/communities/${community.slug}/chat`
+              : "/communities/messages";
       return {
         id: room.id,
         name: room.name,
@@ -965,8 +967,8 @@ export async function getHubLiveRooms(userId: string): Promise<HubLiveRoom[]> {
         room_slug: room.slug,
         message_count: counts.get(room.id) ?? 0,
         href:
-          community && space
-            ? `/communities/${community.slug}/room?space=${space.slug}&room=${room.slug}`
+          community && space?.slug && room.slug
+            ? `/communities/${community.slug}/groups/${space.slug}/channels/${room.slug}`
             : community
               ? `/communities/${community.slug}/chats`
               : "/communities/live",

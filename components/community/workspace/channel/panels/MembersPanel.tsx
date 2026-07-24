@@ -118,12 +118,14 @@ export function MembersPanel({
       ) : members.length === 0 ? (
         <ChannelEmptyState
           icon={Users}
+          emoji="👥"
           title="Members"
           description="Member roster will appear once community memberships load."
         />
       ) : filtered.length === 0 ? (
         <ChannelEmptyState
           icon={Users}
+          emoji="🔎"
           title="No matches"
           description="Try another name or role filter."
           className="py-10"
@@ -136,7 +138,7 @@ export function MembersPanel({
               return (
                 <li
                   key={m.id}
-                  className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition hover:bg-[var(--color-surface-secondary)]"
+                  className="flex items-center gap-3 rounded-2xl px-3 py-3 transition hover:bg-[var(--color-surface-secondary)]"
                 >
                   {m.avatarUrl ? (
                     <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-1 ring-[var(--color-border)]">

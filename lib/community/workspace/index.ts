@@ -42,6 +42,11 @@ export {
 
 export {
   communityRoomHref,
+  communityChannelHref,
   communityGroupHref,
+  resolveSpace,
+  resolveRoom,
+  resolveSpaceAndRoom,
+  canonicalFromSpaceRoom,
   roomTypeIcon,
 } from "./navigation";

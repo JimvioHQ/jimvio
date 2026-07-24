@@ -454,7 +454,10 @@ export function CreateGroupWizard({
                   rows={3}
                 />
               </Field>
-              <Field label="Default channels">
+              <Field label="Channels (optional)">
+                <p className="mb-2 text-[12px] text-[var(--color-text-muted)]">
+                  Leave empty to create the group first, then add channels later.
+                </p>
                 <div className="space-y-2">
                   {draft.defaultContent.defaultChannels.map((ch, i) => (
                     <div key={i} className="flex gap-2">
@@ -507,7 +510,7 @@ export function CreateGroupWizard({
                           ...d.defaultContent,
                           defaultChannels: [
                             ...d.defaultContent.defaultChannels,
-                            { name: "New channel", roomType: "chat" },
+                            { name: "", roomType: "chat" },
                           ],
                         },
                       }))

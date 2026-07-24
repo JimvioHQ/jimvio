@@ -24,7 +24,7 @@ interface Props {
 
 /**
  * Premium Groups gallery — collaboration spaces, not accordion lists.
- * Opening a group uses existing `?space=` GroupWorkspace routing.
+ * Opens canonical /groups/[groupSlug] routes.
  */
 export function SpacesSection({
   community,
@@ -117,8 +117,8 @@ export function SpacesSection({
         />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {groups.map(({ space, group }) => {
-            const href = communityGroupHref(community.slug, space.id);
+          {groups.map(({ space, group }, index) => {
+            const href = communityGroupHref(community.slug, space.slug);
             const latest =
               group.channels[0]?.name
                 ? `Latest · ${group.channels[0].name}`
@@ -132,10 +132,18 @@ export function SpacesSection({
                 latestUpdate={latest}
                 isFavorite={isFavorite("group", space.id)}
                 isOwner={Boolean(isOwner)}
+                isNew={index === 0 && spacesWithRooms.length <= 3}
+                ownerName={null}
                 onToggleFavorite={() => {
                   const was = isFavorite("group", space.id);
                   toggleFavorite("group", space.id);
                   toast.success(was ? "Removed from favorites" : "Saved to favorites");
+                }}
+                onInvite={() => {
+                  void navigator.clipboard.writeText(
+                    `${window.location.origin}${href}`
+                  );
+                  toast.success("Invite link copied");
                 }}
                 onQuickJoin={
                   membership

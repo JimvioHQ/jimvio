@@ -7,6 +7,7 @@ import {
 } from "@/components/community/community-detail-view";
 import { HubCommunityOverview } from "@/components/community/hub/hub-community-overview";
 import { loadCommunityWorkspace } from "@/lib/community/load-community-workspace";
+import { redirectLegacySpaceRoomQuery } from "@/lib/community/workspace/legacy-redirect";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
@@ -114,10 +115,15 @@ async function loadPublicCommunity(slug: string): Promise<CommunityDetailPayload
 
 export default async function CommunitySlugPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ space?: string | string[]; room?: string | string[] }>;
 }) {
   const { slug } = await params;
+  const query = await searchParams;
+  await redirectLegacySpaceRoomQuery(slug, query);
+
   const supabase = await createClient();
   const {
     data: { user },

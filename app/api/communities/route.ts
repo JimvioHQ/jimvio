@@ -11,70 +11,6 @@ function slugify(name: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-/** Bootstrap default spaces/rooms when a community has none yet (additive / safe). */
-async function bootstrapDefaultSpaces(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  communityId: string
-) {
-  const { count } = await supabase
-    .from("spaces")
-    .select("id", { count: "exact", head: true })
-    .eq("community_id", communityId);
-
-  if ((count ?? 0) > 0) return;
-
-  const defaults: {
-    name: string;
-    slug: string;
-    sort_order: number;
-    rooms: { name: string; slug: string; room_type: string; sort_order: number }[];
-  }[] = [
-    {
-      name: "Channels",
-      slug: "channels",
-      sort_order: 0,
-      rooms: [
-        { name: "Announcements", slug: "announcements", room_type: "posts", sort_order: 0 },
-        { name: "General", slug: "general", room_type: "chat", sort_order: 1 },
-        { name: "Signals", slug: "signals", room_type: "chat", sort_order: 2 },
-        { name: "Resources", slug: "resources", room_type: "resources", sort_order: 3 },
-        { name: "Voice Room", slug: "voice-room", room_type: "voice", sort_order: 4 },
-      ],
-    },
-  ];
-
-  for (const def of defaults) {
-    const { data: space, error } = await supabase
-      .from("spaces")
-      .insert({
-        community_id: communityId,
-        name: def.name,
-        slug: def.slug,
-        sort_order: def.sort_order,
-        access_type: "free",
-        is_active: true,
-        room_count: def.rooms.length,
-      })
-      .select("id")
-      .single();
-
-    if (error || !space) continue;
-
-    await supabase.from("rooms").insert(
-      def.rooms.map((room) => ({
-        space_id: space.id,
-        community_id: communityId,
-        name: room.name,
-        slug: room.slug,
-        room_type: room.room_type,
-        access_type: "inherit",
-        sort_order: room.sort_order,
-        is_active: true,
-      }))
-    );
-  }
-}
-
 export async function GET(req: NextRequest) {
   const supabase = getAdminDB();
   const { searchParams } = new URL(req.url);
@@ -103,6 +39,10 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ communities: data, total: count ?? 0, page });
 }
 
+/**
+ * Create a community with zero Groups and zero Channels.
+ * Owners add structure intentionally through the UI.
+ */
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const {
@@ -149,13 +89,6 @@ export async function POST(req: NextRequest) {
     plan_type: "lifetime",
     status: "active",
   });
-
-  // Additive: only creates defaults when the community has zero spaces.
-  try {
-    await bootstrapDefaultSpaces(supabase, data.id);
-  } catch {
-    // Never fail community create if bootstrap fails.
-  }
 
   return NextResponse.json({ community: data });
 }

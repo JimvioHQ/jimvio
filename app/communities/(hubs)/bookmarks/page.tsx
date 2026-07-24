@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Bookmark, Heart, MessageCircle, Trash2, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { PersonalBookmarksPanel } from "@/components/community/personalization/PersonalBookmarksPanel";
 
 interface SavedPost {
     id: string;
@@ -96,6 +97,12 @@ export default function BookmarksPage() {
                     <h1 className="text-2xl font-bold">Bookmarks</h1>
                     <span className="text-sm text-text-muted">({bookmarks.length})</span>
                 </div>
+
+                <PersonalBookmarksPanel />
+
+                <h2 className="mb-3 text-[15px] font-semibold text-[var(--color-text-primary)]">
+                    Saved posts
+                </h2>
 
                 {loading ? (
                     <div className="space-y-4">
