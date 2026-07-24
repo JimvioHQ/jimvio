@@ -8,3 +8,4 @@ export { AttachCommerceDialog } from "./AttachCommerceDialog";
 export { CommunityStorefront } from "./CommunityStorefront";
 export { CreatorStoreShelf } from "./CreatorStoreShelf";
 export { CommerceDiscovery } from "./CommerceDiscovery";
+export { UnifiedCreatorCommerceShell } from "./unified";

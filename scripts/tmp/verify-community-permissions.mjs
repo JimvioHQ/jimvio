@@ -85,12 +85,20 @@ assert.match(
   /presence:community/
 );
 assert.match(osDash, /CreatorCommandCenterShell/);
+assert.match(osDash, /UnifiedCreatorCommerceShell/);
 assert.match(
   fs.readFileSync(
     path.join(root, "lib/command-center/providers/index.ts"),
     "utf8"
   ),
   /communityScopedProvider/
+);
+assert.match(
+  fs.readFileSync(
+    path.join(root, "lib/community/commerce/unified/derive.ts"),
+    "utf8"
+  ),
+  /deriveCommerceMetrics/
 );
 
 console.log("Community permission + Creator OS certification gates passed.");

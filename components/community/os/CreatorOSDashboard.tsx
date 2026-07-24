@@ -29,6 +29,7 @@ import {
   CommerceDiscovery,
   CommunityStorefront,
   MessageCommerceEmbed,
+  UnifiedCreatorCommerceShell,
 } from "@/components/community/commerce";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
 import { CommunityIntelligenceHost } from "@/components/community/intelligence";
@@ -78,6 +79,18 @@ type OverviewLite = {
   liveNow?: number;
   spacesCount?: number;
   courses?: { id: string; title: string; href: string }[];
+  achievements?: unknown[] | null;
+  topContributors?: Array<{
+    id: string;
+    name: string;
+    avatar_url: string | null;
+    points: number;
+  }> | null;
+  activeMembers?: Array<{
+    id: string;
+    name: string;
+    avatar_url: string | null;
+  }> | null;
   progressBreakdown?: {
     communityLevel?: number;
     communityProgress?: number;
@@ -215,6 +228,12 @@ export function CreatorOSDashboard({
       </header>
 
       <CreatorCommandCenterShell
+        base={base}
+        communityId={communityId}
+        overview={overview}
+      />
+
+      <UnifiedCreatorCommerceShell
         base={base}
         communityId={communityId}
         overview={overview}
