@@ -79,6 +79,48 @@ export const COPILOT_QUICK_ACTIONS: CopilotQuickAction[] = [
     icon: "search",
     contexts: ["marketplace", "home", "general"],
   },
+  {
+    id: "generate-announcement",
+    label: "Generate announcement",
+    prompt: "Draft a premium community announcement for today's update.",
+    icon: "megaphone",
+    contexts: ["communities", "home", "general", "seller-dashboard"],
+  },
+  {
+    id: "generate-post",
+    label: "Generate post",
+    prompt: "Write an engaging community post that sparks replies.",
+    icon: "pen",
+    contexts: ["communities", "home", "general"],
+  },
+  {
+    id: "generate-email",
+    label: "Generate email",
+    prompt: "Draft a short email campaign to re-engage members.",
+    icon: "message",
+    contexts: ["communities", "seller-dashboard", "general"],
+  },
+  {
+    id: "recommend-campaigns",
+    label: "Recommend campaigns",
+    prompt: "Recommend creator campaigns and affiliate offers that fit me.",
+    icon: "video",
+    contexts: ["home", "affiliate", "general", "communities"],
+  },
+  {
+    id: "recommend-courses",
+    label: "Recommend courses",
+    prompt: "Recommend courses and learning paths for my goals.",
+    icon: "graduation",
+    contexts: ["communities", "home", "general"],
+  },
+  {
+    id: "summarize-page",
+    label: "Summarize this page",
+    prompt: "Summarize this page and tell me the three best next actions.",
+    icon: "info",
+    contexts: ["home", "marketplace", "communities", "seller-dashboard", "general", "product", "affiliate"],
+  },
 ];
 
 export function getQuickActionsForContext(context: CopilotPageContext, limit = 8) {

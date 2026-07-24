@@ -12,6 +12,9 @@ import type {
   CommandSearchProvider,
 } from "../types";
 import { getCommandSearchContext } from "../search-context";
+import { nlIntentSearchProvider } from "./nl-intent";
+
+export { nlIntentSearchProvider };
 
 function normalize(text: string) {
   return text.toLowerCase().trim();
@@ -165,6 +168,7 @@ export const messagesSearchProvider = stubProvider("messages", "message");
 export const aiAnswersSearchProvider = stubProvider("ai-answers", "ai-answer");
 
 export const CREATOR_OS_SEARCH_PROVIDERS: CommandSearchProvider[] = [
+  nlIntentSearchProvider,
   communityScopedProvider,
   membersSearchProvider,
   postsSearchProvider,

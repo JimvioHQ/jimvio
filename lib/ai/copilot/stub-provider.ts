@@ -13,15 +13,15 @@ You're on **${meta.label}** — ${meta.description}
 
 I'm your Jimvio assistant architecture preview. Live intelligence from OpenAI, Gemini, Claude, or DeepSeek will plug in here without UI changes.
 
-**What I can help with soon:**
-- Product discovery and comparisons
-- Affiliate & UGC campaign matching
-- Community and creator recommendations
-- Seller listing optimization
+**What I can help with:**
+- Answer platform questions and navigate Jimvio
+- Recommend products, communities, campaigns, creators, courses, affiliates
+- Summarize pages and generate announcements, posts, descriptions, emails, replies
+- Content studio drafts and marketing copy
 
 \`\`\`ts
 // Future provider hook — no UI redesign needed
-const provider = getCopilotProvider("openai");
+const provider = getCopilotProvider("openai"); // or gemini | claude | deepseek
 for await (const chunk of provider.send(input)) {
   appendStream(chunk);
 }

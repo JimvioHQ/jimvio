@@ -166,7 +166,7 @@ export function CommandCenter() {
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products, communities, campaigns, commands, AI…"
+            placeholder="Try “create a product”, “start a live”, or search…"
             aria-label="Search command center"
             className="min-w-0 flex-1 bg-transparent text-[15px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
           />

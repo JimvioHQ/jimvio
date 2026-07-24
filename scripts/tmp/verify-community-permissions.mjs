@@ -115,5 +115,17 @@ assert.match(
   ),
   /deriveOpportunities/
 );
+assert.match(osDash, /AiNativePlatformShell/);
+assert.match(
+  fs.readFileSync(path.join(root, "lib/ai/native/registry.ts"), "utf8"),
+  /getAiContentProvider/
+);
+assert.match(
+  fs.readFileSync(
+    path.join(root, "lib/command-center/providers/nl-intent.ts"),
+    "utf8"
+  ),
+  /nlIntentSearchProvider/
+);
 
 console.log("Community permission + Creator OS certification gates passed.");
