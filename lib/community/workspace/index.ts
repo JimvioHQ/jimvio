@@ -44,6 +44,7 @@ export {
   communityRoomHref,
   communityChannelHref,
   communityGroupHref,
+  legacyNestedChannelHref,
   resolveSpace,
   resolveRoom,
   resolveSpaceAndRoom,

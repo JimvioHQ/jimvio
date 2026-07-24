@@ -206,7 +206,7 @@ export async function getHubMessageThreads(userId: string) {
         roomId: room.id,
         href:
           community && space?.slug && room.slug
-            ? `/communities/${community.slug}/groups/${space.slug}/channels/${room.slug}`
+            ? `/communities/${community.slug}/channels/${room.slug}`
             : community
               ? `/communities/${community.slug}/chats`
               : null,

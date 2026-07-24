@@ -95,17 +95,30 @@ export function GroupWorkspace({
   );
 
   const roomIds = useMemo(() => space.rooms.map((r) => r.id), [space.rooms]);
-  const tasks = useCreatorOSStore((s) =>
-    s.tasks.filter((t) => t.groupId === space.id || roomIds.includes(t.roomId ?? ""))
-  );
-  const events = useCreatorOSStore((s) =>
-    s.events.filter(
-      (e) => e.groupId === space.id || roomIds.includes(e.roomId ?? "")
-    )
-  );
+  // Select stable store slices, then filter in useMemo.
+  // Never return a fresh .filter() array from a zustand selector — that
+  // breaks useSyncExternalStore identity checks and infinite-loops the page.
+  const allTasks = useCreatorOSStore((s) => s.tasks);
+  const allEvents = useCreatorOSStore((s) => s.events);
   const addEvent = useCreatorOSStore((s) => s.addEvent);
-  const cards = useCollaborationStore((s) =>
-    s.cards.filter((c) => roomIds.includes(c.roomId))
+  const allCards = useCollaborationStore((s) => s.cards);
+  const tasks = useMemo(
+    () =>
+      allTasks.filter(
+        (t) => t.groupId === space.id || roomIds.includes(t.roomId ?? "")
+      ),
+    [allTasks, space.id, roomIds]
+  );
+  const events = useMemo(
+    () =>
+      allEvents.filter(
+        (e) => e.groupId === space.id || roomIds.includes(e.roomId ?? "")
+      ),
+    [allEvents, space.id, roomIds]
+  );
+  const cards = useMemo(
+    () => allCards.filter((c) => roomIds.includes(c.roomId)),
+    [allCards, roomIds]
   );
 
   const courseRooms = useMemo(

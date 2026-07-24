@@ -207,7 +207,7 @@ export function WorkspaceLayout({
   };
 
   const openRoom = (space: WorkspaceSpaceRow, roomSlug: string) => {
-    router.push(communityChannelHref(community.slug, space.slug, roomSlug));
+    router.push(communityChannelHref(community.slug, roomSlug));
   };
 
   const openGroup = (space: WorkspaceSpaceRow) => {

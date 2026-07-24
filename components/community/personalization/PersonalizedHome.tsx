@@ -221,7 +221,7 @@ export function PersonalizedHome({
         .map((r) => ({
           id: r.id,
           title: r.name,
-          href: `/communities/${communitySlug}/groups/${s.slug}/channels/${r.slug}`,
+          href: `/communities/${communitySlug}/channels/${r.slug}`,
           spaceName: s.name,
         }))
     ).slice(0, 3);

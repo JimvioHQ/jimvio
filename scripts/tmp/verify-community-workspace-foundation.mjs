@@ -47,18 +47,24 @@ assert.match(mappers, /mapRoomToChannel/);
 assert.match(index, /export/);
 assert.match(nav, /communityGroupHref/);
 assert.match(nav, /communityChannelHref/);
+assert.match(nav, /\/communities\/\$\{[^}]+\}\/channels\//);
+assert.match(nav, /legacyNestedChannelHref/);
 assert.doesNotMatch(nav, /\?space=/);
 assert.match(shell, /ChannelWorkspace/);
 assert.match(shell, /discussion/);
 assert.match(channelPage, /RoomContent/);
 assert.match(channelPage, /ChannelWorkspacePage/);
+assert.match(channelPage, /resolveSpaceAndRoom/);
 assert.match(groupPage, /GroupWorkspace/);
 assert.match(roomContent, /ChannelWorkspace/);
 assert.match(roomContent, /mapRoomToChannel/);
 
 mustExist("app/communities/(hubs)/[slug]/groups/[groupSlug]/page.tsx");
-mustExist(
+mustExist("app/communities/(hubs)/[slug]/channels/[channelSlug]/page.tsx");
+const legacyChannel = mustExist(
   "app/communities/(hubs)/[slug]/groups/[groupSlug]/channels/[channelSlug]/page.tsx"
 );
+assert.match(legacyChannel, /permanentRedirect/);
+assert.match(legacyChannel, /\/channels\//);
 
 console.log("Community workspace foundation verification passed.");

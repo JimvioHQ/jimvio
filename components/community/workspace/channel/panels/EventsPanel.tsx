@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Calendar } from "lucide-react";
 import { ChannelEmptyState } from "../ChannelEmptyState";
 import { EventCard } from "@/components/community/os/TaskEventCards";
@@ -23,10 +24,12 @@ export function EventsPanel({
   userId?: string | null;
   canManage?: boolean;
 }) {
-  const events = useCreatorOSStore((s) =>
-    roomId ? s.events.filter((e) => e.roomId === roomId) : []
-  );
+  const allEvents = useCreatorOSStore((s) => s.events);
   const addEvent = useCreatorOSStore((s) => s.addEvent);
+  const events = useMemo(
+    () => (roomId ? allEvents.filter((e) => e.roomId === roomId) : []),
+    [allEvents, roomId]
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

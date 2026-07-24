@@ -1252,7 +1252,7 @@ export function useChatRoom({
             const hit = resolveSpaceAndRoom(spacesWithRooms, spaceId, rId);
             if (hit) {
                 router.push(
-                    communityChannelHref(slug, hit.space.slug, hit.room.slug)
+                    communityChannelHref(slug, hit.room.slug)
                 );
                 return;
             }

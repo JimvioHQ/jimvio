@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { Calendar } from "lucide-react";
 import { EventCard } from "@/components/community/os/TaskEventCards";
 import {
@@ -12,10 +13,12 @@ import { ChannelEmptyState } from "@/components/community/workspace/channel/Chan
 
 export function EventsSection() {
   const { communityId, userId, isAdmin, isOwner } = useWorkspace();
-  const events = useCreatorOSStore((s) =>
-    s.events.filter((e) => e.communityId === communityId)
-  );
+  const allEvents = useCreatorOSStore((s) => s.events);
   const addEvent = useCreatorOSStore((s) => s.addEvent);
+  const events = useMemo(
+    () => allEvents.filter((e) => e.communityId === communityId),
+    [allEvents, communityId]
+  );
   const canManage = isAdmin || isOwner;
 
   return (

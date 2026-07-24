@@ -231,7 +231,7 @@ export async function searchCommunities(
             subtitle: community?.name ?? null,
             href:
               community && space
-                ? `/communities/${community.slug}/groups/${space.slug}/channels/${room.slug}`
+                ? `/communities/${community.slug}/channels/${room.slug}`
                 : community
                   ? `/communities/${community.slug}/chats`
                   : "/communities",

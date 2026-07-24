@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight, Layers } from "lucide-react";
+import { ArrowRight, Layers, Lock } from "lucide-react";
 import { useWorkspaceOptional } from "@/components/community/workspace-context";
 import { resolveSpace } from "@/lib/community/workspace";
 import { GroupWorkspace } from "./GroupWorkspace";
@@ -10,8 +10,46 @@ import { WorkspaceSkeleton } from "@/components/community/workspace/shared/Works
 import { VisitTracker } from "@/components/community/personalization/VisitTracker";
 import { communityGroupHref } from "@/lib/community/workspace/navigation";
 
+function GroupStatusCard({
+  icon: Icon,
+  title,
+  description,
+  actionLabel,
+  onAction,
+}: {
+  icon: typeof Layers;
+  title: string;
+  description: string;
+  actionLabel: string;
+  onAction: () => void;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]">
+        <Icon className="h-5 w-5" aria-hidden />
+      </div>
+      <div>
+        <p className="text-[14px] font-medium text-[var(--color-text-primary)]">
+          {title}
+        </p>
+        <p className="mt-1 max-w-sm text-[13px] text-[var(--color-text-muted)]">
+          {description}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onAction}
+        className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
+      >
+        {actionLabel} <ArrowRight className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 /**
- * First-class Group page — resolves by slug, never hard-errors.
+ * First-class Group page — resolves by groupSlug only (never legacy space IDs in the URL).
+ * Soft-fails with Not Found / access UI instead of crashing the route.
  */
 export function GroupWorkspacePage() {
   const router = useRouter();
@@ -38,23 +76,6 @@ export function GroupWorkspacePage() {
     [workspace?.spacesWithRooms, groupSlug]
   );
 
-  if (!workspace) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-        <p className="text-[14px] font-medium text-[var(--color-text-primary)]">
-          Join this community to open groups
-        </p>
-        <button
-          type="button"
-          onClick={() => router.push(homeBase)}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
-        >
-          Back to community <ArrowRight className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    );
-  }
-
   if (!groupSlug) {
     return (
       <div className="flex flex-1 flex-col" aria-busy aria-label="Loading group">
@@ -63,33 +84,46 @@ export function GroupWorkspacePage() {
     );
   }
 
+  if (!workspace) {
+    return (
+      <GroupStatusCard
+        icon={Lock}
+        title="Sign in to open this group"
+        description="Group workspaces require an active community membership."
+        actionLabel="Back to community"
+        onAction={() => router.push(homeBase)}
+      />
+    );
+  }
+
   if (!space) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]">
-          <Layers className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-[14px] font-medium text-[var(--color-text-primary)]">
-            Group unavailable
-          </p>
-          <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
-            It may have been renamed or removed. Head back to the community hub.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => router.push(homeBase)}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
-        >
-          Back to community <ArrowRight className="h-3.5 w-3.5" />
-        </button>
-      </div>
+      <GroupStatusCard
+        icon={Layers}
+        title="Group not found"
+        description="This group may have been renamed, archived, or removed. Check the community overview for current groups."
+        actionLabel="Back to community"
+        onAction={() => router.push(homeBase)}
+      />
+    );
+  }
+
+  // Prefer slug for URLs — never emit bare UUIDs in the address bar.
+  const resolvedGroupSlug = space.slug?.trim() || groupSlug;
+  if (!space.slug?.trim()) {
+    return (
+      <GroupStatusCard
+        icon={Layers}
+        title="Group unavailable"
+        description="This group is missing a public slug and cannot be opened from a link. Ask an owner to republish it."
+        actionLabel="Back to community"
+        onAction={() => router.push(homeBase)}
+      />
     );
   }
 
   const slug = communitySlug || workspace.slug;
-  const groupHref = communityGroupHref(slug, space.slug);
+  const groupHref = communityGroupHref(slug, resolvedGroupSlug);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">

@@ -49,25 +49,17 @@ async function resolveViaDatabase(
   }
 
   if (roomKey) {
-    let roomQuery = supabase
+    const { data: room } = await supabase
       .from("rooms")
-      .select("slug, space_id, spaces(slug)")
+      .select("slug, space_id")
       .eq("community_id", community.id)
       .eq("is_active", true)
       .or(`slug.eq.${roomKey},id.eq.${roomKey}`)
       .limit(1)
       .maybeSingle();
 
-    const { data: room } = await roomQuery;
-    if (room) {
-      const nested = room.spaces as { slug: string } | { slug: string }[] | null;
-      const nestedSlug = Array.isArray(nested)
-        ? nested[0]?.slug
-        : nested?.slug;
-      const groupSlug = spaceSlug ?? nestedSlug ?? null;
-      if (groupSlug && room.slug) {
-        return communityChannelHref(communitySlug, groupSlug, room.slug);
-      }
+    if (room?.slug) {
+      return communityChannelHref(communitySlug, room.slug);
     }
   }
 
@@ -99,7 +91,7 @@ export async function redirectLegacySpaceRoomQuery(
     if (spaceKey && roomKey) {
       const hit = resolveSpaceAndRoom(spaces, spaceKey, roomKey);
       if (hit) {
-        go(communityChannelHref(communitySlug, hit.space.slug, hit.room.slug));
+        go(communityChannelHref(communitySlug, hit.room.slug));
       }
     }
 
@@ -109,7 +101,7 @@ export async function redirectLegacySpaceRoomQuery(
         if (roomKey) {
           const room = resolveRoom(space, roomKey);
           if (room) {
-            go(communityChannelHref(communitySlug, space.slug, room.slug));
+            go(communityChannelHref(communitySlug, room.slug));
           }
         }
         go(communityGroupHref(communitySlug, space.slug));
@@ -119,7 +111,7 @@ export async function redirectLegacySpaceRoomQuery(
     if (roomKey) {
       const hit = resolveSpaceAndRoom(spaces, null, roomKey);
       if (hit) {
-        go(communityChannelHref(communitySlug, hit.space.slug, hit.room.slug));
+        go(communityChannelHref(communitySlug, hit.room.slug));
       }
     }
   }

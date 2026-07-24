@@ -90,13 +90,16 @@ assert.doesNotMatch(shell, /searchParams\.get\([\"']space[\"']\)/);
 assert.doesNotMatch(nav, /\?space=/);
 assert.match(nav, /\/groups\//);
 assert.match(nav, /\/channels\//);
+assert.match(nav, /communityChannelHref\(\s*communitySlug,\s*channelSlug/);
 assert.match(roomIndex, /requestSearch/);
 assert.doesNotMatch(channelWs, /fork ChatRoom/i);
 
 mustExist("app/communities/(hubs)/[slug]/groups/[groupSlug]/page.tsx");
-mustExist(
+mustExist("app/communities/(hubs)/[slug]/channels/[channelSlug]/page.tsx");
+const legacyNested = mustExist(
   "app/communities/(hubs)/[slug]/groups/[groupSlug]/channels/[channelSlug]/page.tsx"
 );
+assert.match(legacyNested, /permanentRedirect/);
 mustExist("lib/community/workspace/legacy-redirect.ts");
 assert.match(
   mustExist("lib/community/workspace/legacy-redirect.ts"),

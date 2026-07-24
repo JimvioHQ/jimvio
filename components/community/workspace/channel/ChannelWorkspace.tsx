@@ -132,8 +132,8 @@ export function ChannelWorkspace({
           onOpenPinned={() => setTab("pinned")}
           communityId={communityId ?? undefined}
           bookmarkHref={
-            communitySlug && group
-              ? `/communities/${communitySlug}/groups/${group.slug}/channels/${channel.slug}`
+            communitySlug
+              ? `/communities/${communitySlug}/channels/${channel.slug}`
               : undefined
           }
         />

@@ -107,7 +107,7 @@ export function deriveRecommendations(
             : favChannels.size
               ? "Based on channels you visit"
               : "Recommended channel",
-        href: communityChannelHref(communitySlug, space.slug, room.slug),
+        href: communityChannelHref(communitySlug, room.slug),
         score:
           (isCourse ? 55 : isResource ? 48 : 35) +
           (space.rooms.length > 3 ? 5 : 0),
@@ -160,7 +160,7 @@ export function deriveDiscovery(input: PersonalizationInput) {
         id: r.id,
         title: r.name,
         meta: s.name,
-        href: communityChannelHref(input.communitySlug, s.slug, r.slug),
+        href: communityChannelHref(input.communitySlug, r.slug),
         kind: "channel" as const,
         roomType: r.room_type,
       }))
@@ -212,11 +212,7 @@ export function deriveNewSinceLastVisit(
         items.push({
           id: room.id,
           title: room.name,
-          href: communityChannelHref(
-            input.communitySlug,
-            space.slug,
-            room.slug
-          ),
+          href: communityChannelHref(input.communitySlug, room.slug),
           label:
             room.room_type === "course" ? "Course" : "Resource",
         });

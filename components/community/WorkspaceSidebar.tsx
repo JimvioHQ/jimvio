@@ -123,7 +123,7 @@ export function WorkspaceSidebar({
       return;
     }
     router.push(
-      `/communities/${slug}/groups/${encodeURIComponent(space.slug)}/channels/${encodeURIComponent(room.slug)}`
+      `/communities/${slug}/channels/${encodeURIComponent(room.slug)}`
     );
     onNavigate?.();
   }
@@ -132,7 +132,8 @@ export function WorkspaceSidebar({
   const at = (suffix: string) => pathname === `${base}${suffix}` || pathname.startsWith(`${base}${suffix}/`);
   const homeActive =
     (pathname === base || pathname === `${base}/`) &&
-    !pathname.includes("/groups/");
+    !pathname.includes("/groups/") &&
+    !pathname.includes("/channels/");
   const missionsActive = at("/missions");
   const liveActive = at("/live");
   const membersActive = at("/members");
@@ -287,9 +288,7 @@ export function WorkspaceSidebar({
                       {space.rooms.map((room) => {
                         const Icon = roomTypeIcon(room.room_type);
                         const active =
-                          pathname.includes(
-                            `/groups/${space.slug}/channels/${room.slug}`
-                          ) &&
+                          pathname.includes(`/channels/${room.slug}`) &&
                           !membersActive &&
                           !leaderboardActive;
                         const canEnter = canAccessRoomNav(

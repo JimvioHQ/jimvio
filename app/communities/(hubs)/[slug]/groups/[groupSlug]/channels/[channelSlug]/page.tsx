@@ -1,21 +1,19 @@
-import { ChannelWorkspacePage } from "@/components/community/workspace/channel/ChannelWorkspacePage";
-import { constructMetadata } from "@/lib/seo";
+import { permanentRedirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({
+/**
+ * Legacy nested channel URL — permanently redirects to the flat canonical path.
+ * /communities/[slug]/groups/[groupSlug]/channels/[channelSlug]
+ *   → /communities/[slug]/channels/[channelSlug]
+ */
+export default async function LegacyNestedChannelRedirect({
   params,
 }: {
   params: Promise<{ slug: string; groupSlug: string; channelSlug: string }>;
 }) {
-  const { slug, groupSlug, channelSlug } = await params;
-  return constructMetadata({
-    title: "Channel",
-    description: `Channel in ${groupSlug} · ${slug}.`,
-    path: `/communities/${slug}/groups/${groupSlug}/channels/${channelSlug}`,
-  });
-}
-
-export default function CommunityChannelPage() {
-  return <ChannelWorkspacePage />;
+  const { slug, channelSlug } = await params;
+  permanentRedirect(
+    `/communities/${encodeURIComponent(slug)}/channels/${encodeURIComponent(channelSlug)}`
+  );
 }

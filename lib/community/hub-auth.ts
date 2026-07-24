@@ -58,6 +58,7 @@ export const COMMUNITY_AUTH_SUBROUTES = new Set([
   "chats",
   "room",
   "groups",
+  "channels",
   "live",
   "courses",
   "members",
@@ -81,6 +82,7 @@ export const COMMUNITY_WORKSPACE_SUBROUTES = new Set([
   "chats",
   "room",
   "groups",
+  "channels",
   "courses",
 ]);
 export function getCommunitySubroute(pathname: string): string | null {

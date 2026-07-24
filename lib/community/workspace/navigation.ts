@@ -3,7 +3,10 @@
  *
  * /communities/[communitySlug]
  * /communities/[communitySlug]/groups/[groupSlug]
- * /communities/[communitySlug]/groups/[groupSlug]/channels/[channelSlug]
+ * /communities/[communitySlug]/channels/[channelSlug]
+ *
+ * Channels still belong to Groups in the database; the URL no longer nests
+ * the parent group slug.
  */
 
 import type { LucideIcon } from "lucide-react";
@@ -29,8 +32,32 @@ export function communityGroupHref(
   return `/communities/${encodeURIComponent(communitySlug)}/groups/${encodeURIComponent(groupSlug)}`;
 }
 
-/** Channel workspace page (overview-first; Discussion injects ChatRoom). */
+/**
+ * Canonical channel URL (flat).
+ * Parent Group is resolved from the workspace loader by channelSlug.
+ */
 export function communityChannelHref(
+  communitySlug: string,
+  channelSlug: string
+): string {
+  return `/communities/${encodeURIComponent(communitySlug)}/channels/${encodeURIComponent(channelSlug)}`;
+}
+
+/**
+ * Room → channel URL helper.
+ * `groupSlug` is accepted for call-site convenience but ignored in the path
+ * (Group remains a DB relationship only).
+ */
+export function communityRoomHref(
+  communitySlug: string,
+  _groupSlug: string,
+  channelSlug: string
+): string {
+  return communityChannelHref(communitySlug, channelSlug);
+}
+
+/** Legacy nested channel path — used only for permanent redirects. */
+export function legacyNestedChannelHref(
   communitySlug: string,
   groupSlug: string,
   channelSlug: string
@@ -38,25 +65,18 @@ export function communityChannelHref(
   return `/communities/${encodeURIComponent(communitySlug)}/groups/${encodeURIComponent(groupSlug)}/channels/${encodeURIComponent(channelSlug)}`;
 }
 
-/**
- * Canonical channel URL — preferred name for new call sites.
- * Kept as alias of communityChannelHref for existing imports.
- */
-export function communityRoomHref(
-  communitySlug: string,
-  groupSlug: string,
-  channelSlug: string
-): string {
-  return communityChannelHref(communitySlug, groupSlug, channelSlug);
-}
-
 export function resolveSpace(
   spaces: WorkspaceSpaceRow[],
   key: string | null | undefined
 ): WorkspaceSpaceRow | null {
   if (!key) return null;
+  const needle = key.trim();
+  if (!needle) return null;
+  // Resolve by public slug first; id match is fallback for internal tools only.
   return (
-    spaces.find((s) => s.slug === key || s.id === key) ?? null
+    spaces.find((s) => s.slug === needle) ??
+    spaces.find((s) => s.id === needle) ??
+    null
   );
 }
 
@@ -65,9 +85,19 @@ export function resolveRoom(
   key: string | null | undefined
 ): WorkspaceRoomRow | null {
   if (!key) return null;
-  return space.rooms.find((r) => r.slug === key || r.id === key) ?? null;
+  const needle = key.trim();
+  if (!needle) return null;
+  return (
+    space.rooms.find((r) => r.slug === needle) ??
+    space.rooms.find((r) => r.id === needle) ??
+    null
+  );
 }
 
+/**
+ * Resolve a channel by slug (or id) across all groups in the community.
+ * Optionally constrain to a known group when `spaceKey` is provided.
+ */
 export function resolveSpaceAndRoom(
   spaces: WorkspaceSpaceRow[],
   spaceKey: string | null | undefined,
@@ -96,7 +126,7 @@ export function canonicalFromSpaceRoom(
   room?: WorkspaceRoomRow | null
 ): string {
   if (room) {
-    return communityChannelHref(communitySlug, space.slug, room.slug);
+    return communityChannelHref(communitySlug, room.slug);
   }
   return communityGroupHref(communitySlug, space.slug);
 }

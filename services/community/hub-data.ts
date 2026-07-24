@@ -805,7 +805,7 @@ export async function getHubChannels(userId: string): Promise<HubChannelItem[]> 
       const space = room.spaces as { name: string; slug: string } | null;
       const href =
         community && space?.slug && room.slug
-          ? `/communities/${community.slug}/groups/${space.slug}/channels/${room.slug}`
+          ? `/communities/${community.slug}/channels/${room.slug}`
           : community && room.space_id
             ? `/communities/${community.slug}/chat`
             : community
@@ -968,7 +968,7 @@ export async function getHubLiveRooms(userId: string): Promise<HubLiveRoom[]> {
         message_count: counts.get(room.id) ?? 0,
         href:
           community && space?.slug && room.slug
-            ? `/communities/${community.slug}/groups/${space.slug}/channels/${room.slug}`
+            ? `/communities/${community.slug}/channels/${room.slug}`
             : community
               ? `/communities/${community.slug}/chats`
               : "/communities/live",

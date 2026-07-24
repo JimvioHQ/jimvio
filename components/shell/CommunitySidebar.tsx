@@ -140,7 +140,6 @@ function buildChannels(
         emoji: channelEmoji(room),
         href: communityChannelHref(
           communitySlug,
-          space.slug,
           room.slug
         ).replace(`/communities/${communitySlug}`, ""),
         roomId: room.id,
@@ -183,7 +182,7 @@ function resolveAnnouncementsHref(
       (r) => r.room_type === "posts" || /announcement/i.test(r.name)
     );
     if (room) {
-      return communityChannelHref(communitySlug, space.slug, room.slug);
+      return communityChannelHref(communitySlug, room.slug);
     }
   }
   return `/communities/${communitySlug}/feed`;
@@ -235,12 +234,7 @@ function SidebarBody({
         const room = space.rooms.find(
           (r) => r.room_type === "posts" || /announcement/i.test(r.name)
         );
-        if (
-          room &&
-          pathname.includes(
-            `/groups/${space.slug}/channels/${room.slug}`
-          )
-        ) {
+        if (room && pathname.includes(`/channels/${room.slug}`)) {
           return true;
         }
       }
@@ -275,9 +269,10 @@ function SidebarBody({
       if (channel.href === "/live") return pathname.startsWith(`${base}/live`);
       return false;
     }
-    if (channel.groupSlug && channel.channelSlug) {
-      return pathname.includes(
-        `/groups/${channel.groupSlug}/channels/${channel.channelSlug}`
+    if (channel.channelSlug) {
+      return (
+        pathname === `${base}/channels/${channel.channelSlug}` ||
+        pathname.startsWith(`${base}/channels/${channel.channelSlug}/`)
       );
     }
     return false;
