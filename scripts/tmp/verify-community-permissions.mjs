@@ -127,5 +127,13 @@ assert.match(
   ),
   /nlIntentSearchProvider/
 );
+assert.match(osDash, /LiveCommerceNetworkShell/);
+assert.match(
+  fs.readFileSync(
+    path.join(root, "lib/community/live-network/providers.ts"),
+    "utf8"
+  ),
+  /livekitMediaProvider/
+);
 
 console.log("Community permission + Creator OS certification gates passed.");

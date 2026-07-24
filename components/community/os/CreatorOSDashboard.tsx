@@ -36,6 +36,7 @@ import { CommunityIntelligenceHost } from "@/components/community/intelligence";
 import { CreatorCommandCenterShell } from "@/components/community/os/command-center";
 import { GlobalCreatorEconomyShell } from "@/components/community/economy";
 import { AiNativePlatformShell } from "@/components/community/ai-native";
+import { LiveCommerceNetworkShell } from "@/components/community/live-network";
 import { useClientReady } from "@/lib/community/use-client-ready";
 
 type OverviewLite = {
@@ -249,6 +250,13 @@ export function CreatorOSDashboard({
       />
 
       <AiNativePlatformShell
+        base={base}
+        communityId={communityId}
+        communityName={communityName}
+        overview={overview}
+      />
+
+      <LiveCommerceNetworkShell
         base={base}
         communityId={communityId}
         communityName={communityName}
