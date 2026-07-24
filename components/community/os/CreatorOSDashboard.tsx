@@ -34,6 +34,7 @@ import {
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
 import { CommunityIntelligenceHost } from "@/components/community/intelligence";
 import { CreatorCommandCenterShell } from "@/components/community/os/command-center";
+import { GlobalCreatorEconomyShell } from "@/components/community/economy";
 import { useClientReady } from "@/lib/community/use-client-ready";
 
 type OverviewLite = {
@@ -236,6 +237,13 @@ export function CreatorOSDashboard({
       <UnifiedCreatorCommerceShell
         base={base}
         communityId={communityId}
+        overview={overview}
+      />
+
+      <GlobalCreatorEconomyShell
+        base={base}
+        communityId={communityId}
+        communityName={communityName}
         overview={overview}
       />
 

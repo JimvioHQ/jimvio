@@ -100,5 +100,20 @@ assert.match(
   ),
   /deriveCommerceMetrics/
 );
+assert.match(osDash, /GlobalCreatorEconomyShell/);
+assert.match(
+  fs.readFileSync(
+    path.join(root, "lib/community/economy/matching.ts"),
+    "utf8"
+  ),
+  /localCreatorMatchProvider/
+);
+assert.match(
+  fs.readFileSync(
+    path.join(root, "lib/community/economy/opportunities.ts"),
+    "utf8"
+  ),
+  /deriveOpportunities/
+);
 
 console.log("Community permission + Creator OS certification gates passed.");
