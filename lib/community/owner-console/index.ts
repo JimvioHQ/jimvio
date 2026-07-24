@@ -115,3 +115,18 @@ export {
   mapReportRow,
 } from "./moderation";
 
+// Settings — import from `@/lib/community/owner-console/settings` for full surface.
+export type {
+  CommunitySettingsConfig,
+  OwnerCommunitySettings,
+  SettingsSectionId,
+  UpdateOwnerSettingsInput,
+} from "./settings";
+
+export {
+  SETTINGS_SECTIONS,
+  SETTINGS_SECTION_LABELS,
+  resolveSettingsContext,
+  mapCommunitySettings,
+} from "./settings";
+

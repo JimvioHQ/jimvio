@@ -202,7 +202,7 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
     "settings",
     "Community Settings",
     "settings",
-    "settings.manage",
+    "settings.view",
     "Community profile and preferences"
   ),
 };
@@ -329,7 +329,7 @@ export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
     id: "community_settings",
     label: "Community Settings",
     href: ({ slug }) => ownerConsoleHref(slug, "settings"),
-    capability: "settings.manage",
+    capability: "settings.view",
   },
 ];
 

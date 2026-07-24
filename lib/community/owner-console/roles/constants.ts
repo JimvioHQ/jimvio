@@ -119,7 +119,8 @@ export const PERMISSION_CATALOG: PermissionCatalogItem[] = [
   { id: "security.manage", label: "Security settings", description: "Access policies and safeguards", category: "security" },
   { id: "integrations.manage", label: "Manage integrations", description: "Connected services and webhooks", category: "integrations" },
   { id: "automations.manage", label: "Manage automations", description: "Workflows and rules", category: "integrations" },
-  { id: "settings.manage", label: "Community settings", description: "Full settings access", category: "community" },
+  { id: "settings.view", label: "View settings", description: "View community configuration", category: "community" },
+  { id: "settings.manage", label: "Community settings", description: "Edit community configuration", category: "community" },
   { id: "audit.view", label: "View audit logs", description: "Administrative activity history", category: "audit" },
 ];
 

@@ -45,6 +45,7 @@ export type PermissionCapability =
   | "moderation.suspend"
   | "moderation.ban"
   | "moderation.delete"
+  | "settings.view"
   | "settings.manage"
   | "community.view"
   | "community.edit"
@@ -98,6 +99,7 @@ export const ALL_CAPABILITIES = [
   "security.manage",
   "integrations.manage",
   "automations.manage",
+  "settings.view",
   "settings.manage",
   "audit.view",
 ] as const satisfies readonly PermissionCapability[];
@@ -168,6 +170,7 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "security.manage",
     "integrations.manage",
     "automations.manage",
+    "settings.view",
     "settings.manage",
     "audit.view",
   ]),
