@@ -159,7 +159,7 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
     "moderation",
     "Moderation",
     "moderation",
-    "pins.manage",
+    "moderation.view",
     "Reports, queues, and safety",
     "reports"
   ),
@@ -323,7 +323,7 @@ export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
     id: "open_moderation",
     label: "Open Moderation",
     href: ({ slug }) => ownerConsoleHref(slug, "moderation"),
-    capability: "pins.manage",
+    capability: "moderation.view",
   },
   {
     id: "community_settings",

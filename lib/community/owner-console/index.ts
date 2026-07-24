@@ -98,3 +98,20 @@ export {
   mapCustomRoleRow,
 } from "./roles";
 
+// Moderation — import from `@/lib/community/owner-console/moderation` for full surface.
+export type {
+  OwnerAppealItem,
+  OwnerAutoModRule,
+  OwnerModerationAnalytics,
+  OwnerModerationOverview,
+  OwnerReportListItem,
+} from "./moderation";
+
+export {
+  MODERATION_ACTIONS,
+  MODERATION_QUEUES,
+  QUEUE_LABELS,
+  resolveModerationContext,
+  mapReportRow,
+} from "./moderation";
+

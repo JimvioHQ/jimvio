@@ -38,7 +38,13 @@ export type PermissionCapability =
   | "pins.manage"
   | "files.upload"
   | "content.manage"
+  | "moderation.view"
   | "moderation.manage"
+  | "moderation.warn"
+  | "moderation.mute"
+  | "moderation.suspend"
+  | "moderation.ban"
+  | "moderation.delete"
   | "settings.manage"
   | "community.view"
   | "community.edit"
@@ -73,7 +79,13 @@ export const ALL_CAPABILITIES = [
   "members.remove",
   "roles.view",
   "roles.manage",
+  "moderation.view",
   "moderation.manage",
+  "moderation.warn",
+  "moderation.mute",
+  "moderation.suspend",
+  "moderation.ban",
+  "moderation.delete",
   "pins.manage",
   "content.manage",
   "files.upload",
@@ -137,7 +149,13 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "members.role",
     "roles.view",
     "roles.manage",
+    "moderation.view",
     "moderation.manage",
+    "moderation.warn",
+    "moderation.mute",
+    "moderation.suspend",
+    "moderation.ban",
+    "moderation.delete",
     "pins.manage",
     "content.manage",
     "files.upload",
@@ -162,7 +180,13 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "members.manage",
     "members.ban",
     "roles.view",
+    "moderation.view",
     "moderation.manage",
+    "moderation.warn",
+    "moderation.mute",
+    "moderation.suspend",
+    "moderation.ban",
+    "moderation.delete",
     "pins.manage",
     "content.manage",
     "files.upload",
