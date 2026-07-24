@@ -1,37 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { resolveCommunityBySlugOrId } from "@/lib/community/resolve-community";
 
 export const dynamic = "force-dynamic";
-
-/** Resolve route param as community UUID or slug. */
-async function resolveCommunityId(
-  admin: ReturnType<typeof createServiceRoleClient>,
-  slugOrId: string
-): Promise<{ id: string; owner_id: string } | null> {
-  const uuidLike =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      slugOrId
-    );
-
-  if (uuidLike) {
-    const { data } = await admin
-      .from("communities")
-      .select("id, owner_id")
-      .eq("id", slugOrId)
-      .eq("is_active", true)
-      .maybeSingle();
-    if (data) return data;
-  }
-
-  const { data } = await admin
-    .from("communities")
-    .select("id, owner_id")
-    .eq("slug", slugOrId)
-    .eq("is_active", true)
-    .maybeSingle();
-  return data;
-}
 
 /** Active members + profiles for sidebar / messaging (same pattern as workspace members page). */
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -43,7 +15,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const admin = createServiceRoleClient();
-  const community = await resolveCommunityId(admin, slugOrId);
+  const community = await resolveCommunityBySlugOrId(admin, slugOrId, {
+    selectOwner: true,
+  });
   if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
 
   const isOwner = community.owner_id === user.id;

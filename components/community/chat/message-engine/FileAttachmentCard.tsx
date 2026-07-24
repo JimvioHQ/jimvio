@@ -18,6 +18,7 @@ import {
   formatFileSize,
   type FileKind,
 } from "@/lib/community/chat/message-experience";
+import { isTrustedChatMediaUrl } from "@/lib/community/chat/sanitize-attachments";
 import { WaAudioPlayer } from "../WaAudioPlayer";
 
 const KIND_META: Record<
@@ -110,6 +111,7 @@ export function FileAttachmentCard({
   }
 
   if (kind === "pdf") {
+    const trusted = isTrustedChatMediaUrl(attachment.url);
     return (
       <div
         className={cn(
@@ -117,14 +119,18 @@ export function FileAttachmentCard({
           "bg-[var(--color-surface)]"
         )}
       >
-        <div className="flex aspect-[4/3] max-h-40 items-center justify-center bg-[var(--color-surface-secondary)]">
-          <iframe
-            title={attachment.name || "PDF preview"}
-            src={`${attachment.url}#toolbar=0&navpanes=0`}
-            className="h-full w-full"
-            loading="lazy"
-          />
-        </div>
+        {trusted ? (
+          <div className="flex aspect-[4/3] max-h-40 items-center justify-center bg-[var(--color-surface-secondary)]">
+            <iframe
+              title={attachment.name || "PDF preview"}
+              src={`${attachment.url}#toolbar=0&navpanes=0`}
+              className="h-full w-full"
+              loading="lazy"
+              sandbox=""
+              referrerPolicy="no-referrer"
+            />
+          </div>
+        ) : null}
         <FileCardFooter
           name={attachment.name || "PDF"}
           kindLabel={Meta.label}

@@ -37,7 +37,11 @@ export type RichSegment =
 export function classifyFile(att: Attachment): FileKind {
   const mime = (att.mime ?? "").toLowerCase();
   const name = (att.name ?? att.url ?? "").toLowerCase();
-  if (mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(name))
+  // Treat SVG as a generic file — never render as trusted image (XSS surface).
+  if (mime === "image/svg+xml" || mime === "image/svg" || /\.svg(\?|$)/i.test(name)) {
+    return "other";
+  }
+  if (mime.startsWith("image/") || /\.(png|jpe?g|gif|webp|avif)(\?|$)/i.test(name))
     return "image";
   if (mime.startsWith("video/") || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(name)) return "video";
   if (mime.startsWith("audio/") || /\.(mp3|wav|ogg|m4a|aac)(\?|$)/i.test(name))

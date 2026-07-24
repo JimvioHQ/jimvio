@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveCommunityBySlugOrId } from "@/lib/community/resolve-community";
+import {
+  sanitizeChatAttachments,
+  sanitizeInboxMessageType,
+} from "@/lib/community/chat/sanitize-attachments";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +19,7 @@ export async function GET(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: community } = await supabase
-    .from("communities")
-    .select("id")
-    .eq("slug", slug)
-    .single();
-
+  const community = await resolveCommunityBySlugOrId(supabase, slug);
   if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
 
   const { data: conv, error: cErr } = await supabase
@@ -36,7 +36,7 @@ export async function GET(
 
   const { data: rows, error } = await supabase
     .from("community_inbox_messages")
-    .select("id, sender_id, body, attachments, message_type, reactions, created_at")
+    .select("id, sender_id, body, attachments, message_type, reactions, created_at, is_deleted")
     .eq("conversation_id", conversationId)
     .eq("is_deleted", false)
     .order("created_at", { ascending: true })
@@ -70,12 +70,7 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: community } = await supabase
-    .from("communities")
-    .select("id")
-    .eq("slug", slug)
-    .single();
-
+  const community = await resolveCommunityBySlugOrId(supabase, slug);
   if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
 
   const { data: conv, error: cErr } = await supabase
@@ -92,10 +87,20 @@ export async function POST(
 
   const payload = await req.json();
   const text = typeof payload.body === "string" ? payload.body.trim() : "";
-  const attachments = Array.isArray(payload.attachments) ? payload.attachments : [];
-  const message_type = typeof payload.message_type === "string" ? payload.message_type : "text";
+  const sanitized = sanitizeChatAttachments(payload.attachments);
+  if (!sanitized.ok) {
+    return NextResponse.json({ error: sanitized.error }, { status: 400 });
+  }
+  const attachments = sanitized.attachments;
+  const allowCallSignals =
+    payload.message_type === "call_start" || payload.message_type === "call_signal";
+  const message_type = sanitizeInboxMessageType(payload.message_type, {
+    allowCallSignals,
+  });
 
-  if (!text && attachments.length === 0) return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });
+  if (!text && attachments.length === 0 && !allowCallSignals) {
+    return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });
+  }
 
   const { data: msg, error } = await supabase
     .from("community_inbox_messages")
@@ -105,16 +110,23 @@ export async function POST(
       body: text,
       attachments,
       message_type,
-      reactions: {}
+      reactions: {},
     })
     .select("id, sender_id, body, attachments, message_type, reactions, created_at")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  await supabase.from("community_inbox_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversationId);
+  await supabase
+    .from("community_inbox_conversations")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", conversationId);
 
-  const { data: prof } = await supabase.from("profiles").select("full_name, avatar_url, username").eq("id", user.id).maybeSingle();
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("full_name, avatar_url, username")
+    .eq("id", user.id)
+    .maybeSingle();
 
   return NextResponse.json({ message: { ...msg, profiles: prof } });
 }

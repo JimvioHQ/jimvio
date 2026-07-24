@@ -70,14 +70,48 @@ assert.match(ai, /summarize/);
 assert.match(search, /MessageSearchBar/);
 assert.match(search, /members/);
 assert.match(files, /FileAttachmentCard/);
+assert.match(files, /isTrustedChatMediaUrl|sandbox/);
 assert.match(engineIndex, /export/);
 assert.match(chatRoom, /VirtualMessageList/);
 assert.match(chatRoom, /MessageAiPanel/);
 assert.match(chatRoom, /useRoomMessageIndex/);
 assert.match(chatRoom, /MessageSearchBar/);
+assert.match(chatRoom, /@\/components\/ui\/dialog/);
+assert.doesNotMatch(chatRoom, /@radix-ui\/react-dialog/);
 assert.doesNotMatch(chatRoom, /fork ChatRoom/i);
 assert.match(messageRow, /MessageCard/);
 assert.match(composer, /onDrop/);
+
+const sanitize = mustExist("lib/community/chat/sanitize-attachments.ts");
+assert.match(sanitize, /sanitizeChatAttachments/);
+assert.match(sanitize, /escapeIlikePattern/);
+assert.match(sanitize, /isTrustedChatMediaUrl/);
+
+const hook = mustExist("hooks/useChatRoom.ts");
+assert.match(hook, /AbortController/);
+assert.match(hook, /setActiveChatTarget/);
+assert.match(hook, /metadata/);
+assert.doesNotMatch(hook, /return \(\) => controller\.abort\(\);\s*\}, \[roomId/);
+
+const unreadSync = mustExist("hooks/useWorkspaceUnreadSync.ts");
+assert.match(unreadSync, /shell_rooms_unread_/);
+assert.match(unreadSync, /shell_inbox_unread_/);
+assert.match(unreadSync, /bumpWorkspaceUnread/);
+
+const shell = mustExist("components/community/workspace/WorkspaceShell.tsx");
+assert.match(shell, /WorkspaceUnreadSync/);
+
+const messagesApi = mustExist("app/api/messages/[roomId]/route.ts");
+assert.match(messagesApi, /sanitizeChatAttachments/);
+
+const inboxMessagesApi = mustExist(
+  "app/api/communities/[slug]/inbox/[conversationId]/messages/route.ts"
+);
+assert.match(inboxMessagesApi, /sanitizeChatAttachments/);
+assert.match(inboxMessagesApi, /resolveCommunityBySlugOrId/);
+
+const resolveCommunity = mustExist("lib/community/resolve-community.ts");
+assert.match(resolveCommunity, /resolveCommunityBySlugOrId/);
 assert.match(composer, /onPaste/);
 assert.match(composer, /Sparkles/);
 assert.match(thread, /Solved/);

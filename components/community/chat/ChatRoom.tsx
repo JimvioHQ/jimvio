@@ -1,7 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { DialogHeader } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useChatRoom } from "@/hooks/useChatRoom";
 import { cn } from "@/lib/utils";
@@ -21,7 +26,6 @@ import {
   useCreatorCommerceStore,
 } from "@/lib/community/commerce";
 import { Msg } from "@/types";
-import { Dialog, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
 import { Loader2, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -385,7 +389,7 @@ export function ChatRoom({
       <ConfirmDialog
         open={!!hook.confirmDelete}
         title="Delete message"
-        description="This message will be permanently deleted for everyone."
+        description="This message will be removed for everyone."
         onConfirm={hook.confirmDeleteAction}
         onCancel={() => hook.setConfirmDelete(null)}
       />
@@ -394,7 +398,7 @@ export function ChatRoom({
         open={!!hook.editingMsg}
         onOpenChange={(o) => !o && hook.setEditingMsg(null)}
       >
-        <DialogContent className="z-[10051] max-w-md">
+        <DialogContent className="z-[10051] max-w-md border-[var(--color-border)] bg-[var(--color-surface)]">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold text-[var(--color-text-primary)]">
               Edit message
@@ -540,7 +544,9 @@ export function ChatRoom({
         >
           {hook.loading ? (
             <ChatSkeleton />
-          ) : hook.messages.length === 0 ? (
+          ) : scopedMessages.length === 0 &&
+            !hook.searchQuery.trim() &&
+            hook.chatFilter === "all" ? (
             <div
               className="flex flex-1 flex-col items-center justify-center px-4 py-14 text-center animate-in fade-in duration-200"
               role="status"
@@ -576,6 +582,8 @@ export function ChatRoom({
                 onClick={() => {
                   hook.setSearchOpen(false);
                   hook.setSearchQuery("");
+                  hook.setChatFilter("all");
+                  setSearchScope("messages");
                 }}
                 className="mt-3 text-[13px] font-semibold text-[var(--color-accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
               >

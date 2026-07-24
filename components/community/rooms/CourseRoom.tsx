@@ -49,7 +49,7 @@ type CoursePayload = {
 };
 
 export function CourseRoom({
-  roomId, communityId, dashboardMode,
+  roomId, communityId, slug, dashboardMode,
 }: {
   roomId: string; roomName: string; communityId: string; slug: string; dashboardMode?: boolean;
 }) {
@@ -982,7 +982,7 @@ export function CourseRoom({
           <div className="flex flex-col flex-1 min-w-0 min-h-0">{lessonPlayer}</div>
           {!dashboardMode && (
             <ChatRoomMembersAside
-              communityId={communityId}
+              communityId={slug?.trim() ? slug : communityId}
               userId={userId ?? ""}
               threadOpen={false}
               mobilePeopleOpen={peopleOpen}

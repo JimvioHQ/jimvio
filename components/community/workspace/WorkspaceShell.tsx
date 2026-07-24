@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { WorkspaceProvider } from "@/components/community/workspace-context";
 import { CallProvider } from "@/components/community/call-context";
+import { WorkspaceUnreadSync } from "@/components/community/workspace/WorkspaceUnreadSync";
 import type { WorkspaceCommunity, WorkspaceRole, WorkspaceView } from "@/types/workspace";
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
 import type { CommunityOverviewStats } from "@/services/community/hub-data";
@@ -217,6 +218,10 @@ export function WorkspaceLayout({
   return (
     <WorkspaceProvider value={ctx}>
       <CallProvider>
+        <WorkspaceUnreadSync
+          communityId={community.id}
+          userId={currentUserId}
+        />
         <div className="flex flex-col bg-bg font-[family-name:var(--font-dm-sans)] h-full min-h-0">
           <div
             className={cn(

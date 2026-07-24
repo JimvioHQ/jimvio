@@ -14,6 +14,7 @@ import {
   communityChannelHref,
   resolveSpaceAndRoom,
 } from "@/lib/community/workspace";
+import { setActiveChatTarget } from "@/lib/community/chat/active-chat-target";
 import type {
     ActiveConvPeer,
     ChatFilter,
@@ -204,7 +205,20 @@ export function useChatRoom({
         return () => window.removeEventListener("storage", read);
     }, []);
 
-    // Clear unread on open
+    // Clear unread on open + register active chat target for shell unread sync
+    useEffect(() => {
+        const chatting = !forceShowList && (!!roomId || !!activeConvId);
+        if (chatting) {
+            setActiveChatTarget({
+                roomId: activeConvId ? null : roomId || null,
+                convId: activeConvId || null,
+            });
+        } else {
+            setActiveChatTarget({ roomId: null, convId: null });
+        }
+        return () => setActiveChatTarget({ roomId: null, convId: null });
+    }, [roomId, activeConvId, forceShowList]);
+
     useEffect(() => {
         if (!roomId && !activeConvId) return;
         const key = `workspace-unread:${activeConvId ?? roomId}`;
@@ -296,40 +310,60 @@ export function useChatRoom({
         };
     }, [userId, communityId, supabase]);
 
-    // ── Load messages ───────────────────────────────────────────────────────────
-    const load = useCallback(async () => {
-        setLoading(true);
-        const controller = new AbortController();
-        try {
-            if (activeConvId) {
-                const res = await fetch(
-                    `/api/communities/${slug}/inbox/${activeConvId}/messages`,
-                    { signal: controller.signal }
-                );
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error);
-                setMessages(data.messages ?? []);
-            } else if (roomId) {
-                const res = await fetch(`/api/messages/${roomId}?limit=100`, {
-                    signal: controller.signal,
-                });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error);
-                setMessages(data.messages ?? []);
-            }
-        } catch (e: unknown) {
-            if (e instanceof Error && e.name !== "AbortError") setMessages([]);
-        } finally {
+    // ── Load messages (AbortController lives in effect cleanup) ─────────────────
+    useEffect(() => {
+        if (!roomId && !activeConvId) {
+            setMessages([]);
             setLoading(false);
+            return;
         }
-        return () => controller.abort();
-    }, [roomId, activeConvId, slug]);
 
-    useEffect(() => { load(); }, [load]);
+        const controller = new AbortController();
+        let cancelled = false;
+
+        async function load() {
+            setLoading(true);
+            try {
+                if (activeConvId) {
+                    const res = await fetch(
+                        `/api/communities/${slug}/inbox/${activeConvId}/messages`,
+                        { signal: controller.signal }
+                    );
+                    const data = await res.json();
+                    if (cancelled) return;
+                    if (!res.ok) throw new Error(data.error);
+                    setMessages(data.messages ?? []);
+                } else if (roomId) {
+                    const res = await fetch(`/api/messages/${roomId}?limit=100`, {
+                        signal: controller.signal,
+                    });
+                    const data = await res.json();
+                    if (cancelled) return;
+                    if (!res.ok) throw new Error(data.error);
+                    setMessages(data.messages ?? []);
+                }
+            } catch (e: unknown) {
+                if (cancelled) return;
+                if (e instanceof Error && e.name === "AbortError") return;
+                setMessages([]);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }
+
+        void load();
+        return () => {
+            cancelled = true;
+            controller.abort();
+        };
+    }, [roomId, activeConvId, slug]);
 
     // ── Realtime subscriptions ──────────────────────────────────────────────────
     const { setIncomingCall } = useCall();
     const isChatting = !forceShowList && (!!roomId || !!activeConvId);
+
+    // Unread badges are owned by WorkspaceUnreadSync (shell-level).
+    // Message INSERT/UPDATE for the open room stays here.
 
     useEffect(() => {
         if (!isChatting) return;
@@ -381,30 +415,30 @@ export function useChatRoom({
                         }
                     }
                 )
-                .subscribe();
-
-            const gi = supabase
-                .channel(`inbox_unread_${communityId}`)
                 .on(
                     "postgres_changes",
-                    { event: "INSERT", schema: "public", table: "community_inbox_messages" },
-                    (p: RealtimePayload) => {
-                        const r = p.new;
-                        if (r.sender_id !== userId && r.conversation_id !== activeConvId) {
-                            const k = `workspace-unread:${String(r.conversation_id)}`;
-                            localStorage.setItem(
-                                k,
-                                String(parseInt(localStorage.getItem(k) ?? "0", 10) + 1)
-                            );
-                            window.dispatchEvent(new Event("storage"));
+                    {
+                        event: "UPDATE",
+                        schema: "public",
+                        table: "community_inbox_messages",
+                        filter: `conversation_id=eq.${activeConvId}`,
+                    },
+                    (raw: RealtimePayload) => {
+                        const row = raw.new;
+                        if (row.is_deleted) {
+                            removeMessage(String(row.id));
+                            return;
                         }
+                        patchMessage(String(row.id), {
+                            body: String(row.body ?? ""),
+                            reactions: (row.reactions as Record<string, unknown>) ?? {},
+                        });
                     }
                 )
                 .subscribe();
 
             return () => {
                 supabase.removeChannel(ch);
-                supabase.removeChannel(gi);
             };
         } else if (roomId) {
             const ch = supabase
@@ -450,6 +484,13 @@ export function useChatRoom({
                             reply_to_id: (row.reply_to_id as string) ?? null,
                             reply_to_body: (row.reply_to_body as string) ?? null,
                             reply_to_sender: (row.reply_to_sender as string) ?? null,
+                            metadata:
+                                row.metadata && typeof row.metadata === "object"
+                                    ? (row.metadata as Record<string, unknown>)
+                                    : null,
+                            is_pinned: (row.is_pinned as boolean) ?? false,
+                            pinned_at: (row.pinned_at as string) ?? null,
+                            pinned_by: (row.pinned_by as string) ?? null,
                         });
                     }
                 )
@@ -473,38 +514,20 @@ export function useChatRoom({
                             is_edited: (row.is_edited as boolean) ?? false,
                             edited_at: (row.edited_at as string) ?? null,
                             reply_count: (row.reply_count as number) ?? 0,
+                            metadata:
+                                row.metadata && typeof row.metadata === "object"
+                                    ? (row.metadata as Record<string, unknown>)
+                                    : null,
+                            is_pinned: (row.is_pinned as boolean) ?? false,
+                            pinned_at: (row.pinned_at as string) ?? null,
+                            pinned_by: (row.pinned_by as string) ?? null,
                         });
-                    }
-                )
-                .subscribe();
-
-            const gr = supabase
-                .channel(`rooms_unread_${communityId}`)
-                .on(
-                    "postgres_changes",
-                    {
-                        event: "INSERT",
-                        schema: "public",
-                        table: "community_messages",
-                        filter: `community_id=eq.${communityId}`,
-                    },
-                    (p: RealtimePayload) => {
-                        const r = p.new;
-                        if (r.sender_id !== userId && r.room_id !== roomId) {
-                            const k = `workspace-unread:${String(r.room_id)}`;
-                            localStorage.setItem(
-                                k,
-                                String(parseInt(localStorage.getItem(k) ?? "0", 10) + 1)
-                            );
-                            window.dispatchEvent(new Event("storage"));
-                        }
                     }
                 )
                 .subscribe();
 
             return () => {
                 supabase.removeChannel(ch);
-                supabase.removeChannel(gr);
             };
         }
     }, [
@@ -512,7 +535,6 @@ export function useChatRoom({
         activeConvId,
         isChatting,
         userId,
-        communityId,
         loadThread,
         patchMessage,
         removeMessage,

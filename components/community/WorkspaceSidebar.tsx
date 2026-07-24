@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -50,7 +50,8 @@ function spaceIconFromName(name: string | null): LucideIcon {
   return map[name.toLowerCase()] ?? Hash;
 }
 
-function unreadForRoom(roomId: string): number {
+function unreadForRoom(roomId: string, _revision = 0): number {
+  void _revision;
   if (typeof window === "undefined") return 0;
   try {
     const raw = localStorage.getItem(`workspace-unread:${roomId}`);
@@ -59,6 +60,17 @@ function unreadForRoom(roomId: string): number {
   } catch {
     return 0;
   }
+}
+
+/** Re-render when same-tab unread localStorage updates fire. */
+function useUnreadTick(): number {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const onStorage = () => setTick((t) => t + 1);
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+  return tick;
 }
 
 /* ─── Component ─────────────────────────────────────────────────── */
@@ -96,6 +108,7 @@ export function WorkspaceSidebar({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const unreadRevision = useUnreadTick();
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
@@ -295,7 +308,7 @@ export function WorkspaceSidebar({
                           { is_locked: room.is_locked, access_type: room.access_type },
                           space.access_type, membership, ownerId, userId, space.id
                         );
-                        const ur = room.room_type === "chat" ? unreadForRoom(room.id) : 0;
+                        const ur = room.room_type === "chat" ? unreadForRoom(room.id, unreadRevision) : 0;
 
                         return (
                           <li key={room.id}>

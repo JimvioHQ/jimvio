@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
 import { notifyMentionedUsers } from "@/lib/community/notify-community";
 import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
+import {
+  escapeIlikePattern,
+  sanitizeChatAttachments,
+} from "@/lib/community/chat/sanitize-attachments";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +46,7 @@ export async function GET(
     .is("thread_id", null);
 
   if (before) query = query.lt("created_at", before);
-  if (q) query = query.ilike("body", `%${q}%`);
+  if (q) query = query.ilike("body", `%${escapeIlikePattern(q)}%`);
 
   // Newest-first for pagination, reversed below to chronological order.
   const { data, error } = await query.order("created_at", { ascending: false }).limit(limit);
@@ -97,7 +101,11 @@ export async function POST(
     metadata?: Record<string, unknown> | null;
   };
 
-  const attachmentList = Array.isArray(attachments) ? attachments : [];
+  const sanitized = sanitizeChatAttachments(attachments);
+  if (!sanitized.ok) {
+    return NextResponse.json({ error: sanitized.error }, { status: 400 });
+  }
+  const attachmentList = sanitized.attachments;
   const bodyTrim = typeof body === "string" ? body.trim() : "";
   if (!bodyTrim && attachmentList.length === 0) {
     return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });

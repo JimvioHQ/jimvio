@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveCommunityBySlugOrId } from "@/lib/community/resolve-community";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +11,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: community } = await supabase
-    .from("communities")
-    .select("id")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
-
+  const community = await resolveCommunityBySlugOrId(supabase, slug);
   if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
 
   // Check active membership
@@ -88,13 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Cannot message yourself" }, { status: 400 });
   }
 
-  const { data: community } = await supabase
-    .from("communities")
-    .select("id")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
-
+  const community = await resolveCommunityBySlugOrId(supabase, slug);
   if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
 
   const { data: myMembership } = await supabase

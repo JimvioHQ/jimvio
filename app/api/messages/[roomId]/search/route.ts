@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
+import { escapeIlikePattern } from "@/lib/community/chat/sanitize-attachments";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export async function GET(
     .select("*, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username, is_verified)")
     .eq("room_id", roomId)
     .eq("is_deleted", false)
-    .ilike("body", `%${q}%`)
+    .ilike("body", `%${escapeIlikePattern(q)}%`)
     .order("created_at", { ascending: false })
     .limit(limit);
 

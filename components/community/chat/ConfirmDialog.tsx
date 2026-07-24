@@ -22,7 +22,7 @@ export function ConfirmDialog({
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">{title}</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-[#667781] mt-1">{description}</p>
+        <p className="mt-1 text-sm text-[var(--color-text-muted)]">{description}</p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" className="rounded-sm" onClick={onCancel}>
             Cancel
