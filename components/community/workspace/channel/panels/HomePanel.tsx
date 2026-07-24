@@ -84,6 +84,8 @@ export function HomePanel({
         icon={Sparkles}
         title="Channel Home"
         description="Open Discussion once to warm the collaboration index, then return for an overview."
+        actionLabel={onOpenTab ? "Open Discussion" : undefined}
+        onAction={onOpenTab ? () => onOpenTab("discussion") : undefined}
       />
     );
   }
@@ -114,6 +116,8 @@ export function HomePanel({
         icon={Sparkles}
         title={`Welcome to #${channel.name}`}
         description="Start a discussion to grow knowledge, threads, and reusable resources for this channel."
+        actionLabel={onOpenTab ? "Start discussing" : undefined}
+        onAction={onOpenTab ? () => onOpenTab("discussion") : undefined}
       />
     );
   }

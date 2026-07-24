@@ -12,7 +12,7 @@ export function WorkspaceSkeleton({
   return (
     <div
       className={cn("space-y-3 p-4", className)}
-      aria-busy
+      aria-busy="true"
       aria-label="Loading"
     >
       {Array.from({ length: rows }).map((_, i) => (

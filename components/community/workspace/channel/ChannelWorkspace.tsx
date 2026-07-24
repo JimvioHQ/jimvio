@@ -135,6 +135,7 @@ export function ChannelWorkspace({
 
         <div
           role="tabpanel"
+          id={`channel-tab-${tab}-panel`}
           aria-labelledby={`channel-tab-${tab}`}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
@@ -145,12 +146,17 @@ export function ChannelWorkspace({
               tab !== "discussion" && "hidden"
             )}
             hidden={tab !== "discussion"}
+            id="channel-tab-discussion-panel"
           >
             {discussion}
           </div>
 
           {tab !== "discussion" && (
-            <Suspense fallback={<WorkspaceSkeleton rows={5} />}>
+            <Suspense
+              fallback={
+                <WorkspaceSkeleton rows={5} className="min-h-[280px]" />
+              }
+            >
               {tab === "home" && (
                 <HomePanel
                   roomId={resolvedRoomId}
@@ -172,6 +178,7 @@ export function ChannelWorkspace({
                     requestConvertThread(id);
                     openDiscussion();
                   }}
+                  onOpenDiscussion={openDiscussion}
                 />
               )}
               {tab === "knowledge" && (
@@ -183,13 +190,21 @@ export function ChannelWorkspace({
                   canManage={
                     canManageKnowledge ?? channel.permissions.canModerate
                   }
+                  onOpenDiscussion={openDiscussion}
                 />
               )}
-              {tab === "media" && <MediaPanel roomId={resolvedRoomId} />}
+              {tab === "media" && (
+                <MediaPanel
+                  roomId={resolvedRoomId}
+                  onOpenDiscussion={openDiscussion}
+                />
+              )}
               {tab === "pinned" && (
                 <PinnedPanel
                   roomId={resolvedRoomId}
                   pinnedCount={pinnedCount}
+                  onOpenDiscussion={openDiscussion}
+                  onJumpToMessage={() => openDiscussion()}
                 />
               )}
               {tab === "events" && (

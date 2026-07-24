@@ -5,7 +5,6 @@ import {
   Bell,
   BellOff,
   Copy,
-  ExternalLink,
   MoreHorizontal,
   Pin,
   Search,
@@ -14,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { WorkspaceChannel, WorkspaceGroup } from "@/lib/community/workspace";
+import { WorkspaceIconButton } from "@/components/community/workspace/channel/ChannelEmptyState";
 
 export function ChannelHeader({
   channel,
@@ -42,14 +42,25 @@ export function ChannelHeader({
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!menuOpen) return;
     function onDoc(e: MouseEvent) {
       if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false);
     }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    }
     document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [menuOpen]);
 
   return (
@@ -90,14 +101,17 @@ export function ChannelHeader({
           <button
             type="button"
             onClick={onOpenMembers}
-            className="inline-flex items-center gap-1 transition hover:text-[var(--color-text-primary)]"
+            className="inline-flex min-h-8 items-center gap-1 rounded-md px-1 transition hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
           >
             <Users className="h-3 w-3" aria-hidden />
             {members > 0 ? `${members.toLocaleString()} members` : "Members"}
           </button>
           {online > 0 && (
             <span className="inline-flex items-center gap-1 text-emerald-600">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+              <span
+                className="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                aria-hidden
+              />
               {online.toLocaleString()} online
             </span>
           )}
@@ -105,7 +119,7 @@ export function ChannelHeader({
             <button
               type="button"
               onClick={onOpenPinned}
-              className="inline-flex items-center gap-1 transition hover:text-[var(--color-text-primary)]"
+              className="inline-flex min-h-8 items-center gap-1 rounded-md px-1 transition hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
             >
               <Pin className="h-3 w-3" aria-hidden />
               {pins} pinned
@@ -115,45 +129,46 @@ export function ChannelHeader({
       </div>
 
       <div className="relative flex shrink-0 items-center gap-0.5" ref={menuRef}>
-        <button
-          type="button"
-          aria-label="Search in channel"
+        <WorkspaceIconButton
+          label="Search in channel"
           onClick={onSearchClick}
-          className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
         >
           <Search className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          aria-label={
-            notificationsOn ? "Mute channel notifications" : "Enable notifications"
+        </WorkspaceIconButton>
+        <WorkspaceIconButton
+          label={
+            notificationsOn
+              ? "Mute channel notifications"
+              : "Enable notifications"
           }
-          aria-pressed={notificationsOn}
+          pressed={!notificationsOn}
           onClick={() => {
             setNotificationsOn((v) => !v);
             toast.success(
               notificationsOn ? "Channel muted" : "Notifications enabled"
             );
           }}
-          className={cn(
-            "rounded-lg p-2 transition hover:bg-[var(--color-surface-secondary)]",
-            notificationsOn
-              ? "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-              : "text-[var(--color-accent)]"
-          )}
         >
           {notificationsOn ? (
             <Bell className="h-4 w-4" />
           ) : (
             <BellOff className="h-4 w-4" />
           )}
-        </button>
+        </WorkspaceIconButton>
         <button
+          ref={menuButtonRef}
           type="button"
           aria-label="More channel actions"
           aria-expanded={menuOpen}
+          aria-haspopup="menu"
           onClick={() => setMenuOpen((o) => !o)}
-          className="rounded-lg p-2 text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+          className={cn(
+            "inline-flex h-10 w-10 items-center justify-center rounded-lg",
+            "text-[var(--color-text-muted)] transition duration-150",
+            "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-1",
+            "active:scale-[0.97]"
+          )}
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -188,14 +203,6 @@ export function ChannelHeader({
                 setMenuOpen(false);
               }}
             />
-            <MenuItem
-              icon={ExternalLink}
-              label="Open search"
-              onClick={() => {
-                onSearchClick?.();
-                setMenuOpen(false);
-              }}
-            />
           </div>
         )}
       </div>
@@ -217,7 +224,7 @@ function MenuItem({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium text-[var(--color-text-primary)] hover:bg-[var(--color-surface-secondary)]"
+      className="flex min-h-10 w-full items-center gap-2 px-3 text-left text-[13px] font-medium text-[var(--color-text-primary)] transition hover:bg-[var(--color-surface-secondary)] focus-visible:bg-[var(--color-surface-secondary)] focus-visible:outline-none"
     >
       <Icon className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
       {label}

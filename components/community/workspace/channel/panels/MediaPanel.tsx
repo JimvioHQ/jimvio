@@ -12,7 +12,13 @@ import { cn } from "@/lib/utils";
 type MediaFilter = "all" | "image" | "video" | "audio";
 
 /** Modern media gallery — images, videos, audio. */
-export function MediaPanel({ roomId }: { roomId?: string }) {
+export function MediaPanel({
+  roomId,
+  onOpenDiscussion,
+}: {
+  roomId?: string;
+  onOpenDiscussion?: () => void;
+}) {
   const messages = useRoomMessageIndex((s) =>
     roomId ? (s.byRoom[roomId]?.messages ?? []) : []
   );
@@ -39,6 +45,8 @@ export function MediaPanel({ roomId }: { roomId?: string }) {
         icon={ImageIcon}
         title="Media"
         description="Photos, clips, and audio shared in this channel appear here after Discussion loads."
+        actionLabel={onOpenDiscussion ? "Open Discussion" : undefined}
+        onAction={onOpenDiscussion}
       />
     );
   }

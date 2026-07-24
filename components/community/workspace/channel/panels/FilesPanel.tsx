@@ -31,9 +31,11 @@ type ViewMode = "list" | "grid";
 export function FilesPanel({
   roomId,
   canManage,
+  onOpenDiscussion,
 }: {
   roomId?: string;
   canManage?: boolean;
+  onOpenDiscussion?: () => void;
 }) {
   const messages = useRoomMessageIndex((s) =>
     roomId ? (s.byRoom[roomId]?.messages ?? []) : []
@@ -92,6 +94,8 @@ export function FilesPanel({
         icon={FileText}
         title="Files"
         description="Shared documents become reusable assets with categories, tags, and rich previews. Open Discussion so the index can populate."
+        actionLabel={onOpenDiscussion ? "Open Discussion" : undefined}
+        onAction={onOpenDiscussion}
       />
     );
   }

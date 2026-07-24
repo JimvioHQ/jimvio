@@ -3,7 +3,7 @@
 
 import React, { useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Loader2, Lock, ArrowRight } from "lucide-react";
+import { Lock, ArrowRight } from "lucide-react";
 import { useWorkspaceOptional } from "@/components/community/workspace-context";
 import { WorkspaceRoomOverlay } from "@/components/community/workspace-room-overlay";
 import { PostsRoom } from "@/components/community/rooms/PostsRoom";
@@ -12,6 +12,7 @@ import { TasksRoom } from "@/components/community/rooms/TasksRoom";
 import { ResourcesRoom } from "@/components/community/rooms/ResourcesRoom";
 import { ChatRoom } from "./chat/ChatRoom";
 import { ChannelWorkspace } from "@/components/community/workspace/channel";
+import { WorkspaceSkeleton } from "@/components/community/workspace/shared/WorkspaceSkeleton";
 import {
   canEnterChannel,
   mapRoomToChannel,
@@ -68,7 +69,7 @@ export function WorkspaceRoomView() {
         <button
           type="button"
           onClick={() => router.push(homeBase)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#fd5000] px-4 py-2 text-[13px] font-semibold text-white"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
         >
           Back to community <ArrowRight className="h-3.5 w-3.5" />
         </button>
@@ -78,9 +79,8 @@ export function WorkspaceRoomView() {
 
   if (!spaceId || !roomId) {
     return (
-      <div className="flex flex-1 items-center justify-center gap-2 text-[13px] text-[var(--color-text-muted)]">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        Loading…
+      <div className="flex flex-1 flex-col" aria-busy aria-label="Loading room">
+        <WorkspaceSkeleton rows={6} className="min-h-[280px]" />
       </div>
     );
   }
@@ -95,13 +95,9 @@ export function WorkspaceRoomView() {
         <button
           type="button"
           onClick={() => router.push(homeBase)}
-          className="inline-flex h-9 items-center gap-1 px-4 text-[13px] font-medium text-white"
-          style={{
-            background: "var(--color-accent)",
-            borderRadius: "var(--radius-sm)",
-          }}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
         >
-          Back to community <ArrowRight size={13} />
+          Back to community <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
     );
@@ -121,14 +117,7 @@ export function WorkspaceRoomView() {
   if (!canEnter) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-        <div
-          className="flex h-12 w-12 items-center justify-center"
-          style={{
-            background: "var(--color-surface-secondary)",
-            color: "var(--color-text-muted)",
-            borderRadius: "var(--radius-md)",
-          }}
-        >
+        <div className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]">
           <Lock className="h-5 w-5" />
         </div>
         <div>
@@ -142,13 +131,9 @@ export function WorkspaceRoomView() {
         <button
           type="button"
           onClick={() => router.push(`/communities/${slug}/subscribe`)}
-          className="inline-flex h-9 items-center gap-1 px-4 text-[13px] font-medium text-white"
-          style={{
-            background: "var(--color-accent)",
-            borderRadius: "var(--radius-sm)",
-          }}
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
         >
-          See plans <ArrowRight size={13} />
+          See plans <ArrowRight className="h-3.5 w-3.5" />
         </button>
       </div>
     );

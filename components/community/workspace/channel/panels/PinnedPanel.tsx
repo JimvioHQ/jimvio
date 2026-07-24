@@ -11,12 +11,16 @@ import { cn } from "@/lib/utils";
 export function PinnedPanel({
   roomId,
   pinnedCount = 0,
+  onJumpToMessage,
+  onOpenDiscussion,
 }: {
   roomId?: string;
   pinnedCount?: number;
+  onJumpToMessage?: (messageId: string) => void;
+  onOpenDiscussion?: () => void;
 }) {
   const messages = useRoomMessageIndex((s) =>
-    roomId ? s.byRoom[roomId]?.messages ?? [] : []
+    roomId ? (s.byRoom[roomId]?.messages ?? []) : []
   );
   const pinned = extractPinned(messages);
 
@@ -25,7 +29,9 @@ export function PinnedPanel({
       <ChannelEmptyState
         icon={Pin}
         title={pinnedCount > 0 ? `${pinnedCount} pinned` : "Pinned"}
-        description="Important messages pinned by moderators will show up here for quick access. Open Discussion to load the channel first."
+        description="Important messages pinned by moderators appear here for quick access. Open Discussion so the channel index can load."
+        actionLabel={onOpenDiscussion ? "Open Discussion" : undefined}
+        onAction={onOpenDiscussion}
       />
     );
   }
@@ -37,13 +43,13 @@ export function PinnedPanel({
           <li
             key={m.id}
             className={cn(
-              "rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-3",
-              "transition-shadow hover:shadow-sm"
+              "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3",
+              "transition duration-150 hover:border-[var(--color-accent)]/30 hover:shadow-sm"
             )}
           >
             <div className="flex items-start gap-3">
               <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-subtle)] text-[var(--color-accent)]">
-                <Pin className="h-4 w-4" />
+                <Pin className="h-4 w-4" aria-hidden />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-[var(--color-text-primary)]">
@@ -55,27 +61,32 @@ export function PinnedPanel({
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
                   <span>
                     Pinned{" "}
-                    {format(new Date(m.pinned_at ?? m.created_at), "MMM d, yyyy · HH:mm")}
+                    {format(
+                      new Date(m.pinned_at ?? m.created_at),
+                      "MMM d, yyyy · HH:mm"
+                    )}
                   </span>
                   {m.pinned_by && <span>· by moderator</span>}
                 </div>
-                <a
-                  href={`#msg-${m.id}`}
+                <button
+                  type="button"
                   className={cn(
-                    "mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-accent)]",
-                    "hover:underline"
+                    "mt-2 inline-flex min-h-9 items-center gap-1 rounded-md text-[12px] font-semibold text-[var(--color-accent)]",
+                    "hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                   )}
                   onClick={() => {
-                    // Switch to discussion via hash; ChannelWorkspace keeps discussion mounted when possible
-                    document.getElementById(`msg-${m.id}`)?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "center",
+                    onJumpToMessage?.(m.id);
+                    requestAnimationFrame(() => {
+                      document.getElementById(`msg-${m.id}`)?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
                     });
                   }}
                 >
-                  <ArrowDownToLine className="h-3.5 w-3.5" />
+                  <ArrowDownToLine className="h-3.5 w-3.5" aria-hidden />
                   Jump to message
-                </a>
+                </button>
               </div>
             </div>
           </li>

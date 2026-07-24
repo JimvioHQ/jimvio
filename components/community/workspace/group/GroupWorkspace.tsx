@@ -182,12 +182,13 @@ export function GroupWorkspace({
               notificationsOn ? "Group notifications muted" : "Notifications on"
             );
           }}
+          searchValue={query}
+          onSearchChange={setQuery}
           onSearch={() => {
-            const el = document.getElementById("group-workspace-search");
+            const el =
+              document.getElementById("group-workspace-search") ||
+              document.getElementById("group-workspace-search-mobile");
             el?.focus();
-            toast.message("Search this workspace", {
-              description: "Filter channels, knowledge, and activity below.",
-            });
           }}
           onJoin={() =>
             router.push(`/communities/${communitySlug}/subscribe`)
@@ -213,7 +214,7 @@ export function GroupWorkspace({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search channels, knowledge, activity…"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-accent)]/40"
+              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2.5 text-[13px] outline-none focus:border-[var(--color-accent)]/40 focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
               aria-label="Search group workspace"
             />
           </div>
@@ -221,6 +222,7 @@ export function GroupWorkspace({
 
         <div
           role="tabpanel"
+          id={`group-tab-${tab}-panel`}
           aria-labelledby={`group-tab-${tab}`}
           className="flex min-h-0 flex-1 flex-col overflow-hidden transition-opacity duration-200"
         >
@@ -314,6 +316,14 @@ export function GroupWorkspace({
                   icon={LayoutList}
                   title="Channels"
                   description="Discussion and announcement channels for this group appear here."
+                  actionLabel={
+                    space.rooms[0] ? "Open first channel" : undefined
+                  }
+                  onAction={
+                    space.rooms[0]
+                      ? () => openRoom(space.rooms[0].id)
+                      : undefined
+                  }
                 />
               ) : (
                 (query ? filteredRooms : chatRooms.length > 0 ? chatRooms : filteredRooms).map(
@@ -354,6 +364,14 @@ export function GroupWorkspace({
                   icon={BookOpen}
                   title="Group knowledge"
                   description="Guides, FAQs, pinned collections, and learning paths converted from channel conversations appear here."
+                  actionLabel={
+                    space.rooms[0] ? "Browse channels" : undefined
+                  }
+                  onAction={
+                    space.rooms[0]
+                      ? () => startTransition(() => setTab("discussion"))
+                      : undefined
+                  }
                 />
               ) : (
                 <ul className="grid gap-3 sm:grid-cols-2">
@@ -382,6 +400,10 @@ export function GroupWorkspace({
                   title="Courses"
                   description="Course channels in this group list here. Open a course room to teach or continue learning."
                   className="py-10"
+                  actionLabel="Browse community courses"
+                  onAction={() =>
+                    router.push(`/communities/${communitySlug}/courses`)
+                  }
                 />
               ) : (
                 courseRooms.map((r) => (
@@ -450,6 +472,12 @@ export function GroupWorkspace({
                     title="Events"
                     description="Workshops, AMAs, launches, and cohort sessions for this group."
                     className="py-8"
+                    actionLabel={isStaff ? undefined : "View activity"}
+                    onAction={
+                      isStaff
+                        ? undefined
+                        : () => startTransition(() => setTab("activity"))
+                    }
                   />
                 ) : (
                   events.map((e) => (
@@ -527,6 +555,10 @@ export function GroupWorkspace({
                     title="Activity"
                     description="Tasks, events, and knowledge created from collaboration will surface here."
                     className="py-8"
+                    actionLabel="Open discussion"
+                    onAction={() =>
+                      startTransition(() => setTab("discussion"))
+                    }
                   />
                 )}
             </div>

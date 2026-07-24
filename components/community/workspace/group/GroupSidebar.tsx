@@ -2,9 +2,11 @@
 
 import {
   BookOpen,
+  Bot,
   Calendar,
   Folder,
   LayoutGrid,
+  LayoutList,
   MessageCircle,
   Radio,
   Settings,
@@ -29,6 +31,8 @@ const ICONS: Record<GroupSidebarId, LucideIcon> = {
   members: Users,
   store: ShoppingBag,
   live: Radio,
+  activity: LayoutList,
+  ai: Bot,
   settings: Settings,
 };
 
@@ -66,8 +70,10 @@ export function GroupSidebar({
             key={item.id}
             type="button"
             onClick={() => onChange(item.id)}
+            aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-semibold transition-colors duration-150",
+              "flex min-h-10 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-semibold transition-colors duration-150",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-1",
               isActive
                 ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
                 : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"

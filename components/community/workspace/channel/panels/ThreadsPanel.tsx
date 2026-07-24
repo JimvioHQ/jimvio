@@ -26,11 +26,13 @@ export function ThreadsPanel({
   canManage,
   onOpenThread,
   onConvertThread,
+  onOpenDiscussion,
 }: {
   roomId?: string;
   canManage?: boolean;
   onOpenThread?: (messageId: string) => void;
   onConvertThread?: (messageId: string) => void;
+  onOpenDiscussion?: () => void;
 }) {
   const messages = useRoomMessageIndex((s) =>
     roomId ? (s.byRoom[roomId]?.messages ?? []) : []
@@ -66,6 +68,8 @@ export function ThreadsPanel({
         icon={MessageSquare}
         title="Threads"
         description="Threaded discussions with solved answers and featured knowledge live here. Start a thread from Discussion."
+        actionLabel={onOpenDiscussion ? "Open Discussion" : undefined}
+        onAction={onOpenDiscussion}
       />
     );
   }
@@ -85,12 +89,12 @@ export function ThreadsPanel({
             key={id}
             type="button"
             onClick={() => setFilter(id)}
-            className={cn(
-              "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold",
-              filter === id
-                ? "bg-[var(--color-accent)] text-white"
-                : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
-            )}
+                  className={cn(
+                "shrink-0 rounded-md px-2.5 py-1.5 text-[11px] font-semibold min-h-9",
+                filter === id
+                  ? "bg-[var(--color-accent)] text-white"
+                  : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
+              )}
           >
             {label}
           </button>

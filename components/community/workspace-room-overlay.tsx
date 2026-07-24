@@ -337,53 +337,60 @@ export function WorkspaceRoomOverlay({
   return (
     <div
       className={cn(
-        "absolute inset-0 z-30 flex flex-col rounded-2xl overflow-hidden",
-        "bg-zinc-50 dark:bg-zinc-900",
-        "border border-zinc-200/60 dark:border-zinc-800",
-        "transition-[opacity,transform] duration-300 ease-out will-change-[opacity,transform]",
-        mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+        "absolute inset-0 z-30 flex flex-col overflow-hidden rounded-2xl",
+        "bg-[var(--color-bg)] border border-[var(--color-border)]",
+        "transition-opacity duration-200 ease-out",
+        mounted ? "opacity-100" : "opacity-0"
       )}
       role="dialog"
       aria-modal="true"
       aria-labelledby="wro-title"
     >
       {/* ── Header ── */}
-      <header className="relative z-10 flex items-stretch flex-shrink-0 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800">
+      <header className="relative z-10 flex flex-shrink-0 items-stretch border-b border-[var(--color-border)] bg-[var(--color-surface)]">
         {/* Back */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Back to workspace"
+          ref={(el) => {
+            if (el && mounted) el.focus();
+          }}
           className={cn(
-            "group flex items-center justify-center w-12 flex-shrink-0",
-            "border-r border-zinc-200 dark:border-zinc-800",
-            "text-zinc-400 dark:text-zinc-500",
-            "hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100",
-            "transition-all duration-150 active:scale-95",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+            "group flex w-12 flex-shrink-0 items-center justify-center",
+            "border-r border-[var(--color-border)]",
+            "text-[var(--color-text-muted)] transition duration-150",
+            "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-accent)]",
+            "active:scale-95"
           )}
         >
           <ArrowLeft className="h-4 w-4 transition-transform duration-150 group-hover:-translate-x-0.5" />
         </button>
 
         {/* Breadcrumb + room name */}
-        <div className="flex flex-col justify-center gap-0.5 px-3.5 py-2.5 flex-1 min-w-0 overflow-hidden">
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 overflow-hidden px-3.5 py-2.5">
           <div className="flex items-center gap-1 overflow-hidden">
-            <span className="text-[10px] font-medium tracking-[0.07em] uppercase text-zinc-400 dark:text-zinc-500 truncate">
+            <span className="truncate text-[10px] font-medium uppercase tracking-[0.07em] text-[var(--color-text-muted)]">
               {communityName}
             </span>
-            <span className="text-zinc-300 dark:text-zinc-700 text-[10px] flex-shrink-0" aria-hidden>›</span>
-            <span className="text-[10px] font-medium tracking-[0.07em] uppercase text-zinc-400 dark:text-zinc-500 truncate">
+            <span
+              className="flex-shrink-0 text-[10px] text-[var(--color-text-muted)]"
+              aria-hidden
+            >
+              ›
+            </span>
+            <span className="truncate text-[10px] font-medium uppercase tracking-[0.07em] text-[var(--color-text-muted)]">
               {spaceName}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="flex-shrink-0 flex items-center justify-center h-[19px] w-[19px] rounded-[5px] bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
-              <SpaceIcon className="h-2.5 w-2.5 text-zinc-500 dark:text-zinc-400" />
+            <span className="flex h-[19px] w-[19px] flex-shrink-0 items-center justify-center rounded-[5px] border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+              <SpaceIcon className="h-2.5 w-2.5 text-[var(--color-text-muted)]" />
             </span>
             <h1
               id="wro-title"
-              className="text-[14px] font-medium text-zinc-900 dark:text-zinc-100 truncate leading-snug"
+              className="truncate text-[14px] font-semibold leading-snug text-[var(--color-text-primary)]"
             >
               {roomName}
             </h1>
@@ -391,24 +398,24 @@ export function WorkspaceRoomOverlay({
         </div>
 
         {/* Right side: type pill + members toggle */}
-        <div className="flex items-stretch flex-shrink-0">
-          {/* Type badge */}
+        <div className="flex flex-shrink-0 items-stretch">
           <div
             className={cn(
-              "hidden sm:flex items-center gap-1.5 px-4",
-              "border-l border-zinc-200 dark:border-zinc-800",
-              "text-zinc-500 dark:text-zinc-400"
+              "hidden items-center gap-1.5 px-4 sm:flex",
+              "border-l border-[var(--color-border)]",
+              "text-[var(--color-text-muted)]"
             )}
             aria-label={`Room type: ${label}`}
           >
-            <span className={cn("h-[5px] w-[5px] rounded-full flex-shrink-0", dotClass)} />
+            <span
+              className={cn("h-[5px] w-[5px] flex-shrink-0 rounded-full", dotClass)}
+            />
             <RoomTypeIcon className="h-3.5 w-3.5 flex-shrink-0" />
-            <span className="text-[10px] font-medium tracking-[0.07em] uppercase whitespace-nowrap">
+            <span className="whitespace-nowrap text-[10px] font-medium uppercase tracking-[0.07em]">
               {label}
             </span>
           </div>
 
-          {/* Members toggle */}
           {showFeed && members.length > 0 && (
             <button
               type="button"
@@ -417,12 +424,13 @@ export function WorkspaceRoomOverlay({
               aria-pressed={sidebarOpen}
               className={cn(
                 "flex items-center gap-1.5 px-4",
-                "border-l border-zinc-200 dark:border-zinc-800",
-                "text-zinc-500 dark:text-zinc-400",
-                "hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-800 dark:hover:text-zinc-200",
+                "border-l border-[var(--color-border)]",
+                "text-[var(--color-text-muted)]",
+                "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
                 "transition-colors duration-150",
-                sidebarOpen && "bg-zinc-50 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                sidebarOpen &&
+                  "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-accent)]"
               )}
             >
               <Users className="h-3.5 w-3.5 flex-shrink-0" />

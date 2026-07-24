@@ -127,6 +127,8 @@ export const GROUP_SIDEBAR_IDS = [
   "members",
   "store",
   "live",
+  "activity",
+  "ai",
   "settings",
 ] as const;
 
@@ -134,7 +136,7 @@ export type GroupSidebarId = (typeof GROUP_SIDEBAR_IDS)[number];
 
 export const GROUP_SIDEBAR: { id: GroupSidebarId; label: string }[] = [
   { id: "overview", label: "Overview" },
-  { id: "discussion", label: "Channels" },
+  { id: "discussion", label: "Discussion" },
   { id: "knowledge", label: "Knowledge" },
   { id: "resources", label: "Resources" },
   { id: "events", label: "Events" },
@@ -142,6 +144,8 @@ export const GROUP_SIDEBAR: { id: GroupSidebarId; label: string }[] = [
   { id: "members", label: "Members" },
   { id: "store", label: "Store" },
   { id: "live", label: "Live" },
+  { id: "activity", label: "Activity" },
+  { id: "ai", label: "AI" },
   { id: "settings", label: "Settings" },
 ];
 

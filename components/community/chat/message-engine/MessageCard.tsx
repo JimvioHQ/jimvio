@@ -198,7 +198,7 @@ export function MessageCard({
             {p?.avatar_url ? (
               <Image
                 src={p.avatar_url}
-                alt=""
+                alt={name}
                 width={32}
                 height={32}
                 className="h-full w-full object-cover"
@@ -216,7 +216,7 @@ export function MessageCard({
           {/* Bubble */}
           <div
             className={cn(
-              "relative px-2.5 pb-2 pt-1.5 shadow-sm transition-shadow duration-200",
+              "relative px-3 pb-2.5 pt-2 shadow-sm transition-shadow duration-200",
               "group-hover:shadow-md",
               isOwn
                 ? "rounded-br-sm rounded-bl-lg rounded-t-lg bg-[var(--color-accent-light)]"
@@ -394,7 +394,7 @@ export function MessageCard({
           {/* Footer actions */}
           <footer
             className={cn(
-              "mt-0.5 flex flex-wrap items-center gap-0.5",
+              "mt-1 flex flex-wrap items-center gap-0.5",
               "opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100",
               isOwn && "justify-end"
             )}
@@ -405,8 +405,9 @@ export function MessageCard({
                 type="button"
                 aria-label={`React with ${emoji}`}
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-sm text-base leading-none",
-                  "transition-colors hover:bg-[var(--color-border)]"
+                  "flex h-9 w-9 items-center justify-center rounded-lg text-base leading-none sm:h-8 sm:w-8",
+                  "transition-colors hover:bg-[var(--color-border)]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                 )}
                 onClick={() => onToggleReaction(m.id, emoji)}
               >
@@ -421,14 +422,12 @@ export function MessageCard({
                 onClick={onOpenThread}
               />
             )}
-            <ActionChip icon={Share2} label="Share" onClick={share} />
             <ActionChip
               icon={Bookmark}
               label={bookmarked ? "Saved" : "Bookmark"}
               onClick={onBookmark}
               active={bookmarked}
             />
-            <ActionChip icon={Copy} label="Copy link" onClick={copyLink} />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -436,8 +435,9 @@ export function MessageCard({
                   type="button"
                   aria-label="More message actions"
                   className={cn(
-                    "inline-flex h-7 w-7 items-center justify-center rounded-sm",
-                    "text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-border)]"
+                    "inline-flex h-9 w-9 items-center justify-center rounded-lg sm:h-8 sm:w-8",
+                    "text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-border)]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                   )}
                 >
                   <MoreHorizontal className="h-4 w-4" />
@@ -452,6 +452,11 @@ export function MessageCard({
                   icon={Quote}
                   label="Quote"
                   onClick={() => (onQuote ? onQuote(m) : onReply(m))}
+                />
+                <MenuItem
+                  icon={Share2}
+                  label="Share"
+                  onClick={() => share()}
                 />
                 <MenuItem
                   icon={Forward}

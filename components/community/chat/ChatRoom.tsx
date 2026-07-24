@@ -371,7 +371,7 @@ export function ChatRoom({
   );
 
   return (
-    <div className="flex h-full w-full overflow-hidden font-sans">
+    <div className="flex h-full w-full overflow-hidden font-[family-name:var(--font-dm-sans),var(--font-sans),sans-serif]">
       <ConfirmDialog
         open={!!hook.confirmDelete}
         title="Delete message"
@@ -523,7 +523,7 @@ export function ChatRoom({
           aria-label="Messages"
           className={cn(
             "flex min-h-0 flex-1 flex-col overflow-y-auto",
-            "bg-[var(--color-bg)] px-[5%] py-3 pb-5",
+            "bg-[var(--color-bg)] px-3 py-3 pb-5 sm:px-[5%]",
             "scrollbar-thin scrollbar-thumb-[var(--color-border-strong)]",
             hook.loading && "overflow-hidden"
           )}
@@ -531,19 +531,47 @@ export function ChatRoom({
           {hook.loading ? (
             <ChatSkeleton />
           ) : hook.messages.length === 0 ? (
-            <div className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center">
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+            <div
+              className="flex flex-1 flex-col items-center justify-center px-4 py-14 text-center animate-in fade-in duration-200"
+              role="status"
+            >
+              <p className="text-[15px] font-bold text-[var(--color-text-primary)]">
                 Start the conversation
               </p>
-              <p className="mt-2 max-w-sm text-xs leading-relaxed text-[var(--color-text-muted)]">
-                Every message is a collaboration object — share ideas, files, and
-                threads.
+              <p className="mt-2 max-w-sm text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+                Share an idea, drop a file, or ask a question — this channel
+                becomes knowledge as you collaborate.
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  document
+                    .querySelector<HTMLTextAreaElement>(
+                      '[aria-label="Message composer"]'
+                    )
+                    ?.focus();
+                }}
+                className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
+              >
+                Write a message
+              </button>
             </div>
           ) : scopedMessages.length === 0 ? (
-            <p className="py-12 text-center text-sm text-[var(--color-text-muted)]">
-              No messages match your search.
-            </p>
+            <div className="flex flex-1 flex-col items-center justify-center px-4 py-12 text-center">
+              <p className="text-[13px] text-[var(--color-text-muted)]">
+                No messages match your search.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  hook.setSearchOpen(false);
+                  hook.setSearchQuery("");
+                }}
+                className="mt-3 text-[13px] font-semibold text-[var(--color-accent)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+              >
+                Clear search
+              </button>
+            </div>
           ) : (
             <VirtualMessageList
               messages={scopedMessages}
@@ -552,7 +580,10 @@ export function ChatRoom({
               footer={
                 <>
                   {!hook.activeConvId && hook.typingUsers.length > 0 && (
-                    <p className="px-1 py-1 text-xs italic text-[var(--color-text-muted)]">
+                    <p
+                      className="px-1 py-1.5 text-[12px] italic text-[var(--color-text-muted)] animate-in fade-in duration-150"
+                      aria-live="polite"
+                    >
                       {hook.typingUsers.map((t) => t.name).join(", ")}
                       {hook.typingUsers.length === 1 ? " is" : " are"} typing…
                     </p>

@@ -68,6 +68,8 @@ assert.match(groupWs, /GroupSidebar/);
 assert.match(groupWs, /communityRoomHref/);
 assert.match(groupHeader, /Member Count|members/i);
 assert.match(groupSidebar, /Settings/);
+assert.match(osTypes, /label: "Discussion"/);
+assert.match(osTypes, /"activity"/);
 assert.match(channelWs, /lazy/);
 assert.match(channelWs, /requestSearch/);
 assert.match(channelWs, /HomePanel/);

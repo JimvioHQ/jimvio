@@ -78,16 +78,17 @@ export function ChatHeader({
         </div>
       )}
 
-      {/* ── Minimal actions (hideHeader mode) — keep Search reachable ─ */}
+      {/* ── Minimal actions (hideHeader) — calls only; ChannelHeader owns search ─ */}
       {(activeConvId || roomName) && hideHeader && (
-        <div className="absolute right-4 top-2.5 z-30 flex items-center gap-2">
+        <div className="absolute right-3 top-2 z-20 flex items-center gap-1.5">
           <button
             type="button"
             onClick={onStartAudioCall}
             aria-label="Audio call"
             className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-sm hover:scale-105 transition-all",
-              "bg-[var(--color-surface)] border border-[var(--color-border)]"
+              "flex h-10 w-10 items-center justify-center rounded-lg transition-all hover:scale-105",
+              "bg-[var(--color-surface)]/95 border border-[var(--color-border)] shadow-sm",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
             )}
           >
             <Phone className="h-4 w-4 text-[var(--color-accent)]" />
@@ -97,24 +98,12 @@ export function ChatHeader({
             onClick={onStartVideoCall}
             aria-label="Video call"
             className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-sm hover:scale-105 transition-all",
-              "bg-[var(--color-surface)] border border-[var(--color-border)]"
+              "flex h-10 w-10 items-center justify-center rounded-lg transition-all hover:scale-105",
+              "bg-[var(--color-surface)]/95 border border-[var(--color-border)] shadow-sm",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
             )}
           >
             <Video className="h-4 w-4 text-[var(--color-accent)]" />
-          </button>
-          <button
-            type="button"
-            onClick={onToggleSearch}
-            aria-label="Search messages"
-            aria-pressed={searchOpen}
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-sm hover:scale-105 transition-all",
-              "bg-[var(--color-surface)] border border-[var(--color-border)]",
-              searchOpen && "ring-1 ring-[var(--color-accent)]"
-            )}
-          >
-            <Search className="h-4 w-4 text-[var(--color-accent)]" />
           </button>
         </div>
       )}
