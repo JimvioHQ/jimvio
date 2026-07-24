@@ -28,13 +28,18 @@ const storefront = fs.readFileSync(storefrontPath, "utf8");
 const overview = fs.readFileSync(overviewPath, "utf8");
 const osDash = fs.readFileSync(osPath, "utf8");
 
-assert.match(perms, /guest: new Set\(\["channel\.read"\]\)/);
+assert.match(perms, /guest: new Set\(\["community\.view", "channel\.read"\]\)/);
 assert.match(perms, /member: new Set\(/);
 assert.match(perms, /moderator: new Set\(/);
 assert.match(perms, /owner: new Set\(/);
 assert.match(perms, /"channel\.manage"/);
 assert.match(perms, /"pins\.manage"/);
 assert.match(perms, /"settings\.manage"/);
+assert.match(perms, /"roles\.view"/);
+assert.match(perms, /"roles\.manage"/);
+assert.match(perms, /normalizeCapability/);
+assert.match(perms, /resolveEffectiveCapabilities/);
+assert.match(perms, /CAPABILITY_ALIASES/);
 
 // Unlocked rooms must still require membership (or owner).
 assert.match(access, /isMembershipActive\(membership\)/);

@@ -79,3 +79,22 @@ export {
   mapMembershipToOwnerMember,
 } from "./members";
 
+// Roles — import from `@/lib/community/owner-console/roles` for full surface.
+export type {
+  OwnerRoleAnalytics,
+  OwnerRoleAuditEntry,
+  OwnerRoleListItem,
+  OwnerRoleTemplate,
+  PermissionCatalogItem,
+  RoleEditorTab,
+} from "./roles";
+
+export {
+  PERMISSION_CATALOG,
+  ROLE_EDITOR_TABS,
+  ROLE_TEMPLATES,
+  SYSTEM_ROLE_KEYS,
+  resolveRoleManageContext,
+  mapCustomRoleRow,
+} from "./roles";
+

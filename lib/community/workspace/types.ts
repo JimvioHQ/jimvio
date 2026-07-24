@@ -19,13 +19,25 @@ export const WORKSPACE_ROLES = [
 
 export type WorkspaceRole = (typeof WORKSPACE_ROLES)[number];
 
-/** Reserved for future custom role definitions (Phase A.x). */
+/** Custom role definitions — persisted in community_custom_roles. */
 export type CustomRoleDefinition = {
   id: string;
   communityId: string;
   name: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  priority: number;
+  visibility: "public" | "staff" | "hidden";
   inheritsFrom: WorkspaceRole;
   capabilities: string[];
+  groupIds: string[];
+  channelIds: string[];
+  isDefaultAssignment: boolean;
+  isSystem: boolean;
+  memberCount: number;
+  createdAt: string | null;
+  updatedAt: string | null;
 };
 
 /** Channel product types — maps to DB `rooms.room_type` where possible. */

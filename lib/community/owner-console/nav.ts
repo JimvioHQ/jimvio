@@ -109,7 +109,7 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
     "roles",
     "Roles & Permissions",
     "roles",
-    "settings.manage",
+    "roles.manage",
     "Owner, admin, moderator, and custom roles"
   ),
   content: navItem(
