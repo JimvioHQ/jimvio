@@ -1,8 +1,9 @@
 import { MyCommunitiesClient } from "@/components/dashboard/my-communities-client";
 
 export const metadata = {
-  title: "My Communities · Dashboard",
-  description: "Communities you've joined and communities you own.",
+  title: "Communities · Dashboard",
+  description:
+    "Community Hub — manage communities you own or administer from the Owner Console.",
 };
 
 export default function DashboardCommunitiesPage() {

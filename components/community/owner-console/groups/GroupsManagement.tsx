@@ -205,7 +205,7 @@ export function GroupsManagement() {
         <GroupsList
           groups={groups}
           view={view}
-          communityId={community.id}
+          communitySlug={community.slug}
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
           onAction={(id, action) => void runAction(id, action)}

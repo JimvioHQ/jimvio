@@ -271,6 +271,7 @@ export function CreateCommunityForm() {
   const [trialDays, setTrialDays] = useState("0");
 
   const [successId, setSuccessId] = useState<string | null>(null);
+  const [successSlug, setSuccessSlug] = useState<string | null>(null);
 
   // ── Auto-slug from name unless edited ────────────────────────────────────
   useEffect(() => {
@@ -384,6 +385,7 @@ export function CreateCommunityForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not create community");
       setSuccessId(data.community?.id as string);
+      setSuccessSlug((data.community?.slug as string) || null);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -407,16 +409,24 @@ export function CreateCommunityForm() {
           </p>
           <div className="mt-6 flex flex-col gap-2">
             <Link
-              href={`/creator/${successId}/spaces`}
+              href={
+                successSlug
+                  ? `/dashboard/communities/${encodeURIComponent(successSlug)}/groups`
+                  : "/dashboard/communities"
+              }
               className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-[var(--color-accent)] px-4 text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)]"
             >
-              Customize spaces <ArrowRight size={13} />
+              Customize groups <ArrowRight size={13} />
             </Link>
             <Link
-              href={`/creator/${successId}/dashboard`}
+              href={
+                successSlug
+                  ? `/dashboard/communities/${encodeURIComponent(successSlug)}`
+                  : `/dashboard/communities`
+              }
               className="inline-flex h-10 items-center justify-center rounded-md border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
             >
-              Skip to dashboard
+              Open Owner Console
             </Link>
           </div>
         </div>

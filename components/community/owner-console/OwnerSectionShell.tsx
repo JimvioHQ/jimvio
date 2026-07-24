@@ -57,7 +57,7 @@ export function OwnerSectionShell({
             Creator OS, Commerce, Live, and the shared permission engine.
           </p>
           <Link
-            href="/community-owner"
+            href="/dashboard/communities"
             className="mt-4 inline-flex text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
           >
             Back to dashboard

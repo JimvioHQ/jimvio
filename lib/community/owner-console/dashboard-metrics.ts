@@ -1,17 +1,16 @@
 import {
-  OWNER_CONSOLE_BASE,
-  sectionPath,
+  ownerConsoleHref,
   type OwnerCommunitySummary,
   type OwnerDashboardMetric,
-} from "@/lib/community/owner-console";
+} from "./nav";
 
 /** Dashboard metric architecture — values filled by later phases / APIs. */
 export function buildOwnerDashboardMetrics(
   community: OwnerCommunitySummary | null
 ): OwnerDashboardMetric[] {
-  const id = community?.id;
-  const link = (path: string) =>
-    id ? sectionPath(`${OWNER_CONSOLE_BASE}${path}`, id) : undefined;
+  const slug = community?.slug;
+  const link = (section: string) =>
+    slug ? ownerConsoleHref(slug, section) : undefined;
 
   return [
     {
@@ -27,7 +26,7 @@ export function buildOwnerDashboardMetrics(
       label: "Members",
       value: community?.memberCount ?? 0,
       hint: "Active community members",
-      href: link("/members"),
+      href: link("members"),
     },
     {
       id: "growth",
@@ -35,7 +34,7 @@ export function buildOwnerDashboardMetrics(
       value: "—",
       hint: "Joins over the last 7 days",
       tone: "success",
-      href: link("/analytics"),
+      href: link("analytics"),
     },
     {
       id: "reports",
@@ -43,49 +42,49 @@ export function buildOwnerDashboardMetrics(
       value: 0,
       hint: "Moderation queue",
       tone: "warn",
-      href: link("/moderation"),
+      href: link("moderation"),
     },
     {
       id: "joins",
       label: "Pending Join Requests",
       value: 0,
       hint: "Awaiting approval",
-      href: link("/members"),
+      href: link("members"),
     },
     {
       id: "live",
       label: "Live Sessions",
       value: 0,
       hint: "Active or scheduled lives",
-      href: link("/live"),
+      href: link("live"),
     },
     {
       id: "events",
       label: "Events",
       value: 0,
       hint: "Upcoming community events",
-      href: link("/events"),
+      href: link("events"),
     },
     {
       id: "courses",
       label: "Courses",
       value: 0,
       hint: "Published learning catalog",
-      href: link("/courses"),
+      href: link("courses"),
     },
     {
       id: "commerce",
       label: "Commerce",
       value: "—",
       hint: "Storefront and offers",
-      href: link("/commerce"),
+      href: link("commerce"),
     },
     {
       id: "ai",
       label: "AI Suggestions",
       value: "—",
       hint: "From Intelligence Platform",
-      href: link("/ai"),
+      href: link("ai"),
     },
   ];
 }

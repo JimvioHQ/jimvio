@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
 import {
   useOwnerConsoleUiStore,
   type OwnerCommunitySummary,
@@ -12,6 +11,7 @@ import { OwnerConsoleLayout } from "./OwnerConsoleLayout";
 
 export function OwnerConsoleClientGate({
   communities,
+  communitySlug,
   userId,
   userName,
   userAvatar,
@@ -19,25 +19,25 @@ export function OwnerConsoleClientGate({
   children,
 }: {
   communities: OwnerCommunitySummary[];
+  /** Active community from the URL path. */
+  communitySlug: string;
   userId: string;
   userName: string;
   userAvatar: string | null;
   badges: OwnerConsoleBadges;
   children: React.ReactNode;
 }) {
-  const searchParams = useSearchParams();
   const storedId = useOwnerConsoleUiStore((s) => s.selectedCommunityId);
   const setSelected = useOwnerConsoleUiStore((s) => s.setSelectedCommunityId);
 
   const community = useMemo(() => {
-    const fromQuery = searchParams.get("community");
     return (
-      communities.find((c) => c.id === fromQuery) ||
+      communities.find((c) => c.slug === communitySlug) ||
       communities.find((c) => c.id === storedId) ||
       communities[0] ||
       null
     );
-  }, [communities, searchParams, storedId]);
+  }, [communities, communitySlug, storedId]);
 
   useEffect(() => {
     if (community && community.id !== storedId) {

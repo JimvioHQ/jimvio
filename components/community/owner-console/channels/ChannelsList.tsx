@@ -49,7 +49,7 @@ function formatDate(iso: string | null) {
 export function ChannelsList({
   channels,
   view,
-  communityId,
+  communitySlug,
   groups,
   selectedIds,
   onToggleSelect,
@@ -58,7 +58,7 @@ export function ChannelsList({
 }: {
   channels: OwnerChannelListItem[];
   view: ChannelViewMode;
-  communityId: string;
+  communitySlug: string;
   groups: ChannelGroupOption[];
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
@@ -146,10 +146,7 @@ export function ChannelsList({
                     <span className="text-lg">{c.emoji ?? c.icon ?? "💬"}</span>
                     <div>
                       <Link
-                        href={sectionPath(
-                          `/community-owner/channels/${c.id}`,
-                          communityId
-                        )}
+                        href={sectionPath(`channels/${c.id}`, communitySlug)}
                         className="font-semibold hover:underline"
                       >
                         {c.name}
@@ -171,7 +168,7 @@ export function ChannelsList({
                 <td className="px-3 py-3">
                   <ChannelActionsMenu
                     channel={c}
-                    communityId={communityId}
+                    communitySlug={communitySlug}
                     groups={groups}
                     onAction={onAction}
                   />
@@ -217,10 +214,7 @@ export function ChannelsList({
                   <div className="flex items-center gap-2">
                     <span className="text-xl">{c.emoji ?? c.icon ?? "💬"}</span>
                     <Link
-                      href={sectionPath(
-                        `/community-owner/channels/${c.id}`,
-                        communityId
-                      )}
+                      href={sectionPath(`channels/${c.id}`, communitySlug)}
                       className="truncate text-[15px] font-bold hover:underline"
                     >
                       {c.name}
@@ -233,7 +227,7 @@ export function ChannelsList({
               </div>
               <ChannelActionsMenu
                 channel={c}
-                communityId={communityId}
+                communitySlug={communitySlug}
                 groups={groups}
                 onAction={onAction}
               />
@@ -287,10 +281,7 @@ export function ChannelsList({
               </span>
               <Button asChild size="sm" variant="outline" className="h-8 text-xs">
                 <Link
-                  href={sectionPath(
-                    `/community-owner/channels/${c.id}`,
-                    communityId
-                  )}
+                  href={sectionPath(`channels/${c.id}`, communitySlug)}
                 >
                   <Settings2 className="mr-1 h-3.5 w-3.5" />
                   Settings
@@ -306,12 +297,12 @@ export function ChannelsList({
 
 function ChannelActionsMenu({
   channel,
-  communityId,
+  communitySlug,
   groups,
   onAction,
 }: {
   channel: OwnerChannelListItem;
-  communityId: string;
+  communitySlug: string;
   groups: ChannelGroupOption[];
   onAction: (
     id: string,
@@ -329,10 +320,7 @@ function ChannelActionsMenu({
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuItem asChild>
           <Link
-            href={sectionPath(
-              `/community-owner/channels/${channel.id}`,
-              communityId
-            )}
+            href={sectionPath(`channels/${channel.id}`, communitySlug)}
           >
             <Settings2 className="mr-2 h-4 w-4" />
             Edit / Settings

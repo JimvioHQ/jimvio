@@ -46,14 +46,14 @@ export default async function CreatorHomePage() {
             {communities!.map((community) => (
               <li key={community.id}>
                 <Link
-                  href={`/creator/${community.id}/dashboard`}
+                  href={`/dashboard/communities/${encodeURIComponent(community.slug)}`}
                   className="block rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-colors hover:border-[#fd5000]"
                 >
                   <span className="font-semibold text-[var(--color-text-primary)]">
                     {community.name}
                   </span>
                   <span className="mt-1 block text-sm text-[var(--color-text-muted)]">
-                    Open community studio
+                    Open Owner Console
                   </span>
                 </Link>
               </li>

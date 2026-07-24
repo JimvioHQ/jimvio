@@ -12,18 +12,25 @@ import {
   Plus,
   Globe,
   Crown,
-  Sparkles,
-  Lock,
-  ArrowUpRight,
+  Layers,
+  Hash,
+  Activity,
+  HeartPulse,
   BarChart3,
   Settings2,
+  ExternalLink,
+  Share2,
+  Archive,
+  Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn, formatNumber } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useCurrency } from "@/context/CurrencyContext";
+import { ownerConsoleHref } from "@/lib/community/owner-console";
+import { toast } from "sonner";
 
-type DashboardCommunity = {
+type HubCommunity = {
   id: string;
   slug: string;
   name: string;
@@ -32,92 +39,98 @@ type DashboardCommunity = {
   avatar_url: string | null;
   cover_image: string | null;
   member_count: number;
-  post_count: number;
-  is_free: boolean;
-  is_private: boolean;
-  monthly_price: number | null;
+  group_count: number;
+  channel_count: number;
+  revenue: number | null;
   currency: string | null;
+  last_activity_at: string | null;
+  health_score: number | null;
   role: string;
-  plan_type: string | null;
   isOwner: boolean;
-  subscribed_at: string | null;
+  is_private: boolean;
+  is_free: boolean;
+  monthly_price: number | null;
 };
 
-type ViewFilter = "all" | "joined" | "owned";
-type PlanFilter = "all" | "free" | "paid";
+type ViewFilter = "all" | "owned" | "staff";
 
 const VIEW_FILTERS: { key: ViewFilter; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "joined", label: "Joined" },
   { key: "owned", label: "Owned" },
+  { key: "staff", label: "Staff" },
 ];
 
-const PLAN_FILTERS: { key: PlanFilter; label: string }[] = [
-  { key: "all", label: "All plans" },
-  { key: "free", label: "Free" },
-  { key: "paid", label: "Paid" },
-];
+function healthLabel(score: number | null) {
+  if (score == null) return "—";
+  if (score >= 80) return "Excellent";
+  if (score >= 60) return "Good";
+  if (score >= 40) return "Fair";
+  return "Needs attention";
+}
 
-function StatCard({
-  icon: Icon,
-  tone,
-  value,
-  label,
+function healthTone(score: number | null) {
+  if (score == null) return "text-[var(--color-text-muted)]";
+  if (score >= 80) return "text-emerald-600 dark:text-emerald-400";
+  if (score >= 60) return "text-sky-600 dark:text-sky-400";
+  if (score >= 40) return "text-amber-600 dark:text-amber-400";
+  return "text-rose-600 dark:text-rose-400";
+}
+
+function relativeActivity(iso: string | null) {
+  if (!iso) return "No activity yet";
+  try {
+    const d = new Date(iso);
+    const diff = Date.now() - d.getTime();
+    const days = Math.floor(diff / 86_400_000);
+    if (days < 1) return "Today";
+    if (days === 1) return "Yesterday";
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  } catch {
+    return "—";
+  }
+}
+
+function CommunityHubCard({
+  community,
+  onArchive,
 }: {
-  icon: React.ElementType;
-  tone: "orange" | "emerald" | "sky" | "violet";
-  value: number | string;
-  label: string;
+  community: HubCommunity;
+  onArchive: (id: string) => void;
 }) {
-  const tones = {
-    orange: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-    emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    sky: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
-    violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-  };
-
-  return (
-    <div className="rounded-2xl p-5 flex flex-col gap-4 bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:ring-[var(--color-border-strong)] transition-all">
-      <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", tones[tone])}>
-        <Icon className="w-4 h-4" />
-      </div>
-      <div>
-        <p className="text-2xl font-bold tabular-nums tracking-tight text-[var(--color-text-primary)]">
-          {value}
-        </p>
-        <p className="text-[10px] uppercase tracking-widest font-medium mt-0.5 text-[var(--color-text-muted)]">
-          {label}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function roleLabel(role: string, isOwner: boolean) {
-  if (isOwner || role === "owner") return "Owner";
-  if (role === "moderator" || role === "admin") return "Moderator";
-  return "Member";
-}
-
-function roleBadgeClass(role: string, isOwner: boolean) {
-  if (isOwner || role === "owner") {
-    return "bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400";
-  }
-  if (role === "moderator" || role === "admin") {
-    return "bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400";
-  }
-  return "bg-[var(--color-surface-secondary)] border-[var(--color-border)] text-[var(--color-text-muted)]";
-}
-
-function CommunityDashboardCard({ community }: { community: DashboardCommunity }) {
   const { formatMoney } = useCurrency();
   const initial = community.name[0]?.toUpperCase() ?? "C";
-  const workspaceHref = `/communities/${community.slug}`;
-  const publicHref = `/communities/${community.slug}`;
+  const manageHref = ownerConsoleHref(community.slug);
+  const viewHref = `/communities/${community.slug}`;
+  const analyticsHref = ownerConsoleHref(community.slug, "analytics");
+  const settingsHref = ownerConsoleHref(community.slug, "settings");
+
+  async function share() {
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}${viewHref}`
+        : viewHref;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: community.name, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied");
+      }
+    } catch {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied");
+      } catch {
+        toast.error("Could not share");
+      }
+    }
+  }
 
   return (
-    <article className="group flex flex-col rounded-2xl overflow-hidden bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:ring-[var(--color-border-strong)] hover:-translate-y-0.5 transition-all duration-200">
-      <div className="relative h-28 bg-[var(--color-surface-secondary)] overflow-hidden">
+    <article className="group flex flex-col overflow-hidden rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] transition-all duration-200 hover:-translate-y-0.5 hover:ring-[var(--color-border-strong)]">
+      <div className="relative h-28 overflow-hidden bg-[var(--color-surface-secondary)]">
         {community.cover_image ? (
           <Image
             src={community.cover_image}
@@ -129,123 +142,143 @@ function CommunityDashboardCard({ community }: { community: DashboardCommunity }
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-6xl font-black text-[var(--color-accent)]/10 select-none">{initial}</span>
+            <span className="select-none text-6xl font-black text-[var(--color-accent)]/10">
+              {initial}
+            </span>
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/35 to-transparent" />
-        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+        <div className="absolute left-3 top-3 flex items-center gap-1.5">
           <span
             className={cn(
-              "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border",
-              roleBadgeClass(community.role, community.isOwner)
+              "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+              community.isOwner
+                ? "border-orange-500/20 bg-orange-500/10 text-orange-600 dark:text-orange-400"
+                : "border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-400"
             )}
           >
-            {roleLabel(community.role, community.isOwner)}
+            {community.isOwner ? "Owner" : community.role}
           </span>
-          {community.is_private && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/50 text-white border border-white/10">
-              <Lock className="w-3 h-3" />
-              Private
-            </span>
-          )}
         </div>
       </div>
 
-      <div className="relative px-4 pb-4 pt-0 flex flex-col flex-1">
+      <div className="relative flex flex-1 flex-col px-4 pb-4 pt-0">
         <div className="relative -mt-5 mb-3">
-          <div className="w-11 h-11 rounded-xl overflow-hidden ring-2 ring-[var(--color-surface)] shadow-md bg-[var(--color-surface-secondary)]">
+          <div className="h-11 w-11 overflow-hidden rounded-xl bg-[var(--color-surface-secondary)] shadow-md ring-2 ring-[var(--color-surface)]">
             {community.avatar_url ? (
               <Image
                 src={community.avatar_url}
                 alt=""
                 width={44}
                 height={44}
-                className="object-cover w-full h-full"
+                className="h-full w-full object-cover"
                 unoptimized
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-[var(--color-accent)] font-bold text-lg">
+              <div className="flex h-full w-full items-center justify-center text-lg font-bold text-[var(--color-accent)]">
                 {initial}
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <h2 className="text-[15px] font-bold text-[var(--color-text-primary)] truncate group-hover:text-[var(--color-accent)] transition-colors">
-            {community.name}
-          </h2>
-          <p className="mt-1 text-[12px] text-[var(--color-text-muted)] line-clamp-2 leading-relaxed min-h-[2.5rem]">
-            {community.tagline || "Your community workspace on Jimvio."}
-          </p>
-        </div>
+        <h2 className="truncate text-[15px] font-bold text-[var(--color-text-primary)] transition-colors group-hover:text-[var(--color-accent)]">
+          {community.name}
+        </h2>
+        <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-[12px] leading-relaxed text-[var(--color-text-muted)]">
+          {community.tagline || "Community Owner Console"}
+        </p>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
-          {community.category && (
-            <span className="px-2 py-0.5 rounded-md bg-[var(--color-surface-secondary)] font-medium uppercase tracking-wide text-[10px]">
-              {community.category}
-            </span>
-          )}
-          <span>{formatNumber(community.member_count)} members</span>
-          <span className="w-0.5 h-0.5 rounded-full bg-[var(--color-text-muted)]" />
-          <span>{formatNumber(community.post_count)} posts</span>
-        </div>
-
-        <div className="mt-3 pt-3 border-t border-[var(--color-border)]/60 flex items-center justify-between gap-2">
-          {community.is_free ? (
-            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Free</span>
-          ) : community.monthly_price ? (
-            <span className="text-[13px] font-bold tabular-nums text-[var(--color-text-primary)]">
-              {formatMoney(community.monthly_price, community.currency)}
-              <span className="text-[11px] font-normal text-[var(--color-text-muted)]">/mo</span>
-            </span>
-          ) : (
-            <span className="text-[11px] text-[var(--color-text-muted)]">Paid access</span>
-          )}
-
-          <Link
-            href={workspaceHref}
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-accent)] hover:underline"
+        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-[var(--color-text-muted)]">
+          <span className="inline-flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5" />
+            {formatNumber(community.member_count)} members
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Layers className="h-3.5 w-3.5" />
+            {formatNumber(community.group_count)} groups
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Hash className="h-3.5 w-3.5" />
+            {formatNumber(community.channel_count)} channels
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Wallet className="h-3.5 w-3.5" />
+            {community.revenue != null
+              ? formatMoney(community.revenue, community.currency)
+              : community.is_free
+                ? "Free"
+                : community.monthly_price
+                  ? `${formatMoney(community.monthly_price, community.currency)}/mo`
+                  : "—"}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Activity className="h-3.5 w-3.5" />
+            {relativeActivity(community.last_activity_at)}
+          </span>
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 font-semibold",
+              healthTone(community.health_score)
+            )}
           >
-            Open
-            <ArrowUpRight className="w-3 h-3" />
+            <HeartPulse className="h-3.5 w-3.5" />
+            {community.health_score != null
+              ? `${community.health_score} · ${healthLabel(community.health_score)}`
+              : "Health —"}
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Link
+            href={manageHref}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[var(--color-accent)] text-[12px] font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            Manage
+          </Link>
+          <Link
+            href={viewHref}
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-[var(--color-surface-secondary)] text-[12px] font-semibold text-[var(--color-text-primary)] ring-1 ring-[var(--color-border)] transition-all hover:ring-[var(--color-border-strong)]"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            View Community
           </Link>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-2 flex flex-wrap gap-1">
           <Link
-            href={workspaceHref}
-            className="inline-flex items-center justify-center h-9 rounded-xl text-[12px] font-semibold bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] transition-colors"
+            href={analyticsHref}
+            className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-lg text-[11px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
           >
-            Workspace
+            <BarChart3 className="h-3.5 w-3.5" />
+            Analytics
           </Link>
-          {community.isOwner ? (
-            <Link
-              href={`/creator/${community.id}/dashboard`}
-              className="inline-flex items-center justify-center gap-1.5 h-9 rounded-xl text-[12px] font-semibold bg-[var(--color-surface-secondary)] ring-1 ring-[var(--color-border)] text-[var(--color-text-primary)] hover:ring-[var(--color-border-strong)] transition-all"
+          <Link
+            href={settingsHref}
+            className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-lg text-[11px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+          >
+            Settings
+          </Link>
+          <button
+            type="button"
+            onClick={() => void share()}
+            className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-lg text-[11px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Share
+          </button>
+          {community.isOwner && (
+            <button
+              type="button"
+              onClick={() => onArchive(community.id)}
+              className="inline-flex h-8 flex-1 items-center justify-center gap-1 rounded-lg text-[11px] font-medium text-[var(--color-text-muted)] hover:text-rose-600"
             >
-              <Settings2 className="w-3.5 h-3.5" />
-              Manage
-            </Link>
-          ) : (
-            <Link
-              href={publicHref}
-              className="inline-flex items-center justify-center h-9 rounded-xl text-[12px] font-semibold bg-[var(--color-surface-secondary)] ring-1 ring-[var(--color-border)] text-[var(--color-text-primary)] hover:ring-[var(--color-border-strong)] transition-all"
-            >
-              Public page
-            </Link>
+              <Archive className="h-3.5 w-3.5" />
+              Archive
+            </button>
           )}
         </div>
-
-        {community.isOwner && (
-          <Link
-            href="/dashboard/community/analytics"
-            className="mt-2 inline-flex items-center justify-center gap-1.5 h-8 rounded-lg text-[11px] font-medium text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors"
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            View analytics
-          </Link>
-        )}
       </div>
     </article>
   );
@@ -253,129 +286,188 @@ function CommunityDashboardCard({ community }: { community: DashboardCommunity }
 
 export function MyCommunitiesClient() {
   const router = useRouter();
-  const [communities, setCommunities] = useState<DashboardCommunity[]>([]);
+  const [communities, setCommunities] = useState<HubCommunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [viewFilter, setViewFilter] = useState<ViewFilter>("all");
-  const [planFilter, setPlanFilter] = useState<PlanFilter>("all");
 
-  const load = useCallback(async (silent = false) => {
-    if (!silent) setRefreshing(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const load = useCallback(
+    async (silent = false) => {
+      if (!silent) setRefreshing(true);
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (!user) {
-      router.replace("/login?next=/dashboard/communities");
-      return;
-    }
-
-    const [membershipsRes, ownedRes] = await Promise.all([
-      supabase
-        .from("community_memberships")
-        .select(
-          `id, role, plan_type, status, subscribed_at,
-           communities!inner (
-             id, name, slug, tagline, category, avatar_url, cover_image,
-             member_count, post_count, is_free, is_private, monthly_price,
-             currency, is_active, owner_id
-           )`
-        )
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .eq("communities.is_active", true)
-        .order("subscribed_at", { ascending: false }),
-      supabase
-        .from("communities")
-        .select(
-          "id, name, slug, tagline, category, avatar_url, cover_image, member_count, post_count, is_free, is_private, monthly_price, currency, is_active, owner_id, created_at"
-        )
-        .eq("owner_id", user.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false }),
-    ]);
-
-    const byId = new Map<string, DashboardCommunity>();
-
-    for (const row of membershipsRes.data ?? []) {
-      const c = Array.isArray(row.communities) ? row.communities[0] : row.communities;
-      if (!c?.id || !c.slug) continue;
-      byId.set(c.id, {
-        id: c.id,
-        slug: c.slug,
-        name: c.name,
-        tagline: c.tagline ?? null,
-        category: c.category ?? null,
-        avatar_url: c.avatar_url ?? null,
-        cover_image: c.cover_image ?? null,
-        member_count: c.member_count ?? 0,
-        post_count: c.post_count ?? 0,
-        is_free: Boolean(c.is_free),
-        is_private: Boolean(c.is_private),
-        monthly_price: c.monthly_price ?? null,
-        currency: c.currency ?? null,
-        role: row.role ?? "member",
-        plan_type: row.plan_type ?? null,
-        isOwner: c.owner_id === user.id || row.role === "owner",
-        subscribed_at: row.subscribed_at ?? null,
-      });
-    }
-
-    for (const c of ownedRes.data ?? []) {
-      if (!c.id || !c.slug) continue;
-      const existing = byId.get(c.id);
-      if (existing) {
-        existing.isOwner = true;
-        existing.role = existing.role === "owner" ? "owner" : existing.role;
-        continue;
+      if (!user) {
+        router.replace("/login?next=/dashboard/communities");
+        return;
       }
-      byId.set(c.id, {
-        id: c.id,
-        slug: c.slug,
-        name: c.name,
-        tagline: c.tagline ?? null,
-        category: c.category ?? null,
-        avatar_url: c.avatar_url ?? null,
-        cover_image: c.cover_image ?? null,
-        member_count: c.member_count ?? 0,
-        post_count: c.post_count ?? 0,
-        is_free: Boolean(c.is_free),
-        is_private: Boolean(c.is_private),
-        monthly_price: c.monthly_price ?? null,
-        currency: c.currency ?? null,
-        role: "owner",
-        plan_type: null,
-        isOwner: true,
-        subscribed_at: c.created_at ?? null,
-      });
-    }
 
-    setCommunities([...byId.values()]);
-    setLoading(false);
-    setRefreshing(false);
-  }, [router]);
+      const [ownedRes, staffRes] = await Promise.all([
+        supabase
+          .from("communities")
+          .select(
+            "id, name, slug, tagline, category, avatar_url, cover_image, member_count, is_free, is_private, monthly_price, currency, is_active, owner_id, updated_at, created_at"
+          )
+          .eq("owner_id", user.id)
+          .eq("is_active", true)
+          .order("updated_at", { ascending: false }),
+        supabase
+          .from("community_memberships")
+          .select(
+            `role, status,
+             communities!inner (
+               id, name, slug, tagline, category, avatar_url, cover_image,
+               member_count, is_free, is_private, monthly_price, currency,
+               is_active, owner_id, updated_at, created_at
+             )`
+          )
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .in("role", ["owner", "admin", "moderator"])
+          .eq("communities.is_active", true),
+      ]);
+
+      const byId = new Map<string, HubCommunity>();
+
+      const upsert = (
+        c: Record<string, unknown>,
+        role: string,
+        isOwner: boolean
+      ) => {
+        if (!c?.id || !c.slug) return;
+        const id = String(c.id);
+        const existing = byId.get(id);
+        if (existing) {
+          if (isOwner) {
+            existing.isOwner = true;
+            existing.role = "owner";
+          }
+          return;
+        }
+        byId.set(id, {
+          id,
+          slug: String(c.slug),
+          name: String(c.name),
+          tagline: (c.tagline as string | null) ?? null,
+          category: (c.category as string | null) ?? null,
+          avatar_url: (c.avatar_url as string | null) ?? null,
+          cover_image: (c.cover_image as string | null) ?? null,
+          member_count: Number(c.member_count ?? 0),
+          group_count: 0,
+          channel_count: 0,
+          revenue: null,
+          currency: (c.currency as string | null) ?? null,
+          last_activity_at:
+            (c.updated_at as string | null) ??
+            (c.created_at as string | null) ??
+            null,
+          health_score: null,
+          role,
+          isOwner,
+          is_private: Boolean(c.is_private),
+          is_free: Boolean(c.is_free),
+          monthly_price: (c.monthly_price as number | null) ?? null,
+        });
+      };
+
+      for (const c of ownedRes.data ?? []) {
+        upsert(c as Record<string, unknown>, "owner", true);
+      }
+
+      for (const row of staffRes.data ?? []) {
+        const c = Array.isArray(row.communities)
+          ? row.communities[0]
+          : row.communities;
+        if (!c) continue;
+        const isOwner =
+          (c as { owner_id?: string }).owner_id === user.id ||
+          row.role === "owner";
+        upsert(c as Record<string, unknown>, String(row.role ?? "admin"), isOwner);
+      }
+
+      const list = [...byId.values()];
+      const ids = list.map((c) => c.id);
+
+      if (ids.length > 0) {
+        const [spacesRes, roomsRes] = await Promise.all([
+          supabase.from("spaces").select("community_id").in("community_id", ids),
+          supabase.from("rooms").select("community_id").in("community_id", ids),
+        ]);
+
+        if (!spacesRes.error) {
+          const groupCounts = new Map<string, number>();
+          for (const row of spacesRes.data ?? []) {
+            const cid = String(row.community_id);
+            groupCounts.set(cid, (groupCounts.get(cid) ?? 0) + 1);
+          }
+          for (const c of list) {
+            c.group_count = groupCounts.get(c.id) ?? 0;
+          }
+        }
+        if (!roomsRes.error) {
+          const channelCounts = new Map<string, number>();
+          for (const row of roomsRes.data ?? []) {
+            const cid = String(row.community_id);
+            channelCounts.set(cid, (channelCounts.get(cid) ?? 0) + 1);
+          }
+          for (const c of list) {
+            c.channel_count = channelCounts.get(c.id) ?? 0;
+          }
+        }
+
+        for (const c of list) {
+          const structure = Math.min(40, c.group_count * 8 + c.channel_count * 4);
+          const members = Math.min(
+            40,
+            Math.floor(Math.log10(c.member_count + 1) * 20)
+          );
+          const activity = c.last_activity_at
+            ? Math.max(
+                0,
+                20 -
+                  Math.min(
+                    20,
+                    Math.floor(
+                      (Date.now() - new Date(c.last_activity_at).getTime()) /
+                        86_400_000
+                    )
+                  )
+              )
+            : 0;
+          c.health_score = Math.min(100, structure + members + activity);
+        }
+      }
+
+      setCommunities(list);
+      setLoading(false);
+      setRefreshing(false);
+    },
+    [router]
+  );
 
   useEffect(() => {
-    load(true);
+    void load(true);
   }, [load]);
 
   const stats = useMemo(() => {
     const owned = communities.filter((c) => c.isOwner).length;
-    const joined = communities.filter((c) => !c.isOwner).length;
-    const free = communities.filter((c) => c.is_free).length;
-    const paid = communities.filter((c) => !c.is_free).length;
-    return { total: communities.length, joined, owned, free, paid };
+    const staff = communities.filter((c) => !c.isOwner).length;
+    return {
+      total: communities.length,
+      owned,
+      staff,
+      members: communities.reduce((n, c) => n + c.member_count, 0),
+    };
   }, [communities]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return communities.filter((c) => {
-      if (viewFilter === "joined" && c.isOwner) return false;
       if (viewFilter === "owned" && !c.isOwner) return false;
-      if (planFilter === "free" && !c.is_free) return false;
-      if (planFilter === "paid" && c.is_free) return false;
+      if (viewFilter === "staff" && c.isOwner) return false;
       if (!q) return true;
       return (
         c.name.toLowerCase().includes(q) ||
@@ -383,63 +475,87 @@ export function MyCommunitiesClient() {
         (c.category ?? "").toLowerCase().includes(q)
       );
     });
-  }, [communities, search, viewFilter, planFilter]);
+  }, [communities, search, viewFilter]);
 
-  const joinedCount = stats.joined;
+  async function onArchive(id: string) {
+    if (
+      !window.confirm(
+        "Archive this community? It will be hidden from discovery. You can restore it later from settings."
+      )
+    ) {
+      return;
+    }
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("communities")
+      .update({ is_active: false })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message || "Could not archive");
+      return;
+    }
+    toast.success("Community archived");
+    void load();
+  }
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3 text-[var(--color-text-muted)]">
-        <Loader2 className="w-6 h-6 animate-spin text-[var(--color-accent)]" />
-        <p className="text-sm font-medium">Loading your communities…</p>
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-[var(--color-text-muted)]">
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--color-accent)]" />
+        <p className="text-sm font-medium">Loading Community Hub…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pb-24 bg-[var(--color-bg)]">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
+    <div className="min-h-screen bg-[var(--color-bg)] pb-24">
+      <div className="mx-auto max-w-6xl space-y-8 px-4 pt-8 sm:px-6 sm:pt-12">
+        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-[var(--color-accent-light)]">
-                <Users className="w-3.5 h-3.5 text-[var(--color-accent)]" />
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-[var(--color-accent-light)]">
+                <Crown className="h-3.5 w-3.5 text-[var(--color-accent)]" />
               </div>
               <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]">
-                Communities
+                Community Hub
               </span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-[var(--color-text-primary)]">
-              My Communities
-              <span className="ml-2.5 text-lg font-normal text-[var(--color-text-muted)] tabular-nums">
+              Communities
+              <span className="ml-2.5 text-lg font-normal tabular-nums text-[var(--color-text-muted)]">
                 ({communities.length})
               </span>
             </h1>
-            <p className="mt-1 text-[13px] text-[var(--color-text-muted)] max-w-xl">
-              Communities you&apos;ve joined and ones you own — open the workspace, manage settings, or discover more.
+            <p className="mt-1 max-w-xl text-[13px] text-[var(--color-text-muted)]">
+              Communities you own or can manage. Open the Owner Console to run
+              groups, channels, members, and settings.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => load()}
+              onClick={() => void load()}
               disabled={refreshing}
-              className="inline-flex items-center justify-center w-10 h-10 rounded-xl text-sm transition-all bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:ring-[var(--color-border-strong)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] disabled:opacity-50"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-sm text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-all hover:text-[var(--color-text-primary)] hover:ring-[var(--color-border-strong)] disabled:opacity-50"
               title="Refresh"
             >
-              {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+              {refreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="h-4 w-4" />
+              )}
             </button>
             <Link
               href="/communities"
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold transition-all bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] hover:ring-[var(--color-border-strong)] text-[var(--color-text-primary)]"
+              className="inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-[var(--color-text-primary)] ring-1 ring-[var(--color-border)] transition-all hover:ring-[var(--color-border-strong)]"
             >
               <Globe className="h-4 w-4" />
               Explore
             </Link>
             <Link
               href="/communities/create"
-              className="inline-flex items-center gap-2 h-10 px-5 rounded-xl text-sm font-semibold transition-all bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white shrink-0"
+              className="inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-[var(--color-accent)] px-5 text-sm font-semibold text-white transition-all hover:bg-[var(--color-accent-hover)]"
               style={{ boxShadow: "0 0 20px rgba(253,80,0,0.2)" }}
             >
               <Plus className="h-4 w-4" />
@@ -448,101 +564,94 @@ export function MyCommunitiesClient() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <StatCard icon={Users} tone="orange" value={communities.length} label="Total" />
-          <StatCard icon={Sparkles} tone="emerald" value={joinedCount} label="Joined" />
-          <StatCard icon={Crown} tone="violet" value={stats.owned} label="Owned" />
-          <StatCard icon={Lock} tone="sky" value={stats.paid} label="Paid access" />
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {[
+            { label: "Manageable", value: stats.total, icon: Crown },
+            { label: "Owned", value: stats.owned, icon: Settings2 },
+            { label: "Staff access", value: stats.staff, icon: Users },
+            { label: "Members", value: formatNumber(stats.members), icon: Activity },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="flex flex-col gap-3 rounded-2xl bg-[var(--color-surface)] p-5 ring-1 ring-[var(--color-border)]"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-accent-light)] text-[var(--color-accent)]">
+                <s.icon className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tabular-nums tracking-tight text-[var(--color-text-primary)]">
+                  {s.value}
+                </p>
+                <p className="mt-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text-muted)]">
+                  {s.label}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
 
         <div className="flex flex-col gap-3">
-          <div className="relative w-full">
-            <Input
-              value={search}
-              icon={<Search className="w-3.5 h-3.5" />}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, slug, or category…"
-              className={cn(
-                "w-full h-10 pl-9 pr-4 rounded-xl border text-sm font-medium outline-none transition-all duration-150",
-                "bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-primary)]",
-                "placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/15"
-              )}
-            />
-          </div>
-
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
-            <div className="flex flex-wrap gap-1.5 p-1 rounded-xl bg-[var(--color-surface-secondary)] ring-1 ring-[var(--color-border)]">
-              {VIEW_FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => setViewFilter(f.key)}
-                  className={cn(
-                    "h-8 px-3 rounded-lg text-[12px] font-semibold transition-all",
-                    viewFilter === f.key
-                      ? "bg-[var(--color-text-primary)] text-[var(--color-surface)] shadow-sm"
-                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
-                  )}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {PLAN_FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => setPlanFilter(f.key)}
-                  className={cn(
-                    "h-8 px-3 rounded-full text-[12px] font-medium transition-all ring-1",
-                    planFilter === f.key
-                      ? "bg-[var(--color-accent-light)] text-[var(--color-accent)] ring-[var(--color-accent)]/25"
-                      : "bg-[var(--color-surface)] text-[var(--color-text-muted)] ring-[var(--color-border)] hover:ring-[var(--color-border-strong)]"
-                  )}
-                >
-                  {f.label}
-                </button>
-              ))}
-            </div>
+          <Input
+            value={search}
+            icon={<Search className="h-3.5 w-3.5" />}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, slug, or category…"
+            className={cn(
+              "h-10 w-full rounded-xl border pl-9 pr-4 text-sm font-medium outline-none transition-all duration-150",
+              "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)]",
+              "placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/15"
+            )}
+          />
+          <div className="flex flex-wrap gap-1.5 rounded-xl bg-[var(--color-surface-secondary)] p-1 ring-1 ring-[var(--color-border)]">
+            {VIEW_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setViewFilter(f.key)}
+                className={cn(
+                  "h-8 rounded-lg px-3 text-[12px] font-semibold transition-all",
+                  viewFilter === f.key
+                    ? "bg-[var(--color-text-primary)] text-[var(--color-surface)] shadow-sm"
+                    : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
           </div>
         </div>
 
         {filtered.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-16 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--color-surface-secondary)] flex items-center justify-center mx-auto mb-4">
-              <Users className="w-6 h-6 text-[var(--color-text-muted)]" />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-surface-secondary)]">
+              <Crown className="h-6 w-6 text-[var(--color-text-muted)]" />
             </div>
-            <h2 className="text-base font-bold text-[var(--color-text-primary)] mb-1">
-              {communities.length === 0 ? "No communities yet" : "No matches"}
-            </h2>
-            <p className="text-[13px] text-[var(--color-text-muted)] max-w-sm mx-auto mb-5">
+            <h2 className="mb-1 text-base font-bold text-[var(--color-text-primary)]">
               {communities.length === 0
-                ? "Join a community to connect with creators, or start your own hub."
-                : "Try a different search or filter to find what you're looking for."}
+                ? "No communities to manage"
+                : "No matches"}
+            </h2>
+            <p className="mx-auto mb-5 max-w-sm text-[13px] text-[var(--color-text-muted)]">
+              {communities.length === 0
+                ? "Create a community to open the Owner Console, or ask an owner to grant staff access."
+                : "Try a different search or filter."}
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <Link
-                href="/communities"
-                className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold bg-[var(--color-surface-secondary)] ring-1 ring-[var(--color-border)] hover:ring-[var(--color-border-strong)] transition-all"
-              >
-                <Globe className="w-4 h-4" />
-                Explore communities
-              </Link>
-              <Link
-                href="/communities/create"
-                className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                Create community
-              </Link>
-            </div>
+            <Link
+              href="/communities/create"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--color-accent)] px-4 text-sm font-semibold text-white hover:bg-[var(--color-accent-hover)]"
+            >
+              <Plus className="h-4 w-4" />
+              Create community
+            </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
             {filtered.map((community) => (
-              <CommunityDashboardCard key={community.id} community={community} />
+              <CommunityHubCard
+                key={community.id}
+                community={community}
+                onArchive={onArchive}
+              />
             ))}
           </div>
         )}

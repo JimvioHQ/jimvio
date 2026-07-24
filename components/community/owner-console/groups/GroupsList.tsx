@@ -67,7 +67,7 @@ function StatusPill({ group }: { group: OwnerGroupListItem }) {
 export function GroupsList({
   groups,
   view,
-  communityId,
+  communitySlug,
   selectedIds,
   onToggleSelect,
   onAction,
@@ -75,7 +75,7 @@ export function GroupsList({
 }: {
   groups: OwnerGroupListItem[];
   view: GroupViewMode;
-  communityId: string;
+  communitySlug: string;
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
   onAction: (id: string, action: OwnerGroupAction) => void;
@@ -154,10 +154,7 @@ export function GroupsList({
                     <span className="text-lg">{g.icon ?? "💬"}</span>
                     <div>
                       <Link
-                        href={sectionPath(
-                          `/community-owner/groups/${g.id}`,
-                          communityId
-                        )}
+                        href={sectionPath(`groups/${g.id}`, communitySlug)}
                         className="font-semibold text-[var(--color-text-primary)] hover:underline"
                       >
                         {g.name}
@@ -179,7 +176,7 @@ export function GroupsList({
                 <td className="px-3 py-3">
                   <GroupActionsMenu
                     group={g}
-                    communityId={communityId}
+                    communitySlug={communitySlug}
                     onAction={onAction}
                   />
                 </td>
@@ -227,10 +224,7 @@ export function GroupsList({
                   <div className="flex items-center gap-2">
                     <span className="text-xl leading-none">{g.icon ?? "💬"}</span>
                     <Link
-                      href={sectionPath(
-                        `/community-owner/groups/${g.id}`,
-                        communityId
-                      )}
+                      href={sectionPath(`groups/${g.id}`, communitySlug)}
                       className="truncate text-[15px] font-bold text-[var(--color-text-primary)] hover:underline"
                     >
                       {g.name}
@@ -243,7 +237,7 @@ export function GroupsList({
               </div>
               <GroupActionsMenu
                 group={g}
-                communityId={communityId}
+                communitySlug={communitySlug}
                 onAction={onAction}
               />
             </div>
@@ -297,10 +291,7 @@ export function GroupsList({
               </span>
               <Button asChild size="sm" variant="outline" className="h-8 text-xs">
                 <Link
-                  href={sectionPath(
-                    `/community-owner/groups/${g.id}`,
-                    communityId
-                  )}
+                  href={sectionPath(`groups/${g.id}`, communitySlug)}
                 >
                   <Settings2 className="mr-1 h-3.5 w-3.5" />
                   Settings
@@ -316,11 +307,11 @@ export function GroupsList({
 
 function GroupActionsMenu({
   group,
-  communityId,
+  communitySlug,
   onAction,
 }: {
   group: OwnerGroupListItem;
-  communityId: string;
+  communitySlug: string;
   onAction: (id: string, action: OwnerGroupAction) => void;
 }) {
   return (
@@ -338,10 +329,7 @@ function GroupActionsMenu({
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem asChild>
           <Link
-            href={sectionPath(
-              `/community-owner/groups/${group.id}`,
-              communityId
-            )}
+            href={sectionPath(`groups/${group.id}`, communitySlug)}
           >
             <Settings2 className="mr-2 h-4 w-4" />
             Edit / Settings

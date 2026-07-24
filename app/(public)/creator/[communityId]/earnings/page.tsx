@@ -1,26 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
-import { requireCommunityOwner } from "@/lib/creator-server";
-import { CreatorEarningsPageClient } from "@/components/community/creator/CreatorEarningsPageClient";
+import { redirectCreatorStudio } from "@/lib/community/owner-console/legacy-creator-redirect";
 
-export const metadata = {
-  title: "Earnings",
-};
+export const dynamic = "force-dynamic";
 
-export default async function CreatorEarningsPage({ params }: { params: Promise<{ communityId: string }> }) {
+export default async function LegacyCreatorEarningsRedirect({
+  params,
+}: {
+  params: Promise<{ communityId: string }>;
+}) {
   const { communityId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const community = await requireCommunityOwner(supabase, user.id, communityId);
-
-  return (
-    <CreatorEarningsPageClient
-      communityId={communityId}
-      communityName={community.name}
-      displayCurrency={community.currency || "USD"}
-    />
-  );
+  return redirectCreatorStudio(communityId, "commerce");
 }

@@ -368,7 +368,7 @@ export function HubCommunityOverview() {
                   </HubLinkButton>
                   {(isOwner || isAdmin) && (
                     <HubLinkButton
-                      href={`/community-owner?community=${encodeURIComponent(communityId)}`}
+                      href={`/dashboard/communities/${encodeURIComponent(slug)}`}
                       variant="secondary"
                       className="!rounded-full !px-4"
                     >

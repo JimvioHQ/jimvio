@@ -1,11 +1,12 @@
-import React from "react";
-import { CreatorSettingsClient } from "@/components/community/creator/CreatorSettingsClient";
+import { redirectCreatorStudio } from "@/lib/community/owner-console/legacy-creator-redirect";
 
-export const metadata = {
-  title: "Community Settings",
-};
+export const dynamic = "force-dynamic";
 
-export default async function CreatorSettingsPage({ params }: { params: Promise<{ communityId: string }> }) {
+export default async function LegacyCreatorSettingsRedirect({
+  params,
+}: {
+  params: Promise<{ communityId: string }>;
+}) {
   const { communityId } = await params;
-  return <CreatorSettingsClient communityId={communityId} />;
+  return redirectCreatorStudio(communityId, "settings");
 }

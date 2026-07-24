@@ -94,12 +94,11 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
 
   function setTab(next: ChannelSettingsTab) {
     const base = sectionPath(
-      `/community-owner/channels/${channelId}`,
-      community?.id
+      `channels/${channelId}`,
+      community?.slug
     );
     const url = new URL(base, window.location.origin);
     url.searchParams.set("tab", next);
-    if (community?.id) url.searchParams.set("community", community.id);
     router.replace(url.pathname + url.search);
   }
 
@@ -137,7 +136,7 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
     }
     if (data.deleted) {
       toast.success("Channel deleted");
-      router.push(sectionPath("/community-owner/channels", community?.id));
+      router.push(sectionPath("channels", community?.slug));
       return;
     }
     if (data.channel) setChannel(data.channel);
@@ -158,7 +157,7 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
       <div className="py-16 text-center">
         <p className="text-sm font-semibold">Channel not found</p>
         <Button asChild variant="outline" className="mt-4">
-          <Link href={sectionPath("/community-owner/channels", community?.id)}>
+          <Link href={sectionPath("channels", community?.slug)}>
             Back to channels
           </Link>
         </Button>
@@ -171,7 +170,7 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
-            href={sectionPath("/community-owner/channels", community?.id)}
+            href={sectionPath("channels", community?.slug)}
             className="mb-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />

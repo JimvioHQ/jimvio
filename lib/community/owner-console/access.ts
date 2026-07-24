@@ -9,7 +9,11 @@ import {
   type MembershipLite,
 } from "@/lib/community/workspace/permissions";
 import type { WorkspaceRole } from "@/lib/community/workspace/types";
-import type { OwnerCommunitySummary } from "./nav";
+import {
+  ownerConsoleHref,
+  OWNER_CONSOLE_HUB,
+  type OwnerCommunitySummary,
+} from "./nav";
 
 export type ManageableCommunityRow = {
   id: string;
@@ -108,11 +112,49 @@ export function canEnterOwnerConsole(role: WorkspaceRole): boolean {
   );
 }
 
+/**
+ * Build an Owner Console URL from a legacy absolute path or section segment.
+ * Second arg is the **community slug** (not id).
+ *
+ * Accepts:
+ * - `/community-owner/groups`
+ * - `/dashboard/communities/{slug}/groups`
+ * - `groups` / `groups/abc`
+ * - paths with `?action=` query (`community=` is stripped)
+ */
 export function sectionPath(
   sectionHref: string,
-  communityId: string | null | undefined
+  communitySlug: string | null | undefined
 ): string {
-  if (!communityId) return sectionHref;
-  const sep = sectionHref.includes("?") ? "&" : "?";
-  return `${sectionHref}${sep}community=${encodeURIComponent(communityId)}`;
+  if (!communitySlug) return OWNER_CONSOLE_HUB;
+
+  const [pathPart, queryPart] = sectionHref.split("?");
+  let section = pathPart
+    .replace(/^https?:\/\/[^/]+/i, "")
+    .replace(/^\/dashboard\/communities\/[^/]+\/?/i, "")
+    .replace(/^\/dashboard\/communities\/?/i, "")
+    .replace(/^\/community-owner\/?/i, "")
+    .replace(/^\/+/, "");
+
+  if (
+    section === "dashboard/communities" ||
+    section === OWNER_CONSOLE_HUB.slice(1)
+  ) {
+    section = "";
+  }
+
+  const query: Record<string, string> = {};
+  if (queryPart) {
+    const params = new URLSearchParams(queryPart);
+    params.delete("community");
+    params.forEach((v, k) => {
+      query[k] = v;
+    });
+  }
+
+  return ownerConsoleHref(
+    communitySlug,
+    section,
+    Object.keys(query).length ? query : undefined
+  );
 }

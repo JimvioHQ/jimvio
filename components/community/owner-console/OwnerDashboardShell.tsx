@@ -170,7 +170,7 @@ export function OwnerDashboardShell({
           </p>
           {community && (
             <Link
-              href={sectionPath("/community-owner/ai", community.id)}
+              href={sectionPath("ai", community.slug)}
               className="mt-3 inline-flex text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
             >
               Open AI console

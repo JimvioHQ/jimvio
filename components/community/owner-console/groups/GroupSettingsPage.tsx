@@ -108,12 +108,11 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
 
   function setTab(next: GroupSettingsTab) {
     const base = sectionPath(
-      `/community-owner/groups/${groupId}`,
-      community?.id
+      `groups/${groupId}`,
+      community?.slug
     );
     const url = new URL(base, window.location.origin);
     url.searchParams.set("tab", next);
-    if (community?.id) url.searchParams.set("community", community.id);
     router.replace(url.pathname + url.search);
   }
 
@@ -151,7 +150,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
     }
     if (data.deleted) {
       toast.success("Group deleted");
-      router.push(sectionPath("/community-owner/groups", community?.id));
+      router.push(sectionPath("groups", community?.slug));
       return;
     }
     if (data.group) setGroup(data.group);
@@ -172,7 +171,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
       <div className="py-16 text-center">
         <p className="text-sm font-semibold">Group not found</p>
         <Button asChild variant="outline" className="mt-4">
-          <Link href={sectionPath("/community-owner/groups", community?.id)}>
+          <Link href={sectionPath("groups", community?.slug)}>
             Back to groups
           </Link>
         </Button>
@@ -185,7 +184,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
-            href={sectionPath("/community-owner/groups", community?.id)}
+            href={sectionPath("groups", community?.slug)}
             className="mb-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />

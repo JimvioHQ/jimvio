@@ -1,20 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
-import { requireCommunityOwner } from "@/lib/creator-server";
-import { CreatorContentPageClient } from "@/components/community/creator/CreatorContentPageClient";
+import { redirectCreatorStudio } from "@/lib/community/owner-console/legacy-creator-redirect";
 
-export const metadata = {
-  title: "Content",
-};
+export const dynamic = "force-dynamic";
 
-export default async function CreatorContentPage({ params }: { params: Promise<{ communityId: string }> }) {
+export default async function LegacyCreatorContentRedirect({
+  params,
+}: {
+  params: Promise<{ communityId: string }>;
+}) {
   const { communityId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  await requireCommunityOwner(supabase, user.id, communityId);
-
-  return <CreatorContentPageClient communityId={communityId} />;
+  return redirectCreatorStudio(communityId, "content");
 }

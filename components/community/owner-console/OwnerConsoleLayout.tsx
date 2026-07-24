@@ -34,7 +34,7 @@ export function OwnerConsoleLayout({
         />
         <div className="flex min-h-0 flex-1">
           <OwnerConsoleSidebar
-            communityId={value.community?.id ?? null}
+            communitySlug={value.community?.slug ?? null}
             role={value.role}
             badges={value.badges}
           />

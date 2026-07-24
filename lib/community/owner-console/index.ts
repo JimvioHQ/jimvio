@@ -12,10 +12,12 @@ export type {
 
 export {
   OWNER_CONSOLE_BASE,
+  OWNER_CONSOLE_HUB,
   OWNER_NAV_ITEMS,
   OWNER_NAV_SECTIONS,
   OWNER_QUICK_ACTIONS,
   OWNER_SECTION_ICON_KEYS,
+  ownerConsoleHref,
 } from "./nav";
 
 export {

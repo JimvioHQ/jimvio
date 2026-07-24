@@ -32,9 +32,9 @@ const apiMembers = mustExist("app/api/c/owner/groups/[id]/members/route.ts");
 const apiAnalytics = mustExist(
   "app/api/c/owner/groups/[id]/analytics/route.ts"
 );
-const page = mustExist("app/community-owner/groups/page.tsx");
+const page = mustExist("app/dashboard/communities/[communitySlug]/groups/page.tsx");
 const settingsPage = mustExist(
-  "app/community-owner/groups/[groupId]/page.tsx"
+  "app/dashboard/communities/[communitySlug]/groups/[groupId]/page.tsx"
 );
 const management = mustExist(
   "components/community/owner-console/groups/GroupsManagement.tsx"

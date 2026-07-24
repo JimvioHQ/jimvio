@@ -247,7 +247,7 @@ export function ChannelsManagement() {
         <ChannelsList
           channels={channels}
           view={view}
-          communityId={community.id}
+          communitySlug={community.slug}
           groups={groups}
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}

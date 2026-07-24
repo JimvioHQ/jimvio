@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  OWNER_CONSOLE_BASE,
+  OWNER_CONSOLE_HUB,
+  ownerConsoleHref,
   useOwnerConsoleUiStore,
   type OwnerCommunitySummary,
 } from "@/lib/community/owner-console";
@@ -92,16 +93,17 @@ export function OwnerConsoleTopBar({
         <label className="hidden min-w-[140px] sm:block">
           <span className="sr-only">Switch community</span>
           <select
-            value={community?.id ?? ""}
+            value={community?.slug ?? ""}
             onChange={(e) => {
-              const id = e.target.value;
-              setSelected(id);
-              router.push(`${OWNER_CONSOLE_BASE}?community=${id}`);
+              const slug = e.target.value;
+              const next = communities.find((c) => c.slug === slug);
+              if (next) setSelected(next.id);
+              router.push(ownerConsoleHref(slug));
             }}
             className="w-full rounded-lg border border-[var(--color-border)] bg-transparent px-2 py-1.5 text-[12px] font-semibold outline-none focus:ring-2 focus:ring-[var(--color-accent)]/30"
           >
             {communities.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={c.slug}>
                 {c.name}
               </option>
             ))}
@@ -120,6 +122,12 @@ export function OwnerConsoleTopBar({
       </div>
 
       <div className="flex items-center gap-1.5">
+        <Link
+          href={OWNER_CONSOLE_HUB}
+          className="hidden items-center gap-1 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] sm:inline-flex"
+        >
+          Hub
+        </Link>
         {workspaceHref && (
           <Link
             href={workspaceHref}
@@ -132,8 +140,8 @@ export function OwnerConsoleTopBar({
         <Link
           href={
             community
-              ? `${OWNER_CONSOLE_BASE}/members?community=${community.id}&action=invite`
-              : `${OWNER_CONSOLE_BASE}/members`
+              ? ownerConsoleHref(community.slug, "members", { action: "invite" })
+              : OWNER_CONSOLE_HUB
           }
           className="inline-flex h-9 items-center gap-1 rounded-lg bg-[var(--color-accent)] px-2.5 text-[12px] font-semibold text-white"
         >

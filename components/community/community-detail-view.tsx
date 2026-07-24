@@ -654,18 +654,18 @@ export function CommunityDetailView({
                   </Link>
                   {(isOwner || isModerator) && (
                     <Link
-                      href={`/community-owner?community=${encodeURIComponent(community.id)}`}
+                      href={`/dashboard/communities/${encodeURIComponent(community.slug)}`}
                       className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-[var(--color-border)] text-[12px] font-medium text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                     >
-                      Owner Console
+                      Manage community
                     </Link>
                   )}
-                  {(isOwner || isModerator) && (
+                  {isOwner && (
                     <Link
-                      href={`/creator/${community.id}/dashboard`}
+                      href={`/dashboard/communities/${encodeURIComponent(community.slug)}/commerce`}
                       className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-[var(--color-border)] text-[12px] font-medium text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                     >
-                      Creator earnings
+                      Commerce
                     </Link>
                   )}
                 </>

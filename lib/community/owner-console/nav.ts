@@ -1,13 +1,20 @@
 /**
- * Community Owner Console — navigation & domain types (Phase A.1).
- * Framework only — section pages are shells until later phases.
+ * Community Owner Console — navigation & domain types.
+ * Permanent home: /dashboard/communities/[communitySlug]
  */
 
 import type { LucideIcon } from "lucide-react";
 import type { WorkspaceRole } from "@/lib/community/workspace/types";
 import type { PermissionCapability } from "@/lib/community/workspace/permissions";
 
-export const OWNER_CONSOLE_BASE = "/community-owner";
+/** Hub list — communities the user owns or can manage. */
+export const OWNER_CONSOLE_HUB = "/dashboard/communities";
+
+/**
+ * Base path segment for Owner Console (hub). Section URLs are built with
+ * `ownerConsoleHref(slug, section)` → `/dashboard/communities/{slug}/…`.
+ */
+export const OWNER_CONSOLE_BASE = OWNER_CONSOLE_HUB;
 
 export type OwnerConsoleSectionId =
   | "overview"
@@ -32,6 +39,9 @@ export type OwnerConsoleSectionId =
 export type OwnerNavItem = {
   id: OwnerConsoleSectionId;
   label: string;
+  /** Path segment under /dashboard/communities/[slug] (empty = overview). */
+  section: string;
+  /** @deprecated Prefer `section` + ownerConsoleHref — kept for verify scripts. */
   href: string;
   /** Capability required to see the item (settings.manage = full console) */
   capability: PermissionCapability;
@@ -46,143 +56,167 @@ export type OwnerNavSection = {
   items: OwnerConsoleSectionId[];
 };
 
+function navItem(
+  id: OwnerConsoleSectionId,
+  label: string,
+  section: string,
+  capability: PermissionCapability,
+  description: string,
+  badgeKey?: OwnerNavItem["badgeKey"]
+): OwnerNavItem {
+  return {
+    id,
+    label,
+    section,
+    href: section ? `${OWNER_CONSOLE_BASE}/${section}` : OWNER_CONSOLE_BASE,
+    capability,
+    badgeKey,
+    description,
+  };
+}
+
 export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
-  overview: {
-    id: "overview",
-    label: "Overview",
-    href: OWNER_CONSOLE_BASE,
-    capability: "settings.manage",
-    description: "Community health and operating dashboard",
-  },
-  groups: {
-    id: "groups",
-    label: "Groups",
-    href: `${OWNER_CONSOLE_BASE}/groups`,
-    capability: "group.manage",
-    description: "Spaces and mini workspaces",
-  },
-  channels: {
-    id: "channels",
-    label: "Channels",
-    href: `${OWNER_CONSOLE_BASE}/channels`,
-    capability: "channel.manage",
-    description: "Rooms and collaboration hubs",
-  },
-  members: {
-    id: "members",
-    label: "Members",
-    href: `${OWNER_CONSOLE_BASE}/members`,
-    capability: "members.view",
-    badgeKey: "joins",
-    description: "Roster, invites, and join requests",
-  },
-  roles: {
-    id: "roles",
-    label: "Roles & Permissions",
-    href: `${OWNER_CONSOLE_BASE}/roles`,
-    capability: "settings.manage",
-    description: "Owner, admin, moderator, and custom roles",
-  },
-  content: {
-    id: "content",
-    label: "Content",
-    href: `${OWNER_CONSOLE_BASE}/content`,
-    capability: "channel.manage",
-    description: "Posts, pins, and published assets",
-  },
-  courses: {
-    id: "courses",
-    label: "Courses",
-    href: `${OWNER_CONSOLE_BASE}/courses`,
-    capability: "knowledge.manage",
-    description: "Learning catalog management",
-  },
-  events: {
-    id: "events",
-    label: "Events",
-    href: `${OWNER_CONSOLE_BASE}/events`,
-    capability: "channel.manage",
-    description: "Calendar, RSVP, and workshops",
-  },
-  live: {
-    id: "live",
-    label: "Live",
-    href: `${OWNER_CONSOLE_BASE}/live`,
-    capability: "live.manage",
-    badgeKey: "live",
-    description: "Live Studio sessions and recordings",
-  },
-  commerce: {
-    id: "commerce",
-    label: "Commerce",
-    href: `${OWNER_CONSOLE_BASE}/commerce`,
-    capability: "commerce.manage",
-    description: "Storefront, offers, and monetization",
-  },
-  analytics: {
-    id: "analytics",
-    label: "Analytics",
-    href: `${OWNER_CONSOLE_BASE}/analytics`,
-    capability: "settings.manage",
-    description: "Growth, engagement, and trust",
-  },
-  moderation: {
-    id: "moderation",
-    label: "Moderation",
-    href: `${OWNER_CONSOLE_BASE}/moderation`,
-    capability: "pins.manage",
-    badgeKey: "reports",
-    description: "Reports, queues, and safety",
-  },
-  ai: {
-    id: "ai",
-    label: "AI",
-    href: `${OWNER_CONSOLE_BASE}/ai`,
-    capability: "intelligence.view",
-    description: "Intelligence platform controls",
-  },
-  automations: {
-    id: "automations",
-    label: "Automations",
-    href: `${OWNER_CONSOLE_BASE}/automations`,
-    capability: "settings.manage",
-    description: "Suggested workflows and rules",
-  },
-  security: {
-    id: "security",
-    label: "Security",
-    href: `${OWNER_CONSOLE_BASE}/security`,
-    capability: "settings.manage",
-    description: "Access policies and safeguards",
-  },
-  integrations: {
-    id: "integrations",
-    label: "Integrations",
-    href: `${OWNER_CONSOLE_BASE}/integrations`,
-    capability: "settings.manage",
-    description: "Connected services and webhooks",
-  },
-  audit: {
-    id: "audit",
-    label: "Audit Logs",
-    href: `${OWNER_CONSOLE_BASE}/audit`,
-    capability: "settings.manage",
-    description: "Administrative activity history",
-  },
-  settings: {
-    id: "settings",
-    label: "Settings",
-    href: `${OWNER_CONSOLE_BASE}/settings`,
-    capability: "settings.manage",
-    description: "Community profile and preferences",
-  },
+  overview: navItem(
+    "overview",
+    "Overview",
+    "",
+    "settings.manage",
+    "Community health and operating dashboard"
+  ),
+  groups: navItem(
+    "groups",
+    "Groups",
+    "groups",
+    "group.manage",
+    "Spaces and mini workspaces"
+  ),
+  channels: navItem(
+    "channels",
+    "Channels",
+    "channels",
+    "channel.manage",
+    "Rooms and collaboration hubs"
+  ),
+  members: navItem(
+    "members",
+    "Members",
+    "members",
+    "members.view",
+    "Roster, invites, and join requests",
+    "joins"
+  ),
+  roles: navItem(
+    "roles",
+    "Roles & Permissions",
+    "roles",
+    "settings.manage",
+    "Owner, admin, moderator, and custom roles"
+  ),
+  content: navItem(
+    "content",
+    "Content",
+    "content",
+    "channel.manage",
+    "Posts, pins, and published assets"
+  ),
+  courses: navItem(
+    "courses",
+    "Courses",
+    "courses",
+    "knowledge.manage",
+    "Learning catalog management"
+  ),
+  events: navItem(
+    "events",
+    "Events",
+    "events",
+    "channel.manage",
+    "Calendar, RSVP, and workshops"
+  ),
+  live: navItem(
+    "live",
+    "Live",
+    "live",
+    "live.manage",
+    "Live Studio sessions and recordings",
+    "live"
+  ),
+  commerce: navItem(
+    "commerce",
+    "Commerce",
+    "commerce",
+    "commerce.manage",
+    "Storefront, offers, and monetization"
+  ),
+  analytics: navItem(
+    "analytics",
+    "Analytics",
+    "analytics",
+    "settings.manage",
+    "Growth, engagement, and trust"
+  ),
+  moderation: navItem(
+    "moderation",
+    "Moderation",
+    "moderation",
+    "pins.manage",
+    "Reports, queues, and safety",
+    "reports"
+  ),
+  ai: navItem(
+    "ai",
+    "AI",
+    "ai",
+    "intelligence.view",
+    "Intelligence platform controls"
+  ),
+  automations: navItem(
+    "automations",
+    "Automations",
+    "automations",
+    "settings.manage",
+    "Suggested workflows and rules"
+  ),
+  security: navItem(
+    "security",
+    "Security",
+    "security",
+    "settings.manage",
+    "Access policies and safeguards"
+  ),
+  integrations: navItem(
+    "integrations",
+    "Integrations",
+    "integrations",
+    "settings.manage",
+    "Connected services and webhooks"
+  ),
+  audit: navItem(
+    "audit",
+    "Audit Logs",
+    "audit",
+    "settings.manage",
+    "Administrative activity history"
+  ),
+  settings: navItem(
+    "settings",
+    "Community Settings",
+    "settings",
+    "settings.manage",
+    "Community profile and preferences"
+  ),
 };
 
 export const OWNER_NAV_SECTIONS: OwnerNavSection[] = [
   {
+    id: "hub",
+    label: "Navigate",
+    items: ["overview"],
+  },
+  {
     id: "command",
     label: "Command",
-    items: ["overview", "analytics", "ai", "automations"],
+    items: ["analytics", "ai", "automations"],
   },
   {
     id: "structure",
@@ -221,26 +255,48 @@ export type OwnerQuickAction = {
   capability: PermissionCapability;
 };
 
+/**
+ * Build Owner Console URL for a community slug.
+ * @param section - path under the console (e.g. "groups", "channels/abc", "")
+ * @param query - optional search params (action, tab, …) — community id is NOT required
+ */
+export function ownerConsoleHref(
+  slug: string,
+  section: string = "",
+  query?: Record<string, string | undefined | null>
+): string {
+  const clean = section.replace(/^\/+/, "").replace(/^community-owner\/?/i, "");
+  const base = clean
+    ? `${OWNER_CONSOLE_HUB}/${encodeURIComponent(slug)}/${clean}`
+    : `${OWNER_CONSOLE_HUB}/${encodeURIComponent(slug)}`;
+  if (!query) return base;
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    if (v != null && v !== "") params.set(k, v);
+  }
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
 export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
   {
     id: "create_group",
     label: "Create Group",
-    href: ({ communityId }) =>
-      `${OWNER_CONSOLE_BASE}/groups?community=${communityId}&action=create`,
+    href: ({ slug }) => ownerConsoleHref(slug, "groups", { action: "create" }),
     capability: "group.manage",
   },
   {
     id: "create_channel",
     label: "Create Channel",
-    href: ({ communityId }) =>
-      `${OWNER_CONSOLE_BASE}/channels?community=${communityId}&action=create`,
+    href: ({ slug }) =>
+      ownerConsoleHref(slug, "channels", { action: "create" }),
     capability: "channel.manage",
   },
   {
     id: "invite_members",
     label: "Invite Members",
-    href: ({ communityId }) =>
-      `${OWNER_CONSOLE_BASE}/members?community=${communityId}&action=invite`,
+    href: ({ slug }) =>
+      ownerConsoleHref(slug, "members", { action: "invite" }),
     capability: "members.invite",
   },
   {
@@ -252,29 +308,27 @@ export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
   {
     id: "create_course",
     label: "Create Course",
-    href: ({ communityId }) =>
-      `${OWNER_CONSOLE_BASE}/courses?community=${communityId}&action=create`,
+    href: ({ slug }) =>
+      ownerConsoleHref(slug, "courses", { action: "create" }),
     capability: "knowledge.manage",
   },
   {
     id: "create_event",
     label: "Create Event",
-    href: ({ communityId }) =>
-      `${OWNER_CONSOLE_BASE}/events?community=${communityId}&action=create`,
+    href: ({ slug }) =>
+      ownerConsoleHref(slug, "events", { action: "create" }),
     capability: "channel.manage",
   },
   {
     id: "open_moderation",
     label: "Open Moderation",
-    href: ({ communityId }) =>
-      `${OWNER_CONSOLE_BASE}/moderation?community=${communityId}`,
+    href: ({ slug }) => ownerConsoleHref(slug, "moderation"),
     capability: "pins.manage",
   },
   {
     id: "community_settings",
     label: "Community Settings",
-    href: ({ communityId }) =>
-      `${OWNER_CONSOLE_BASE}/settings?community=${communityId}`,
+    href: ({ slug }) => ownerConsoleHref(slug, "settings"),
     capability: "settings.manage",
   },
 ];

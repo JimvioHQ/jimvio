@@ -4,23 +4,30 @@ import { createClient } from "@/lib/supabase/server";
 import {
   canEnterOwnerConsole,
   listManageableCommunities,
+  OWNER_CONSOLE_HUB,
+  ownerConsoleHref,
 } from "@/lib/community/owner-console";
 import { OwnerConsoleClientGate } from "@/components/community/owner-console/OwnerConsoleClientGate";
 
 export const dynamic = "force-dynamic";
 
-export default async function CommunityOwnerLayout({
+export default async function CommunityOwnerConsoleLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ communitySlug: string }>;
 }) {
+  const { communitySlug } = await params;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/login?next=${encodeURIComponent("/community-owner")}`);
+    redirect(
+      `/login?next=${encodeURIComponent(ownerConsoleHref(communitySlug))}`
+    );
   }
 
   const communities = await listManageableCommunities(supabase, user.id);
@@ -28,10 +35,22 @@ export default async function CommunityOwnerLayout({
     redirect("/communities/create");
   }
 
-  // At least one manageable community — role checked per selection in client gate
   const anyStaff = communities.some((c) => canEnterOwnerConsole(c.role));
   if (!anyStaff) {
     redirect(`/communities/${communities[0].slug}`);
+  }
+
+  const selected =
+    communities.find((c) => c.slug === communitySlug) ?? null;
+  if (!selected) {
+    // Unknown or unauthorized slug — send to hub (or first manageable)
+    const fallback = communities.find((c) => canEnterOwnerConsole(c.role));
+    if (fallback) redirect(ownerConsoleHref(fallback.slug));
+    redirect(OWNER_CONSOLE_HUB);
+  }
+
+  if (!canEnterOwnerConsole(selected.role)) {
+    redirect(`/communities/${selected.slug}`);
   }
 
   const { data: profile } = await supabase
@@ -50,6 +69,7 @@ export default async function CommunityOwnerLayout({
     >
       <OwnerConsoleClientGate
         communities={communities}
+        communitySlug={communitySlug}
         userId={user.id}
         userName={
           profile?.full_name ||

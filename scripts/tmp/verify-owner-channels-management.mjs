@@ -30,9 +30,9 @@ const apiMembers = mustExist("app/api/c/owner/channels/[id]/members/route.ts");
 const apiAnalytics = mustExist(
   "app/api/c/owner/channels/[id]/analytics/route.ts"
 );
-const page = mustExist("app/community-owner/channels/page.tsx");
+const page = mustExist("app/dashboard/communities/[communitySlug]/channels/page.tsx");
 const settingsPage = mustExist(
-  "app/community-owner/channels/[channelId]/page.tsx"
+  "app/dashboard/communities/[communitySlug]/channels/[channelId]/page.tsx"
 );
 const management = mustExist(
   "components/community/owner-console/channels/ChannelsManagement.tsx"

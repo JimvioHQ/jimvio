@@ -373,11 +373,7 @@ function SidebarBody({
           </div>
           {canManage && (
             <Link
-              href={
-                communityId
-                  ? `/community-owner/settings?community=${encodeURIComponent(communityId)}`
-                  : `${base}/settings`
-              }
+              href={`/dashboard/communities/${encodeURIComponent(slug)}/settings`}
               onClick={onNavigate}
               aria-label="Owner Console"
               title="Owner Console"
@@ -396,9 +392,9 @@ function SidebarBody({
           >
             Invite People
           </Link>
-          {canManage && communityId && (
+          {canManage && (
             <Link
-              href={`/community-owner?community=${encodeURIComponent(communityId)}`}
+              href={`/dashboard/communities/${encodeURIComponent(slug)}`}
               onClick={onNavigate}
               className="flex w-full items-center justify-center rounded-xl border border-orange-200 bg-orange-50 py-2 text-[12px] font-semibold text-orange-700 transition-colors hover:bg-orange-100"
             >

@@ -34,15 +34,25 @@ import { useUserStore } from "@/lib/store/use-user-store";
 import { BottomNav } from "./Bottom-navbar";
 import { DashboardHeader } from "./dashboard-header";
 
+function isOwnerConsolePath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  // Hub stays inside DashboardShell; per-community Owner Console is full-bleed.
+  return /^\/dashboard\/communities\/[^/]+/.test(pathname);
+}
+
 function DashboardShellContent({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const { activeRoles, fetchRoles } = useUserStore();
   const [user, setUser] = useState<UserProfile>({ email: "", full_name: null, avatar_url: null });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const ownerConsole = isOwnerConsolePath(pathname);
 
   useEffect(() => {
+    if (ownerConsole) return;
+
     async function loadUser() {
       const supabase = createClient();
       const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -116,7 +126,11 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       cancelled = true;
       unsubscribeRealtime(supabase, channel, channelPrefix);
     };
-  }, [fetchRoles]);
+  }, [fetchRoles, ownerConsole]);
+
+  if (ownerConsole) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

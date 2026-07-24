@@ -1,20 +1,12 @@
-import { createClient } from "@/lib/supabase/server";
-import { requireCommunityOwner } from "@/lib/creator-server";
-import { CreatorSpacesPageClient } from "@/components/community/creator/CreatorSpacesPageClient";
+import { redirectCreatorStudio } from "@/lib/community/owner-console/legacy-creator-redirect";
 
-export const metadata = {
-  title: "Spaces",
-};
+export const dynamic = "force-dynamic";
 
-export default async function CreatorSpacesPage({ params }: { params: Promise<{ communityId: string }> }) {
+export default async function LegacyCreatorSpacesRedirect({
+  params,
+}: {
+  params: Promise<{ communityId: string }>;
+}) {
   const { communityId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  await requireCommunityOwner(supabase, user.id, communityId);
-
-  return <CreatorSpacesPageClient communityId={communityId} />;
+  return redirectCreatorStudio(communityId, "groups");
 }

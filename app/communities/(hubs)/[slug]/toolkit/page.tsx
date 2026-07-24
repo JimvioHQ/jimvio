@@ -28,7 +28,7 @@ export default async function CommunityToolkitRedirect({
   if (!community) redirect(`/communities/${slug}`);
 
   if (community.owner_id === user.id) {
-    redirect(sectionPath("/community-owner", community.id));
+    redirect(sectionPath("", slug));
   }
 
   const { data: membership } = await supabase
@@ -43,7 +43,7 @@ export default async function CommunityToolkitRedirect({
     (membership.role === "admin" || membership.role === "moderator" || membership.role === "owner");
 
   if (staff) {
-    redirect(sectionPath("/community-owner", community.id));
+    redirect(sectionPath("", slug));
   }
 
   redirect(`/communities/${slug}`);

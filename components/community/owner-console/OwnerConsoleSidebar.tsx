@@ -7,14 +7,16 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  LayoutDashboard,
   Search,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  OWNER_CONSOLE_HUB,
   OWNER_NAV_ITEMS,
   OWNER_NAV_SECTIONS,
-  sectionPath,
+  ownerConsoleHref,
   useOwnerConsoleUiStore,
   type OwnerConsoleBadges,
   type OwnerConsoleSectionId,
@@ -24,11 +26,11 @@ import type { WorkspaceRole } from "@/lib/community/workspace/types";
 import { ownerSectionIcon } from "./owner-icons";
 
 export function OwnerConsoleSidebar({
-  communityId,
+  communitySlug,
   role,
   badges,
 }: {
-  communityId: string | null;
+  communitySlug: string | null;
   role: WorkspaceRole;
   badges: OwnerConsoleBadges;
 }) {
@@ -48,7 +50,6 @@ export function OwnerConsoleSidebar({
       (id) => {
         const item = OWNER_NAV_ITEMS[id];
         if (!hasCapability(role, item.capability) && item.id !== "overview") {
-          // overview always for console entrants
           if (!hasCapability(role, "settings.manage") && id === "overview") {
             return canSeeAnyStaff(role);
           }
@@ -71,6 +72,10 @@ export function OwnerConsoleSidebar({
     if (!key) return 0;
     return badges[key] ?? 0;
   };
+
+  const consoleBase = communitySlug
+    ? ownerConsoleHref(communitySlug)
+    : OWNER_CONSOLE_HUB;
 
   const navBody = (
     <div className="flex h-full flex-col">
@@ -100,6 +105,24 @@ export function OwnerConsoleSidebar({
         >
           <X className="h-4 w-4" />
         </button>
+      </div>
+
+      <div className="border-b border-[var(--color-border)] px-2 py-2">
+        <Link
+          href={OWNER_CONSOLE_HUB}
+          onClick={() => setMobileOpen(false)}
+          title="Dashboard"
+          className={cn(
+            "flex items-center gap-2 rounded-lg px-2.5 py-2 text-[13px] font-semibold transition-colors",
+            pathname === OWNER_CONSOLE_HUB
+              ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+              : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+            collapsed && "justify-center px-2"
+          )}
+        >
+          <LayoutDashboard className="h-4 w-4 shrink-0" aria-hidden />
+          {!collapsed && <span>Dashboard</span>}
+        </Link>
       </div>
 
       {!collapsed && (
@@ -154,13 +177,15 @@ export function OwnerConsoleSidebar({
                 <ul className="space-y-0.5" role="list">
                   {items.map((id) => {
                     const item = OWNER_NAV_ITEMS[id];
-                    const href = sectionPath(item.href, communityId);
+                    const href = communitySlug
+                      ? ownerConsoleHref(communitySlug, item.section)
+                      : OWNER_CONSOLE_HUB;
                     const active =
                       id === "overview"
-                        ? pathname === "/community-owner" ||
-                          pathname === "/community-owner/"
-                        : pathname === item.href ||
-                          pathname.startsWith(item.href + "/");
+                        ? pathname === consoleBase ||
+                          pathname === `${consoleBase}/`
+                        : pathname === href ||
+                          pathname.startsWith(`${href}/`);
                     const count = badgeValue(item.badgeKey);
                     return (
                       <li key={id}>

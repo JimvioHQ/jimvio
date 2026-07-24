@@ -32,7 +32,7 @@ export default async function CommunitySettingsRedirect({
 
   const isOwner = community.owner_id === user.id;
   if (isOwner) {
-    redirect(sectionPath("/community-owner/settings", community.id));
+    redirect(sectionPath("settings", slug));
   }
 
   const { data: membership } = await supabase
@@ -47,7 +47,7 @@ export default async function CommunitySettingsRedirect({
     (membership.role === "admin" || membership.role === "moderator" || membership.role === "owner");
 
   if (staff) {
-    redirect(sectionPath("/community-owner/settings", community.id));
+    redirect(sectionPath("settings", slug));
   }
 
   redirect("/communities/settings");
