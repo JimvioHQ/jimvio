@@ -51,6 +51,8 @@ export const CHANNEL_TYPES = [
   "files",
   "course",
   "events",
+  "knowledge",
+  "media",
   "qa",
 ] as const;
 
@@ -67,6 +69,8 @@ export const ROOM_TYPE_TO_CHANNEL: Record<string, ChannelType> = {
   tasks: "events",
   files: "files",
   signals: "signals",
+  knowledge: "knowledge",
+  media: "media",
   qa: "qa",
 };
 
@@ -81,6 +85,8 @@ export const CHANNEL_TYPE_TO_ROOM: Record<ChannelType, string> = {
   files: "resources",
   course: "course",
   events: "tasks",
+  knowledge: "resources",
+  media: "resources",
   qa: "chat",
 };
 
@@ -166,15 +172,16 @@ export const CHANNEL_TAB_IDS = [
 
 export type ChannelTabId = (typeof CHANNEL_TAB_IDS)[number];
 
+/** Overview first — discussion (chat) is intentional, not the landing tab. */
 export const CHANNEL_TABS: { id: ChannelTabId; label: string }[] = [
-  { id: "discussion", label: "Discussion" },
-  { id: "threads", label: "Threads" },
+  { id: "home", label: "Overview" },
+  { id: "pinned", label: "Pinned" },
   { id: "knowledge", label: "Knowledge" },
   { id: "files", label: "Files" },
   { id: "media", label: "Media" },
-  { id: "pinned", label: "Pinned" },
-  { id: "events", label: "Events" },
   { id: "members", label: "Members" },
+  { id: "discussion", label: "Discussion" },
+  { id: "threads", label: "Threads" },
+  { id: "events", label: "Events" },
   { id: "ai", label: "AI" },
-  { id: "home", label: "Overview" },
 ];

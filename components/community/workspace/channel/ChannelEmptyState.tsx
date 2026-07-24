@@ -26,18 +26,18 @@ export function ChannelEmptyState({
     <div
       className={cn(
         "flex flex-1 flex-col items-center justify-center px-6 py-14 text-center sm:py-16",
-        "animate-in fade-in duration-200",
+        "animate-in fade-in duration-300",
         className
       )}
       role="status"
     >
       <span
-        className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]"
+        className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]/80"
         aria-hidden
       >
         <Icon className="h-5 w-5" />
       </span>
-      <h2 className="text-[15px] font-bold tracking-tight text-[var(--color-text-primary)]">
+      <h2 className="text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
         {title}
       </h2>
       <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-[var(--color-text-muted)]">
@@ -48,7 +48,7 @@ export function ChannelEmptyState({
           type="button"
           onClick={onAction}
           className={cn(
-            "mt-5 inline-flex min-h-10 items-center justify-center rounded-lg px-4 text-[13px] font-semibold",
+            "mt-5 inline-flex min-h-10 items-center justify-center rounded-full px-5 text-[13px] font-semibold",
             "bg-[var(--color-accent)] text-white transition hover:opacity-90",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
           )}

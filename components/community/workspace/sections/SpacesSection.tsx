@@ -1,18 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ChevronDown, ChevronRight, Folder, Plus, Lock, LayoutGrid, LayoutList,
-} from "lucide-react";
+import { Layers, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 import { useWorkspace, type WorkspaceSpaceRow } from "@/components/community/workspace-context";
 import type { WorkspaceCommunity } from "@/types/workspace";
-import { GroupWorkspace } from "@/components/community/workspace/group/GroupWorkspace";
+import { GroupCard } from "@/components/community/workspace/group/GroupCard";
+import { ChannelEmptyState } from "@/components/community/workspace/channel/ChannelEmptyState";
+import { useWorkspaceFavorites } from "@/components/community/workspace/shared/useWorkspaceFavorites";
 import {
-  communityRoomHref,
-  roomTypeIcon,
+  communityGroupHref,
+  mapSpaceToGroup,
 } from "@/lib/community/workspace";
 
 interface Props {
@@ -22,262 +22,130 @@ interface Props {
   isOwner?: boolean;
 }
 
-export function SpacesSection({ community, spacesWithRooms, isAdmin = false, isOwner = false }: Props) {
+/**
+ * Premium Groups gallery — collaboration spaces, not accordion lists.
+ * Opening a group uses existing `?space=` GroupWorkspace routing.
+ */
+export function SpacesSection({
+  community,
+  spacesWithRooms,
+  isAdmin = false,
+  isOwner = false,
+}: Props) {
   const router = useRouter();
-  const { ownerId, userId, membership, memberCount } = useWorkspace();
+  const {
+    ownerId,
+    userId,
+    membership,
+    memberCount,
+    overview,
+  } = useWorkspace();
+  const { isFavorite, toggleFavorite } = useWorkspaceFavorites();
   const [createOpen, setCreateOpen] = useState(false);
-  const [creatingRoomFor, setCreatingRoomFor] = useState<string | null>(null);
-  const [workspaceSpaceId, setWorkspaceSpaceId] = useState<string | null>(null);
-  const [expandedSpaces, setExpandedSpaces] = useState<Record<string, boolean>>(
-    spacesWithRooms.reduce((acc, space) => {
-      acc[space.id] = true;
-      return acc;
-    }, {} as Record<string, boolean>)
-  );
 
   const canCreate = isOwner || isAdmin;
-  const hasContent = spacesWithRooms.length > 0;
-  const activeWorkspace = spacesWithRooms.find((s) => s.id === workspaceSpaceId);
 
-  async function createRoom(spaceId: string) {
-    if (creatingRoomFor) return;
-    const name = window.prompt("Room name");
-    if (!name?.trim()) return;
-    setCreatingRoomFor(spaceId);
-    try {
-      const res = await fetch(`/api/rooms/${spaceId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), room_type: "chat" }),
+  const groups = useMemo(() => {
+    const roleInput = { userId, ownerId, membership };
+    const online = overview?.membersOnline ?? 0;
+    return spacesWithRooms.map((space, index) => {
+      const mapped = mapSpaceToGroup(space, roleInput, {
+        memberCount: memberCount ?? 0,
+        onlineCount:
+          online > 0
+            ? Math.max(1, Math.round(online / Math.max(spacesWithRooms.length, 1)))
+            : 0,
+        featured: index === 0,
+        tags: space.access_type === "paid" ? ["Premium"] : ["Open"],
       });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Could not create room");
-        return;
-      }
-      toast.success("Room created");
-      router.refresh();
-    } catch {
-      toast.error("Could not create room");
-    } finally {
-      setCreatingRoomFor(null);
-    }
-  }
-
-  if (!hasContent) {
-    return (
-      <div className="flex flex-col gap-5 max-w-3xl mx-auto px-4 lg:px-6">
-        <CreateSpaceDialog
-          open={createOpen}
-          onOpenChange={setCreateOpen}
-          communityId={community.id}
-          onCreated={() => router.refresh()}
-        />
-        <div className="flex items-center justify-between">
-          <h2 className="text-[18px] font-bold text-text-primary">Spaces & Rooms</h2>
-        </div>
-        <div className="bg-surface border border-border rounded-2xl p-12 flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-2xl bg-[#fd5000]/10 flex items-center justify-center mb-3">
-            <LayoutList className="w-6 h-6 text-[#fd5000]" />
-          </div>
-          <h3 className="text-[15px] font-bold text-text-primary mb-1">No spaces yet</h3>
-          <p className="text-[12px] text-text-muted max-w-sm">
-            {canCreate
-              ? "Create your first space to organize conversations and build your community."
-              : "This community doesn't have any spaces yet. Check back soon!"}
-          </p>
-          {canCreate && (
-            <button
-              type="button"
-              onClick={() => setCreateOpen(true)}
-              className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-white px-4 py-2 rounded-lg transition-all"
-              style={{ background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
-            >
-              <Plus className="w-4 h-4" />
-              Create Space
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+      return { space, group: mapped };
+    });
+  }, [
+    spacesWithRooms,
+    userId,
+    ownerId,
+    membership,
+    memberCount,
+    overview?.membersOnline,
+  ]);
 
   return (
-    <div className="flex flex-col gap-5 max-w-4xl mx-auto px-4 lg:px-6">
+    <div className="mx-auto w-full max-w-5xl space-y-8 px-4 py-8 sm:px-6 sm:py-10">
       <CreateSpaceDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
         communityId={community.id}
         onCreated={() => router.refresh()}
       />
-      <div className="flex items-center justify-between">
-        <h2 className="text-[18px] font-bold text-text-primary">Spaces & Groups</h2>
-        <span className="text-[12px] text-text-muted">
-          {spacesWithRooms.length} group{spacesWithRooms.length !== 1 ? "s" : ""} · {spacesWithRooms.reduce((sum, s) => sum + s.rooms.length, 0)} channel{spacesWithRooms.reduce((sum, s) => sum + s.rooms.length, 0) !== 1 ? "s" : ""}
-        </span>
-      </div>
 
-      {activeWorkspace && (
-        <div className="min-h-[420px]">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
+            Collaboration spaces
+          </p>
+          <h2 className="mt-1 text-[22px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[26px]">
+            Groups
+          </h2>
+          <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
+            Premium workspaces for channels, knowledge, courses, and live
+            sessions — open a group before you enter a discussion.
+          </p>
+        </div>
+        {canCreate && (
           <button
             type="button"
-            onClick={() => setWorkspaceSpaceId(null)}
-            className="mb-2 text-[12px] font-semibold text-[#fd5000] hover:underline"
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90"
           >
-            ← Back to groups
+            <Plus className="h-4 w-4" />
+            Create group
           </button>
-          <GroupWorkspace
-            space={activeWorkspace}
-            communityId={community.id}
-            communitySlug={community.slug}
-            ownerId={ownerId}
-            userId={userId}
-            membership={membership}
-            memberCount={memberCount}
-            isStaff={canCreate}
-          />
+        )}
+      </header>
+
+      {groups.length === 0 ? (
+        <ChannelEmptyState
+          icon={Layers}
+          title="No groups yet"
+          description={
+            canCreate
+              ? "Create the first group to organize channels and collaboration."
+              : "This community has not published groups yet. Check back soon."
+          }
+          actionLabel={canCreate ? "Create the first group" : undefined}
+          onAction={canCreate ? () => setCreateOpen(true) : undefined}
+        />
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {groups.map(({ space, group }) => {
+            const href = communityGroupHref(community.slug, space.id);
+            const latest =
+              group.channels[0]?.name
+                ? `Latest · ${group.channels[0].name}`
+                : `${group.channels.length} channels ready`;
+            return (
+              <GroupCard
+                key={space.id}
+                group={group}
+                href={href}
+                category={group.tags[0]}
+                latestUpdate={latest}
+                isFavorite={isFavorite("group", space.id)}
+                isOwner={Boolean(isOwner)}
+                onToggleFavorite={() => {
+                  const was = isFavorite("group", space.id);
+                  toggleFavorite("group", space.id);
+                  toast.success(was ? "Removed from favorites" : "Saved to favorites");
+                }}
+                onQuickJoin={
+                  membership
+                    ? undefined
+                    : () => router.push(`/communities/${community.slug}/subscribe`)
+                }
+              />
+            );
+          })}
         </div>
-      )}
-
-      {!activeWorkspace && canCreate && (
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="w-full inline-flex items-center justify-center gap-1.5 text-[12px] font-semibold text-[#fd5000] px-4 py-3 rounded-lg border border-[#fd5000]/30 hover:bg-[#fd5000]/5 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Create New Space
-        </button>
-      )}
-
-      {!activeWorkspace && (
-      <div className="space-y-3">
-        {spacesWithRooms.map((space) => {
-          const isExpanded = expandedSpaces[space.id] ?? true;
-
-          return (
-            <div
-              key={space.id}
-              className="rounded-xl bg-surface border border-border overflow-hidden"
-            >
-              {/* Space header */}
-              <div className="flex items-center gap-1 px-2 py-1">
-              <button
-                type="button"
-                onClick={() => setExpandedSpaces((prev) => ({ ...prev, [space.id]: !prev[space.id] }))}
-                className="flex-1 px-2 py-2 flex items-center gap-3 hover:bg-surface-secondary/30 transition-colors rounded-lg"
-              >
-                <div className="flex-shrink-0">
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4 text-text-muted" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-text-muted" />
-                  )}
-                </div>
-
-                <div className="w-6 h-6 rounded-lg bg-[#fd5000]/10 flex items-center justify-center flex-shrink-0">
-                  <Folder className="w-3.5 h-3.5 text-[#fd5000]" />
-                </div>
-
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-[13px] font-semibold text-text-primary truncate">{space.name}</p>
-                  {space.rooms.length > 0 && (
-                    <p className="text-[11px] text-text-muted">
-                      {space.rooms.length} channel{space.rooms.length !== 1 ? "s" : ""}
-                    </p>
-                  )}
-                </div>
-
-                <span className="text-[11px] text-text-muted font-medium px-2 py-1 rounded-md bg-surface-secondary">
-                  {space.access_type === "paid" ? "Paid" : "Free"}
-                </span>
-              </button>
-              <button
-                type="button"
-                title="Open group workspace"
-                aria-label={`Open ${space.name} workspace`}
-                onClick={() => setWorkspaceSpaceId(space.id)}
-                className="shrink-0 inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-semibold text-[#fd5000] hover:bg-[#fd5000]/10"
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                Workspace
-              </button>
-              </div>
-
-              {/* Rooms list */}
-              {isExpanded && space.rooms.length > 0 && (
-                <div className="border-t border-border bg-surface-secondary/30 divide-y divide-border">
-                  {space.rooms.map((room) => {
-                    const RoomIcon = roomTypeIcon(room.room_type);
-
-                    return (
-                      <button
-                        key={room.id}
-                        type="button"
-                        onClick={() => {
-                          router.push(
-                            communityRoomHref(community.slug, room.space_id, room.id)
-                          );
-                        }}
-                        className="w-full px-4 py-2.5 flex items-center gap-3 hover:bg-surface transition-colors text-left group"
-                      >
-                        <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 text-text-muted group-hover:text-[#fd5000] transition-colors">
-                          {room.is_locked ? (
-                            <Lock className="w-3.5 h-3.5" />
-                          ) : (
-                            <RoomIcon className="w-3.5 h-3.5" />
-                          )}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-medium text-text-primary group-hover:text-[#fd5000] transition-colors truncate">
-                            {room.name}
-                          </p>
-                        </div>
-
-                        {room.is_locked && (
-                          <Lock className="w-3 h-3 text-text-muted flex-shrink-0" />
-                        )}
-
-                        <span className="text-[10px] text-text-muted group-hover:text-[#fd5000] transition-colors font-medium">
-                          →
-                        </span>
-                      </button>
-                    );
-                  })}
-                  {canCreate && (
-                    <button
-                      type="button"
-                      onClick={() => void createRoom(space.id)}
-                      disabled={creatingRoomFor === space.id}
-                      className="w-full px-4 py-2.5 text-left text-[11px] text-[#fd5000] font-medium hover:bg-surface transition-colors"
-                    >
-                      + Create room
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Empty rooms state */}
-              {isExpanded && space.rooms.length === 0 && (
-                <div className="border-t border-border bg-surface-secondary/30 px-4 py-6 text-center">
-                  <p className="text-[12px] text-text-muted">No rooms in this space yet</p>
-                  {canCreate && (
-                    <button
-                      type="button"
-                      onClick={() => void createRoom(space.id)}
-                      disabled={creatingRoomFor === space.id}
-                      className="mt-2 text-[11px] text-[#fd5000] font-medium hover:underline"
-                    >
-                      + Create room
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
       )}
     </div>
   );

@@ -223,13 +223,12 @@ function buildChannels(spacesWithRooms: WorkspaceSpaceRow[]): ChannelItem[] {
 function buildGroups(spacesWithRooms: WorkspaceSpaceRow[]): GroupItem[] {
   return spacesWithRooms
     .filter((space) => !SYSTEM_SPACE_SLUGS.has(space.slug))
-    .map((space) => {
-      const firstRoom = space.rooms[0];
-      const href = firstRoom
-        ? roomHref(space.id, firstRoom.id)
-        : `/chat?space=${encodeURIComponent(space.slug)}`;
-      return { id: space.id, label: space.name, href };
-    });
+    .map((space) => ({
+      id: space.id,
+      label: space.name,
+      // Open Group Workspace first — not a channel chat.
+      href: `?space=${encodeURIComponent(space.id)}`,
+    }));
 }
 
 function resolveChannelsHomeSpaceId(spacesWithRooms: WorkspaceSpaceRow[]): string | null {

@@ -1,6 +1,7 @@
 export { ChannelWorkspace } from "./ChannelWorkspace";
 export { ChannelHeader } from "./ChannelHeader";
 export { ChannelTabs } from "./ChannelTabs";
+export { ChannelCard } from "./ChannelCard";
 export { ChannelEmptyState } from "./ChannelEmptyState";
 export { ChannelRightDrawer } from "./ChannelRightDrawer";
 export { FilesPanel } from "./panels/FilesPanel";

@@ -83,7 +83,7 @@ export function GroupHeader({
             </span>
             <div className="min-w-0 pb-0.5">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-[18px] font-bold tracking-tight text-[var(--color-text-primary)] sm:text-[22px]">
+                <h1 className="truncate text-[18px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[22px]">
                   {group.name}
                 </h1>
                 {group.featured && (
@@ -219,3 +219,5 @@ export function GroupHeader({
     </header>
   );
 }
+
+

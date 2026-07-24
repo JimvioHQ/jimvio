@@ -68,19 +68,23 @@ assert.match(
   /useClientReady/
 );
 
+// Member Overview is member-first — analytics/command widgets stay out of it.
+assert.doesNotMatch(overview, /CreatorWorkspaceWidgets/);
+assert.doesNotMatch(overview, /OnlinePresenceBar/);
+assert.doesNotMatch(overview, /CreatorOSDashboard/);
+assert.doesNotMatch(overview, /CommunityHealthScoreCard/);
+assert.doesNotMatch(overview, /CreatorCommandCenterShell/);
+assert.doesNotMatch(overview, /UnifiedCreatorCommerceShell/);
+assert.match(overview, /Start Here|Featured Groups|Meet the Team/);
+assert.doesNotMatch(overview, /Latest Activity/);
+assert.doesNotMatch(overview, /Health Score|Community Score|CreatorOSDashboard/);
+assert.match(overview, /Owner Console/);
 assert.match(
   fs.readFileSync(
-    path.join(root, "components/community/hub/hub-community-overview.tsx"),
+    path.join(root, "components/community/owner-console/OwnerDashboardShell.tsx"),
     "utf8"
   ),
-  /CreatorWorkspaceWidgets/
-);
-assert.match(
-  fs.readFileSync(
-    path.join(root, "components/community/hub/hub-community-overview.tsx"),
-    "utf8"
-  ),
-  /OnlinePresenceBar/
+  /Owner-only analytics/
 );
 assert.match(
   fs.readFileSync(
@@ -89,6 +93,7 @@ assert.match(
   ),
   /presence:community/
 );
+// Creator OS shells remain available as owner/staff surfaces (not Overview).
 assert.match(osDash, /CreatorCommandCenterShell/);
 assert.match(osDash, /UnifiedCreatorCommerceShell/);
 assert.match(

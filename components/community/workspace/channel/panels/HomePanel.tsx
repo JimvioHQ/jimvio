@@ -3,7 +3,8 @@
 import Image from "next/image";
 import {
   BookOpen,
-  Calendar,
+  FileText,
+  FolderOpen,
   MessageSquare,
   Pin,
   Sparkles,
@@ -15,51 +16,83 @@ import { cn } from "@/lib/utils";
 import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
 import {
   extractPinned,
+  extractFileItems,
   displayName,
 } from "@/lib/community/chat/message-experience";
 import {
   organizeKnowledgeBuckets,
-  popularThreads,
-  recentDiscussions,
-  topContributors,
   useCollaborationStore,
 } from "@/lib/community/knowledge";
 import { KnowledgeCardView } from "@/components/community/knowledge/KnowledgeCardView";
 import { ChannelEmptyState } from "../ChannelEmptyState";
-import type { WorkspaceChannel } from "@/lib/community/workspace";
+import type { ChannelTabId, WorkspaceChannel } from "@/lib/community/workspace";
+import type { ChannelMemberRow } from "./MembersPanel";
 
 function Section({
   title,
-  icon: Icon,
   children,
+  action,
   empty,
+  emptyTitle,
+  emptyDescription,
+  emptyActionLabel,
+  onEmptyAction,
 }: {
   title: string;
-  icon: typeof BookOpen;
   children: React.ReactNode;
+  action?: React.ReactNode;
   empty?: boolean;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  emptyActionLabel?: string;
+  onEmptyAction?: () => void;
 }) {
-  if (empty) return null;
   return (
-    <section className="space-y-2.5">
-      <h3 className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
-        <Icon className="h-3.5 w-3.5" />
-        {title}
-      </h3>
-      {children}
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className="text-[13px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+          {title}
+        </h3>
+        {action}
+      </div>
+      {empty ? (
+        <div className="rounded-2xl bg-[var(--color-surface-secondary)]/60 px-4 py-5">
+          <p className="text-[14px] font-medium text-[var(--color-text-primary)]">
+            {emptyTitle}
+          </p>
+          <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+            {emptyDescription}
+          </p>
+          {emptyActionLabel && onEmptyAction && (
+            <button
+              type="button"
+              onClick={onEmptyAction}
+              className="mt-3 text-[13px] font-semibold text-[var(--color-accent)] hover:underline"
+            >
+              {emptyActionLabel}
+            </button>
+          )}
+        </div>
+      ) : (
+        children
+      )}
     </section>
   );
 }
 
-/** Channel Home — overview of discussions, knowledge, pins, contributors. */
+/**
+ * Channel Overview — landing surface before Discussion (ChatRoom).
+ */
 export function HomePanel({
   roomId,
   channel,
+  members = [],
   onOpenTab,
 }: {
   roomId?: string;
   channel: WorkspaceChannel;
-  onOpenTab?: (tab: string) => void;
+  members?: ChannelMemberRow[];
+  onOpenTab?: (tab: ChannelTabId | string) => void;
 }) {
   const messages = useRoomMessageIndex(
     useShallow((s) => (roomId ? (s.byRoom[roomId]?.messages ?? []) : []))
@@ -78,104 +111,114 @@ export function HomePanel({
     )
   );
 
-  if (!roomId) {
-    return (
-      <ChannelEmptyState
-        icon={Sparkles}
-        title="Channel Home"
-        description="Open Discussion once to warm the collaboration index, then return for an overview."
-        actionLabel={onOpenTab ? "Open Discussion" : undefined}
-        onAction={onOpenTab ? () => onOpenTab("discussion") : undefined}
-      />
-    );
-  }
-
-  const buckets = organizeKnowledgeBuckets(
-    roomId,
-    messages,
-    cards,
-    answers,
-    threads
-  );
-  const recent = recentDiscussions(messages, 5);
-  const featured = [...buckets.guides, ...buckets.faqs, ...cards]
-    .slice(0, 4);
   const pinned = extractPinned(messages).slice(0, 4);
-  const contributors = topContributors(messages, 5);
-  const trending = popularThreads(messages, 4);
+  const buckets = roomId
+    ? organizeKnowledgeBuckets(roomId, messages, cards, answers, threads)
+    : null;
+  const knowledge = [
+    ...(buckets?.guides ?? []),
+    ...(buckets?.faqs ?? []),
+    ...cards,
+  ].slice(0, 4);
+  const fileItems = extractFileItems(messages).slice(0, 4);
+  const previewMembers = members.slice(0, 6);
 
-  const hasAny =
-    recent.length > 0 ||
-    featured.length > 0 ||
-    pinned.length > 0 ||
-    contributors.length > 0;
-
-  if (!hasAny && messages.length === 0) {
-    return (
-      <ChannelEmptyState
-        icon={Sparkles}
-        title={`Welcome to #${channel.name}`}
-        description="Start a discussion to grow knowledge, threads, and reusable resources for this channel."
-        actionLabel={onOpenTab ? "Start discussing" : undefined}
-        onAction={onOpenTab ? () => onOpenTab("discussion") : undefined}
-      />
-    );
-  }
+  const about =
+    channel.description?.trim() ||
+    `A ${channel.type} channel for focused collaboration in this group.`;
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-4">
-      <div className="mx-auto max-w-3xl space-y-8">
-        <header>
-          <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
-            #{channel.name}
-          </h2>
-          <p className="mt-1 text-sm text-[var(--color-text-muted)]">
-            {channel.description ||
-              "Collaboration overview — discussions become lasting knowledge."}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto max-w-2xl space-y-12 px-4 py-8 sm:px-6 sm:py-10">
+        <header className="space-y-4">
+          <div className="flex items-start gap-4">
+            <span
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-accent)]/10 text-[26px] ring-1 ring-[var(--color-accent)]/15"
+              aria-hidden
+            >
+              {channel.icon ?? "💬"}
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-accent)]">
+                Channel overview
+              </p>
+              <h2 className="mt-1 text-[22px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[24px]">
+                {channel.name}
+              </h2>
+              <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
+                {about}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
             {(
               [
-                ["discussion", "Discuss"],
-                ["knowledge", "Knowledge"],
-                ["threads", "Threads"],
-                ["files", "Files"],
+                ["discussion", "Open discussion", MessageSquare],
+                ["pinned", "Pinned", Pin],
+                ["knowledge", "Knowledge", BookOpen],
+                ["files", "Files", FolderOpen],
+                ["members", "Members", Users],
               ] as const
-            ).map(([id, label]) => (
+            ).map(([id, label, Icon]) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => onOpenTab?.(id)}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-[12px] font-semibold",
-                  "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]",
-                  "hover:text-[var(--color-text-primary)]"
+                  "inline-flex min-h-10 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold",
+                  id === "discussion"
+                    ? "bg-[var(--color-accent)] text-white"
+                    : "bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
                 )}
               >
+                <Icon className="h-3.5 w-3.5" aria-hidden />
                 {label}
               </button>
             ))}
           </div>
         </header>
 
+        <Section title="About">
+          <p className="text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
+            {about}
+          </p>
+          <p className="mt-2 text-[12px] capitalize text-[var(--color-text-muted)]">
+            Type · {channel.type.replace(/_/g, " ")}
+            {channel.isLocked ? " · Locked" : ""}
+          </p>
+        </Section>
+
         <Section
-          title="Recent discussions"
-          icon={MessageSquare}
-          empty={recent.length === 0}
+          title="Pinned"
+          empty={pinned.length === 0}
+          emptyTitle="No pins yet"
+          emptyDescription="Pin important messages so members find them instantly."
+          emptyActionLabel="Open discussion"
+          onEmptyAction={() => onOpenTab?.("discussion")}
+          action={
+            pinned.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => onOpenTab?.("pinned")}
+                className="text-[12px] font-medium text-[var(--color-accent)] hover:underline"
+              >
+                View all
+              </button>
+            ) : null
+          }
         >
           <ul className="space-y-2">
-            {recent.map((m) => (
+            {pinned.map((m) => (
               <li
                 key={m.id}
-                className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2"
+                className="rounded-xl bg-[var(--color-surface-secondary)]/70 px-4 py-3"
               >
-                <p className="text-[12px] font-semibold text-[var(--color-accent)]">
-                  {displayName(m)}
-                </p>
-                <p className="mt-0.5 line-clamp-2 text-sm text-[var(--color-text-primary)]">
+                <p className="line-clamp-2 text-[13px] text-[var(--color-text-primary)]">
                   {m.body?.trim() || "(attachment)"}
                 </p>
                 <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                  {displayName(m)} ·{" "}
                   {formatDistanceToNow(new Date(m.created_at), {
                     addSuffix: true,
                   })}
@@ -186,39 +229,42 @@ export function HomePanel({
         </Section>
 
         <Section
-          title="Featured knowledge"
-          icon={BookOpen}
-          empty={featured.length === 0}
+          title="Resources & Knowledge"
+          empty={knowledge.length === 0}
+          emptyTitle="No knowledge yet"
+          emptyDescription="Convert great answers into guides and FAQs for this channel."
+          emptyActionLabel="Browse knowledge"
+          onEmptyAction={() => onOpenTab?.("knowledge")}
         >
           <div className="grid gap-2 sm:grid-cols-2">
-            {featured.map((c) => (
+            {knowledge.map((c) => (
               <KnowledgeCardView key={c.id} card={c} compact />
             ))}
           </div>
         </Section>
 
         <Section
-          title="Pinned resources"
-          icon={Pin}
-          empty={pinned.length === 0}
+          title="Files"
+          empty={fileItems.length === 0}
+          emptyTitle="No files yet"
+          emptyDescription="Upload your first resource — docs, decks, and shared assets appear here."
+          emptyActionLabel="Open files"
+          onEmptyAction={() => onOpenTab?.("files")}
         >
           <ul className="space-y-2">
-            {pinned.map((m) => (
+            {fileItems.map((f) => (
               <li
-                key={m.id}
-                className="flex items-start gap-2 rounded-md border border-[var(--color-border)] px-3 py-2"
+                key={`${f.message.id}-${f.attachment.url}`}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-[var(--color-surface-secondary)]/70"
               >
-                <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--color-accent)]" />
+                <FileText className="h-4 w-4 text-[var(--color-accent)]" />
                 <div className="min-w-0">
-                  <p className="line-clamp-2 text-sm text-[var(--color-text-primary)]">
-                    {m.body?.trim() || "(attachment)"}
+                  <p className="truncate text-[13px] font-medium text-[var(--color-text-primary)]">
+                    {f.attachment.name || "Attachment"}
                   </p>
-                  <a
-                    href={`#msg-${m.id}`}
-                    className="mt-1 inline-block text-[12px] font-semibold text-[var(--color-accent)]"
-                  >
-                    Jump
-                  </a>
+                  <p className="text-[11px] text-[var(--color-text-muted)]">
+                    {displayName(f.message)}
+                  </p>
                 </div>
               </li>
             ))}
@@ -226,71 +272,79 @@ export function HomePanel({
         </Section>
 
         <Section
-          title="Popular threads"
-          icon={MessageSquare}
-          empty={trending.length === 0}
-        >
-          <ul className="space-y-2">
-            {trending.map((m) => (
-              <li
-                key={m.id}
-                className="rounded-md border border-[var(--color-border)] px-3 py-2 text-sm"
+          title="Members"
+          empty={previewMembers.length === 0}
+          emptyTitle="Members will appear here"
+          emptyDescription="People active in this community show up once the roster loads."
+          emptyActionLabel="View members"
+          onEmptyAction={() => onOpenTab?.("members")}
+          action={
+            previewMembers.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => onOpenTab?.("members")}
+                className="text-[12px] font-medium text-[var(--color-accent)] hover:underline"
               >
-                <span className="font-semibold text-[var(--color-accent)]">
-                  {m.reply_count ?? 0} replies
-                </span>
-                <span className="text-[var(--color-text-muted)]"> · </span>
-                <span className="text-[var(--color-text-primary)]">
-                  {(m.body || "").slice(0, 80)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Section>
-
-        <Section
-          title="Top contributors"
-          icon={Users}
-          empty={contributors.length === 0}
+                Directory
+              </button>
+            ) : null
+          }
         >
           <ul className="flex flex-wrap gap-3">
-            {contributors.map((c) => (
-              <li key={c.userId} className="flex items-center gap-2">
-                <div className="relative h-8 w-8 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
-                  {c.avatar ? (
+            {previewMembers.map((m) => (
+              <li key={m.id} className="flex items-center gap-2">
+                <div className="relative h-9 w-9 overflow-hidden rounded-full bg-[var(--color-surface-secondary)]">
+                  {m.avatarUrl ? (
                     <Image
-                      src={c.avatar}
+                      src={m.avatarUrl}
                       alt=""
-                      width={32}
-                      height={32}
+                      width={36}
+                      height={36}
                       className="object-cover"
                       unoptimized
                     />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center text-[11px] font-bold text-[var(--color-accent)]">
-                      {c.name[0]}
+                      {(m.name || "?").charAt(0)}
                     </span>
                   )}
                 </div>
-                <div>
-                  <p className="text-[12px] font-semibold text-[var(--color-text-primary)]">
-                    {c.name}
-                  </p>
-                  <p className="text-[10px] text-[var(--color-text-muted)]">
-                    {c.count} messages
-                  </p>
-                </div>
+                <span className="text-[13px] font-medium text-[var(--color-text-primary)]">
+                  {m.name}
+                </span>
               </li>
             ))}
           </ul>
         </Section>
 
-        <Section title="Upcoming events" icon={Calendar}>
-          <p className="rounded-md border border-dashed border-[var(--color-border)] px-3 py-4 text-sm text-[var(--color-text-muted)]">
-            Channel events will appear here. Create tasks or events linked to
-            this space to populate the calendar.
+        <section className="rounded-3xl bg-[var(--color-surface-secondary)]/50 px-6 py-8 text-center">
+          <Sparkles className="mx-auto h-5 w-5 text-[var(--color-accent)]" />
+          <h3 className="mt-3 text-[16px] font-semibold text-[var(--color-text-primary)]">
+            Ready to discuss?
+          </h3>
+          <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+            Discussion opens the live conversation — same ChatRoom and message
+            engine you already use.
           </p>
-        </Section>
+          <button
+            type="button"
+            onClick={() => onOpenTab?.("discussion")}
+            className="mt-5 inline-flex min-h-10 items-center justify-center rounded-full bg-[var(--color-accent)] px-5 text-[13px] font-semibold text-white transition hover:opacity-90"
+          >
+            Enter discussion
+          </button>
+        </section>
+
+        {!roomId && (
+          <ChannelEmptyState
+            icon={Sparkles}
+            title="Warming collaboration index"
+            description="Open Discussion once to sync messages, then return for pins, files, and knowledge."
+            actionLabel="Open Discussion"
+            onAction={() => onOpenTab?.("discussion")}
+            className="py-8"
+          />
+        )}
       </div>
     </div>
   );

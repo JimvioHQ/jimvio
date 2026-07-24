@@ -52,9 +52,7 @@ const ChannelAiPanel = lazy(() =>
 );
 
 /**
- * Channel Creator Workspace:
- * Discussion · Threads · Knowledge · Files · Media · Pinned · Events · Members · AI · Overview
- *
+ * Channel Creator Workspace — Overview first, Discussion loads ChatRoom.
  * Discussion is injected so ChatRoom stays the source of truth (never forked).
  */
 export function ChannelWorkspace({
@@ -66,7 +64,7 @@ export function ChannelWorkspace({
   members: membersProp,
   drawerOpen = false,
   drawer,
-  initialTab = "discussion",
+  initialTab = "home",
   onSearch,
   roomId,
   communityId,
@@ -161,6 +159,7 @@ export function ChannelWorkspace({
                 <HomePanel
                   roomId={resolvedRoomId}
                   channel={channel}
+                  members={members}
                   onOpenTab={(id) => setTab(id as ChannelTabId)}
                 />
               )}

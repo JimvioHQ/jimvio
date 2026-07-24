@@ -108,8 +108,9 @@ export function OwnerDashboardShell({
           Operating overview
         </h1>
         <p className="mt-1 max-w-2xl text-[13px] text-[var(--color-text-muted)]">
-          Health, growth, moderation, live, commerce, and AI — one control center
-          for owners, admins, and moderators.
+          Owner-only analytics, commerce, AI, and moderation live here — not on
+          the member Community Overview. Use Analytics, Commerce, AI, Moderation,
+          and Settings from the sidebar.
         </p>
       </header>
 

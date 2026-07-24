@@ -18,8 +18,12 @@ export function WorkspaceSkeleton({
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
-          className="animate-pulse rounded-xl bg-[var(--color-surface-secondary)]"
-          style={{ height: i === 0 ? 72 : 48, animationDelay: `${i * 60}ms` }}
+          className="animate-pulse rounded-2xl bg-[var(--color-surface-secondary)]"
+          style={{
+            height: i === 0 ? 72 : 48,
+            animationDelay: `${i * 60}ms`,
+            opacity: 1 - i * 0.06,
+          }}
         />
       ))}
     </div>
@@ -28,11 +32,15 @@ export function WorkspaceSkeleton({
 
 export function WorkspaceCardSkeleton({ count = 6 }: { count?: number }) {
   return (
-    <ul className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy>
+    <ul
+      className="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3"
+      aria-busy="true"
+      aria-label="Loading cards"
+    >
       {Array.from({ length: count }).map((_, i) => (
         <li
           key={i}
-          className="h-28 animate-pulse rounded-xl bg-[var(--color-surface-secondary)]"
+          className="h-36 animate-pulse rounded-2xl bg-[var(--color-surface-secondary)] ring-1 ring-[var(--color-border)]/40"
           style={{ animationDelay: `${i * 50}ms` }}
         />
       ))}

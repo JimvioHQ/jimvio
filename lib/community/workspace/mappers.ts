@@ -25,6 +25,8 @@ function channelIconForType(type: ChannelType, name: string): string {
   if (type === "announcement" || /announcement/i.test(name)) return "📢";
   if (type === "signals" || /signal/i.test(name)) return "📈";
   if (type === "resources" || /resource/i.test(name)) return "📚";
+  if (type === "knowledge" || /knowledge|wiki|guide/i.test(name)) return "🧠";
+  if (type === "media" || /media|gallery|photo/i.test(name)) return "🖼️";
   if (type === "voice" || /voice/i.test(name)) return "🎤";
   if (type === "live" || /live/i.test(name)) return "🔴";
   if (type === "files" || /file/i.test(name)) return "📁";
@@ -36,6 +38,8 @@ function channelIconForType(type: ChannelType, name: string): string {
 
 function resolveChannelType(room: WorkspaceRoomRow): ChannelType {
   if (/signal/i.test(room.name)) return "signals";
+  if (/knowledge|wiki|guide/i.test(room.name)) return "knowledge";
+  if (/media|gallery|photo/i.test(room.name)) return "media";
   if (/file/i.test(room.name) && room.room_type !== "resources") return "files";
   if (/qa|q&a|question/i.test(room.name)) return "qa";
   return ROOM_TYPE_TO_CHANNEL[room.room_type] ?? "discussion";
