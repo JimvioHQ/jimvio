@@ -389,7 +389,7 @@ export function CreateGroupWizard({
                 }
               />
               <RoleChecklist
-                label="Who can upload"
+                label="Who can upload files"
                 value={draft.permissionConfig.whoCanUpload}
                 onChange={(whoCanUpload) =>
                   setDraft((d) => ({
@@ -420,6 +420,32 @@ export function CreateGroupWizard({
                     permissionConfig: {
                       ...d.permissionConfig,
                       whoCanCreateCourses,
+                    },
+                  }))
+                }
+              />
+              <RoleChecklist
+                label="Who can create voice rooms"
+                value={draft.permissionConfig.whoCanCreateVoiceRooms}
+                onChange={(whoCanCreateVoiceRooms) =>
+                  setDraft((d) => ({
+                    ...d,
+                    permissionConfig: {
+                      ...d.permissionConfig,
+                      whoCanCreateVoiceRooms,
+                    },
+                  }))
+                }
+              />
+              <RoleChecklist
+                label="Who can create live sessions"
+                value={draft.permissionConfig.whoCanCreateLiveSessions}
+                onChange={(whoCanCreateLiveSessions) =>
+                  setDraft((d) => ({
+                    ...d,
+                    permissionConfig: {
+                      ...d.permissionConfig,
+                      whoCanCreateLiveSessions,
                     },
                   }))
                 }

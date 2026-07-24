@@ -62,7 +62,12 @@ export async function GET(
       fullName: p?.full_name ?? null,
       username: p?.username ?? null,
       avatarUrl: p?.avatar_url ?? null,
-      staffRole: row.staff_role === "admin" ? "admin" : "moderator",
+      staffRole:
+        row.staff_role === "admin"
+          ? "admin"
+          : row.staff_role === "publisher"
+            ? "publisher"
+            : "moderator",
       createdAt: row.created_at,
     };
   });
@@ -108,11 +113,18 @@ export async function POST(
     );
   }
 
+  const staffRole =
+    body.staffRole === "admin"
+      ? "admin"
+      : body.staffRole === "publisher"
+        ? "publisher"
+        : "moderator";
+
   const { error } = await auth.admin.from("room_staff").upsert(
     {
       room_id: id,
       user_id: targetUserId,
-      staff_role: body.staffRole === "admin" ? "admin" : "moderator",
+      staff_role: staffRole,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "room_id,user_id" }

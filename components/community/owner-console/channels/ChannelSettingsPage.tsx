@@ -15,6 +15,9 @@ import {
   CHANNEL_ICON_PRESETS,
   CHANNEL_KIND_LABELS,
   CHANNEL_PERMISSION_ACTORS,
+  CHANNEL_POSTING_MODES,
+  CHANNEL_POSTING_MODE_DESCRIPTIONS,
+  CHANNEL_POSTING_MODE_LABELS,
   CHANNEL_SETTINGS_TABS,
   CHANNEL_VISIBILITY_DESCRIPTIONS,
   CHANNEL_VISIBILITY_LABELS,
@@ -22,7 +25,9 @@ import {
   DEFAULT_CHANNEL_COLOR,
   DEFAULT_CHANNEL_ICON,
   OWNER_CHANNEL_KINDS,
+  applyPostingMode,
   type ChannelPermissionConfig,
+  type ChannelPostingMode,
   type ChannelSettingsTab,
   type ChannelVisibilityMode,
   type OwnerChannelAnalytics,
@@ -364,7 +369,10 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
                     {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ userId: staffUserId.trim() }),
+                      body: JSON.stringify({
+                        userId: staffUserId.trim(),
+                        staffRole: "moderator",
+                      }),
                     }
                   );
                   const data = await res.json();
@@ -381,13 +389,45 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
                 }}
               >
                 <UserPlus className="mr-1 h-4 w-4" />
-                Assign
+                Moderator
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  if (!staffUserId.trim()) return;
+                  const res = await fetch(
+                    `/api/c/owner/channels/${channelId}/staff`,
+                    {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        userId: staffUserId.trim(),
+                        staffRole: "publisher",
+                      }),
+                    }
+                  );
+                  const data = await res.json();
+                  if (!res.ok) {
+                    toast.error(data.error || "Could not assign");
+                    return;
+                  }
+                  toast.success("Publisher assigned");
+                  setStaffUserId("");
+                  const refreshed = await fetch(
+                    `/api/c/owner/channels/${channelId}/staff`
+                  ).then((r) => r.json());
+                  setStaff(refreshed.staff ?? []);
+                }}
+              >
+                <UserPlus className="mr-1 h-4 w-4" />
+                Publisher
               </Button>
             </div>
             <ul className="divide-y divide-[var(--color-border)] rounded-xl border border-[var(--color-border)]">
               {staff.length === 0 && (
                 <li className="px-4 py-8 text-center text-sm text-[var(--color-text-muted)]">
-                  No channel moderators yet
+                  No channel moderators or publishers yet
                 </li>
               )}
               {staff.map((s) => (
@@ -643,20 +683,72 @@ function PermissionsEditor({
   onSave: (next: ChannelPermissionConfig) => void;
 }) {
   const [draft, setDraft] = useState(config);
-  useEffect(() => setDraft(config), [config]);
+  const [publisherDraft, setPublisherDraft] = useState(
+    config.publisherIds.join(", ")
+  );
+  useEffect(() => {
+    setDraft(config);
+    setPublisherDraft(config.publisherIds.join(", "));
+  }, [config]);
+
+  function setMode(mode: ChannelPostingMode) {
+    setDraft((d) => applyPostingMode(mode, d));
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <Field label="Posting mode">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {CHANNEL_POSTING_MODES.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setMode(mode)}
+              className={cn(
+                "rounded-xl border px-3 py-2.5 text-left transition",
+                draft.postingMode === mode
+                  ? "border-[var(--color-accent)] bg-[var(--color-accent)]/5"
+                  : "border-[var(--color-border)]"
+              )}
+            >
+              <p className="text-[12px] font-bold text-[var(--color-text-primary)]">
+                {CHANNEL_POSTING_MODE_LABELS[mode]}
+              </p>
+              <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
+                {CHANNEL_POSTING_MODE_DESCRIPTIONS[mode]}
+              </p>
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      {draft.postingMode === "custom" && (
+        <Field label="Publisher management (user IDs)">
+          <Input
+            value={publisherDraft}
+            onChange={(e) => setPublisherDraft(e.target.value)}
+            placeholder="uuid-1, uuid-2"
+            className="max-w-xl"
+          />
+          <p className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+            Comma-separated member IDs who may publish. You can also assign the
+            Publisher staff role under Moderators.
+          </p>
+        </Field>
+      )}
+
       {(
         [
-          ["whoCanView", "Who can view"],
-          ["whoCanPost", "Who can post"],
-          ["whoCanReply", "Who can reply"],
-          ["whoCanUpload", "Who can upload"],
+          ["whoCanReply", "Who can comment"],
+          ["whoCanUploadMedia", "Who can upload media"],
+          ["whoCanUploadFiles", "Who can upload files"],
+          ["whoCanCreatePolls", "Who can create polls"],
           ["whoCanPin", "Who can pin"],
+          ["whoCanMentionEveryone", "Who can mention everyone"],
+          ["whoCanCreateThreads", "Who can create threads"],
           ["whoCanModerate", "Who can moderate"],
           ["whoCanGoLive", "Who can go live"],
-          ["whoCanCreateThreads", "Who can create threads"],
+          ["whoCanView", "Who can view"],
         ] as const
       ).map(([key, label]) => (
         <Field key={key} label={label}>
@@ -680,13 +772,57 @@ function PermissionsEditor({
                     : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
                 )}
               >
-                {role}
+                {role === "guest" ? "visitor" : role}
               </button>
             ))}
           </div>
         </Field>
       ))}
-      <Button type="button" onClick={() => onSave(draft)}>
+
+      {draft.postingMode === "custom" && (
+        <Field label="Who can post (roles)">
+          <div className="flex flex-wrap gap-1.5">
+            {CHANNEL_PERMISSION_ACTORS.map((role) => (
+              <button
+                key={role}
+                type="button"
+                onClick={() =>
+                  setDraft((d) => {
+                    const set = new Set(d.whoCanPost);
+                    if (set.has(role)) set.delete(role);
+                    else set.add(role);
+                    return { ...d, whoCanPost: [...set], postingMode: "custom" };
+                  })
+                }
+                className={cn(
+                  "rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize",
+                  draft.whoCanPost.includes(role)
+                    ? "bg-[var(--color-accent)] text-white"
+                    : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
+                )}
+              >
+                {role === "guest" ? "visitor" : role}
+              </button>
+            ))}
+          </div>
+        </Field>
+      )}
+
+      <Button
+        type="button"
+        onClick={() =>
+          onSave({
+            ...draft,
+            publisherIds: publisherDraft
+              .split(/[,\s]+/)
+              .map((s) => s.trim())
+              .filter(Boolean),
+            whoCanUpload: Array.from(
+              new Set([...draft.whoCanUploadMedia, ...draft.whoCanUploadFiles])
+            ),
+          })
+        }
+      >
         Save permissions
       </Button>
     </div>

@@ -42,6 +42,10 @@ export const GROUP_COLOR_PRESETS = [
 export const DEFAULT_GROUP_ICON = GROUP_ICON_PRESETS[0];
 export const DEFAULT_GROUP_COLOR = GROUP_COLOR_PRESETS[0];
 
+/**
+ * Groups are Telegram-style discussion spaces: members participate freely.
+ * Structural actions (invite, sub-channels, live) stay staff-gated by default.
+ */
 export const DEFAULT_PERMISSION_CONFIG: GroupPermissionConfig = {
   whoCanJoin: "members",
   whoCanInvite: ["owner", "admin", "moderator"],
@@ -49,6 +53,8 @@ export const DEFAULT_PERMISSION_CONFIG: GroupPermissionConfig = {
   whoCanUpload: ["owner", "admin", "moderator", "creator", "mentor", "member"],
   whoCanCreateEvents: ["owner", "admin", "moderator", "creator"],
   whoCanCreateCourses: ["owner", "admin", "creator", "mentor"],
+  whoCanCreateVoiceRooms: ["owner", "admin", "moderator", "creator"],
+  whoCanCreateLiveSessions: ["owner", "admin", "creator"],
   whoCanGoLive: ["owner", "admin", "creator"],
 };
 
@@ -125,6 +131,8 @@ export function normalizePermissionConfig(
     "whoCanUpload",
     "whoCanCreateEvents",
     "whoCanCreateCourses",
+    "whoCanCreateVoiceRooms",
+    "whoCanCreateLiveSessions",
     "whoCanGoLive",
   ];
   for (const key of keys) {
@@ -136,6 +144,21 @@ export function normalizePermissionConfig(
           (GROUP_PERMISSION_ACTORS as readonly string[]).includes(r)
       );
     }
+  }
+  // Back-compat: older configs only had whoCanGoLive for live/voice creation.
+  if (!Array.isArray(o.whoCanCreateLiveSessions) && Array.isArray(o.whoCanGoLive)) {
+    base.whoCanCreateLiveSessions = [...base.whoCanGoLive];
+  }
+  if (
+    !Array.isArray(o.whoCanCreateVoiceRooms) &&
+    Array.isArray(o.whoCanGoLive)
+  ) {
+    base.whoCanCreateVoiceRooms = [
+      "owner",
+      "admin",
+      "moderator",
+      "creator",
+    ];
   }
   return base;
 }

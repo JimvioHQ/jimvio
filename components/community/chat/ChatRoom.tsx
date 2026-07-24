@@ -48,6 +48,8 @@ interface ChatRoomProps {
   communityId: string;
   slug: string;
   hideHeader?: boolean;
+  /** When false, hide composer and show announcement notice. Default true. */
+  canPost?: boolean;
 }
 
 export function ChatRoom({
@@ -56,6 +58,7 @@ export function ChatRoom({
   communityId,
   slug,
   hideHeader,
+  canPost = true,
 }: ChatRoomProps) {
   const hook = useChatRoom({ roomId, roomName, communityId, slug });
   const syncRoomIndex = useRoomMessageIndex((s) => s.sync);
@@ -611,40 +614,54 @@ export function ChatRoom({
           )}
         </div>
 
-        <ChatInputZone
-          text={hook.text}
-          setText={(v) => {
-            hook.setText(v);
-            hook.setTyping(v.trim().length > 0);
-          }}
-          pendingMain={hook.pendingMain}
-          setPendingMain={hook.setPendingMain}
-          replyingTo={hook.replyingTo}
-          onCancelReply={() => hook.setReplyingTo(null)}
-          voiceBlob={hook.voiceBlob}
-          voiceRecording={hook.voiceRecording}
-          voiceSeconds={hook.voiceSeconds}
-          sending={hook.sending}
-          uploading={hook.uploading}
-          onSend={() => void hook.sendMessage()}
-          onStartVoice={hook.startVoiceRecording}
-          onStopVoice={hook.stopVoiceRecording}
-          onSendVoice={hook.sendVoiceBlob}
-          onDiscardVoice={() => {
-            hook.setVoiceBlob(null);
-            hook.setVoiceMime("");
-          }}
-          onOpenEmojiPicker={() => hook.setEmojiOpen(true)}
-          onAttachImage={(files) => hook.handleFiles(files, "main")}
-          onAttachFile={(files) => hook.handleFiles(files, "main")}
-          onOpenAi={() => {
-            const last = hook.filteredMessages[hook.filteredMessages.length - 1];
-            if (last) setAiMsg(last);
-          }}
-          onAttachCommerce={
-            hook.isStaff ? () => setCommerceOpen(true) : undefined
-          }
-        />
+        {canPost ? (
+          <ChatInputZone
+            text={hook.text}
+            setText={(v) => {
+              hook.setText(v);
+              hook.setTyping(v.trim().length > 0);
+            }}
+            pendingMain={hook.pendingMain}
+            setPendingMain={hook.setPendingMain}
+            replyingTo={hook.replyingTo}
+            onCancelReply={() => hook.setReplyingTo(null)}
+            voiceBlob={hook.voiceBlob}
+            voiceRecording={hook.voiceRecording}
+            voiceSeconds={hook.voiceSeconds}
+            sending={hook.sending}
+            uploading={hook.uploading}
+            onSend={() => void hook.sendMessage()}
+            onStartVoice={hook.startVoiceRecording}
+            onStopVoice={hook.stopVoiceRecording}
+            onSendVoice={hook.sendVoiceBlob}
+            onDiscardVoice={() => {
+              hook.setVoiceBlob(null);
+              hook.setVoiceMime("");
+            }}
+            onOpenEmojiPicker={() => hook.setEmojiOpen(true)}
+            onAttachImage={(files) => hook.handleFiles(files, "main")}
+            onAttachFile={(files) => hook.handleFiles(files, "main")}
+            onOpenAi={() => {
+              const last = hook.filteredMessages[hook.filteredMessages.length - 1];
+              if (last) setAiMsg(last);
+            }}
+            onAttachCommerce={
+              hook.isStaff ? () => setCommerceOpen(true) : undefined
+            }
+          />
+        ) : (
+          <div
+            className="border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-4 text-center"
+            role="status"
+          >
+            <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+              This is an announcement channel.
+            </p>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+              Only authorized publishers can post.
+            </p>
+          </div>
+        )}
       </div>
 
       {hook.threadOpen && hook.threadRoot && (

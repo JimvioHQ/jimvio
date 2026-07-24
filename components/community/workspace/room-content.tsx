@@ -75,9 +75,9 @@ export function RoomContent({
   const discussion = (() => {
     switch (room.room_type) {
       case "posts":
-        return <PostsRoom {...common} />;
+        return <PostsRoom {...common} canPost={channel.canPublish} />;
       case "chat":
-        return <ChatRoom {...common} />;
+        return <ChatRoom {...common} canPost={channel.canPublish} />;
       case "course":
         return <CourseRoom {...common} />;
       case "tasks":

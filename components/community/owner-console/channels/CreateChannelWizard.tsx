@@ -28,6 +28,7 @@ import {
   DEFAULT_CHANNEL_COLOR,
   DEFAULT_CHANNEL_ICON,
   DEFAULT_PERMISSION_CONFIG,
+  permissionConfigForTemplate,
   OWNER_CHANNEL_KINDS,
   slugifyChannelName,
   type ChannelPermissionConfig,
@@ -76,7 +77,11 @@ function emptyDraft(defaultGroupId: string): Draft {
     groupId: defaultGroupId,
     kind: "discussion",
     visibility: "members",
-    permissionConfig: { ...DEFAULT_PERMISSION_CONFIG },
+    permissionConfig: {
+      ...DEFAULT_PERMISSION_CONFIG,
+      whoCanPost: [...DEFAULT_PERMISSION_CONFIG.whoCanPost],
+      publisherIds: [],
+    },
     slowModeSeconds: 0,
     readOnly: false,
     welcomeMessage: DEFAULT_BEHAVIOR_CONFIG.welcomeMessage,
@@ -220,6 +225,7 @@ export function CreateChannelWizard({
                           icon: t.icon,
                           emoji: t.icon,
                           name: d.name || t.label,
+                          permissionConfig: permissionConfigForTemplate(t.id),
                         }))
                       }
                       className={cn(
@@ -372,16 +378,22 @@ export function CreateChannelWizard({
 
           {step === 4 && (
             <div className="space-y-4">
+              <p className="text-[12px] text-[var(--color-text-muted)]">
+                Default posting mode:{" "}
+                <span className="font-semibold capitalize text-[var(--color-text-primary)]">
+                  {draft.permissionConfig.postingMode.replace(/_/g, " ")}
+                </span>
+                . Fine-tune in Channel settings after create.
+              </p>
               {(
                 [
-                  ["whoCanView", "Who can view"],
-                  ["whoCanPost", "Who can post"],
-                  ["whoCanReply", "Who can reply"],
-                  ["whoCanUpload", "Who can upload"],
+                  ["whoCanReply", "Who can comment"],
+                  ["whoCanUploadMedia", "Who can upload media"],
+                  ["whoCanUploadFiles", "Who can upload files"],
+                  ["whoCanCreatePolls", "Who can create polls"],
                   ["whoCanPin", "Who can pin"],
-                  ["whoCanModerate", "Who can moderate"],
-                  ["whoCanGoLive", "Who can go live"],
                   ["whoCanCreateThreads", "Who can create threads"],
+                  ["whoCanMentionEveryone", "Who can mention everyone"],
                 ] as const
               ).map(([key, label]) => (
                 <div key={key}>
@@ -413,7 +425,7 @@ export function CreateChannelWizard({
                               : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
                           )}
                         >
-                          {role}
+                          {role === "guest" ? "visitor" : role}
                         </button>
                       );
                     })}

@@ -63,40 +63,58 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
   const isOwner = community.owner_id === user.id;
   const isAdmin = isOwner || membership?.role === "admin" || membership?.role === "moderator";
 
-  const [profileRes, pointsRes, spacesRes, roomsRes, overview, ownerRes] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("full_name, avatar_url, username")
-      .eq("id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("member_points")
-      .select("total_points, level, streak_days")
-      .eq("community_id", community.id)
-      .eq("user_id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("spaces")
-      .select("id, name, slug, icon, access_type, sort_order")
-      .eq("community_id", community.id)
-      .eq("is_active", true)
-      .order("sort_order"),
-    supabase
-      .from("rooms")
-      .select("id, name, slug, room_type, space_id, is_locked, access_type, sort_order")
-      .eq("community_id", community.id)
-      .eq("is_active", true)
-      .order("sort_order"),
-    getCommunityOverviewStats(community.id, user.id).catch((err) => {
-      console.error("[loadCommunityWorkspace] overview stats failed:", err);
-      return null;
-    }),
-    supabase
-      .from("profiles")
-      .select("full_name, username")
-      .eq("id", community.owner_id)
-      .maybeSingle(),
-  ]);
+  const [profileRes, pointsRes, spacesRes, roomsRes, overview, ownerRes, staffRes] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, avatar_url, username")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("member_points")
+        .select("total_points, level, streak_days")
+        .eq("community_id", community.id)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("spaces")
+        .select("id, name, slug, icon, access_type, sort_order")
+        .eq("community_id", community.id)
+        .eq("is_active", true)
+        .order("sort_order"),
+      supabase
+        .from("rooms")
+        .select(
+          "id, name, slug, room_type, space_id, is_locked, access_type, sort_order, permission_config, behavior_config"
+        )
+        .eq("community_id", community.id)
+        .eq("is_active", true)
+        .order("sort_order"),
+      getCommunityOverviewStats(community.id, user.id).catch((err) => {
+        console.error("[loadCommunityWorkspace] overview stats failed:", err);
+        return null;
+      }),
+      supabase
+        .from("profiles")
+        .select("full_name, username")
+        .eq("id", community.owner_id)
+        .maybeSingle(),
+      supabase
+        .from("room_staff")
+        .select("room_id, staff_role")
+        .eq("user_id", user.id),
+    ]);
+
+  const staffByRoom = new Map<string, "moderator" | "admin" | "publisher">();
+  for (const row of staffRes.data ?? []) {
+    const role =
+      row.staff_role === "admin"
+        ? "admin"
+        : row.staff_role === "publisher"
+          ? "publisher"
+          : "moderator";
+    staffByRoom.set(row.room_id, role);
+  }
 
   const roomsBySpace = new Map<string, NonNullable<typeof roomsRes.data>>();
   for (const r of roomsRes.data ?? []) {
@@ -121,6 +139,9 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
       is_locked: r.is_locked ?? false,
       access_type: r.access_type ?? "inherit",
       sort_order: r.sort_order,
+      permission_config: r.permission_config ?? null,
+      behavior_config: r.behavior_config ?? null,
+      channel_staff_role: staffByRoom.get(r.id) ?? null,
     })),
   }));
 

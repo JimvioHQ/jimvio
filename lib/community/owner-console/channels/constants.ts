@@ -5,12 +5,18 @@
 import type {
   ChannelAutomationConfig,
   ChannelBehaviorConfig,
+  ChannelPermissionActor,
   ChannelPermissionConfig,
+  ChannelPostingMode,
   ChannelTemplateId,
   ChannelVisibilityMode,
   OwnerChannelKind,
 } from "./types";
-import { CHANNEL_PERMISSION_ACTORS, OWNER_CHANNEL_KINDS } from "./types";
+import {
+  CHANNEL_PERMISSION_ACTORS,
+  CHANNEL_POSTING_MODES,
+  OWNER_CHANNEL_KINDS,
+} from "./types";
 
 export const CHANNEL_ICON_PRESETS = [
   "💬",
@@ -103,16 +109,176 @@ export const CHANNEL_VISIBILITY_DESCRIPTIONS: Record<
   hidden: "Hidden from directories; direct link or invite only.",
 };
 
+/** Staff who publish by default (Telegram/WhatsApp announcement style). */
+export const POSTING_MODE_ACTORS: Record<
+  Exclude<ChannelPostingMode, "custom">,
+  ChannelPermissionActor[]
+> = {
+  everyone: [
+    "owner",
+    "admin",
+    "moderator",
+    "creator",
+    "mentor",
+    "vip",
+    "verified",
+    "member",
+  ],
+  admins_moderators: ["owner", "admin", "moderator"],
+  admins_only: ["owner", "admin"],
+};
+
+/**
+ * Channels are broadcast-first: only Owner / Admin / Moderators post by default.
+ * Members still read, react, comment (when enabled), and download.
+ */
 export const DEFAULT_PERMISSION_CONFIG: ChannelPermissionConfig = {
-  whoCanView: ["owner", "admin", "moderator", "creator", "mentor", "vip", "verified", "member", "guest"],
-  whoCanPost: ["owner", "admin", "moderator", "creator", "mentor", "vip", "verified", "member"],
-  whoCanReply: ["owner", "admin", "moderator", "creator", "mentor", "vip", "verified", "member"],
-  whoCanUpload: ["owner", "admin", "moderator", "creator", "mentor", "member"],
+  postingMode: "admins_moderators",
+  publisherIds: [],
+  whoCanView: [
+    "owner",
+    "admin",
+    "moderator",
+    "creator",
+    "mentor",
+    "vip",
+    "verified",
+    "member",
+    "guest",
+  ],
+  whoCanPost: [...POSTING_MODE_ACTORS.admins_moderators],
+  whoCanReply: [
+    "owner",
+    "admin",
+    "moderator",
+    "creator",
+    "mentor",
+    "vip",
+    "verified",
+    "member",
+  ],
+  whoCanUpload: ["owner", "admin", "moderator"],
+  whoCanUploadMedia: ["owner", "admin", "moderator"],
+  whoCanUploadFiles: ["owner", "admin", "moderator"],
+  whoCanCreatePolls: ["owner", "admin", "moderator"],
   whoCanPin: ["owner", "admin", "moderator"],
   whoCanModerate: ["owner", "admin", "moderator"],
   whoCanGoLive: ["owner", "admin", "creator"],
-  whoCanCreateThreads: ["owner", "admin", "moderator", "creator", "member"],
+  whoCanCreateThreads: ["owner", "admin", "moderator", "member"],
+  whoCanMentionEveryone: ["owner", "admin", "moderator"],
 };
+
+/** Open discussion presets for group-chat style channels. */
+export const DISCUSSION_PERMISSION_CONFIG: ChannelPermissionConfig = {
+  ...DEFAULT_PERMISSION_CONFIG,
+  postingMode: "everyone",
+  whoCanPost: [...POSTING_MODE_ACTORS.everyone],
+  whoCanUpload: [
+    "owner",
+    "admin",
+    "moderator",
+    "creator",
+    "mentor",
+    "member",
+  ],
+  whoCanUploadMedia: [
+    "owner",
+    "admin",
+    "moderator",
+    "creator",
+    "mentor",
+    "member",
+  ],
+  whoCanUploadFiles: [
+    "owner",
+    "admin",
+    "moderator",
+    "creator",
+    "mentor",
+    "member",
+  ],
+  whoCanCreatePolls: [
+    "owner",
+    "admin",
+    "moderator",
+    "creator",
+    "member",
+  ],
+  whoCanCreateThreads: [
+    "owner",
+    "admin",
+    "moderator",
+    "creator",
+    "member",
+  ],
+};
+
+export const CHANNEL_POSTING_MODE_LABELS: Record<ChannelPostingMode, string> = {
+  everyone: "Everyone",
+  admins_moderators: "Admins & Moderators",
+  admins_only: "Admins Only",
+  custom: "Custom publishers",
+};
+
+export const CHANNEL_POSTING_MODE_DESCRIPTIONS: Record<
+  ChannelPostingMode,
+  string
+> = {
+  everyone: "All community members can publish messages.",
+  admins_moderators:
+    "Only the owner, community admins, and assigned moderators can publish.",
+  admins_only: "Only the community owner and admins can publish.",
+  custom: "Owner selects individual members who can publish.",
+};
+
+export function permissionConfigForTemplate(
+  templateId: ChannelTemplateId | undefined
+): ChannelPermissionConfig {
+  if (
+    templateId === "general_chat" ||
+    templateId === "qa" ||
+    templateId === "course_discussion" ||
+    templateId === "support" ||
+    templateId === "voice"
+  ) {
+    return { ...DISCUSSION_PERMISSION_CONFIG, publisherIds: [] };
+  }
+  return {
+    ...DEFAULT_PERMISSION_CONFIG,
+    whoCanPost: [...DEFAULT_PERMISSION_CONFIG.whoCanPost],
+    publisherIds: [],
+  };
+}
+
+export function applyPostingMode(
+  mode: ChannelPostingMode,
+  current: ChannelPermissionConfig
+): ChannelPermissionConfig {
+  if (mode === "custom") {
+    return { ...current, postingMode: "custom" };
+  }
+  return {
+    ...current,
+    postingMode: mode,
+    whoCanPost: [...POSTING_MODE_ACTORS[mode]],
+  };
+}
+
+export function inferPostingMode(
+  whoCanPost: ChannelPermissionActor[],
+  explicit?: ChannelPostingMode | null
+): ChannelPostingMode {
+  if (explicit && (CHANNEL_POSTING_MODES as readonly string[]).includes(explicit)) {
+    return explicit;
+  }
+  const set = new Set(whoCanPost);
+  const matches = (actors: ChannelPermissionActor[]) =>
+    actors.length === set.size && actors.every((a) => set.has(a));
+  if (matches(POSTING_MODE_ACTORS.everyone)) return "everyone";
+  if (matches(POSTING_MODE_ACTORS.admins_only)) return "admins_only";
+  if (matches(POSTING_MODE_ACTORS.admins_moderators)) return "admins_moderators";
+  return "custom";
+}
 
 export const DEFAULT_BEHAVIOR_CONFIG: ChannelBehaviorConfig = {
   slowModeSeconds: 0,
@@ -237,20 +403,81 @@ export function accessTypeFromVisibility(v: ChannelVisibilityMode): string {
 export function normalizePermissionConfig(
   raw: unknown
 ): ChannelPermissionConfig {
-  const base = { ...DEFAULT_PERMISSION_CONFIG };
+  const base: ChannelPermissionConfig = {
+    ...DEFAULT_PERMISSION_CONFIG,
+    whoCanPost: [...DEFAULT_PERMISSION_CONFIG.whoCanPost],
+    whoCanView: [...DEFAULT_PERMISSION_CONFIG.whoCanView],
+    whoCanReply: [...DEFAULT_PERMISSION_CONFIG.whoCanReply],
+    whoCanUpload: [...DEFAULT_PERMISSION_CONFIG.whoCanUpload],
+    whoCanUploadMedia: [...DEFAULT_PERMISSION_CONFIG.whoCanUploadMedia],
+    whoCanUploadFiles: [...DEFAULT_PERMISSION_CONFIG.whoCanUploadFiles],
+    whoCanCreatePolls: [...DEFAULT_PERMISSION_CONFIG.whoCanCreatePolls],
+    whoCanPin: [...DEFAULT_PERMISSION_CONFIG.whoCanPin],
+    whoCanModerate: [...DEFAULT_PERMISSION_CONFIG.whoCanModerate],
+    whoCanGoLive: [...DEFAULT_PERMISSION_CONFIG.whoCanGoLive],
+    whoCanCreateThreads: [...DEFAULT_PERMISSION_CONFIG.whoCanCreateThreads],
+    whoCanMentionEveryone: [
+      ...DEFAULT_PERMISSION_CONFIG.whoCanMentionEveryone,
+    ],
+    publisherIds: [],
+  };
   if (!raw || typeof raw !== "object") return base;
   const o = raw as Record<string, unknown>;
-  const keys = Object.keys(base) as (keyof ChannelPermissionConfig)[];
-  for (const key of keys) {
+
+  const actorKeys: (keyof Omit<
+    ChannelPermissionConfig,
+    "postingMode" | "publisherIds"
+  >)[] = [
+    "whoCanView",
+    "whoCanPost",
+    "whoCanReply",
+    "whoCanUpload",
+    "whoCanUploadMedia",
+    "whoCanUploadFiles",
+    "whoCanCreatePolls",
+    "whoCanPin",
+    "whoCanModerate",
+    "whoCanGoLive",
+    "whoCanCreateThreads",
+    "whoCanMentionEveryone",
+  ];
+  for (const key of actorKeys) {
     const val = o[key];
     if (Array.isArray(val)) {
       base[key] = val.filter(
-        (r): r is (typeof CHANNEL_PERMISSION_ACTORS)[number] =>
+        (r): r is ChannelPermissionActor =>
           typeof r === "string" &&
           (CHANNEL_PERMISSION_ACTORS as readonly string[]).includes(r)
       );
     }
   }
+
+  // Back-compat: older configs only had whoCanUpload.
+  if (!Array.isArray(o.whoCanUploadMedia) && Array.isArray(o.whoCanUpload)) {
+    base.whoCanUploadMedia = [...base.whoCanUpload];
+  }
+  if (!Array.isArray(o.whoCanUploadFiles) && Array.isArray(o.whoCanUpload)) {
+    base.whoCanUploadFiles = [...base.whoCanUpload];
+  }
+
+  if (Array.isArray(o.publisherIds)) {
+    base.publisherIds = o.publisherIds.filter(
+      (id): id is string => typeof id === "string" && id.trim().length > 0
+    );
+  }
+
+  const explicitMode =
+    typeof o.postingMode === "string" &&
+    (CHANNEL_POSTING_MODES as readonly string[]).includes(o.postingMode)
+      ? (o.postingMode as ChannelPostingMode)
+      : null;
+  base.postingMode = inferPostingMode(base.whoCanPost, explicitMode);
+
+  // Keep whoCanPost aligned with preset modes (custom keeps explicit list).
+  if (base.postingMode !== "custom") {
+    base.whoCanPost = [...POSTING_MODE_ACTORS[base.postingMode]];
+  }
+
   return base;
 }
 

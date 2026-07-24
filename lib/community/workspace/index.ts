@@ -33,6 +33,14 @@ export {
 } from "./permissions";
 
 export {
+  canCommentInChannel,
+  canPublishInChannel,
+  resolveChannelPostingAccess,
+  type ChannelPostingContext,
+  type ChannelStaffLite,
+} from "./channel-posting";
+
+export {
   flattenChannels,
   isSystemGroupSlug,
   mapRoomToChannel,

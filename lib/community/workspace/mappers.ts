@@ -12,6 +12,7 @@ import {
   visibilityFromAccess,
   type ResolveRoleInput,
 } from "./permissions";
+import { resolveChannelPostingAccess } from "./channel-posting";
 import {
   ROOM_TYPE_TO_CHANNEL,
   SYSTEM_GROUP_SLUGS,
@@ -62,6 +63,14 @@ export function mapRoomToChannel(
 ): WorkspaceChannel {
   const role = resolveWorkspaceRole(roleInput);
   const type = resolveChannelType(room);
+  const staffRole = room.channel_staff_role ?? null;
+  const posting = resolveChannelPostingAccess({
+    roleInput,
+    permission_config: room.permission_config,
+    behavior_config: room.behavior_config,
+    channelStaff: staffRole ? { staffRole } : null,
+  });
+  const permissions = buildPermissions(role);
   return {
     id: room.id,
     groupId: room.space_id,
@@ -72,7 +81,11 @@ export function mapRoomToChannel(
     type,
     roomType: room.room_type,
     visibility: visibilityFromAccess(room.access_type, room.is_locked),
-    permissions: buildPermissions(role),
+    permissions: {
+      ...permissions,
+      canWrite: permissions.canWrite && posting.canPublish,
+    },
+    canPublish: posting.canPublish,
     unreadCount: 0,
     memberCount: 0,
     lastActivity: null,

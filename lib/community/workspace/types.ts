@@ -116,6 +116,8 @@ export type WorkspaceChannel = {
   roomType: string;
   visibility: ChannelVisibility;
   permissions: WorkspacePermissions;
+  /** Channel posting policy — false hides the composer for non-publishers. */
+  canPublish: boolean;
   unreadCount: number;
   memberCount: number;
   lastActivity: string | null;

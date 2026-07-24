@@ -53,6 +53,8 @@ export type GroupPermissionConfig = {
   whoCanUpload: GroupPermissionActor[];
   whoCanCreateEvents: GroupPermissionActor[];
   whoCanCreateCourses: GroupPermissionActor[];
+  whoCanCreateVoiceRooms: GroupPermissionActor[];
+  whoCanCreateLiveSessions: GroupPermissionActor[];
   whoCanGoLive: GroupPermissionActor[];
 };
 

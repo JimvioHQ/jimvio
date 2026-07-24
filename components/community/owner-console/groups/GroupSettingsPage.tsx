@@ -785,10 +785,12 @@ function PermissionsEditor({
       {(
         [
           ["whoCanInvite", "Who can invite"],
-          ["whoCanCreateChannels", "Who can create channels"],
-          ["whoCanUpload", "Who can upload"],
+          ["whoCanCreateChannels", "Who can create sub-channels"],
+          ["whoCanUpload", "Who can upload files"],
           ["whoCanCreateEvents", "Who can create events"],
           ["whoCanCreateCourses", "Who can create courses"],
+          ["whoCanCreateVoiceRooms", "Who can create voice rooms"],
+          ["whoCanCreateLiveSessions", "Who can create live sessions"],
           ["whoCanGoLive", "Who can go live"],
         ] as const
       ).map(([key, label]) => (

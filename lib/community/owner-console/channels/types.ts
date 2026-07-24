@@ -59,15 +59,37 @@ export const CHANNEL_PERMISSION_ACTORS = [
 
 export type ChannelPermissionActor = (typeof CHANNEL_PERMISSION_ACTORS)[number];
 
+/**
+ * Channel posting mode (broadcast-first by default).
+ * Maps onto whoCanPost + publisherIds — no parallel auth system.
+ */
+export const CHANNEL_POSTING_MODES = [
+  "everyone",
+  "admins_moderators",
+  "admins_only",
+  "custom",
+] as const;
+
+export type ChannelPostingMode = (typeof CHANNEL_POSTING_MODES)[number];
+
 export type ChannelPermissionConfig = {
+  /** Broadcast policy — drives whoCanPost presets when not custom. */
+  postingMode: ChannelPostingMode;
+  /** Explicit publishers for custom mode (and additive grants). */
+  publisherIds: string[];
   whoCanView: ChannelPermissionActor[];
   whoCanPost: ChannelPermissionActor[];
+  /** Comments / replies under posts & threads. */
   whoCanReply: ChannelPermissionActor[];
   whoCanUpload: ChannelPermissionActor[];
+  whoCanUploadMedia: ChannelPermissionActor[];
+  whoCanUploadFiles: ChannelPermissionActor[];
+  whoCanCreatePolls: ChannelPermissionActor[];
   whoCanPin: ChannelPermissionActor[];
   whoCanModerate: ChannelPermissionActor[];
   whoCanGoLive: ChannelPermissionActor[];
   whoCanCreateThreads: ChannelPermissionActor[];
+  whoCanMentionEveryone: ChannelPermissionActor[];
 };
 
 export type ChannelBehaviorConfig = {
@@ -92,7 +114,7 @@ export type OwnerChannelStaffMember = {
   fullName: string | null;
   username: string | null;
   avatarUrl: string | null;
-  staffRole: "moderator" | "admin";
+  staffRole: "moderator" | "admin" | "publisher";
   createdAt: string;
 };
 

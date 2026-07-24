@@ -288,12 +288,14 @@ export function PostsRoom({
   roomName,
   communityId,
   hideHeader,
+  canPost = true,
 }: {
   roomId: string;
   roomName: string;
   communityId: string;
   slug: string;
   hideHeader?: boolean;
+  canPost?: boolean;
 }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -318,12 +320,12 @@ export function PostsRoom({
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      if (e.key === "n" || e.key === "N") { e.preventDefault(); setCreateOpen(true); }
+      if (canPost && (e.key === "n" || e.key === "N")) { e.preventDefault(); setCreateOpen(true); }
       if (e.key === "/") { e.preventDefault(); searchRef.current?.focus(); }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [canPost]);
 
   async function handleImageUpload(files: FileList | null) {
     if (!files?.length) return;
@@ -450,14 +452,20 @@ export function PostsRoom({
             <h1 className="text-lg font-black text-[var(--color-text-primary)] truncate">{roomName}</h1>
           )}
           <div className="flex items-center gap-2 ml-auto">
-            <Button
-              type="button"
-              size="sm"
-              className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black"
-              onClick={() => setCreateOpen(true)}
-            >
-              <Plus className="h-4 w-4 mr-1" /> New Post
-            </Button>
+            {canPost ? (
+              <Button
+                type="button"
+                size="sm"
+                className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black"
+                onClick={() => setCreateOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" /> New Post
+              </Button>
+            ) : (
+              <p className="max-w-[240px] text-right text-[11px] leading-snug text-[var(--color-text-muted)]">
+                Announcement channel — only authorized publishers can post.
+              </p>
+            )}
           </div>
         </header>
 

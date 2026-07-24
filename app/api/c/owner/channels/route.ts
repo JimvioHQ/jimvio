@@ -9,7 +9,7 @@ import {
   DEFAULT_BEHAVIOR_CONFIG,
   DEFAULT_CHANNEL_COLOR,
   DEFAULT_CHANNEL_ICON,
-  DEFAULT_PERMISSION_CONFIG,
+  permissionConfigForTemplate,
   OWNER_CHANNEL_KINDS,
   ROOM_SELECT,
   asRoomRow,
@@ -54,7 +54,12 @@ async function loadStaffMap(
       fullName: p?.full_name ?? null,
       username: p?.username ?? null,
       avatarUrl: p?.avatar_url ?? null,
-      staffRole: row.staff_role === "admin" ? "admin" : "moderator",
+      staffRole:
+        row.staff_role === "admin"
+          ? "admin"
+          : row.staff_role === "publisher"
+            ? "publisher"
+            : "moderator",
       createdAt: row.created_at,
     });
     map.set(row.room_id, list);
@@ -171,8 +176,14 @@ export async function POST(req: NextRequest) {
       ? body.visibility
       : "members";
 
+  const templateId =
+    body.templateId &&
+    CHANNEL_TEMPLATES.some((t) => t.id === body.templateId)
+      ? (body.templateId as (typeof CHANNEL_TEMPLATES)[number]["id"])
+      : undefined;
+
   const permissionConfig = normalizePermissionConfig({
-    ...DEFAULT_PERMISSION_CONFIG,
+    ...permissionConfigForTemplate(templateId),
     ...body.permissionConfig,
   });
   const behaviorConfig = normalizeBehaviorConfig({

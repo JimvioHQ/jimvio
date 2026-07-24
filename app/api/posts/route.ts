@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
 import { Json } from "@/types/database.types";
+import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,14 @@ export async function POST(req: NextRequest) {
 
   const hasAccess = await canAccessRoom(user.id, roomId);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
+
+  const publishGate = await assertCanPublishInRoom(supabase, user.id, roomId);
+  if (!publishGate.ok) {
+    return NextResponse.json(
+      { error: publishGate.error },
+      { status: publishGate.status }
+    );
+  }
 
   const { data: room } = await supabase
     .from("rooms")

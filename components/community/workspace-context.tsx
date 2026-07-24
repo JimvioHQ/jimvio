@@ -14,6 +14,11 @@ export type WorkspaceRoomRow = {
   is_locked: boolean;
   access_type: string;
   sort_order: number | null;
+  /** Owner Console permission_config (Channel posting policy). */
+  permission_config?: unknown;
+  behavior_config?: unknown;
+  /** Current user's room_staff role, if any. */
+  channel_staff_role?: "moderator" | "admin" | "publisher" | null;
 };
 
 export type WorkspaceSpaceRow = {

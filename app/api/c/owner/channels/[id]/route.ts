@@ -56,9 +56,11 @@ async function loadStaff(
       fullName: p?.full_name ?? null,
       username: p?.username ?? null,
       avatarUrl: p?.avatar_url ?? null,
-      staffRole: (row.staff_role === "admin" ? "admin" : "moderator") as
-        | "admin"
-        | "moderator",
+      staffRole: (row.staff_role === "admin"
+        ? "admin"
+        : row.staff_role === "publisher"
+          ? "publisher"
+          : "moderator") as "admin" | "moderator" | "publisher",
       createdAt: row.created_at,
     };
   });
