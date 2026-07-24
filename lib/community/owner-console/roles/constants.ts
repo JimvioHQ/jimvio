@@ -115,6 +115,8 @@ export const PERMISSION_CATALOG: PermissionCatalogItem[] = [
   { id: "live.manage", label: "Manage live", description: "Start and host live sessions", category: "live" },
   { id: "commerce.manage", label: "Manage commerce", description: "Storefront and monetization", category: "commerce" },
   { id: "analytics.view", label: "View analytics", description: "Growth and engagement metrics", category: "analytics" },
+  { id: "analytics.export", label: "Export analytics", description: "Download analytics reports", category: "analytics" },
+  { id: "analytics.manage", label: "Manage analytics", description: "Configure analytics preferences", category: "analytics" },
   { id: "intelligence.view", label: "View AI insights", description: "Intelligence platform access", category: "ai" },
   { id: "security.manage", label: "Security settings", description: "Access policies and safeguards", category: "security" },
   { id: "integrations.manage", label: "Manage integrations", description: "Connected services and webhooks", category: "integrations" },

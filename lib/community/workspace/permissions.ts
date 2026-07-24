@@ -54,6 +54,8 @@ export type PermissionCapability =
   | "live.manage"
   | "events.manage"
   | "analytics.view"
+  | "analytics.export"
+  | "analytics.manage"
   | "intelligence.view"
   | "security.manage"
   | "integrations.manage"
@@ -95,6 +97,8 @@ export const ALL_CAPABILITIES = [
   "live.manage",
   "commerce.manage",
   "analytics.view",
+  "analytics.export",
+  "analytics.manage",
   "intelligence.view",
   "security.manage",
   "integrations.manage",
@@ -166,6 +170,8 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "live.manage",
     "commerce.manage",
     "analytics.view",
+    "analytics.export",
+    "analytics.manage",
     "intelligence.view",
     "security.manage",
     "integrations.manage",
@@ -199,6 +205,7 @@ const ROLE_CAPABILITIES: Record<WorkspaceRole, ReadonlySet<PermissionCapability>
     "live.manage",
     "intelligence.view",
     "analytics.view",
+    "analytics.export",
   ]),
   creator: new Set([
     "community.view",

@@ -130,3 +130,17 @@ export {
   mapCommunitySettings,
 } from "./settings";
 
+// Analytics — import from `@/lib/community/owner-console/analytics` for full surface.
+export type {
+  AnalyticsSectionId,
+  OwnerAnalyticsBundle,
+  OwnerAnalyticsOverview,
+} from "./analytics";
+
+export {
+  ANALYTICS_SECTIONS,
+  SECTION_LABELS,
+  resolveAnalyticsContext,
+  computeOwnerAnalytics,
+} from "./analytics";
+

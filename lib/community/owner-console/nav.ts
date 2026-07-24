@@ -152,7 +152,7 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
     "analytics",
     "Analytics",
     "analytics",
-    "settings.manage",
+    "analytics.view",
     "Growth, engagement, and trust"
   ),
   moderation: navItem(
