@@ -58,8 +58,10 @@ assert.match(createSpace, /Create Space|entityLabel/);
 
 assert.match(overview, /Welcome to your new Community|This community is being prepared/);
 assert.match(overview, /Create your first Space/);
-assert.match(overview, /Join Community/);
+assert.match(overview, /Join Community|Joined/);
 assert.match(overview, /Invite/);
+assert.match(overview, /activeTab|OverviewSpacesPanel|OverviewCoursesPanel/);
+assert.match(overview, /memberLabel|Member/);
 assert.match(overview, /max-w-\[1400px\]/);
 assert.match(overview, /grid-cols-12/);
 assert.match(overview, /Description/);

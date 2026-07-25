@@ -162,7 +162,30 @@ export async function joinFreeCommunity(userId: string, communityId: string) {
   if (!community.is_free) throw new Error("This community requires a subscription");
 
   const existing = await getUserMembership(userId, communityId);
-  if (existing) return existing;
+  if (existing) {
+    if (existing.status === "active") return existing;
+    if (existing.status === "cancelled" || existing.status === "expired") {
+      const { data: membership, error } = await supabase
+        .from("community_memberships")
+        .update({
+          status: "active",
+          cancelled_at: null,
+          plan_type: existing.plan_type ?? "free",
+          role: existing.role === "owner" ? "owner" : "member",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select()
+        .single();
+      if (error) throw error;
+      await supabase
+        .from("communities")
+        .update({ member_count: (community.member_count ?? 0) + 1 })
+        .eq("id", communityId);
+      return membership;
+    }
+    return existing;
+  }
 
   const { data: membership, error } = await supabase
     .from("community_memberships")
@@ -200,6 +223,51 @@ export async function joinFreeCommunity(userId: string, communityId: string) {
   } catch (err) {
     console.error("[joinFreeCommunity] notify failed:", err);
   }
+
+  return membership;
+}
+
+/**
+ * Leave a community (member self-cancel). Owners cannot leave via this path.
+ */
+export async function leaveCommunity(userId: string, communityId: string) {
+  const supabase = getService();
+  const { data: community } = await supabase
+    .from("communities")
+    .select("id, owner_id, member_count")
+    .eq("id", communityId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!community) throw new Error("Community not found");
+  if (community.owner_id === userId) {
+    throw new Error("Owners cannot leave their own community");
+  }
+
+  const existing = await getUserMembership(userId, communityId);
+  if (!existing || existing.status !== "active") {
+    return existing;
+  }
+
+  const { data: membership, error } = await supabase
+    .from("community_memberships")
+    .update({
+      status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", existing.id)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await supabase
+    .from("communities")
+    .update({
+      member_count: Math.max(0, (community.member_count ?? 1) - 1),
+    })
+    .eq("id", communityId);
 
   return membership;
 }

@@ -5,13 +5,18 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   BadgeCheck,
+  Bell,
+  BellOff,
   Calendar,
   Check,
+  ChevronDown,
   Eye,
   FileText,
   GraduationCap,
   Home,
   Layers,
+  Loader2,
+  LogOut,
   Megaphone,
   MoreHorizontal,
   Radio,
@@ -20,10 +25,27 @@ import {
   Target,
   UserPlus,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useWorkspace } from "@/components/community/workspace-context";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
+import { isMembershipActive } from "@/lib/community-workspace-access";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import {
+  OverviewCoursesPanel,
+  OverviewEventsPanel,
+  OverviewLivePanel,
+  OverviewSpacesPanel,
+  OverviewStorePanel,
+} from "@/components/community/hub/overview-section-panels";
+
+type OverviewTabId =
+  | "overview"
+  | "spaces"
+  | "courses"
+  | "events"
+  | "live"
+  | "store";
 
 function formatCompactMembers(n: number) {
   if (n >= 1_000_000) {
@@ -96,15 +118,26 @@ export function HubCommunityOverview() {
     isAdmin,
     overview,
     spacesWithRooms,
+    membership,
+    userId,
+    ownerName,
   } = useWorkspace();
 
   const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [joinedMenuOpen, setJoinedMenuOpen] = useState(false);
   const [shareLabel, setShareLabel] = useState("Share");
+  const [activeTab, setActiveTab] = useState<OverviewTabId>("overview");
+  const [joining, setJoining] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [localJoined, setLocalJoined] = useState<boolean | null>(null);
+  const [localMemberCount, setLocalMemberCount] = useState<number | null>(null);
 
   const base = `/communities/${slug}`;
   const logo = overview?.avatarUrl ?? avatarUrl;
-  const members = overview?.memberCount ?? memberCount ?? 0;
+  const serverMembers = overview?.memberCount ?? memberCount ?? 0;
+  const members = localMemberCount ?? serverMembers;
   const desc =
     overview?.description?.trim() ||
     `A place for people who care about ${communityName} — learning, sharing, and building together.`;
@@ -115,6 +148,14 @@ export function HubCommunityOverview() {
   const verified = overview?.isVerified ?? false;
   const createdLabel = formatCreatedLabel(overview?.createdAt);
   const visibilityLabel = isPrivate || overview?.isPrivate ? "Private" : "Public";
+  const isFree = overview?.isFree ?? true;
+
+  const serverJoined =
+    Boolean(isOwner || isAdmin) || isMembershipActive(membership);
+  const isJoined = localJoined ?? serverJoined;
+  const memberLabel = `${formatCompactMembers(members)} ${
+    members === 1 ? "Member" : "Members"
+  }`;
 
   const mission =
     overview?.missionVision?.mission?.trim() ||
@@ -167,56 +208,43 @@ export function HubCommunityOverview() {
   const secondNav = useMemo(
     () => [
       {
-        id: "overview",
+        id: "overview" as const,
         label: "Overview",
-        href: base,
         count: null as number | null,
         icon: Home,
-        active: true,
       },
       {
-        id: "spaces",
+        id: "spaces" as const,
         label: "Spaces",
-        href: `${base}/spaces`,
         count: spacesWithRooms.length,
         icon: Layers,
-        active: false,
       },
       {
-        id: "courses",
+        id: "courses" as const,
         label: "Courses",
-        href: `${base}/courses`,
         count: overview?.courseCount ?? publishedCourses.length,
         icon: GraduationCap,
-        active: false,
       },
       {
-        id: "events",
+        id: "events" as const,
         label: "Events",
-        href: `${base}/events`,
         count: upcomingEvents.length,
         icon: Calendar,
-        active: false,
       },
       {
-        id: "live",
+        id: "live" as const,
         label: "Live",
-        href: `${base}/live`,
         count: liveCount,
         icon: Radio,
-        active: false,
       },
       {
-        id: "store",
+        id: "store" as const,
         label: "Store",
-        href: "/marketplace",
         count: null as number | null,
         icon: ShoppingBag,
-        active: false,
       },
     ],
     [
-      base,
       spacesWithRooms.length,
       overview?.courseCount,
       publishedCourses.length,
@@ -233,6 +261,64 @@ export function HubCommunityOverview() {
       window.setTimeout(() => setShareLabel("Share"), 1600);
     } catch {
       setShareLabel("Share");
+    }
+  }
+
+  async function handleJoin() {
+    if (!userId) {
+      router.push(`/login?next=${encodeURIComponent(base)}`);
+      return;
+    }
+    if (!isFree) {
+      router.push(`${base}/subscribe`);
+      return;
+    }
+    if (joining || isJoined) return;
+
+    const prevCount = members;
+    setJoining(true);
+    setLocalJoined(true);
+    setLocalMemberCount(prevCount + 1);
+
+    try {
+      const res = await fetch(`/api/communities/${slug}/join`, {
+        method: "POST",
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Couldn't join community");
+      toast.success(`Welcome to ${communityName}`);
+      router.refresh();
+    } catch (e) {
+      setLocalJoined(false);
+      setLocalMemberCount(prevCount);
+      toast.error(e instanceof Error ? e.message : "Couldn't join — try again");
+    } finally {
+      setJoining(false);
+    }
+  }
+
+  async function handleLeave() {
+    if (!userId || isOwner || leaving) return;
+    const prevCount = members;
+    setLeaving(true);
+    setJoinedMenuOpen(false);
+    setLocalJoined(false);
+    setLocalMemberCount(Math.max(0, prevCount - 1));
+
+    try {
+      const res = await fetch(`/api/communities/${slug}/join`, {
+        method: "DELETE",
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error || "Couldn't leave community");
+      toast.success("You left the community");
+      router.refresh();
+    } catch (e) {
+      setLocalJoined(true);
+      setLocalMemberCount(prevCount);
+      toast.error(e instanceof Error ? e.message : "Couldn't leave — try again");
+    } finally {
+      setLeaving(false);
     }
   }
 
@@ -290,20 +376,89 @@ export function HubCommunityOverview() {
                       Created {createdLabel}
                     </>
                   ) : null}
-                </p>
-                <p className="mt-1.5 text-[14px] font-semibold text-gray-900">
-                  {formatCompactMembers(members)} Members
+                  <span className="mx-1.5 text-gray-300">·</span>
+                  <span className="font-medium text-[#3b82f6]">{memberLabel}</span>
                 </p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
-              <Link
-                href={`${base}/subscribe`}
-                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#fd5000] px-4 text-[13px] font-semibold text-white transition-all duration-150 hover:bg-[#e04700] hover:shadow-sm"
-              >
-                Join Community
-              </Link>
+              {isJoined ? (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setJoinedMenuOpen((v) => !v);
+                      setMoreOpen(false);
+                    }}
+                    disabled={leaving}
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-4 text-[13px] font-semibold text-emerald-700 ring-1 ring-emerald-200/80 transition-all duration-150 hover:bg-emerald-100"
+                    aria-expanded={joinedMenuOpen}
+                  >
+                    {leaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" strokeWidth={2.5} />
+                    )}
+                    Joined
+                    <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                  </button>
+                  {joinedMenuOpen ? (
+                    <div className="absolute right-0 z-20 mt-1.5 min-w-[200px] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                        onClick={() => {
+                          setMuted((v) => !v);
+                          setJoinedMenuOpen(false);
+                          toast.success(
+                            muted
+                              ? "Notifications unmuted"
+                              : "Community notifications muted"
+                          );
+                        }}
+                      >
+                        {muted ? (
+                          <Bell className="h-4 w-4" />
+                        ) : (
+                          <BellOff className="h-4 w-4" />
+                        )}
+                        {muted ? "Unmute" : "Mute"}
+                      </button>
+                      <Link
+                        href={`${base}/settings`}
+                        className="flex items-center gap-2 px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                        onClick={() => setJoinedMenuOpen(false)}
+                      >
+                        <Bell className="h-4 w-4" />
+                        Notification Settings
+                      </Link>
+                      {!isOwner ? (
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-red-600 hover:bg-red-50"
+                          onClick={() => void handleLeave()}
+                        >
+                          <LogOut className="h-4 w-4" />
+                          Leave Community
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void handleJoin()}
+                  disabled={joining}
+                  className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-[#fd5000] px-4 text-[13px] font-semibold text-white transition-all duration-150 hover:bg-[#e04700] hover:shadow-sm disabled:opacity-70"
+                >
+                  {joining ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : null}
+                  Join Community
+                </button>
+              )}
               <Link
                 href={`${base}/members`}
                 className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition-all duration-150 hover:bg-gray-50 hover:border-gray-300"
@@ -321,13 +476,16 @@ export function HubCommunityOverview() {
                 <Share2 className="h-4 w-4" />
               </button>
               <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setMoreOpen((v) => !v)}
-                  className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-all duration-150 hover:bg-gray-50 hover:border-gray-300"
-                  aria-label="More"
-                  aria-expanded={moreOpen}
-                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMoreOpen((v) => !v);
+                      setJoinedMenuOpen(false);
+                    }}
+                    className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-all duration-150 hover:bg-gray-50 hover:border-gray-300"
+                    aria-label="More"
+                    aria-expanded={moreOpen}
+                  >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
                 {moreOpen ? (
@@ -361,20 +519,22 @@ export function HubCommunityOverview() {
             </div>
           </div>
 
-          {/* Second navigation — Overview / Spaces / Courses / Events / Live / Store */}
+          {/* Second navigation — in-page tabs */}
           <nav
             aria-label="Community sections"
             className="flex gap-1 overflow-x-auto border-t border-gray-100 px-2 sm:px-4"
           >
             {secondNav.map((item) => {
               const Icon = item.icon;
+              const isActive = activeTab === item.id;
               return (
-                <Link
+                <button
                   key={item.id}
-                  href={item.href}
+                  type="button"
+                  onClick={() => setActiveTab(item.id)}
                   className={cn(
                     "relative flex shrink-0 items-center gap-1.5 px-3.5 py-3.5 text-[13px] transition-colors duration-150",
-                    item.active
+                    isActive
                       ? "font-semibold text-[#fd5000]"
                       : "font-medium text-gray-500 hover:text-gray-800"
                   )}
@@ -385,174 +545,207 @@ export function HubCommunityOverview() {
                     <span
                       className={cn(
                         "text-[12px]",
-                        item.active ? "text-[#fd5000]/80" : "text-gray-400"
+                        isActive ? "text-[#fd5000]/80" : "text-gray-400"
                       )}
                     >
                       ({item.count})
                     </span>
                   ) : null}
-                  {item.active ? (
+                  {isActive ? (
                     <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#fd5000]" />
                   ) : null}
-                </Link>
+                </button>
               );
             })}
           </nav>
         </section>
 
-        {/* Empty foundation state */}
-        {!hasSpaces ? (
-          <section className="mt-8 overflow-hidden rounded-2xl bg-white p-8 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 sm:p-10">
-            <div className="grid grid-cols-12 gap-6">
-              <div className="col-span-12 flex flex-col gap-4 lg:col-span-8">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fd5000]/10 text-[#fd5000]">
-                  <Layers className="h-6 w-6" aria-hidden />
-                </span>
-                {canManage ? (
-                  <>
-                    <div>
-                      <h2 className="text-[1.35rem] font-semibold tracking-tight text-gray-900">
-                        Welcome to your new Community
-                      </h2>
-                      <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-gray-500">
-                        Create your first Space to organize members for discussion,
-                        resources, and live sessions.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setCreateSpaceOpen(true)}
-                        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#fd5000] px-5 text-[13px] font-semibold text-white hover:bg-[#e04700]"
-                      >
-                        Create your first Space
-                      </button>
-                      <Link
-                        href={`/dashboard/communities/${encodeURIComponent(slug)}`}
-                        className="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
-                      >
-                        Owner Console
-                      </Link>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <h2 className="text-[1.35rem] font-semibold tracking-tight text-gray-900">
-                        This community is being prepared
-                      </h2>
-                      <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-gray-500">
-                        No Spaces have been published yet. Check back soon — your host
-                        is setting things up.
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </section>
-        ) : null}
+        {activeTab === "overview" ? (
+          <>
+            {/* Empty foundation state */}
+            {!hasSpaces ? (
+              <section className="mt-8 overflow-hidden rounded-2xl bg-white p-8 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 sm:p-10">
+                <div className="grid grid-cols-12 gap-6">
+                  <div className="col-span-12 flex flex-col gap-4 lg:col-span-8">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fd5000]/10 text-[#fd5000]">
+                      <Layers className="h-6 w-6" aria-hidden />
+                    </span>
+                    {canManage ? (
+                      <>
+                        <div>
+                          <h2 className="text-[1.35rem] font-semibold tracking-tight text-gray-900">
+                            Welcome to your new Community
+                          </h2>
+                          <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-gray-500">
+                            Create your first Space to organize members for discussion,
+                            resources, and live sessions.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setCreateSpaceOpen(true)}
+                            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#fd5000] px-5 text-[13px] font-semibold text-white hover:bg-[#e04700]"
+                          >
+                            Create your first Space
+                          </button>
+                          <Link
+                            href={`/dashboard/communities/${encodeURIComponent(slug)}`}
+                            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
+                          >
+                            Owner Console
+                          </Link>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <h2 className="text-[1.35rem] font-semibold tracking-tight text-gray-900">
+                            This community is being prepared
+                          </h2>
+                          <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-gray-500">
+                            No Spaces have been published yet. Check back soon — your host
+                            is setting things up.
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </section>
+            ) : null}
 
-        {/* Overview content — full-width rows */}
-        <div className="mt-10 space-y-10 sm:mt-12 sm:space-y-12">
-          <OverviewRow
-            icon={FileText}
-            iconClass="bg-orange-50 text-[#fd5000]"
-            bulletClass="text-[#fd5000]"
-            BulletIcon={Check}
-            title="Description"
-            body={desc}
-            bullets={descriptionBullets}
-          />
+            {/* Overview content — full-width rows */}
+            <div className="mt-10 space-y-10 sm:mt-12 sm:space-y-12">
+              <OverviewRow
+                icon={FileText}
+                iconClass="bg-orange-50 text-[#fd5000]"
+                bulletClass="text-[#fd5000]"
+                BulletIcon={Check}
+                title="Description"
+                body={desc}
+                bullets={descriptionBullets}
+              />
 
-          <OverviewRow
-            icon={Target}
-            iconClass="bg-emerald-50 text-emerald-600"
-            bulletClass="text-emerald-600"
-            BulletIcon={Check}
-            title="Mission"
-            body={mission}
-            bullets={missionBullets}
-          />
+              <OverviewRow
+                icon={Target}
+                iconClass="bg-emerald-50 text-emerald-600"
+                bulletClass="text-emerald-600"
+                BulletIcon={Check}
+                title="Mission"
+                body={mission}
+                bullets={missionBullets}
+              />
 
-          <OverviewRow
-            icon={Eye}
-            iconClass="bg-sky-50 text-sky-600"
-            bulletClass="text-sky-600"
-            BulletIcon={Check}
-            title="Vision"
-            body={vision}
-            bullets={visionBullets}
-          />
+              <OverviewRow
+                icon={Eye}
+                iconClass="bg-sky-50 text-sky-600"
+                bulletClass="text-sky-600"
+                BulletIcon={Check}
+                title="Vision"
+                body={vision}
+                bullets={visionBullets}
+              />
 
-          <section>
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
-                  <Megaphone className="h-5 w-5" aria-hidden />
-                </span>
-                <h2 className="text-[1.15rem] font-semibold tracking-tight text-gray-900">
-                  Announcements
-                </h2>
-              </div>
-              <Link
-                href={`${base}/feed`}
-                className="text-[13px] font-semibold text-[#fd5000] hover:underline"
-              >
-                View all announcements →
-              </Link>
-            </div>
-
-            {announcements.length === 0 ? (
-              <div className="rounded-2xl bg-white px-5 py-8 text-center text-[14px] text-gray-500 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100">
-                No announcements yet.
-              </div>
-            ) : (
-              <ul className="grid grid-cols-12 gap-4">
-                {announcements.map((post, index) => (
-                  <li
-                    key={post.id}
-                    className="col-span-12 sm:col-span-6 lg:col-span-4"
+              <section>
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                      <Megaphone className="h-5 w-5" aria-hidden />
+                    </span>
+                    <h2 className="text-[1.15rem] font-semibold tracking-tight text-gray-900">
+                      Announcements
+                    </h2>
+                  </div>
+                  <Link
+                    href={`${base}/feed`}
+                    className="text-[13px] font-semibold text-[#fd5000] hover:underline"
                   >
-                    <Link
-                      href={post.href}
-                      className="flex h-full gap-3.5 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
-                    >
-                      <span
-                        className={cn(
-                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white",
-                          ANNOUNCEMENT_COLORS[index % ANNOUNCEMENT_COLORS.length]
-                        )}
+                    View all announcements →
+                  </Link>
+                </div>
+
+                {announcements.length === 0 ? (
+                  <div className="rounded-2xl bg-white px-5 py-8 text-center text-[14px] text-gray-500 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100">
+                    No announcements yet.
+                  </div>
+                ) : (
+                  <ul className="grid grid-cols-12 gap-4">
+                    {announcements.map((post, index) => (
+                      <li
+                        key={post.id}
+                        className="col-span-12 sm:col-span-6 lg:col-span-4"
                       >
-                        <Megaphone className="h-5 w-5" aria-hidden />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-start justify-between gap-2">
-                          <span className="line-clamp-2 text-[14px] font-semibold text-gray-900">
-                            {post.title?.trim() || post.body.slice(0, 72)}
+                        <Link
+                          href={post.href}
+                          className="flex h-full gap-3.5 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
+                        >
+                          <span
+                            className={cn(
+                              "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white",
+                              ANNOUNCEMENT_COLORS[index % ANNOUNCEMENT_COLORS.length]
+                            )}
+                          >
+                            <Megaphone className="h-5 w-5" aria-hidden />
                           </span>
-                          {index === 1 && liveCount > 0 ? (
-                            <span className="shrink-0 rounded-md bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                              Live
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-start justify-between gap-2">
+                              <span className="line-clamp-2 text-[14px] font-semibold text-gray-900">
+                                {post.title?.trim() || post.body.slice(0, 72)}
+                              </span>
+                              {index === 1 && liveCount > 0 ? (
+                                <span className="shrink-0 rounded-md bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                                  Live
+                                </span>
+                              ) : null}
                             </span>
-                          ) : null}
-                        </span>
-                        <span className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-gray-500">
-                          {post.body}
-                        </span>
-                        <span className="mt-2 block text-[11px] text-gray-400">
-                          {post.author.name}
-                          <span className="mx-1">·</span>
-                          {relativeTime(post.created_at)}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
+                            <span className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-gray-500">
+                              {post.body}
+                            </span>
+                            <span className="mt-2 block text-[11px] text-gray-400">
+                              {post.author.name}
+                              <span className="mx-1">·</span>
+                              {relativeTime(post.created_at)}
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </div>
+          </>
+        ) : (
+          <div className="mt-8">
+            {activeTab === "spaces" ? (
+              <OverviewSpacesPanel slug={slug} spaces={spacesWithRooms} />
+            ) : null}
+            {activeTab === "courses" ? (
+              <OverviewCoursesPanel
+                courses={publishedCourses}
+                ownerName={ownerName}
+              />
+            ) : null}
+            {activeTab === "events" ? (
+              <OverviewEventsPanel
+                slug={slug}
+                communityId={communityId}
+                upcomingEvents={upcomingEvents}
+              />
+            ) : null}
+            {activeTab === "live" ? (
+              <OverviewLivePanel
+                slug={slug}
+                activeLiveSession={overview?.activeLiveSession ?? null}
+                liveNow={liveCount}
+              />
+            ) : null}
+            {activeTab === "store" ? (
+              <OverviewStorePanel communityId={communityId} />
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );
