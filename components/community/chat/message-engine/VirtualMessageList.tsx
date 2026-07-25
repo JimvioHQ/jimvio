@@ -70,7 +70,7 @@ export function VirtualMessageList({
       if (!item) return 72;
       if (item.kind === "day") return 44;
       if (item.kind === "system") return 28;
-      return 96;
+      return 128;
     },
     overscan: 8,
     getItemKey: (index) => items[index]?.id ?? index,
@@ -175,11 +175,11 @@ export function VirtualMessageList({
               }}
             >
               {item.kind === "day" && (
-                <div className="my-2 mb-4 flex justify-center" role="separator">
+                <div className="my-3 mb-5 flex justify-center" role="separator">
                   <span
                     className={cn(
-                      "rounded-md border border-[var(--color-border)] px-3 py-[5px] text-[12px] font-medium shadow-sm",
-                      "bg-[var(--color-surface)] text-[var(--color-text-secondary)]"
+                      "rounded-full border border-white/70 px-3.5 py-1 text-[12px] font-medium shadow-sm",
+                      "bg-white/90 text-gray-500 backdrop-blur-sm"
                     )}
                   >
                     {format(item.day, "MMM d, yyyy")}

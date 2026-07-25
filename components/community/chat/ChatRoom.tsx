@@ -55,8 +55,10 @@ interface ChatRoomProps {
   hideHeader?: boolean;
   /** Hide DM/inbox chat list — Space discussion is a pure conversation. */
   hideSidebar?: boolean;
-  /** Inline Audio/Video call panel above the timeline (Space discussion). */
+  /** Inline Audio/Video call panel above the timeline (legacy Space chrome). */
   showCallPanel?: boolean;
+  /** Space Discussion mockup: wide cards, soft canvas, header owns call actions. */
+  discussionLayout?: boolean;
   /** When false, hide composer and show read-only notice. Default true. */
   canPost?: boolean;
   /** Optional empty-state copy (Group Discussion / channel templates). */
@@ -76,6 +78,7 @@ export function ChatRoom({
   hideHeader,
   hideSidebar = false,
   showCallPanel = false,
+  discussionLayout = false,
   canPost = true,
   emptyTitle,
   emptyDescription,
@@ -88,6 +91,7 @@ export function ChatRoom({
   const openThreadRequest = useRoomMessageIndex((s) => s.openThreadRequest);
   const convertThreadRequest = useRoomMessageIndex((s) => s.convertThreadRequest);
   const searchRequestAt = useRoomMessageIndex((s) => s.searchRequestAt);
+  const callRequest = useRoomMessageIndex((s) => s.callRequest);
   const clearOpenThreadRequest = useRoomMessageIndex(
     (s) => s.clearOpenThreadRequest
   );
@@ -95,6 +99,7 @@ export function ChatRoom({
     (s) => s.clearConvertThreadRequest
   );
   const clearSearchRequest = useRoomMessageIndex((s) => s.clearSearchRequest);
+  const clearCallRequest = useRoomMessageIndex((s) => s.clearCallRequest);
   const markAnswer = useCollaborationStore((s) => s.markAnswer);
   const getAnswer = useCollaborationStore((s) => s.getAnswer);
   const answers = useCollaborationStore((s) => s.answers);
@@ -149,7 +154,7 @@ export function ChatRoom({
     clearConvertThreadRequest();
   }, [convertThreadRequest, hook, clearConvertThreadRequest]);
 
-  // Channel header search → open MessageSearchBar
+  // Channel / Space header search → open MessageSearchBar
   useEffect(() => {
     if (!searchRequestAt) return;
     hook.setSearchOpen(true);
@@ -344,6 +349,15 @@ export function ChatRoom({
     await initWebRTC(type, true);
   }
 
+  // Space header call buttons → start WebRTC
+  useEffect(() => {
+    if (!callRequest) return;
+    const type = callRequest.type;
+    clearCallRequest();
+    void startNativeCall(type);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bridge from Space header
+  }, [callRequest, clearCallRequest]);
+
   function handleEndCall() {
     if (localStream) localStream.getTracks().forEach((t) => t.stop());
     setCallType(null);
@@ -356,6 +370,7 @@ export function ChatRoom({
     (m: Msg) => (
       <MessageRow
         m={m}
+        variant={discussionLayout ? "discussion" : "default"}
         isOwn={!!hook.userId && m.sender_id === hook.userId}
         userId={hook.userId}
         isDM={!!hook.activeConvId}
@@ -393,7 +408,16 @@ export function ChatRoom({
         answerPick={getAnswer(m.id)?.pick ?? null}
       />
     ),
-    [hook, roleByUser, quoteMessage, markAnswer, getAnswer, roomId]
+    [
+      hook,
+      roleByUser,
+      quoteMessage,
+      markAnswer,
+      getAnswer,
+      roomId,
+      communityId,
+      discussionLayout,
+    ]
   );
 
   return (
@@ -499,7 +523,7 @@ export function ChatRoom({
       <div
         className={cn(
           "flex h-full min-w-0 flex-1 flex-col overflow-hidden",
-          "bg-[var(--color-bg)]",
+          discussionLayout ? "discussion-chat-canvas" : "bg-[var(--color-bg)]",
           hideSidebar || hook.isChatting ? "flex" : "hidden md:flex"
         )}
       >
@@ -509,8 +533,8 @@ export function ChatRoom({
           activeConvPeer={hook.activeConvPeer}
           isChatting={hook.isChatting}
           hideHeader={hideHeader}
-          hideCallActions={showCallPanel}
-          onlineCount={hook.onlineUserIds.length}
+          hideCallActions={showCallPanel || discussionLayout}
+          onlineCount={discussionLayout ? undefined : hook.onlineUserIds.length}
           searchOpen={hook.searchOpen}
           searchQuery={hook.searchQuery}
           chatFilter={hook.chatFilter}
@@ -529,7 +553,7 @@ export function ChatRoom({
           hideLegacySearchBar
         />
 
-        {showCallPanel ? (
+        {showCallPanel && !discussionLayout ? (
           <SpaceCallPanel
             onAudioCall={() => void startNativeCall("audio")}
             onVideoCall={() => void startNativeCall("video")}
@@ -559,7 +583,9 @@ export function ChatRoom({
           aria-label="Messages"
           className={cn(
             "flex min-h-0 flex-1 flex-col overflow-y-auto",
-            "bg-[var(--color-bg)] px-3 py-3 pb-5 sm:px-[5%]",
+            discussionLayout
+              ? "discussion-chat-canvas px-3 py-4 pb-6 sm:px-6 lg:px-8"
+              : "bg-[var(--color-bg)] px-3 py-3 pb-5 sm:px-[5%]",
             "scrollbar-thin scrollbar-thumb-[var(--color-border-strong)]",
             hook.loading && "overflow-hidden"
           )}
@@ -656,6 +682,7 @@ export function ChatRoom({
 
         {canPost ? (
           <ChatInputZone
+            variant={discussionLayout ? "discussion" : "default"}
             text={hook.text}
             setText={(v) => {
               hook.setText(v);

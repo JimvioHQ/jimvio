@@ -6,6 +6,7 @@ import {
   BellOff,
   Copy,
   Flag,
+  Info,
   Link2,
   MoreHorizontal,
   Pin,
@@ -23,6 +24,7 @@ export type WorkspaceActionId =
   | "favorite"
   | "mute"
   | "pin"
+  | "about"
   | "report";
 
 export type WorkspaceActionItem = {
@@ -41,11 +43,13 @@ export function WorkspaceActionMenu({
   label = "More actions",
   items,
   className,
+  buttonClassName,
   align = "right",
 }: {
   label?: string;
   items: WorkspaceActionItem[];
   className?: string;
+  buttonClassName?: string;
   align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
@@ -87,7 +91,8 @@ export function WorkspaceActionMenu({
           "text-[var(--color-text-muted)] transition",
           "hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
-          open && "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)]"
+          open && "bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)]",
+          buttonClassName
         )}
       >
         <MoreHorizontal className="h-4 w-4" aria-hidden />
@@ -147,6 +152,7 @@ export function buildWorkspaceActions(opts: {
   onFavorite?: () => void;
   onMute?: () => void;
   onPin?: () => void;
+  onAbout?: () => void;
   onReport?: () => void;
 }): WorkspaceActionItem[] {
   const resolveUrl = () => {
@@ -167,6 +173,15 @@ export function buildWorkspaceActions(opts: {
       label: "Invite people",
       icon: <UserPlus className="h-3.5 w-3.5" />,
       onSelect: opts.onInvite,
+    });
+  }
+
+  if (opts.onAbout) {
+    items.push({
+      id: "about",
+      label: "About",
+      icon: <Info className="h-3.5 w-3.5" />,
+      onSelect: opts.onAbout,
     });
   }
 

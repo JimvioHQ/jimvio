@@ -46,6 +46,8 @@ interface ChatInputZoneProps {
   onAttachFile: (files: FileList | null) => void;
   onOpenAi?: () => void;
   onAttachCommerce?: () => void;
+  /** Space Discussion: full-width rounded composer on soft canvas. */
+  variant?: "default" | "discussion";
 }
 
 function filesFromList(list: FileList | File[]): FileList {
@@ -77,7 +79,9 @@ export function ChatInputZone({
   onAttachFile,
   onOpenAi,
   onAttachCommerce,
+  variant = "default",
 }: ChatInputZoneProps) {
+  const discussion = variant === "discussion";
   const uid = useId();
   const imgInputId = `${uid}-img`;
   const fileInputId = `${uid}-file`;
@@ -149,7 +153,9 @@ export function ChatInputZone({
     <div
       className={cn(
         "relative flex shrink-0 flex-col",
-        "border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+        discussion
+          ? "discussion-chat-canvas border-t-0 px-3 pb-[max(12px,env(safe-area-inset-bottom,0px))] pt-1 sm:px-6 lg:px-8"
+          : "border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
       )}
       onDragEnter={(e) => {
         e.preventDefault();
@@ -236,56 +242,79 @@ export function ChatInputZone({
 
       {!voiceRecording && !voiceBlob && (
         <>
-          {/* Formatting toolbar */}
-          <div className="flex items-center gap-0.5 px-3 pt-2">
-            <FormatBtn
-              label="Bold"
-              onClick={() => wrapSelection("**")}
-              icon={Bold}
-            />
-            <FormatBtn
-              label="Italic"
-              onClick={() => wrapSelection("_")}
-              icon={Italic}
-            />
-            <FormatBtn
-              label="List"
-              onClick={() => setText(text ? `${text}\n- ` : "- ")}
-              icon={List}
-            />
-            <FormatBtn
-              label="Mention"
-              onClick={() => {
-                setText(`${text}@`);
-                taRef.current?.focus();
-              }}
-              icon={AtSign}
-            />
-            <span className="mx-1 h-4 w-px bg-[var(--color-border)]" />
-            <FormatBtn
-              label="AI assist (coming soon)"
-              onClick={() => onOpenAi?.()}
-              icon={Sparkles}
-              disabled={!onOpenAi}
-            />
-            <span className="ml-auto hidden text-[10px] text-[var(--color-text-muted)] sm:inline">
-              Enter to send · Shift+Enter newline
-            </span>
-          </div>
+          {/* Formatting toolbar — default only */}
+          {!discussion ? (
+            <div className="flex items-center gap-0.5 px-3 pt-2">
+              <FormatBtn
+                label="Bold"
+                onClick={() => wrapSelection("**")}
+                icon={Bold}
+              />
+              <FormatBtn
+                label="Italic"
+                onClick={() => wrapSelection("_")}
+                icon={Italic}
+              />
+              <FormatBtn
+                label="List"
+                onClick={() => setText(text ? `${text}\n- ` : "- ")}
+                icon={List}
+              />
+              <FormatBtn
+                label="Mention"
+                onClick={() => {
+                  setText(`${text}@`);
+                  taRef.current?.focus();
+                }}
+                icon={AtSign}
+              />
+              <span className="mx-1 h-4 w-px bg-[var(--color-border)]" />
+              <FormatBtn
+                label="AI assist (coming soon)"
+                onClick={() => onOpenAi?.()}
+                icon={Sparkles}
+                disabled={!onOpenAi}
+              />
+              <span className="ml-auto hidden text-[10px] text-[var(--color-text-muted)] sm:inline">
+                Enter to send · Shift+Enter newline
+              </span>
+            </div>
+          ) : null}
 
-          <div className="flex min-h-[62px] items-end gap-1 px-3 py-[9px] pb-[max(9px,env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(3.5rem+max(9px,env(safe-area-inset-bottom,0px)))]">
-            <WaIconBtn aria-label="Emoji picker" onClick={onOpenEmojiPicker}>
-              <Smile className="h-6 w-6" />
-            </WaIconBtn>
+          <div
+            className={cn(
+              "flex min-h-[62px] items-end gap-1",
+              discussion
+                ? "mx-auto w-full max-w-none items-center gap-2 rounded-[1.75rem] border border-white/80 bg-white px-3 py-2 shadow-[0_8px_30px_-12px_rgba(67,51,96,0.25)] ring-1 ring-violet-100/60 max-lg:mb-[3.25rem]"
+                : "px-3 py-[9px] pb-[max(9px,env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(3.5rem+max(9px,env(safe-area-inset-bottom,0px)))]"
+            )}
+          >
+            {discussion ? (
+              <button
+                type="button"
+                aria-label="Attach file"
+                onClick={() => fileRef.current?.click()}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+              >
+                <span className="text-lg font-medium leading-none">+</span>
+              </button>
+            ) : (
+              <WaIconBtn aria-label="Emoji picker" onClick={onOpenEmojiPicker}>
+                <Smile className="h-6 w-6" />
+              </WaIconBtn>
+            )}
 
             <div className="flex items-center gap-0.5">
               <label
                 htmlFor={imgInputId}
                 className={cn(
-                  "flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm transition-colors",
+                  "flex h-9 w-9 cursor-pointer items-center justify-center transition-colors",
+                  discussion ? "rounded-full" : "rounded-sm",
                   uploading
                     ? "pointer-events-none opacity-50"
-                    : "hover:bg-[var(--color-border)]"
+                    : discussion
+                      ? "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                      : "hover:bg-[var(--color-border)]"
                 )}
                 aria-label="Attach image"
               >
@@ -305,18 +334,42 @@ export function ChatInputZone({
                 disabled={uploading || sending}
                 onChange={(e) => pickImage(e.target.files)}
               />
-              <label
-                htmlFor={fileInputId}
-                className={cn(
-                  "flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm transition-colors",
-                  uploading
-                    ? "pointer-events-none opacity-50"
-                    : "hover:bg-[var(--color-border)]"
-                )}
-                aria-label="Attach file"
-              >
-                <FileIcon className="h-5 w-5 text-[var(--color-text-muted)]" />
-              </label>
+              {discussion ? (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Emoji picker"
+                    onClick={onOpenEmojiPicker}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+                  >
+                    <Smile className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Mention"
+                    onClick={() => {
+                      setText(`${text}@`);
+                      taRef.current?.focus();
+                    }}
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+                  >
+                    <AtSign className="h-5 w-5" />
+                  </button>
+                </>
+              ) : (
+                <label
+                  htmlFor={fileInputId}
+                  className={cn(
+                    "flex h-9 w-9 cursor-pointer items-center justify-center rounded-sm transition-colors",
+                    uploading
+                      ? "pointer-events-none opacity-50"
+                      : "hover:bg-[var(--color-border)]"
+                  )}
+                  aria-label="Attach file"
+                >
+                  <FileIcon className="h-5 w-5 text-[var(--color-text-muted)]" />
+                </label>
+              )}
               <input
                 ref={fileRef}
                 id={fileInputId}
@@ -327,7 +380,7 @@ export function ChatInputZone({
                 disabled={uploading || sending}
                 onChange={(e) => pickFile(e.target.files)}
               />
-              {onAttachCommerce && (
+              {onAttachCommerce && !discussion && (
                 <button
                   type="button"
                   aria-label="Attach commerce offer"
@@ -373,18 +426,26 @@ export function ChatInputZone({
                 </div>
               )}
 
-              <div className="flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 focus-within:ring-2 focus-within:ring-[var(--color-accent)]">
+              <div
+                className={cn(
+                  "flex items-center",
+                  discussion
+                    ? "px-1 py-1"
+                    : "rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 focus-within:ring-2 focus-within:ring-[var(--color-accent)]"
+                )}
+              >
                 <textarea
                   ref={taRef}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onPaste={onPaste}
-                  placeholder="Write a message..."
+                  placeholder={discussion ? "Type a message..." : "Write a message..."}
                   rows={1}
                   disabled={sending || uploading}
                   aria-label="Message composer"
                   className={cn(
-                    "max-h-32 min-h-[24px] w-full resize-none border-0 bg-transparent p-0 text-sm outline-none",
+                    "max-h-32 min-h-[24px] w-full resize-none border-0 bg-transparent p-0 outline-none",
+                    discussion ? "text-[14px]" : "text-sm",
                     "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
                     "disabled:cursor-not-allowed disabled:opacity-60"
                   )}
@@ -406,7 +467,41 @@ export function ChatInputZone({
               </div>
             </div>
 
-            {text.trim() || pendingMain.length > 0 ? (
+            {discussion ? (
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={sending || uploading}
+                  aria-label="Record voice message"
+                  title="Voice message"
+                  onClick={() => void onStartVoice()}
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-full",
+                    "bg-violet-500 text-white shadow-sm",
+                    "transition-all hover:bg-violet-600 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+                  )}
+                >
+                  <Mic className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  disabled={sending || uploading || (!text.trim() && pendingMain.length === 0)}
+                  aria-label="Send message"
+                  onClick={onSend}
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-full",
+                    "bg-violet-500 text-white shadow-sm",
+                    "transition-all hover:bg-violet-600 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+                  )}
+                >
+                  {sending ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            ) : text.trim() || pendingMain.length > 0 ? (
               <button
                 type="button"
                 disabled={sending || uploading}

@@ -23,6 +23,7 @@ import {
 import { MembersPanel } from "@/components/community/workspace/channel/panels/MembersPanel";
 import { FilesPanel } from "@/components/community/workspace/channel/panels/FilesPanel";
 import { EventsPanel } from "@/components/community/workspace/channel/panels/EventsPanel";
+import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
 import { GroupHeader } from "./GroupHeader";
 
 type DiscussionRoom = WorkspaceSpaceRow["rooms"][number];
@@ -60,6 +61,8 @@ export function GroupWorkspace({
   const [ensuring, setEnsuring] = useState(false);
   const [ensureError, setEnsureError] = useState<string | null>(null);
   const [ensureAttempt, setEnsureAttempt] = useState(0);
+  const requestSearch = useRoomMessageIndex((s) => s.requestSearch);
+  const requestCall = useRoomMessageIndex((s) => s.requestCall);
 
   const roleInput = useMemo(
     () => ({ userId, ownerId, membership }),
@@ -141,6 +144,15 @@ export function GroupWorkspace({
     toast.success("Invite link copied");
   }, [communitySlug, space.slug]);
 
+  const handleTabChange = useCallback((next: SpaceViewTab) => {
+    if (next === "about") {
+      setAboutOpen(true);
+      setTab("discussion");
+      return;
+    }
+    setTab(next);
+  }, []);
+
   return (
     <div
       className={cn(
@@ -164,18 +176,30 @@ export function GroupWorkspace({
         }}
         onInvite={copyInvite}
         onAbout={() => setAboutOpen(true)}
+        onSearch={() => {
+          setTab("discussion");
+          requestSearch();
+        }}
+        onAudioCall={() => {
+          setTab("discussion");
+          requestCall("audio");
+        }}
+        onVideoCall={() => {
+          setTab("discussion");
+          requestCall("video");
+        }}
         onJoin={() => router.push(`/communities/${communitySlug}/subscribe`)}
       />
 
       <SpaceViewTabs
         active={tab}
         memberCount={group.memberCount || members.length}
-        onChange={setTab}
+        onChange={handleTabChange}
       />
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
         {tab === "discussion" ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {discussionRoom ? (
               <ChatRoom
                 roomId={discussionRoom.id}
@@ -184,7 +208,7 @@ export function GroupWorkspace({
                 slug={communitySlug}
                 hideHeader
                 hideSidebar
-                showCallPanel
+                discussionLayout
                 canPost={canPost}
                 emptyTitle={`Welcome to ${group.name}`}
                 emptyDescription="Start the conversation — messages, replies, reactions, and files live here."
@@ -258,7 +282,10 @@ export function GroupWorkspace({
         description={space.description}
         rules={group.rules}
         members={aboutMembers}
-        onViewDetails={() => setTab("members")}
+        onViewDetails={() => {
+          setAboutOpen(false);
+          setTab("members");
+        }}
       />
     </div>
   );

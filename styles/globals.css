@@ -37,6 +37,15 @@
     @apply backdrop-blur-md border border-border;
     background-color: rgb(var(--color-surface) / 0.95);
   }
+
+  /** Space Discussion canvas — soft violet ambient (Jimvio mockup). */
+  .discussion-chat-canvas {
+    background:
+      radial-gradient(ellipse 110% 80% at 12% 8%, rgba(196, 181, 253, 0.38), transparent 52%),
+      radial-gradient(ellipse 90% 70% at 92% 78%, rgba(167, 139, 250, 0.28), transparent 48%),
+      radial-gradient(ellipse 70% 55% at 50% 100%, rgba(221, 214, 254, 0.45), transparent 50%),
+      linear-gradient(165deg, #f3f0ff 0%, #faf8ff 42%, #eee9ff 100%);
+  }
 }
 
 @layer base {

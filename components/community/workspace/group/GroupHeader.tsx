@@ -1,6 +1,12 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { toast } from "sonner";
+import {
+  Phone,
+  Search,
+  Video,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WorkspaceGroup } from "@/lib/community/workspace";
 import {
@@ -12,6 +18,18 @@ import {
   buildWorkspaceActions,
 } from "@/components/community/workspace/shared/WorkspaceActionMenu";
 
+function formatCompactMembers(n: number): string {
+  if (n >= 1_000_000) {
+    const v = n / 1_000_000;
+    return `${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  if (n >= 1000) {
+    const v = n / 1000;
+    return `${v.toFixed(1).replace(/\.0$/, "")}K`;
+  }
+  return n.toLocaleString();
+}
+
 function SpaceAvatar({
   name,
   icon,
@@ -22,17 +40,43 @@ function SpaceAvatar({
   const letter = (name.trim()[0] || "S").toUpperCase();
   return (
     <span
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#fd5000] text-[17px] font-bold text-white shadow-sm"
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fd5000] text-[15px] font-bold text-white shadow-sm sm:h-11 sm:w-11 sm:rounded-2xl sm:text-[17px]"
       aria-hidden
     >
-      {icon ? <span className="text-[20px] leading-none">{icon}</span> : letter}
+      {icon ? <span className="text-[18px] leading-none sm:text-[20px]">{icon}</span> : letter}
     </span>
   );
 }
 
+function GhostIconButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick?: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-9 w-9 items-center justify-center rounded-full",
+        "border border-gray-200 bg-white text-gray-500",
+        "transition-all duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/35"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 /**
- * Minimal Space header — logo, name, visibility, members, description, About, More.
- * No cover photo.
+ * Compact Space header — logo, name, PUBLIC, type · members, ghost actions.
+ * No cover, no online count, no description block.
  */
 export function GroupHeader({
   group,
@@ -40,6 +84,9 @@ export function GroupHeader({
   onToggleNotifications,
   onInvite,
   onAbout,
+  onSearch,
+  onAudioCall,
+  onVideoCall,
   spaceType,
   className,
 }: {
@@ -53,6 +100,8 @@ export function GroupHeader({
   onSearch?: () => void;
   onJoin?: () => void;
   onAbout?: () => void;
+  onAudioCall?: () => void;
+  onVideoCall?: () => void;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   communityId?: string;
@@ -65,56 +114,60 @@ export function GroupHeader({
   const typeLabel = isSpaceType(spaceType)
     ? SPACE_TYPE_LABELS[spaceType]
     : "Discussion";
-  const description = group.description?.trim() || null;
 
   return (
     <header
       className={cn(
-        "relative shrink-0 border-b border-gray-100 bg-white px-4 py-4 sm:px-6",
+        "relative shrink-0 border-b border-gray-100 bg-white px-4 py-2.5 sm:px-5 sm:py-3",
         className
       )}
     >
-      <div className="flex items-start gap-3.5">
+      <div className="flex items-center gap-3">
         <SpaceAvatar name={group.name} icon={group.icon} />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-[17px] font-bold tracking-tight text-gray-900">
+            <h1 className="truncate text-[15px] font-bold tracking-tight text-gray-900 sm:text-[16px]">
               {group.name}
             </h1>
-            <span className="rounded-md bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-600">
+            <span className="rounded-md bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-600">
               {group.privacy === "public" ? "Public" : group.privacy}
             </span>
           </div>
-          <p className="mt-0.5 text-[13px] text-gray-500">
+          <p className="mt-0.5 truncate text-[12px] text-gray-500">
             {typeLabel} Space
             <span className="mx-1.5 text-gray-300" aria-hidden>
               ·
             </span>
             {group.memberCount > 0
-              ? `${group.memberCount.toLocaleString()} members`
+              ? `${formatCompactMembers(group.memberCount)} members`
               : "Members"}
           </p>
-          {description ? (
-            <p className="mt-1.5 line-clamp-2 max-w-2xl text-[13px] leading-relaxed text-gray-600">
-              {description}
-            </p>
-          ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 pt-0.5">
-          {onAbout ? (
-            <button
-              type="button"
-              onClick={onAbout}
-              className="inline-flex h-9 items-center rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50"
-            >
-              About
-            </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {onSearch ? (
+            <GhostIconButton label="Search" onClick={onSearch}>
+              <Search className="h-4 w-4" />
+            </GhostIconButton>
+          ) : null}
+          {onAudioCall ? (
+            <GhostIconButton label="Audio call" onClick={onAudioCall}>
+              <Phone className="h-4 w-4" />
+            </GhostIconButton>
+          ) : null}
+          {onVideoCall ? (
+            <GhostIconButton label="Video call" onClick={onVideoCall}>
+              <Video className="h-4 w-4" />
+            </GhostIconButton>
           ) : null}
 
           <WorkspaceActionMenu
             label={`${group.name} actions`}
+            buttonClassName={cn(
+              "h-9 w-9 border border-gray-200 bg-white text-gray-500",
+              "hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800"
+            )}
             items={buildWorkspaceActions({
               muted: !notificationsOn,
               pinned: group.featured,
@@ -127,6 +180,7 @@ export function GroupHeader({
                 toast.success("Invite link copied");
               },
               onMute: onToggleNotifications,
+              onAbout,
             })}
           />
         </div>
