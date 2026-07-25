@@ -86,41 +86,41 @@ export type CommunityScoreBreakdown = {
   badges: string[];
 };
 
-/** Member-facing Group tabs — Discussion first; management lives in Owner Console. */
+/** Member-facing Group tabs — Discussion first; Overview last; management in Owner Console. */
 export const GROUP_TAB_IDS = [
   "discussion",
-  "overview",
   "knowledge",
   "resources",
   "courses",
   "store",
   "live",
   "ai",
+  "overview",
 ] as const;
 
 export type GroupTabId = (typeof GROUP_TAB_IDS)[number];
 
 export const GROUP_TABS: { id: GroupTabId; label: string }[] = [
   { id: "discussion", label: "Discussion" },
-  { id: "overview", label: "Overview" },
   { id: "knowledge", label: "Knowledge" },
   { id: "resources", label: "Resources" },
   { id: "courses", label: "Courses" },
   { id: "store", label: "Store" },
   { id: "live", label: "Live" },
   { id: "ai", label: "AI" },
+  { id: "overview", label: "Overview" },
 ];
 
 /** Sidebar nav for Group workspace (Settings is owner/staff only). */
 export const GROUP_SIDEBAR_IDS = [
   "discussion",
-  "overview",
   "knowledge",
   "resources",
   "courses",
   "store",
   "live",
   "ai",
+  "overview",
   "settings",
 ] as const;
 
@@ -128,13 +128,13 @@ export type GroupSidebarId = (typeof GROUP_SIDEBAR_IDS)[number];
 
 export const GROUP_SIDEBAR: { id: GroupSidebarId; label: string }[] = [
   { id: "discussion", label: "Discussion" },
-  { id: "overview", label: "Overview" },
   { id: "knowledge", label: "Knowledge" },
   { id: "resources", label: "Resources" },
   { id: "courses", label: "Courses" },
   { id: "store", label: "Store" },
   { id: "live", label: "Live" },
   { id: "ai", label: "AI" },
+  { id: "overview", label: "Overview" },
   { id: "settings", label: "Settings" },
 ];
 

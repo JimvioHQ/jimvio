@@ -227,6 +227,7 @@ export function GroupWorkspace({
           notificationsOn={notificationsOn}
           communityId={communityId}
           bookmarkHref={`/communities/${communitySlug}/groups/${group.slug}`}
+          compact={tab === "discussion"}
           onToggleNotifications={() => {
             setNotificationsOn((v) => !v);
             toast.success(

@@ -1,15 +1,28 @@
 /**
  * Server helper: resolve whether a user may publish / comment in a room (Channel).
  * Reuses the workspace posting policy + membership role engine.
+ * Group Discussion rooms (channel_kind=discussion / slug=discussion) stay open for members.
  */
 
 import type { createClient } from "@/lib/supabase/server";
+import { DISCUSSION_PERMISSION_CONFIG } from "@/lib/community/owner-console/channels";
 import {
   resolveChannelPostingAccess,
   type ChannelStaffLite,
 } from "@/lib/community/workspace/channel-posting";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+function isGroupDiscussionRoom(room: {
+  channel_kind?: string | null;
+  slug?: string | null;
+  room_type?: string | null;
+}): boolean {
+  if (room.channel_kind === "discussion") return true;
+  const slug = (room.slug ?? "").trim().toLowerCase();
+  const type = (room.room_type ?? "").toLowerCase();
+  return type === "chat" && /^(discussion|general|chat|lounge)$/.test(slug);
+}
 
 async function resolveRoomPostingAccess(
   supabase: Supabase,
@@ -19,7 +32,7 @@ async function resolveRoomPostingAccess(
   const { data: room } = await supabase
     .from("rooms")
     .select(
-      "id, community_id, permission_config, behavior_config, is_locked"
+      "id, community_id, permission_config, behavior_config, is_locked, channel_kind, slug, room_type"
     )
     .eq("id", roomId)
     .maybeSingle();
@@ -57,6 +70,11 @@ async function resolveRoomPostingAccess(
     channelStaff = { staffRole: "moderator" };
   }
 
+  // Group Discussion = open chat (Telegram/WhatsApp). Other channels keep posting modes.
+  const permissionConfig = isGroupDiscussionRoom(room)
+    ? { ...DISCUSSION_PERMISSION_CONFIG, publisherIds: [] }
+    : room.permission_config;
+
   const access = resolveChannelPostingAccess({
     roleInput: {
       userId,
@@ -70,7 +88,7 @@ async function resolveRoomPostingAccess(
           }
         : null,
     },
-    permission_config: room.permission_config,
+    permission_config: permissionConfig,
     behavior_config: room.behavior_config,
     channelStaff,
   });

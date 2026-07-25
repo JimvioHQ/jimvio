@@ -33,6 +33,7 @@ export function GroupHeader({
   onSearchChange,
   communityId,
   bookmarkHref,
+  compact = false,
   className,
 }: {
   group: WorkspaceGroup;
@@ -48,11 +49,79 @@ export function GroupHeader({
   onSearchChange?: (value: string) => void;
   communityId?: string;
   bookmarkHref?: string;
+  /** Discussion-first: compact bar so chat fills the viewport (Telegram/WhatsApp). */
+  compact?: boolean;
   className?: string;
 }) {
   const cover =
     group.cover ||
     "linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 55%, #1a1a1a), #0f172a 70%)";
+
+  if (compact) {
+    return (
+      <header
+        className={cn(
+          "relative shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 sm:px-4",
+          className
+        )}
+      >
+        <div className="flex items-center gap-3">
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-surface-secondary)] text-[18px]"
+            aria-hidden
+          >
+            {group.icon ?? "✦"}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="truncate text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+                {group.name}
+              </h1>
+              <span className="rounded-md bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[var(--color-text-muted)]">
+                {group.privacy}
+              </span>
+            </div>
+            <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
+              {group.memberCount > 0
+                ? `${group.memberCount.toLocaleString()} members`
+                : "Discussion"}
+              {ownerName ? ` · ${ownerName}` : ""}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-0.5">
+            <WorkspaceIconButton label="Search group" onClick={onSearch}>
+              <Search className="h-4 w-4" />
+            </WorkspaceIconButton>
+            <WorkspaceIconButton
+              label={
+                notificationsOn
+                  ? "Mute notifications"
+                  : "Enable notifications"
+              }
+              pressed={!notificationsOn}
+              onClick={onToggleNotifications}
+            >
+              {notificationsOn ? (
+                <Bell className="h-4 w-4" />
+              ) : (
+                <BellOff className="h-4 w-4" />
+              )}
+            </WorkspaceIconButton>
+            {communityId && bookmarkHref ? (
+              <BookmarkButton
+                id={group.id}
+                kind="group"
+                communityId={communityId}
+                title={group.name}
+                href={bookmarkHref}
+                size="sm"
+              />
+            ) : null}
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header

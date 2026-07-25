@@ -137,7 +137,22 @@ export async function POST(
       );
 
     if (preferred) {
-      return NextResponse.json({ room: preferred, ensured: false });
+      // Heal legacy Discussion rooms that still have broadcast-only posting modes.
+      const { data: healed } = await supabase
+        .from("rooms")
+        .update({
+          permission_config: {
+            ...DISCUSSION_PERMISSION_CONFIG,
+            publisherIds: [],
+          },
+          channel_kind: "discussion",
+        })
+        .eq("id", preferred.id)
+        .select(
+          "id, name, slug, room_type, space_id, is_locked, access_type, sort_order, is_active"
+        )
+        .maybeSingle();
+      return NextResponse.json({ room: healed ?? preferred, ensured: false });
     }
 
     // Fall through to create Discussion for any active member.

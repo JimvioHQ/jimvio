@@ -71,11 +71,12 @@ assert.match(osTypes, /"discussion"/);
 assert.match(osTypes, /"live"/);
 assert.match(osTypes, /GROUP_SIDEBAR/);
 assert.match(osTypes, /label: "Discussion"/);
-// Discussion first; Overview second; no member Events/Members/Activity tabs
+// Discussion first; Overview last; no member Events/Members/Activity tabs
 assert.match(
   osTypes,
-  /GROUP_TAB_IDS = \[\s*"discussion",\s*"overview"/s
+  /GROUP_TAB_IDS = \[\s*"discussion",\s*"knowledge"/s
 );
+assert.match(osTypes, /"overview",\s*\] as const/);
 assert.doesNotMatch(osTypes, /GROUP_TAB_IDS = \[[^\]]*"events"/s);
 assert.doesNotMatch(osTypes, /GROUP_TAB_IDS = \[[^\]]*"members"/s);
 assert.doesNotMatch(osTypes, /GROUP_TAB_IDS = \[[^\]]*"activity"/s);

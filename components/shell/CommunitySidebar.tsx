@@ -115,25 +115,39 @@ function channelEmoji(room: WorkspaceRoomRow): string {
   return "💬";
 }
 
-/** Only real channels — never fabricate placeholder nav items. */
+/** Rooms that should not appear as Channel links in the community sidebar. */
+function shouldHideFromChannelNav(room: WorkspaceRoomRow): boolean {
+  if (room.room_type === "posts" || /announcement/i.test(room.name)) return true;
+  const slug = (room.slug ?? "").trim().toLowerCase();
+  const name = (room.name ?? "").trim().toLowerCase();
+  // Group Discussion is the Group homepage — not a separate Channel entry.
+  return (
+    (room.room_type === "chat" || !room.room_type) &&
+    (/^(discussion|general|chat|lounge)$/.test(slug) ||
+      /^(discussion|general|chat|general chat)$/.test(name))
+  );
+}
+
 function buildChannels(
   communitySlug: string,
-  spacesWithRooms: WorkspaceSpaceRow[]
+  spacesWithRooms: WorkspaceSpaceRow[],
+  options?: { spaceId?: string | null }
 ): ChannelItem[] {
-  return spacesWithRooms.flatMap((space) =>
+  const spaces = options?.spaceId
+    ? spacesWithRooms.filter((s) => s.id === options.spaceId)
+    : spacesWithRooms;
+
+  return spaces.flatMap((space) =>
     space.rooms
-      .filter(
-        (room) =>
-          room.room_type !== "posts" && !/announcement/i.test(room.name)
-      )
+      .filter((room) => !shouldHideFromChannelNav(room))
       .map((room) => ({
         id: room.id,
         label: room.name,
         emoji: channelEmoji(room),
-        href: communityChannelHref(
-          communitySlug,
-          room.slug
-        ).replace(`/communities/${communitySlug}`, ""),
+        href: communityChannelHref(communitySlug, room.slug).replace(
+          `/communities/${communitySlug}`,
+          ""
+        ),
         roomId: room.id,
         spaceId: space.id,
         groupSlug: space.slug,
@@ -173,7 +187,6 @@ function SidebarBody({
   activeNav,
   activeSpaceId,
   groups,
-  channels,
   spacesWithRooms,
   canManage,
   communityId,
@@ -187,7 +200,6 @@ function SidebarBody({
   activeNav?: CommunityNavItem;
   activeSpaceId?: string;
   groups: GroupItem[];
-  channels: ChannelItem[];
   spacesWithRooms: WorkspaceSpaceRow[];
   canManage: boolean;
   communityId: string | null;
@@ -241,6 +253,31 @@ function SidebarBody({
     }
     return false;
   }
+
+  const selectedGroupFromPath =
+    groups.find((g) => groupActive(g)) ??
+    (activeSpaceId ? groups.find((g) => g.id === activeSpaceId) : undefined);
+
+  /** When viewing a channel route, resolve its parent Group so Channels stay scoped. */
+  const selectedGroupFromChannel = (() => {
+    if (selectedGroupFromPath) return selectedGroupFromPath;
+    const match = pathname.match(/\/channels\/([^/]+)/);
+    const channelSlug = match?.[1] ? decodeURIComponent(match[1]) : null;
+    if (!channelSlug) return undefined;
+    const space = spacesWithRooms.find((s) =>
+      s.rooms.some((r) => r.slug === channelSlug)
+    );
+    if (!space) return undefined;
+    return groups.find((g) => g.id === space.id);
+  })();
+
+  const selectedGroup = selectedGroupFromPath ?? selectedGroupFromChannel;
+  const selectedSpaceId = selectedGroup?.id ?? null;
+
+  const groupChannels = selectedSpaceId
+    ? buildChannels(slug, spacesWithRooms, { spaceId: selectedSpaceId })
+    : [];
+  const createChannelSpaceId = selectedSpaceId ?? channelsHomeSpaceId;
 
   return (
     <>
@@ -395,52 +432,85 @@ function SidebarBody({
             ) : (
               groups.map((group) => {
                 const active = groupActive(group);
+                const nested =
+                  active
+                    ? buildChannels(slug, spacesWithRooms, { spaceId: group.id })
+                    : [];
                 return (
-                  <Link
-                    key={group.id}
-                    href={`${base}${group.href}`}
-                    onClick={onNavigate}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
-                      active
-                        ? "bg-orange-50 font-semibold text-orange-600"
-                        : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    )}
-                  >
-                    <Users className="h-4 w-4 shrink-0 text-gray-400" />
-                    <span className="truncate">{group.label}</span>
-                    {group.live && (
-                      <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                        Live
-                      </span>
-                    )}
-                    {!group.live && group.unread ? (
-                      <span className="ml-auto rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
-                        {group.unread}
-                      </span>
+                  <div key={group.id} className="space-y-0.5">
+                    <Link
+                      href={`${base}${group.href}`}
+                      onClick={onNavigate}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
+                        active
+                          ? "bg-orange-50 font-semibold text-orange-600"
+                          : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      )}
+                    >
+                      <Users className="h-4 w-4 shrink-0 text-gray-400" />
+                      <span className="truncate">{group.label}</span>
+                      {group.live && (
+                        <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                          Live
+                        </span>
+                      )}
+                      {!group.live && group.unread ? (
+                        <span className="ml-auto rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
+                          {group.unread}
+                        </span>
+                      ) : null}
+                    </Link>
+                    {nested.length > 0 ? (
+                      <div className="ml-3 space-y-0.5 border-l border-gray-100 pl-2">
+                        {nested.map((channel) => {
+                          const chActive = channelActive(channel);
+                          return (
+                            <Link
+                              key={channel.id}
+                              href={
+                                channel.href.startsWith("http") ||
+                                channel.href.startsWith("/communities")
+                                  ? channel.href
+                                  : `${base}${channel.href}`
+                              }
+                              onClick={onNavigate}
+                              className={cn(
+                                "flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] transition-colors",
+                                chActive
+                                  ? "bg-orange-50 font-semibold text-orange-600"
+                                  : "font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                              )}
+                            >
+                              <span aria-hidden>{channel.emoji}</span>
+                              <span className="truncate">{channel.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
                     ) : null}
-                  </Link>
+                  </div>
                 );
               })
             )}
           </nav>
         )}
 
-        {/* CHANNELS */}
+        {/* CHANNELS — scoped to the selected Group (Discussion is Group homepage) */}
         <div className="mb-1.5 flex items-center justify-between px-3">
           <button
             type="button"
             onClick={() => setChannelsOpen((o) => !o)}
             className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400"
           >
-            Channels
+            {selectedGroup ? `${selectedGroup.label} Channels` : "Channels"}
             {channelsOpen ? (
               <ChevronUp className="h-3.5 w-3.5" />
             ) : (
               <ChevronDown className="h-3.5 w-3.5" />
             )}
           </button>
-          {canManage && channelsHomeSpaceId && (
+          {canManage && createChannelSpaceId && (
             <button
               type="button"
               aria-label="Create channel"
@@ -453,33 +523,37 @@ function SidebarBody({
         </div>
         {channelsOpen && (
           <nav className="space-y-0.5">
-            {channels.length === 0 ? (
+            {!selectedGroup ? (
               <div className="mx-1 rounded-xl bg-gray-50 px-3 py-3">
                 <p className="text-[12px] font-medium text-gray-700">
-                  {groups.length === 0
-                    ? "Channels appear inside Groups"
-                    : canManage
-                      ? "No Channels yet"
-                      : "No Channels published yet"}
+                  Open a Group to see Channels
                 </p>
                 <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
-                  {groups.length === 0
-                    ? canManage
-                      ? "Create a Group first, then add Channels."
-                      : "Check back once Groups are published."
-                    : canManage
-                      ? "Add a Channel to start discussions."
-                      : "Your host will publish Channels soon."}
+                  Channels live inside Groups. Discussion opens first so members
+                  can chat immediately.
+                </p>
+              </div>
+            ) : groupChannels.length === 0 ? (
+              <div className="mx-1 rounded-xl bg-gray-50 px-3 py-3">
+                <p className="text-[12px] font-medium text-gray-700">
+                  {canManage ? "No Channels yet" : "No Channels published yet"}
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
+                  Discussion is ready — chat starts in the Group.{" "}
+                  {canManage
+                    ? "Add a Channel when you need a focused room."
+                    : "Your host can add Channels anytime."}
                 </p>
               </div>
             ) : (
-              channels.map((channel) => {
+              groupChannels.map((channel) => {
                 const active = channelActive(channel);
                 return (
                   <Link
                     key={channel.id}
                     href={
-                      channel.href.startsWith("http") || channel.href.startsWith("/communities")
+                      channel.href.startsWith("http") ||
+                      channel.href.startsWith("/communities")
                         ? channel.href
                         : `${base}${channel.href}`
                     }
@@ -518,7 +592,7 @@ function SidebarBody({
       <CreateChannelDialog
         open={createChannelOpen}
         onOpenChange={setCreateChannelOpen}
-        spaceId={channelsHomeSpaceId}
+        spaceId={createChannelSpaceId}
         onCreated={() => {
           router.refresh();
           onNavigate?.();
@@ -547,11 +621,6 @@ export function CommunitySidebar({
     return buildGroups(slug, spacesWithRooms);
   }, [spacesProp, spacesWithRooms, slug]);
 
-  const channels = useMemo(
-    () => buildChannels(slug, spacesWithRooms),
-    [spacesWithRooms, slug]
-  );
-
   const channelsHomeSpaceId = useMemo(
     () => resolveChannelsHomeSpaceId(spacesWithRooms),
     [spacesWithRooms]
@@ -579,7 +648,6 @@ export function CommunitySidebar({
     activeNav,
     activeSpaceId,
     groups,
-    channels,
     spacesWithRooms,
     canManage,
     communityId,
