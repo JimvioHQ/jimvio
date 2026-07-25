@@ -245,24 +245,36 @@ export function HubLivePage({
     });
   }, [media.sharing]);
 
-  const inviteAcceptedRef = useRef(false);
+  const [pendingInvite, setPendingInvite] = useState(false);
+  const invitePromptedRef = useRef(false);
   useEffect(() => {
     if (!live.userId || !live.session) return;
     const me = live.participants.find((p) => p.user_id === live.userId);
-    if (me?.status === "invited" && !inviteAcceptedRef.current) {
-      inviteAcceptedRef.current = true;
-      showToast("Speaker invite received — accepting");
-      void live.acceptInvite().catch(() => {
-        inviteAcceptedRef.current = false;
-      });
+    if (me?.status === "invited") {
+      setPendingInvite(true);
+      if (!invitePromptedRef.current) {
+        invitePromptedRef.current = true;
+        showToast("Speaker invite — Accept to join the stage");
+      }
+      return;
     }
-    if (me?.status === "joined") inviteAcceptedRef.current = false;
-  }, [live.participants, live.userId, live.session, live, showToast]);
+    setPendingInvite(false);
+    if (me?.status === "joined") invitePromptedRef.current = false;
+  }, [live.participants, live.userId, live.session, showToast]);
 
   useEffect(() => {
-    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
+    if (live.session?.status !== "live" || !live.session.started_at) {
+      setElapsed(0);
+      return;
+    }
+    const started = new Date(live.session.started_at).getTime();
+    const tick = () => {
+      setElapsed(Math.max(0, Math.floor((Date.now() - started) / 1000)));
+    };
+    tick();
+    const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [live.session?.status, live.session?.started_at]);
 
   useEffect(() => {
     const sync = () => {
@@ -459,6 +471,27 @@ export function HubLivePage({
     setActivity("live");
     void live.syncMedia({ sharing: false });
   }, [live, media]);
+
+  const leaveLive = useCallback(async () => {
+    if (!live.session) return;
+    if (canEndLive(live.myRole)) {
+      showToast("Host must end the live session");
+      return;
+    }
+    try {
+      media.stopScreenShare();
+      await live.leave();
+      showToast("Left live — discussion stays open");
+      const href =
+        data?.session.discussionHref ??
+        (data?.session.communitySlug
+          ? `/communities/${data.session.communitySlug}`
+          : "/communities");
+      router.push(href);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Could not leave");
+    }
+  }, [live, media, showToast, router, data?.session.discussionHref, data?.session.communitySlug]);
 
   const endLive = useCallback(async () => {
     if (!live.session) {
@@ -806,6 +839,34 @@ export function HubLivePage({
           >
             Retry
           </button>
+        </div>
+      )}
+      {pendingInvite && hasSession && !focusMode && (
+        <div
+          role="status"
+          className="flex shrink-0 items-center justify-between gap-3 bg-[#fd5000] px-4 py-2 text-[12px] text-white"
+        >
+          <p className="min-w-0 truncate font-medium">
+            You’ve been invited to speak on stage.
+          </p>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                void live.acceptInvite()
+                  .then(() => {
+                    setPendingInvite(false);
+                    showToast("You’re on stage");
+                  })
+                  .catch((e) =>
+                    showToast(e instanceof Error ? e.message : "Could not accept")
+                  );
+              }}
+              className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#fd5000]"
+            >
+              Accept
+            </button>
+          </div>
         </div>
       )}
       {/* Header */}
@@ -1183,6 +1244,7 @@ export function HubLivePage({
               )}
             </div>
 
+            {hasSession ? (
             <ControlDock
               activity={activity}
               micOn={micOn}
@@ -1215,7 +1277,10 @@ export function HubLivePage({
               onTimer={() => showToast("Timer started")}
               onSlides={() => showToast("Slides")}
               onEnd={() => void endLive()}
+              onLeave={() => void leaveLive()}
+              canEnd={canEndLive(live.myRole)}
             />
+            ) : null}
           </div>
         </main>
 

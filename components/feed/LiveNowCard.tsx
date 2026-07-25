@@ -81,6 +81,9 @@ export function LiveNowCard() {
             <button
               type="button"
               className="shrink-0 rounded-lg bg-orange-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-orange-600"
+              onClick={() => {
+                window.location.assign("/communities/live");
+              }}
             >
               Join Live
             </button>

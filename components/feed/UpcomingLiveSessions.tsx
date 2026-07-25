@@ -20,6 +20,9 @@ export function UpcomingLiveSessions() {
             <button
               type="button"
               className="shrink-0 rounded-lg border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              onClick={() => {
+                window.location.assign("/communities/live");
+              }}
             >
               Join
             </button>

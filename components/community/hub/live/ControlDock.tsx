@@ -7,6 +7,7 @@ import {
   CircleDot,
   ClipboardList,
   Fullscreen,
+  LogOut,
   Mic,
   MicOff,
   MousePointer2,
@@ -63,6 +64,8 @@ function ControlDockImpl({
   onTimer,
   onSlides,
   onEnd,
+  onLeave,
+  canEnd = true,
 }: {
   activity: ActivityMode;
   micOn: boolean;
@@ -85,6 +88,9 @@ function ControlDockImpl({
   onTimer?: () => void;
   onSlides?: () => void;
   onEnd?: () => void;
+  onLeave?: () => void;
+  /** When false, show Leave instead of End Live (non-host participants). */
+  canEnd?: boolean;
 }) {
   const icon = "h-[18px] w-[18px]";
   const sw = 1.6;
@@ -179,22 +185,41 @@ function ControlDockImpl({
 
         <span className="mx-1.5 hidden h-5 w-px bg-neutral-200/60 sm:block" aria-hidden />
 
-        <button
-          type="button"
-          title="End Live"
-          aria-label="End live session"
-          onClick={onEnd}
-          className={cn(
-            "inline-flex h-10 items-center gap-2 rounded-full bg-red-500/95 px-3.5 text-[12px] font-medium tracking-[-0.01em] text-white",
-            MOTION,
-            FOCUS_RING,
-            "hover:bg-red-500 active:scale-[0.98] sm:px-4"
-          )}
-        >
-          <Square className="h-2.5 w-2.5" fill="currentColor" aria-hidden />
-          <span className="hidden sm:inline">End Live</span>
-          <span className="sm:hidden">End</span>
-        </button>
+        {canEnd ? (
+          <button
+            type="button"
+            title="End Live"
+            aria-label="End live session"
+            onClick={onEnd}
+            className={cn(
+              "inline-flex h-10 items-center gap-2 rounded-full bg-red-500/95 px-3.5 text-[12px] font-medium tracking-[-0.01em] text-white",
+              MOTION,
+              FOCUS_RING,
+              "hover:bg-red-500 active:scale-[0.98] sm:px-4"
+            )}
+          >
+            <Square className="h-2.5 w-2.5" fill="currentColor" aria-hidden />
+            <span className="hidden sm:inline">End Live</span>
+            <span className="sm:hidden">End</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            title="Leave Live"
+            aria-label="Leave live session"
+            onClick={onLeave}
+            className={cn(
+              "inline-flex h-10 items-center gap-2 rounded-full bg-neutral-900/90 px-3.5 text-[12px] font-medium tracking-[-0.01em] text-white",
+              MOTION,
+              FOCUS_RING,
+              "hover:bg-neutral-900 active:scale-[0.98] sm:px-4"
+            )}
+          >
+            <LogOut className="h-3.5 w-3.5" aria-hidden />
+            <span className="hidden sm:inline">Leave</span>
+            <span className="sm:hidden">Leave</span>
+          </button>
+        )}
       </div>
     </div>
   );

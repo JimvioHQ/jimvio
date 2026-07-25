@@ -46,7 +46,9 @@ assert.match(tokenRoute, /rateLimit/);
 assert.match(liveApi, /slug|communityId/);
 assert.match(liveApi, /getHubLiveDashboard/);
 
-assert.match(hubLive, /communitySlug/);
+assert.match(hubLive, /onLeave|leaveLive/);
+assert.match(hubLive, /Accept|pendingInvite/);
+assert.match(hubLive, /started_at/);
 assert.match(hubLive, /Discussion/);
 assert.match(hubLive, /liveStatusLabel|ENDED|UPCOMING|OFFLINE/);
 assert.match(hubLive, /discussionHref/);
@@ -61,4 +63,12 @@ assert.match(roles, /cohost/);
 
 assert.match(collabVerify, /Live collaboration suite/);
 
+const dock = mustExist("components/community/hub/live/ControlDock.tsx");
+assert.match(dock, /onLeave/);
+assert.match(dock, /Leave/);
+assert.match(sessionSvc, /assertCanHostLive|creator/);
+assert.match(sessionSvc, /Join the live session before requesting/);
+assert.match(sessionSvc, /No pending speak request/);
+
 console.log("verify-live-experience: ok");
+

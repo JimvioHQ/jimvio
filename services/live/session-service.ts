@@ -62,6 +62,20 @@ async function assertCommunityStaff(userId: string, communityId: string) {
   return COMMUNITY_STAFF_ROLES.has(membership?.role ?? "");
 }
 
+/** Matches workspace `live.manage` (owner/admin/moderator/creator). */
+async function assertCanHostLive(userId: string, communityId: string) {
+  const { data: community } = await db()
+    .from("communities")
+    .select("owner_id")
+    .eq("id", communityId)
+    .single();
+  if (community?.owner_id === userId) return true;
+  const membership = await getUserMembership(userId, communityId);
+  if (!isMembershipActive(membership)) return false;
+  const role = membership?.role ?? "";
+  return COMMUNITY_STAFF_ROLES.has(role) || role === "creator";
+}
+
 async function assertCommunityMember(userId: string, communityId: string) {
   const { data: community } = await db()
     .from("communities")
@@ -120,8 +134,8 @@ export async function createLiveSession(input: {
   roomId?: string | null;
   title?: string;
 }): Promise<{ session: LiveSessionRow } | { error: string; status: number }> {
-  const ok = await assertCommunityStaff(input.userId, input.communityId);
-  if (!ok) return { error: "Only community staff can create a live session", status: 403 };
+  const ok = await assertCanHostLive(input.userId, input.communityId);
+  if (!ok) return { error: "Only community hosts can create a live session", status: 403 };
 
   let roomId = input.roomId ?? null;
   let spaceId: string | null = null;
@@ -353,19 +367,30 @@ export async function requestSpeak(
 ): Promise<{ participant: LiveParticipantRow } | { error: string; status: number }> {
   const session = await getSession(sessionId);
   if (!session || session.status !== "live") return { error: "Session not live", status: 400 };
+
+  const member = await assertCommunityMember(userId, session.community_id);
+  if (!member) return { error: "Not a community member", status: 403 };
+
+  const existing = await getParticipant(sessionId, userId);
+  if (!existing || existing.status === "left" || existing.status === "removed") {
+    return { error: "Join the live session before requesting to speak", status: 403 };
+  }
+  if (existing.status === "rejected") {
+    return { error: "Your previous request was declined", status: 403 };
+  }
+  if (existing.role === "host" || existing.role === "cohost" || existing.role === "speaker") {
+    return { error: "Already on stage", status: 400 };
+  }
+
   const { data, error } = await db()
     .from("live_session_participants")
-    .upsert(
-      {
-        session_id: sessionId,
-        user_id: userId,
-        role: "viewer",
-        status: "requested",
-        hand_raised: true,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "session_id,user_id" }
-    )
+    .update({
+      status: "requested",
+      hand_raised: true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("session_id", sessionId)
+    .eq("user_id", userId)
     .select("*")
     .single();
   if (error || !data) return { error: error?.message ?? "Request failed", status: 400 };
@@ -403,6 +428,11 @@ export async function acceptSpeaker(
 ): Promise<{ participant: LiveParticipantRow } | { error: string; status: number }> {
   const actor = await getParticipant(sessionId, actorId);
   if (!actor || !canAcceptSpeaker(actor.role)) return { error: "Not allowed", status: 403 };
+
+  const target = await getParticipant(sessionId, targetUserId);
+  if (!target || (target.status !== "requested" && target.status !== "invited")) {
+    return { error: "No pending speak request or invite", status: 400 };
+  }
 
   const { data, error } = await db()
     .from("live_session_participants")
