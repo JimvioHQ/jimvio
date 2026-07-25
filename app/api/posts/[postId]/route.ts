@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
+import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
+import type { Database } from "@/types/supabase";
 
 export const dynamic = "force-dynamic";
-
-import type { Database } from "@/types/supabase";
 
 type PostUpdate = Database["public"]["Tables"]["community_posts"]["Update"];
 
@@ -95,6 +95,10 @@ export async function PATCH(
   const update: PostUpdate = {};
   for (const k of allowed) {
     if (k in patch) (update as Record<string, unknown>)[k] = patch[k];
+  }
+
+  if ("images" in update) {
+    update.images = sanitizePostImageUrls(update.images) as never;
   }
 
   // Authors may edit content; only staff may change pin / exclusivity / publish flags.

@@ -1,7 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  subscribePostgresChangesMany,
+  unsubscribeRealtime,
+} from "@/lib/supabase/realtime-subscribe";
+import { toast } from "sonner";
 import {
     Image as ImageIcon,
     Send,
@@ -140,10 +145,20 @@ const FEED_FILTER_MAP: Record<string, string> = {
     "ai-picks": "ai-picks",
 };
 
-export function FeedSection({ filter = "for-you", variant = "default" }: { filter?: string; variant?: "default" | "hub" }) {
-    const supabase = createClient();
+export function FeedSection({
+  filter = "for-you",
+  variant = "default",
+  communityId,
+}: {
+  filter?: string;
+  variant?: "default" | "hub";
+  /** When set, scopes the feed to a single community (e.g. /communities/[slug]/feed). */
+  communityId?: string;
+}) {
+    const supabase = useMemo(() => createClient(), []);
     const feedFilter = FEED_FILTER_MAP[filter] ?? "for-you";
     const isHub = variant === "hub";
+    const scopedCommunityId = communityId ?? null;
 
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [memberships, setMemberships] = useState<Membership[]>([]);
@@ -248,11 +263,16 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
             );
 
             setCommunities(enriched);
-            if (enriched.length > 0) setSelectedCommunity(enriched[0]);
+            if (scopedCommunityId) {
+                const scoped = enriched.find((c) => c.id === scopedCommunityId) ?? null;
+                setSelectedCommunity(scoped);
+            } else if (enriched.length > 0) {
+                setSelectedCommunity(enriched[0]);
+            }
         }
         bootstrap();
         return () => { cancelled = true; };
-    }, [supabase]);
+    }, [supabase, scopedCommunityId]);
 
     // ── Close community picker on outside click ───────────────────────────────
     useEffect(() => {
@@ -283,17 +303,28 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
         if (replace) setLoading(true);
         try {
             const params = new URLSearchParams({ limit: String(PAGE_SIZE), filter: feedFilter });
+            if (scopedCommunityId) params.set("community_id", scopedCommunityId);
             const res = await fetch(`/api/posts/feed?${params}`);
             const data = await res.json();
+            if (!res.ok) {
+                toast.error(data.error || "Failed to load feed");
+                if (replace) setPosts([]);
+                setHasMore(false);
+                setCursor(null);
+                return;
+            }
             const normalized = (data.posts ?? []).map(normalizePost);
 
             if (replace) {
                 setPosts(normalized);
             } else {
-                setPosts((prev) => [...prev, ...normalized]);
+                setPosts((prev) => {
+                    const seen = new Set(prev.map((p) => p.id));
+                    return [...prev, ...normalized.filter((p: Post) => !seen.has(p.id))];
+                });
             }
 
-            setHasMore((data.posts ?? []).length === PAGE_SIZE);
+            setHasMore(Boolean(data.next_cursor));
             setCursor(data.next_cursor ?? null);
 
             // Sync liked + saved IDs from server response
@@ -304,7 +335,7 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
         } finally {
             if (replace) setLoading(false);
         }
-    }, [feedFilter]);
+    }, [feedFilter, scopedCommunityId]);
 
     useEffect(() => { load(); }, [load]);
 
@@ -328,12 +359,24 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
         if (!cursor || loadingMore) return;
         setLoadingMore(true);
         try {
-            const params = new URLSearchParams({ limit: String(PAGE_SIZE), cursor, filter: feedFilter });
+            const params = new URLSearchParams({
+                limit: String(PAGE_SIZE),
+                cursor,
+                filter: feedFilter,
+            });
+            if (scopedCommunityId) params.set("community_id", scopedCommunityId);
             const res = await fetch(`/api/posts/feed?${params}`);
             const data = await res.json();
+            if (!res.ok) {
+                toast.error(data.error || "Failed to load more posts");
+                return;
+            }
             const normalized = (data.posts ?? []).map(normalizePost);
-            setPosts((prev) => [...prev, ...normalized]);
-            setHasMore((data.posts ?? []).length === PAGE_SIZE);
+            setPosts((prev) => {
+                const seen = new Set(prev.map((p) => p.id));
+                return [...prev, ...normalized.filter((p: Post) => !seen.has(p.id))];
+            });
+            setHasMore(Boolean(data.next_cursor));
             setCursor(data.next_cursor ?? null);
 
             const liked = new Set<string>(
@@ -371,63 +414,113 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
 
     // ── Realtime subscription on community_posts ──────────────────────────────
     useEffect(() => {
-        // Clean up previous channel
-        if (realtimeRef.current) {
-            supabase.removeChannel(realtimeRef.current);
-            realtimeRef.current = null;
-        }
+        if (memberships.length === 0 && !scopedCommunityId) return;
 
-        const channel = supabase
-            .channel("feed:community_posts")
-            .on(
-                "postgres_changes",
-                { event: "INSERT", schema: "public", table: "community_posts" },
-                async (payload: any) => {
-                    // Fetch full post with profile join
-                    const { data } = await supabase
-                        .from("community_posts")
-                        .select("*, profiles:author_id(id, full_name, avatar_url, username)")
-                        .eq("id", payload.new.id)
-                        .single();
-                    if (!data) return;
-                    const normalized = normalizePost(data as Post);
-                    setPosts((prev) => {
-                        if (prev.find((p) => p.id === normalized.id)) return prev;
-                        const without = prev.filter((p) => p.id !== normalized.id);
-                        if (normalized.is_pinned) {
-                            return [normalized, ...without];
-                        }
-                        const pinned = without.filter((p) => p.is_pinned);
-                        const rest = without.filter((p) => !p.is_pinned);
-                        return [...pinned, normalized, ...rest];
-                    });
-                }
-            )
-            .on(
-                "postgres_changes",
-                { event: "UPDATE", schema: "public", table: "community_posts" },
-                (payload: any) => {
-                    setPosts((prev) =>
-                        prev.map((p) =>
-                            p.id === payload.new.id ? normalizePost({ ...p, ...payload.new } as Post) : p
-                        )
-                    );
-                }
-            )
-            .on(
-                "postgres_changes",
-                { event: "DELETE", schema: "public", table: "community_posts" },
-                (payload: any) => {
-                    setPosts((prev) => prev.filter((p) => p.id !== payload.old.id));
-                }
-            )
-            .subscribe();
+        const allowed = new Set(
+            scopedCommunityId
+                ? [scopedCommunityId]
+                : memberships.map((m) => m.community_id)
+        );
+        let cancelled = false;
+        let channel: Awaited<ReturnType<typeof subscribePostgresChangesMany>> = null;
+        const channelName = scopedCommunityId
+            ? `feed:community_posts:${scopedCommunityId}`
+            : "feed:community_posts";
 
-        realtimeRef.current = channel;
+        void (async () => {
+            channel = await subscribePostgresChangesMany(
+                supabase,
+                channelName,
+                [
+                    {
+                        config: {
+                            event: "INSERT",
+                            schema: "public",
+                            table: "community_posts",
+                            ...(scopedCommunityId
+                                ? { filter: `community_id=eq.${scopedCommunityId}` }
+                                : {}),
+                        },
+                        onChange: async (payload) => {
+                            const row = payload?.new;
+                            if (!row?.id) return;
+                            if (!allowed.has(String(row.community_id))) return;
+                            if (row.is_published === false) return;
+                            const { data } = await supabase
+                                .from("community_posts")
+                                .select(
+                                    "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username)"
+                                )
+                                .eq("id", String(row.id))
+                                .eq("is_published", true)
+                                .maybeSingle();
+                            if (!data || cancelled) return;
+                            const normalized = normalizePost(data as Post);
+                            setPosts((prev) => {
+                                if (prev.find((p) => p.id === normalized.id)) return prev;
+                                const without = prev.filter((p) => p.id !== normalized.id);
+                                if (normalized.is_pinned) {
+                                    return [normalized, ...without];
+                                }
+                                const pinned = without.filter((p) => p.is_pinned);
+                                const rest = without.filter((p) => !p.is_pinned);
+                                return [...pinned, normalized, ...rest];
+                            });
+                        },
+                    },
+                    {
+                        config: {
+                            event: "UPDATE",
+                            schema: "public",
+                            table: "community_posts",
+                            ...(scopedCommunityId
+                                ? { filter: `community_id=eq.${scopedCommunityId}` }
+                                : {}),
+                        },
+                        onChange: (payload) => {
+                            const row = payload?.new;
+                            if (!row?.id) return;
+                            if (!allowed.has(String(row.community_id))) return;
+                            if (row.is_published === false) {
+                                setPosts((prev) => prev.filter((p) => p.id !== row.id));
+                                return;
+                            }
+                            setPosts((prev) =>
+                                prev.map((p) =>
+                                    p.id === row.id
+                                        ? normalizePost({ ...p, ...row } as Post)
+                                        : p
+                                )
+                            );
+                        },
+                    },
+                    {
+                        config: {
+                            event: "DELETE",
+                            schema: "public",
+                            table: "community_posts",
+                            ...(scopedCommunityId
+                                ? { filter: `community_id=eq.${scopedCommunityId}` }
+                                : {}),
+                        },
+                        onChange: (payload) => {
+                            const id = payload?.old?.id;
+                            if (!id) return;
+                            setPosts((prev) => prev.filter((p) => p.id !== id));
+                        },
+                    },
+                ],
+                () => cancelled
+            );
+            realtimeRef.current = channel;
+        })();
+
         return () => {
-            supabase.removeChannel(channel);
+            cancelled = true;
+            unsubscribeRealtime(supabase, channel, channelName);
+            realtimeRef.current = null;
         };
-    }, [supabase]);
+    }, [supabase, memberships, scopedCommunityId]);
 
     // ── Image upload ──────────────────────────────────────────────────────────
     async function handleImageUpload(files: FileList | null) {
@@ -446,6 +539,7 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                 );
             } catch {
                 setPendingImages((prev) => prev.filter((img) => img !== tempEntry));
+                toast.error(`Failed to upload ${file.name}`);
             } finally {
                 setUploading(false);
             }
@@ -517,9 +611,11 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 setComposerError(err.error ?? "Failed to post. Please try again.");
+                toast.error(err.error ?? "Failed to post");
                 return;
             }
 
+            const created = await res.json().catch(() => ({}));
             setComposer("");
             setPollOptions(["", ""]);
             setComposerMode("discussion");
@@ -530,13 +626,27 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
             setLiveAttachId("");
             setShowAttachPanel(false);
             if (asDraft) {
+                toast.success("Draft saved");
                 await loadDrafts();
                 setShowDrafts(true);
+            } else if (created.post) {
+                const normalized = normalizePost(created.post);
+                setPosts((prev) => {
+                    if (prev.find((p) => p.id === normalized.id)) return prev;
+                    const without = prev.filter((p) => p.id !== normalized.id);
+                    if (normalized.is_pinned) return [normalized, ...without];
+                    const pinned = without.filter((p) => p.is_pinned);
+                    const rest = without.filter((p) => !p.is_pinned);
+                    return [...pinned, normalized, ...rest];
+                });
+                toast.success("Post published");
             } else {
+                toast.success("Post published");
                 await load();
             }
         } catch {
             setComposerError("Network error. Please try again.");
+            toast.error("Network error. Please try again.");
         } finally {
             setSaving(false);
         }
@@ -590,7 +700,11 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ optionIndex }),
         });
-        if (!res.ok) return;
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            toast.error(err.error || "Failed to record vote");
+            return;
+        }
         const data = await res.json();
         if (data.options) {
             setPosts((prev) =>
@@ -625,8 +739,8 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
 
         try {
             const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
-            if (!res.ok) throw new Error("like failed");
-        } catch {
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "like failed");
+        } catch (e: unknown) {
             // Revert
             setLikedIds((prev) => {
                 const next = new Set(prev);
@@ -640,28 +754,48 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
                         : p
                 )
             );
+            toast.error(e instanceof Error ? e.message : "Failed to update like");
         }
     }
 
     // ── Toggle save ───────────────────────────────────────────────────────────
     async function toggleSave(postId: string) {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        if (savedIds.has(postId)) {
-            setSavedIds((s) => { const n = new Set(s); n.delete(postId); return n; });
-            await supabase
-                .from("community_saved_posts")
-                .delete()
-                .eq("post_id", postId)
-                .eq("user_id", user.id);
-        } else {
-            setSavedIds((s) => new Set(s).add(postId));
-            const { error } = await supabase
-                .from("community_saved_posts")
-                .insert({ post_id: postId, user_id: user.id });
-            if (error) {
-                setSavedIds((s) => { const n = new Set(s); n.delete(postId); return n; });
+        if (!user) {
+            toast.error("Sign in to bookmark posts");
+            return;
+        }
+        const wasSaved = savedIds.has(postId);
+        setSavedIds((s) => {
+            const n = new Set(s);
+            if (wasSaved) n.delete(postId);
+            else n.add(postId);
+            return n;
+        });
+        try {
+            if (wasSaved) {
+                const { error } = await supabase
+                    .from("community_saved_posts")
+                    .delete()
+                    .eq("post_id", postId)
+                    .eq("user_id", user.id);
+                if (error) throw error;
+                toast.success("Bookmark removed");
+            } else {
+                const { error } = await supabase
+                    .from("community_saved_posts")
+                    .insert({ post_id: postId, user_id: user.id });
+                if (error) throw error;
+                toast.success("Post bookmarked");
             }
+        } catch (e: unknown) {
+            setSavedIds((s) => {
+                const n = new Set(s);
+                if (wasSaved) n.add(postId);
+                else n.delete(postId);
+                return n;
+            });
+            toast.error(e instanceof Error ? e.message : "Failed to update bookmark");
         }
     }
 
@@ -672,6 +806,10 @@ export function FeedSection({ filter = "for-you", variant = "default" }: { filte
         if (res.ok) {
             setPosts((prev) => prev.filter((p) => p.id !== postId));
             if (detailId === postId) setDetailId(null);
+            toast.success("Post deleted");
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast.error(err.error || "Failed to delete post");
         }
     }
 
@@ -1186,6 +1324,8 @@ function PostCard({
                     <img
                         src={profile.avatar_url}
                         alt={name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-10 h-10 rounded-full object-cover ring-1 ring-border"
                     />
                 ) : (
@@ -1307,6 +1447,8 @@ function PostCard({
                             key={url}
                             src={url}
                             alt=""
+                            loading="lazy"
+                            decoding="async"
                             className="h-32 w-auto rounded-lg object-cover border border-border"
                         />
                     ))}
@@ -1399,46 +1541,61 @@ function PostDetailPanel({
         return () => { cancelled = true; };
     }, [postId]);
 
-    // Realtime on comments
+    // Realtime on comments (shared chat realtime subscribe helper)
     useEffect(() => {
-        const channel = supabase
-            .channel(`post-comments:${postId}`)
-            .on(
-                "postgres_changes",
-                {
-                    event: "INSERT",
-                    schema: "public",
-                    table: "community_post_comments",
-                    filter: `post_id=eq.${postId}`,
-                },
-                async (payload: any) => {
-                    const { data } = await supabase
-                        .from("community_post_comments")
-                        .select("*, profiles:author_id(id, full_name, avatar_url, username)")
-                        .eq("id", payload.new.id)
-                        .single();
-                    if (!data) return;
-                    setComments((prev) => {
-                        if (prev.find((c) => c.id === data.id)) return prev;
-                        return [...prev, data as Comment];
-                    });
-                }
-            )
-            .on(
-                "postgres_changes",
-                {
-                    event: "DELETE",
-                    schema: "public",
-                    table: "community_post_comments",
-                    filter: `post_id=eq.${postId}`,
-                },
-                (payload: any) => {
-                    setComments((prev) => prev.filter((c) => c.id !== payload.old.id));
-                }
-            )
-            .subscribe();
+        let cancelled = false;
+        let channel: Awaited<ReturnType<typeof subscribePostgresChangesMany>> = null;
+        const channelName = `post-comments:${postId}`;
 
-        return () => { supabase.removeChannel(channel); };
+        void (async () => {
+            channel = await subscribePostgresChangesMany(
+                supabase,
+                channelName,
+                [
+                    {
+                        config: {
+                            event: "INSERT",
+                            schema: "public",
+                            table: "community_post_comments",
+                            filter: `post_id=eq.${postId}`,
+                        },
+                        onChange: async (payload) => {
+                            const id = payload?.new?.id;
+                            if (!id) return;
+                            const { data } = await supabase
+                                .from("community_post_comments")
+                                .select("*, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)")
+                                .eq("id", String(id))
+                                .single();
+                            if (!data || cancelled) return;
+                            setComments((prev) => {
+                                if (prev.find((c) => c.id === data.id)) return prev;
+                                return [...prev, data as Comment];
+                            });
+                        },
+                    },
+                    {
+                        config: {
+                            event: "DELETE",
+                            schema: "public",
+                            table: "community_post_comments",
+                            filter: `post_id=eq.${postId}`,
+                        },
+                        onChange: (payload) => {
+                            const id = payload?.old?.id;
+                            if (!id) return;
+                            setComments((prev) => prev.filter((c) => c.id !== id));
+                        },
+                    },
+                ],
+                () => cancelled
+            );
+        })();
+
+        return () => {
+            cancelled = true;
+            unsubscribeRealtime(supabase, channel, channelName);
+        };
     }, [postId, supabase]);
 
     async function sendComment() {
@@ -1477,6 +1634,10 @@ function PostDetailPanel({
         const res = await fetch(`/api/posts/${postId}/comments/${commentId}`, { method: "DELETE" });
         if (res.ok) {
             setComments((prev) => prev.filter((c) => c.id !== commentId));
+            toast.success("Comment deleted");
+        } else {
+            const err = await res.json().catch(() => ({}));
+            toast.error(err.error || "Failed to delete comment");
         }
     }
 

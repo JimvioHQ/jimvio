@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
 import { notifyPostAuthor } from "@/lib/community/notify-community";
+import { assertCanCommentInRoom } from "@/lib/community/workspace/assert-can-publish";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ postId: string }> }
 ) {
   const { postId } = await params;
@@ -26,15 +27,29 @@ export async function GET(
   const hasAccess = await canAccessRoom(user.id, post.room_id);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
 
-  const { data, error } = await supabase
+  const { searchParams } = new URL(req.url);
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
+  const before = searchParams.get("before");
+
+  let query = supabase
     .from("community_post_comments")
     .select("*, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)")
     .eq("post_id", postId)
-    .eq("is_published", true)
-    .order("created_at", { ascending: true });
+    .eq("is_published", true);
+
+  if (before) query = query.lt("created_at", before);
+
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .limit(limit);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ comments: data });
+
+  const comments = ((data ?? []) as { created_at: string }[]).slice().reverse();
+  const nextCursor =
+    comments.length === limit ? comments[0]?.created_at ?? null : null;
+
+  return NextResponse.json({ comments, nextCursor });
 }
 
 export async function POST(
@@ -59,16 +74,38 @@ export async function POST(
   const hasAccess = await canAccessRoom(user.id, post.room_id);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
 
+  const commentGate = await assertCanCommentInRoom(supabase, user.id, post.room_id);
+  if (!commentGate.ok) {
+    return NextResponse.json(
+      { error: commentGate.error },
+      { status: commentGate.status }
+    );
+  }
+
   const { body, parent_id } = (await req.json()) as { body?: string; parent_id?: string | null };
   const text = body?.trim();
   if (!text) return NextResponse.json({ error: "body required" }, { status: 400 });
+
+  let parentId: string | null = null;
+  if (typeof parent_id === "string" && parent_id) {
+    const { data: parent } = await supabase
+      .from("community_post_comments")
+      .select("id, post_id")
+      .eq("id", parent_id)
+      .eq("post_id", postId)
+      .maybeSingle();
+    if (!parent) {
+      return NextResponse.json({ error: "Invalid parent comment" }, { status: 400 });
+    }
+    parentId = parent.id;
+  }
 
   const { data, error } = await supabase
     .from("community_post_comments")
     .insert({
       post_id: postId,
       author_id: user.id,
-      parent_id: parent_id || null,
+      parent_id: parentId,
       body: text,
     })
     .select("*, profiles!community_post_comments_author_id_fkey(full_name, avatar_url, username)")
@@ -76,6 +113,7 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await supabase.rpc("increment_post_comment_count" as any, { p_post_id: postId });
 
   void notifyPostAuthorOfComment(supabase, post, postId, user.id, data);

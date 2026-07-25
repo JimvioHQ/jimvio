@@ -1,5 +1,5 @@
 /**
- * Server helper: resolve whether a user may publish in a room (Channel).
+ * Server helper: resolve whether a user may publish / comment in a room (Channel).
  * Reuses the workspace posting policy + membership role engine.
  */
 
@@ -11,11 +11,11 @@ import {
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-export async function assertCanPublishInRoom(
+async function resolveRoomPostingAccess(
   supabase: Supabase,
   userId: string,
   roomId: string
-): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+) {
   const { data: room } = await supabase
     .from("rooms")
     .select(
@@ -25,7 +25,7 @@ export async function assertCanPublishInRoom(
     .maybeSingle();
 
   if (!room) {
-    return { ok: false, status: 404, error: "Room not found" };
+    return { room: null as null, access: null };
   }
 
   const { data: community } = await supabase
@@ -75,14 +75,43 @@ export async function assertCanPublishInRoom(
     channelStaff,
   });
 
+  return { room, access };
+}
+
+export async function assertCanPublishInRoom(
+  supabase: Supabase,
+  userId: string,
+  roomId: string
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const { room, access } = await resolveRoomPostingAccess(supabase, userId, roomId);
+  if (!room || !access) {
+    return { ok: false, status: 404, error: "Room not found" };
+  }
   if (!access.canPublish) {
     return {
       ok: false,
       status: 403,
-      error:
-        "Only authorized publishers can post in this channel.",
+      error: "Only authorized publishers can post in this channel.",
     };
   }
+  return { ok: true };
+}
 
+export async function assertCanCommentInRoom(
+  supabase: Supabase,
+  userId: string,
+  roomId: string
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const { room, access } = await resolveRoomPostingAccess(supabase, userId, roomId);
+  if (!room || !access) {
+    return { ok: false, status: 404, error: "Room not found" };
+  }
+  if (!access.canComment) {
+    return {
+      ok: false,
+      status: 403,
+      error: "You do not have permission to comment in this channel.",
+    };
+  }
   return { ok: true };
 }

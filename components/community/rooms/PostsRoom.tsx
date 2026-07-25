@@ -35,6 +35,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
+import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ type Post = {
   comment_count: number | null;
   is_pinned: boolean | null;
   created_at: string;
+  user_has_liked?: boolean;
   profiles?: Profile | null;
 };
 
@@ -216,11 +218,13 @@ function PostCard({
                 type="button"
                 className={cn(
                   "inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-sm transition-colors",
-                  "hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-rose-500"
+                  post.user_has_liked
+                    ? "bg-rose-500/10 text-rose-500"
+                    : "hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-rose-500"
                 )}
                 onClick={() => setShowReactions((v) => !v)}
               >
-                <Heart className="h-3.5 w-3.5" />
+                <Heart className={cn("h-3.5 w-3.5", post.user_has_liked && "fill-current")} />
                 <span>{post.like_count ?? 0}</span>
               </button>
               {showReactions && (
@@ -341,6 +345,7 @@ export function PostsRoom({
         );
       } catch (err) {
         setPendingImages((prev) => prev.filter((img) => img !== tempImage));
+        toast.error(err instanceof Error ? err.message : `Failed to upload ${file.name}`);
       } finally {
         setUploading(false);
       }
@@ -352,9 +357,11 @@ export function PostsRoom({
     try {
       const res = await fetch(`/api/posts?roomId=${encodeURIComponent(roomId)}`);
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load posts");
       setPosts(data.posts ?? []);
-    } catch {
+    } catch (e: unknown) {
       setPosts([]);
+      toast.error(e instanceof Error ? e.message : "Failed to load posts");
     } finally {
       setLoading(false);
     }
@@ -372,12 +379,16 @@ export function PostsRoom({
       if (cancelled || !data) return;
       setSavedIds(new Set(data.map((r: { post_id: string }) => r.post_id)));
     }
-    loadSaved();
+    void loadSaved();
     return () => { cancelled = true; };
-  }, [posts]);
+  }, [roomId]);
 
   async function submitPost() {
     if (!body.trim()) return;
+    if (!navigator.onLine) {
+      toast.error("You're offline — reconnect to post.");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/posts", {
@@ -391,34 +402,85 @@ export function PostsRoom({
           images: pendingImages.filter((img) => img.url).map((img) => img.url),
         }),
       });
-      if (!res.ok) throw new Error("Failed");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to create post");
       setCreateOpen(false);
       setTitle("");
       setBody("");
       setPendingImages([]);
+      toast.success("Post published");
       await load();
-    } catch (e) {
+    } catch (e: unknown) {
       console.error(e);
+      toast.error(e instanceof Error ? e.message : "Failed to create post");
     } finally {
       setSaving(false);
     }
   }
 
   async function toggleLike(postId: string) {
-    await fetch(`/api/posts/${postId}/like`, { method: "POST" });
-    await load();
+    const prev = posts;
+    setPosts((list) =>
+      list.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              like_count: Math.max(
+                0,
+                (p.like_count ?? 0) + (p.user_has_liked ? -1 : 1)
+              ),
+              user_has_liked: !p.user_has_liked,
+            }
+          : p
+      )
+    );
+    try {
+      const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Like failed");
+    } catch (e: unknown) {
+      setPosts(prev);
+      toast.error(e instanceof Error ? e.message : "Failed to update like");
+    }
   }
 
   async function toggleSave(postId: string) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    if (savedIds.has(postId)) {
-      await supabase.from("community_saved_posts").delete().eq("post_id", postId).eq("user_id", user.id);
-      setSavedIds((s) => { const n = new Set(s); n.delete(postId); return n; });
-    } else {
-      await supabase.from("community_saved_posts").insert({ post_id: postId, user_id: user.id });
-      setSavedIds((s) => new Set(s).add(postId));
+    if (!user) {
+      toast.error("Sign in to bookmark posts");
+      return;
+    }
+    const wasSaved = savedIds.has(postId);
+    setSavedIds((s) => {
+      const n = new Set(s);
+      if (wasSaved) n.delete(postId);
+      else n.add(postId);
+      return n;
+    });
+    try {
+      if (wasSaved) {
+        const { error } = await supabase
+          .from("community_saved_posts")
+          .delete()
+          .eq("post_id", postId)
+          .eq("user_id", user.id);
+        if (error) throw error;
+        toast.success("Bookmark removed");
+      } else {
+        const { error } = await supabase
+          .from("community_saved_posts")
+          .insert({ post_id: postId, user_id: user.id });
+        if (error) throw error;
+        toast.success("Post bookmarked");
+      }
+    } catch (e: unknown) {
+      setSavedIds((s) => {
+        const n = new Set(s);
+        if (wasSaved) n.add(postId);
+        else n.delete(postId);
+        return n;
+      });
+      toast.error(e instanceof Error ? e.message : "Failed to update bookmark");
     }
   }
 
@@ -681,6 +743,8 @@ function PostDetailPanel({
   const [comments, setComments] = useState<Comment[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
@@ -689,27 +753,51 @@ function PostDetailPanel({
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const res = await fetch(`/api/posts/${postId}/comments`);
-      const data = await res.json();
-      if (!cancelled && res.ok) setComments(data.comments ?? []);
-      if (!cancelled) setLoading(false);
+      try {
+        const res = await fetch(`/api/posts/${postId}/comments`);
+        const data = await res.json();
+        if (!cancelled && res.ok) setComments(data.comments ?? []);
+        if (!cancelled && !res.ok) {
+          toast.error(data.error || "Failed to load comments");
+        }
+      } catch {
+        if (!cancelled) toast.error("Failed to load comments");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
     return () => { cancelled = true; };
   }, [postId]);
 
   async function sendComment() {
-    if (!postId || !text.trim()) return;
-    const res = await fetch(`/api/posts/${postId}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body: text.trim(), parent_id: replyTo?.id ?? null }),
-    });
-    if (!res.ok) return;
-    setText("");
-    setReplyTo(null);
-    const data = await res.json();
-    setComments((c) => [...c, data.comment]);
-    onChanged();
+    if (!postId || !text.trim() || sending) return;
+    setSendError(null);
+    setSending(true);
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: text.trim(), parent_id: replyTo?.id ?? null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setSendError(data.error || "Failed to post comment");
+        toast.error(data.error || "Failed to post comment");
+        return;
+      }
+      setText("");
+      setReplyTo(null);
+      setComments((c) => {
+        if (data.comment?.id && c.find((cm) => cm.id === data.comment.id)) return c;
+        return data.comment ? [...c, data.comment] : c;
+      });
+      onChanged();
+    } catch {
+      setSendError("Network error. Please try again.");
+      toast.error("Network error. Please try again.");
+    } finally {
+      setSending(false);
+    }
   }
 
   function handleReply(c: Comment) {
@@ -847,16 +935,19 @@ function PostDetailPanel({
               rows={2}
               className="rounded-sm border-[var(--color-border)] resize-none text-sm focus:ring-[var(--color-accent)]"
             />
+            {sendError && (
+              <p className="text-[11px] text-red-500 font-medium">{sendError}</p>
+            )}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-[var(--color-text-muted)] font-black">âŒ˜â†µ to post</span>
+              <span className="text-[10px] text-[var(--color-text-muted)] font-black">⌘↵ to post</span>
               <Button
                 type="button"
                 size="sm"
                 className="rounded-sm bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-black px-6"
-                disabled={!text.trim()}
+                disabled={!text.trim() || sending}
                 onClick={sendComment}
               >
-                Post
+                {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Post"}
               </Button>
             </div>
           </div>

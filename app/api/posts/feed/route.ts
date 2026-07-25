@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { Json } from "@/types/supabase";
+import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
+import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
 
 export const dynamic = "force-dynamic";
 
@@ -57,10 +59,11 @@ export async function GET(req: NextRequest) {
   switch (filter) {
     case "trending":
     case "ai-picks":
+      // Keep created_at keyset pagination correct (no like_count cursor skew).
       query = query
         .gte("created_at", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
-        .order("like_count", { ascending: false })
-        .order("comment_count", { ascending: false })
+        .or("like_count.gte.1,comment_count.gte.1")
+        .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false });
       break;
     case "following":
@@ -197,6 +200,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Community has no room for posts" }, { status: 400 });
   }
 
+  const publishGate = await assertCanPublishInRoom(supabase, user.id, roomId);
+  if (!publishGate.ok) {
+    return NextResponse.json(
+      { error: publishGate.error },
+      { status: publishGate.status }
+    );
+  }
+
   const postType = body.post_type ?? "discussion";
   const pollOptions = (body.poll_options ?? [])
     .map((o) => o.trim())
@@ -211,6 +222,8 @@ export async function POST(req: NextRequest) {
   if (!content && postType !== "poll") {
     return NextResponse.json({ error: "body is required" }, { status: 400 });
   }
+
+  const safeImages = sanitizePostImageUrls(body.images);
 
   const attachments: Record<string, unknown> = {
     ...((body.attachments as Record<string, unknown> | null) ?? {}),
@@ -252,7 +265,7 @@ export async function POST(req: NextRequest) {
     title: body.title ?? null,
     body: content || (postType === "poll" ? "Poll" : ""),
     post_type: postType,
-    images: (body.images ?? []) as never,
+    images: safeImages as never,
     attachments: attachments as never,
     video_url: body.video_url ?? null,
     is_pinned: canPin ? Boolean(body.is_pinned) : false,

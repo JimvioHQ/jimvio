@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
 import { Json } from "@/types/database.types";
 import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
+import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,22 @@ export async function GET(req: NextRequest) {
     .limit(50);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ posts: data });
+
+  const posts = data ?? [];
+  const postIds = posts.map((p) => p.id);
+  const { data: likedRows } =
+    postIds.length > 0
+      ? await supabase
+          .from("community_post_likes")
+          .select("post_id")
+          .eq("user_id", user.id)
+          .in("post_id", postIds)
+      : { data: [] as { post_id: string }[] };
+  const likedSet = new Set((likedRows ?? []).map((r) => r.post_id));
+
+  return NextResponse.json({
+    posts: posts.map((p) => ({ ...p, user_has_liked: likedSet.has(p.id) })),
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -108,7 +124,7 @@ export async function POST(req: NextRequest) {
       title: body.title ?? null,
       body: content,
       post_type: body.post_type ?? "discussion",
-      images: body.images ?? [],
+      images: sanitizePostImageUrls(body.images) as never,
       attachments: body.attachments ?? [],
       video_url: body.video_url ?? null,
       is_pinned: canPin ? Boolean(body.is_pinned) : false,

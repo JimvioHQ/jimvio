@@ -61,20 +61,7 @@ export async function POST(
   );
 
   if (voteErr) {
-    if (voteErr.message?.includes("community_post_poll_votes") || voteErr.code === "42P01") {
-      const nextOptions = options.map((opt, i) => ({
-        text: opt.text,
-        votes: (opt.votes ?? 0) + (i === body.optionIndex ? 1 : 0),
-      }));
-      await supabase
-        .from("community_posts")
-        .update({
-          attachments: { ...attachments, poll: { ...poll, options: nextOptions } },
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", postId);
-      return NextResponse.json({ ok: true, optionIndex: body.optionIndex, fallback: true });
-    }
+    // Do not invent vote tallies when the votes table is missing — fail closed.
     return NextResponse.json({ error: voteErr.message }, { status: 400 });
   }
 

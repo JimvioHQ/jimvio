@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { Json } from "@/types/supabase";
+import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
+import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +103,16 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Community has no room for posts" }, { status: 400 });
   }
 
+  const publishGate = await assertCanPublishInRoom(supabase, user.id, room.id);
+  if (!publishGate.ok) {
+    return NextResponse.json(
+      { error: publishGate.error },
+      { status: publishGate.status }
+    );
+  }
+
+  const safeImages = sanitizePostImageUrls(body.images);
+
   const { data, error } = await supabase
     .from("community_posts")
     .insert({
@@ -111,7 +123,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       title: body.title ?? null,
       body: content,
       post_type: body.post_type ?? "discussion",
-      images: body.images,
+      images: safeImages as never,
       attachments: body.attachments,
       video_url: body.video_url ?? null,
       is_pinned: canPin ? Boolean(body.is_pinned) : false,
