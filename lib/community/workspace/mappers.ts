@@ -23,21 +23,42 @@ import {
 } from "./types";
 
 function channelIconForType(type: ChannelType, name: string): string {
-  if (type === "announcement" || /announcement/i.test(name)) return "📢";
+  if (type === "announcement" || /announcement|campaign/i.test(name)) return "📢";
   if (type === "signals" || /signal/i.test(name)) return "📈";
   if (type === "resources" || /resource/i.test(name)) return "📚";
   if (type === "knowledge" || /knowledge|wiki|guide/i.test(name)) return "🧠";
-  if (type === "media" || /media|gallery|photo/i.test(name)) return "🖼️";
+  if (type === "media" || /media|gallery|photo/i.test(name)) return "🎬";
   if (type === "voice" || /voice/i.test(name)) return "🎤";
   if (type === "live" || /live/i.test(name)) return "🔴";
   if (type === "files" || /file/i.test(name)) return "📁";
   if (type === "course") return "🎓";
   if (type === "events") return "📅";
   if (type === "qa") return "❓";
+  if (/introduc/i.test(name)) return "👋";
+  if (/\bwin(s)?\b/i.test(name)) return "🏆";
+  if (/support|help/i.test(name)) return "🛟";
+  if (/marketplace|buy|sell/i.test(name)) return "🛒";
   return "💬";
 }
 
 function resolveChannelType(room: WorkspaceRoomRow): ChannelType {
+  const kind = (room.channel_kind || "").toLowerCase();
+  if (kind === "announcement") return "announcement";
+  if (kind === "resources") return "resources";
+  if (kind === "knowledge") return "knowledge";
+  if (kind === "files") return "files";
+  if (kind === "media") return "media";
+  if (kind === "voice") return "voice";
+  if (kind === "live") return "live";
+  if (kind === "events") return "events";
+  if (kind === "courses") return "course";
+  if (kind === "qa") return "qa";
+  if (kind === "signals") return "signals";
+  if (kind === "support" || kind === "marketplace" || kind === "commerce") {
+    return "discussion";
+  }
+  if (kind === "discussion") return "discussion";
+
   if (/signal/i.test(room.name)) return "signals";
   if (/knowledge|wiki|guide/i.test(room.name)) return "knowledge";
   if (/media|gallery|photo/i.test(room.name)) return "media";

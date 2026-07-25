@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  CHANNEL_KIND_TO_ROOM_TYPE,
+  CHANNEL_TEMPLATES,
+  type ChannelTemplateId,
+} from "@/lib/community/owner-console/channels";
 
-const CHANNEL_TYPES = [
-  { value: "chat", label: "Text" },
-  { value: "posts", label: "Announcement" },
-  { value: "voice", label: "Voice (coming soon)" },
-] as const;
+/** Member-facing quick create — subset of production templates. */
+const QUICK_TEMPLATES = CHANNEL_TEMPLATES.filter((t) =>
+  (
+    [
+      "general_chat",
+      "announcements",
+      "introductions",
+      "wins",
+      "support",
+      "resources",
+      "knowledge",
+    ] as ChannelTemplateId[]
+  ).includes(t.id)
+);
 
 export function CreateChannelDialog({
   open,
@@ -31,13 +45,17 @@ export function CreateChannelDialog({
   onCreated?: (room: { id: string; name: string; space_id: string }) => void;
 }) {
   const [name, setName] = useState("");
-  const [channelType, setChannelType] =
-    useState<(typeof CHANNEL_TYPES)[number]["value"]>("chat");
+  const [templateId, setTemplateId] = useState<ChannelTemplateId>("general_chat");
   const [saving, setSaving] = useState(false);
+
+  const selected = useMemo(
+    () => CHANNEL_TEMPLATES.find((t) => t.id === templateId) ?? CHANNEL_TEMPLATES[0],
+    [templateId]
+  );
 
   function reset() {
     setName("");
-    setChannelType("chat");
+    setTemplateId("general_chat");
   }
 
   async function submit(e: FormEvent) {
@@ -46,12 +64,13 @@ export function CreateChannelDialog({
     if (!trimmed || saving || !spaceId) return;
     setSaving(true);
     try {
+      const roomType = CHANNEL_KIND_TO_ROOM_TYPE[selected.kind] ?? "chat";
       const res = await fetch(`/api/rooms/${spaceId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: trimmed,
-          room_type: channelType === "voice" ? "voice" : channelType,
+          room_type: roomType,
         }),
       });
       const data = await res.json();
@@ -82,7 +101,8 @@ export function CreateChannelDialog({
         <DialogHeader>
           <DialogTitle className="text-base font-bold">Create Channel</DialogTitle>
           <DialogDescription className="text-sm text-[var(--color-text-muted)]">
-            Add a discussion room. Messages use the existing community chat backend.
+            Channels live inside this Group. Discussion-style templates stay open for
+            members; announcements stay publisher-only.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="mt-2 space-y-3">
@@ -93,7 +113,7 @@ export function CreateChannelDialog({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Introductions"
+              placeholder={selected.label}
               className="rounded-sm border-[var(--color-border)]"
               maxLength={80}
               required
@@ -102,32 +122,29 @@ export function CreateChannelDialog({
           </div>
           <div>
             <label className="mb-1 block text-xs font-bold text-[var(--color-text-secondary)]">
-              Channel type
+              Template
             </label>
             <select
-              value={channelType}
+              value={templateId}
               onChange={(e) =>
-                setChannelType(e.target.value as (typeof CHANNEL_TYPES)[number]["value"])
+                setTemplateId(e.target.value as ChannelTemplateId)
               }
               className="w-full rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text-primary)]"
             >
-              {CHANNEL_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
+              {QUICK_TEMPLATES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.icon} {t.label}
                 </option>
               ))}
             </select>
-          </div>
-          {!spaceId && (
-            <p className="text-[12px] text-amber-700">
-              Create a group first so channels have a home space.
+            <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--color-text-muted)]">
+              {selected.description}
             </p>
-          )}
-          <div className="flex justify-end gap-2 pt-1">
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               type="button"
-              variant="outline"
-              className="rounded-sm"
+              variant="ghost"
               onClick={() => onOpenChange(false)}
               disabled={saving}
             >
@@ -135,10 +152,14 @@ export function CreateChannelDialog({
             </Button>
             <Button
               type="submit"
-              className="rounded-sm bg-[#fd5000] font-semibold text-white hover:bg-[#e04700]"
               disabled={saving || !name.trim() || !spaceId}
+              className="bg-[var(--color-accent)] text-white"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create"}
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Create"
+              )}
             </Button>
           </div>
         </form>

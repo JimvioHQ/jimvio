@@ -49,6 +49,11 @@ export {
 } from "./mappers";
 
 export {
+  resolveChannelEmptyCopy,
+  type ChannelEmptyCopy,
+} from "./channel-empty-copy";
+
+export {
   communityRoomHref,
   communityChannelHref,
   communityGroupHref,

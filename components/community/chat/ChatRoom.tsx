@@ -52,12 +52,15 @@ interface ChatRoomProps {
   communityId: string;
   slug: string;
   hideHeader?: boolean;
-  /** When false, hide composer and show announcement notice. Default true. */
+  /** When false, hide composer and show read-only notice. Default true. */
   canPost?: boolean;
-  /** Optional empty-state copy (Group Discussion welcome). */
+  /** Optional empty-state copy (Group Discussion / channel templates). */
   emptyTitle?: string;
   emptyDescription?: string;
   emptyActionLabel?: string;
+  /** Shown when canPost is false — must match server posting policy. */
+  readOnlyTitle?: string;
+  readOnlyDescription?: string;
 }
 
 export function ChatRoom({
@@ -70,6 +73,8 @@ export function ChatRoom({
   emptyTitle,
   emptyDescription,
   emptyActionLabel,
+  readOnlyTitle,
+  readOnlyDescription,
 }: ChatRoomProps) {
   const hook = useChatRoom({ roomId, roomName, communityId, slug });
   const syncRoomIndex = useRoomMessageIndex((s) => s.sync);
@@ -673,10 +678,11 @@ export function ChatRoom({
             role="status"
           >
             <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-              This is an announcement channel.
+              {readOnlyTitle ?? "Posting is restricted"}
             </p>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Only authorized publishers can post.
+              {readOnlyDescription ??
+                "Only authorized publishers can post in this channel."}
             </p>
           </div>
         )}

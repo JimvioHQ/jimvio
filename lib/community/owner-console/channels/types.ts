@@ -274,6 +274,8 @@ export type ChannelFilterStatus = (typeof CHANNEL_FILTER_STATUSES)[number];
 export type ChannelTemplateId =
   | "general_chat"
   | "announcements"
+  | "introductions"
+  | "wins"
   | "resources"
   | "signals"
   | "qa"
@@ -282,4 +284,8 @@ export type ChannelTemplateId =
   | "knowledge"
   | "course_discussion"
   | "marketplace"
-  | "support";
+  | "support"
+  | "campaigns"
+  | "media"
+  | "files"
+  | "events";

@@ -17,6 +17,8 @@ export type WorkspaceRoomRow = {
   /** Owner Console permission_config (Channel posting policy). */
   permission_config?: unknown;
   behavior_config?: unknown;
+  /** Owner Console channel_kind (template product type). */
+  channel_kind?: string | null;
   /** Current user's room_staff role, if any. */
   channel_staff_role?: "moderator" | "admin" | "publisher" | null;
 };

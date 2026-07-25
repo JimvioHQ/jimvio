@@ -293,6 +293,11 @@ export function PostsRoom({
   communityId,
   hideHeader,
   canPost = true,
+  emptyTitle,
+  emptyDescription,
+  emptyActionLabel,
+  readOnlyTitle,
+  readOnlyDescription,
 }: {
   roomId: string;
   roomName: string;
@@ -300,6 +305,11 @@ export function PostsRoom({
   slug: string;
   hideHeader?: boolean;
   canPost?: boolean;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  emptyActionLabel?: string;
+  readOnlyTitle?: string;
+  readOnlyDescription?: string;
 }) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -525,7 +535,12 @@ export function PostsRoom({
               </Button>
             ) : (
               <p className="max-w-[240px] text-right text-[11px] leading-snug text-[var(--color-text-muted)]">
-                Announcement channel — only authorized publishers can post.
+                <span className="font-semibold text-[var(--color-text-secondary)]">
+                  {readOnlyTitle ?? "Posting is restricted"}
+                </span>
+                <br />
+                {readOnlyDescription ??
+                  "Only authorized publishers can post."}
               </p>
             )}
           </div>
@@ -602,8 +617,25 @@ export function PostsRoom({
               <Loader2 className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-16 text-sm text-[var(--color-text-muted)] font-bold italic">
-              No posts found.
+            <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+              <p className="text-[15px] font-semibold text-[var(--color-text-primary)]">
+                {emptyTitle ?? "Publish your first announcement"}
+              </p>
+              <p className="max-w-sm text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+                {emptyDescription ??
+                  "Share updates, launches, and important news with this channel."}
+              </p>
+              {canPost ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-1 rounded-sm bg-[var(--color-accent)] text-white font-black"
+                  onClick={() => setCreateOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {emptyActionLabel ?? "Write announcement"}
+                </Button>
+              ) : null}
             </div>
           ) : (
             filtered.map((p) => (

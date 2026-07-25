@@ -21,8 +21,11 @@ import {
 export const CHANNEL_ICON_PRESETS = [
   "💬",
   "📢",
+  "👋",
+  "🏆",
   "📚",
   "🧠",
+  "🚀",
   "❓",
   "📈",
   "📁",
@@ -234,15 +237,20 @@ export const CHANNEL_POSTING_MODE_DESCRIPTIONS: Record<
 export function permissionConfigForTemplate(
   templateId: ChannelTemplateId | undefined
 ): ChannelPermissionConfig {
+  // Open / member-writable templates (Group-chat style).
   if (
     templateId === "general_chat" ||
+    templateId === "introductions" ||
+    templateId === "wins" ||
     templateId === "qa" ||
     templateId === "course_discussion" ||
     templateId === "support" ||
+    templateId === "marketplace" ||
     templateId === "voice"
   ) {
     return { ...DISCUSSION_PERMISSION_CONFIG, publisherIds: [] };
   }
+  // Broadcast / staff-first templates (announcements, resources, campaigns, etc.).
   return {
     ...DEFAULT_PERMISSION_CONFIG,
     whoCanPost: [...DEFAULT_PERMISSION_CONFIG.whoCanPost],
@@ -308,17 +316,38 @@ export type ChannelTemplate = {
 export const CHANNEL_TEMPLATES: ChannelTemplate[] = [
   {
     id: "general_chat",
-    label: "General Chat",
+    label: "Discussion",
     kind: "discussion",
     icon: "💬",
     description: "Everyday conversation hub",
   },
   {
     id: "announcements",
-    label: "Announcements",
+    label: "Announcement",
     kind: "announcement",
     icon: "📢",
     description: "Broadcast updates to members",
+  },
+  {
+    id: "introductions",
+    label: "Introductions",
+    kind: "discussion",
+    icon: "👋",
+    description: "Welcome new members and icebreakers",
+  },
+  {
+    id: "wins",
+    label: "Wins",
+    kind: "discussion",
+    icon: "🏆",
+    description: "Celebrate member progress",
+  },
+  {
+    id: "support",
+    label: "Support",
+    kind: "support",
+    icon: "🛟",
+    description: "Member support desk",
   },
   {
     id: "resources",
@@ -326,6 +355,62 @@ export const CHANNEL_TEMPLATES: ChannelTemplate[] = [
     kind: "resources",
     icon: "📚",
     description: "Files, links, and docs",
+  },
+  {
+    id: "knowledge",
+    label: "Knowledge",
+    kind: "knowledge",
+    icon: "🧠",
+    description: "Knowledge capture and wiki",
+  },
+  {
+    id: "campaigns",
+    label: "Campaigns",
+    kind: "announcement",
+    icon: "🚀",
+    description: "Launches, drops, and coordinated pushes",
+  },
+  {
+    id: "marketplace",
+    label: "Marketplace",
+    kind: "marketplace",
+    icon: "🛒",
+    description: "Buys, sells, and offers",
+  },
+  {
+    id: "media",
+    label: "Media",
+    kind: "media",
+    icon: "🎬",
+    description: "Photos, clips, and galleries",
+  },
+  {
+    id: "files",
+    label: "Files",
+    kind: "files",
+    icon: "📁",
+    description: "Shared documents and downloads",
+  },
+  {
+    id: "events",
+    label: "Events",
+    kind: "events",
+    icon: "📅",
+    description: "Meetups, workshops, and sessions",
+  },
+  {
+    id: "voice",
+    label: "Voice",
+    kind: "voice",
+    icon: "🎤",
+    description: "Voice hangout space",
+  },
+  {
+    id: "live",
+    label: "Live",
+    kind: "live",
+    icon: "🔴",
+    description: "Live streaming hub",
   },
   {
     id: "signals",
@@ -342,46 +427,11 @@ export const CHANNEL_TEMPLATES: ChannelTemplate[] = [
     description: "Questions and answers",
   },
   {
-    id: "voice",
-    label: "Voice Room",
-    kind: "voice",
-    icon: "🎤",
-    description: "Voice hangout space",
-  },
-  {
-    id: "live",
-    label: "Live Room",
-    kind: "live",
-    icon: "🔴",
-    description: "Live streaming hub",
-  },
-  {
-    id: "knowledge",
-    label: "Knowledge Hub",
-    kind: "knowledge",
-    icon: "🧠",
-    description: "Knowledge capture and wiki",
-  },
-  {
     id: "course_discussion",
     label: "Course Discussion",
     kind: "courses",
     icon: "🎓",
     description: "Course cohort chat",
-  },
-  {
-    id: "marketplace",
-    label: "Marketplace",
-    kind: "marketplace",
-    icon: "🛒",
-    description: "Buys, sells, and offers",
-  },
-  {
-    id: "support",
-    label: "Support",
-    kind: "support",
-    icon: "🛟",
-    description: "Member support desk",
   },
 ];
 

@@ -69,11 +69,12 @@ assert.match(perms, /buildPermissions/);
 assert.match(perms, /member: new Set\(/);
 assert.match(perms, /guest: new Set\(\["community\.view", "channel\.read"\]\)/);
 
-// UI: announcement composer notice
-assert.match(chatRoom, /This is an announcement channel/);
+// UI: composer hidden when posting forbidden; copy matches channel type
 assert.match(chatRoom, /Only authorized publishers can post/);
 assert.match(chatRoom, /canPost/);
+assert.match(chatRoom, /readOnlyTitle/);
 assert.match(roomContent, /canPost=\{channel\.canPublish\}/);
+assert.match(roomContent, /resolveChannelEmptyCopy/);
 
 // Server enforcement
 assert.match(messagesApi, /assertCanPublishInRoom/);

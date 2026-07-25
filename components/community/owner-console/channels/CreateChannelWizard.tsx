@@ -213,7 +213,7 @@ export function CreateChannelWizard({
             <>
               <Field label="Templates">
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {CHANNEL_TEMPLATES.slice(0, 6).map((t) => (
+                  {CHANNEL_TEMPLATES.map((t) => (
                     <button
                       key={t.id}
                       type="button"

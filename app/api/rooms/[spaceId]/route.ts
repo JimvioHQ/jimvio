@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getSpaceRooms } from "@/services/communityService";
 import {
   DEFAULT_BEHAVIOR_CONFIG,
+  DEFAULT_PERMISSION_CONFIG,
   DISCUSSION_PERMISSION_CONFIG,
 } from "@/lib/community/owner-console/channels";
 
@@ -162,6 +163,31 @@ export async function POST(
 
   const roomName = ensureDiscussion ? "Discussion" : name;
   const finalRoomType = ensureDiscussion ? "chat" : roomType;
+  const isOpenChat =
+    ensureDiscussion || finalRoomType === "chat" || finalRoomType === "voice";
+  const channelKind =
+    ensureDiscussion
+      ? "discussion"
+      : finalRoomType === "posts"
+        ? "announcement"
+        : finalRoomType === "resources"
+          ? "resources"
+          : finalRoomType === "voice"
+            ? "voice"
+            : finalRoomType === "live"
+              ? "live"
+              : finalRoomType === "tasks"
+                ? "events"
+                : finalRoomType === "course"
+                  ? "courses"
+                  : "discussion";
+  const permissionConfig = isOpenChat
+    ? { ...DISCUSSION_PERMISSION_CONFIG, publisherIds: [] }
+    : {
+        ...DEFAULT_PERMISSION_CONFIG,
+        whoCanPost: [...DEFAULT_PERMISSION_CONFIG.whoCanPost],
+        publisherIds: [],
+      };
 
   const { count } = await supabase
     .from("rooms")
@@ -200,20 +226,17 @@ export async function POST(
       access_type: "inherit",
       sort_order: count ?? 0,
       is_active: true,
-      ...(ensureDiscussion
-        ? {
-            permission_config: {
-              ...DISCUSSION_PERMISSION_CONFIG,
-              publisherIds: [],
-            },
-            behavior_config: {
-              ...DEFAULT_BEHAVIOR_CONFIG,
-              welcomeMessage: "Welcome to this Group. Start the first conversation.",
-              defaultTabs: ["discussion"],
-            },
-            channel_kind: "discussion",
-          }
-        : {}),
+      channel_kind: channelKind,
+      permission_config: permissionConfig,
+      behavior_config: {
+        ...DEFAULT_BEHAVIOR_CONFIG,
+        welcomeMessage: ensureDiscussion
+          ? "Welcome to this Group. Start the first conversation."
+          : finalRoomType === "posts"
+            ? "Publish your first announcement."
+            : "Welcome to the channel.",
+        defaultTabs: ensureDiscussion ? ["discussion"] : DEFAULT_BEHAVIOR_CONFIG.defaultTabs,
+      },
     })
     .select("id, name, slug, room_type, space_id, is_locked, access_type, sort_order")
     .single();

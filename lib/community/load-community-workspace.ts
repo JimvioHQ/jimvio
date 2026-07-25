@@ -85,7 +85,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
       supabase
         .from("rooms")
         .select(
-          "id, name, slug, room_type, space_id, is_locked, access_type, sort_order, permission_config, behavior_config"
+          "id, name, slug, room_type, space_id, is_locked, access_type, sort_order, permission_config, behavior_config, channel_kind"
         )
         .eq("community_id", community.id)
         .eq("is_active", true)
@@ -141,6 +141,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
       sort_order: r.sort_order,
       permission_config: r.permission_config ?? null,
       behavior_config: r.behavior_config ?? null,
+      channel_kind: (r as { channel_kind?: string | null }).channel_kind ?? null,
       channel_staff_role: staffByRoom.get(r.id) ?? null,
     })),
   }));

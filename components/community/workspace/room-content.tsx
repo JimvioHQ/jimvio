@@ -13,6 +13,7 @@ import { ChannelWorkspace } from "@/components/community/workspace/channel";
 import {
   mapRoomToChannel,
   mapSpaceToGroup,
+  resolveChannelEmptyCopy,
 } from "@/lib/community/workspace";
 import type { MembershipLite } from "@/lib/community-workspace-access";
 
@@ -64,6 +65,16 @@ export function RoomContent({
     [space, currentUserId, ownerId, membership, memberCount, onlineCount]
   );
 
+  const emptyCopy = useMemo(
+    () =>
+      resolveChannelEmptyCopy({
+        type: channel.type,
+        name: channel.name,
+        channelKind: room.channel_kind ?? null,
+      }),
+    [channel.type, channel.name, room.channel_kind]
+  );
+
   const common = {
     roomId: room.id,
     roomName: room.name,
@@ -75,9 +86,29 @@ export function RoomContent({
   const discussion = (() => {
     switch (room.room_type) {
       case "posts":
-        return <PostsRoom {...common} canPost={channel.canPublish} />;
+        return (
+          <PostsRoom
+            {...common}
+            canPost={channel.canPublish}
+            emptyTitle={emptyCopy.emptyTitle}
+            emptyDescription={emptyCopy.emptyDescription}
+            emptyActionLabel={emptyCopy.emptyActionLabel}
+            readOnlyTitle={emptyCopy.readOnlyTitle}
+            readOnlyDescription={emptyCopy.readOnlyDescription}
+          />
+        );
       case "chat":
-        return <ChatRoom {...common} canPost={channel.canPublish} />;
+        return (
+          <ChatRoom
+            {...common}
+            canPost={channel.canPublish}
+            emptyTitle={emptyCopy.emptyTitle}
+            emptyDescription={emptyCopy.emptyDescription}
+            emptyActionLabel={emptyCopy.emptyActionLabel}
+            readOnlyTitle={emptyCopy.readOnlyTitle}
+            readOnlyDescription={emptyCopy.readOnlyDescription}
+          />
+        );
       case "course":
         return <CourseRoom {...common} />;
       case "tasks":
