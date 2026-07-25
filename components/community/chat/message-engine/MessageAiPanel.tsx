@@ -88,6 +88,7 @@ export function MessageAiPanel({
   const [active, setActive] = useState<MessageAiAction | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<MessageAiAction | null>(null);
 
   useEffect(() => {
     if (!open) {
@@ -95,21 +96,27 @@ export function MessageAiPanel({
       setError(null);
       setActive(null);
       setLoading(false);
+      setLastAction(null);
     }
   }, [open]);
 
   const run = useCallback(
     async (action: MessageAiAction) => {
       if (!message || loading) return;
+      if (!communityId) {
+        setError("Open a community to use Community Brain.");
+        return;
+      }
       const meta = ACTIONS.find((a) => a.id === action);
       if (!meta) return;
       setActive(action);
+      setLastAction(action);
       setLoading(true);
       setError(null);
       setResult(null);
 
       const body = (message.body || "").trim() || "(attachment-only message)";
-      const prompt = `${meta.hint}\n\n---\nFrom ${displayName(message)}:\n${body.slice(0, 1800)}`;
+      const prompt = `${meta.hint}\n\nUse community knowledge when helpful. If facts are missing, say unavailable.\n\nMessage from ${displayName(message)}:\n${body.slice(0, 1200)}`;
 
       try {
         const res = await fetch("/api/c/ai", {
@@ -117,8 +124,14 @@ export function MessageAiPanel({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt,
-            mode: action === "summarize" ? "summarize" : "ask",
-            ...(communityId ? { communityId } : {}),
+            mode:
+              action === "summarize"
+                ? "summarize"
+                : action === "faq"
+                  ? "faq"
+                  : "ask",
+            communityId,
+            focus: `Message focus:\n${body.slice(0, 800)}`,
           }),
         });
         const json = (await res.json()) as { text?: string; error?: string };
@@ -200,9 +213,21 @@ export function MessageAiPanel({
           </div>
         )}
         {error && (
-          <p className="text-sm text-[var(--color-danger)]" role="alert">
-            {error}
-          </p>
+          <div className="space-y-1">
+            <p className="text-sm text-[var(--color-danger)]" role="alert">
+              {error}
+            </p>
+            {lastAction && (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => void run(lastAction)}
+                className="text-xs font-semibold text-[var(--color-accent)] hover:underline disabled:opacity-50"
+              >
+                Retry
+              </button>
+            )}
+          </div>
         )}
         {result && (
           <div className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text-primary)]">
@@ -211,7 +236,7 @@ export function MessageAiPanel({
         )}
         {!loading && !result && !error && (
           <p className="text-sm text-[var(--color-text-muted)]">
-            Choose an action to transform this collaboration object.
+            Choose an action. Answers stay grounded in community knowledge you can access.
           </p>
         )}
       </div>

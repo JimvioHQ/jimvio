@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bot, Loader2, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type AiMode = "ask" | "summarize" | "suggest";
+type AiMode = "ask" | "summarize" | "suggest" | "draft" | "faq";
 
 type Message = {
   id: string;
@@ -17,6 +17,41 @@ const MODES: { id: AiMode; label: string }[] = [
   { id: "ask", label: "Ask" },
   { id: "summarize", label: "Summarize" },
   { id: "suggest", label: "Suggest" },
+  { id: "draft", label: "Draft" },
+  { id: "faq", label: "FAQ" },
+];
+
+const STARTERS: { mode: AiMode; label: string; prompt: string }[] = [
+  {
+    mode: "ask",
+    label: "Find resources",
+    prompt: "What resources, files, or guides are available that I should know about?",
+  },
+  {
+    mode: "ask",
+    label: "Find knowledge",
+    prompt: "What knowledge articles or pinned answers are available?",
+  },
+  {
+    mode: "summarize",
+    label: "Summarize courses",
+    prompt: "Summarize the accessible courses and their lesson outlines.",
+  },
+  {
+    mode: "draft",
+    label: "Announcement draft",
+    prompt: "Draft a short community announcement based on recent accessible activity.",
+  },
+  {
+    mode: "draft",
+    label: "Discussion starter",
+    prompt: "Draft a discussion starter that fits this community’s recent topics.",
+  },
+  {
+    mode: "faq",
+    label: "FAQ answers",
+    prompt: "Generate FAQ answers from community rules, knowledge, and pinned posts.",
+  },
 ];
 
 export function CommunityAiPanel({
@@ -35,6 +70,7 @@ export function CommunityAiPanel({
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastPrompt, setLastPrompt] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const seededRef = useRef(false);
@@ -59,12 +95,19 @@ export function CommunityAiPanel({
   }, [messages, loading]);
 
   const send = useCallback(
-    async (override?: string) => {
+    async (override?: string, overrideMode?: AiMode) => {
       const prompt = (override ?? input).trim();
       if (!prompt || loading) return;
 
+      if (!communityId) {
+        setError("Open a community to use Community Brain.");
+        return;
+      }
+
+      const activeMode = overrideMode ?? mode;
       setError(null);
       setInput("");
+      setLastPrompt(prompt);
       const userMsg: Message = {
         id: `u-${Date.now()}`,
         role: "user",
@@ -79,8 +122,8 @@ export function CommunityAiPanel({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt,
-            mode,
-            ...(communityId ? { communityId } : {}),
+            mode: activeMode,
+            communityId,
           }),
         });
         const json = (await res.json()) as {
@@ -119,8 +162,10 @@ export function CommunityAiPanel({
           <Sparkles className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Community AI</p>
-          <p className="text-[10px] text-[var(--color-text-muted)]">Ask · Summarize · Suggest</p>
+          <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Community Brain</p>
+          <p className="text-[10px] text-[var(--color-text-muted)]">
+            Answers from your community knowledge
+          </p>
         </div>
         <button
           type="button"
@@ -132,14 +177,14 @@ export function CommunityAiPanel({
         </button>
       </div>
 
-      <div className="flex gap-1 border-b border-[var(--color-border)] px-2 py-1.5">
+      <div className="flex gap-1 overflow-x-auto border-b border-[var(--color-border)] px-2 py-1.5">
         {MODES.map((m) => (
           <button
             key={m.id}
             type="button"
             onClick={() => setMode(m.id)}
             className={cn(
-              "rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors",
+              "shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors",
               mode === m.id
                 ? "bg-[#fd5000]/15 text-[#fd5000]"
                 : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)]"
@@ -152,11 +197,31 @@ export function CommunityAiPanel({
 
       <div ref={listRef} className="max-h-[280px] min-h-[140px] space-y-2 overflow-y-auto px-3 py-3">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-6 text-center">
+          <div className="flex flex-col items-center gap-2 py-4 text-center">
             <Bot className="h-8 w-8 text-[#fd5000]/40" />
             <p className="text-[12px] text-[var(--color-text-muted)]">
-              Ask about your community, summarize activity, or get engagement ideas.
+              {communityId
+                ? "Ask about posts, courses, resources, knowledge, rules, and announcements — only content you can access."
+                : "Open a community workspace to unlock Community Brain."}
             </p>
+            {communityId && (
+              <div className="mt-1 flex flex-wrap justify-center gap-1.5">
+                {STARTERS.map((s) => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => {
+                      setMode(s.mode);
+                      void send(s.prompt, s.mode);
+                    }}
+                    className="rounded-md bg-[var(--color-surface-secondary)] px-2 py-1 text-[10px] font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] disabled:opacity-50"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {messages.map((m) => (
@@ -181,7 +246,21 @@ export function CommunityAiPanel({
             Thinking…
           </div>
         )}
-        {error && <p className="text-[11px] font-medium text-red-500">{error}</p>}
+        {error && (
+          <div className="space-y-1">
+            <p className="text-[11px] font-medium text-red-500">{error}</p>
+            {lastPrompt && (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => void send(lastPrompt)}
+                className="text-[11px] font-semibold text-[#fd5000] hover:underline disabled:opacity-50"
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <form
@@ -200,14 +279,18 @@ export function CommunityAiPanel({
               ? "What should I summarize?"
               : mode === "suggest"
                 ? "What kind of ideas?"
-                : "Ask AI anything…"
+                : mode === "draft"
+                  ? "Announcement or discussion starter…"
+                  : mode === "faq"
+                    ? "FAQ topic…"
+                    : "Ask your community…"
           }
-          disabled={loading}
-          className="min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[12px] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[#fd5000]/50"
+          disabled={loading || !communityId}
+          className="min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[12px] outline-none placeholder:text-[var(--color-text-muted)] focus:border-[#fd5000]/50 disabled:opacity-50"
         />
         <button
           type="submit"
-          disabled={loading || !input.trim()}
+          disabled={loading || !input.trim() || !communityId}
           className="shrink-0 rounded-lg bg-[#fd5000] px-3 py-2 text-[12px] font-bold text-white transition hover:bg-[#e04800] disabled:opacity-40"
         >
           Send

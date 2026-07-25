@@ -32,8 +32,9 @@ export function LiveKnowledgeCapture({
   async function runAiSummary() {
     setBusy(true);
     try {
+      if (!communityId) throw new Error("Community required");
       const prompt = [
-        "Produce a short live session summary, 3 key decisions, and 3 action items.",
+        "Produce a short live session summary, 3 key decisions, and 3 action items from available community context. If chat sample is thin, say what is unavailable.",
         chatSample ? `Recent chat:\n${chatSample}` : "No chat sample yet.",
       ].join("\n\n");
       const res = await fetch("/api/c/ai", {
@@ -41,8 +42,10 @@ export function LiveKnowledgeCapture({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           communityId,
+          roomId: roomId ?? undefined,
           prompt,
-          mode: "live_session_summary",
+          mode: "summarize",
+          focus: chatSample ? `Live chat sample:\n${chatSample.slice(0, 1000)}` : undefined,
         }),
       });
       const json = (await res.json()) as { text?: string; error?: string };

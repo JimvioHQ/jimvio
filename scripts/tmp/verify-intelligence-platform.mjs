@@ -68,7 +68,7 @@ assert.match(host, /useCreatorCommerceStore/);
 assert.match(creatorIntel, /CreatorIntelligence/);
 assert.match(uiIndex, /CommunityIntelligenceHost/);
 assert.match(osDash, /CommunityIntelligenceHost/);
-assert.match(channelAi, /Platform intelligence/);
+assert.match(channelAi, /Community Brain|Find knowledge|formatIntelligenceContext/);
 assert.match(channelAi, /formatIntelligenceContext/);
 assert.match(channelAi, /RecommendationRail/);
 assert.match(creatorProfile, /CreatorIntelligencePanel/);

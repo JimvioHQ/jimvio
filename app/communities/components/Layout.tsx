@@ -119,6 +119,33 @@ function usePageTitle(pathname: string): string {
     return staticTitle;
 }
 
+function useCommunityIdFromPath(pathname: string): string | null {
+    const slug = getCommunitySlugFromPath(pathname);
+    const [communityId, setCommunityId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!slug) {
+            setCommunityId(null);
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            const supabase = createClient();
+            const { data } = await supabase
+                .from("communities")
+                .select("id")
+                .eq("slug", slug)
+                .maybeSingle();
+            if (!cancelled) setCommunityId(data?.id ?? null);
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [slug]);
+
+    return communityId;
+}
+
 // ── Layout ────────────────────────────────────────────────────────────────────
 export default function HubLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -134,6 +161,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
     const pageTitle = usePageTitle(pathname);
     const communitySlug = getCommunitySlugFromPath(pathname);
+    const communityId = useCommunityIdFromPath(pathname);
     const isCommunityWorkspace = Boolean(communitySlug);
     const isLiveStudio = pathname.startsWith("/communities/live");
     const { cartCount, refreshCounts } = useCartStore();
@@ -485,7 +513,11 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             )}
 
             <HubSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
-            <CommunityAiPanel open={aiOpen} onClose={() => setAiOpen(false)} />
+            <CommunityAiPanel
+                open={aiOpen}
+                onClose={() => setAiOpen(false)}
+                communityId={communityId}
+            />
         </div>
     );
 }

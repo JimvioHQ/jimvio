@@ -418,14 +418,11 @@ export function HubFeedPage() {
                 setAiLoading(true);
                 setAiReply(null);
                 try {
-                  const res = await fetch("/api/c/ai", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt, mode: "ask" }),
-                  });
-                  const json = (await res.json()) as { text?: string; error?: string };
-                  setAiReply(json.text ?? json.error ?? "No response");
-                  if (res.ok) setAiPrompt("");
+                  // Hub feed is cross-community — Community Brain requires a community workspace.
+                  setAiReply(
+                    "Open a community workspace to use Community Brain — it only answers from that community’s knowledge."
+                  );
+                  setAiPrompt("");
                 } catch {
                   setAiReply("Network error — try again");
                 } finally {

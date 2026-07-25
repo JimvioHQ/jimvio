@@ -18,76 +18,80 @@ import { RecommendationRail } from "@/components/community/intelligence";
 const PROMPTS = [
   {
     id: "summarize",
+    mode: "summarize" as const,
     label: "Summarize discussions",
     prompt: "Summarize the most important themes and open questions in this channel.",
   },
   {
     id: "resources",
-    label: "Recommend resources",
-    prompt: "Recommend the best resources, files, and links members should revisit from this channel.",
+    mode: "ask" as const,
+    label: "Find resources",
+    prompt: "Find resources, files, and links members should use from this community.",
   },
   {
-    id: "related",
-    label: "Related knowledge",
-    prompt: "Suggest related knowledge cards, FAQs, and guides connected to recent discussion.",
+    id: "knowledge",
+    mode: "ask" as const,
+    label: "Find knowledge",
+    prompt: "Find knowledge articles, FAQs, and pinned answers related to this channel.",
   },
   {
     id: "answers",
+    mode: "ask" as const,
     label: "Find previous answers",
     prompt: "Find previous answers and solved threads that address recurring questions here.",
   },
   {
     id: "mentors",
+    mode: "suggest" as const,
     label: "Suggest mentors",
-    prompt: "Suggest which members or creators would be good mentors based on helpful contributions.",
+    prompt: "Suggest which members or creators would be good mentors based on helpful contributions in accessible context only.",
+  },
+  {
+    id: "courses",
+    mode: "summarize" as const,
+    label: "Summarize courses",
+    prompt: "Summarize accessible courses and lesson outlines relevant here.",
+  },
+  {
+    id: "draft",
+    mode: "draft" as const,
+    label: "Discussion starter",
+    prompt: "Draft a discussion starter grounded in this channel’s accessible context.",
+  },
+  {
+    id: "announce",
+    mode: "draft" as const,
+    label: "Announcement draft",
+    prompt: "Draft a short announcement based on accessible community activity.",
   },
   {
     id: "faq",
-    label: "Suggest FAQs",
-    prompt: "Suggest 5 FAQ entries we should capture as knowledge from recent discussion.",
+    mode: "faq" as const,
+    label: "FAQ answers",
+    prompt: "Suggest FAQ entries answered only from accessible community knowledge.",
   },
   {
     id: "commerce",
+    mode: "suggest" as const,
     label: "Recommend products",
-    prompt: "Recommend products, courses, or services that would help members based on this channel.",
-  },
-  {
-    id: "affiliates",
-    label: "Affiliate opportunities",
-    prompt: "Suggest affiliate offers or marketplace items worth sharing in this community.",
-  },
-  {
-    id: "bookings",
-    label: "Suggest bookings",
-    prompt: "Suggest mentorship, consulting, or coaching sessions that fit the topics discussed.",
-  },
-  {
-    id: "intelligence",
-    label: "Platform intelligence",
-    prompt:
-      "Using the intelligence snapshot, recommend communities, groups, courses, products, events, lives, and creators members should engage with next.",
-  },
-  {
-    id: "automate",
-    label: "Suggest automations",
-    prompt:
-      "Suggest FAQs, knowledge cards, guides, learning paths, tasks, events, and community improvements to automate.",
-  },
-  {
-    id: "moderation",
-    label: "Moderation insights",
-    prompt:
-      "Flag potential moderation needs and trust improvements based on discussion tone and unanswered questions.",
+    prompt: "Recommend products, courses, or services that would help members based on accessible community context only. If none exist, say unavailable.",
   },
   {
     id: "learning",
+    mode: "suggest" as const,
     label: "Learning path",
+    prompt: "Suggest a short learning path from accessible courses and resources.",
+  },
+  {
+    id: "intelligence",
+    mode: "suggest" as const,
+    label: "Platform intelligence",
     prompt:
-      "Propose a short learning path from this channel’s knowledge and courses.",
+      "Using accessible community context, recommend groups, courses, resources, and knowledge members should engage with next. If unavailable, say so.",
   },
 ] as const;
 
-/** Channel-level AI — reuses /api/c/ai + Intelligence Platform snapshot. */
+/** Channel-level AI — reuses /api/c/ai + permission-filtered Community Brain. */
 export function ChannelAiPanel({
   roomId,
   communityId,
@@ -135,20 +139,35 @@ export function ChannelAiPanel({
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
+  const [lastRun, setLastRun] = useState<{
+    id: string;
+    prompt: string;
+    mode: "ask" | "summarize" | "suggest" | "draft" | "faq";
+  } | null>(null);
 
   const run = useCallback(
-    async (id: string, prompt: string) => {
+    async (
+      id: string,
+      prompt: string,
+      mode: "ask" | "summarize" | "suggest" | "draft" | "faq"
+    ) => {
+      if (!communityId) {
+        setError("Community context required");
+        return;
+      }
       setActive(id);
       setLoading(true);
       setError(null);
       setResult(null);
+      setLastRun({ id, prompt, mode });
 
+      // Lightweight untrusted focus only — authoritative facts come from the server brain.
       const sample = messages
-        .slice(-12)
-        .map((m) => `- ${(m.body || "").slice(0, 120)}`)
+        .slice(-8)
+        .map((m) => `- ${(m.body || "").slice(0, 100)}`)
         .join("\n");
       const knowledge = cards
-        .slice(0, 6)
+        .slice(0, 4)
         .map((c) => `- [${c.kind}] ${c.title}`)
         .join("\n");
       const intel =
@@ -162,27 +181,29 @@ export function ChannelAiPanel({
                 events,
                 commerceItems,
               })
-            )
+            ).slice(0, 800)
           : "";
 
-      const full = [
-        prompt,
+      const focus = [
         channelName ? `Channel: #${channelName}` : "",
-        sample ? `\nRecent messages:\n${sample}` : "",
-        knowledge ? `\nExisting knowledge:\n${knowledge}` : "",
-        intel ? `\n${intel}` : "",
+        sample ? `Recent messages:\n${sample}` : "",
+        knowledge ? `Local knowledge cards:\n${knowledge}` : "",
+        intel ? intel : "",
       ]
         .filter(Boolean)
-        .join("\n");
+        .join("\n")
+        .slice(0, 1200);
 
       try {
         const res = await fetch("/api/c/ai", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            prompt: full.slice(0, 2000),
-            mode: id === "summarize" ? "summarize" : "suggest",
-            ...(communityId ? { communityId } : {}),
+            prompt,
+            mode,
+            communityId,
+            ...(roomId ? { roomId } : {}),
+            ...(focus ? { focus } : {}),
           }),
         });
         const json = (await res.json()) as { text?: string; error?: string };
@@ -197,7 +218,7 @@ export function ChannelAiPanel({
         setLoading(false);
       }
     },
-    [messages, cards, channelName, communityId, tasks, events, commerceItems]
+    [messages, cards, channelName, communityId, roomId, tasks, events, commerceItems]
   );
 
   if (!roomId) {
@@ -215,19 +236,18 @@ export function ChannelAiPanel({
       <div className="shrink-0 border-b border-[var(--color-border)] px-4 py-3">
         <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-primary)]">
           <Sparkles className="h-4 w-4 text-[var(--color-accent)]" />
-          Channel Intelligence
+          Community Brain
         </p>
         <p className="mt-0.5 text-xs text-[var(--color-text-muted)]">
-          AI connected to messages, knowledge, commerce, and creator OS — not a
-          separate chatbot.
+          Permission-aware answers from this community — not a standalone chatbot.
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {PROMPTS.map((p) => (
             <button
               key={p.id}
               type="button"
-              disabled={loading}
-              onClick={() => void run(p.id, p.prompt)}
+              disabled={loading || !communityId}
+              onClick={() => void run(p.id, p.prompt, p.mode)}
               className={cn(
                 "rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
                 active === p.id
@@ -256,9 +276,21 @@ export function ChannelAiPanel({
           </p>
         )}
         {error && (
-          <p className="text-sm text-[var(--color-danger)]" role="alert">
-            {error}
-          </p>
+          <div className="space-y-1">
+            <p className="text-sm text-[var(--color-danger)]" role="alert">
+              {error}
+            </p>
+            {lastRun && (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => void run(lastRun.id, lastRun.prompt, lastRun.mode)}
+                className="text-xs font-semibold text-[var(--color-accent)] hover:underline disabled:opacity-50"
+              >
+                Retry
+              </button>
+            )}
+          </div>
         )}
         {result && (
           <div className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-text-primary)]">
@@ -268,8 +300,8 @@ export function ChannelAiPanel({
         {!loading && !result && !error && localRecs.length === 0 && (
           <ChannelEmptyState
             icon={Bot}
-            title="Ask the channel"
-            description="Summarize themes, draft FAQs, or spot knowledge gaps — grounded in this channel’s live messages."
+            title="Ask the community"
+            description="Summarize discussions, find resources and knowledge, draft announcements, or build FAQs — grounded in content you can access."
             className="py-8"
           />
         )}
