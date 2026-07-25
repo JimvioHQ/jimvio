@@ -20,12 +20,10 @@ import { cn } from "@/lib/utils";
 import { MOCK_COMMUNITY } from "@/lib/community/dashboard-mock-data";
 import {
   useWorkspaceOptional,
-  type WorkspaceRoomRow,
   type WorkspaceSpaceRow,
 } from "@/components/community/workspace-context";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 import {
-  communityChannelHref,
   communitySpaceHref,
 } from "@/lib/community/workspace";
 
@@ -51,18 +49,6 @@ type SpaceItem = {
   live?: boolean;
 };
 
-type RoomItem = {
-  id: string;
-  label: string;
-  emoji: string;
-  href: string;
-  roomId?: string;
-  spaceId?: string;
-  spaceSlug?: string;
-  roomSlug?: string;
-  /** @deprecated alias for roomSlug — kept for path matching */
-  channelSlug?: string;
-};
 
 type CommunitySidebarProps = {
   slug: string;
@@ -100,57 +86,6 @@ function formatMemberCount(count: number): string {
   return count.toLocaleString();
 }
 
-function roomEmoji(room: WorkspaceRoomRow): string {
-  if (room.room_type === "posts" || /announcement/i.test(room.name)) return "📢";
-  if (room.room_type === "resources" || /resource/i.test(room.name)) return "📚";
-  if (room.room_type === "voice" || /voice/i.test(room.name)) return "🎤";
-  if (/signal/i.test(room.name)) return "📈";
-  return "💬";
-}
-
-/** Rooms that should not appear as nested links under a Space (Discussion is the Space home). */
-function shouldHideFromSpaceNav(room: WorkspaceRoomRow): boolean {
-  if (room.room_type === "posts" || /announcement/i.test(room.name)) return true;
-  const slug = (room.slug ?? "").trim().toLowerCase();
-  const name = (room.name ?? "").trim().toLowerCase();
-  // Discussion is the Space homepage — not a separate nested entry.
-  return (
-    (room.room_type === "chat" || !room.room_type) &&
-    (/^(discussion|general|chat|lounge)$/.test(slug) ||
-      /^(discussion|general|chat|general chat)$/.test(name))
-  );
-}
-
-function buildSpaceRooms(
-  communitySlug: string,
-  spacesWithRooms: WorkspaceSpaceRow[],
-  options?: { spaceId?: string | null }
-): RoomItem[] {
-  const spaces = options?.spaceId
-    ? spacesWithRooms.filter((s) => s.id === options.spaceId)
-    : spacesWithRooms;
-
-  return spaces.flatMap((space) =>
-    space.rooms
-      .filter((room) => !shouldHideFromSpaceNav(room))
-      .map((room) => ({
-        id: room.id,
-        label: room.name,
-        emoji: roomEmoji(room),
-        href: communityChannelHref(communitySlug, room.slug).replace(
-          `/communities/${communitySlug}`,
-          ""
-        ),
-        roomId: room.id,
-        spaceId: space.id,
-        spaceSlug: space.slug,
-        roomSlug: room.slug,
-        // Keep channelSlug alias for verify/path matching on nested room routes.
-        channelSlug: room.slug,
-      }))
-  );
-}
-
 function buildSpaces(
   communitySlug: string,
   spacesWithRooms: WorkspaceSpaceRow[]
@@ -174,7 +109,6 @@ function SidebarBody({
   activeNav,
   activeSpaceId,
   spaces,
-  spacesWithRooms,
   canManage,
   communityId,
   onNavigate,
@@ -186,7 +120,6 @@ function SidebarBody({
   activeNav?: CommunityNavItem;
   activeSpaceId?: string;
   spaces: SpaceItem[];
-  spacesWithRooms: WorkspaceSpaceRow[];
   canManage: boolean;
   communityId: string | null;
   onNavigate?: () => void;
@@ -223,39 +156,6 @@ function SidebarBody({
       pathname.startsWith(`${base}/groups/${spaceSlug}/`)
     );
   }
-
-  function roomActive(room: RoomItem) {
-    if (!room.roomId) return false;
-    const roomSlug = room.roomSlug ?? room.channelSlug;
-    if (roomSlug) {
-      return (
-        pathname === `${base}/spaces/${roomSlug}` ||
-        pathname.startsWith(`${base}/spaces/${roomSlug}/`) ||
-        pathname === `${base}/channels/${roomSlug}` ||
-        pathname.startsWith(`${base}/channels/${roomSlug}/`)
-      );
-    }
-    return false;
-  }
-
-  const selectedSpaceFromPath =
-    spaces.find((s) => spaceActive(s)) ??
-    (activeSpaceId ? spaces.find((s) => s.id === activeSpaceId) : undefined);
-
-  /** When viewing a room route, resolve its parent Space for nested highlights. */
-  const selectedSpaceFromRoom = (() => {
-    if (selectedSpaceFromPath) return selectedSpaceFromPath;
-    const match = pathname.match(/\/channels\/([^/]+)/);
-    const roomSlug = match?.[1] ? decodeURIComponent(match[1]) : null;
-    if (!roomSlug) return undefined;
-    const space = spacesWithRooms.find((s) =>
-      s.rooms.some((r) => r.slug === roomSlug)
-    );
-    if (!space) return undefined;
-    return spaces.find((s) => s.id === space.id);
-  })();
-
-  const selectedSpace = selectedSpaceFromPath ?? selectedSpaceFromRoom;
 
   return (
     <>
@@ -410,12 +310,6 @@ function SidebarBody({
             ) : (
               spaces.map((space) => {
                 const active = spaceActive(space);
-                const nested =
-                  active || selectedSpace?.id === space.id
-                    ? buildSpaceRooms(slug, spacesWithRooms, {
-                        spaceId: space.id,
-                      })
-                    : [];
                 return (
                   <div key={space.id} className="space-y-0.5">
                     <Link
@@ -441,40 +335,45 @@ function SidebarBody({
                         </span>
                       ) : null}
                     </Link>
-                    {nested.length > 0 ? (
-                      <div className="ml-3 space-y-0.5 border-l border-gray-100 pl-2">
-                        {nested.map((room) => {
-                          const rActive = roomActive(room);
-                          return (
-                            <Link
-                              key={room.id}
-                              href={
-                                room.href.startsWith("http") ||
-                                room.href.startsWith("/communities")
-                                  ? room.href
-                                  : `${base}${room.href}`
-                              }
-                              onClick={onNavigate}
-                              className={cn(
-                                "flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] transition-colors",
-                                rActive
-                                  ? "bg-orange-50 font-semibold text-orange-600"
-                                  : "font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-                              )}
-                            >
-                              <span aria-hidden>{room.emoji}</span>
-                              <span className="truncate">{room.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    ) : null}
                   </div>
                 );
               })
             )}
           </nav>
         )}
+
+        {/* DISCOVER */}
+        <div className="mb-1.5 px-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+            Discover
+          </p>
+        </div>
+        <nav className="mb-5 space-y-0.5">
+          <Link
+            href={`${base}/spaces`}
+            onClick={onNavigate}
+            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+          >
+            Trending Spaces
+          </Link>
+          <Link
+            href={`${base}/live`}
+            onClick={onNavigate}
+            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+          >
+            Live Spaces
+          </Link>
+          <Link
+            href={`${base}/spaces`}
+            onClick={onNavigate}
+            className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+          >
+            New Spaces
+            <span className="ml-auto rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-600">
+              New
+            </span>
+          </Link>
+        </nav>
       </div>
 
       {communityId && (
@@ -533,7 +432,6 @@ export function CommunitySidebar({
     activeNav,
     activeSpaceId,
     spaces,
-    spacesWithRooms,
     canManage,
     communityId,
   };

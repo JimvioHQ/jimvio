@@ -87,7 +87,7 @@ assert.match(convertTask, /Convert to Task/);
 assert.match(resources, /PDF Library/);
 assert.match(resources, /RESOURCE_LIBRARY_SHELVES/);
 assert.match(groupWs, /GroupWorkspace/);
-assert.match(groupWs, /GROUP_TABS/);
+assert.match(groupWs, /SpaceAboutPanel|ChatRoom/);
 assert.match(spaces, /GroupCard/);
 assert.match(spaces, /communitySpaceHref|communityGroupHref/);
 assert.match(eventsSection, /useCreatorOSStore/);

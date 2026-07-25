@@ -42,10 +42,9 @@ assert.doesNotMatch(
   groupWs,
   /useCollaborationStore\(\(s\)\s*=>\s*\n?\s*s\.cards\.filter/s
 );
-assert.match(groupWs, /const allCards = useCollaborationStore/);
-assert.match(groupWs, /useMemo\([\s\S]*allCards\.filter/);
-assert.match(groupWs, /useState<GroupTabId>\("discussion"\)/);
 assert.match(groupWs, /ChatRoom/);
+assert.match(groupWs, /SpaceAboutPanel/);
+assert.match(groupWs, /hideSidebar/);
 
 assert.doesNotMatch(
   eventsPanel,

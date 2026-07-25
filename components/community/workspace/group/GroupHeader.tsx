@@ -1,39 +1,67 @@
 "use client";
 
-import Image from "next/image";
 import {
   Bell,
   BellOff,
-  Search,
-  Shield,
-  UserPlus,
+  BadgeCheck,
+  Info,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { WorkspaceGroup } from "@/lib/community/workspace";
+import { SPACE_TYPE_LABELS, isSpaceType } from "@/lib/community/workspace/space-types";
 import { WorkspaceIconButton } from "@/components/community/workspace/channel/ChannelEmptyState";
 import {
   WorkspaceActionMenu,
   buildWorkspaceActions,
 } from "@/components/community/workspace/shared/WorkspaceActionMenu";
-import { BookmarkButton } from "@/components/community/personalization/BookmarkButton";
 
+function SpaceAvatar({
+  name,
+  icon,
+  color,
+}: {
+  name: string;
+  icon?: string | null;
+  color?: string | null;
+}) {
+  const letter = (name.trim()[0] || "S").toUpperCase();
+  const bg =
+    color ||
+    "linear-gradient(135deg, #fd5000 0%, #ff8a4c 100%)";
+  return (
+    <span
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[16px] font-bold text-white shadow-sm ring-1 ring-black/5"
+      style={{ background: icon ? undefined : bg }}
+      aria-hidden
+    >
+      {icon ? (
+        <span className="flex h-full w-full items-center justify-center rounded-2xl bg-[var(--color-surface-secondary)] text-[20px]">
+          {icon}
+        </span>
+      ) : (
+        letter
+      )}
+    </span>
+  );
+}
+
+/**
+ * Space conversation header — avatar, name, members, join, bell, About, more.
+ * No search / tabs / permanent About sidebar.
+ */
 export function GroupHeader({
   group,
   ownerName,
-  moderatorNames = [],
   isMember,
   notificationsOn,
   onToggleNotifications,
   onInvite,
-  onSearch,
   onJoin,
-  searchValue,
-  onSearchChange,
-  communityId,
-  bookmarkHref,
-  compact = false,
+  onAbout,
+  spaceType,
+  verified = false,
   className,
 }: {
   group: WorkspaceGroup;
@@ -45,283 +73,122 @@ export function GroupHeader({
   onInvite?: () => void;
   onSearch?: () => void;
   onJoin?: () => void;
+  onAbout?: () => void;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   communityId?: string;
   bookmarkHref?: string;
-  /** Discussion-first: compact bar so chat fills the viewport (Telegram/WhatsApp). */
+  /** @deprecated Compact is now the only conversation layout. */
   compact?: boolean;
+  spaceType?: string | null;
+  verified?: boolean;
   className?: string;
 }) {
-  const cover =
-    group.cover ||
-    "linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 55%, #1a1a1a), #0f172a 70%)";
-
-  if (compact) {
-    return (
-      <header
-        className={cn(
-          "relative shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 sm:px-4",
-          className
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-surface-secondary)] text-[18px]"
-            aria-hidden
-          >
-            {group.icon ?? "✦"}
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
-                {group.name}
-              </h1>
-              <span className="rounded-md bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[var(--color-text-muted)]">
-                {group.privacy}
-              </span>
-            </div>
-            <p className="mt-0.5 text-[11px] text-[var(--color-text-muted)]">
-              {group.memberCount > 0
-                ? `${group.memberCount.toLocaleString()} members`
-                : "Discussion"}
-              {ownerName ? ` · ${ownerName}` : ""}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-0.5">
-            <WorkspaceIconButton label="Search group" onClick={onSearch}>
-              <Search className="h-4 w-4" />
-            </WorkspaceIconButton>
-            <WorkspaceIconButton
-              label={
-                notificationsOn
-                  ? "Mute notifications"
-                  : "Enable notifications"
-              }
-              pressed={!notificationsOn}
-              onClick={onToggleNotifications}
-            >
-              {notificationsOn ? (
-                <Bell className="h-4 w-4" />
-              ) : (
-                <BellOff className="h-4 w-4" />
-              )}
-            </WorkspaceIconButton>
-            {communityId && bookmarkHref ? (
-              <BookmarkButton
-                id={group.id}
-                kind="group"
-                communityId={communityId}
-                title={group.name}
-                href={bookmarkHref}
-                size="sm"
-              />
-            ) : null}
-          </div>
-        </div>
-      </header>
-    );
-  }
+  const typeLabel = isSpaceType(spaceType)
+    ? SPACE_TYPE_LABELS[spaceType]
+    : "Discussion";
 
   return (
     <header
       className={cn(
-        "relative shrink-0 overflow-hidden border-b border-[var(--color-border)]",
+        "relative shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 sm:px-5",
         className
       )}
     >
-      <div
-        className="relative h-28 w-full sm:h-36"
-        style={group.cover ? undefined : { background: cover }}
-        role="img"
-        aria-label={`${group.name} cover`}
-      >
-        {group.cover && (
-          <Image
-            src={group.cover}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="100vw"
-            priority
-            unoptimized
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-surface)] via-[var(--color-surface)]/40 to-transparent" />
-      </div>
+      <div className="flex items-center gap-3">
+        <SpaceAvatar name={group.name} icon={group.icon} color={group.color} />
 
-      <div className="relative -mt-10 px-4 pb-4 sm:-mt-12 sm:px-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex min-w-0 items-end gap-3">
-            <span
-              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-2 border-[var(--color-surface)] bg-[var(--color-surface)] text-[28px] shadow-sm sm:h-20 sm:w-20 sm:text-[32px]"
-              aria-hidden
-            >
-              {group.icon ?? "✦"}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <h1 className="truncate text-[16px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[17px]">
+              {group.name}
+            </h1>
+            {verified ? (
+              <BadgeCheck
+                className="h-4 w-4 shrink-0 text-violet-500"
+                aria-label="Verified"
+              />
+            ) : null}
+            <span className="rounded-md bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-600">
+              {group.privacy === "public" ? "Public" : group.privacy}
             </span>
-            <div className="min-w-0 pb-0.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-[18px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[22px]">
-                  {group.name}
-                </h1>
-                {group.featured && (
-                  <span className="rounded-md bg-[var(--color-accent)]/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-accent)]">
-                    Featured
-                  </span>
-                )}
-                <span className="rounded-md bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[var(--color-text-muted)]">
-                  {group.privacy}
-                </span>
-              </div>
-              {group.description && (
-                <p className="mt-1 line-clamp-2 max-w-2xl text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
-                  {group.description}
-                </p>
-              )}
-            </div>
           </div>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] text-[var(--color-text-muted)]">
+            <span>{typeLabel} Space</span>
+            <span aria-hidden>·</span>
+            <span className="inline-flex items-center gap-1">
+              <Users className="h-3 w-3" aria-hidden />
+              {group.memberCount > 0
+                ? `${group.memberCount.toLocaleString()} members`
+                : "Members"}
+            </span>
+            {ownerName ? (
+              <>
+                <span aria-hidden>·</span>
+                <span className="truncate">{ownerName}</span>
+              </>
+            ) : null}
+          </p>
+        </div>
 
-          <div className="flex shrink-0 flex-wrap items-center gap-1">
-            {!isMember && onJoin && (
-              <button
-                type="button"
-                onClick={onJoin}
-                className="inline-flex min-h-10 items-center gap-1.5 rounded-lg bg-[var(--color-accent)] px-3.5 text-[12px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
-              >
-                Join group
-              </button>
+        <div className="flex shrink-0 items-center gap-1">
+          {!isMember && onJoin ? (
+            <button
+              type="button"
+              onClick={onJoin}
+              className="inline-flex min-h-9 items-center rounded-lg bg-[var(--color-accent)] px-3 text-[12px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+            >
+              Join
+            </button>
+          ) : isMember ? (
+            <span className="hidden min-h-9 items-center rounded-lg bg-emerald-500/10 px-2.5 text-[11px] font-semibold text-emerald-600 sm:inline-flex">
+              Joined
+            </span>
+          ) : null}
+
+          <WorkspaceIconButton
+            label={
+              notificationsOn ? "Mute notifications" : "Enable notifications"
+            }
+            pressed={!notificationsOn}
+            onClick={onToggleNotifications}
+          >
+            {notificationsOn ? (
+              <Bell className="h-4 w-4" />
+            ) : (
+              <BellOff className="h-4 w-4" />
             )}
-            {isMember && (
-              <span className="inline-flex min-h-10 items-center rounded-lg bg-emerald-500/10 px-2.5 text-[11px] font-semibold text-emerald-600">
-                Joined
-              </span>
-            )}
-            <WorkspaceIconButton
-              label="Invite members"
-              onClick={() => {
+          </WorkspaceIconButton>
+
+          {onAbout ? (
+            <button
+              type="button"
+              onClick={onAbout}
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12px] font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+            >
+              <Info className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
+              About
+            </button>
+          ) : null}
+
+          <WorkspaceActionMenu
+            label={`${group.name} actions`}
+            items={buildWorkspaceActions({
+              muted: !notificationsOn,
+              pinned: group.featured,
+              onInvite: () => {
                 if (onInvite) {
                   onInvite();
                   return;
                 }
                 void navigator.clipboard?.writeText(window.location.href);
                 toast.success("Invite link copied");
-              }}
-            >
-              <UserPlus className="h-4 w-4" />
-            </WorkspaceIconButton>
-            <WorkspaceIconButton label="Search group" onClick={onSearch}>
-              <Search className="h-4 w-4" />
-            </WorkspaceIconButton>
-            <WorkspaceIconButton
-              label={
-                notificationsOn
-                  ? "Mute notifications"
-                  : "Enable notifications"
-              }
-              pressed={!notificationsOn}
-              onClick={onToggleNotifications}
-            >
-              {notificationsOn ? (
-                <Bell className="h-4 w-4" />
-              ) : (
-                <BellOff className="h-4 w-4" />
-              )}
-            </WorkspaceIconButton>
-            {communityId && bookmarkHref ? (
-              <BookmarkButton
-                id={group.id}
-                kind="group"
-                communityId={communityId}
-                title={group.name}
-                href={bookmarkHref}
-                size="sm"
-              />
-            ) : null}
-            <WorkspaceActionMenu
-              label={`${group.name} actions`}
-              items={buildWorkspaceActions({
-                muted: !notificationsOn,
-                pinned: group.featured,
-                onInvite: () => {
-                  if (onInvite) {
-                    onInvite();
-                    return;
-                  }
-                  void navigator.clipboard?.writeText(window.location.href);
-                  toast.success("Invite link copied");
-                },
-                onMute: onToggleNotifications,
-              })}
-            />
-          </div>
+              },
+              onMute: onToggleNotifications,
+            })}
+          />
         </div>
-
-        {onSearchChange && (
-          <div className="mt-3 lg:hidden">
-            <label className="sr-only" htmlFor="group-workspace-search-mobile">
-              Search group workspace
-            </label>
-            <input
-              id="group-workspace-search-mobile"
-              type="search"
-              value={searchValue ?? ""}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search channels, knowledge…"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2.5 text-[13px] outline-none focus:border-[var(--color-accent)]/40 focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
-            />
-          </div>
-        )}
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-[var(--color-text-muted)]">
-          <span className="inline-flex items-center gap-1 font-medium">
-            <Users className="h-3 w-3" aria-hidden />
-            {group.memberCount > 0
-              ? `${group.memberCount.toLocaleString()} members`
-              : "Members"}
-          </span>
-          {group.onlineCount > 0 && (
-            <span className="inline-flex items-center gap-1 text-emerald-600">
-              <span
-                className="h-1.5 w-1.5 rounded-full bg-emerald-500"
-                aria-hidden
-              />
-              {group.onlineCount.toLocaleString()} online
-            </span>
-          )}
-          {ownerName && (
-            <span className="inline-flex items-center gap-1">
-              <Shield
-                className="h-3 w-3 text-[var(--color-accent)]"
-                aria-hidden
-              />
-              Owner · {ownerName}
-            </span>
-          )}
-          {moderatorNames.length > 0 && (
-            <span>
-              Mods · {moderatorNames.slice(0, 3).join(", ")}
-              {moderatorNames.length > 3
-                ? ` +${moderatorNames.length - 3}`
-                : ""}
-            </span>
-          )}
-        </div>
-
-        {group.tags.length > 0 && (
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {group.tags.slice(0, 8).map((tag) => (
-              <span
-                key={tag}
-                className="rounded-md bg-[var(--color-accent-subtle)] px-2 py-0.5 text-[11px] font-semibold text-[var(--color-accent)]"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
     </header>
   );
 }
-
-

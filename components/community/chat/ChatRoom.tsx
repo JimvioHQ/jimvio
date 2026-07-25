@@ -52,6 +52,8 @@ interface ChatRoomProps {
   communityId: string;
   slug: string;
   hideHeader?: boolean;
+  /** Hide DM/inbox chat list — Space discussion is a pure conversation. */
+  hideSidebar?: boolean;
   /** When false, hide composer and show read-only notice. Default true. */
   canPost?: boolean;
   /** Optional empty-state copy (Group Discussion / channel templates). */
@@ -69,6 +71,7 @@ export function ChatRoom({
   communityId,
   slug,
   hideHeader,
+  hideSidebar = false,
   canPost = true,
   emptyTitle,
   emptyDescription,
@@ -464,6 +467,7 @@ export function ChatRoom({
         />
       )}
 
+      {!hideSidebar ? (
       <ChatSidebar
         roomId={roomId}
         activeConvId={hook.activeConvId}
@@ -486,12 +490,13 @@ export function ChatRoom({
         }}
         onOpenDm={hook.openDmWith}
       />
+      ) : null}
 
       <div
         className={cn(
           "flex h-full min-w-0 flex-1 flex-col overflow-hidden",
           "bg-[var(--color-bg)]",
-          hook.isChatting ? "flex" : "hidden md:flex"
+          hideSidebar || hook.isChatting ? "flex" : "hidden md:flex"
         )}
       >
         <ChatHeader

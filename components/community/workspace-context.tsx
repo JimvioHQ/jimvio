@@ -28,10 +28,14 @@ export type WorkspaceSpaceRow = {
   name: string;
   slug: string;
   icon: string | null;
+  color?: string | null;
+  description?: string | null;
   access_type: string;
   sort_order: number | null;
   /** Product Space type (discussion | voice | live | …). */
   space_type?: string | null;
+  created_at?: string | null;
+  is_featured?: boolean | null;
   rooms: WorkspaceRoomRow[];
 };
 

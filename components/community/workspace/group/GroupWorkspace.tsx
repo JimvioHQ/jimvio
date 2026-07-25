@@ -1,55 +1,29 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useTransition,
-} from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  BookOpen,
-  GraduationCap,
-  LayoutList,
-  Radio,
-  Sparkles,
-} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  GROUP_TABS,
-  type GroupSidebarId,
-  type GroupTabId,
-} from "@/lib/community/os";
-import {
-  communityRoomHref,
+  communitySpaceHref,
   mapSpaceToGroup,
-  mapRoomToChannel,
   resolveGroupDiscussionRoom,
   type WorkspaceGroup,
 } from "@/lib/community/workspace";
 import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
 import type { MembershipLite } from "@/lib/community-workspace-access";
-import { ResourceLibrary } from "@/components/community/os/ResourceLibrary";
-import { KnowledgeCardView } from "@/components/community/knowledge/KnowledgeCardView";
-import { useCollaborationStore } from "@/lib/community/knowledge";
-import { ChannelEmptyState } from "@/components/community/workspace/channel/ChannelEmptyState";
-import { CommunityStorefront } from "@/components/community/commerce";
-import { WorkspaceTabBar } from "@/components/community/workspace/shared/WorkspaceTabBar";
 import { useCommunityRoster } from "@/components/community/workspace/shared/useCommunityRoster";
-import { ChannelAiPanel } from "@/components/community/workspace/channel/panels/ChannelAiPanel";
 import { ChatRoom } from "@/components/community/chat/ChatRoom";
 import { WorkspaceSkeleton } from "@/components/community/workspace/shared/WorkspaceSkeleton";
+import { SpaceAboutPanel } from "@/components/community/workspace/space/SpaceAboutPanel";
 import { GroupHeader } from "./GroupHeader";
-import { GroupSidebar } from "./GroupSidebar";
 
 type DiscussionRoom = WorkspaceSpaceRow["rooms"][number];
 
 /**
- * Space = live conversation (Telegram/WhatsApp style).
- * Opening a Space always lands on Discussion (ChatRoom) — Overview is secondary.
+ * Member Space experience — pure conversation.
+ * Layout: Header → Discussion feed → Composer.
+ * About opens as a right slide-over (never a permanent sidebar).
  */
 export function GroupWorkspace({
   space,
@@ -73,10 +47,8 @@ export function GroupWorkspace({
   ownerName?: string | null;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<GroupTabId>("discussion");
   const [notificationsOn, setNotificationsOn] = useState(true);
-  const [query, setQuery] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [aboutOpen, setAboutOpen] = useState(false);
   const { members } = useCommunityRoster(communityId);
   const [ensuredRoom, setEnsuredRoom] = useState<DiscussionRoom | null>(null);
   const [ensuring, setEnsuring] = useState(false);
@@ -93,25 +65,10 @@ export function GroupWorkspace({
       mapSpaceToGroup(space, roleInput, {
         memberCount: memberCount ?? members.length,
         onlineCount: 0,
-        description: null,
+        description: space.description ?? null,
+        color: space.color ?? null,
       }),
     [space, roleInput, memberCount, members.length]
-  );
-
-  const roomIds = useMemo(() => space.rooms.map((r) => r.id), [space.rooms]);
-  const allCards = useCollaborationStore((s) => s.cards);
-  const cards = useMemo(
-    () => allCards.filter((c) => roomIds.includes(c.roomId)),
-    [allCards, roomIds]
-  );
-
-  const courseRooms = useMemo(
-    () => space.rooms.filter((r) => r.room_type === "course"),
-    [space.rooms]
-  );
-  const resourceRooms = useMemo(
-    () => space.rooms.filter((r) => r.room_type === "resources"),
-    [space.rooms]
   );
 
   const resolvedFromSpace = useMemo(
@@ -159,425 +116,106 @@ export function GroupWorkspace({
     };
   }, [resolvedFromSpace, ensuredRoom, space.id, ensureAttempt, router]);
 
-  const openRoom = useCallback(
-    (roomSlug: string) => {
-      router.push(communityRoomHref(communitySlug, space.slug, roomSlug));
-    },
-    [router, communitySlug, space.slug]
-  );
-
-  const selectNav = useCallback(
-    (id: GroupSidebarId) => {
-      if (id === "settings") {
-        router.push(
-          `/dashboard/communities/${communitySlug}/groups/${space.id}`
-        );
-        return;
-      }
-      startTransition(() => setTab(id));
-    },
-    [router, communitySlug, space.id]
-  );
-
-  const filteredCards = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return cards;
-    return cards.filter(
-      (c) =>
-        c.title.toLowerCase().includes(q) ||
-        (c.body ?? "").toLowerCase().includes(q)
-    );
-  }, [cards, query]);
-
-  const purpose =
-    group.description?.trim() ||
-    `Welcome to ${group.name}. This is where the group collaborates in real time.`;
-
-  const otherChannels = useMemo(
+  const aboutMembers = useMemo(
     () =>
-      space.rooms.filter(
-        (r) => !discussionRoom || r.id !== discussionRoom.id
-      ),
-    [space.rooms, discussionRoom]
+      members.map((m) => ({
+        id: m.id,
+        name: m.name,
+        avatarUrl: m.avatarUrl,
+        role: m.role,
+      })),
+    [members]
   );
 
-  const isEmptyGroup = space.rooms.length === 0 && !discussionRoom;
+  const copyInvite = useCallback(() => {
+    const href = communitySpaceHref(communitySlug, space.slug);
+    void navigator.clipboard?.writeText(
+      `${typeof window !== "undefined" ? window.location.origin : ""}${href}`
+    );
+    toast.success("Invite link copied");
+  }, [communitySlug, space.slug]);
 
   return (
     <div
       className={cn(
-        "flex min-h-0 w-full min-w-0 flex-1 overflow-hidden bg-[var(--color-surface)]",
-        "animate-in fade-in duration-300",
-        pending && "opacity-95"
+        "flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-[var(--color-surface)]",
+        "animate-in fade-in duration-300"
       )}
     >
-      <GroupSidebar
-        active={tab}
-        onChange={selectNav}
-        showSettings={Boolean(isStaff)}
+      <GroupHeader
+        group={group}
+        ownerName={ownerName}
+        isMember={Boolean(membership)}
+        notificationsOn={notificationsOn}
+        spaceType={space.space_type}
+        verified={Boolean(space.is_featured)}
+        compact
+        onToggleNotifications={() => {
+          setNotificationsOn((v) => !v);
+          toast.success(
+            notificationsOn ? "Space notifications muted" : "Notifications on"
+          );
+        }}
+        onInvite={copyInvite}
+        onAbout={() => setAboutOpen(true)}
+        onJoin={() => router.push(`/communities/${communitySlug}/subscribe`)}
       />
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <GroupHeader
-          group={group}
-          ownerName={ownerName}
-          isMember={Boolean(membership)}
-          notificationsOn={notificationsOn}
-          communityId={communityId}
-          bookmarkHref={`/communities/${communitySlug}/groups/${group.slug}`}
-          compact={tab === "discussion"}
-          onToggleNotifications={() => {
-            setNotificationsOn((v) => !v);
-            toast.success(
-              notificationsOn ? "Space notifications muted" : "Notifications on"
-            );
-          }}
-          searchValue={query}
-          onSearchChange={setQuery}
-          onSearch={() => {
-            const el =
-              document.getElementById("group-workspace-search") ||
-              document.getElementById("group-workspace-search-mobile");
-            el?.focus();
-          }}
-          onJoin={() =>
-            router.push(`/communities/${communitySlug}/subscribe`)
-          }
-        />
-
-        <div className="shrink-0 border-b border-[var(--color-border)] px-3 py-2 sm:px-4 lg:hidden">
-          <WorkspaceTabBar
-            tabs={GROUP_TABS}
-            active={tab}
-            onChange={(id) => startTransition(() => setTab(id as GroupTabId))}
-            ariaLabel="Space sections"
-            idPrefix="group-tab"
-            className="border-0 px-0"
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {discussionRoom ? (
+          <ChatRoom
+            roomId={discussionRoom.id}
+            roomName={discussionRoom.name}
+            communityId={communityId}
+            slug={communitySlug}
+            hideHeader
+            hideSidebar
+            canPost={canPost}
+            emptyTitle={`Welcome to ${group.name}`}
+            emptyDescription="Start the conversation — messages, replies, reactions, and files live here."
+            emptyActionLabel="Write a message"
           />
-        </div>
-
-        <div
-          role="tabpanel"
-          id={`group-tab-${tab}-panel`}
-          aria-labelledby={`group-tab-${tab}`}
-          className="flex min-h-0 flex-1 flex-col overflow-hidden transition-opacity duration-200"
-        >
-          {/* Discussion — always mounted when active; ChatRoom is the source of truth */}
-          {tab === "discussion" && (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              {discussionRoom ? (
-                <ChatRoom
-                  roomId={discussionRoom.id}
-                  roomName={discussionRoom.name}
-                  communityId={communityId}
-                  slug={communitySlug}
-                  hideHeader
-                  canPost={canPost}
-                  emptyTitle={`Welcome to ${group.name}.`}
-                  emptyDescription={
-                    isEmptyGroup || otherChannels.length === 0
-                      ? "Start the first conversation."
-                      : "Start the conversation — messages, replies, reactions, and files live here."
-                  }
-                  emptyActionLabel="Write a message"
-                />
-              ) : ensuring ? (
-                <WorkspaceSkeleton rows={8} className="min-h-[320px]" />
-              ) : (
-                <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center">
-                  <p className="text-[16px] font-semibold text-[var(--color-text-primary)]">
-                    Welcome to {group.name}.
-                  </p>
-                  <p className="max-w-sm text-[13px] leading-relaxed text-[var(--color-text-muted)]">
-                    Start the first conversation.
-                  </p>
-                  {ensureError ? (
-                    <p className="text-[12px] text-[var(--color-danger,#b91c1c)]">
-                      {ensureError}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEnsuredRoom(null);
-                        setEnsureError(null);
-                        setEnsureAttempt((n) => n + 1);
-                      }}
-                      className="inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white"
-                    >
-                      Retry Discussion
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {tab === "overview" && (
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="mx-auto w-full max-w-[880px] space-y-10 px-4 py-8 sm:px-6 sm:py-10">
-                <section className="grid gap-4 sm:grid-cols-2">
-                  <article className="rounded-2xl bg-[var(--color-bg)]/60 p-6 ring-1 ring-[var(--color-border)]/60">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
-                      About
-                    </p>
-                    <h2 className="mt-2 text-[18px] font-semibold tracking-tight text-[var(--color-text-primary)]">
-                      Welcome to {group.name}
-                    </h2>
-                    <p className="mt-2 text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
-                      {purpose}
-                    </p>
-                  </article>
-                  <article className="rounded-2xl bg-[var(--color-bg)]/60 p-6 ring-1 ring-[var(--color-border)]/60">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
-                      Mission
-                    </p>
-                    <h2 className="mt-2 text-[18px] font-semibold tracking-tight text-[var(--color-text-primary)]">
-                      How we collaborate
-                    </h2>
-                    <p className="mt-2 text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
-                      Discussion is the home of this group. Specialized channels
-                      handle resources, courses, and live work — jump back here
-                      anytime to keep talking.
-                    </p>
-                  </article>
-                </section>
-
-                {group.rules ? (
-                  <section>
-                    <h3 className="mb-3 text-[13px] font-semibold text-[var(--color-text-primary)]">
-                      Rules
-                    </h3>
-                    <div className="rounded-2xl bg-[var(--color-bg)]/60 p-5 ring-1 ring-[var(--color-border)]/60">
-                      <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-[var(--color-text-secondary)]">
-                        {group.rules}
-                      </p>
-                    </div>
-                  </section>
-                ) : null}
-
-                <section>
-                  <div className="mb-3 flex items-baseline justify-between gap-3">
-                    <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-                      Featured resources
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() => startTransition(() => setTab("resources"))}
-                      className="min-h-10 text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
-                    >
-                      All resources
-                    </button>
-                  </div>
-                  {resourceRooms.length === 0 && filteredCards.length === 0 ? (
-                    <ChannelEmptyState
-                      icon={BookOpen}
-                      title="No resources yet"
-                      description="Upload guides and links from the Resources tab."
-                      className="rounded-2xl bg-[var(--color-bg)]/50 py-8 ring-1 ring-[var(--color-border)]/50"
-                    />
-                  ) : (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {resourceRooms.slice(0, 4).map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => openRoom(r.slug)}
-                          className="flex min-h-[80px] items-start gap-3 rounded-2xl bg-[var(--color-bg)]/60 px-4 py-4 text-left ring-1 ring-[var(--color-border)]/60 transition hover:ring-[var(--color-accent)]/30"
-                        >
-                          <BookOpen className="mt-0.5 h-4 w-4 text-[var(--color-accent)]" />
-                          <span>
-                            <span className="block text-[14px] font-semibold text-[var(--color-text-primary)]">
-                              {r.name}
-                            </span>
-                            <span className="text-[12px] text-[var(--color-text-muted)]">
-                              Resource channel
-                            </span>
-                          </span>
-                        </button>
-                      ))}
-                      {filteredCards.slice(0, 4).map((c) => (
-                        <KnowledgeCardView key={c.id} card={c} compact />
-                      ))}
-                    </div>
-                  )}
-                </section>
-
-                {otherChannels.length > 0 ? (
-                  <section>
-                    <h3 className="mb-3 text-[13px] font-semibold text-[var(--color-text-primary)]">
-                      Rooms
-                    </h3>
-                    <ul className="space-y-2">
-                      {otherChannels.map((r) => {
-                        const channel = mapRoomToChannel(r, roleInput);
-                        return (
-                          <li key={r.id}>
-                            <Link
-                              href={communityRoomHref(
-                                communitySlug,
-                                space.slug,
-                                r.slug
-                              )}
-                              className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-[13px] font-medium text-[var(--color-text-primary)] transition hover:border-[var(--color-accent)]/40"
-                            >
-                              <LayoutList className="h-4 w-4 text-[var(--color-text-muted)]" />
-                              {channel.name}
-                              <span className="ml-auto text-[10px] uppercase text-[var(--color-text-muted)]">
-                                {channel.type}
-                              </span>
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </section>
-                ) : null}
-
-                <button
-                  type="button"
-                  onClick={() => startTransition(() => setTab("discussion"))}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Back to Discussion
-                </button>
-              </div>
-            </div>
-          )}
-
-          {tab === "knowledge" && (
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              {filteredCards.length === 0 ? (
-                <ChannelEmptyState
-                  icon={BookOpen}
-                  title="No knowledge yet"
-                  description="Guides and FAQs converted from Discussion appear here."
-                  actionLabel="Open Discussion"
-                  onAction={() =>
-                    startTransition(() => setTab("discussion"))
-                  }
-                />
-              ) : (
-                <ul className="grid gap-3 sm:grid-cols-2">
-                  {filteredCards.map((c) => (
-                    <li key={c.id}>
-                      <KnowledgeCardView card={c} compact />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {tab === "resources" && (
-            <ResourceLibrary
-              roomIds={roomIds}
-              title={`${group.name} resources`}
-            />
-          )}
-
-          {tab === "courses" && (
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
-              {courseRooms.length === 0 ? (
-                <ChannelEmptyState
-                  icon={GraduationCap}
-                  title="No courses yet"
-                  description="Courses in this Space list here."
-                  className="py-10"
-                  actionLabel="Browse community courses"
-                  onAction={() =>
-                    router.push(`/communities/${communitySlug}/courses`)
-                  }
-                />
-              ) : (
-                courseRooms.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => openRoom(r.slug)}
-                    className="flex w-full items-center gap-3 rounded-xl border border-[var(--color-border)] px-4 py-3.5 text-left transition hover:border-[var(--color-accent)]/40"
-                  >
-                    <GraduationCap className="h-5 w-5 text-[var(--color-accent)]" />
-                    <span className="text-sm font-bold text-[var(--color-text-primary)]">
-                      {r.name}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-
-          {tab === "live" && (
-            <div className="mx-auto flex max-w-md flex-col items-center px-4 py-14 text-center">
-              <Radio className="mb-4 h-7 w-7 text-[var(--color-accent)]" />
-              <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
-                Live sessions
-              </h2>
-              <p className="mt-2 text-[13px] text-[var(--color-text-muted)]">
-                Host workshops and office hours with Live Studio. Discussion stays
-                open before, during, and after.
+        ) : ensuring ? (
+          <WorkspaceSkeleton rows={8} className="min-h-[320px]" />
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+            <p className="text-[16px] font-semibold text-[var(--color-text-primary)]">
+              Welcome to {group.name}
+            </p>
+            <p className="max-w-sm text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+              Start the first conversation.
+            </p>
+            {ensureError ? (
+              <p className="text-[12px] text-[var(--color-danger,#b91c1c)]">
+                {ensureError}
               </p>
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-                <Link
-                  href={`/communities/${communitySlug}/live`}
-                  className="inline-flex rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white"
-                >
-                  Open Live Studio
-                </Link>
-                {discussionRoom && (
-                  <button
-                    type="button"
-                    onClick={() => startTransition(() => setTab("discussion"))}
-                    className="inline-flex rounded-lg border border-[var(--color-border)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-primary)]"
-                  >
-                    Open Discussion
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {tab === "store" && (
-            <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              <CommunityStorefront
-                communityId={communityId}
-                base={`/communities/${communitySlug}`}
-                communityName={group.name}
-              />
-            </div>
-          )}
-
-          {tab === "ai" && (
-            <ChannelAiPanel
-              roomId={discussionRoom?.id ?? roomIds[0]}
-              communityId={communityId}
-              channelName={group.name}
-            />
-          )}
-        </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                setEnsuredRoom(null);
+                setEnsureError(null);
+                setEnsureAttempt((n) => n + 1);
+              }}
+              className="inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white"
+            >
+              Retry Discussion
+            </button>
+          </div>
+        )}
       </div>
 
+      <SpaceAboutPanel
+        open={aboutOpen}
+        onClose={() => setAboutOpen(false)}
+        group={group}
+        spaceType={space.space_type}
+        ownerName={ownerName}
+        createdAt={space.created_at}
+        description={space.description}
+        rules={group.rules}
+        members={aboutMembers}
+      />
     </div>
-  );
-}
-
-/** @deprecated Use WorkspaceTabBar — kept for import compatibility */
-export function GroupTabs({
-  active,
-  onChange,
-}: {
-  active: GroupTabId;
-  onChange: (id: GroupTabId) => void;
-}) {
-  return (
-    <WorkspaceTabBar
-      tabs={GROUP_TABS}
-      active={active}
-      onChange={(id) => onChange(id as GroupTabId)}
-      ariaLabel="Space sections"
-      idPrefix="group-tab"
-    />
   );
 }

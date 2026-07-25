@@ -92,8 +92,8 @@ assert.match(assertPublish, /assertCanPublishInRoom/);
 assert.match(loader, /channel_kind/);
 assert.match(mappers, /channel_kind/);
 
-assert.match(sidebar, /buildSpaceRooms\(slug, spacesWithRooms/);
-assert.match(sidebar, /shouldHideFromSpaceNav|Discussion is the Space homepage/);
+assert.match(sidebar, /Spaces/);
+assert.match(sidebar, /Discover|communitySpaceHref/);
 assert.match(createDialog, /CHANNEL_TEMPLATES/);
 assert.match(roomsApi, /DEFAULT_PERMISSION_CONFIG|DISCUSSION_PERMISSION_CONFIG/);
 assert.match(roomsApi, /channel_kind/);

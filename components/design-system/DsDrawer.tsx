@@ -20,19 +20,31 @@ export function DsDrawer({
 
   return (
     <>
-      <div className="fixed inset-0 z-[var(--ds-z-modal)] bg-black/40 backdrop-blur-[1px]" aria-hidden onClick={onClose} />
+      <div
+        className="fixed inset-0 z-[var(--ds-z-modal)] bg-black/40 backdrop-blur-[1px] animate-in fade-in duration-200"
+        aria-hidden
+        onClick={onClose}
+      />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label={title ?? "Drawer"}
         className={cn(
-          "fixed inset-y-0 z-[calc(var(--ds-z-modal)+10)] flex w-[min(100vw-2rem,400px)] flex-col border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-xl)] ds-motion-slide-up",
-          side === "right" ? "right-0 border-l" : "left-0 border-r",
+          "fixed inset-y-0 z-[calc(var(--ds-z-modal)+10)] flex w-[min(100vw-2rem,400px)] flex-col border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-xl)]",
+          "animate-in duration-300 ease-out",
+          side === "right"
+            ? "right-0 border-l slide-in-from-right"
+            : "left-0 border-r slide-in-from-left",
         )}
       >
         <header className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
           {title && <h2 className="text-sm font-bold">{title}</h2>}
-          <button type="button" onClick={onClose} aria-label="Close drawer" className="ds-focus-ring rounded-[var(--radius-sm)] p-1.5">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close drawer"
+            className="ds-focus-ring rounded-[var(--radius-sm)] p-1.5"
+          >
             <X className="size-4" />
           </button>
         </header>

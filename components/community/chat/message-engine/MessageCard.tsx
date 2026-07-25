@@ -206,8 +206,8 @@ export function MessageCard({
                 unoptimized
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-xs font-bold text-[var(--color-accent)]">
-                {name[0]}
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600 text-[10px] font-bold text-white">
+                {(name.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2) || "?").toUpperCase()}
               </div>
             )}
           </div>

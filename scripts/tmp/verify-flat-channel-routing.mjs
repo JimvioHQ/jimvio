@@ -43,7 +43,7 @@ assert.match(channelPage, /permanentRedirect/);
 assert.match(groupsPage, /permanentRedirect/);
 assert.match(legacyPage, /permanentRedirect/);
 assert.match(sidebar, /communitySpaceHref|communityChannelHref/);
-assert.match(sidebar, /\/spaces\/|buildSpaceRooms/);
+assert.match(sidebar, /\/spaces\/|Discover/);
 assert.match(search, /\/spaces\/|\/channels\//);
 assert.doesNotMatch(search, /\/groups\/\$\{space\.slug\}\/channels\//);
 
