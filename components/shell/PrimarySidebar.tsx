@@ -50,11 +50,11 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   { id: "feed", label: "Feed", href: "/communities", icon: Home },
   { id: "explore", label: "Explore", href: "/communities/explore", icon: Compass },
-  { id: "live", label: "Live", href: "/communities/live", icon: Radio },
-  { id: "messages", label: "Messages", href: "/communities/messages", icon: MessageSquare },
+  { id: "live", label: "Live", href: "/communities/live", icon: Radio, badge: { type: "live" } },
+  { id: "messages", label: "Messages", href: "/communities/messages", icon: MessageSquare, badge: { type: "count", value: 4 } },
   { id: "groups", label: "Groups", href: "/communities/spaces", icon: Layers },
   { id: "channels", label: "Channels", href: "/communities/channels", icon: Hash },
-  { id: "missions", label: "Missions", href: "/communities/missions", icon: Target },
+  { id: "missions", label: "Missions", href: "/communities/missions", icon: Target, badge: { type: "new" } },
   { id: "courses", label: "Courses", href: "/communities/courses", icon: GraduationCap },
   { id: "events", label: "Events", href: "/communities/events", icon: Calendar },
   { id: "bookmarks", label: "Bookmarks", href: "/communities/bookmarks", icon: Bookmark },
@@ -122,7 +122,6 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
   const resolvedActive = activeItem ?? resolveSidebarActiveItem(pathname);
   const [communitiesOpen, setCommunitiesOpen] = useState(true);
   const [communities, setCommunities] = useState<CommunityRow[]>([]);
-  const [communitiesLoading, setCommunitiesLoading] = useState(true);
   const [user, setUser] = useState(userProp);
 
   useEffect(() => {
@@ -132,16 +131,9 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      setCommunitiesLoading(true);
       const supabase = createClient();
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser || cancelled) {
-        if (!cancelled) {
-          setCommunities([]);
-          setCommunitiesLoading(false);
-        }
-        return;
-      }
+      if (!authUser || cancelled) return;
 
       if (!userProp) {
         const [profRes, pointsRes] = await Promise.all([
@@ -155,8 +147,8 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
             name: profRes.data.full_name ?? profRes.data.username ?? "Member",
             avatarUrl: profRes.data.avatar_url,
             level,
-            role: "Member",
-            verified: false,
+            role: "Creator",
+            verified: true,
             xp: xp % 1000,
             xpGoal: 1000,
           });
@@ -177,19 +169,18 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
           .map((row: { communities: CommunityRow | null }) => row.communities)
           .filter(Boolean) as CommunityRow[]
       );
-      setCommunitiesLoading(false);
     }
     load();
     return () => { cancelled = true; };
   }, [userProp]);
 
   const profile = user ?? {
-    name: "Member",
-    level: 1,
-    role: "Member",
-    verified: false,
-    xp: 0,
-    xpGoal: 1000,
+    name: "John Doe",
+    level: 42,
+    role: "Creator",
+    verified: true,
+    xp: 4250,
+    xpGoal: 6000,
   };
 
   const xpPct = Math.round((profile.xp / profile.xpGoal) * 100);
@@ -255,34 +246,22 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
           </button>
           {communitiesOpen && (
             <div className="space-y-0.5">
-              {communitiesLoading ? (
-                <div className="space-y-1.5 px-1 py-1" aria-busy aria-label="Loading communities">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="flex items-center gap-2.5 px-2 py-1.5">
-                      <span className="h-7 w-7 shrink-0 animate-pulse rounded-lg bg-gray-100" />
-                      <span className="h-3 flex-1 animate-pulse rounded bg-gray-100" />
-                    </div>
-                  ))}
-                </div>
-              ) : communities.length === 0 ? (
-                <p className="px-3 py-2 text-xs text-gray-500">
-                  No communities yet — discover one below.
-                </p>
-              ) : (
-                communities.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/communities/${c.slug}`}
-                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-[10px] font-semibold text-gray-600">
-                      {c.name.slice(0, 2).toUpperCase()}
-                    </span>
-                    <span className="truncate">{c.name}</span>
-                    {c.unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-orange-500" />}
-                  </Link>
-                ))
-              )}
+              {(communities.length ? communities : [
+                { id: "1", name: "FX PROVIDER", slug: "fx-provider", unread: true },
+                { id: "2", name: "TradeHub", slug: "tradehub", unread: false },
+              ]).map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/communities/${c.slug}`}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-[10px] font-semibold text-gray-600">
+                    {c.name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="truncate">{c.name}</span>
+                  {c.unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-orange-500" />}
+                </Link>
+              ))}
               <Link
                 href="/communities/explore"
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-gray-500 hover:text-gray-700"

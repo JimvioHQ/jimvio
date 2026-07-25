@@ -8,6 +8,7 @@ import {
   Pin,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { WorkspaceChannel, WorkspaceGroup } from "@/lib/community/workspace";
 import { WorkspaceIconButton } from "@/components/community/workspace/channel/ChannelEmptyState";
@@ -16,7 +17,6 @@ import {
   buildWorkspaceActions,
 } from "@/components/community/workspace/shared/WorkspaceActionMenu";
 import { BookmarkButton } from "@/components/community/personalization/BookmarkButton";
-import { useNotificationMute } from "@/components/community/workspace/shared/useNotificationMute";
 
 const TYPE_EMOJI: Record<string, string> = {
   discussion: "💬",
@@ -61,11 +61,7 @@ export function ChannelHeader({
   const members = memberCount ?? channel.memberCount;
   const online = onlineCount ?? 0;
   const pins = pinnedCount ?? channel.pinnedCount;
-  const { notificationsOn, toggle: toggleMute } = useNotificationMute({
-    communityId,
-    kind: "room",
-    targetId: channel.id,
-  });
+  const [notificationsOn, setNotificationsOn] = useState(true);
   const emoji = channel.icon?.trim() || TYPE_EMOJI[channel.type] || "💬";
 
   return (
@@ -145,7 +141,10 @@ export function ChannelHeader({
           }
           pressed={!notificationsOn}
           onClick={() => {
-            void toggleMute();
+            setNotificationsOn((v) => !v);
+            toast.success(
+              notificationsOn ? "Channel muted" : "Notifications enabled"
+            );
           }}
         >
           {notificationsOn ? (
@@ -177,7 +176,10 @@ export function ChannelHeader({
             ...buildWorkspaceActions({
               muted: !notificationsOn,
               onMute: () => {
-                void toggleMute();
+                setNotificationsOn((v) => !v);
+                toast.success(
+                  notificationsOn ? "Channel muted" : "Notifications enabled"
+                );
               },
               onInvite: () => {
                 void navigator.clipboard?.writeText(window.location.href);

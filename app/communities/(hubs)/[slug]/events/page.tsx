@@ -1,10 +1,11 @@
-import EventsPageWrapper from "../../events/page";
+import { redirect } from "next/navigation";
 
-export default async function CommunityEventsPage({
+/** Community Events deep-links resolve to the hub events surface. */
+export default async function CommunityEventsRedirect({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
-  return <EventsPageWrapper communitySlug={slug} />;
+  await params;
+  redirect("/communities/events");
 }

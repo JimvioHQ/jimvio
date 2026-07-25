@@ -1,10 +1,11 @@
-import HubMissionsPage from "../../missions/page";
+import { redirect } from "next/navigation";
 
-export default async function CommunityMissionsPage({
+/** Community Challenges nav targets /[slug]/missions — hub missions page is the live feature. */
+export default async function CommunityMissionsRedirect({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
-  return <HubMissionsPage communitySlug={slug} />;
+  await params;
+  redirect("/communities/missions");
 }

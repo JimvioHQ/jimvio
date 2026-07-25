@@ -7,13 +7,14 @@ import {
   useState,
   useTransition,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
   GraduationCap,
   LayoutList,
-  Megaphone,
-  Target,
+  Radio,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -23,9 +24,7 @@ import {
   type GroupTabId,
 } from "@/lib/community/os";
 import {
-  communityChannelHref,
   communityRoomHref,
-  canEnterGroup,
   mapSpaceToGroup,
   mapRoomToChannel,
   resolveGroupDiscussionRoom,
@@ -38,15 +37,14 @@ import { KnowledgeCardView } from "@/components/community/knowledge/KnowledgeCar
 import { useCollaborationStore } from "@/lib/community/knowledge";
 import { ChannelEmptyState } from "@/components/community/workspace/channel/ChannelEmptyState";
 import { CommunityStorefront } from "@/components/community/commerce";
-import { OpportunityMarketplace } from "@/components/community/economy";
 import { WorkspaceTabBar } from "@/components/community/workspace/shared/WorkspaceTabBar";
 import { useCommunityRoster } from "@/components/community/workspace/shared/useCommunityRoster";
+import { ChannelAiPanel } from "@/components/community/workspace/channel/panels/ChannelAiPanel";
 import { ChatRoom } from "@/components/community/chat/ChatRoom";
 import { WorkspaceSkeleton } from "@/components/community/workspace/shared/WorkspaceSkeleton";
 import { CreateChannelDialog } from "@/components/community/CreateChannelDialog";
 import { GroupHeader } from "./GroupHeader";
 import { GroupSidebar } from "./GroupSidebar";
-import { useNotificationMute } from "@/components/community/workspace/shared/useNotificationMute";
 
 type DiscussionRoom = WorkspaceSpaceRow["rooms"][number];
 
@@ -77,7 +75,7 @@ export function GroupWorkspace({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<GroupTabId>("discussion");
-  const [joiningGroup, setJoiningGroup] = useState(false);
+  const [notificationsOn, setNotificationsOn] = useState(true);
   const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
   const { members } = useCommunityRoster(communityId);
@@ -86,18 +84,6 @@ export function GroupWorkspace({
   const [ensuring, setEnsuring] = useState(false);
   const [ensureError, setEnsureError] = useState<string | null>(null);
   const [ensureAttempt, setEnsureAttempt] = useState(0);
-  const [localSpaceAccess, setLocalSpaceAccess] = useState<string[] | null>(
-    membership?.space_access ?? null
-  );
-  const { notificationsOn, toggle: toggleGroupMute } = useNotificationMute({
-    communityId,
-    kind: "space",
-    targetId: space.id,
-  });
-
-  useEffect(() => {
-    setLocalSpaceAccess(membership?.space_access ?? null);
-  }, [membership?.space_access]);
 
   const roleInput = useMemo(
     () => ({ userId, ownerId, membership }),
@@ -127,34 +113,6 @@ export function GroupWorkspace({
   );
   const resourceRooms = useMemo(
     () => space.rooms.filter((r) => r.room_type === "resources"),
-    [space.rooms]
-  );
-  const announcementRooms = useMemo(
-    () =>
-      space.rooms.filter(
-        (r) =>
-          r.room_type === "posts" ||
-          (r.channel_kind ?? "").toLowerCase() === "announcement" ||
-          /announcement/i.test(r.name)
-      ),
-    [space.rooms]
-  );
-  const marketplaceRooms = useMemo(
-    () =>
-      space.rooms.filter(
-        (r) =>
-          (r.channel_kind ?? "").toLowerCase() === "marketplace" ||
-          /marketplace|store/i.test(r.name)
-      ),
-    [space.rooms]
-  );
-  const campaignRooms = useMemo(
-    () =>
-      space.rooms.filter(
-        (r) =>
-          (r.channel_kind ?? "").toLowerCase() === "campaigns" ||
-          /campaign/i.test(r.name)
-      ),
     [space.rooms]
   );
 
@@ -233,6 +191,10 @@ export function GroupWorkspace({
     );
   }, [cards, query]);
 
+  const purpose =
+    group.description?.trim() ||
+    `Welcome to ${group.name}. This is where the group collaborates in real time.`;
+
   const otherChannels = useMemo(
     () =>
       space.rooms.filter(
@@ -242,67 +204,6 @@ export function GroupWorkspace({
   );
 
   const isEmptyGroup = space.rooms.length === 0 && !discussionRoom;
-
-  const membershipWithAccess = useMemo<MembershipLite | null>(() => {
-    if (!membership) return null;
-    return { ...membership, space_access: localSpaceAccess };
-  }, [membership, localSpaceAccess]);
-
-  const isGroupMember = useMemo(() => {
-    if (!membershipWithAccess || membershipWithAccess.status !== "active") {
-      return false;
-    }
-    return canEnterGroup({
-      spaceAccessType: space.access_type,
-      membership: membershipWithAccess,
-      ownerId: ownerId ?? undefined,
-      userId: userId ?? undefined,
-      spaceId: space.id,
-    });
-  }, [membershipWithAccess, space.access_type, space.id, ownerId, userId]);
-
-  async function handleJoinGroup() {
-    if (!membership) {
-      router.push(`/communities/${communitySlug}`);
-      return;
-    }
-    setJoiningGroup(true);
-    try {
-      const res = await fetch(`/api/c/spaces/${space.id}/join`, {
-        method: "POST",
-      });
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string;
-        code?: string;
-        spaceAccess?: string[];
-        alreadyJoined?: boolean;
-      };
-      if (!res.ok) {
-        if (data.code === "community_membership_required") {
-          router.push(`/communities/${communitySlug}`);
-          return;
-        }
-        throw new Error(data.error || "Couldn't join group");
-      }
-      if (Array.isArray(data.spaceAccess)) {
-        setLocalSpaceAccess(data.spaceAccess);
-      } else if (!data.alreadyJoined) {
-        setLocalSpaceAccess((prev) =>
-          prev && prev.length > 0
-            ? prev.includes(space.id)
-              ? prev
-              : [...prev, space.id]
-            : [space.id]
-        );
-      }
-      toast.success(data.alreadyJoined ? "You're already in this group" : "Joined group");
-      router.refresh();
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Couldn't join group");
-    } finally {
-      setJoiningGroup(false);
-    }
-  }
 
   return (
     <div
@@ -322,13 +223,16 @@ export function GroupWorkspace({
         <GroupHeader
           group={group}
           ownerName={ownerName}
-          isMember={isGroupMember}
+          isMember={Boolean(membership)}
           notificationsOn={notificationsOn}
           communityId={communityId}
           bookmarkHref={`/communities/${communitySlug}/groups/${group.slug}`}
           compact={tab === "discussion"}
           onToggleNotifications={() => {
-            void toggleGroupMute();
+            setNotificationsOn((v) => !v);
+            toast.success(
+              notificationsOn ? "Group notifications muted" : "Notifications on"
+            );
           }}
           searchValue={query}
           onSearchChange={setQuery}
@@ -338,10 +242,9 @@ export function GroupWorkspace({
               document.getElementById("group-workspace-search-mobile");
             el?.focus();
           }}
-          onJoin={() => {
-            if (joiningGroup) return;
-            void handleJoinGroup();
-          }}
+          onJoin={() =>
+            router.push(`/communities/${communitySlug}/subscribe`)
+          }
         />
 
         <div className="shrink-0 border-b border-[var(--color-border)] px-3 py-2 sm:px-4 lg:hidden">
@@ -371,7 +274,6 @@ export function GroupWorkspace({
                   communityId={communityId}
                   slug={communitySlug}
                   hideHeader
-                  conversationSurface="space"
                   canPost={canPost}
                   emptyTitle={`Welcome to ${group.name}.`}
                   emptyDescription={
@@ -436,49 +338,136 @@ export function GroupWorkspace({
             </div>
           )}
 
-          {tab === "announcements" && (
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
-              {announcementRooms.length === 0 ? (
-                <ChannelEmptyState
-                  icon={Megaphone}
-                  title="No announcements yet"
-                  description="Announcements are broadcast Channels — only owners, admins, and moderators publish. Members can read, react, and comment when enabled."
-                  className="py-10"
-                  actionLabel={isStaff ? "Create Channel" : "Back to Discussion"}
-                  onAction={() =>
-                    isStaff
-                      ? setCreateChannelOpen(true)
-                      : startTransition(() => setTab("discussion"))
-                  }
-                />
-              ) : (
-                announcementRooms.map((r) => {
-                  const channel = mapRoomToChannel(r, roleInput);
-                  return (
+          {tab === "overview" && (
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="mx-auto w-full max-w-[880px] space-y-10 px-4 py-8 sm:px-6 sm:py-10">
+                <section className="grid gap-4 sm:grid-cols-2">
+                  <article className="rounded-2xl bg-[var(--color-bg)]/60 p-6 ring-1 ring-[var(--color-border)]/60">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
+                      About
+                    </p>
+                    <h2 className="mt-2 text-[18px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+                      Welcome to {group.name}
+                    </h2>
+                    <p className="mt-2 text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
+                      {purpose}
+                    </p>
+                  </article>
+                  <article className="rounded-2xl bg-[var(--color-bg)]/60 p-6 ring-1 ring-[var(--color-border)]/60">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
+                      Mission
+                    </p>
+                    <h2 className="mt-2 text-[18px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+                      How we collaborate
+                    </h2>
+                    <p className="mt-2 text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
+                      Discussion is the home of this group. Specialized channels
+                      handle resources, courses, and live work — jump back here
+                      anytime to keep talking.
+                    </p>
+                  </article>
+                </section>
+
+                {group.rules ? (
+                  <section>
+                    <h3 className="mb-3 text-[13px] font-semibold text-[var(--color-text-primary)]">
+                      Rules
+                    </h3>
+                    <div className="rounded-2xl bg-[var(--color-bg)]/60 p-5 ring-1 ring-[var(--color-border)]/60">
+                      <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-[var(--color-text-secondary)]">
+                        {group.rules}
+                      </p>
+                    </div>
+                  </section>
+                ) : null}
+
+                <section>
+                  <div className="mb-3 flex items-baseline justify-between gap-3">
+                    <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+                      Featured resources
+                    </h3>
                     <button
-                      key={r.id}
                       type="button"
-                      onClick={() =>
-                        router.push(
-                          communityChannelHref(communitySlug, r.slug)
-                        )
-                      }
-                      className="flex w-full items-center gap-3 rounded-xl border border-[var(--color-border)] px-4 py-3.5 text-left transition hover:border-[var(--color-accent)]/40"
+                      onClick={() => startTransition(() => setTab("resources"))}
+                      className="min-h-10 text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
                     >
-                      <Megaphone className="h-5 w-5 text-[var(--color-accent)]" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-bold text-[var(--color-text-primary)]">
-                          {channel.name}
-                        </span>
-                        <span className="text-[11px] text-[var(--color-text-muted)]">
-                          Broadcast channel
-                        </span>
-                      </span>
-                      <LayoutList className="h-4 w-4 text-[var(--color-text-muted)]" />
+                      All resources
                     </button>
-                  );
-                })
-              )}
+                  </div>
+                  {resourceRooms.length === 0 && filteredCards.length === 0 ? (
+                    <ChannelEmptyState
+                      icon={BookOpen}
+                      title="No resources yet"
+                      description="Upload guides and links from the Resources tab."
+                      className="rounded-2xl bg-[var(--color-bg)]/50 py-8 ring-1 ring-[var(--color-border)]/50"
+                    />
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {resourceRooms.slice(0, 4).map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => openRoom(r.slug)}
+                          className="flex min-h-[80px] items-start gap-3 rounded-2xl bg-[var(--color-bg)]/60 px-4 py-4 text-left ring-1 ring-[var(--color-border)]/60 transition hover:ring-[var(--color-accent)]/30"
+                        >
+                          <BookOpen className="mt-0.5 h-4 w-4 text-[var(--color-accent)]" />
+                          <span>
+                            <span className="block text-[14px] font-semibold text-[var(--color-text-primary)]">
+                              {r.name}
+                            </span>
+                            <span className="text-[12px] text-[var(--color-text-muted)]">
+                              Resource channel
+                            </span>
+                          </span>
+                        </button>
+                      ))}
+                      {filteredCards.slice(0, 4).map((c) => (
+                        <KnowledgeCardView key={c.id} card={c} compact />
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {otherChannels.length > 0 ? (
+                  <section>
+                    <h3 className="mb-3 text-[13px] font-semibold text-[var(--color-text-primary)]">
+                      Channels
+                    </h3>
+                    <ul className="space-y-2">
+                      {otherChannels.map((r) => {
+                        const channel = mapRoomToChannel(r, roleInput);
+                        return (
+                          <li key={r.id}>
+                            <Link
+                              href={communityRoomHref(
+                                communitySlug,
+                                space.slug,
+                                r.slug
+                              )}
+                              className="flex items-center gap-2 rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-[13px] font-medium text-[var(--color-text-primary)] transition hover:border-[var(--color-accent)]/40"
+                            >
+                              <LayoutList className="h-4 w-4 text-[var(--color-text-muted)]" />
+                              {channel.name}
+                              <span className="ml-auto text-[10px] uppercase text-[var(--color-text-muted)]">
+                                {channel.type}
+                              </span>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => startTransition(() => setTab("discussion"))}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Back to Discussion
+                </button>
+              </div>
             </div>
           )}
 
@@ -507,31 +496,10 @@ export function GroupWorkspace({
           )}
 
           {tab === "resources" && (
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              {resourceRooms.length > 0 ? (
-                <div className="shrink-0 space-y-2 border-b border-[var(--color-border)] p-3">
-                  {resourceRooms.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() =>
-                        router.push(
-                          communityChannelHref(communitySlug, r.slug)
-                        )
-                      }
-                      className="flex w-full items-center gap-2 rounded-lg border border-[var(--color-border)] px-3 py-2 text-left text-[13px] font-semibold text-[var(--color-text-primary)] hover:border-[var(--color-accent)]/40"
-                    >
-                      <BookOpen className="h-4 w-4 text-[var(--color-accent)]" />
-                      {r.name}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-              <ResourceLibrary
-                roomIds={roomIds}
-                title={`${group.name} resources`}
-              />
-            </div>
+            <ResourceLibrary
+              roomIds={roomIds}
+              title={`${group.name} resources`}
+            />
           )}
 
           {tab === "courses" && (
@@ -565,26 +533,38 @@ export function GroupWorkspace({
             </div>
           )}
 
-          {tab === "marketplace" && (
+          {tab === "live" && (
+            <div className="mx-auto flex max-w-md flex-col items-center px-4 py-14 text-center">
+              <Radio className="mb-4 h-7 w-7 text-[var(--color-accent)]" />
+              <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+                Live sessions
+              </h2>
+              <p className="mt-2 text-[13px] text-[var(--color-text-muted)]">
+                Host workshops and office hours with Live Studio. Discussion stays
+                open before, during, and after.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                <Link
+                  href={`/communities/${communitySlug}/live`}
+                  className="inline-flex rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white"
+                >
+                  Open Live Studio
+                </Link>
+                {discussionRoom && (
+                  <button
+                    type="button"
+                    onClick={() => startTransition(() => setTab("discussion"))}
+                    className="inline-flex rounded-lg border border-[var(--color-border)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-primary)]"
+                  >
+                    Open Discussion
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tab === "store" && (
             <div className="min-h-0 flex-1 overflow-y-auto p-4">
-              {marketplaceRooms.length > 0 ? (
-                <div className="mb-4 space-y-2">
-                  {marketplaceRooms.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() =>
-                        router.push(
-                          communityChannelHref(communitySlug, r.slug)
-                        )
-                      }
-                      className="flex w-full items-center gap-2 rounded-xl border border-[var(--color-border)] px-3 py-2.5 text-left text-[13px] font-semibold hover:border-[var(--color-accent)]/40"
-                    >
-                      {r.name}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
               <CommunityStorefront
                 communityId={communityId}
                 base={`/communities/${communitySlug}`}
@@ -593,44 +573,12 @@ export function GroupWorkspace({
             </div>
           )}
 
-          {tab === "campaigns" && (
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-              {campaignRooms.length > 0 ? (
-                <div className="space-y-2">
-                  {campaignRooms.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() =>
-                        router.push(
-                          communityChannelHref(communitySlug, r.slug)
-                        )
-                      }
-                      className="flex w-full items-center gap-3 rounded-xl border border-[var(--color-border)] px-4 py-3.5 text-left transition hover:border-[var(--color-accent)]/40"
-                    >
-                      <Target className="h-5 w-5 text-[var(--color-accent)]" />
-                      <span className="text-sm font-bold text-[var(--color-text-primary)]">
-                        {r.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <ChannelEmptyState
-                  icon={Target}
-                  title="No campaigns yet"
-                  description="Campaign Channels are broadcast spaces for launches and brand work. Publishers post; members follow along."
-                  className="py-8"
-                  actionLabel={isStaff ? "Create Channel" : "Back to Discussion"}
-                  onAction={() =>
-                    isStaff
-                      ? setCreateChannelOpen(true)
-                      : startTransition(() => setTab("discussion"))
-                  }
-                />
-              )}
-              <OpportunityMarketplace opportunities={[]} />
-            </div>
+          {tab === "ai" && (
+            <ChannelAiPanel
+              roomId={discussionRoom?.id ?? roomIds[0]}
+              communityId={communityId}
+              channelName={group.name}
+            />
           )}
         </div>
       </div>

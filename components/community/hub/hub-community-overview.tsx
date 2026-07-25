@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +16,7 @@ import {
   Play,
   Radio,
   Shield,
+  Sparkles,
   Users,
   Video,
 } from "lucide-react";
@@ -96,6 +97,30 @@ function Section({
   );
 }
 
+function InfoCard({
+  title,
+  body,
+  icon: Icon,
+}: {
+  title: string;
+  body: string;
+  icon: typeof BookOpen;
+}) {
+  return (
+    <article className="flex h-full min-h-[160px] flex-col rounded-2xl bg-[var(--color-surface)] p-6 ring-1 ring-[var(--color-border)]/70 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_-32px_rgba(0,0,0,0.28)] hover:ring-[var(--color-accent)]/25">
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
+        <Icon className="h-5 w-5" aria-hidden />
+      </span>
+      <h3 className="mt-4 text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+        {title}
+      </h3>
+      <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--color-text-secondary)]">
+        {body}
+      </p>
+    </article>
+  );
+}
+
 type StartCard = {
   id: string;
   title: string;
@@ -141,20 +166,6 @@ export function HubCommunityOverview() {
   } = useWorkspace();
 
   const [createGroupOpen, setCreateGroupOpen] = useState(false);
-
-  useEffect(() => {
-    if (!communityId || !slug) return;
-    void fetch("/api/c/visits", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        communityId,
-        path: `/communities/${slug}`,
-      }),
-    }).catch(() => {
-      /* best-effort resume tracking */
-    });
-  }, [communityId, slug]);
 
   const base = `/communities/${slug}`;
   const cover = overview?.coverImage ?? coverUrl;
@@ -409,34 +420,11 @@ export function HubCommunityOverview() {
                 <span className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-emerald-500/15 px-4 text-[13px] font-medium text-emerald-100 ring-1 ring-emerald-400/30 backdrop-blur-sm">
                   Joined · {roleLabel}
                 </span>
-                {isLive ? (
-                  <HubLinkButton
-                    href={overview?.activeLiveSession?.href ?? `${base}/live`}
-                    className="!min-h-11 !rounded-full !bg-red-500 !px-5 hover:!bg-red-600"
-                  >
-                    Join live
-                  </HubLinkButton>
-                ) : (
-                  <HubLinkButton
-                    href={
-                      spacesWithRooms[0]?.rooms[0]
-                        ? communityRoomHref(
-                            slug,
-                            spacesWithRooms[0].slug,
-                            spacesWithRooms[0].rooms[0].slug
-                          )
-                        : `${base}/feed`
-                    }
-                    className="!min-h-11 !rounded-full !px-5"
-                  >
-                    Jump in
-                  </HubLinkButton>
-                )}
                 {canManage ? (
                   <HubLinkButton
                     href={`/dashboard/communities/${encodeURIComponent(slug)}`}
                     variant="secondary"
-                    className="!min-h-11 !rounded-full !px-5 !bg-white/10 !text-white !ring-1 !ring-white/25 hover:!bg-white/15"
+                    className="!min-h-11 !rounded-full !px-5"
                   >
                     Owner Console
                   </HubLinkButton>
@@ -558,34 +546,21 @@ export function HubCommunityOverview() {
         ) : null}
 
         <div className="space-y-16 sm:space-y-20 lg:space-y-24">
-          {/* About / Mission / Audience — single composition */}
+          {/* About / Mission / Audience — 12-col card row */}
           <Section id="about" eyebrow="Identity" title="About this community">
-            <div className="overflow-hidden rounded-[1.5rem] bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]/70">
-              <div className="grid grid-cols-12 divide-y divide-[var(--color-border)]/60 md:divide-x md:divide-y-0">
-                <div className="col-span-12 space-y-2 p-6 sm:p-7 md:col-span-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
-                    About
-                  </p>
-                  <p className="text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
-                    {desc}
-                  </p>
-                </div>
-                <div className="col-span-12 space-y-2 p-6 sm:p-7 md:col-span-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
-                    Mission
-                  </p>
-                  <p className="text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
-                    {mission}
-                  </p>
-                </div>
-                <div className="col-span-12 space-y-2 p-6 sm:p-7 md:col-span-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
-                    Who it&apos;s for
-                  </p>
-                  <p className="text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
-                    {audience}
-                  </p>
-                </div>
+            <div className="grid grid-cols-12 gap-4 sm:gap-5">
+              <div className="col-span-12 md:col-span-4">
+                <InfoCard title="About" body={desc} icon={BookOpen} />
+              </div>
+              <div className="col-span-12 md:col-span-4">
+                <InfoCard title="Mission" body={mission} icon={Sparkles} />
+              </div>
+              <div className="col-span-12 md:col-span-4">
+                <InfoCard
+                  title="Who this community is for"
+                  body={audience}
+                  icon={Users}
+                />
               </div>
             </div>
           </Section>

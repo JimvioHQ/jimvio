@@ -163,8 +163,8 @@ export async function POST(
 
   const roomName = ensureDiscussion ? "Discussion" : name;
   const finalRoomType = ensureDiscussion ? "chat" : roomType;
-  // Only Group Discussion is member-writable. Every Channel is broadcast-first.
-  const isOpenChat = ensureDiscussion;
+  const isOpenChat =
+    ensureDiscussion || finalRoomType === "chat" || finalRoomType === "voice";
   const channelKind =
     ensureDiscussion
       ? "discussion"
@@ -180,7 +180,7 @@ export async function POST(
                 ? "events"
                 : finalRoomType === "course"
                   ? "courses"
-                  : "announcement";
+                  : "discussion";
   const permissionConfig = isOpenChat
     ? { ...DISCUSSION_PERMISSION_CONFIG, publisherIds: [] }
     : {

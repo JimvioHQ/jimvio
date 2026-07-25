@@ -24,10 +24,6 @@ interface ChatHeaderProps {
   activeConvPeer: ActiveConvPeer | null;
   isChatting: boolean;
   hideHeader?: boolean;
-  /** When false, hide audio/video call controls (Group / Channel chat). */
-  enableCalls?: boolean;
-  /** When false, hide mobile back-to-list control (no conversation sidebar). */
-  showMobileBack?: boolean;
   onlineCount?: number;
   searchOpen: boolean;
   searchQuery: string;
@@ -49,8 +45,6 @@ export function ChatHeader({
   activeConvPeer,
   isChatting,
   hideHeader,
-  enableCalls = true,
-  showMobileBack = true,
   onlineCount,
   searchOpen,
   searchQuery,
@@ -67,7 +61,7 @@ export function ChatHeader({
   return (
     <>
       {/* ── Mobile back ─────────────────────────────────────────────── */}
-      {showMobileBack && isChatting && (
+      {isChatting && (
         <div className="md:hidden absolute left-3 top-2.5 z-30">
           <button
             type="button"
@@ -84,8 +78,8 @@ export function ChatHeader({
         </div>
       )}
 
-      {/* ── Minimal actions (hideHeader) — calls only on DM hub ─ */}
-      {enableCalls && (activeConvId || roomName) && hideHeader && (
+      {/* ── Minimal actions (hideHeader) — calls only; ChannelHeader owns search ─ */}
+      {(activeConvId || roomName) && hideHeader && (
         <div className="absolute right-3 top-2 z-20 flex items-center gap-1.5">
           <button
             type="button"
@@ -162,16 +156,12 @@ export function ChatHeader({
 
           {/* Action icons */}
           <div className="flex items-center gap-1">
-            {enableCalls && (
-              <>
-                <WaIconBtn aria-label="Audio call" onClick={onStartAudioCall}>
-                  <Phone className="h-5 w-5" />
-                </WaIconBtn>
-                <WaIconBtn aria-label="Video call" onClick={onStartVideoCall}>
-                  <Video className="h-5 w-5" />
-                </WaIconBtn>
-              </>
-            )}
+            <WaIconBtn aria-label="Audio call" onClick={onStartAudioCall}>
+              <Phone className="h-5 w-5" />
+            </WaIconBtn>
+            <WaIconBtn aria-label="Video call" onClick={onStartVideoCall}>
+              <Video className="h-5 w-5" />
+            </WaIconBtn>
             <WaIconBtn
               aria-label="Search messages"
               onClick={onToggleSearch}

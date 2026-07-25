@@ -54,9 +54,8 @@ assert.match(channelPage, /VisitTracker|continueLearning/);
 assert.match(notifUtils, /sortNotificationsByPriority|classifyCommunityNotificationPriority/);
 assert.match(search, /Groups|Channels/);
 
-// Personalization stays ChatRoom-free; VisitTracker syncs resume state to server.
+// Must not touch ChatRoom / APIs / routing for this layer
 assert.doesNotMatch(home, /from ["']@\/components\/community\/chat\/ChatRoom/);
-assert.match(visit, /\/api\/c\/visits/);
-assert.match(types, /community_member_visits/);
+assert.doesNotMatch(visit, /fetch\(|\/api\//);
 
 console.log("Creator community intelligence verification passed.");

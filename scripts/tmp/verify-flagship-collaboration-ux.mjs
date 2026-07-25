@@ -44,18 +44,15 @@ assert.match(channelCard, /signals/);
 assert.match(channelCard, /typingLabel/);
 assert.match(channelCard, /WorkspaceActionMenu/);
 
-// Discussion-first Group homepage — space chat excludes Inbox / Calls / DMs
+// Discussion-first Group homepage
 assert.match(groupWs, /useState<GroupTabId>\("discussion"\)/);
 assert.match(groupWs, /ChatRoom/);
-assert.match(groupWs, /conversationSurface="space"/);
 assert.match(groupWs, /Welcome to \$\{group\.name\}/);
 assert.match(groupWs, /Start the first conversation/);
-assert.match(groupWs, /tab === "announcements"/);
-assert.match(groupWs, /tab === "marketplace"/);
-assert.match(groupWs, /tab === "campaigns"/);
+assert.match(groupWs, /Featured resources/);
+assert.match(groupWs, /Back to Discussion/);
 assert.doesNotMatch(groupWs, /Quick actions/);
 assert.doesNotMatch(groupWs, /Pinned announcement/);
-assert.doesNotMatch(groupWs, /tab === "overview"/);
 
 assert.match(empty, /WorkspaceEmptyArt|emoji/);
 assert.match(actions, /buildWorkspaceActions/);

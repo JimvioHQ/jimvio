@@ -19,7 +19,6 @@ type HubSpace = {
 
 export default function HubSpacesPage() {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [spaces, setSpaces] = useState<HubSpace[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -27,20 +26,11 @@ export default function HubSpacesPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      setError(null);
       try {
         const res = await fetch("/api/c/spaces");
-        if (!res.ok) {
-          const data = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(data.error || "Couldn't load groups");
-        }
+        if (!res.ok) return;
         const json = (await res.json()) as { spaces: HubSpace[] };
         if (!cancelled) setSpaces(json.spaces ?? []);
-      } catch (e: unknown) {
-        if (!cancelled) {
-          setSpaces([]);
-          setError(e instanceof Error ? e.message : "Couldn't load groups");
-        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -92,19 +82,6 @@ export default function HubSpacesPage() {
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
           </div>
-        ) : error ? (
-          <HubCard className="py-12 text-center">
-            <Layers className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
-            <p className="text-[14px] font-bold">Couldn't load groups</p>
-            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{error}</p>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="mt-4 inline-flex rounded-lg bg-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-white"
-            >
-              Try again
-            </button>
-          </HubCard>
         ) : filtered.length === 0 ? (
           <HubCard className="py-12 text-center">
             <Layers className="mx-auto mb-3 h-10 w-10 text-zinc-300" />

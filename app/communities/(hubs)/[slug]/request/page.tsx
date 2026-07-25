@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 
 /**
  * Private-community "Request to join" target.
- * Creates a pending row in community_join_requests (owner must approve).
+ * Uses the existing join API (membership + owner notify) — no new join pipeline.
  */
 export default function CommunityJoinRequestPage() {
   const params = useParams();
@@ -28,21 +28,12 @@ export default function CommunityJoinRequestPage() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/communities/${slug}/join-request`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        });
-        const data = (await res.json().catch(() => ({}))) as {
-          error?: string;
-          alreadyMember?: boolean;
-        };
+        const res = await fetch(`/api/communities/${slug}/join`, { method: "POST" });
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
         if (cancelled) return;
         if (!res.ok) {
           if (res.status === 401) {
-            router.replace(
-              `/login?next=${encodeURIComponent(`/communities/${slug}/request`)}`
-            );
+            router.replace(`/login?next=${encodeURIComponent(`/communities/${slug}/request`)}`);
             return;
           }
           setStatus("error");
@@ -50,14 +41,8 @@ export default function CommunityJoinRequestPage() {
           return;
         }
         setStatus("ok");
-        if (data.alreadyMember) {
-          router.replace(`/communities/${slug}`);
-          router.refresh();
-          return;
-        }
-        setMessage(
-          "Your request was sent. You'll get access once the owner approves it."
-        );
+        router.replace(`/communities/${slug}`);
+        router.refresh();
       } catch {
         if (!cancelled) {
           setStatus("error");
@@ -76,22 +61,7 @@ export default function CommunityJoinRequestPage() {
       {status === "loading" && (
         <>
           <Loader2 className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
-          <p className="text-sm text-[var(--color-text-muted)]">
-            Submitting join request…
-          </p>
-        </>
-      )}
-      {status === "ok" && message && (
-        <>
-          <p className="text-sm font-medium text-[var(--color-text-primary)]">
-            {message}
-          </p>
-          <Link
-            href={`/communities/${slug}`}
-            className="text-sm font-semibold text-[#fd5000] hover:underline"
-          >
-            Back to community
-          </Link>
+          <p className="text-sm text-[var(--color-text-muted)]">Submitting join request…</p>
         </>
       )}
       {status === "error" && (

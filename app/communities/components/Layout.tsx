@@ -78,7 +78,7 @@ function usePageTitle(pathname: string): string {
     const [communityName, setCommunityName] = useState<string | null>(null);
 
     let staticTitle = "";
-    if (pathname === "/communities") staticTitle = "Communities";
+    if (pathname === "/communities") staticTitle = "Feed";
     else if (pathname.startsWith("/communities/messages")) staticTitle = "Messages";
     else if (pathname.startsWith("/communities/bookmarks")) staticTitle = "Bookmarks";
     else if (pathname.startsWith("/communities/live")) staticTitle = "Live";

@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
-  Calendar,
   ChevronDown,
   ChevronUp,
   Info,
@@ -18,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MOCK_COMMUNITY } from "@/lib/community/dashboard-mock-data";
 import {
   useWorkspaceOptional,
   type WorkspaceRoomRow,
@@ -34,7 +34,6 @@ type CommunityNavItem =
   | "overview"
   | "courses"
   | "challenges"
-  | "events"
   | "about";
 
 type NavLink = {
@@ -90,7 +89,6 @@ const NAV_ITEMS: NavLink[] = [
   { id: "overview", label: "Overview", icon: LayoutGrid, href: "" },
   { id: "courses", label: "Courses", icon: BookOpen, href: "/courses" },
   { id: "challenges", label: "Challenges", icon: Target, href: "/missions" },
-  { id: "events", label: "Events", icon: Calendar, href: "/events" },
   { id: "about", label: "About", icon: Info, href: "/about" },
 ];
 
@@ -119,11 +117,10 @@ function channelEmoji(room: WorkspaceRoomRow): string {
 
 /** Rooms that should not appear as Channel links in the community sidebar. */
 function shouldHideFromChannelNav(room: WorkspaceRoomRow): boolean {
+  if (room.room_type === "posts" || /announcement/i.test(room.name)) return true;
   const slug = (room.slug ?? "").trim().toLowerCase();
   const name = (room.name ?? "").trim().toLowerCase();
-  const kind = (room.channel_kind ?? "").trim().toLowerCase();
-  // Group Discussion is the Group homepage — never listed as a Channel.
-  if (kind === "discussion") return true;
+  // Group Discussion is the Group homepage — not a separate Channel entry.
   return (
     (room.room_type === "chat" || !room.room_type) &&
     (/^(discussion|general|chat|lounge)$/.test(slug) ||
@@ -284,26 +281,36 @@ function SidebarBody({
 
   return (
     <>
-      <div className="border-b border-[var(--color-border)]/70 px-4 pb-4 pt-3">
+      <div className="border-b border-gray-100 px-4 pb-4 pt-3">
         <Link
           href="/communities"
           onClick={onNavigate}
-          className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-primary)]"
+          className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-400 transition-colors hover:text-gray-700"
         >
           <ArrowLeft className="h-3 w-3" />
           All communities
         </Link>
 
         <div className="mb-3 flex items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--color-accent)]/10 text-sm font-bold text-[var(--color-accent)]">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-orange-50 text-sm font-bold text-orange-600">
             {communityName.slice(0, 2).toUpperCase()}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
-              {communityName}
-            </p>
-            <p className="text-[12px] text-[var(--color-text-muted)]">{visibility}</p>
-            <p className="text-[12px] text-[var(--color-text-muted)]">
+            <div className="flex items-center gap-1">
+              <p className="truncate text-[15px] font-semibold tracking-tight text-gray-900">
+                {communityName}
+              </p>
+              <svg
+                className="h-3.5 w-3.5 shrink-0 text-blue-500"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden
+              >
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-[12px] text-gray-500">{visibility}</p>
+            <p className="text-[12px] text-gray-400">
               {formatMemberCount(memberCount)}{" "}
               {memberCount === 1 ? "Member" : "Members"}
             </p>
@@ -314,7 +321,7 @@ function SidebarBody({
               onClick={onNavigate}
               aria-label="Owner Console"
               title="Owner Console"
-              className="rounded-lg p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
             >
               <Settings className="h-4 w-4" />
             </Link>
@@ -325,7 +332,7 @@ function SidebarBody({
           <Link
             href={`${base}/members`}
             onClick={onNavigate}
-            className="flex w-full items-center justify-center rounded-xl bg-[var(--color-accent)] py-2.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
+            className="flex w-full items-center justify-center rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
           >
             Invite People
           </Link>
@@ -333,7 +340,7 @@ function SidebarBody({
             <Link
               href={`/dashboard/communities/${encodeURIComponent(slug)}`}
               onClick={onNavigate}
-              className="flex w-full items-center justify-center rounded-xl border border-[var(--color-accent)]/25 bg-[var(--color-accent)]/10 py-2 text-[12px] font-semibold text-[var(--color-accent)] transition-colors hover:bg-[var(--color-accent)]/15"
+              className="flex w-full items-center justify-center rounded-xl border border-orange-200 bg-orange-50 py-2 text-[12px] font-semibold text-orange-700 transition-colors hover:bg-orange-100"
             >
               Owner Console
             </Link>
@@ -342,7 +349,7 @@ function SidebarBody({
       </div>
 
       <div className="flex-1 overflow-y-auto px-2.5 py-3 scrollbar-hide">
-        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
+        <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
           Community
         </p>
         <nav className="mb-5 space-y-0.5">
@@ -357,14 +364,14 @@ function SidebarBody({
                 className={cn(
                   "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
                   active
-                    ? "bg-[var(--color-accent)]/10 font-semibold text-[var(--color-accent)]"
-                    : "font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                    ? "bg-orange-50 font-semibold text-orange-600"
+                    : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 )}
               >
                 <Icon
                   className={cn(
                     "h-4 w-4 shrink-0",
-                    active ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)]"
+                    active ? "text-orange-500" : "text-gray-400"
                   )}
                 />
                 <span className="truncate">{label}</span>
@@ -597,9 +604,9 @@ function SidebarBody({
 
 export function CommunitySidebar({
   slug,
-  communityName = "Community",
-  visibility = "Public",
-  membersOnline = 0,
+  communityName = MOCK_COMMUNITY.name,
+  visibility = MOCK_COMMUNITY.visibility,
+  membersOnline = MOCK_COMMUNITY.membersOnline,
   activeNav,
   activeSpaceId,
   spaces: spacesProp,
@@ -675,7 +682,7 @@ export function CommunitySidebar({
   }
 
   return (
-    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-[var(--color-border)]/70 bg-[var(--color-surface)]">
+    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-gray-100 bg-white">
       <SidebarBody {...bodyProps} />
     </aside>
   );
