@@ -115,10 +115,14 @@ export async function GET(req: NextRequest) {
 
   let members = rows.map((row) => {
     const ids = Array.isArray(row.space_access) ? row.space_access : [];
+    const lastActive = row.last_active_at ?? row.updated_at ?? null;
+    const isOnline =
+      !!lastActive &&
+      Date.now() - new Date(lastActive).getTime() < 15 * 60 * 1000;
     return mapMembershipToOwnerMember(row, {
       groupNames: ids.map((id) => spaceNameMap.get(id) ?? "Group").filter(Boolean),
       includeEmail,
-      isOnline: false,
+      isOnline,
     });
   });
 

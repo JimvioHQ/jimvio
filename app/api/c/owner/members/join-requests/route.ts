@@ -110,11 +110,12 @@ export async function POST(req: NextRequest) {
     if (action === "approve") {
       const { data: existing } = await admin
         .from("community_memberships")
-        .select("id")
+        .select("id, status")
         .eq("community_id", communityId)
         .eq("user_id", row.user_id)
         .maybeSingle();
 
+      let createdMembership = false;
       if (!existing) {
         await admin.from("community_memberships").insert({
           community_id: communityId,
@@ -124,11 +125,28 @@ export async function POST(req: NextRequest) {
           plan_type: "free",
           subscribed_at: now,
         });
-      } else {
+        createdMembership = true;
+      } else if (existing.status !== "active") {
         await admin
           .from("community_memberships")
           .update({ status: "active", updated_at: now })
           .eq("id", existing.id);
+        createdMembership = true;
+      }
+
+      if (createdMembership) {
+        const { data: community } = await admin
+          .from("communities")
+          .select("member_count")
+          .eq("id", communityId)
+          .maybeSingle();
+        await admin
+          .from("communities")
+          .update({
+            member_count: (community?.member_count ?? 0) + 1,
+            updated_at: now,
+          })
+          .eq("id", communityId);
       }
     }
 

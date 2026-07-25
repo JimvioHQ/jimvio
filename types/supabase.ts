@@ -1122,6 +1122,7 @@ export type Database = {
           id: string
           payment_provider: string | null
           payment_reference: string | null
+          notification_mutes: Json
           plan_type: string | null
           role: string | null
           space_access: string[] | null
@@ -1139,6 +1140,7 @@ export type Database = {
           id?: string
           payment_provider?: string | null
           payment_reference?: string | null
+          notification_mutes?: Json
           plan_type?: string | null
           role?: string | null
           space_access?: string[] | null
@@ -1156,6 +1158,7 @@ export type Database = {
           id?: string
           payment_provider?: string | null
           payment_reference?: string | null
+          notification_mutes?: Json
           plan_type?: string | null
           role?: string | null
           space_access?: string[] | null
@@ -2134,6 +2137,312 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      live_poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_index: number
+          poll_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_index: number
+          poll_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_index?: number
+          poll_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      live_polls: {
+        Row: {
+          created_at: string
+          created_by: string
+          ended_at: string | null
+          id: string
+          options: Json
+          question: string
+          session_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          ended_at?: string | null
+          id?: string
+          options?: Json
+          question: string
+          session_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          ended_at?: string | null
+          id?: string
+          options?: Json
+          question?: string
+          session_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      live_recordings: {
+        Row: {
+          byte_size: number | null
+          cloudinary_public_id: string | null
+          cloudinary_url: string | null
+          community_id: string
+          created_at: string
+          duration_seconds: number | null
+          egress_id: string | null
+          ended_at: string | null
+          error: string | null
+          id: string
+          session_id: string
+          started_at: string
+          started_by: string
+          status: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          byte_size?: number | null
+          cloudinary_public_id?: string | null
+          cloudinary_url?: string | null
+          community_id: string
+          created_at?: string
+          duration_seconds?: number | null
+          egress_id?: string | null
+          ended_at?: string | null
+          error?: string | null
+          id?: string
+          session_id: string
+          started_at?: string
+          started_by: string
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          byte_size?: number | null
+          cloudinary_public_id?: string | null
+          cloudinary_url?: string | null
+          community_id?: string
+          created_at?: string
+          duration_seconds?: number | null
+          egress_id?: string | null
+          ended_at?: string | null
+          error?: string | null
+          id?: string
+          session_id?: string
+          started_at?: string
+          started_by?: string
+          status?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      live_session_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          message_type: string
+          metadata: Json
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          metadata?: Json
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          message_type?: string
+          metadata?: Json
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      live_session_participants: {
+        Row: {
+          cam_on: boolean | null
+          connection_id: string | null
+          created_at: string
+          hand_raised: boolean | null
+          id: string
+          joined_at: string
+          left_at: string | null
+          metadata: Json
+          mic_on: boolean | null
+          role: string
+          session_id: string
+          sharing: boolean | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cam_on?: boolean | null
+          connection_id?: string | null
+          created_at?: string
+          hand_raised?: boolean | null
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          metadata?: Json
+          mic_on?: boolean | null
+          role: string
+          session_id: string
+          sharing?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cam_on?: boolean | null
+          connection_id?: string | null
+          created_at?: string
+          hand_raised?: boolean | null
+          id?: string
+          joined_at?: string
+          left_at?: string | null
+          metadata?: Json
+          mic_on?: boolean | null
+          role?: string
+          session_id?: string
+          sharing?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      live_session_signals: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          id: string
+          payload: Json
+          session_id: string
+          signal_type: string
+          to_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          id?: string
+          payload?: Json
+          session_id: string
+          signal_type: string
+          to_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          payload?: Json
+          session_id?: string
+          signal_type?: string
+          to_user_id?: string | null
+        }
+        Relationships: []
+      }
+      live_sessions: {
+        Row: {
+          community_id: string
+          created_at: string
+          description: string | null
+          ended_at: string | null
+          host_id: string
+          id: string
+          max_viewers: number
+          peak_viewers: number
+          playback_url: string | null
+          privacy: string
+          recording_ended_at: string | null
+          recording_started_at: string | null
+          recording_url: string | null
+          room_id: string | null
+          scheduled_at: string | null
+          settings: Json
+          space_id: string | null
+          started_at: string | null
+          status: string
+          stream_key: string | null
+          title: string
+          updated_at: string
+          viewer_count: number
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          host_id: string
+          id?: string
+          max_viewers?: number
+          peak_viewers?: number
+          playback_url?: string | null
+          privacy?: string
+          recording_ended_at?: string | null
+          recording_started_at?: string | null
+          recording_url?: string | null
+          room_id?: string | null
+          scheduled_at?: string | null
+          settings?: Json
+          space_id?: string | null
+          started_at?: string | null
+          status?: string
+          stream_key?: string | null
+          title: string
+          updated_at?: string
+          viewer_count?: number
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          description?: string | null
+          ended_at?: string | null
+          host_id?: string
+          id?: string
+          max_viewers?: number
+          peak_viewers?: number
+          playback_url?: string | null
+          privacy?: string
+          recording_ended_at?: string | null
+          recording_started_at?: string | null
+          recording_url?: string | null
+          room_id?: string | null
+          scheduled_at?: string | null
+          settings?: Json
+          space_id?: string | null
+          started_at?: string | null
+          status?: string
+          stream_key?: string | null
+          title?: string
+          updated_at?: string
+          viewer_count?: number
+        }
+        Relationships: []
       }
       member_points: {
         Row: {

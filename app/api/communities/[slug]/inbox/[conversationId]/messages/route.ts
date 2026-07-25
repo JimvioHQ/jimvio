@@ -5,6 +5,8 @@ import {
   sanitizeChatAttachments,
   sanitizeInboxMessageType,
 } from "@/lib/community/chat/sanitize-attachments";
+import { notifyUser } from "@/lib/notifications/notify-user";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +149,37 @@ export async function POST(
     .select("full_name, avatar_url, username")
     .eq("id", user.id)
     .maybeSingle();
+
+  // Notify the other participant (skip call-signaling noise).
+  if (!allowCallSignals) {
+    const recipientId =
+      conv.user_low === user.id ? conv.user_high : conv.user_low;
+    if (recipientId) {
+      try {
+        const admin = createServiceRoleClient();
+        const actorName =
+          prof?.full_name || prof?.username || "Someone";
+        const preview =
+          text.trim().slice(0, 120) ||
+          (attachments.length > 0 ? "Sent an attachment" : "Sent a message");
+        await notifyUser(admin, {
+          userId: recipientId,
+          type: "community",
+          title: "New message",
+          message: `${actorName}: ${preview}`,
+          actionUrl: `/communities/messages`,
+          data: {
+            event: "dm_message",
+            conversationId,
+            communityId: community.id,
+            actorId: user.id,
+          },
+        });
+      } catch (err) {
+        console.error("[inbox] notify failed:", err);
+      }
+    }
+  }
 
   return NextResponse.json({ message: { ...msg, profiles: prof } });
 }

@@ -4,6 +4,10 @@ import { joinFreeCommunity } from "@/services/communityService";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Public/free community join → active membership.
+ * Private communities must use `/api/communities/[slug]/join-request` instead.
+ */
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
@@ -17,12 +21,22 @@ export async function POST(
 
   const { data: community } = await supabase
     .from("communities")
-    .select("id, is_free")
+    .select("id, is_free, is_private")
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
 
   if (!community) return NextResponse.json({ error: "Community not found" }, { status: 404 });
+
+  if (community.is_private) {
+    return NextResponse.json(
+      {
+        error: "This community requires approval. Submit a join request instead.",
+        code: "join_request_required",
+      },
+      { status: 400 }
+    );
+  }
 
   try {
     const membership = await joinFreeCommunity(user.id, community.id);

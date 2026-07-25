@@ -25,6 +25,7 @@ function channelEmoji(channel: HubChannel): string {
 
 export default function HubChannelsPage() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [channels, setChannels] = useState<HubChannel[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -32,11 +33,20 @@ export default function HubChannelsPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setError(null);
       try {
         const res = await fetch("/api/c/channels");
-        if (!res.ok) return;
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data.error || "Couldn't load channels");
+        }
         const json = (await res.json()) as { channels: HubChannel[] };
         if (!cancelled) setChannels(json.channels ?? []);
+      } catch (e: unknown) {
+        if (!cancelled) {
+          setChannels([]);
+          setError(e instanceof Error ? e.message : "Couldn't load channels");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -90,6 +100,20 @@ export default function HubChannelsPage() {
           <div className="flex items-center justify-center py-16 text-[var(--color-text-muted)]">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
+        ) : error ? (
+          <HubCard className="py-10 text-center">
+            <p className="text-[14px] font-semibold text-[var(--color-text-primary)]">
+              Couldn't load channels
+            </p>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">{error}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-4 inline-flex rounded-lg bg-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-white"
+            >
+              Try again
+            </button>
+          </HubCard>
         ) : filtered.length === 0 ? (
           <HubCard className="py-10 text-center">
             <p className="text-[14px] font-semibold text-[var(--color-text-primary)]">

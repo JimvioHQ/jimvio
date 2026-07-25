@@ -25,6 +25,7 @@ import {
 } from "@/lib/community/os";
 import {
   communityRoomHref,
+  canEnterGroup,
   mapSpaceToGroup,
   mapRoomToChannel,
   resolveGroupDiscussionRoom,
@@ -45,6 +46,7 @@ import { WorkspaceSkeleton } from "@/components/community/workspace/shared/Works
 import { CreateChannelDialog } from "@/components/community/CreateChannelDialog";
 import { GroupHeader } from "./GroupHeader";
 import { GroupSidebar } from "./GroupSidebar";
+import { useNotificationMute } from "@/components/community/workspace/shared/useNotificationMute";
 
 type DiscussionRoom = WorkspaceSpaceRow["rooms"][number];
 
@@ -75,7 +77,7 @@ export function GroupWorkspace({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<GroupTabId>("discussion");
-  const [notificationsOn, setNotificationsOn] = useState(true);
+  const [joiningGroup, setJoiningGroup] = useState(false);
   const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
   const { members } = useCommunityRoster(communityId);
@@ -84,6 +86,18 @@ export function GroupWorkspace({
   const [ensuring, setEnsuring] = useState(false);
   const [ensureError, setEnsureError] = useState<string | null>(null);
   const [ensureAttempt, setEnsureAttempt] = useState(0);
+  const [localSpaceAccess, setLocalSpaceAccess] = useState<string[] | null>(
+    membership?.space_access ?? null
+  );
+  const { notificationsOn, toggle: toggleGroupMute } = useNotificationMute({
+    communityId,
+    kind: "space",
+    targetId: space.id,
+  });
+
+  useEffect(() => {
+    setLocalSpaceAccess(membership?.space_access ?? null);
+  }, [membership?.space_access]);
 
   const roleInput = useMemo(
     () => ({ userId, ownerId, membership }),
@@ -205,6 +219,67 @@ export function GroupWorkspace({
 
   const isEmptyGroup = space.rooms.length === 0 && !discussionRoom;
 
+  const membershipWithAccess = useMemo<MembershipLite | null>(() => {
+    if (!membership) return null;
+    return { ...membership, space_access: localSpaceAccess };
+  }, [membership, localSpaceAccess]);
+
+  const isGroupMember = useMemo(() => {
+    if (!membershipWithAccess || membershipWithAccess.status !== "active") {
+      return false;
+    }
+    return canEnterGroup({
+      spaceAccessType: space.access_type,
+      membership: membershipWithAccess,
+      ownerId: ownerId ?? undefined,
+      userId: userId ?? undefined,
+      spaceId: space.id,
+    });
+  }, [membershipWithAccess, space.access_type, space.id, ownerId, userId]);
+
+  async function handleJoinGroup() {
+    if (!membership) {
+      router.push(`/communities/${communitySlug}`);
+      return;
+    }
+    setJoiningGroup(true);
+    try {
+      const res = await fetch(`/api/c/spaces/${space.id}/join`, {
+        method: "POST",
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        code?: string;
+        spaceAccess?: string[];
+        alreadyJoined?: boolean;
+      };
+      if (!res.ok) {
+        if (data.code === "community_membership_required") {
+          router.push(`/communities/${communitySlug}`);
+          return;
+        }
+        throw new Error(data.error || "Couldn't join group");
+      }
+      if (Array.isArray(data.spaceAccess)) {
+        setLocalSpaceAccess(data.spaceAccess);
+      } else if (!data.alreadyJoined) {
+        setLocalSpaceAccess((prev) =>
+          prev && prev.length > 0
+            ? prev.includes(space.id)
+              ? prev
+              : [...prev, space.id]
+            : [space.id]
+        );
+      }
+      toast.success(data.alreadyJoined ? "You're already in this group" : "Joined group");
+      router.refresh();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Couldn't join group");
+    } finally {
+      setJoiningGroup(false);
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -223,16 +298,13 @@ export function GroupWorkspace({
         <GroupHeader
           group={group}
           ownerName={ownerName}
-          isMember={Boolean(membership)}
+          isMember={isGroupMember}
           notificationsOn={notificationsOn}
           communityId={communityId}
           bookmarkHref={`/communities/${communitySlug}/groups/${group.slug}`}
           compact={tab === "discussion"}
           onToggleNotifications={() => {
-            setNotificationsOn((v) => !v);
-            toast.success(
-              notificationsOn ? "Group notifications muted" : "Notifications on"
-            );
+            void toggleGroupMute();
           }}
           searchValue={query}
           onSearchChange={setQuery}
@@ -242,9 +314,10 @@ export function GroupWorkspace({
               document.getElementById("group-workspace-search-mobile");
             el?.focus();
           }}
-          onJoin={() =>
-            router.push(`/communities/${communitySlug}/subscribe`)
-          }
+          onJoin={() => {
+            if (joiningGroup) return;
+            void handleJoinGroup();
+          }}
         />
 
         <div className="shrink-0 border-b border-[var(--color-border)] px-3 py-2 sm:px-4 lg:hidden">

@@ -5,6 +5,10 @@ import {
   resolveGroupManageContext,
   type OwnerGroupMember,
 } from "@/lib/community/owner-console/groups";
+import {
+  grantSpaceAccess,
+  revokeSpaceAccess,
+} from "@/lib/community/space-access";
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +92,7 @@ export async function GET(
   return NextResponse.json({ members });
 }
 
-/** Member actions: remove (revoke space_access), mute/ban placeholders via membership status. */
+/** Group-scoped member actions via space_access (never mutates community membership status). */
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -154,60 +158,45 @@ export async function POST(
     return NextResponse.json({ error: "Member not found" }, { status: 404 });
   }
 
-  if (action === "remove") {
-    const access = Array.isArray(membership.space_access)
-      ? membership.space_access.filter((sid: string) => sid !== id)
-      : [];
-    // If space_access was empty (all spaces), set to all other active spaces
-    let nextAccess = access;
-    if (
-      (!membership.space_access || membership.space_access.length === 0) &&
-      action === "remove"
-    ) {
-      const { data: spaces } = await admin
-        .from("spaces")
-        .select("id")
-        .eq("community_id", space.community_id)
-        .eq("is_active", true)
-        .neq("id", id);
-      nextAccess = (spaces ?? []).map((s) => s.id);
-    }
+  const { data: otherSpaces } = await admin
+    .from("spaces")
+    .select("id")
+    .eq("community_id", space.community_id)
+    .eq("is_active", true)
+    .neq("id", id);
+  const otherIds = (otherSpaces ?? []).map((s) => s.id);
 
+  async function applyRevoke() {
+    const nextAccess = revokeSpaceAccess(
+      membership!.space_access,
+      id,
+      otherIds
+    );
     await admin
       .from("community_memberships")
-      .update({ space_access: nextAccess })
-      .eq("id", membership.id);
+      .update({ space_access: nextAccess, updated_at: new Date().toISOString() })
+      .eq("id", membership!.id);
 
-    const nextCount = Math.max(0, (space.member_count ?? 1) - 1);
+    const nextCount = Math.max(0, (space!.member_count ?? 1) - 1);
     await admin.from("spaces").update({ member_count: nextCount }).eq("id", id);
-
-    return NextResponse.json({ ok: true, action });
   }
 
-  if (action === "mute") {
-    await admin
-      .from("community_memberships")
-      .update({ status: "paused" })
-      .eq("id", membership.id);
+  if (action === "remove" || action === "mute" || action === "ban") {
+    // Group-scoped only — never pause/cancel the community membership.
+    await applyRevoke();
     return NextResponse.json({ ok: true, action });
   }
 
   if (action === "unmute") {
+    const nextAccess = grantSpaceAccess(membership.space_access, id);
     await admin
       .from("community_memberships")
-      .update({ status: "active" })
+      .update({ space_access: nextAccess, updated_at: new Date().toISOString() })
       .eq("id", membership.id);
-    return NextResponse.json({ ok: true, action });
-  }
 
-  if (action === "ban") {
-    await admin
-      .from("community_memberships")
-      .update({
-        status: "cancelled",
-        cancelled_at: new Date().toISOString(),
-      })
-      .eq("id", membership.id);
+    const nextCount = (space.member_count ?? 0) + 1;
+    await admin.from("spaces").update({ member_count: nextCount }).eq("id", id);
+
     return NextResponse.json({ ok: true, action });
   }
 

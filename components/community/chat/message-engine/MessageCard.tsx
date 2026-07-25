@@ -7,7 +7,7 @@ import {
   BadgeCheck,
   BookMarked,
   Bookmark,
-  CheckCheck,
+  Check,
   CheckCircle2,
   CheckSquare,
   Copy,
@@ -353,7 +353,10 @@ export function MessageCard({
                 </span>
               )}
               {isOwn && (
-                <CheckCheck className="h-3.5 w-3.5 text-[var(--color-accent)]" />
+                <Check
+                  className="h-3.5 w-3.5 text-[var(--color-text-muted)]"
+                  aria-label="Delivered"
+                />
               )}
             </div>
           </div>

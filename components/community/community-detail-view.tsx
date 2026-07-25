@@ -250,6 +250,7 @@ export function CommunityDetailView({
   const [spaces, setSpaces] = useState<SpaceRow[] | null>(null);
   const [plan, setPlan] = useState<PlanKey>("monthly");
   const [joining, setJoining] = useState(false);
+  const [joinRequested, setJoinRequested] = useState(false);
   const [localMembership, setLocalMembership] = useState<MembershipPayload>(membership);
 
   // Stable dep — only re-sync when meaningful values change
@@ -272,8 +273,9 @@ export function CommunityDetailView({
     return true;
   }, [localMembership]);
 
-  const isOwner = localMembership?.role === "owner" || community.owner?.id === membership?.role; // adjust to your auth pattern
-  const isModerator = localMembership?.role === "moderator";
+  const isOwner = localMembership?.role === "owner";
+  const isModerator =
+    localMembership?.role === "moderator" || localMembership?.role === "admin";
 
   const memberSince = useMemo(() => {
     const raw = localMembership?.subscribed_at || localMembership?.created_at;
@@ -346,8 +348,33 @@ export function CommunityDetailView({
       return;
     }
 
-    // Private free communities still use the join API (active membership + owner notify).
-    // There is no separate pending-approval table in production yet.
+    // Private free communities: create a pending join request (owner must approve).
+    if (isPrivate) {
+      setJoining(true);
+      try {
+        const res = await fetch(`/api/communities/${community.slug}/join-request`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Couldn't submit join request");
+        if (data.alreadyMember && data.membership) {
+          setLocalMembership(data.membership);
+          toast.success(`Welcome to ${community.name}`);
+          router.refresh();
+          return;
+        }
+        setJoinRequested(true);
+        toast.success("Request sent — you'll be notified when it's approved");
+      } catch (e: any) {
+        toast.error(e.message || "Couldn't submit request — please try again");
+      } finally {
+        setJoining(false);
+      }
+      return;
+    }
+
     setJoining(true);
     try {
       const res = await fetch(`/api/communities/${community.slug}/join`, { method: "POST" });
@@ -670,7 +697,7 @@ export function CommunityDetailView({
                   )}
                 </>
               ) : isPrivate ? (
-                /* Private free — join API; paid private handled via subscribe in handleJoin */
+                /* Private free — join request; paid private handled via subscribe in handleJoin */
                 <>
                   <div>
                     <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
@@ -678,20 +705,24 @@ export function CommunityDetailView({
                     </p>
                     <p className="text-xl font-semibold text-[var(--color-text-primary)]">Invite only</p>
                     <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-                      {isFree
-                        ? "Join to enter this private community. The owner is notified."
-                        : "Choose a plan to request access."}
+                      {joinRequested
+                        ? "Your request is pending owner approval."
+                        : isFree
+                          ? "Request access — the owner must approve before you can enter."
+                          : "Choose a plan to request access."}
                     </p>
                   </div>
                   <button
                     onClick={handleJoin}
-                    disabled={joining}
+                    disabled={joining || joinRequested}
                     className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md bg-[var(--color-accent)] text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-60"
                   >
                     {joining ? (
                       <Loader2 size={14} className="animate-spin" />
+                    ) : joinRequested ? (
+                      "Request pending"
                     ) : isFree ? (
-                      "Join community"
+                      "Request to join"
                     ) : (
                       "View plans"
                     )}
