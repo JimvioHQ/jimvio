@@ -13,6 +13,9 @@ import { cn, deriveMessageType, pickMime } from "@/lib/utils";
 import { isCallSignalingMessage } from "@/lib/community/message-signaling";
 import { uploadCommunityChatFile, type ChatAttachmentPayload } from "@/lib/community-chat-upload";
 import { createClient } from "@/lib/supabase/client";
+import { useConversationMessages } from "@/hooks/useConversationMessages";
+import type { ConversationTarget } from "@/lib/community/chat/conversation-messages";
+import type { Msg } from "@/types";
 import { HubAvatar, HubBadge, HubLinkButton, HubSectionTitle } from "./hub-ui";
 import { ChatInputZone } from "@/components/community/chat/ChatInputZone";
 import { MAX_ATTACH, MAX_FILE_BYTES } from "@/types/chat";
@@ -130,10 +133,47 @@ export function HubMessagesPage() {
 
   const activeThread = threads.find((t) => t.id === activeThreadId) ?? null;
 
-  const visibleMessages = useMemo(
-    () => messages.filter((m) => !isCallSignalingMessage(m.message_type, m.body)),
-    [messages]
-  );
+  const dmTarget = useMemo((): ConversationTarget | null => {
+    if (!activeThread || activeThread.kind !== "direct") return null;
+    if (!activeThread.communitySlug) return null;
+    return {
+      kind: "inbox",
+      slug: activeThread.communitySlug,
+      conversationId: activeThread.id,
+    };
+  }, [activeThread]);
+
+  const dmEngine = useConversationMessages({
+    target: dmTarget,
+    enabled: !!dmTarget,
+    realtimeEnabled: !!dmTarget,
+    userId: currentUserId,
+  });
+
+  const engineMessages = useMemo((): MessageItem[] => {
+    if (!dmTarget) return [];
+    return dmEngine.messages.map((m: Msg) => ({
+      id: m.id,
+      body: m.body,
+      sender_id: m.sender_id,
+      sender_name: m.profiles?.full_name || m.profiles?.username || "Member",
+      sender_avatar: m.profiles?.avatar_url ?? null,
+      created_at: m.created_at,
+      message_type: m.message_type,
+      attachments: Array.isArray(m.attachments)
+        ? (m.attachments as MessageItem["attachments"])
+        : [],
+      reactions:
+        m.reactions && typeof m.reactions === "object"
+          ? (m.reactions as Record<string, number>)
+          : {},
+    }));
+  }, [dmTarget, dmEngine.messages]);
+
+  const visibleMessages = useMemo(() => {
+    const source = dmTarget ? engineMessages : messages;
+    return source.filter((m) => !isCallSignalingMessage(m.message_type, m.body));
+  }, [dmTarget, engineMessages, messages]);
 
   const loadThreads = useCallback(async () => {
     setLoading(true);
@@ -166,10 +206,13 @@ export function HubMessagesPage() {
       return;
     }
 
-    if (activeThread.kind === "space") {
+    if (activeThread.kind === "space" || activeThread.kind === "direct") {
+      // Direct DMs are owned by useConversationMessages (shared engine).
       setMessages([]);
-      setPeer(null);
-      setPinnedMessage(null);
+      if (activeThread.kind === "space") {
+        setPeer(null);
+        setPinnedMessage(null);
+      }
       return;
     }
 
@@ -179,7 +222,10 @@ export function HubMessagesPage() {
       try {
         const peerQ = activeThread.peerId ? `&peerId=${activeThread.peerId}` : "";
         const res = await fetch(`/api/c/messages/${encodeURIComponent(activeThreadId)}?kind=${activeThread.kind}${peerQ}`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          toast.error("Failed to load conversation");
+          return;
+        }
         const data = await res.json();
         if (cancelled) return;
         setMessages(data.messages ?? []);
@@ -305,26 +351,47 @@ export function HubMessagesPage() {
 
   async function postMessage(body: string, attachments: ChatAttachmentPayload[], messageType?: string) {
     if (!activeThreadId || !activeThread) return;
-    const res =
-      activeThread.kind === "group" && activeThread.roomId
-        ? await fetch(`/api/messages/${activeThread.roomId}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              body,
-              attachments,
-              message_type: messageType ?? deriveMessageType(attachments, body),
-            }),
-          })
-        : await fetch(`/api/c/messages/${encodeURIComponent(activeThreadId)}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              body,
-              attachments,
-              message_type: messageType ?? deriveMessageType(attachments, body),
-            }),
-          });
+    if (!navigator.onLine) {
+      toast.error("You're offline — reconnect to send.");
+      return;
+    }
+
+    let res: Response;
+    if (activeThread.kind === "direct" && activeThread.communitySlug) {
+      res = await fetch(
+        `/api/communities/${activeThread.communitySlug}/inbox/${activeThreadId}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            body,
+            attachments,
+            message_type: messageType ?? deriveMessageType(attachments, body),
+          }),
+        }
+      );
+    } else if (activeThread.kind === "group" && activeThread.roomId) {
+      res = await fetch(`/api/messages/${activeThread.roomId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          body,
+          attachments,
+          message_type: messageType ?? deriveMessageType(attachments, body),
+        }),
+      });
+    } else {
+      res = await fetch(`/api/c/messages/${encodeURIComponent(activeThreadId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          body,
+          attachments,
+          message_type: messageType ?? deriveMessageType(attachments, body),
+        }),
+      });
+    }
+
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error ?? "Failed to send message");
@@ -332,20 +399,24 @@ export function HubMessagesPage() {
     const data = await res.json();
     const msg = data.message ?? data.row;
     if (msg) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: msg.id,
-          body: msg.body ?? "",
-          sender_id: msg.sender_id,
-          sender_name: msg.profiles?.full_name ?? msg.profiles?.username ?? "You",
-          sender_avatar: msg.profiles?.avatar_url ?? null,
-          created_at: msg.created_at ?? new Date().toISOString(),
-          message_type: msg.message_type ?? "text",
-          attachments: Array.isArray(msg.attachments) ? msg.attachments : attachments,
-          reactions: {},
-        },
-      ]);
+      if (dmTarget) {
+        dmEngine.upsertMessage(msg as Msg);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: msg.id,
+            body: msg.body ?? "",
+            sender_id: msg.sender_id,
+            sender_name: msg.profiles?.full_name ?? msg.profiles?.username ?? "You",
+            sender_avatar: msg.profiles?.avatar_url ?? null,
+            created_at: msg.created_at ?? new Date().toISOString(),
+            message_type: msg.message_type ?? "text",
+            attachments: Array.isArray(msg.attachments) ? msg.attachments : attachments,
+            reactions: {},
+          },
+        ]);
+      }
       setDraft("");
       setPendingMain([]);
       void loadThreads();
@@ -569,7 +640,7 @@ export function HubMessagesPage() {
               )}
 
               <div className="flex-1 space-y-3 overflow-y-auto p-4">
-                {loadingMsgs ? (
+                {loadingMsgs || (dmTarget && dmEngine.loading) ? (
                   <div className="flex justify-center py-10">
                     <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
                   </div>

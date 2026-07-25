@@ -9,7 +9,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ slug: string; conversationId: string }> }
 ) {
   const { slug, conversationId } = await params;
@@ -34,29 +34,49 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { data: rows, error } = await supabase
+  const { searchParams } = new URL(req.url);
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
+  const before = searchParams.get("before");
+
+  let query = supabase
     .from("community_inbox_messages")
     .select("id, sender_id, body, attachments, message_type, reactions, created_at, is_deleted")
     .eq("conversation_id", conversationId)
-    .eq("is_deleted", false)
-    .order("created_at", { ascending: true })
-    .limit(200);
+    .eq("is_deleted", false);
+
+  if (before) query = query.lt("created_at", before);
+
+  const { data: rows, error } = await query
+    .order("created_at", { ascending: false })
+    .limit(limit);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  const senderIds = [...new Set((rows ?? []).map((r) => r.sender_id))];
-  let profileMap = new Map<string, { full_name: string | null; avatar_url: string | null; username: string | null }>();
+  const chronological = ((rows ?? []) as { created_at: string; sender_id: string }[])
+    .slice()
+    .reverse();
+  const nextCursor =
+    chronological.length === limit ? chronological[0]?.created_at ?? null : null;
+
+  const senderIds = [...new Set(chronological.map((r) => r.sender_id))];
+  let profileMap = new Map<
+    string,
+    { full_name: string | null; avatar_url: string | null; username: string | null }
+  >();
   if (senderIds.length > 0) {
-    const { data: profs } = await supabase.from("profiles").select("id, full_name, avatar_url, username").in("id", senderIds);
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url, username")
+      .in("id", senderIds);
     profileMap = new Map((profs ?? []).map((p) => [p.id, p]));
   }
 
-  const messages = (rows ?? []).map((r) => ({
+  const messages = chronological.map((r) => ({
     ...r,
     profiles: profileMap.get(r.sender_id) ?? null,
   }));
 
-  return NextResponse.json({ messages });
+  return NextResponse.json({ messages, nextCursor });
 }
 
 export async function POST(

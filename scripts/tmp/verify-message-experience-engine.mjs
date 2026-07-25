@@ -88,18 +88,37 @@ assert.match(sanitize, /escapeIlikePattern/);
 assert.match(sanitize, /isTrustedChatMediaUrl/);
 
 const hook = mustExist("hooks/useChatRoom.ts");
-assert.match(hook, /AbortController/);
+assert.match(hook, /useConversationMessages/);
 assert.match(hook, /setActiveChatTarget/);
-assert.match(hook, /metadata/);
+assert.match(hook, /loadOlder/);
+assert.match(hook, /hasMore/);
 assert.doesNotMatch(hook, /return \(\) => controller\.abort\(\);\s*\}, \[roomId/);
 
+const convHook = mustExist("hooks/useConversationMessages.ts");
+assert.match(convHook, /subscribePostgresChangesMany/);
+assert.match(convHook, /fetchConversationPage/);
+assert.match(convHook, /loadOlder/);
+
+const convHelpers = mustExist("lib/community/chat/conversation-messages.ts");
+assert.match(convHelpers, /mergeMessages/);
+assert.match(convHelpers, /nextCursor|before/);
+
 const unreadSync = mustExist("hooks/useWorkspaceUnreadSync.ts");
-assert.match(unreadSync, /shell_rooms_unread_/);
-assert.match(unreadSync, /shell_inbox_unread_/);
+assert.match(unreadSync, /shell_unread_/);
+assert.match(unreadSync, /subscribePostgresChangesMany/);
 assert.match(unreadSync, /bumpWorkspaceUnread/);
 
 const shell = mustExist("components/community/workspace/WorkspaceShell.tsx");
 assert.match(shell, /WorkspaceUnreadSync/);
+
+assert.match(virt, /onLoadOlder/);
+assert.match(virt, /hasMore/);
+
+const inboxDialog = mustExist("components/community/chat/community-inbox-dialog.tsx");
+assert.match(inboxDialog, /useConversationMessages/);
+
+const realtime = mustExist("lib/supabase/realtime-subscribe.ts");
+assert.match(realtime, /subscribePostgresChangesMany/);
 
 const messagesApi = mustExist("app/api/messages/[roomId]/route.ts");
 assert.match(messagesApi, /sanitizeChatAttachments/);
@@ -109,6 +128,7 @@ const inboxMessagesApi = mustExist(
 );
 assert.match(inboxMessagesApi, /sanitizeChatAttachments/);
 assert.match(inboxMessagesApi, /resolveCommunityBySlugOrId/);
+assert.match(inboxMessagesApi, /nextCursor/);
 
 const resolveCommunity = mustExist("lib/community/resolve-community.ts");
 assert.match(resolveCommunity, /resolveCommunityBySlugOrId/);

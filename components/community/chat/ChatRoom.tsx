@@ -595,6 +595,9 @@ export function ChatRoom({
               messages={scopedMessages}
               scrollRef={hook.scrollRef}
               renderMessage={renderMessage}
+              hasMore={hook.hasMore}
+              loadingOlder={hook.loadingOlder}
+              onLoadOlder={hook.loadOlder}
               footer={
                 <>
                   {!hook.activeConvId && hook.typingUsers.length > 0 && (

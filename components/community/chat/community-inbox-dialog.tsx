@@ -1,28 +1,24 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+/**
+ * Community DM dialog — thin UI over the shared conversation engine.
+ */
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
 import { Loader2, Send } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { isCallSignalingMessage } from "@/lib/community/message-signaling";
+import { useConversationMessages } from "@/hooks/useConversationMessages";
+import type { ConversationTarget } from "@/lib/community/chat/conversation-messages";
+import type { Profile } from "@/types";
 
-type Profile = { full_name: string | null; avatar_url: string | null; username: string | null };
-
-type InboxMsg = {
-  id: string;
-  sender_id: string;
-  body: string;
-  created_at: string;
-  message_type?: string | null;
-  profiles?: Profile | Profile[] | null;
-};
-
-function oneProfile(p: InboxMsg["profiles"]): Profile | null {
+function oneProfile(p: Profile | Profile[] | null | undefined): Profile | null {
   if (!p) return null;
   return Array.isArray(p) ? p[0] ?? null : p;
 }
@@ -38,6 +34,7 @@ export function CommunityInboxDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Community slug or UUID (inbox API accepts both). */
   communityId: string;
   peerUserId: string | null;
   peerName: string;
@@ -45,34 +42,21 @@ export function CommunityInboxDialog({
   currentUserId: string | null;
 }) {
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<InboxMsg[]>([]);
+  const [bootLoading, setBootLoading] = useState(false);
   const [text, setText] = useState("");
-  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  const loadMessages = useCallback(
-    async (convId: string) => {
-      const res = await fetch(`/api/communities/${communityId}/inbox/${convId}/messages`);
-      const data = await res.json();
-      if (!res.ok) return;
-      const rows = (data.messages ?? []) as InboxMsg[];
-      setMessages(rows.filter((m) => !isCallSignalingMessage(m.message_type, m.body)));
-    },
-    [communityId]
-  );
 
   useEffect(() => {
     if (!open || !peerUserId) {
       setConversationId(null);
-      setMessages([]);
       setText("");
       return;
     }
 
     let cancelled = false;
     async function boot() {
-      setLoading(true);
+      setBootLoading(true);
       try {
         const res = await fetch(`/api/communities/${communityId}/inbox`, {
           method: "POST",
@@ -80,61 +64,38 @@ export function CommunityInboxDialog({
           body: JSON.stringify({ peerUserId }),
         });
         const data = await res.json();
-        if (!res.ok || cancelled) return;
-        const cid = data.conversationId as string;
-        setConversationId(cid);
-        await loadMessages(cid);
+        if (!res.ok) {
+          toast.error(data.error || "Could not open conversation");
+          return;
+        }
+        if (!cancelled) setConversationId(data.conversationId as string);
+      } catch {
+        if (!cancelled) toast.error("Could not open conversation");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setBootLoading(false);
       }
     }
     void boot();
     return () => {
       cancelled = true;
     };
-  }, [open, peerUserId, communityId, loadMessages]);
+  }, [open, peerUserId, communityId]);
+
+  const target = useMemo((): ConversationTarget | null => {
+    if (!open || !conversationId) return null;
+    return { kind: "inbox", slug: communityId, conversationId };
+  }, [open, conversationId, communityId]);
+
+  const { messages, loading, upsertMessage, error } = useConversationMessages({
+    target,
+    enabled: !!target,
+    realtimeEnabled: !!target,
+    userId: currentUserId,
+  });
 
   useEffect(() => {
-    if (!open || !conversationId) return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`inbox:${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "community_inbox_messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        // both realtime payload callbacks
-        async (payload: { new: Record<string, unknown>; old: Record<string, unknown> }) => {
-          const row = payload.new as Record<string, unknown>;
-          const senderId = String(row.sender_id);
-          const { data: prof } = await supabase.from("profiles").select("full_name, avatar_url, username").eq("id", senderId).maybeSingle();
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === row.id)) return prev;
-            const messageType = row.message_type != null ? String(row.message_type) : null;
-            const body = String(row.body ?? "");
-            if (isCallSignalingMessage(messageType, body)) return prev;
-            const next: InboxMsg = {
-              id: String(row.id),
-              sender_id: senderId,
-              body,
-              created_at: String(row.created_at),
-              message_type: messageType,
-              profiles: prof,
-            };
-            return [...prev, next].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [open, conversationId]);
+    if (error) toast.error(error);
+  }, [error]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -143,24 +104,34 @@ export function CommunityInboxDialog({
   async function send() {
     const t = text.trim();
     if (!t || !conversationId || sending) return;
+    if (!navigator.onLine) {
+      toast.error("You're offline — reconnect to send.");
+      return;
+    }
     setSending(true);
     try {
-      const res = await fetch(`/api/communities/${communityId}/inbox/${conversationId}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: t }),
-      });
+      const res = await fetch(
+        `/api/communities/${communityId}/inbox/${conversationId}/messages`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ body: t }),
+        }
+      );
       const data = await res.json();
-      if (!res.ok) return;
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === data.message?.id)) return prev;
-        return [...prev, data.message as InboxMsg];
-      });
+      if (!res.ok) throw new Error(data.error || "Failed to send");
+      if (data.message) upsertMessage(data.message);
       setText("");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to send");
     } finally {
       setSending(false);
     }
   }
+
+  const visible = messages.filter(
+    (m) => !isCallSignalingMessage(m.message_type, m.body)
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -172,34 +143,50 @@ export function CommunityInboxDialog({
           <div className="flex items-center gap-3">
             <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-sm border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
               {peerAvatarUrl ? (
-                <Image src={peerAvatarUrl} alt="" width={40} height={40} className="h-full w-full object-cover" unoptimized />
+                <Image
+                  src={peerAvatarUrl}
+                  alt=""
+                  width={40}
+                  height={40}
+                  className="h-full w-full object-cover"
+                  unoptimized
+                />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm font-black text-[var(--color-accent)]">{peerName[0]}</div>
+                <div className="flex h-full w-full items-center justify-center text-sm font-black text-[var(--color-accent)]">
+                  {peerName[0]}
+                </div>
               )}
             </div>
             <div className="min-w-0">
-              <DialogTitle className="truncate text-base font-black text-[var(--color-text-primary)]">Message {peerName}</DialogTitle>
-              <p className="text-xs text-[var(--color-text-muted)]">Private inbox in this community</p>
+              <DialogTitle className="truncate text-base font-black text-[var(--color-text-primary)]">
+                Message {peerName}
+              </DialogTitle>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Private inbox in this community
+              </p>
             </div>
           </div>
         </DialogHeader>
 
         <div className="min-h-[200px] flex-1 overflow-y-auto px-3 py-3">
-          {loading ? (
+          {bootLoading || loading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
             </div>
-          ) : messages.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">No messages yet — say hello.</p>
+          ) : visible.length === 0 ? (
+            <p className="py-8 text-center text-sm text-[var(--color-text-muted)]">
+              No messages yet — say hello.
+            </p>
           ) : (
             <div className="space-y-3">
-              {messages
-                .filter((m) => !isCallSignalingMessage(m.message_type, m.body))
-                .map((m) => {
+              {visible.map((m) => {
                 const own = !!currentUserId && m.sender_id === currentUserId;
                 const p = oneProfile(m.profiles);
                 return (
-                  <div key={m.id} className={cn("flex", own ? "justify-end" : "justify-start")}>
+                  <div
+                    key={m.id}
+                    className={cn("flex", own ? "justify-end" : "justify-start")}
+                  >
                     <div
                       className={cn(
                         "max-w-[85%] rounded-sm px-3 py-2 text-sm shadow-none",
@@ -208,9 +195,15 @@ export function CommunityInboxDialog({
                           : "border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"
                       )}
                     >
-                      {!own && <p className="mb-0.5 text-[10px] font-bold text-[var(--color-accent)]">{p?.full_name || p?.username || "Member"}</p>}
+                      {!own && (
+                        <p className="mb-0.5 text-[10px] font-bold text-[var(--color-accent)]">
+                          {p?.full_name || p?.username || "Member"}
+                        </p>
+                      )}
                       <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                      <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">{format(new Date(m.created_at), "HH:mm")}</p>
+                      <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">
+                        {format(new Date(m.created_at), "HH:mm")}
+                      </p>
                     </div>
                   </div>
                 );
@@ -243,7 +236,11 @@ export function CommunityInboxDialog({
               onClick={() => void send()}
               aria-label="Send"
             >
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {sending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>
@@ -251,4 +248,3 @@ export function CommunityInboxDialog({
     </Dialog>
   );
 }
-

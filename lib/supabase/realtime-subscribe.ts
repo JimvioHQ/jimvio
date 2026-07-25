@@ -13,6 +13,11 @@ type PostgresChangePayload = {
   old: Record<string, unknown>;
 };
 
+type Listener = {
+  config: PostgresChangeConfig;
+  onChange: (payload?: PostgresChangePayload) => void;
+};
+
 /**
  * Subscribe to postgres_changes without tripping "cannot add callbacks after subscribe()"
  * when React Strict Mode remounts or an async setup races with cleanup.
@@ -24,7 +29,22 @@ export async function subscribePostgresChanges(
   onChange: (payload?: PostgresChangePayload) => void,
   isCancelled: () => boolean,
 ): Promise<RealtimeChannel | null> {
-  if (isCancelled()) return null;
+  return subscribePostgresChangesMany(
+    supabase,
+    channelName,
+    [{ config, onChange }],
+    isCancelled,
+  );
+}
+
+/** Multiple postgres_changes listeners on one channel (e.g. INSERT + UPDATE). */
+export async function subscribePostgresChangesMany(
+  supabase: SupabaseClient,
+  channelName: string,
+  listeners: Listener[],
+  isCancelled: () => boolean,
+): Promise<RealtimeChannel | null> {
+  if (isCancelled() || listeners.length === 0) return null;
 
   const topic = `realtime:${channelName}`;
   for (const existing of supabase.getChannels()) {
@@ -35,12 +55,13 @@ export async function subscribePostgresChanges(
 
   if (isCancelled()) return null;
 
-  return supabase
-    .channel(channelName)
-    .on("postgres_changes", config, (payload) => {
+  let channel = supabase.channel(channelName);
+  for (const { config, onChange } of listeners) {
+    channel = channel.on("postgres_changes", config, (payload) => {
       if (!isCancelled()) onChange(payload as PostgresChangePayload);
-    })
-    .subscribe();
+    });
+  }
+  return channel.subscribe();
 }
 
 /** Tear down a channel ref, or any channel whose topic starts with `realtime:${prefix}`. */

@@ -168,6 +168,7 @@ export function MessageCard({
   function onBookmark() {
     const next = toggleBookmark(userId, m.id);
     setBookmarked(next);
+    toast.success(next ? "Message bookmarked" : "Bookmark removed");
   }
 
   return (

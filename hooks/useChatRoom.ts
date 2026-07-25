@@ -15,6 +15,8 @@ import {
   resolveSpaceAndRoom,
 } from "@/lib/community/workspace";
 import { setActiveChatTarget } from "@/lib/community/chat/active-chat-target";
+import type { ConversationTarget } from "@/lib/community/chat/conversation-messages";
+import { useConversationMessages } from "@/hooks/useConversationMessages";
 import type {
     ActiveConvPeer,
     ChatFilter,
@@ -45,10 +47,6 @@ type InboxConvRow = {
         avatar_url: string | null;
         username: string | null;
     } | null;
-};
-
-type RealtimePayload = {
-    new: Record<string, unknown>;
 };
 
 type TypingBroadcastPayload = {
@@ -91,46 +89,21 @@ export function useChatRoom({
         return () => subscription.unsubscribe();
     }, [supabase]);
 
-    // ── Messages ────────────────────────────────────────────────────────────────
-    const [messages, setMessages] = useState<Msg[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const upsertMessage = useCallback((msg: Msg) => {
-        setMessages((prev) => {
-            const map = new Map(prev.map((m) => [m.id, m]));
-            map.set(msg.id, msg);
-            return [...map.values()].sort(
-                (a, b) =>
-                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-            );
-        });
-    }, []);
-
-    const patchMessage = useCallback((id: string, patch: Partial<Msg>) => {
-        setMessages((prev) =>
-            prev.map((m) => (m.id === id ? { ...m, ...patch } : m))
-        );
-        setThreadReplies((prev) =>
-            prev.map((m) => (m.id === id ? { ...m, ...patch } : m))
-        );
-        setThreadRoot((r) => (r && r.id === id ? { ...r, ...patch } : r));
-    }, []);
-
-    const removeMessage = useCallback((id: string) => {
-        setMessages((prev) => prev.filter((m) => m.id !== id));
-        setThreadReplies((prev) => prev.filter((m) => m.id !== id));
-        setThreadRoot((r) => {
-            if (r?.id === id) {
-                setThreadOpen(false);
-                return null;
-            }
-            return r;
-        });
-    }, []);
-
     // ── Conversation / inbox ────────────────────────────────────────────────────
     const [activeConvId, setActiveConvId] = useState<string | null>(null);
     const [activeConvPeer, setActiveConvPeer] = useState<ActiveConvPeer | null>(null);
+    const [forceShowList, setForceShowList] = useState(false);
+
+    const { setIncomingCall } = useCall();
+    const isChatting = !forceShowList && (!!roomId || !!activeConvId);
+
+    const conversationTarget = useMemo((): ConversationTarget | null => {
+        if (activeConvId) {
+            return { kind: "inbox", slug, conversationId: activeConvId };
+        }
+        if (roomId) return { kind: "room", roomId };
+        return null;
+    }, [activeConvId, roomId, slug]);
 
     // ── Thread ──────────────────────────────────────────────────────────────────
     const [threadRoot, setThreadRoot] = useState<Msg | null>(null);
@@ -164,12 +137,71 @@ export function useChatRoom({
         [loadThread]
     );
 
+    const handleThreadReply = useCallback(
+        (threadId: string) => {
+            if (threadOpenRef.current && threadRootRef.current?.id === threadId) {
+                void loadThread(threadId);
+            }
+        },
+        [loadThread]
+    );
+
+    const {
+        messages,
+        loading,
+        loadingOlder,
+        hasMore,
+        error: messagesError,
+        upsertMessage,
+        patchMessage: patchConversationMessage,
+        removeMessage: removeConversationMessage,
+        loadOlder,
+    } = useConversationMessages({
+        target: conversationTarget,
+        enabled: !!conversationTarget,
+        realtimeEnabled: isChatting,
+        userId,
+        onIncomingCall: (payload) => {
+            setIncomingCall(payload as IncomingCall);
+        },
+        onThreadReply: handleThreadReply,
+    });
+
+    useEffect(() => {
+        if (messagesError) toast.error(messagesError);
+    }, [messagesError]);
+
+    const patchMessage = useCallback(
+        (id: string, patch: Partial<Msg>) => {
+            patchConversationMessage(id, patch);
+            setThreadReplies((prev) =>
+                prev.map((m) => (m.id === id ? { ...m, ...patch } : m))
+            );
+            setThreadRoot((r) => (r && r.id === id ? { ...r, ...patch } : r));
+        },
+        [patchConversationMessage]
+    );
+
+    const removeMessage = useCallback(
+        (id: string) => {
+            removeConversationMessage(id);
+            setThreadReplies((prev) => prev.filter((m) => m.id !== id));
+            setThreadRoot((r) => {
+                if (r?.id === id) {
+                    setThreadOpen(false);
+                    return null;
+                }
+                return r;
+            });
+        },
+        [removeConversationMessage]
+    );
+
     // ── Sidebar ─────────────────────────────────────────────────────────────────
     const [sidebarMembers, setSidebarMembers] = useState<SidebarMember[]>([]);
     const [inboxConversations, setInboxConversations] = useState<InboxConversation[]>([]);
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
     const [sidebarFilter, setSidebarFilter] = useState<SidebarFilter>("all");
-    const [forceShowList, setForceShowList] = useState(false);
 
     const { spacesWithRooms } = useWorkspace();
     const allChatRooms = useMemo(
@@ -310,239 +342,6 @@ export function useChatRoom({
         };
     }, [userId, communityId, supabase]);
 
-    // ── Load messages (AbortController lives in effect cleanup) ─────────────────
-    useEffect(() => {
-        if (!roomId && !activeConvId) {
-            setMessages([]);
-            setLoading(false);
-            return;
-        }
-
-        const controller = new AbortController();
-        let cancelled = false;
-
-        async function load() {
-            setLoading(true);
-            try {
-                if (activeConvId) {
-                    const res = await fetch(
-                        `/api/communities/${slug}/inbox/${activeConvId}/messages`,
-                        { signal: controller.signal }
-                    );
-                    const data = await res.json();
-                    if (cancelled) return;
-                    if (!res.ok) throw new Error(data.error);
-                    setMessages(data.messages ?? []);
-                } else if (roomId) {
-                    const res = await fetch(`/api/messages/${roomId}?limit=100`, {
-                        signal: controller.signal,
-                    });
-                    const data = await res.json();
-                    if (cancelled) return;
-                    if (!res.ok) throw new Error(data.error);
-                    setMessages(data.messages ?? []);
-                }
-            } catch (e: unknown) {
-                if (cancelled) return;
-                if (e instanceof Error && e.name === "AbortError") return;
-                setMessages([]);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        }
-
-        void load();
-        return () => {
-            cancelled = true;
-            controller.abort();
-        };
-    }, [roomId, activeConvId, slug]);
-
-    // ── Realtime subscriptions ──────────────────────────────────────────────────
-    const { setIncomingCall } = useCall();
-    const isChatting = !forceShowList && (!!roomId || !!activeConvId);
-
-    // Unread badges are owned by WorkspaceUnreadSync (shell-level).
-    // Message INSERT/UPDATE for the open room stays here.
-
-    useEffect(() => {
-        if (!isChatting) return;
-
-        async function enrich(id: string): Promise<Profile | null> {
-            const { data } = await supabase
-                .from("profiles")
-                .select("full_name, avatar_url, username")
-                .eq("id", id)
-                .maybeSingle();
-            return data as Profile | null;
-        }
-
-        if (activeConvId) {
-            const ch = supabase
-                .channel(`inbox_messages:${activeConvId}`)
-                .on(
-                    "postgres_changes",
-                    {
-                        event: "INSERT",
-                        schema: "public",
-                        table: "community_inbox_messages",
-                        filter: `conversation_id=eq.${activeConvId}`,
-                    },
-                    async (raw: RealtimePayload) => {
-                        const p = raw.new;
-                        if (p.message_type === "call_start" && p.sender_id !== userId) {
-                            setIncomingCall({
-                                type: p.body === "video" ? "video" : "audio",
-                                sender: p.profiles as Profile,
-                                roomId: String(p.room_id ?? ""),
-                                convId: String(p.conversation_id ?? ""),
-                            } as IncomingCall);
-                        } else if (p.message_type === "call_signal" && p.sender_id !== userId) {
-                            // Signal handled externally via call context
-                        } else {
-                            const prof = await enrich(String(p.sender_id));
-                            upsertMessage({
-                                id: String(p.id),
-                                body: String(p.body ?? ""),
-                                sender_id: String(p.sender_id),
-                                created_at: String(p.created_at),
-                                message_type: String(p.message_type ?? "text"),
-                                thread_id: null,
-                                reactions: (p.reactions as Record<string, unknown>) ?? {},
-                                attachments: (p.attachments as ChatAttachmentPayload[]) ?? [],
-                                profiles: prof,
-                            });
-                        }
-                    }
-                )
-                .on(
-                    "postgres_changes",
-                    {
-                        event: "UPDATE",
-                        schema: "public",
-                        table: "community_inbox_messages",
-                        filter: `conversation_id=eq.${activeConvId}`,
-                    },
-                    (raw: RealtimePayload) => {
-                        const row = raw.new;
-                        if (row.is_deleted) {
-                            removeMessage(String(row.id));
-                            return;
-                        }
-                        patchMessage(String(row.id), {
-                            body: String(row.body ?? ""),
-                            reactions: (row.reactions as Record<string, unknown>) ?? {},
-                        });
-                    }
-                )
-                .subscribe();
-
-            return () => {
-                supabase.removeChannel(ch);
-            };
-        } else if (roomId) {
-            const ch = supabase
-                .channel(`community_messages:${roomId}`)
-                .on(
-                    "postgres_changes",
-                    {
-                        event: "INSERT",
-                        schema: "public",
-                        table: "community_messages",
-                        filter: `room_id=eq.${roomId}`,
-                    },
-                    async (raw: RealtimePayload) => {
-                        const row = raw.new;
-                        if (row.message_type === "call_start" && row.sender_id !== userId) {
-                            setIncomingCall({
-                                type: row.body === "video" ? "video" : "audio",
-                                sender: await enrich(String(row.sender_id)),
-                                roomId: String(row.room_id),
-                            } as IncomingCall);
-                            return;
-                        }
-                        const tid = (row.thread_id as string | null) ?? null;
-                        if (tid) {
-                            if (threadOpenRef.current && threadRootRef.current?.id === tid)
-                                await loadThread(tid);
-                            return;
-                        }
-                        const prof = await enrich(String(row.sender_id));
-                        upsertMessage({
-                            id: String(row.id),
-                            body: String(row.body ?? ""),
-                            sender_id: String(row.sender_id),
-                            created_at: String(row.created_at),
-                            message_type: String(row.message_type ?? "text"),
-                            thread_id: null,
-                            reactions: (row.reactions as Record<string, unknown>) ?? {},
-                            attachments: (row.attachments as ChatAttachmentPayload[]) ?? [],
-                            profiles: prof,
-                            reply_count: (row.reply_count as number) ?? 0,
-                            is_edited: (row.is_edited as boolean) ?? false,
-                            edited_at: (row.edited_at as string) ?? null,
-                            reply_to_id: (row.reply_to_id as string) ?? null,
-                            reply_to_body: (row.reply_to_body as string) ?? null,
-                            reply_to_sender: (row.reply_to_sender as string) ?? null,
-                            metadata:
-                                row.metadata && typeof row.metadata === "object"
-                                    ? (row.metadata as Record<string, unknown>)
-                                    : null,
-                            is_pinned: (row.is_pinned as boolean) ?? false,
-                            pinned_at: (row.pinned_at as string) ?? null,
-                            pinned_by: (row.pinned_by as string) ?? null,
-                        });
-                    }
-                )
-                .on(
-                    "postgres_changes",
-                    {
-                        event: "UPDATE",
-                        schema: "public",
-                        table: "community_messages",
-                        filter: `room_id=eq.${roomId}`,
-                    },
-                    (raw: RealtimePayload) => {
-                        const row = raw.new;
-                        if (row.is_deleted) {
-                            removeMessage(String(row.id));
-                            return;
-                        }
-                        patchMessage(String(row.id), {
-                            body: String(row.body ?? ""),
-                            reactions: (row.reactions as Record<string, unknown>) ?? {},
-                            is_edited: (row.is_edited as boolean) ?? false,
-                            edited_at: (row.edited_at as string) ?? null,
-                            reply_count: (row.reply_count as number) ?? 0,
-                            metadata:
-                                row.metadata && typeof row.metadata === "object"
-                                    ? (row.metadata as Record<string, unknown>)
-                                    : null,
-                            is_pinned: (row.is_pinned as boolean) ?? false,
-                            pinned_at: (row.pinned_at as string) ?? null,
-                            pinned_by: (row.pinned_by as string) ?? null,
-                        });
-                    }
-                )
-                .subscribe();
-
-            return () => {
-                supabase.removeChannel(ch);
-            };
-        }
-    }, [
-        roomId,
-        activeConvId,
-        isChatting,
-        userId,
-        loadThread,
-        patchMessage,
-        removeMessage,
-        upsertMessage,
-        supabase,
-        setIncomingCall,
-    ]);
-
     // ── Presence (online members) + typing broadcast ────────────────────────────
     const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
     const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
@@ -664,15 +463,34 @@ export function useChatRoom({
     const handleFiles = useCallback(
         async (files: FileList | null, target: "main" | "thread") => {
             if (!files?.length) return;
+            if (!navigator.onLine) {
+                toast.error("You're offline — reconnect to upload files.");
+                return;
+            }
             setUploading(true);
             try {
                 for (const file of Array.from(files)) {
-                    if (file.size > MAX_FILE_BYTES) continue;
+                    if (file.size > MAX_FILE_BYTES) {
+                        toast.error(`${file.name} is too large (max ${Math.round(MAX_FILE_BYTES / (1024 * 1024))} MB)`);
+                        continue;
+                    }
                     const up = await uploadCommunityChatFile(communityId, roomId, file);
                     if (target === "main")
-                        setPendingMain((p) => (p.length >= MAX_ATTACH ? p : [...p, up]));
+                        setPendingMain((p) => {
+                            if (p.length >= MAX_ATTACH) {
+                                toast.error(`At most ${MAX_ATTACH} attachments allowed`);
+                                return p;
+                            }
+                            return [...p, up];
+                        });
                     else
-                        setPendingThread((p) => (p.length >= MAX_ATTACH ? p : [...p, up]));
+                        setPendingThread((p) => {
+                            if (p.length >= MAX_ATTACH) {
+                                toast.error(`At most ${MAX_ATTACH} attachments allowed`);
+                                return p;
+                            }
+                            return [...p, up];
+                        });
                 }
             } catch (e: unknown) {
                 console.error(e);
@@ -705,6 +523,10 @@ export function useChatRoom({
             const t = (isThread ? threadReplyText : text).trim();
             const queue = isThread ? pendingThread : pendingMain;
             if ((!t && queue.length === 0) || sending) return;
+            if (!navigator.onLine) {
+                toast.error("You're offline — reconnect to send.");
+                return;
+            }
             setSending(true);
             if (!isThread) setTyping(false);
             try {
@@ -1021,6 +843,10 @@ export function useChatRoom({
     // ── Reactions ────────────────────────────────────────────────────────────────
     const toggleReaction = useCallback(
         async (messageId: string, emoji: string) => {
+            if (!navigator.onLine) {
+                toast.error("You're offline — reconnect to react.");
+                return;
+            }
             try {
                 const ep = activeConvId
                     ? `/api/communities/${slug}/inbox/${activeConvId}/messages/${messageId}/react`
@@ -1031,10 +857,11 @@ export function useChatRoom({
                     body: JSON.stringify({ emoji }),
                 });
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.error);
+                if (!res.ok) throw new Error(data.error || "Failed to update reaction");
                 patchMessage(messageId, { reactions: data.reactions });
             } catch (e: unknown) {
                 console.error(e);
+                toast.error(e instanceof Error ? e.message : "Failed to update reaction");
             }
         },
         [roomId, activeConvId, slug, patchMessage]
@@ -1079,6 +906,7 @@ export function useChatRoom({
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
                 patchMessage(messageId, data.message as Msg);
+                toast.success(pin ? "Message pinned" : "Message unpinned");
             } catch (e: unknown) {
                 console.error(e);
                 toast.error(e instanceof Error ? e.message : "Failed to update pin");
@@ -1118,6 +946,10 @@ export function useChatRoom({
         if (!confirmDelete) return;
         const messageId = confirmDelete;
         setConfirmDelete(null);
+        if (!navigator.onLine) {
+            toast.error("You're offline — reconnect to delete.");
+            return;
+        }
         try {
             const ep = activeConvId
                 ? `/api/communities/${slug}/inbox/${activeConvId}/messages/${messageId}`
@@ -1127,10 +959,12 @@ export function useChatRoom({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ delete: true }),
             });
-            if (!res.ok) throw new Error((await res.json()).error);
+            if (!res.ok) throw new Error((await res.json()).error || "Failed to delete");
             removeMessage(messageId);
+            toast.success("Message removed");
         } catch (e: unknown) {
             console.error(e);
+            toast.error(e instanceof Error ? e.message : "Failed to delete message");
         }
     }, [confirmDelete, roomId, activeConvId, slug, removeMessage]);
 
@@ -1143,6 +977,10 @@ export function useChatRoom({
         if (!editingMsg) return;
         const t = editBody.trim();
         if (!t) return;
+        if (!navigator.onLine) {
+            toast.error("You're offline — reconnect to edit.");
+            return;
+        }
         setEditSaving(true);
         try {
             const ep = activeConvId
@@ -1154,11 +992,13 @@ export function useChatRoom({
                 body: JSON.stringify({ body: t }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
+            if (!res.ok) throw new Error(data.error || "Failed to save edit");
             patchMessage(editingMsg.id, data.message as Msg);
             setEditingMsg(null);
+            toast.success("Message updated");
         } catch (e: unknown) {
             console.error(e);
+            toast.error(e instanceof Error ? e.message : "Failed to save edit");
         } finally {
             setEditSaving(false);
         }
@@ -1288,6 +1128,9 @@ export function useChatRoom({
         messages,
         filteredMessages,
         loading,
+        loadingOlder,
+        hasMore,
+        loadOlder,
         upsertMessage,
         patchMessage,
         removeMessage,
