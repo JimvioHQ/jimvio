@@ -48,7 +48,7 @@ assert.match(channelCard, /WorkspaceActionMenu/);
 assert.match(groupWs, /ChatRoom/);
 assert.match(groupWs, /hideSidebar/);
 assert.match(groupWs, /SpaceAboutPanel/);
-assert.match(groupWs, /Welcome to \$\{group\.name\}/);
+assert.match(groupWs, /SpaceViewTabs|Welcome to \$\{group\.name\}/);
 assert.match(groupWs, /Start the first conversation/);
 assert.doesNotMatch(groupWs, /GroupSidebar/);
 assert.doesNotMatch(groupWs, /Featured resources/);

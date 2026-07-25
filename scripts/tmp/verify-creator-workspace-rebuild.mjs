@@ -89,9 +89,8 @@ assert.match(groupWs, /SpaceAboutPanel/);
 assert.match(groupWs, /ChatRoom/);
 assert.match(groupWs, /ensure_discussion/);
 assert.match(groupWs, /hideSidebar/);
+assert.match(groupWs, /SpaceViewTabs|tab === "members"/);
 assert.doesNotMatch(groupWs, /GroupSidebar/);
-assert.doesNotMatch(groupWs, /tab === "events"/);
-assert.doesNotMatch(groupWs, /tab === "members"/);
 assert.doesNotMatch(groupWs, /tab === "activity"/);
 assert.match(groupHeader, /Member Count|members/i);
 assert.match(groupHeader, /About/);
@@ -121,15 +120,13 @@ assert.match(nav, /communityChannelHref\(\s*communitySlug,\s*channelSlug/);
 assert.match(roomIndex, /requestSearch/);
 assert.doesNotMatch(channelWs, /fork ChatRoom/i);
 
-// Community member sidebar: no Announcements / Feed / Events
-assert.match(communitySidebar, /label: "Overview"/);
-assert.match(communitySidebar, /label: "Courses"/);
-assert.match(communitySidebar, /label: "Challenges"/);
-assert.match(communitySidebar, /label: "About"/);
-assert.match(communitySidebar, /Spaces/);
+// Community member sidebar: Home + Spaces + Discover (mockup)
+assert.match(communitySidebar, /Community Home/);
+assert.match(communitySidebar, /My Spaces|Spaces/);
+assert.match(communitySidebar, /Discover/);
+assert.match(communitySidebar, /Go Premium|Upgrade now/);
 assert.doesNotMatch(communitySidebar, /label: "Announcements"/);
 assert.doesNotMatch(communitySidebar, /label: "Feed"/);
-assert.doesNotMatch(communitySidebar, /label: "Events"/);
 assert.doesNotMatch(communitySidebar, /CreateChannelDialog/);
 
 assert.match(roomsApi, /ensure_discussion/);

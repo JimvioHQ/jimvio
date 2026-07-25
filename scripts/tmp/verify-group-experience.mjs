@@ -1,5 +1,5 @@
 /**
- * Production Space experience — pure conversation (Header + Feed + Composer).
+ * Production Space experience — mockup-aligned discussion UI.
  * Auto-picked up by ci:prepush via scripts/tmp/verify-*.mjs
  */
 import assert from "node:assert/strict";
@@ -27,6 +27,9 @@ const groupPage = mustExist(
 const aboutPanel = mustExist(
   "components/community/workspace/space/SpaceAboutPanel.tsx"
 );
+const chrome = mustExist(
+  "components/community/workspace/space/SpaceViewChrome.tsx"
+);
 const resolveDiscussion = mustExist(
   "lib/community/workspace/resolve-group-discussion-room.ts"
 );
@@ -37,22 +40,24 @@ const roomsApi = mustExist("app/api/rooms/[spaceId]/route.ts");
 const sidebar = mustExist("components/shell/CommunitySidebar.tsx");
 const chatRoom = mustExist("components/community/chat/ChatRoom.tsx");
 
-// Pure conversation — no tab chrome / GroupSidebar
 assert.match(groupWs, /ChatRoom/);
 assert.match(groupWs, /ensure_discussion/);
 assert.match(groupWs, /hideSidebar/);
 assert.match(groupWs, /SpaceAboutPanel/);
-assert.match(groupWs, /onAbout/);
+assert.match(groupWs, /SpaceViewTabs/);
+assert.match(groupWs, /SpaceFeedFilters/);
+assert.match(groupWs, /tab === "members"/);
+assert.match(groupWs, /tab === "files"/);
+assert.match(groupWs, /tab === "events"/);
 assert.doesNotMatch(groupWs, /GroupSidebar/);
-assert.doesNotMatch(groupWs, /WorkspaceTabBar/);
-assert.doesNotMatch(groupWs, /tab === "events"/);
-assert.doesNotMatch(groupWs, /tab === "members"/);
 assert.doesNotMatch(groupWs, /Create Channel/);
 
 assert.match(groupHeader, /About/);
 assert.match(groupHeader, /onAbout/);
-assert.match(groupHeader, /Join|Joined/);
-assert.match(aboutPanel, /About this Space/);
+assert.match(chrome, /Discussion/);
+assert.match(chrome, /Latest/);
+assert.match(aboutPanel, /About this space/i);
+assert.match(aboutPanel, /View all details/);
 assert.match(aboutPanel, /DsDrawer/);
 assert.match(groupPage, /GroupWorkspace/);
 assert.match(resolveDiscussion, /resolveGroupDiscussionRoom/);
@@ -63,14 +68,13 @@ assert.match(roomsApi, /ensure_discussion/);
 assert.match(roomsApi, /DISCUSSION_PERMISSION_CONFIG/);
 assert.match(roomsApi, /channel_kind: "discussion"/);
 
-// Spaces sidebar: flat Spaces list + Discover; no Channels
-assert.match(sidebar, /Spaces/);
+assert.match(sidebar, /My Spaces|Spaces/);
 assert.match(sidebar, /Discover/);
 assert.match(sidebar, /Create your first Space|Create Space/);
+assert.match(sidebar, /Community Home/);
 assert.doesNotMatch(sidebar, /CreateChannelDialog/);
 assert.doesNotMatch(sidebar, />\s*Channels\s*</);
 
-// Reuses frozen Chat engine — do not fork
 assert.match(groupWs, /from "@\/components\/community\/chat\/ChatRoom"/);
 assert.match(chatRoom, /useConversationMessages|VirtualMessageList/);
 assert.match(chatRoom, /hideSidebar/);

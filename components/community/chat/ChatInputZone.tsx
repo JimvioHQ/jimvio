@@ -379,7 +379,7 @@ export function ChatInputZone({
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onPaste={onPaste}
-                  placeholder="Message… @mention, #topic, or drop files"
+                  placeholder="Write a message..."
                   rows={1}
                   disabled={sending || uploading}
                   aria-label="Message composer"

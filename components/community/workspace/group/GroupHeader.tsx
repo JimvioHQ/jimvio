@@ -1,17 +1,12 @@
 "use client";
 
-import {
-  Bell,
-  BellOff,
-  BadgeCheck,
-  Info,
-  Users,
-} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { WorkspaceGroup } from "@/lib/community/workspace";
-import { SPACE_TYPE_LABELS, isSpaceType } from "@/lib/community/workspace/space-types";
-import { WorkspaceIconButton } from "@/components/community/workspace/channel/ChannelEmptyState";
+import {
+  SPACE_TYPE_LABELS,
+  isSpaceType,
+} from "@/lib/community/workspace/space-types";
 import {
   WorkspaceActionMenu,
   buildWorkspaceActions,
@@ -20,48 +15,31 @@ import {
 function SpaceAvatar({
   name,
   icon,
-  color,
 }: {
   name: string;
   icon?: string | null;
-  color?: string | null;
 }) {
   const letter = (name.trim()[0] || "S").toUpperCase();
-  const bg =
-    color ||
-    "linear-gradient(135deg, #fd5000 0%, #ff8a4c 100%)";
   return (
     <span
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-[16px] font-bold text-white shadow-sm ring-1 ring-black/5"
-      style={{ background: icon ? undefined : bg }}
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fd5000] text-[18px] font-bold text-white shadow-sm"
       aria-hidden
     >
-      {icon ? (
-        <span className="flex h-full w-full items-center justify-center rounded-2xl bg-[var(--color-surface-secondary)] text-[20px]">
-          {icon}
-        </span>
-      ) : (
-        letter
-      )}
+      {icon ? <span className="text-[22px] leading-none">{icon}</span> : letter}
     </span>
   );
 }
 
 /**
- * Space conversation header — avatar, name, members, join, bell, About, more.
- * No search / tabs / permanent About sidebar.
+ * Space header matching Jimvio Spaces mockup.
  */
 export function GroupHeader({
   group,
-  ownerName,
-  isMember,
   notificationsOn,
   onToggleNotifications,
   onInvite,
-  onJoin,
   onAbout,
   spaceType,
-  verified = false,
   className,
 }: {
   group: WorkspaceGroup;
@@ -78,7 +56,6 @@ export function GroupHeader({
   onSearchChange?: (value: string) => void;
   communityId?: string;
   bookmarkHref?: string;
-  /** @deprecated Compact is now the only conversation layout. */
   compact?: boolean;
   spaceType?: string | null;
   verified?: boolean;
@@ -91,86 +68,34 @@ export function GroupHeader({
   return (
     <header
       className={cn(
-        "relative shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 sm:px-5",
+        "relative shrink-0 border-b border-gray-100 bg-white px-4 py-4 sm:px-6",
         className
       )}
     >
-      <div className="flex items-center gap-3">
-        <SpaceAvatar name={group.name} icon={group.icon} color={group.color} />
+      <div className="flex items-center gap-3.5">
+        <SpaceAvatar name={group.name} icon={group.icon} />
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <h1 className="truncate text-[16px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[17px]">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="truncate text-[18px] font-bold tracking-tight text-gray-900">
               {group.name}
             </h1>
-            {verified ? (
-              <BadgeCheck
-                className="h-4 w-4 shrink-0 text-violet-500"
-                aria-label="Verified"
-              />
-            ) : null}
-            <span className="rounded-md bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-600">
+            <span className="rounded-md bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-600">
               {group.privacy === "public" ? "Public" : group.privacy}
             </span>
           </div>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] text-[var(--color-text-muted)]">
-            <span>{typeLabel} Space</span>
-            <span aria-hidden>·</span>
-            <span className="inline-flex items-center gap-1">
-              <Users className="h-3 w-3" aria-hidden />
-              {group.memberCount > 0
-                ? `${group.memberCount.toLocaleString()} members`
-                : "Members"}
+          <p className="mt-0.5 text-[13px] text-gray-500">
+            {typeLabel} Space
+            <span className="mx-1.5 text-gray-300" aria-hidden>
+              ·
             </span>
-            {ownerName ? (
-              <>
-                <span aria-hidden>·</span>
-                <span className="truncate">{ownerName}</span>
-              </>
-            ) : null}
+            {group.memberCount > 0
+              ? `${group.memberCount.toLocaleString()} members`
+              : "Members"}
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
-          {!isMember && onJoin ? (
-            <button
-              type="button"
-              onClick={onJoin}
-              className="inline-flex min-h-9 items-center rounded-lg bg-[var(--color-accent)] px-3 text-[12px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
-            >
-              Join
-            </button>
-          ) : isMember ? (
-            <span className="hidden min-h-9 items-center rounded-lg bg-emerald-500/10 px-2.5 text-[11px] font-semibold text-emerald-600 sm:inline-flex">
-              Joined
-            </span>
-          ) : null}
-
-          <WorkspaceIconButton
-            label={
-              notificationsOn ? "Mute notifications" : "Enable notifications"
-            }
-            pressed={!notificationsOn}
-            onClick={onToggleNotifications}
-          >
-            {notificationsOn ? (
-              <Bell className="h-4 w-4" />
-            ) : (
-              <BellOff className="h-4 w-4" />
-            )}
-          </WorkspaceIconButton>
-
-          {onAbout ? (
-            <button
-              type="button"
-              onClick={onAbout}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-[12px] font-semibold text-[var(--color-text-primary)] transition hover:bg-[var(--color-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
-            >
-              <Info className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
-              About
-            </button>
-          ) : null}
-
+        <div className="flex shrink-0 items-center gap-2">
           <WorkspaceActionMenu
             label={`${group.name} actions`}
             items={buildWorkspaceActions({
@@ -187,6 +112,16 @@ export function GroupHeader({
               onMute: onToggleNotifications,
             })}
           />
+
+          {onAbout ? (
+            <button
+              type="button"
+              onClick={onAbout}
+              className="inline-flex h-9 items-center rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50"
+            >
+              About
+            </button>
+          ) : null}
         </div>
       </div>
     </header>
