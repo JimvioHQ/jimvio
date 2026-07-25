@@ -126,7 +126,7 @@ assert.match(communitySidebar, /label: "Challenges"/);
 assert.match(communitySidebar, /label: "About"/);
 assert.doesNotMatch(communitySidebar, /label: "Announcements"/);
 assert.doesNotMatch(communitySidebar, /label: "Feed"/);
-assert.doesNotMatch(communitySidebar, /label: "Events"/);
+assert.match(communitySidebar, /label: "Events"/);
 
 assert.match(roomsApi, /ensure_discussion/);
 assert.match(roomsApi, /DISCUSSION_PERMISSION_CONFIG/);

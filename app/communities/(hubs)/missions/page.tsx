@@ -18,7 +18,11 @@ type HubMission = {
   href: string;
 };
 
-export default function HubMissionsPage() {
+export default function HubMissionsPage({
+  communitySlug,
+}: {
+  communitySlug?: string;
+} = {}) {
   const [loading, setLoading] = useState(true);
   const [missions, setMissions] = useState<HubMission[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,7 +33,10 @@ export default function HubMissionsPage() {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/c/missions");
+        const qs = communitySlug
+          ? `?community=${encodeURIComponent(communitySlug)}`
+          : "";
+        const res = await fetch(`/api/c/missions${qs}`);
         if (!res.ok) return;
         const json = (await res.json()) as { missions: HubMission[] };
         if (!cancelled) setMissions(json.missions ?? []);
@@ -38,7 +45,7 @@ export default function HubMissionsPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [communitySlug]);
 
   const filtered = useMemo(() => {
     return missions
@@ -66,16 +73,21 @@ export default function HubMissionsPage() {
       <div className="w-full space-y-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="flex items-center gap-2 text-xl font-black tracking-tight">
-              <Target className="h-5 w-5 text-[#fd5000]" />
-              Missions
+            <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+              <Target className="h-5 w-5 text-[var(--color-accent)]" />
+              {communitySlug ? "Challenges" : "Missions"}
             </h1>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Community challenges and tasks to complete
+              {communitySlug
+                ? "Challenges and tasks inside this community"
+                : "Community challenges and tasks to complete"}
             </p>
           </div>
-          <HubLinkButton href="/communities" variant="secondary">
-            Find communities
+          <HubLinkButton
+            href={communitySlug ? `/communities/${communitySlug}` : "/communities"}
+            variant="secondary"
+          >
+            {communitySlug ? "Community home" : "Find communities"}
           </HubLinkButton>
         </div>
 

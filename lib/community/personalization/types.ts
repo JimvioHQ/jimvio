@@ -1,6 +1,6 @@
 /**
  * Member personalization — visits, bookmarks, continue state, personal activity.
- * Client-only until server tables ship. No new APIs.
+ * Client store + server `community_member_visits` for cross-device resume.
  */
 
 export const PERSONAL_ITEM_KINDS = [

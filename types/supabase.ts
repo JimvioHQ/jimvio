@@ -1060,6 +1060,58 @@ export type Database = {
           },
         ]
       }
+      community_member_visits: {
+        Row: {
+          community_id: string
+          created_at: string
+          last_channel_id: string | null
+          last_path: string | null
+          last_visited_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          community_id: string
+          created_at?: string
+          last_channel_id?: string | null
+          last_path?: string | null
+          last_visited_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          community_id?: string
+          created_at?: string
+          last_channel_id?: string | null
+          last_path?: string | null
+          last_visited_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_member_visits_community_id_fkey"
+            columns: ["community_id"]
+            isOneToOne: false
+            referencedRelation: "communities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_member_visits_last_channel_id_fkey"
+            columns: ["last_channel_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_member_visits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_memberships: {
         Row: {
           amount_paid: number | null

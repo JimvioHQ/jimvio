@@ -56,6 +56,19 @@ export function VisitTracker({
         progress: continueLearning.progress,
       });
     }
+
+    const channelId = kind === "channel" ? id : null;
+    void fetch("/api/c/visits", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        communityId,
+        path: href,
+        channelId,
+      }),
+    }).catch(() => {
+      /* resume tracking is best-effort */
+    });
   }, [
     ready,
     id,

@@ -28,15 +28,19 @@ const TAB_REDIRECTS: Record<string, string> = {
   courses: "/communities/courses",
 };
 
-export default function EventsPageWrapper() {
+export default function EventsPageWrapper({
+  communitySlug,
+}: {
+  communitySlug?: string;
+} = {}) {
   return (
     <Suspense fallback={<div className="flex min-h-[50vh] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-zinc-400" /></div>}>
-      <EventsPage />
+      <EventsPage communitySlug={communitySlug} />
     </Suspense>
   );
 }
 
-function EventsPage() {
+function EventsPage({ communitySlug }: { communitySlug?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const legacyTab = searchParams.get("tab");
@@ -46,19 +50,23 @@ function EventsPage() {
   const [events, setEvents] = useState<HubEvent[]>([]);
 
   useEffect(() => {
+    if (communitySlug) return;
     if (legacyTab && TAB_REDIRECTS[legacyTab]) {
       router.replace(TAB_REDIRECTS[legacyTab]);
     }
-  }, [legacyTab, router]);
+  }, [legacyTab, router, communitySlug]);
 
   useEffect(() => {
-    if (legacyTab && TAB_REDIRECTS[legacyTab]) return;
+    if (!communitySlug && legacyTab && TAB_REDIRECTS[legacyTab]) return;
 
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/c/events");
+        const qs = communitySlug
+          ? `?community=${encodeURIComponent(communitySlug)}`
+          : "";
+        const res = await fetch(`/api/c/events${qs}`);
         if (!res.ok) return;
         const data = (await res.json()) as { events: HubEvent[] };
         if (!cancelled) setEvents(data.events ?? []);
@@ -67,7 +75,7 @@ function EventsPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [legacyTab]);
+  }, [legacyTab, communitySlug]);
 
   const filteredEvents = useMemo(() => {
     const now = new Date();
@@ -83,7 +91,7 @@ function EventsPage() {
       .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
   }, [events, filter, searchQuery]);
 
-  if (legacyTab && TAB_REDIRECTS[legacyTab]) {
+  if (!communitySlug && legacyTab && TAB_REDIRECTS[legacyTab]) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
@@ -96,17 +104,27 @@ function EventsPage() {
       <div className="w-full space-y-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="flex items-center gap-2 text-xl font-black tracking-tight">
-              <Calendar className="h-5 w-5 text-[#fd5000]" />
+            <h1 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+              <Calendar className="h-5 w-5 text-[var(--color-accent)]" />
               Events
             </h1>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Upcoming missions, campaigns, and community happenings
+              {communitySlug
+                ? "Upcoming moments inside this community"
+                : "Upcoming missions, campaigns, and community happenings"}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <HubLinkButton href="/communities/missions" variant="secondary">Missions</HubLinkButton>
-            <HubLinkButton href="/communities/courses" variant="secondary">Courses</HubLinkButton>
+            {communitySlug ? (
+              <HubLinkButton href={`/communities/${communitySlug}`} variant="secondary">
+                Community home
+              </HubLinkButton>
+            ) : (
+              <>
+                <HubLinkButton href="/communities/missions" variant="secondary">Missions</HubLinkButton>
+                <HubLinkButton href="/communities/courses" variant="secondary">Courses</HubLinkButton>
+              </>
+            )}
           </div>
         </div>
 

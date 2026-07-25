@@ -667,9 +667,23 @@ export async function getHubFeaturedLive(userId: string): Promise<HubFeaturedLiv
   };
 }
 
-export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
+export async function getHubEvents(
+  userId: string,
+  options?: { communitySlug?: string }
+): Promise<HubEventItem[]> {
   const supabase = await createClient();
-  const communityIds = await getUserCommunityIds(supabase, userId);
+  let communityIds = await getUserCommunityIds(supabase, userId);
+
+  if (options?.communitySlug) {
+    const { data: community } = await supabase
+      .from("communities")
+      .select("id")
+      .eq("slug", options.communitySlug)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (!community?.id || !communityIds.includes(community.id)) return [];
+    communityIds = [community.id];
+  }
 
   const [tasksRes, campaignsRes, completionsRes] = await Promise.all([
     communityIds.length > 0
@@ -684,12 +698,14 @@ export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
           .order("due_date", { ascending: true })
           .limit(50)
       : Promise.resolve({ data: [] as never[] }),
-    supabase
-      .from("ugc_campaigns")
-      .select("id, title, description, starts_at, ends_at, status, submission_count")
-      .eq("status", "active")
-      .order("starts_at", { ascending: true })
-      .limit(30),
+    options?.communitySlug
+      ? Promise.resolve({ data: [] as never[] })
+      : supabase
+          .from("ugc_campaigns")
+          .select("id, title, description, starts_at, ends_at, status, submission_count")
+          .eq("status", "active")
+          .order("starts_at", { ascending: true })
+          .limit(30),
     communityIds.length > 0
       ? supabase.from("task_completions").select("task_id").eq("user_id", userId)
       : Promise.resolve({ data: [] as never[] }),
@@ -826,10 +842,24 @@ export async function getHubChannels(userId: string): Promise<HubChannelItem[]> 
     });
 }
 
-export async function getHubMissions(userId: string): Promise<HubMissionItem[]> {
+export async function getHubMissions(
+  userId: string,
+  options?: { communitySlug?: string }
+): Promise<HubMissionItem[]> {
   const supabase = await createClient();
-  const communityIds = await getUserCommunityIds(supabase, userId);
+  let communityIds = await getUserCommunityIds(supabase, userId);
   if (communityIds.length === 0) return [];
+
+  if (options?.communitySlug) {
+    const { data: community } = await supabase
+      .from("communities")
+      .select("id")
+      .eq("slug", options.communitySlug)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (!community?.id || !communityIds.includes(community.id)) return [];
+    communityIds = [community.id];
+  }
 
   const { data: tasks } = await supabase
     .from("community_tasks")
