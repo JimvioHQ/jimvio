@@ -540,14 +540,26 @@ export function GroupWorkspace({
                 Live sessions
               </h2>
               <p className="mt-2 text-[13px] text-[var(--color-text-muted)]">
-                Host workshops and office hours with Live Studio.
+                Host workshops and office hours with Live Studio. Discussion stays
+                open before, during, and after.
               </p>
-              <Link
-                href={`/communities/${communitySlug}/live`}
-                className="mt-6 inline-flex rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white"
-              >
-                Open Live Studio
-              </Link>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                <Link
+                  href={`/communities/${communitySlug}/live`}
+                  className="inline-flex rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white"
+                >
+                  Open Live Studio
+                </Link>
+                {discussionRoom && (
+                  <button
+                    type="button"
+                    onClick={() => startTransition(() => setTab("discussion"))}
+                    className="inline-flex rounded-lg border border-[var(--color-border)] px-5 py-2.5 text-sm font-semibold text-[var(--color-text-primary)]"
+                  >
+                    Open Discussion
+                  </button>
+                )}
+              </div>
             </div>
           )}
 

@@ -130,6 +130,7 @@ export type HubCourseItem = {
 export type HubLiveRoom = {
   id: string;
   name: string;
+  community_id?: string | null;
   community_name: string;
   community_slug: string;
   space_slug: string;
@@ -1026,9 +1027,25 @@ export type HubLiveUpcoming = {
   href: string;
 };
 
-export async function getHubLiveDashboard(userId: string) {
+export async function getHubLiveDashboard(
+  userId: string,
+  opts?: { communityId?: string | null; communitySlug?: string | null }
+) {
   const supabase = await createClient();
-  const [stats, rooms, featuredLive, earnings, upcomingRaw] = await Promise.all([
+
+  let scopedCommunityId = opts?.communityId?.trim() || null;
+  let scopedSlug = opts?.communitySlug?.trim() || null;
+  if (!scopedCommunityId && scopedSlug) {
+    const { data: community } = await supabase
+      .from("communities")
+      .select("id, slug")
+      .eq("slug", scopedSlug)
+      .maybeSingle();
+    scopedCommunityId = community?.id ?? null;
+    scopedSlug = community?.slug ?? scopedSlug;
+  }
+
+  const [stats, roomsAll, featuredLive, earnings, upcomingRaw] = await Promise.all([
     getHubPlatformStats(),
     getHubLiveRooms(userId),
     getHubFeaturedLive(userId),
@@ -1036,17 +1053,43 @@ export async function getHubLiveDashboard(userId: string) {
     getHubEvents(userId),
   ]);
 
+  const rooms = scopedCommunityId
+    ? roomsAll.filter((r) => r.community_id === scopedCommunityId)
+    : roomsAll;
+
+  // Prefer a real live_sessions row for this community when scoped.
+  let activeLive: Awaited<
+    ReturnType<typeof import("@/services/live/session-service").getActiveLiveForCommunity>
+  > = null;
+  let scheduled: Awaited<
+    ReturnType<typeof import("@/services/live/session-service").listScheduledLivesForCommunity>
+  > = [];
+  let ended: Awaited<
+    ReturnType<typeof import("@/services/live/session-service").getLatestEndedLiveForCommunity>
+  > = null;
+
+  if (scopedCommunityId) {
+    const liveSvc = await import("@/services/live/session-service");
+    [activeLive, scheduled, ended] = await Promise.all([
+      liveSvc.getActiveLiveForCommunity(scopedCommunityId),
+      liveSvc.listScheduledLivesForCommunity(scopedCommunityId, 4),
+      liveSvc.getLatestEndedLiveForCommunity(scopedCommunityId),
+    ]);
+  }
+
   const primaryRoom = rooms[0] ?? null;
   let chatMessages: HubLiveChatMessage[] = [];
   let speakers: HubLiveSpeaker[] = [];
 
-  if (primaryRoom) {
+  const discussionRoomId = activeLive?.room_id ?? primaryRoom?.id ?? null;
+
+  if (discussionRoomId) {
     const { data: msgs } = await supabase
       .from("community_messages")
       .select(
         "id, body, created_at, sender_id, reactions, profiles!community_messages_sender_id_fkey(full_name, avatar_url, username)"
       )
-      .eq("room_id", primaryRoom.id)
+      .eq("room_id", discussionRoomId)
       .eq("is_deleted", false)
       .order("created_at", { ascending: false })
       .limit(40);
@@ -1107,21 +1150,43 @@ export async function getHubLiveDashboard(userId: string) {
     revenue: earnings.total,
   };
 
-  const upcomingSessions: HubLiveUpcoming[] = upcomingRaw
-    .filter((e) => new Date(e.start_date) >= new Date())
-    .slice(0, 4)
-    .map((e) => ({
-      id: e.id,
-      title: e.title,
-      host: e.location ?? "Community",
-      start_date: e.start_date,
-      href: e.href ?? "/communities/events",
-    }));
+  const upcomingFromSessions: HubLiveUpcoming[] = (scheduled ?? []).map((s) => ({
+    id: s.id,
+    title: s.title,
+    host: "Community",
+    start_date: s.scheduled_at ?? s.started_at,
+    href: scopedSlug
+      ? `/communities/live/${s.id}`
+      : `/communities/live/${s.id}`,
+  }));
+
+  const upcomingSessions: HubLiveUpcoming[] =
+    upcomingFromSessions.length > 0
+      ? upcomingFromSessions
+      : upcomingRaw
+          .filter((e) => new Date(e.start_date) >= new Date())
+          .slice(0, 4)
+          .map((e) => ({
+            id: e.id,
+            title: e.title,
+            host: e.location ?? "Community",
+            start_date: e.start_date,
+            href: e.href ?? "/communities/events",
+          }));
 
   const sessionTitle =
-    featuredLive?.title ?? primaryRoom?.name ?? "Community Live Room";
+    activeLive?.title ??
+    featuredLive?.title ??
+    primaryRoom?.name ??
+    "Community Live Room";
   const sessionHost = featuredLive?.hostName ?? primaryRoom?.community_name ?? "Jimvio";
-  const sessionHref = featuredLive?.href ?? primaryRoom?.href ?? "/communities/live";
+  const sessionHref = activeLive
+    ? `/communities/live/${activeLive.id}`
+    : featuredLive?.href ?? primaryRoom?.href ?? "/communities/live";
+
+  const discussionHref =
+    primaryRoom?.href ??
+    (scopedSlug ? `/communities/${scopedSlug}` : "/communities");
 
   return {
     stats,
@@ -1138,9 +1203,22 @@ export async function getHubLiveDashboard(userId: string) {
       host: sessionHost,
       href: sessionHref,
       tag: primaryRoom?.community_name ?? "Live Room",
-      roomId: primaryRoom?.id ?? null,
-      communityId: (primaryRoom as { community_id?: string | null } | null)?.community_id ?? null,
-      liveSessionId: null,
+      roomId: activeLive?.room_id ?? primaryRoom?.id ?? null,
+      communityId:
+        scopedCommunityId ??
+        (primaryRoom as { community_id?: string | null } | null)?.community_id ??
+        null,
+      communitySlug: scopedSlug ?? primaryRoom?.community_slug ?? null,
+      liveSessionId: activeLive?.id ?? null,
+      liveStatus: activeLive
+        ? ("live" as const)
+        : ended
+          ? ("ended" as const)
+          : scheduled.length > 0
+            ? ("scheduled" as const)
+            : ("offline" as const),
+      endedSessionId: ended?.id ?? null,
+      discussionHref,
     },
   };
 }

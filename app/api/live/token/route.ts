@@ -11,6 +11,7 @@ import {
   joinLiveSession,
 } from "@/services/live/session-service";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { rateLimit } from "@/lib/ops/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,14 @@ export async function POST(req: Request) {
   if (!user) {
     liveStudioLog("warn", "token_denied", { reason: "unauthorized" });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const limited = rateLimit(`live-token:${user.id}`, 40, 60_000);
+  if (!limited.allowed) {
+    return NextResponse.json(
+      { error: "Too many token requests — try again shortly" },
+      { status: 429 }
+    );
   }
 
   const body = (await req.json().catch(() => ({}))) as { sessionId?: string };

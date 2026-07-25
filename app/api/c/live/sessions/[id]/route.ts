@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   acceptSpeaker,
   acceptInvite,
+  canViewLiveSession,
   createPoll,
   endLiveSession,
   getSession,
@@ -17,6 +18,7 @@ import {
   updateSelfMedia,
 } from "@/services/live/session-service";
 import { liveStudioLog } from "@/lib/live/observability";
+import { rateLimit } from "@/lib/ops/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +46,18 @@ export async function GET(
 
   const session = await getSession(id);
   if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const allowed = await canViewLiveSession(user.id, session);
+  if (!allowed) {
+    liveStudioLog("warn", "security_denied", {
+      action: "session_get",
+      sessionId: id,
+      userId: user.id,
+      reason: "not_member",
+    });
+    return NextResponse.json({ error: "No access" }, { status: 403 });
+  }
+
   const participants = await listParticipants(id);
   return NextResponse.json({ session, participants });
 }
@@ -58,6 +72,14 @@ export async function POST(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const limited = rateLimit(`live-session:${user.id}`, 60, 60_000);
+  if (!limited.allowed) {
+    return NextResponse.json(
+      { error: "Too many live actions — try again shortly" },
+      { status: 429 }
+    );
+  }
 
   const body = (await req.json().catch(() => ({}))) as ActionBody;
   const action = body.action;

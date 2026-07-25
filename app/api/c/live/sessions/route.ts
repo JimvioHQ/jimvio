@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createLiveSession, getActiveLiveForUser } from "@/services/live/session-service";
 import { liveStudioLog } from "@/lib/live/observability";
+import { rateLimit } from "@/lib/ops/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,14 @@ export async function POST(req: Request) {
   if (!user) {
     liveStudioLog("warn", "security_denied", { action: "session_create", reason: "unauthorized" });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const limited = rateLimit(`live-create:${user.id}`, 10, 60_000);
+  if (!limited.allowed) {
+    return NextResponse.json(
+      { error: "Too many live starts — try again shortly" },
+      { status: 429 }
+    );
   }
 
   const body = (await req.json().catch(() => ({}))) as {

@@ -91,7 +91,13 @@ import { FOCUS_RING, FOCUS_RING_DARK, MOTION_COLORS } from "./live/studio-ui";
 
 type LoadError = "network" | "server" | null;
 
-export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }) {
+export function HubLivePage({
+  sessionId: sessionIdProp,
+  communitySlug: communitySlugProp,
+}: {
+  sessionId?: string;
+  communitySlug?: string;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<LoadError>(null);
@@ -147,7 +153,10 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
     setLoading(true);
     setLoadError(null);
     try {
-      const res = await fetch("/api/c/live");
+      const qs = communitySlugProp
+        ? `?slug=${encodeURIComponent(communitySlugProp)}`
+        : "";
+      const res = await fetch(`/api/c/live${qs}`);
       if (!res.ok) {
         setLoadError("server");
         setData(normalizeHubLiveDashboard(null));
@@ -163,7 +172,7 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [communitySlugProp]);
 
   const updateDrawer = useCallback((patch: Partial<DrawerState>) => {
     setDrawer((prev) => {
@@ -175,60 +184,49 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/c/live");
-        if (cancelled) return;
-        if (!res.ok) {
-          setLoadError("server");
-          setData(normalizeHubLiveDashboard(null));
-          return;
-        }
-        const json = (await res.json()) as LiveDashboard;
-        if (cancelled) return;
-        const normalized = normalizeHubLiveDashboard(json);
-        setData(normalized);
-        if (normalized.speakers[0]) setActiveSpeakerId(normalized.speakers[0].id);
-      } catch {
-        if (cancelled) return;
-        setLoadError("network");
-        setData(normalizeHubLiveDashboard(null));
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void loadDashboard();
+  }, [loadDashboard]);
 
   /* Resume active live session, or join viewer sessionId from route */
+  const autoJoinedRef = useRef<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         if (sessionIdProp) {
+          if (autoJoinedRef.current === sessionIdProp) return;
+          autoJoinedRef.current = sessionIdProp;
           await live.join(sessionIdProp);
           return;
         }
+        const scopedId = data?.session.liveSessionId;
+        if (scopedId) {
+          if (autoJoinedRef.current === scopedId) return;
+          autoJoinedRef.current = scopedId;
+          await live.join(scopedId);
+          if (!cancelled) router.replace(`/communities/live/${scopedId}`);
+          return;
+        }
+        if (communitySlugProp) return;
         const res = await fetch("/api/c/live/sessions");
         if (!res.ok || cancelled) return;
         const json = (await res.json()) as { sessions?: Array<{ id: string }> };
         const first = json.sessions?.[0];
         if (first?.id) {
+          if (autoJoinedRef.current === first.id) return;
+          autoJoinedRef.current = first.id;
           await live.join(first.id);
           router.replace(`/communities/live/${first.id}`);
         }
       } catch {
-        /* ignore */
+        autoJoinedRef.current = null;
       }
     })();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionIdProp]);
+  }, [sessionIdProp, data?.session.liveSessionId, communitySlugProp]);
 
   useEffect(() => {
     if (media.lastError) showToast(media.lastError);
@@ -480,14 +478,16 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
       }
       if (recording) await media.stopRecording({ download: true });
       await live.endLive();
-      showToast("Live ended");
+      showToast("Live ended — discussion stays open");
+      void loadDashboard();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Could not end live");
     }
-  }, [live, gate, media, recording, egressRecording, showToast]);
+  }, [live, gate, media, recording, egressRecording, showToast, loadDashboard]);
 
   const createOrJoinLive = useCallback(async () => {
-    const communityId = data?.session.communityId ?? data?.rooms[0]?.community_id;
+    const communityId =
+      data?.session.communityId ?? data?.rooms[0]?.community_id ?? null;
     const roomId = data?.session.roomId ?? data?.rooms[0]?.id ?? null;
     if (!communityId) {
       showToast("Join a community to go live");
@@ -507,11 +507,13 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
           router.replace(`/communities/live/${session.id}`);
         }
       });
+      setElapsed(0);
       showToast("You are live");
+      void loadDashboard();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Could not start live");
     }
-  }, [data, live, showToast, router, sessionIdProp]);
+  }, [data, live, showToast, router, sessionIdProp, loadDashboard]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -612,7 +614,20 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
     tag: "Live Room",
     roomId: null,
   };
-  const hasSession = Boolean(live.session?.status === "live" || data?.session.roomId);
+  const hasSession = Boolean(live.session?.status === "live");
+  const liveStatusLabel =
+    live.session?.status === "live"
+      ? "LIVE"
+      : live.session?.status === "ended" || data?.session.liveStatus === "ended"
+        ? "ENDED"
+        : data?.session.liveStatus === "scheduled"
+          ? "UPCOMING"
+          : "OFFLINE";
+  const discussionHref =
+    data?.session.discussionHref ??
+    (data?.session.communitySlug
+      ? `/communities/${data.session.communitySlug}`
+      : "/communities");
 
   const speakerUi = useMemo(() => {
     const map: Record<string, SpeakerUi> = {};
@@ -812,11 +827,11 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
                 )}
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                {live.session?.status === "live" ? "LIVE" : "LIVE"}
+                LIVE
               </span>
             ) : (
               <span className={cn("text-[10px] font-medium tracking-[0.06em]", immersive ? "text-white/35" : "text-neutral-400")}>
-                OFFLINE
+                {liveStatusLabel}
               </span>
             )}
             <h1
@@ -827,14 +842,25 @@ export function HubLivePage({ sessionId: sessionIdProp }: { sessionId?: string }
             >
               {session.title}
             </h1>
-            <span
+            {hasSession && (
+              <span
+                className={cn(
+                  "hidden tabular-nums text-[11px] sm:inline",
+                  immersive ? "text-white/35" : "text-neutral-400"
+                )}
+              >
+                {formatElapsed(elapsed)}
+              </span>
+            )}
+            <Link
+              href={discussionHref}
               className={cn(
-                "hidden tabular-nums text-[11px] sm:inline",
-                immersive ? "text-white/35" : "text-neutral-400"
+                "hidden shrink-0 text-[11px] font-medium underline-offset-2 hover:underline sm:inline",
+                immersive ? "text-white/55" : "text-neutral-500"
               )}
             >
-              {formatElapsed(elapsed)}
-            </span>
+              Discussion
+            </Link>
           </div>
 
           <div

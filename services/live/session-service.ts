@@ -13,6 +13,8 @@ import {
   type LiveStageRole,
 } from "@/lib/live/roles";
 
+export type LiveSessionPrivacy = "public" | "private" | "invite_only";
+
 export type LiveSessionRow = {
   id: string;
   community_id: string;
@@ -22,6 +24,9 @@ export type LiveSessionRow = {
   host_id: string;
   title: string;
   status: "scheduled" | "live" | "ended";
+  /** Community-scoped privacy. private = members; invite_only = invited/staff. */
+  privacy?: LiveSessionPrivacy | string | null;
+  scheduled_at?: string | null;
   started_at: string;
   ended_at: string | null;
   created_at: string;
@@ -84,6 +89,20 @@ export async function getParticipant(
 export async function getSession(sessionId: string): Promise<LiveSessionRow | null> {
   const { data } = await db().from("live_sessions").select("*").eq("id", sessionId).maybeSingle();
   return (data as LiveSessionRow | null) ?? null;
+}
+
+/** True when the user may view session metadata (member / owner). */
+export async function canViewLiveSession(
+  userId: string,
+  session: LiveSessionRow
+): Promise<boolean> {
+  return assertCommunityMember(userId, session.community_id);
+}
+
+function normalizePrivacy(raw: string | null | undefined): LiveSessionPrivacy {
+  const v = (raw ?? "private").toLowerCase();
+  if (v === "public" || v === "invite_only") return v;
+  return "private";
 }
 
 export async function listParticipants(sessionId: string): Promise<LiveParticipantRow[]> {
@@ -189,18 +208,41 @@ export async function joinLiveSession(
 ): Promise<{ participant: LiveParticipantRow; session: LiveSessionRow } | { error: string; status: number }> {
   const session = await getSession(sessionId);
   if (!session) return { error: "Session not found", status: 404 };
+  if (session.status === "ended") return { error: "Session has ended", status: 400 };
+  if (session.status === "scheduled") {
+    return { error: "Session has not started yet", status: 400 };
+  }
   if (session.status !== "live") return { error: "Session is not live", status: 400 };
 
+  const privacy = normalizePrivacy(session.privacy);
   const member = await assertCommunityMember(userId, session.community_id);
-  if (!member) return { error: "Not a community member", status: 403 };
+  if (!member && privacy !== "public") {
+    return { error: "Not a community member", status: 403 };
+  }
 
   const existing = await getParticipant(sessionId, userId);
   if (existing && existing.status === "removed") {
     return { error: "You were removed from this session", status: 403 };
   }
+  if (existing && existing.status === "rejected") {
+    return { error: "Your request was declined", status: 403 };
+  }
+
+  if (privacy === "invite_only" && session.host_id !== userId) {
+    const staff = await assertCommunityStaff(userId, session.community_id);
+    const invited =
+      existing?.status === "invited" ||
+      existing?.status === "joined" ||
+      existing?.role === "cohost" ||
+      existing?.role === "speaker" ||
+      existing?.role === "moderator";
+    if (!staff && !invited) {
+      return { error: "This live is invite-only", status: 403 };
+    }
+  }
 
   const role: LiveStageRole =
-    existing?.role && existing.status !== "left"
+    existing?.role && existing.status !== "left" && existing.status !== "rejected"
       ? existing.role
       : session.host_id === userId
         ? "host"
@@ -500,6 +542,31 @@ export async function getActiveLiveForCommunity(communityId: string) {
     .eq("community_id", communityId)
     .eq("status", "live")
     .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as LiveSessionRow | null) ?? null;
+}
+
+/** Upcoming scheduled lives for a community (permission-agnostic list; caller ACL). */
+export async function listScheduledLivesForCommunity(communityId: string, limit = 6) {
+  const { data } = await db()
+    .from("live_sessions")
+    .select("*")
+    .eq("community_id", communityId)
+    .eq("status", "scheduled")
+    .order("scheduled_at", { ascending: true })
+    .limit(limit);
+  return (data as LiveSessionRow[]) ?? [];
+}
+
+/** Most recent ended session (for replay / post-live continuity). */
+export async function getLatestEndedLiveForCommunity(communityId: string) {
+  const { data } = await db()
+    .from("live_sessions")
+    .select("*")
+    .eq("community_id", communityId)
+    .eq("status", "ended")
+    .order("ended_at", { ascending: false })
     .limit(1)
     .maybeSingle();
   return (data as LiveSessionRow | null) ?? null;

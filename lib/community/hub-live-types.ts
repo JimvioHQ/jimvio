@@ -3,6 +3,7 @@ export type LiveRoom = {
   name: string;
   community_id?: string | null;
   community_name: string;
+  community_slug?: string;
   message_count: number;
   href: string;
 };
@@ -58,6 +59,10 @@ export type LiveDashboard = {
     tag: string;
     roomId: string | null;
     communityId?: string | null;
+    communitySlug?: string | null;
     liveSessionId?: string | null;
+    liveStatus?: "live" | "ended" | "scheduled" | "offline";
+    endedSessionId?: string | null;
+    discussionHref?: string | null;
   };
 };

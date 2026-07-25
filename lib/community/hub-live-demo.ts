@@ -28,7 +28,11 @@ export function getEmptyHubLiveDashboard(): LiveDashboard {
       tag: "Live Room",
       roomId: null,
       communityId: null,
+      communitySlug: null,
       liveSessionId: null,
+      liveStatus: "offline",
+      endedSessionId: null,
+      discussionHref: "/communities",
     },
   };
 }
