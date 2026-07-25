@@ -45,7 +45,7 @@ export async function POST(
     .maybeSingle();
 
   const membership = await getUserMembership(user.id, space.community_id);
-  if (!isMembershipActive(membership)) {
+  if (!membership || !isMembershipActive(membership)) {
     return NextResponse.json(
       {
         error: "Join the community first",

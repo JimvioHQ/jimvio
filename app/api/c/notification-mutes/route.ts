@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   }
 
   const membership = await getUserMembership(user.id, communityId);
-  if (!isMembershipActive(membership)) {
+  if (!membership || !isMembershipActive(membership)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
   }
 
   const membership = await getUserMembership(user.id, communityId);
-  if (!isMembershipActive(membership)) {
+  if (!membership || !isMembershipActive(membership)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
