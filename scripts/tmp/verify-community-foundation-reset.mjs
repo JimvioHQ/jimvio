@@ -47,9 +47,10 @@ assert.doesNotMatch(sidebar, /label: "Signals"/);
 assert.doesNotMatch(sidebar, /fallbackHref/);
 assert.match(sidebar, /Spaces/);
 assert.match(sidebar, /Overview/);
+assert.match(sidebar, /Back to Feed/);
 assert.match(sidebar, /Create your first Space|Create Space/);
-assert.match(sidebar, /Join Community/);
-assert.match(sidebar, /Invite People/);
+assert.doesNotMatch(sidebar, /Join Community/);
+assert.doesNotMatch(sidebar, /Invite People/);
 assert.doesNotMatch(sidebar, /CreateChannelDialog/);
 
 assert.doesNotMatch(createForm, /Default channels are created/);
@@ -57,11 +58,14 @@ assert.match(createSpace, /Create Space|entityLabel/);
 
 assert.match(overview, /Welcome to your new Community|This community is being prepared/);
 assert.match(overview, /Create your first Space/);
+assert.match(overview, /Join Community/);
+assert.match(overview, /Invite/);
 assert.match(overview, /max-w-\[1400px\]/);
 assert.match(overview, /grid-cols-12/);
 assert.match(overview, /Description/);
 assert.match(overview, /Mission/);
 assert.match(overview, /Vision/);
 assert.match(overview, /Announcements/);
+assert.doesNotMatch(overview, /EmptyCover|aspect-\[3\.2\/1\]/);
 
 console.log("Community foundation reset verification passed.");

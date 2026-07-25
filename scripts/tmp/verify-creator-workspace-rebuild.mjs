@@ -123,9 +123,10 @@ assert.doesNotMatch(channelWs, /fork ChatRoom/i);
 // Community member sidebar: Overview + Spaces (design reference)
 assert.match(communitySidebar, /Overview/);
 assert.match(communitySidebar, /Spaces/);
-assert.match(communitySidebar, /Join Community/);
-assert.match(communitySidebar, /Invite People/);
+assert.match(communitySidebar, /Back to Feed/);
 assert.match(communitySidebar, /Go Premium|Upgrade now/);
+assert.doesNotMatch(communitySidebar, /Join Community/);
+assert.doesNotMatch(communitySidebar, /Invite People/);
 assert.doesNotMatch(communitySidebar, /label: "Announcements"/);
 assert.doesNotMatch(communitySidebar, /label: "Feed"/);
 assert.doesNotMatch(communitySidebar, /CreateChannelDialog/);

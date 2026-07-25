@@ -72,10 +72,11 @@ assert.match(roomsApi, /channel_kind: "discussion"/);
 
 assert.match(sidebar, /Spaces/);
 assert.match(sidebar, /Overview/);
+assert.match(sidebar, /Back to Feed/);
 assert.match(sidebar, /Create your first Space|Create Space/);
-assert.match(sidebar, /Join Community/);
-assert.match(sidebar, /Invite People/);
 assert.match(sidebar, /members/);
+assert.doesNotMatch(sidebar, /Join Community/);
+assert.doesNotMatch(sidebar, /Invite People/);
 assert.doesNotMatch(sidebar, /CreateChannelDialog/);
 assert.doesNotMatch(sidebar, />\s*Channels\s*</);
 

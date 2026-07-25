@@ -19,7 +19,6 @@ import {
   ShoppingBag,
   Target,
   UserPlus,
-  Users,
 } from "lucide-react";
 import { useWorkspace } from "@/components/community/workspace-context";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
@@ -63,18 +62,6 @@ function relativeTime(iso: string | null | undefined) {
   return `${years} year${years === 1 ? "" : "s"} ago`;
 }
 
-function EmptyCover({ name }: { name: string }) {
-  const initial = name.trim().charAt(0).toUpperCase() || "C";
-  return (
-    <div className="absolute inset-0 overflow-hidden bg-zinc-900" aria-hidden>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(253,80,0,0.45),transparent_55%),radial-gradient(ellipse_at_80%_80%,rgba(255,255,255,0.08),transparent_50%)]" />
-      <span className="absolute inset-0 flex items-center justify-center text-[clamp(6rem,22vw,12rem)] font-black tracking-tighter text-white/[0.06]">
-        {initial}
-      </span>
-    </div>
-  );
-}
-
 function padBullets(source: string[], fallbacks: string[], limit = 4) {
   const cleaned = source.map((s) => s.trim()).filter(Boolean);
   const out = [...cleaned];
@@ -103,7 +90,6 @@ export function HubCommunityOverview() {
     slug,
     memberCount,
     avatarUrl,
-    coverUrl,
     tagline,
     isPrivate,
     isOwner,
@@ -117,7 +103,6 @@ export function HubCommunityOverview() {
   const [shareLabel, setShareLabel] = useState("Share");
 
   const base = `/communities/${slug}`;
-  const cover = overview?.coverImage ?? coverUrl;
   const logo = overview?.avatarUrl ?? avatarUrl;
   const members = overview?.memberCount ?? memberCount ?? 0;
   const desc =
@@ -262,144 +247,121 @@ export function HubCommunityOverview() {
         />
       ) : null}
 
-      <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-4 sm:px-6 lg:px-8">
-        {/* Community header */}
+      <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-5 sm:px-6 lg:px-8">
+        {/* Community header — no cover */}
         <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100">
-          <div className="relative aspect-[3.2/1] min-h-[180px] w-full sm:min-h-[220px]">
-            {cover ? (
-              <Image
-                src={cover}
-                alt=""
-                fill
-                priority
-                sizes="(max-width: 1400px) 100vw, 1400px"
-                className="object-cover"
-                unoptimized
-              />
-            ) : (
-              <EmptyCover name={communityName} />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
-            <div className="absolute inset-y-0 left-0 flex max-w-xl items-end p-5 sm:p-8">
-              <p className="text-[14px] font-medium leading-relaxed text-white/95 sm:text-[16px]">
-                {communityTagline}
-              </p>
-            </div>
-          </div>
-
-          <div className="relative px-4 pb-5 pt-0 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div className="flex min-w-0 items-end gap-4">
-                <div className="relative -mt-12 h-24 w-24 shrink-0 overflow-hidden rounded-full bg-[#fd5000] ring-4 ring-white shadow-md sm:-mt-14 sm:h-28 sm:w-28">
-                  {logo ? (
-                    <Image
-                      src={logo}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-white">
-                      {communityName.slice(0, 1).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <div className="min-w-0 pb-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="truncate text-[1.35rem] font-semibold tracking-tight text-gray-900 sm:text-[1.6rem]">
-                      {communityName}
-                    </h1>
-                    {verified ? (
-                      <BadgeCheck
-                        className="h-5 w-5 shrink-0 text-[#3b82f6]"
-                        fill="currentColor"
-                        strokeWidth={0}
-                        aria-label="Verified community"
-                      />
-                    ) : null}
-                  </div>
-                  <p className="mt-1 text-[13px] text-gray-500">
-                    {visibilityLabel} Community
-                    {createdLabel ? (
-                      <>
-                        <span className="mx-1.5 text-gray-300">·</span>
-                        Created {createdLabel}
-                      </>
-                    ) : null}
-                  </p>
-                  <p className="mt-2 text-[15px] font-semibold text-gray-900">
-                    {formatCompactMembers(members)} Members
-                  </p>
-                </div>
+          <div className="flex flex-col gap-5 px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-7 sm:py-7 lg:px-8">
+            <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+              <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full bg-[#fd5000] shadow-sm sm:h-20 sm:w-20">
+                {logo ? (
+                  <Image
+                    src={logo}
+                    alt=""
+                    fill
+                    priority
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-white">
+                    {communityName.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
               </div>
-
-              <div className="flex flex-wrap items-center gap-2 sm:pb-1">
-                <Link
-                  href={`${base}/subscribe`}
-                  className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#fd5000] px-4 text-[13px] font-semibold text-white transition hover:bg-[#e04700]"
-                >
-                  Join Community
-                </Link>
-                <Link
-                  href={`${base}/members`}
-                  className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Invite
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
-                  aria-label={shareLabel}
-                  title={shareLabel}
-                >
-                  <Share2 className="h-4 w-4" />
-                </button>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setMoreOpen((v) => !v)}
-                    className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
-                    aria-label="More"
-                    aria-expanded={moreOpen}
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
-                  {moreOpen ? (
-                    <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
-                      {canManage ? (
-                        <Link
-                          href={`/dashboard/communities/${encodeURIComponent(slug)}`}
-                          className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
-                          onClick={() => setMoreOpen(false)}
-                        >
-                          Owner Console
-                        </Link>
-                      ) : null}
-                      <Link
-                        href={`${base}/about`}
-                        className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
-                        onClick={() => setMoreOpen(false)}
-                      >
-                        About
-                      </Link>
-                      <Link
-                        href={`${base}/members`}
-                        className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
-                        onClick={() => setMoreOpen(false)}
-                      >
-                        Members
-                      </Link>
-                    </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-[1.4rem] font-semibold tracking-tight text-gray-900 sm:text-[1.65rem]">
+                    {communityName}
+                  </h1>
+                  {verified ? (
+                    <BadgeCheck
+                      className="h-5 w-5 shrink-0 text-[#3b82f6]"
+                      fill="currentColor"
+                      strokeWidth={0}
+                      aria-label="Verified community"
+                    />
                   ) : null}
                 </div>
+                <p className="mt-1 text-[13px] text-gray-500">
+                  {visibilityLabel} Community
+                  {createdLabel ? (
+                    <>
+                      <span className="mx-1.5 text-gray-300">·</span>
+                      Created {createdLabel}
+                    </>
+                  ) : null}
+                </p>
+                <p className="mt-1.5 text-[14px] font-semibold text-gray-900">
+                  {formatCompactMembers(members)} Members
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Link
+                href={`${base}/subscribe`}
+                className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#fd5000] px-4 text-[13px] font-semibold text-white transition-all duration-150 hover:bg-[#e04700] hover:shadow-sm"
+              >
+                Join Community
+              </Link>
+              <Link
+                href={`${base}/members`}
+                className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition-all duration-150 hover:bg-gray-50 hover:border-gray-300"
+              >
+                <UserPlus className="h-4 w-4" />
+                Invite
+              </Link>
+              <button
+                type="button"
+                onClick={handleShare}
+                className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-all duration-150 hover:bg-gray-50 hover:border-gray-300"
+                aria-label={shareLabel}
+                title={shareLabel}
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen((v) => !v)}
+                  className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-all duration-150 hover:bg-gray-50 hover:border-gray-300"
+                  aria-label="More"
+                  aria-expanded={moreOpen}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
+                {moreOpen ? (
+                  <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                    {canManage ? (
+                      <Link
+                        href={`/dashboard/communities/${encodeURIComponent(slug)}`}
+                        className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                        onClick={() => setMoreOpen(false)}
+                      >
+                        Owner Console
+                      </Link>
+                    ) : null}
+                    <Link
+                      href={`${base}/about`}
+                      className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                      onClick={() => setMoreOpen(false)}
+                    >
+                      About
+                    </Link>
+                    <Link
+                      href={`${base}/members`}
+                      className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                      onClick={() => setMoreOpen(false)}
+                    >
+                      Members
+                    </Link>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
 
-          {/* Second navigation */}
+          {/* Second navigation — Overview / Spaces / Courses / Events / Live / Store */}
           <nav
             aria-label="Community sections"
             className="flex gap-1 overflow-x-auto border-t border-gray-100 px-2 sm:px-4"
@@ -411,7 +373,7 @@ export function HubCommunityOverview() {
                   key={item.id}
                   href={item.href}
                   className={cn(
-                    "relative flex shrink-0 items-center gap-1.5 px-3.5 py-3.5 text-[13px] transition-colors",
+                    "relative flex shrink-0 items-center gap-1.5 px-3.5 py-3.5 text-[13px] transition-colors duration-150",
                     item.active
                       ? "font-semibold text-[#fd5000]"
                       : "font-medium text-gray-500 hover:text-gray-800"
@@ -507,7 +469,7 @@ export function HubCommunityOverview() {
             icon={Target}
             iconClass="bg-emerald-50 text-emerald-600"
             bulletClass="text-emerald-600"
-            BulletIcon={Users}
+            BulletIcon={Check}
             title="Mission"
             body={mission}
             bullets={missionBullets}
@@ -517,7 +479,7 @@ export function HubCommunityOverview() {
             icon={Eye}
             iconClass="bg-sky-50 text-sky-600"
             bulletClass="text-sky-600"
-            BulletIcon={Eye}
+            BulletIcon={Check}
             title="Vision"
             body={vision}
             bullets={visionBullets}
@@ -627,7 +589,7 @@ function OverviewRow({
         <h2 className="text-[1.15rem] font-semibold tracking-tight text-gray-900">
           {title}
         </h2>
-        <p className="mt-2 max-w-3xl text-[14px] leading-relaxed text-gray-600 sm:text-[15px]">
+        <p className="mt-2.5 max-w-3xl text-[14px] leading-relaxed text-gray-600 sm:text-[15px]">
           {body}
         </p>
         {bullets.length > 0 ? (
@@ -637,10 +599,22 @@ function OverviewRow({
                 key={item}
                 className="inline-flex items-center gap-2 text-[13px] text-gray-700"
               >
-                <BulletIcon
-                  className={cn("h-4 w-4 shrink-0", bulletClass)}
-                  aria-hidden
-                />
+                <span
+                  className={cn(
+                    "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full",
+                    bulletClass.includes("emerald")
+                      ? "bg-emerald-100"
+                      : bulletClass.includes("sky")
+                        ? "bg-sky-100"
+                        : "bg-orange-100"
+                  )}
+                >
+                  <BulletIcon
+                    className={cn("h-3 w-3", bulletClass)}
+                    strokeWidth={2.5}
+                    aria-hidden
+                  />
+                </span>
                 {item}
               </li>
             ))}

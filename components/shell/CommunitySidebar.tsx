@@ -4,14 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  BadgeCheck,
-  Home,
-  Plus,
-  UserPlus,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Home, Layers, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MOCK_COMMUNITY } from "@/lib/community/dashboard-mock-data";
 import {
@@ -92,26 +85,18 @@ function buildSpaces(
 
 function SidebarBody({
   slug,
-  communityName,
-  visibility,
-  avatarUrl,
   activeSpaceId,
   spaces,
   canManage,
   communityId,
-  isVerified,
   onNavigate,
 }: {
   slug: string;
-  communityName: string;
-  visibility: string;
-  avatarUrl: string | null;
   activeNav?: CommunityNavItem;
   activeSpaceId?: string;
   spaces: SpaceItem[];
   canManage: boolean;
   communityId: string | null;
-  isVerified?: boolean;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -145,80 +130,24 @@ function SidebarBody({
 
   return (
     <>
-      <div className="border-b border-gray-100 px-4 pb-4 pt-3">
+      <div className="border-b border-gray-100 px-4 pb-3 pt-3">
         <Link
           href="/communities"
           onClick={onNavigate}
-          className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-400 transition-colors hover:text-gray-700"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-gray-400 transition-colors hover:text-gray-700"
         >
-          <ArrowLeft className="h-3 w-3" />
-          Back to communities
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to Feed
         </Link>
-
-        <div className="mb-4 rounded-2xl border border-gray-100 bg-white p-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-          <div className="flex items-start gap-3">
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-[#fd5000] shadow-sm">
-              {avatarUrl ? (
-                <Image
-                  src={avatarUrl}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-sm font-bold text-white">
-                  {communityName.slice(0, 2).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1 pt-0.5">
-              <div className="flex items-center gap-1.5">
-                <p className="truncate text-[15px] font-bold tracking-tight text-gray-900">
-                  {communityName}
-                </p>
-                {isVerified ? (
-                  <BadgeCheck
-                    className="h-4 w-4 shrink-0 text-[#3b82f6]"
-                    fill="currentColor"
-                    strokeWidth={0}
-                    aria-label="Verified"
-                  />
-                ) : null}
-              </div>
-              <p className="mt-0.5 text-[12px] text-gray-500">
-                {visibility === "Private" ? "Private" : "Public"} Community
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Link
-            href={`${base}/subscribe`}
-            onClick={onNavigate}
-            className="flex w-full items-center justify-center rounded-xl bg-[#fd5000] py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#e04700]"
-          >
-            Join Community
-          </Link>
-          <Link
-            href={`${base}/members`}
-            onClick={onNavigate}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
-          >
-            <UserPlus className="h-4 w-4" />
-            Invite People
-          </Link>
-        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 py-3 scrollbar-hide">
-        <nav className="mb-4 space-y-0.5">
+        <nav className="mb-5 space-y-0.5">
           <Link
             href={base}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
+              "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-150",
               onHome && !onSpacesRoute
                 ? "bg-orange-50 font-semibold text-[#fd5000]"
                 : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -226,6 +155,31 @@ function SidebarBody({
           >
             <Home className="h-4 w-4 shrink-0" />
             Overview
+          </Link>
+          <Link
+            href={`${base}/spaces`}
+            onClick={onNavigate}
+            className={cn(
+              "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-150",
+              onSpacesRoute
+                ? "bg-orange-50 font-semibold text-[#fd5000]"
+                : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            )}
+          >
+            <Layers className="h-4 w-4 shrink-0" />
+            <span className="flex-1">Spaces</span>
+            {spaces.length > 0 ? (
+              <span
+                className={cn(
+                  "rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                  onSpacesRoute
+                    ? "bg-[#fd5000]/15 text-[#fd5000]"
+                    : "bg-gray-100 text-gray-500"
+                )}
+              >
+                {spaces.length}
+              </span>
+            ) : null}
           </Link>
         </nav>
 
@@ -246,20 +200,16 @@ function SidebarBody({
         </div>
         <nav className="mb-5 space-y-0.5">
           {spaces.length === 0 ? (
-            <div className="mx-1 rounded-xl bg-gray-50 px-3 py-3">
-              <p className="text-[12px] font-medium text-gray-700">
-                {canManage ? "Create your first Space" : "No Spaces published yet"}
-              </p>
-              {canManage && communityId ? (
-                <button
-                  type="button"
-                  onClick={() => setCreateSpaceOpen(true)}
-                  className="mt-2.5 inline-flex min-h-9 items-center rounded-lg bg-[#fd5000] px-3 text-[12px] font-semibold text-white hover:bg-[#e04700]"
-                >
-                  Create Space
-                </button>
-              ) : null}
-            </div>
+            canManage && communityId ? (
+              <button
+                type="button"
+                onClick={() => setCreateSpaceOpen(true)}
+                className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-[#fd5000]"
+              >
+                <Plus className="h-4 w-4 shrink-0" />
+                Create Space
+              </button>
+            ) : null
           ) : (
             spaces.map((space, index) => {
               const active = spaceActive(space);
@@ -274,15 +224,13 @@ function SidebarBody({
                   href={`${base}${space.href}`}
                   onClick={onNavigate}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-xl px-3 py-2 transition-colors",
-                    active
-                      ? "bg-orange-50"
-                      : "hover:bg-gray-50"
+                    "flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all duration-150",
+                    active ? "bg-orange-50" : "hover:bg-gray-50"
                   )}
                 >
                   <span
                     className={cn(
-                      "relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg text-[11px] font-bold text-white",
+                      "relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-[11px] font-bold text-white",
                       color
                     )}
                   >
@@ -320,15 +268,15 @@ function SidebarBody({
         </nav>
 
         <div className="mt-auto px-1 pb-2">
-          <div className="rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 to-white px-3.5 py-3.5">
+          <div className="rounded-2xl border border-orange-100/80 bg-gradient-to-br from-[#fff7ed] to-white px-3.5 py-3.5">
             <p className="text-[13px] font-bold text-gray-900">Go Premium</p>
-            <p className="mt-0.5 text-[11px] text-gray-500">
+            <p className="mt-0.5 text-[11px] leading-relaxed text-gray-500">
               Unlock exclusive Spaces and live sessions.
             </p>
             <Link
               href={`${base}/subscribe`}
               onClick={onNavigate}
-              className="mt-2 inline-flex text-[12px] font-semibold text-[#fd5000] hover:underline"
+              className="mt-2 inline-flex text-[12px] font-semibold text-[#fd5000] transition-colors hover:text-[#e04700]"
             >
               Upgrade now →
             </Link>
@@ -353,8 +301,8 @@ function SidebarBody({
 
 export function CommunitySidebar({
   slug,
-  communityName = MOCK_COMMUNITY.name,
-  visibility = MOCK_COMMUNITY.visibility,
+  communityName: _communityName = MOCK_COMMUNITY.name,
+  visibility: _visibility = MOCK_COMMUNITY.visibility,
   membersOnline: _membersOnline = MOCK_COMMUNITY.membersOnline,
   activeNav,
   activeSpaceId,
@@ -372,24 +320,14 @@ export function CommunitySidebar({
 
   const canManage = Boolean(workspace?.isOwner || workspace?.isAdmin);
   const communityId = workspace?.communityId ?? null;
-  const resolvedVisibility =
-    workspace?.isPrivate != null
-      ? workspace.isPrivate
-        ? "Private"
-        : "Public"
-      : visibility;
 
   const bodyProps = {
     slug,
-    communityName: workspace?.communityName ?? communityName,
-    visibility: resolvedVisibility,
-    avatarUrl: workspace?.overview?.avatarUrl ?? workspace?.avatarUrl ?? null,
     activeNav,
     activeSpaceId,
     spaces,
     canManage,
     communityId,
-    isVerified: Boolean(workspace?.overview?.isVerified),
   };
 
   if (mobileOpen !== undefined) {
