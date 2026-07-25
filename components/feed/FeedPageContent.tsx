@@ -2,9 +2,6 @@
 
 import { AIAssistantPanel } from "@/components/feed/AIAssistantPanel";
 import { ActivityFeedCard } from "@/components/feed/ActivityFeedCard";
-import { CreatorChallengeCard } from "@/components/feed/CreatorChallengeCard";
-import { CreatorInsightsCard } from "@/components/feed/CreatorInsightsCard";
-import { EarningsOverviewCard } from "@/components/feed/EarningsOverviewCard";
 import { FeedPostCard } from "@/components/feed/FeedPostCard";
 import { FeedStatsRow } from "@/components/feed/FeedStatsRow";
 import { FeedTabs } from "@/components/feed/FeedTabs";
@@ -20,15 +17,12 @@ function FeedRightRailTop() {
     <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
       <div className="min-w-0 space-y-4">
         <LiveNowCard />
-        <EarningsOverviewCard />
         <AIAssistantPanel />
       </div>
       <div className="min-w-0 space-y-4">
-        <CreatorInsightsCard />
         <UpcomingLiveSessions />
         <ActivityFeedCard />
         <TopMissionsList />
-        <CreatorChallengeCard />
       </div>
     </div>
   );

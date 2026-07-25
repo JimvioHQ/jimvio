@@ -1,11 +1,3 @@
-export const CREATOR_CHALLENGE = {
-  progress: "2/3",
-  title: "Finish 3 live sessions",
-  subtitle: "Earn 500 bonus XP + badge",
-  completed: 2,
-  target: 3,
-};
-
 export const STORIES = [
   { id: "1", name: "Barick te", live: true, verified: false, online: false, avatar: null },
   { id: "2", name: "Bella Oh.", live: false, verified: false, online: true, avatar: null },
@@ -165,21 +157,6 @@ export const FEATURED_LIVE = {
   viewerAvatars: ["A", "S", "J", "M"],
 };
 
-export const CREATOR_INSIGHTS = [
-  { label: "Profile Views", value: "12.4K", delta: "+18%" },
-  { label: "Engagement", value: "8.7K", delta: "+12%" },
-  { label: "New Followers", value: "2.1K", delta: "+22%" },
-  { label: "Revenue", value: "$1,320", delta: "+15%" },
-];
-
-export const INSIGHTS_CHART_DATA = [
-  { date: "May 1", v: 40 },
-  { date: "May 8", v: 52 },
-  { date: "May 15", v: 48 },
-  { date: "May 22", v: 68 },
-  { date: "May 29", v: 85 },
-];
-
 export const AI_INSIGHTS = [
   {
     icon: "audience",
@@ -209,12 +186,6 @@ export const UPCOMING_LIVE = [
   { id: "2", title: "Weekly Q&A", host: "Sarah Chen", time: "Tomorrow, 10:00 AM", avatar: null },
   { id: "3", title: "Chart Patterns Deep Dive", host: "Emma Wilson", time: "Fri, 2:00 PM", avatar: null },
 ];
-
-export const EARNINGS = {
-  total: "$4,680.00",
-  delta: "32.6% vs last month",
-  chartBars: [32, 48, 40, 56, 44, 62, 50, 68, 46, 58, 42, 54, 38],
-};
 
 export const TOP_MISSIONS = [
   { icon: "circle", name: "Create 5 Clips", reward: "+300%", progress: 75 },
