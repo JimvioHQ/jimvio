@@ -58,6 +58,8 @@ export type HubMessagePeer = {
   level: number;
   streakDays: number;
   isOnline: boolean;
+  isCreator?: boolean;
+  topPercentLabel?: string | null;
   sharedCommunities: Array<{ id: string; name: string; slug: string; href: string }>;
 };
 
@@ -70,11 +72,43 @@ function countReactions(raw: unknown) {
   return out;
 }
 
+async function loadReadCursors(userId: string) {
+  const supabase = await createClient();
+  try {
+    const { data, error } = await (supabase as any)
+      .from("messaging_conversation_reads")
+      .select("conversation_key, last_read_at")
+      .eq("user_id", userId);
+    if (error) return new Map<string, string>();
+    return new Map(
+      ((data ?? []) as Array<{ conversation_key: string; last_read_at: string }>).map(
+        (r) => [r.conversation_key, r.last_read_at]
+      )
+    );
+  } catch {
+    return new Map<string, string>();
+  }
+}
+
+function unreadFromLast(
+  last: { created_at?: string | null; sender_id: string } | null | undefined,
+  userId: string,
+  lastReadAt: string | undefined
+) {
+  if (!last || last.sender_id === userId) return 0;
+  if (!last.created_at) return 1;
+  if (lastReadAt && new Date(last.created_at).getTime() <= new Date(lastReadAt).getTime()) {
+    return 0;
+  }
+  return 1;
+}
+
 export async function getHubMessageThreads(userId: string) {
   const supabase = await createClient();
   const communityIds = await getUserCommunityIds(userId);
   const threads: HubMessageThread[] = [];
   const onlineCutoff = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
+  const readCursors = await loadReadCursors(userId);
 
   if (communityIds.length > 0) {
     const { data: convs } = await supabase
@@ -118,8 +152,11 @@ export async function getHubMessageThreads(userId: string) {
       const peer = peerMap.get(peerId);
       const community = conv.communities as { name: string; slug: string } | null;
       const last = findLastVisibleMessage(conv.community_inbox_messages ?? []);
-      const unreadCount =
-        last && last.sender_id !== userId ? 1 : 0;
+      const unreadCount = unreadFromLast(
+        last,
+        userId,
+        readCursors.get(`inbox:${conv.id}`)
+      );
 
       threads.push({
         id: conv.id,
@@ -161,7 +198,7 @@ export async function getHubMessageThreads(userId: string) {
     ]);
 
     const roomIds = (rooms ?? []).map((r) => r.id);
-    let roomLastMsg = new Map<string, { body: string; created_at: string; sender_id: string; message_type: string | null }>();
+    const roomLastMsg = new Map<string, { body: string; created_at: string; sender_id: string; message_type: string | null }>();
     if (roomIds.length > 0) {
       const { data: roomMsgs } = await supabase
         .from("community_messages")
@@ -197,7 +234,7 @@ export async function getHubMessageThreads(userId: string) {
           ? previewChatMessage(last.body, last.message_type)
           : "Group chat",
         lastMessageTime: last?.created_at ?? new Date().toISOString(),
-        unreadCount: last && last.sender_id !== userId ? 1 : 0,
+        unreadCount: unreadFromLast(last, userId, readCursors.get(`room:${room.id}`)),
         isOnline: false,
         communityId: room.community_id,
         communityName: community?.name ?? "Community",
@@ -440,6 +477,15 @@ export async function getHubMessagePeer(userId: string, peerId: string) {
     level: points.level,
     streakDays: points.streak_days,
     isOnline,
+    isCreator: points.level >= 5,
+    topPercentLabel:
+      points.level >= 20
+        ? "Top 5% Creators"
+        : points.level >= 12
+          ? "Top 15% Creators"
+          : points.level >= 6
+            ? "Rising Creator"
+            : null,
     sharedCommunities,
   } satisfies HubMessagePeer;
 }
