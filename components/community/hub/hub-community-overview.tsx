@@ -1,150 +1,99 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import {
   BadgeCheck,
-  BookOpen,
   Calendar,
-  Compass,
+  Check,
+  Eye,
   FileText,
   GraduationCap,
+  Home,
   Layers,
-  MessageCircle,
-  Play,
+  Megaphone,
+  MoreHorizontal,
   Radio,
-  Shield,
-  Sparkles,
+  Share2,
+  ShoppingBag,
+  Target,
+  UserPlus,
   Users,
-  Video,
 } from "lucide-react";
 import { useWorkspace } from "@/components/community/workspace-context";
-import { HubAvatar, HubLinkButton } from "./hub-ui";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
-import { communityRoomHref } from "@/lib/community/workspace";
 import { cn } from "@/lib/utils";
-import {
-  formatUtcDay,
-  formatUtcMonth,
-  formatUtcTime12,
-} from "@/lib/community/format-utc";
 import { useRouter } from "next/navigation";
 
-const PersonalizedHome = dynamic(
-  () =>
-    import("@/components/community/personalization/PersonalizedHome").then(
-      (m) => m.PersonalizedHome
-    ),
-  { ssr: false, loading: () => null }
-);
+function formatCompactMembers(n: number) {
+  if (n >= 1_000_000) {
+    const v = n / 1_000_000;
+    return `${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  if (n >= 1000) {
+    const v = n / 1000;
+    return `${v.toFixed(1).replace(/\.0$/, "")}K`;
+  }
+  return n.toLocaleString();
+}
 
-function formatCount(n: number) {
-  return new Intl.NumberFormat("en-US").format(n);
+function formatCreatedLabel(iso: string | null | undefined) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+function relativeTime(iso: string | null | undefined) {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const diff = Date.now() - t;
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"} ago`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years === 1 ? "" : "s"} ago`;
 }
 
 function EmptyCover({ name }: { name: string }) {
   const initial = name.trim().charAt(0).toUpperCase() || "C";
   return (
     <div className="absolute inset-0 overflow-hidden bg-zinc-900" aria-hidden>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(253,80,0,0.4),transparent_55%),radial-gradient(ellipse_at_80%_80%,rgba(255,255,255,0.1),transparent_50%)]" />
-      <span className="absolute inset-0 flex items-center justify-center font-[family-name:var(--font-dm-sans)] text-[clamp(8rem,28vw,16rem)] font-black tracking-tighter text-white/[0.06]">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(253,80,0,0.45),transparent_55%),radial-gradient(ellipse_at_80%_80%,rgba(255,255,255,0.08),transparent_50%)]" />
+      <span className="absolute inset-0 flex items-center justify-center text-[clamp(6rem,22vw,12rem)] font-black tracking-tighter text-white/[0.06]">
         {initial}
       </span>
     </div>
   );
 }
 
-function Section({
-  title,
-  eyebrow,
-  action,
-  children,
-  className,
-  id,
-}: {
-  title: string;
-  eyebrow?: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-  id?: string;
-}) {
-  return (
-    <section
-      id={id}
-      className={cn(
-        "scroll-mt-10 animate-in fade-in duration-500",
-        className
-      )}
-    >
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          {eyebrow ? (
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
-              {eyebrow}
-            </p>
-          ) : null}
-          <h2 className="mt-1 text-[1.25rem] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[1.4rem]">
-            {title}
-          </h2>
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
+function padBullets(source: string[], fallbacks: string[], limit = 4) {
+  const cleaned = source.map((s) => s.trim()).filter(Boolean);
+  const out = [...cleaned];
+  for (const f of fallbacks) {
+    if (out.length >= limit) break;
+    if (!out.includes(f)) out.push(f);
+  }
+  return out.slice(0, limit);
 }
 
-function InfoCard({
-  title,
-  body,
-  icon: Icon,
-}: {
-  title: string;
-  body: string;
-  icon: typeof BookOpen;
-}) {
-  return (
-    <article className="flex h-full min-h-[160px] flex-col rounded-2xl bg-[var(--color-surface)] p-6 ring-1 ring-[var(--color-border)]/70 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_48px_-32px_rgba(0,0,0,0.28)] hover:ring-[var(--color-accent)]/25">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
-        <Icon className="h-5 w-5" aria-hidden />
-      </span>
-      <h3 className="mt-4 text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
-        {title}
-      </h3>
-      <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--color-text-secondary)]">
-        {body}
-      </p>
-    </article>
-  );
-}
-
-type StartCard = {
-  id: string;
-  title: string;
-  description: string;
-  href: string;
-  icon: typeof Compass;
-};
-
-function resourceKind(name: string, roomType: string) {
-  if (roomType === "course" || /course|lesson/i.test(name)) {
-    return { label: "Course", Icon: GraduationCap };
-  }
-  if (/video|watch|recording/i.test(name)) {
-    return { label: "Video", Icon: Video };
-  }
-  if (/guide|handbook|wiki/i.test(name)) {
-    return { label: "Guide", Icon: BookOpen };
-  }
-  return { label: "Resource", Icon: FileText };
-}
+const ANNOUNCEMENT_COLORS = [
+  "bg-rose-500",
+  "bg-violet-500",
+  "bg-emerald-500",
+] as const;
 
 /**
- * Premium Community Homepage — full-width product surface, not a document.
- * Spaces appear only when intentionally created.
+ * Community Home (Overview) — matches approved design reference.
+ * Full-width Description → Mission → Vision → Announcements rows.
  */
 export function HubCommunityOverview() {
   const router = useRouter();
@@ -157,15 +106,15 @@ export function HubCommunityOverview() {
     coverUrl,
     tagline,
     isPrivate,
-    membership,
     isOwner,
     isAdmin,
     overview,
     spacesWithRooms,
-    ownerName,
   } = useWorkspace();
 
   const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [shareLabel, setShareLabel] = useState("Share");
 
   const base = `/communities/${slug}`;
   const cover = overview?.coverImage ?? coverUrl;
@@ -174,155 +123,136 @@ export function HubCommunityOverview() {
   const desc =
     overview?.description?.trim() ||
     `A place for people who care about ${communityName} — learning, sharing, and building together.`;
-  const communityTagline = overview?.tagline ?? tagline ?? "Create · Grow · Earn";
+  const communityTagline =
+    overview?.tagline?.trim() ||
+    tagline?.trim() ||
+    "Where creators, brands & opportunities come together.";
   const verified = overview?.isVerified ?? false;
-  const roleLabel = isOwner
-    ? "Owner"
-    : isAdmin
-      ? "Moderator"
-      : membership?.role
-        ? membership.role.charAt(0).toUpperCase() + membership.role.slice(1)
-        : "Member";
-
-  const isLive = Boolean(
-    overview?.activeLiveSession || (overview?.liveNow ?? 0) > 0
-  );
+  const createdLabel = formatCreatedLabel(overview?.createdAt);
+  const visibilityLabel = isPrivate || overview?.isPrivate ? "Private" : "Public";
 
   const mission =
     overview?.missionVision?.mission?.trim() ||
     communityTagline ||
     `Help members of ${communityName} learn faster and collaborate with clarity.`;
-  const audience =
+  const vision =
     overview?.missionVision?.vision?.trim() ||
     (overview?.category
-      ? `People exploring ${overview.category.toLowerCase()} who want to learn, contribute, and grow together.`
-      : `Members who want a clear place to learn, ask questions, and collaborate inside ${communityName}.`);
+      ? `Become the go-to home for ${overview.category.toLowerCase()} creators who want to learn, contribute, and grow together.`
+      : `Build a trusted ecosystem where members of ${communityName} turn knowledge into impact.`);
 
-  const upcomingEvents = overview?.upcomingEvents ?? [];
+  const tags = overview?.tags ?? [];
+  const descriptionBullets = padBullets(tags, [
+    "Global creator & affiliate network",
+    "Exclusive resources & opportunities",
+    "Live sessions with industry experts",
+    "Cross-border collaboration",
+  ]);
+  const missionBullets = padBullets(
+    (overview?.trustedBadges ?? [])
+      .filter((b) => b.tone === "active" || b.tone === "learning")
+      .map((b) => b.label),
+    ["Empower creators", "Build connections", "Unlock opportunities", "Grow together"]
+  );
+  const visionBullets = padBullets(
+    (overview?.trustedBadges ?? [])
+      .filter((b) => b.tone === "featured" || b.tone === "verified" || b.tone === "secure")
+      .map((b) => b.label),
+    [
+      "A borderless creator economy",
+      "Trusted by brands worldwide",
+      "Innovation-first platform",
+      "Inclusive by design",
+    ]
+  );
+
+  const announcements = (overview?.featuredPosts ?? []).slice(0, 3);
   const publishedCourses =
     overview?.courses?.length
       ? overview.courses
       : overview?.featuredCourse
         ? [overview.featuredCourse]
         : [];
+  const upcomingEvents = overview?.upcomingEvents ?? [];
+  const liveCount = overview?.liveNow ?? 0;
 
   const hasSpaces = spacesWithRooms.length > 0;
   const canManage = Boolean(isOwner || isAdmin);
 
-  const resourcesRooms = useMemo(
-    () =>
-      spacesWithRooms.flatMap((space) =>
-        space.rooms
-          .filter(
-            (room) =>
-              room.room_type === "resources" ||
-              /resource|library|files|guide/i.test(room.name)
-          )
-          .map((room) => ({
-            ...room,
-            spaceSlug: space.slug,
-            spaceName: space.name,
-          }))
-      ),
-    [spacesWithRooms]
-  );
-
-  const liveChannels = useMemo(
-    () =>
-      spacesWithRooms.flatMap((space) =>
-        space.rooms
-          .filter((room) => room.room_type === "live" || room.room_type === "voice")
-          .map((room) => ({
-            ...room,
-            spaceSlug: space.slug,
-            spaceName: space.name,
-          }))
-      ),
-    [spacesWithRooms]
-  );
-
-  const moderators = overview?.moderators ?? [];
-  const founder = overview?.founder;
-  const founderName = founder?.name ?? ownerName ?? "Owner";
-  const rules = overview?.rules ?? [];
-
-  const startCards = useMemo(() => {
-    const cards: StartCard[] = [
+  const secondNav = useMemo(
+    () => [
       {
-        id: "feed",
-        title: "Explore the feed",
-        description: "See what’s happening across the community.",
-        href: `${base}/feed`,
-        icon: Compass,
+        id: "overview",
+        label: "Overview",
+        href: base,
+        count: null as number | null,
+        icon: Home,
+        active: true,
       },
       {
-        id: "members",
-        title: "Meet members",
-        description: "Browse people and introduce yourself.",
-        href: `${base}/members`,
-        icon: Users,
+        id: "spaces",
+        label: "Spaces",
+        href: `${base}/spaces`,
+        count: spacesWithRooms.length,
+        icon: Layers,
+        active: false,
       },
-    ];
-    if (rules.length > 0) {
-      cards.push({
-        id: "rules",
-        title: "Read the rules",
-        description: "Know how we collaborate here.",
-        href: "#community-rules",
-        icon: BookOpen,
-      });
-    }
-    if (publishedCourses[0]) {
-      cards.push({
-        id: "course",
-        title: "Start learning",
-        description: publishedCourses[0].title,
-        href: publishedCourses[0].href,
-        icon: Play,
-      });
-    }
-    if (isLive) {
-      cards.push({
+      {
+        id: "courses",
+        label: "Courses",
+        href: `${base}/courses`,
+        count: overview?.courseCount ?? publishedCourses.length,
+        icon: GraduationCap,
+        active: false,
+      },
+      {
+        id: "events",
+        label: "Events",
+        href: `${base}/events`,
+        count: upcomingEvents.length,
+        icon: Calendar,
+        active: false,
+      },
+      {
         id: "live",
-        title: "Join Live now",
-        description: "A session is happening right now.",
-        href: overview?.activeLiveSession?.href ?? `${base}/live`,
+        label: "Live",
+        href: `${base}/live`,
+        count: liveCount,
         icon: Radio,
-      });
-    } else if (resourcesRooms[0]) {
-      cards.push({
-        id: "resources",
-        title: "Browse resources",
-        description: "Guides, files, and shared assets.",
-        href: communityRoomHref(
-          slug,
-          resourcesRooms[0].spaceSlug,
-          resourcesRooms[0].slug
-        ),
-        icon: FileText,
-      });
-    } else {
-      cards.push({
-        id: "about",
-        title: "Learn about us",
-        description: "Mission, audience, and how we work.",
-        href: "#about",
-        icon: MessageCircle,
-      });
+        active: false,
+      },
+      {
+        id: "store",
+        label: "Store",
+        href: "/marketplace",
+        count: null as number | null,
+        icon: ShoppingBag,
+        active: false,
+      },
+    ],
+    [
+      base,
+      spacesWithRooms.length,
+      overview?.courseCount,
+      publishedCourses.length,
+      upcomingEvents.length,
+      liveCount,
+    ]
+  );
+
+  async function handleShare() {
+    try {
+      const url = typeof window !== "undefined" ? window.location.href : base;
+      await navigator.clipboard.writeText(url);
+      setShareLabel("Copied");
+      window.setTimeout(() => setShareLabel("Share"), 1600);
+    } catch {
+      setShareLabel("Share");
     }
-    return cards.slice(0, 5);
-  }, [
-    base,
-    rules.length,
-    publishedCourses,
-    isLive,
-    overview?.activeLiveSession?.href,
-    resourcesRooms,
-    slug,
-  ]);
+  }
 
   return (
-    <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+    <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#f9fafb]">
       {canManage && communityId ? (
         <CreateSpaceDialog
           open={createSpaceOpen}
@@ -332,548 +262,391 @@ export function HubCommunityOverview() {
         />
       ) : null}
 
-      {/* Full-bleed hero */}
-      <section
-        aria-labelledby="community-welcome-heading"
-        className="relative w-full overflow-hidden border-b border-[var(--color-border)]/60"
-      >
-        <div className="relative aspect-[21/9] min-h-[220px] w-full sm:min-h-[280px] lg:min-h-[320px]">
-          {cover ? (
-            <Image
-              src={cover}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover"
-              unoptimized
-            />
-          ) : (
-            <EmptyCover name={communityName} />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-black/10" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(253,80,0,0.18),transparent_45%)]" />
+      <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-4 sm:px-6 lg:px-8">
+        {/* Community header */}
+        <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100">
+          <div className="relative aspect-[3.2/1] min-h-[180px] w-full sm:min-h-[220px]">
+            {cover ? (
+              <Image
+                src={cover}
+                alt=""
+                fill
+                priority
+                sizes="(max-width: 1400px) 100vw, 1400px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <EmptyCover name={communityName} />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-transparent" />
+            <div className="absolute inset-y-0 left-0 flex max-w-xl items-end p-5 sm:p-8">
+              <p className="text-[14px] font-medium leading-relaxed text-white/95 sm:text-[16px]">
+                {communityTagline}
+              </p>
+            </div>
+          </div>
 
-          <div className="absolute inset-x-0 bottom-0 px-4 pb-8 pt-16 sm:px-6 sm:pb-10 lg:px-10">
-            <div className="mx-auto grid w-full max-w-[1400px] grid-cols-12 gap-6">
-              <div className="col-span-12 flex flex-col gap-5 lg:col-span-8">
-                <div className="flex items-end gap-4">
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl ring-2 ring-white/30 sm:h-20 sm:w-20">
-                    {logo ? (
-                      <Image
-                        src={logo}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-white/10 text-2xl font-bold text-white">
-                        {communityName.slice(0, 1).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1 pb-0.5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65">
-                      Community
-                    </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <h1
-                        id="community-welcome-heading"
-                        className="truncate text-[1.85rem] font-semibold tracking-[-0.03em] text-white sm:text-[2.35rem]"
-                      >
-                        {communityName}
-                      </h1>
-                      {verified && (
-                        <span
-                          className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#3b82f6] text-white"
-                          title="Verified community"
-                        >
-                          <BadgeCheck className="h-3.5 w-3.5" strokeWidth={2.5} />
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1.5 max-w-2xl text-[14px] text-white/80 sm:text-[15px]">
-                      {communityTagline}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-[12px] text-white/75">
-                  <span className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-white/10 px-3 backdrop-blur-sm">
-                    <Users className="h-3.5 w-3.5" aria-hidden />
-                    {formatCount(members)} members
-                  </span>
-                  <span className="inline-flex min-h-9 items-center rounded-full bg-white/10 px-3 backdrop-blur-sm">
-                    {isPrivate ? "Private" : "Public"}
-                  </span>
-                  {isLive ? (
-                    <span className="inline-flex min-h-9 items-center gap-1.5 rounded-full bg-red-500/90 px-3 font-semibold text-white">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
-                      Live now
+          <div className="relative px-4 pb-5 pt-0 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex min-w-0 items-end gap-4">
+                <div className="relative -mt-12 h-24 w-24 shrink-0 overflow-hidden rounded-full bg-[#fd5000] ring-4 ring-white shadow-md sm:-mt-14 sm:h-28 sm:w-28">
+                  {logo ? (
+                    <Image
+                      src={logo}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-white">
+                      {communityName.slice(0, 1).toUpperCase()}
                     </span>
+                  )}
+                </div>
+                <div className="min-w-0 pb-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="truncate text-[1.35rem] font-semibold tracking-tight text-gray-900 sm:text-[1.6rem]">
+                      {communityName}
+                    </h1>
+                    {verified ? (
+                      <BadgeCheck
+                        className="h-5 w-5 shrink-0 text-[#3b82f6]"
+                        fill="currentColor"
+                        strokeWidth={0}
+                        aria-label="Verified community"
+                      />
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-[13px] text-gray-500">
+                    {visibilityLabel} Community
+                    {createdLabel ? (
+                      <>
+                        <span className="mx-1.5 text-gray-300">·</span>
+                        Created {createdLabel}
+                      </>
+                    ) : null}
+                  </p>
+                  <p className="mt-2 text-[15px] font-semibold text-gray-900">
+                    {formatCompactMembers(members)} Members
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 sm:pb-1">
+                <Link
+                  href={`${base}/subscribe`}
+                  className="inline-flex min-h-10 items-center justify-center rounded-xl bg-[#fd5000] px-4 text-[13px] font-semibold text-white transition hover:bg-[#e04700]"
+                >
+                  Join Community
+                </Link>
+                <Link
+                  href={`${base}/members`}
+                  className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Invite
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
+                  aria-label={shareLabel}
+                  title={shareLabel}
+                >
+                  <Share2 className="h-4 w-4" />
+                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setMoreOpen((v) => !v)}
+                    className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50"
+                    aria-label="More"
+                    aria-expanded={moreOpen}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                  {moreOpen ? (
+                    <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                      {canManage ? (
+                        <Link
+                          href={`/dashboard/communities/${encodeURIComponent(slug)}`}
+                          className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                          onClick={() => setMoreOpen(false)}
+                        >
+                          Owner Console
+                        </Link>
+                      ) : null}
+                      <Link
+                        href={`${base}/about`}
+                        className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                        onClick={() => setMoreOpen(false)}
+                      >
+                        About
+                      </Link>
+                      <Link
+                        href={`${base}/members`}
+                        className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                        onClick={() => setMoreOpen(false)}
+                      >
+                        Members
+                      </Link>
+                    </div>
                   ) : null}
                 </div>
               </div>
-
-              <div className="col-span-12 flex flex-wrap items-center gap-2 lg:col-span-4 lg:justify-end lg:self-end">
-                <span className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-emerald-500/15 px-4 text-[13px] font-medium text-emerald-100 ring-1 ring-emerald-400/30 backdrop-blur-sm">
-                  Joined · {roleLabel}
-                </span>
-                {canManage ? (
-                  <HubLinkButton
-                    href={`/dashboard/communities/${encodeURIComponent(slug)}`}
-                    variant="secondary"
-                    className="!min-h-11 !rounded-full !px-5"
-                  >
-                    Owner Console
-                  </HubLinkButton>
-                ) : null}
-              </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <div className="mx-auto w-full max-w-[1400px] px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
-        {/* Foundation empty states */}
-        {!hasSpaces ? (
-          <section className="mb-16 sm:mb-20">
-            <div className="overflow-hidden rounded-[1.75rem] bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]/70">
-              <div className="grid grid-cols-12 gap-0">
-                <div className="col-span-12 flex flex-col justify-center gap-5 p-8 sm:p-10 lg:col-span-7 lg:p-14">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
-                    <Layers className="h-7 w-7" aria-hidden />
-                  </span>
-                  {canManage ? (
-                    <>
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent)]">
-                          Get started
-                        </p>
-                        <h2 className="mt-2 text-[1.6rem] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[1.85rem]">
-                          Welcome to your new Community
-                        </h2>
-                        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-secondary)]">
-                          Create your first Space to organize members for
-                          discussion, resources, and live sessions.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setCreateSpaceOpen(true)}
-                          className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-accent)] px-6 text-[14px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
-                        >
-                          Create your first Space
-                        </button>
-                        <HubLinkButton
-                          href={`/dashboard/communities/${encodeURIComponent(slug)}`}
-                          variant="secondary"
-                          className="!min-h-12 !rounded-full !px-5"
-                        >
-                          Open Owner Console
-                        </HubLinkButton>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-muted)]">
-                          Coming soon
-                        </p>
-                        <h2 className="mt-2 text-[1.6rem] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[1.85rem]">
-                          This community is being prepared
-                        </h2>
-                        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-secondary)]">
-                          No Spaces have been published yet. Check back soon —
-                          your host is setting things up.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-3">
-                        <Link
-                          href={`${base}/feed`}
-                          className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-accent)] px-6 text-[14px] font-semibold text-white transition hover:opacity-90"
-                        >
-                          Browse the feed
-                        </Link>
-                        <Link
-                          href={`${base}/members`}
-                          className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-surface-secondary)] px-6 text-[14px] font-semibold text-[var(--color-text-primary)] ring-1 ring-[var(--color-border)] transition hover:bg-[var(--color-surface)]"
-                        >
-                          Meet members
-                        </Link>
-                      </div>
-                    </>
+          {/* Second navigation */}
+          <nav
+            aria-label="Community sections"
+            className="flex gap-1 overflow-x-auto border-t border-gray-100 px-2 sm:px-4"
+          >
+            {secondNav.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={cn(
+                    "relative flex shrink-0 items-center gap-1.5 px-3.5 py-3.5 text-[13px] transition-colors",
+                    item.active
+                      ? "font-semibold text-[#fd5000]"
+                      : "font-medium text-gray-500 hover:text-gray-800"
                   )}
-                </div>
-                <div className="col-span-12 hidden bg-gradient-to-br from-[var(--color-accent)]/12 via-transparent to-[var(--color-surface-secondary)] lg:col-span-5 lg:block" />
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                  {item.count != null && item.count > 0 ? (
+                    <span
+                      className={cn(
+                        "text-[12px]",
+                        item.active ? "text-[#fd5000]/80" : "text-gray-400"
+                      )}
+                    >
+                      ({item.count})
+                    </span>
+                  ) : null}
+                  {item.active ? (
+                    <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#fd5000]" />
+                  ) : null}
+                </Link>
+              );
+            })}
+          </nav>
+        </section>
+
+        {/* Empty foundation state */}
+        {!hasSpaces ? (
+          <section className="mt-8 overflow-hidden rounded-2xl bg-white p-8 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 sm:p-10">
+            <div className="grid grid-cols-12 gap-6">
+              <div className="col-span-12 flex flex-col gap-4 lg:col-span-8">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fd5000]/10 text-[#fd5000]">
+                  <Layers className="h-6 w-6" aria-hidden />
+                </span>
+                {canManage ? (
+                  <>
+                    <div>
+                      <h2 className="text-[1.35rem] font-semibold tracking-tight text-gray-900">
+                        Welcome to your new Community
+                      </h2>
+                      <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-gray-500">
+                        Create your first Space to organize members for discussion,
+                        resources, and live sessions.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCreateSpaceOpen(true)}
+                        className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#fd5000] px-5 text-[13px] font-semibold text-white hover:bg-[#e04700]"
+                      >
+                        Create your first Space
+                      </button>
+                      <Link
+                        href={`/dashboard/communities/${encodeURIComponent(slug)}`}
+                        className="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
+                      >
+                        Owner Console
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <h2 className="text-[1.35rem] font-semibold tracking-tight text-gray-900">
+                        This community is being prepared
+                      </h2>
+                      <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-gray-500">
+                        No Spaces have been published yet. Check back soon — your host
+                        is setting things up.
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </section>
         ) : null}
 
-        {/* Additive intelligence layer — does not replace homepage sections */}
-        {communityId && membership ? (
-          <div className="mb-16 sm:mb-20">
-            <PersonalizedHome
-              communityId={communityId}
-              communitySlug={slug}
-              spacesWithRooms={spacesWithRooms}
-              courses={publishedCourses.map((c) => ({
-                id: c.id,
-                title: c.title,
-                href: c.href,
-                progress: c.progress,
-              }))}
-              upcomingEvents={upcomingEvents.map((e) => ({
-                id: e.id,
-                title: e.title,
-                href: e.href,
-              }))}
-              isLive={isLive}
-              liveHref={overview?.activeLiveSession?.href ?? `${base}/live`}
-              liveTitle={overview?.activeLiveSession?.title ?? null}
-              moderators={moderators.map((m) => ({
-                id: m.id,
-                name: m.name,
-                username: m.username ?? null,
-              }))}
-              base={base}
-            />
-          </div>
-        ) : null}
+        {/* Overview content — full-width rows */}
+        <div className="mt-10 space-y-10 sm:mt-12 sm:space-y-12">
+          <OverviewRow
+            icon={FileText}
+            iconClass="bg-orange-50 text-[#fd5000]"
+            bulletClass="text-[#fd5000]"
+            BulletIcon={Check}
+            title="Description"
+            body={desc}
+            bullets={descriptionBullets}
+          />
 
-        <div className="space-y-16 sm:space-y-20 lg:space-y-24">
-          {/* About / Mission / Audience — 12-col card row */}
-          <Section id="about" eyebrow="Identity" title="About this community">
-            <div className="grid grid-cols-12 gap-4 sm:gap-5">
-              <div className="col-span-12 md:col-span-4">
-                <InfoCard title="About" body={desc} icon={BookOpen} />
+          <OverviewRow
+            icon={Target}
+            iconClass="bg-emerald-50 text-emerald-600"
+            bulletClass="text-emerald-600"
+            BulletIcon={Users}
+            title="Mission"
+            body={mission}
+            bullets={missionBullets}
+          />
+
+          <OverviewRow
+            icon={Eye}
+            iconClass="bg-sky-50 text-sky-600"
+            bulletClass="text-sky-600"
+            BulletIcon={Eye}
+            title="Vision"
+            body={vision}
+            bullets={visionBullets}
+          />
+
+          <section>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                  <Megaphone className="h-5 w-5" aria-hidden />
+                </span>
+                <h2 className="text-[1.15rem] font-semibold tracking-tight text-gray-900">
+                  Announcements
+                </h2>
               </div>
-              <div className="col-span-12 md:col-span-4">
-                <InfoCard title="Mission" body={mission} icon={Sparkles} />
-              </div>
-              <div className="col-span-12 md:col-span-4">
-                <InfoCard
-                  title="Who this community is for"
-                  body={audience}
-                  icon={Users}
-                />
-              </div>
+              <Link
+                href={`${base}/feed`}
+                className="text-[13px] font-semibold text-[#fd5000] hover:underline"
+              >
+                View all announcements →
+              </Link>
             </div>
-          </Section>
 
-          {/* Start Here */}
-          <Section eyebrow="Onboarding" title="Start Here">
-            <ul className="grid grid-cols-12 gap-4 sm:gap-5">
-              {startCards.map((card) => {
-                const Icon = card.icon;
-                return (
+            {announcements.length === 0 ? (
+              <div className="rounded-2xl bg-white px-5 py-8 text-center text-[14px] text-gray-500 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100">
+                No announcements yet.
+              </div>
+            ) : (
+              <ul className="grid grid-cols-12 gap-4">
+                {announcements.map((post, index) => (
                   <li
-                    key={card.id}
-                    className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3"
+                    key={post.id}
+                    className="col-span-12 sm:col-span-6 lg:col-span-4"
                   >
                     <Link
-                      href={card.href}
-                      className={cn(
-                        "group flex h-full min-h-[132px] flex-col rounded-2xl bg-[var(--color-surface)] p-5",
-                        "ring-1 ring-[var(--color-border)]/70",
-                        "transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_-30px_rgba(0,0,0,0.3)] hover:ring-[var(--color-accent)]/30",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
-                      )}
+                      href={post.href}
+                      className="flex h-full gap-3.5 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
                     >
-                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/10 text-[var(--color-accent)] transition group-hover:scale-[1.03]">
-                        <Icon className="h-[18px] w-[18px]" aria-hidden />
-                      </span>
-                      <span className="mt-4 text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
-                        {card.title}
-                      </span>
-                      <span className="mt-1.5 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
-                        {card.description}
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </Section>
-
-          {/* Featured Resources */}
-          {resourcesRooms.length > 0 ? (
-            <Section eyebrow="Library" title="Featured Resources">
-              <ul className="grid grid-cols-12 gap-4 sm:gap-5">
-                {resourcesRooms.slice(0, 6).map((room) => {
-                  const kind = resourceKind(room.name, room.room_type);
-                  const Icon = kind.Icon;
-                  return (
-                    <li
-                      key={room.id}
-                      className="col-span-12 sm:col-span-6 lg:col-span-4"
-                    >
-                      <Link
-                        href={communityRoomHref(slug, room.spaceSlug, room.slug)}
+                      <span
                         className={cn(
-                          "group flex min-h-[104px] items-start gap-4 rounded-2xl bg-[var(--color-surface)] p-5",
-                          "ring-1 ring-[var(--color-border)]/70",
-                          "transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-28px_rgba(0,0,0,0.28)] hover:ring-[var(--color-accent)]/30",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white",
+                          ANNOUNCEMENT_COLORS[index % ANNOUNCEMENT_COLORS.length]
                         )}
                       >
-                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
-                          <Icon className="h-5 w-5" aria-hidden />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                            {kind.label}
-                          </span>
-                          <span className="mt-0.5 block truncate text-[15px] font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)]">
-                            {room.name}
-                          </span>
-                          <span className="mt-1 block text-[12px] text-[var(--color-text-muted)]">
-                            In {room.spaceName}
-                          </span>
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </Section>
-          ) : null}
-
-          {/* Featured Courses */}
-          {publishedCourses.length > 0 ? (
-            <Section
-              eyebrow="Learning"
-              title="Featured Courses"
-              action={
-                <Link
-                  href={`${base}/courses`}
-                  className="min-h-10 text-[13px] font-semibold text-[var(--color-accent)] hover:underline"
-                >
-                  View all
-                </Link>
-              }
-            >
-              <ul className="grid grid-cols-12 gap-4 sm:gap-5">
-                {publishedCourses.slice(0, 6).map((course) => (
-                  <li
-                    key={course.id}
-                    className="col-span-12 sm:col-span-6 lg:col-span-4"
-                  >
-                    <Link
-                      href={course.href}
-                      className="group flex h-full min-h-[140px] flex-col overflow-hidden rounded-2xl bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]/70 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_44px_-30px_rgba(0,0,0,0.28)] hover:ring-[var(--color-accent)]/30"
-                    >
-                      <div className="relative aspect-[16/9] bg-[var(--color-surface-secondary)]">
-                        {course.cover_image ? (
-                          <Image
-                            src={course.cover_image}
-                            alt=""
-                            fill
-                            className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-[var(--color-accent)]">
-                            <GraduationCap className="h-8 w-8" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex flex-1 flex-col p-5">
-                        <p className="text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)]">
-                          {course.title}
-                        </p>
-                        <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
-                          {course.total_lessons} lessons
-                          {course.difficulty ? ` · ${course.difficulty}` : ""}
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          ) : null}
-
-          {/* Upcoming Events */}
-          {upcomingEvents.length > 0 ? (
-            <Section
-              eyebrow="Calendar"
-              title="Upcoming Events"
-              action={
-                <Link
-                  href={`${base}/events`}
-                  className="min-h-10 text-[13px] font-semibold text-[var(--color-accent)] hover:underline"
-                >
-                  View all
-                </Link>
-              }
-            >
-              <ul className="grid grid-cols-12 gap-4 sm:gap-5">
-                {upcomingEvents.slice(0, 6).map((event) => (
-                  <li
-                    key={event.id}
-                    className="col-span-12 sm:col-span-6 lg:col-span-4"
-                  >
-                    <Link
-                      href={event.href}
-                      className="flex min-h-[108px] items-center gap-4 rounded-2xl bg-[var(--color-surface)] p-5 ring-1 ring-[var(--color-border)]/70 transition hover:-translate-y-0.5 hover:ring-[var(--color-accent)]/30"
-                    >
-                      <span className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
-                        <span className="text-[10px] font-bold uppercase tracking-wide">
-                          {formatUtcMonth(event.start_date)}
-                        </span>
-                        <span className="text-[18px] font-semibold leading-none">
-                          {formatUtcDay(event.start_date)}
-                        </span>
+                        <Megaphone className="h-5 w-5" aria-hidden />
                       </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-[15px] font-semibold text-[var(--color-text-primary)]">
-                          {event.title}
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-start justify-between gap-2">
+                          <span className="line-clamp-2 text-[14px] font-semibold text-gray-900">
+                            {post.title?.trim() || post.body.slice(0, 72)}
+                          </span>
+                          {index === 1 && liveCount > 0 ? (
+                            <span className="shrink-0 rounded-md bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                              Live
+                            </span>
+                          ) : null}
                         </span>
-                        <span className="mt-1 inline-flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)]">
-                          <Calendar className="h-3.5 w-3.5" aria-hidden />
-                          {formatUtcTime12(event.start_date)}
+                        <span className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-gray-500">
+                          {post.body}
+                        </span>
+                        <span className="mt-2 block text-[11px] text-gray-400">
+                          {post.author.name}
+                          <span className="mx-1">·</span>
+                          {relativeTime(post.created_at)}
                         </span>
                       </span>
                     </Link>
                   </li>
                 ))}
               </ul>
-            </Section>
-          ) : null}
-
-          {/* Live Sessions */}
-          {isLive || liveChannels.length > 0 ? (
-            <Section
-              eyebrow="Broadcast"
-              title="Live Sessions"
-              action={
-                <Link
-                  href={`${base}/live`}
-                  className="min-h-10 text-[13px] font-semibold text-[var(--color-accent)] hover:underline"
-                >
-                  Open Live
-                </Link>
-              }
-            >
-              <div className="grid grid-cols-12 gap-4 sm:gap-5">
-                {isLive ? (
-                  <Link
-                    href={overview?.activeLiveSession?.href ?? `${base}/live`}
-                    className="col-span-12 flex min-h-[120px] items-center gap-5 rounded-2xl bg-gradient-to-br from-red-500/10 via-[var(--color-surface)] to-[var(--color-surface)] p-6 ring-1 ring-red-500/20 transition hover:-translate-y-0.5 sm:col-span-6 lg:col-span-5"
-                  >
-                    <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500 text-white">
-                      <Radio className="h-6 w-6" aria-hidden />
-                    </span>
-                    <span>
-                      <span className="text-[11px] font-bold uppercase tracking-wide text-red-600">
-                        Live now
-                      </span>
-                      <span className="mt-1 block text-[16px] font-semibold text-[var(--color-text-primary)]">
-                        {overview?.activeLiveSession?.title ?? "Join the live session"}
-                      </span>
-                      <span className="mt-1 block text-[13px] text-[var(--color-text-muted)]">
-                        Jump in while it’s happening
-                      </span>
-                    </span>
-                  </Link>
-                ) : null}
-                {liveChannels.slice(0, 3).map((room) => (
-                  <Link
-                    key={room.id}
-                    href={communityRoomHref(slug, room.spaceSlug, room.slug)}
-                    className="col-span-12 flex min-h-[120px] flex-col justify-center rounded-2xl bg-[var(--color-surface)] p-6 ring-1 ring-[var(--color-border)]/70 transition hover:-translate-y-0.5 hover:ring-[var(--color-accent)]/30 sm:col-span-6 lg:col-span-3"
-                  >
-                    <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                      {room.room_type === "voice" ? "Voice" : "Live"}
-                    </span>
-                    <span className="mt-1 text-[15px] font-semibold text-[var(--color-text-primary)]">
-                      {room.name}
-                    </span>
-                    <span className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-                      {room.spaceName}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </Section>
-          ) : null}
-
-          {/* Meet the Team */}
-          <Section eyebrow="People" title="Meet the Team">
-            <ul className="grid grid-cols-12 gap-4 sm:gap-5">
-              <li className="col-span-12 sm:col-span-6 lg:col-span-3">
-                <div className="flex h-full min-h-[140px] flex-col items-start rounded-2xl bg-[var(--color-surface)] p-5 ring-1 ring-[var(--color-border)]/70">
-                  <HubAvatar
-                    src={founder?.avatar_url}
-                    name={founderName}
-                    size={48}
-                  />
-                  <p className="mt-4 text-[15px] font-semibold text-[var(--color-text-primary)]">
-                    {founderName}
-                  </p>
-                  <p className="mt-0.5 text-[12px] font-medium text-[var(--color-accent)]">
-                    Founder
-                  </p>
-                </div>
-              </li>
-              {moderators.slice(0, 7).map((mod) => (
-                <li
-                  key={mod.id}
-                  className="col-span-12 sm:col-span-6 lg:col-span-3"
-                >
-                  <div className="flex h-full min-h-[140px] flex-col items-start rounded-2xl bg-[var(--color-surface)] p-5 ring-1 ring-[var(--color-border)]/70">
-                    <HubAvatar
-                      src={mod.avatar_url}
-                      name={mod.name}
-                      size={48}
-                    />
-                    <p className="mt-4 text-[15px] font-semibold text-[var(--color-text-primary)]">
-                      {mod.name}
-                    </p>
-                    <p className="mt-0.5 text-[12px] font-medium text-[var(--color-text-muted)]">
-                      {mod.role ?? "Moderator"}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </Section>
-
-          {/* Community Rules */}
-          {rules.length > 0 ? (
-            <Section
-              id="community-rules"
-              eyebrow="Guidelines"
-              title="Community Rules"
-            >
-              <ul className="grid grid-cols-12 gap-4 sm:gap-5">
-                {rules.map((rule, index) => (
-                  <li
-                    key={`${index}-${rule.slice(0, 24)}`}
-                    className="col-span-12 sm:col-span-6 lg:col-span-4"
-                  >
-                    <div className="flex min-h-[96px] gap-3 rounded-2xl bg-[var(--color-surface)] p-5 ring-1 ring-[var(--color-border)]/70">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--color-accent)]/10 text-[var(--color-accent)]">
-                        <Shield className="h-4 w-4" aria-hidden />
-                      </span>
-                      <p className="text-[13.5px] leading-relaxed text-[var(--color-text-secondary)]">
-                        <span className="mr-1.5 font-semibold text-[var(--color-text-primary)]">
-                          {index + 1}.
-                        </span>
-                        {rule}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          ) : null}
+            )}
+          </section>
         </div>
       </div>
     </div>
+  );
+}
+
+function OverviewRow({
+  icon: Icon,
+  iconClass,
+  bulletClass,
+  BulletIcon,
+  title,
+  body,
+  bullets,
+}: {
+  icon: typeof FileText;
+  iconClass: string;
+  bulletClass: string;
+  BulletIcon: typeof Check;
+  title: string;
+  body: string;
+  bullets: string[];
+}) {
+  return (
+    <section className="flex gap-4 sm:gap-5">
+      <span
+        className={cn(
+          "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+          iconClass
+        )}
+      >
+        <Icon className="h-5 w-5" aria-hidden />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="text-[1.15rem] font-semibold tracking-tight text-gray-900">
+          {title}
+        </h2>
+        <p className="mt-2 max-w-3xl text-[14px] leading-relaxed text-gray-600 sm:text-[15px]">
+          {body}
+        </p>
+        {bullets.length > 0 ? (
+          <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2.5">
+            {bullets.map((item) => (
+              <li
+                key={item}
+                className="inline-flex items-center gap-2 text-[13px] text-gray-700"
+              >
+                <BulletIcon
+                  className={cn("h-4 w-4 shrink-0", bulletClass)}
+                  aria-hidden
+                />
+                {item}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    </section>
   );
 }

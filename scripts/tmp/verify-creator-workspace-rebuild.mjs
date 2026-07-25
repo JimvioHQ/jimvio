@@ -120,10 +120,11 @@ assert.match(nav, /communityChannelHref\(\s*communitySlug,\s*channelSlug/);
 assert.match(roomIndex, /requestSearch/);
 assert.doesNotMatch(channelWs, /fork ChatRoom/i);
 
-// Community member sidebar: Home + Spaces + Discover (mockup)
-assert.match(communitySidebar, /Community Home/);
-assert.match(communitySidebar, /My Spaces|Spaces/);
-assert.match(communitySidebar, /Discover/);
+// Community member sidebar: Overview + Spaces (design reference)
+assert.match(communitySidebar, /Overview/);
+assert.match(communitySidebar, /Spaces/);
+assert.match(communitySidebar, /Join Community/);
+assert.match(communitySidebar, /Invite People/);
 assert.match(communitySidebar, /Go Premium|Upgrade now/);
 assert.doesNotMatch(communitySidebar, /label: "Announcements"/);
 assert.doesNotMatch(communitySidebar, /label: "Feed"/);

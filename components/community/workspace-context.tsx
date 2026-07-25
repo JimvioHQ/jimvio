@@ -36,6 +36,7 @@ export type WorkspaceSpaceRow = {
   space_type?: string | null;
   created_at?: string | null;
   is_featured?: boolean | null;
+  member_count?: number | null;
   rooms: WorkspaceRoomRow[];
 };
 
