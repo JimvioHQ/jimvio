@@ -58,9 +58,9 @@ assert.doesNotMatch(
   /useCreatorOSStore\(\(s\)\s*=>\s*\n?\s*s\.events\.filter/s
 );
 
-assert.match(groupPage, /Group not found/);
+assert.match(groupPage, /Space not found|Group not found/);
 assert.match(groupPage, /resolveSpace/);
-assert.match(groupError, /Group failed to load/);
+assert.match(groupError, /Space failed to load|Group failed to load/);
 assert.match(groupError, /error\.message/);
 
 console.log("Group page crash-fix verification passed.");

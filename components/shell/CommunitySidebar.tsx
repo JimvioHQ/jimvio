@@ -24,10 +24,9 @@ import {
   type WorkspaceSpaceRow,
 } from "@/components/community/workspace-context";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
-import { CreateChannelDialog } from "@/components/community/CreateChannelDialog";
 import {
   communityChannelHref,
-  communityGroupHref,
+  communitySpaceHref,
 } from "@/lib/community/workspace";
 
 type CommunityNavItem =
@@ -43,7 +42,7 @@ type NavLink = {
   href: string;
 };
 
-type GroupItem = {
+type SpaceItem = {
   id: string;
   label: string;
   href: string;
@@ -52,14 +51,16 @@ type GroupItem = {
   live?: boolean;
 };
 
-type ChannelItem = {
+type RoomItem = {
   id: string;
   label: string;
   emoji: string;
   href: string;
   roomId?: string;
   spaceId?: string;
-  groupSlug?: string;
+  spaceSlug?: string;
+  roomSlug?: string;
+  /** @deprecated alias for roomSlug — kept for path matching */
   channelSlug?: string;
 };
 
@@ -70,19 +71,11 @@ type CommunitySidebarProps = {
   membersOnline?: number;
   activeNav?: CommunityNavItem;
   activeSpaceId?: string;
-  spaces?: GroupItem[];
+  spaces?: SpaceItem[];
   /** Mobile drawer mode (rendered from HubLayout). */
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 };
-
-/** Legacy system space slugs — still valid Groups if they exist; no longer auto-created. */
-const LEGACY_SYSTEM_SPACE_SLUGS = new Set([
-  "general",
-  "announcements",
-  "resources",
-  "channels",
-]);
 
 /** Default member community nav — management surfaces live in Owner Console. */
 const NAV_ITEMS: NavLink[] = [
@@ -107,7 +100,7 @@ function formatMemberCount(count: number): string {
   return count.toLocaleString();
 }
 
-function channelEmoji(room: WorkspaceRoomRow): string {
+function roomEmoji(room: WorkspaceRoomRow): string {
   if (room.room_type === "posts" || /announcement/i.test(room.name)) return "📢";
   if (room.room_type === "resources" || /resource/i.test(room.name)) return "📚";
   if (room.room_type === "voice" || /voice/i.test(room.name)) return "🎤";
@@ -115,12 +108,12 @@ function channelEmoji(room: WorkspaceRoomRow): string {
   return "💬";
 }
 
-/** Rooms that should not appear as Channel links in the community sidebar. */
-function shouldHideFromChannelNav(room: WorkspaceRoomRow): boolean {
+/** Rooms that should not appear as nested links under a Space (Discussion is the Space home). */
+function shouldHideFromSpaceNav(room: WorkspaceRoomRow): boolean {
   if (room.room_type === "posts" || /announcement/i.test(room.name)) return true;
   const slug = (room.slug ?? "").trim().toLowerCase();
   const name = (room.name ?? "").trim().toLowerCase();
-  // Group Discussion is the Group homepage — not a separate Channel entry.
+  // Discussion is the Space homepage — not a separate nested entry.
   return (
     (room.room_type === "chat" || !room.room_type) &&
     (/^(discussion|general|chat|lounge)$/.test(slug) ||
@@ -128,55 +121,49 @@ function shouldHideFromChannelNav(room: WorkspaceRoomRow): boolean {
   );
 }
 
-function buildChannels(
+function buildSpaceRooms(
   communitySlug: string,
   spacesWithRooms: WorkspaceSpaceRow[],
   options?: { spaceId?: string | null }
-): ChannelItem[] {
+): RoomItem[] {
   const spaces = options?.spaceId
     ? spacesWithRooms.filter((s) => s.id === options.spaceId)
     : spacesWithRooms;
 
   return spaces.flatMap((space) =>
     space.rooms
-      .filter((room) => !shouldHideFromChannelNav(room))
+      .filter((room) => !shouldHideFromSpaceNav(room))
       .map((room) => ({
         id: room.id,
         label: room.name,
-        emoji: channelEmoji(room),
+        emoji: roomEmoji(room),
         href: communityChannelHref(communitySlug, room.slug).replace(
           `/communities/${communitySlug}`,
           ""
         ),
         roomId: room.id,
         spaceId: space.id,
-        groupSlug: space.slug,
+        spaceSlug: space.slug,
+        roomSlug: room.slug,
+        // Keep channelSlug alias for verify/path matching on nested room routes.
         channelSlug: room.slug,
       }))
   );
 }
 
-function buildGroups(
+function buildSpaces(
   communitySlug: string,
   spacesWithRooms: WorkspaceSpaceRow[]
-): GroupItem[] {
+): SpaceItem[] {
   return spacesWithRooms.map((space) => ({
     id: space.id,
     slug: space.slug,
     label: space.name,
-    href: communityGroupHref(communitySlug, space.slug).replace(
+    href: communitySpaceHref(communitySlug, space.slug).replace(
       `/communities/${communitySlug}`,
       ""
     ),
   }));
-}
-
-function resolveChannelsHomeSpaceId(spacesWithRooms: WorkspaceSpaceRow[]): string | null {
-  if (spacesWithRooms.length === 0) return null;
-  const preferred = spacesWithRooms.find(
-    (s) => !LEGACY_SYSTEM_SPACE_SLUGS.has(s.slug)
-  );
-  return (preferred ?? spacesWithRooms[0]).id;
 }
 
 function SidebarBody({
@@ -186,11 +173,10 @@ function SidebarBody({
   memberCount,
   activeNav,
   activeSpaceId,
-  groups,
+  spaces,
   spacesWithRooms,
   canManage,
   communityId,
-  channelsHomeSpaceId,
   onNavigate,
 }: {
   slug: string;
@@ -199,20 +185,17 @@ function SidebarBody({
   memberCount: number;
   activeNav?: CommunityNavItem;
   activeSpaceId?: string;
-  groups: GroupItem[];
+  spaces: SpaceItem[];
   spacesWithRooms: WorkspaceSpaceRow[];
   canManage: boolean;
   communityId: string | null;
-  channelsHomeSpaceId: string | null;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const base = `/communities/${slug}`;
-  const [groupsOpen, setGroupsOpen] = useState(true);
-  const [channelsOpen, setChannelsOpen] = useState(true);
-  const [createGroupOpen, setCreateGroupOpen] = useState(false);
-  const [createChannelOpen, setCreateChannelOpen] = useState(false);
+  const [spacesOpen, setSpacesOpen] = useState(true);
+  const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
 
   function navActive(id: CommunityNavItem, href: string) {
     if (activeNav) return activeNav === id;
@@ -226,58 +209,53 @@ function SidebarBody({
     return pathname === full || pathname.startsWith(`${full}/`);
   }
 
-  function groupActive(group: GroupItem) {
-    if (activeSpaceId) return activeSpaceId === group.id;
-    const groupSlug =
-      group.slug ??
-      group.href.replace(/^\/groups\//, "").split("/")[0] ??
+  function spaceActive(space: SpaceItem) {
+    if (activeSpaceId) return activeSpaceId === space.id;
+    const spaceSlug =
+      space.slug ??
+      space.href.replace(/^\/spaces\//, "").replace(/^\/groups\//, "").split("/")[0] ??
       "";
-    if (!groupSlug) return false;
+    if (!spaceSlug) return false;
     return (
-      pathname === `${base}/groups/${groupSlug}` ||
-      pathname.startsWith(`${base}/groups/${groupSlug}/`)
+      pathname === `${base}/spaces/${spaceSlug}` ||
+      pathname.startsWith(`${base}/spaces/${spaceSlug}/`) ||
+      pathname === `${base}/groups/${spaceSlug}` ||
+      pathname.startsWith(`${base}/groups/${spaceSlug}/`)
     );
   }
 
-  function channelActive(channel: ChannelItem) {
-    if (!channel.roomId) {
-      if (channel.href === "/chat") return pathname.startsWith(`${base}/chat`);
-      if (channel.href === "/live") return pathname.startsWith(`${base}/live`);
-      return false;
-    }
-    if (channel.channelSlug) {
+  function roomActive(room: RoomItem) {
+    if (!room.roomId) return false;
+    const roomSlug = room.roomSlug ?? room.channelSlug;
+    if (roomSlug) {
       return (
-        pathname === `${base}/channels/${channel.channelSlug}` ||
-        pathname.startsWith(`${base}/channels/${channel.channelSlug}/`)
+        pathname === `${base}/spaces/${roomSlug}` ||
+        pathname.startsWith(`${base}/spaces/${roomSlug}/`) ||
+        pathname === `${base}/channels/${roomSlug}` ||
+        pathname.startsWith(`${base}/channels/${roomSlug}/`)
       );
     }
     return false;
   }
 
-  const selectedGroupFromPath =
-    groups.find((g) => groupActive(g)) ??
-    (activeSpaceId ? groups.find((g) => g.id === activeSpaceId) : undefined);
+  const selectedSpaceFromPath =
+    spaces.find((s) => spaceActive(s)) ??
+    (activeSpaceId ? spaces.find((s) => s.id === activeSpaceId) : undefined);
 
-  /** When viewing a channel route, resolve its parent Group so Channels stay scoped. */
-  const selectedGroupFromChannel = (() => {
-    if (selectedGroupFromPath) return selectedGroupFromPath;
+  /** When viewing a room route, resolve its parent Space for nested highlights. */
+  const selectedSpaceFromRoom = (() => {
+    if (selectedSpaceFromPath) return selectedSpaceFromPath;
     const match = pathname.match(/\/channels\/([^/]+)/);
-    const channelSlug = match?.[1] ? decodeURIComponent(match[1]) : null;
-    if (!channelSlug) return undefined;
+    const roomSlug = match?.[1] ? decodeURIComponent(match[1]) : null;
+    if (!roomSlug) return undefined;
     const space = spacesWithRooms.find((s) =>
-      s.rooms.some((r) => r.slug === channelSlug)
+      s.rooms.some((r) => r.slug === roomSlug)
     );
     if (!space) return undefined;
-    return groups.find((g) => g.id === space.id);
+    return spaces.find((s) => s.id === space.id);
   })();
 
-  const selectedGroup = selectedGroupFromPath ?? selectedGroupFromChannel;
-  const selectedSpaceId = selectedGroup?.id ?? null;
-
-  const groupChannels = selectedSpaceId
-    ? buildChannels(slug, spacesWithRooms, { spaceId: selectedSpaceId })
-    : [];
-  const createChannelSpaceId = selectedSpaceId ?? channelsHomeSpaceId;
+  const selectedSpace = selectedSpaceFromPath ?? selectedSpaceFromRoom;
 
   return (
     <>
@@ -380,15 +358,15 @@ function SidebarBody({
           })}
         </nav>
 
-        {/* GROUPS */}
+        {/* SPACES */}
         <div className="mb-1.5 flex items-center justify-between px-3">
           <button
             type="button"
-            onClick={() => setGroupsOpen((o) => !o)}
+            onClick={() => setSpacesOpen((o) => !o)}
             className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400"
           >
-            Groups
-            {groupsOpen ? (
+            Spaces
+            {spacesOpen ? (
               <ChevronUp className="h-3.5 w-3.5" />
             ) : (
               <ChevronDown className="h-3.5 w-3.5" />
@@ -397,49 +375,51 @@ function SidebarBody({
           {canManage && communityId && (
             <button
               type="button"
-              aria-label="Create group"
-              onClick={() => setCreateGroupOpen(true)}
+              aria-label="Create space"
+              onClick={() => setCreateSpaceOpen(true)}
               className="rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-50 hover:text-orange-500"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
-        {groupsOpen && (
+        {spacesOpen && (
           <nav className="mb-5 space-y-0.5">
-            {groups.length === 0 ? (
+            {spaces.length === 0 ? (
               <div className="mx-1 rounded-xl bg-gray-50 px-3 py-3">
                 <p className="text-[12px] font-medium text-gray-700">
                   {canManage
-                    ? "Create your first Group"
-                    : "No Groups published yet"}
+                    ? "Create your first Space"
+                    : "No Spaces published yet"}
                 </p>
                 <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
                   {canManage
-                    ? "Organize members, then add Channels inside the Group."
+                    ? "Organize members into Spaces for discussion, resources, and live sessions."
                     : "This community is being prepared. Check back soon."}
                 </p>
                 {canManage && communityId ? (
                   <button
                     type="button"
-                    onClick={() => setCreateGroupOpen(true)}
+                    onClick={() => setCreateSpaceOpen(true)}
                     className="mt-2.5 inline-flex min-h-9 items-center rounded-lg bg-orange-500 px-3 text-[12px] font-semibold text-white hover:bg-orange-600"
                   >
-                    Create Group
+                    Create Space
                   </button>
                 ) : null}
               </div>
             ) : (
-              groups.map((group) => {
-                const active = groupActive(group);
+              spaces.map((space) => {
+                const active = spaceActive(space);
                 const nested =
-                  active
-                    ? buildChannels(slug, spacesWithRooms, { spaceId: group.id })
+                  active || selectedSpace?.id === space.id
+                    ? buildSpaceRooms(slug, spacesWithRooms, {
+                        spaceId: space.id,
+                      })
                     : [];
                 return (
-                  <div key={group.id} className="space-y-0.5">
+                  <div key={space.id} className="space-y-0.5">
                     <Link
-                      href={`${base}${group.href}`}
+                      href={`${base}${space.href}`}
                       onClick={onNavigate}
                       className={cn(
                         "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
@@ -449,41 +429,41 @@ function SidebarBody({
                       )}
                     >
                       <Users className="h-4 w-4 shrink-0 text-gray-400" />
-                      <span className="truncate">{group.label}</span>
-                      {group.live && (
+                      <span className="truncate">{space.label}</span>
+                      {space.live && (
                         <span className="ml-auto rounded-full bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
                           Live
                         </span>
                       )}
-                      {!group.live && group.unread ? (
+                      {!space.live && space.unread ? (
                         <span className="ml-auto rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600">
-                          {group.unread}
+                          {space.unread}
                         </span>
                       ) : null}
                     </Link>
                     {nested.length > 0 ? (
                       <div className="ml-3 space-y-0.5 border-l border-gray-100 pl-2">
-                        {nested.map((channel) => {
-                          const chActive = channelActive(channel);
+                        {nested.map((room) => {
+                          const rActive = roomActive(room);
                           return (
                             <Link
-                              key={channel.id}
+                              key={room.id}
                               href={
-                                channel.href.startsWith("http") ||
-                                channel.href.startsWith("/communities")
-                                  ? channel.href
-                                  : `${base}${channel.href}`
+                                room.href.startsWith("http") ||
+                                room.href.startsWith("/communities")
+                                  ? room.href
+                                  : `${base}${room.href}`
                               }
                               onClick={onNavigate}
                               className={cn(
                                 "flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] transition-colors",
-                                chActive
+                                rActive
                                   ? "bg-orange-50 font-semibold text-orange-600"
                                   : "font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-800"
                               )}
                             >
-                              <span aria-hidden>{channel.emoji}</span>
-                              <span className="truncate">{channel.label}</span>
+                              <span aria-hidden>{room.emoji}</span>
+                              <span className="truncate">{room.label}</span>
                             </Link>
                           );
                         })}
@@ -495,109 +475,19 @@ function SidebarBody({
             )}
           </nav>
         )}
-
-        {/* CHANNELS — scoped to the selected Group (Discussion is Group homepage) */}
-        <div className="mb-1.5 flex items-center justify-between px-3">
-          <button
-            type="button"
-            onClick={() => setChannelsOpen((o) => !o)}
-            className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400"
-          >
-            {selectedGroup ? `${selectedGroup.label} Channels` : "Channels"}
-            {channelsOpen ? (
-              <ChevronUp className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
-            )}
-          </button>
-          {canManage && createChannelSpaceId && (
-            <button
-              type="button"
-              aria-label="Create channel"
-              onClick={() => setCreateChannelOpen(true)}
-              className="rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-50 hover:text-orange-500"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-        {channelsOpen && (
-          <nav className="space-y-0.5">
-            {!selectedGroup ? (
-              <div className="mx-1 rounded-xl bg-gray-50 px-3 py-3">
-                <p className="text-[12px] font-medium text-gray-700">
-                  Open a Group to see Channels
-                </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
-                  Channels live inside Groups. Discussion opens first so members
-                  can chat immediately.
-                </p>
-              </div>
-            ) : groupChannels.length === 0 ? (
-              <div className="mx-1 rounded-xl bg-gray-50 px-3 py-3">
-                <p className="text-[12px] font-medium text-gray-700">
-                  {canManage ? "No Channels yet" : "No Channels published yet"}
-                </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-gray-400">
-                  Discussion is ready — chat starts in the Group.{" "}
-                  {canManage
-                    ? "Add a Channel when you need a focused room."
-                    : "Your host can add Channels anytime."}
-                </p>
-              </div>
-            ) : (
-              groupChannels.map((channel) => {
-                const active = channelActive(channel);
-                return (
-                  <Link
-                    key={channel.id}
-                    href={
-                      channel.href.startsWith("http") ||
-                      channel.href.startsWith("/communities")
-                        ? channel.href
-                        : `${base}${channel.href}`
-                    }
-                    onClick={onNavigate}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-colors",
-                      active
-                        ? "bg-orange-50 font-semibold text-orange-600"
-                        : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    )}
-                  >
-                    <span className="text-[14px]" aria-hidden>
-                      {channel.emoji}
-                    </span>
-                    <span className="truncate">{channel.label}</span>
-                  </Link>
-                );
-              })
-            )}
-          </nav>
-        )}
       </div>
 
       {communityId && (
         <CreateSpaceDialog
-          open={createGroupOpen}
-          onOpenChange={setCreateGroupOpen}
+          open={createSpaceOpen}
+          onOpenChange={setCreateSpaceOpen}
           communityId={communityId}
-          entityLabel="Group"
           onCreated={() => {
             router.refresh();
             onNavigate?.();
           }}
         />
       )}
-      <CreateChannelDialog
-        open={createChannelOpen}
-        onOpenChange={setCreateChannelOpen}
-        spaceId={createChannelSpaceId}
-        onCreated={() => {
-          router.refresh();
-          onNavigate?.();
-        }}
-      />
     </>
   );
 }
@@ -616,15 +506,10 @@ export function CommunitySidebar({
   const workspace = useWorkspaceOptional();
   const spacesWithRooms = workspace?.spacesWithRooms ?? [];
 
-  const groups = useMemo(() => {
+  const spaces = useMemo(() => {
     if (spacesProp !== undefined) return spacesProp;
-    return buildGroups(slug, spacesWithRooms);
+    return buildSpaces(slug, spacesWithRooms);
   }, [spacesProp, spacesWithRooms, slug]);
-
-  const channelsHomeSpaceId = useMemo(
-    () => resolveChannelsHomeSpaceId(spacesWithRooms),
-    [spacesWithRooms]
-  );
 
   const canManage = Boolean(workspace?.isOwner || workspace?.isAdmin);
   const communityId = workspace?.communityId ?? null;
@@ -647,11 +532,10 @@ export function CommunitySidebar({
     memberCount,
     activeNav,
     activeSpaceId,
-    groups,
+    spaces,
     spacesWithRooms,
     canManage,
     communityId,
-    channelsHomeSpaceId,
   };
 
   if (mobileOpen !== undefined) {

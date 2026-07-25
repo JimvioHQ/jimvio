@@ -310,7 +310,6 @@ function Sidebar({
         open={createSpaceOpen}
         onOpenChange={setCreateSpaceOpen}
         communityId={community.id}
-        entityLabel="Group"
         onCreated={() => router.refresh()}
       />
       {/* Community header */}
@@ -441,7 +440,7 @@ function Sidebar({
       {/* Spaces tree */}
       <div className="flex-shrink-0 py-3">
         <div className="flex items-center justify-between px-3 mb-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Groups</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Spaces</p>
           {isAdmin && view === "admin" && (
             <button
               type="button"
@@ -476,7 +475,7 @@ function Sidebar({
                     </button>
                     <button
                       type="button"
-                      aria-label={isOpen ? "Collapse channels" : "Expand channels"}
+                      aria-label={isOpen ? "Collapse rooms" : "Expand rooms"}
                       onClick={() => onToggleSpace(space.id)}
                       className="rounded-md p-1.5 text-text-muted hover:bg-surface-secondary"
                     >
@@ -520,7 +519,7 @@ function Sidebar({
             className="w-full flex items-center gap-2.5 px-5 py-1.5 mt-1 rounded-md text-[12px] font-medium text-text-muted hover:text-[#fd5000] hover:bg-[#fd5000]/5 transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
-            Create Group
+            Create Space
           </button>
         )}
       </div>

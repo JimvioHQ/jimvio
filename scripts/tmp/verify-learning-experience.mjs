@@ -40,7 +40,7 @@ assert.match(courseRoom, /isLessonLocked/);
 assert.match(courseRoom, /toast\.(error|success)/);
 assert.match(courseRoom, /Open Discussion|Discussion/);
 assert.match(courseRoom, /Resources/);
-assert.match(courseRoom, /Back to Group/);
+assert.match(courseRoom, /Back to Space|Back to Group/);
 assert.match(courseRoom, /Lock/);
 
 assert.match(resourcesRoom, /Upload your first resource|ChannelEmptyState/);
@@ -63,7 +63,7 @@ assert.match(manageApi, /assertCourseStaff|owner_id/);
 assert.match(manageApi, /moderator/);
 
 assert.match(hubData, /rooms\(slug\)/);
-assert.match(hubData, /\/channels\//);
+assert.match(hubData, /\/spaces\/|\/channels\//);
 assert.doesNotMatch(
   hubData,
   /href: community \? `\/communities\/\$\{community\.slug\}\/courses`/

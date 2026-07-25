@@ -79,7 +79,7 @@ export function MembersAnalyticsPanel({
 
       <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <h3 className="text-[12px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
-          Most Active Groups
+          Most Active Spaces
         </h3>
         <ul className="mt-3 space-y-2">
           {analytics.mostActiveGroups.map((g) => (

@@ -40,8 +40,8 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * Create a community with zero Groups and zero Channels.
- * Owners add structure intentionally through the UI.
+ * Create a community with zero Spaces.
+ * Owners add Spaces intentionally through the UI.
  */
 export async function POST(req: NextRequest) {
   const supabase = await createClient();

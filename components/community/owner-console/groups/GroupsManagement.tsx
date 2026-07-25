@@ -60,7 +60,7 @@ export function GroupsManagement() {
   if (!community) {
     return (
       <p className="text-sm text-[var(--color-text-muted)]">
-        Select a community to manage groups.
+        Select a community to manage Spaces.
       </p>
     );
   }
@@ -69,7 +69,7 @@ export function GroupsManagement() {
     return (
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-10 text-center">
         <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-          Groups management requires Owner or Admin
+          Spaces management requires Owner or Admin
         </p>
         <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
           Your current role ({role}) does not include group.manage.
@@ -86,9 +86,9 @@ export function GroupsManagement() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search groups…"
+            placeholder="Search Spaces…"
             className="h-10 pl-9"
-            aria-label="Search groups"
+            aria-label="Search Spaces"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -98,7 +98,7 @@ export function GroupsManagement() {
               setFilter(e.target.value as (typeof GROUP_FILTER_STATUSES)[number])
             }
             className="h-10 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-sm"
-            aria-label="Filter groups"
+            aria-label="Filter Spaces"
           >
             {GROUP_FILTER_STATUSES.map((f) => (
               <option key={f} value={f}>
@@ -112,12 +112,12 @@ export function GroupsManagement() {
               setSort(e.target.value as (typeof GROUP_SORT_OPTIONS)[number])
             }
             className="h-10 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-sm"
-            aria-label="Sort groups"
+            aria-label="Sort Spaces"
           >
             <option value="sort_order">Manual order</option>
             <option value="name">Name</option>
             <option value="members">Members</option>
-            <option value="channels">Channels</option>
+            <option value="channels">Rooms</option>
             <option value="created">Created</option>
             <option value="activity">Activity</option>
           </select>
@@ -159,7 +159,7 @@ export function GroupsManagement() {
           </label>
           <Button type="button" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" />
-            Create Group
+            Create Space
           </Button>
         </div>
       </div>
@@ -199,7 +199,7 @@ export function GroupsManagement() {
 
       {loading ? (
         <div className="rounded-2xl border border-[var(--color-border)] px-6 py-16 text-center text-sm text-[var(--color-text-muted)]">
-          Loading groups…
+          Loading Spaces…
         </div>
       ) : (
         <GroupsList

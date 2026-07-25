@@ -41,7 +41,7 @@ export function PersonalBookmarksPanel() {
           Saved items
         </h2>
         <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
-          Groups, channels, courses, resources, and more you bookmarked.
+          Spaces, courses, resources, and more you bookmarked.
         </p>
       </div>
       <ul className="space-y-2">

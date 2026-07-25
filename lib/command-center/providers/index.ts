@@ -56,10 +56,10 @@ export const communityScopedProvider: CommandSearchProvider = {
       {
         id: "cc-channels",
         kind: "channel",
-        title: "Channels & spaces",
-        subtitle: "Open group workspaces",
+        title: "Spaces",
+        subtitle: "Open community Spaces",
         href: `${base}?section=spaces`,
-        keywords: ["channels", "spaces", "rooms"],
+        keywords: ["spaces", "rooms", "collaboration"],
         icon: "layers",
       },
       {

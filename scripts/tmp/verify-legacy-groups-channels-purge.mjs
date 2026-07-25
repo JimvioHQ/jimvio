@@ -1,5 +1,6 @@
 /**
  * Legacy Groups/Channels purge — foundation empty state + migration present.
+ * Product UI uses Spaces terminology.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -42,10 +43,11 @@ assert.doesNotMatch(migration, /DELETE FROM public\.community_courses/i);
 
 assert.match(groupDefaults, /defaultChannels: \[\]/);
 assert.match(overview, /Welcome to your new Community|This community is being prepared/);
-assert.match(overview, /Create your first Group/);
+assert.match(overview, /Create your first Space/);
 assert.match(overview, /This community is being prepared/);
 assert.doesNotMatch(communitiesApi, /bootstrapDefaultSpaces/);
-assert.match(spacesApi, /room: null/);
+assert.match(spacesApi, /spaceType|space_type/);
+assert.match(spacesApi, /SPACE_TYPE_TO_ROOM_TYPE|channel_kind/);
 assert.match(foundation, /Community foundation reset/);
 
 console.log("Legacy groups/channels purge verification passed.");

@@ -25,8 +25,8 @@ type SearchResult = {
 const TYPE_META: Record<SearchType, { label: string; icon: typeof Search }> = {
   posts: { label: "Messages", icon: FileText },
   members: { label: "Members", icon: Users },
-  spaces: { label: "Groups", icon: Layers },
-  rooms: { label: "Channels", icon: MessageSquare },
+  spaces: { label: "Spaces", icon: Layers },
+  rooms: { label: "Rooms", icon: MessageSquare },
 };
 
 export function HubSearchDialog({

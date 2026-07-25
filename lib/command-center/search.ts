@@ -60,7 +60,7 @@ function groupByKind(items: CommandResult[]): CommandGroup[] {
     "ai-answer": "AI Answers",
     member: "Members",
     post: "Posts",
-    channel: "Channels",
+    channel: "Spaces",
     event: "Events",
     knowledge: "Knowledge",
   };

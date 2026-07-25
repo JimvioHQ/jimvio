@@ -65,10 +65,14 @@ assert.match(roomsApi, /ensure_discussion/);
 assert.match(roomsApi, /DISCUSSION_PERMISSION_CONFIG/);
 assert.match(roomsApi, /channel_kind: "discussion"/);
 
-// Channels appear under selected Group; Discussion not duplicated as a Channel
-assert.match(sidebar, /shouldHideFromChannelNav|Discussion is the Group homepage/);
-assert.match(sidebar, /Open a Group to see Channels|groupChannels/);
-assert.match(sidebar, /buildChannels\(slug, spacesWithRooms, \{ spaceId/);
+// Spaces sidebar: nested rooms under Space; Discussion not duplicated as a room link
+assert.match(sidebar, /shouldHideFromSpaceNav|Discussion is the Space homepage/);
+assert.match(sidebar, /Spaces/);
+assert.match(sidebar, /Create your first Space|Create Space/);
+assert.match(sidebar, /buildSpaceRooms\(slug, spacesWithRooms/);
+assert.doesNotMatch(sidebar, /CreateChannelDialog/);
+assert.doesNotMatch(sidebar, />\s*Channels\s*</);
+assert.doesNotMatch(groupWs, /Create Channel/);
 
 // Reuses frozen Chat engine — do not fork
 assert.match(groupWs, /from "@\/components\/community\/chat\/ChatRoom"/);

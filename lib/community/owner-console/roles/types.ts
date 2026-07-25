@@ -47,7 +47,10 @@ export type RoleTemplateKey = (typeof ROLE_TEMPLATE_KEYS)[number];
 
 export type PermissionCategoryId =
   | "community"
+  | "spaces"
+  /** @deprecated Use "spaces" — retained for gradual migration. */
   | "groups"
+  /** @deprecated Use "spaces" — retained for gradual migration. */
   | "channels"
   | "members"
   | "roles"

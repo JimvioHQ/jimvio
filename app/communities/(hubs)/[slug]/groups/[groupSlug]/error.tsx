@@ -35,7 +35,7 @@ export default function GroupError({
       </div>
       <div className="max-w-md space-y-2">
         <h1 className="text-[18px] font-semibold text-[var(--color-text-primary)]">
-          Group failed to load
+          Space failed to load
         </h1>
         <p className="text-[13px] leading-relaxed text-[var(--color-text-muted)]">
           {error.message || "An unexpected error occurred while opening this group."}

@@ -32,7 +32,12 @@ const apiMembers = mustExist("app/api/c/owner/groups/[id]/members/route.ts");
 const apiAnalytics = mustExist(
   "app/api/c/owner/groups/[id]/analytics/route.ts"
 );
-const page = mustExist("app/dashboard/communities/[communitySlug]/groups/page.tsx");
+const spacesPage = mustExist(
+  "app/dashboard/communities/[communitySlug]/spaces/page.tsx"
+);
+const groupsRedirect = mustExist(
+  "app/dashboard/communities/[communitySlug]/groups/page.tsx"
+);
 const settingsPage = mustExist(
   "app/dashboard/communities/[communitySlug]/groups/[groupId]/page.tsx"
 );
@@ -48,6 +53,7 @@ const list = mustExist(
 const settings = mustExist(
   "components/community/owner-console/groups/GroupSettingsPage.tsx"
 );
+const nav = mustExist("lib/community/owner-console/nav.ts");
 
 assert.match(migration, /space_staff/);
 assert.match(migration, /permission_config/);
@@ -72,12 +78,14 @@ assert.match(apiActions, /archive/);
 assert.match(apiStaff, /space_staff/);
 assert.match(apiMembers, /space_access/);
 assert.match(apiAnalytics, /OwnerGroupAnalytics/);
-assert.match(page, /sectionId="groups"/);
-assert.match(page, /GroupsManagement/);
+assert.match(spacesPage, /sectionId="spaces"/);
+assert.match(spacesPage, /GroupsManagement/);
+assert.match(groupsRedirect, /permanentRedirect/);
+assert.match(groupsRedirect, /spaces/);
 assert.match(settingsPage, /GroupSettingsPage/);
-assert.match(management, /Create Group/);
+assert.match(management, /Create Space/);
 assert.match(management, /Bulk|selected/);
-assert.match(wizard, /Create Group/);
+assert.match(wizard, /Create Space/);
 assert.match(wizard, /STEPS/);
 assert.match(wizard, /Publish/);
 assert.match(list, /Drag to reorder|draggable/);
@@ -85,5 +93,9 @@ assert.match(settings, /Danger Zone|danger/);
 assert.match(settings, /moderators/);
 assert.match(settings, /analytics/);
 assert.match(settings, /GROUP_SETTINGS_TABS/);
+assert.match(nav, /create_space/);
+assert.match(nav, /Create Space/);
+assert.doesNotMatch(nav, /label: "Create Group"/);
+assert.doesNotMatch(nav, /label: "Create Channel"/);
 
 console.log("Community owner groups management verification passed.");

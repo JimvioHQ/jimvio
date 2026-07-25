@@ -175,14 +175,14 @@ export function CreateGroupWizard({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Could not create group");
+        toast.error(data.error || "Could not create Space");
         return;
       }
-      toast.success(asDraft ? "Group saved as draft" : "Group published");
+      toast.success(asDraft ? "Space saved as draft" : "Space published");
       onCreated?.(data.group);
       onOpenChange(false);
     } catch {
-      toast.error("Could not create group");
+      toast.error("Could not create Space");
     } finally {
       setSaving(false);
     }
@@ -193,14 +193,14 @@ export function CreateGroupWizard({
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-[var(--color-border)] bg-[var(--color-surface)]">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold tracking-tight">
-            Create Group
+            Create Space
           </DialogTitle>
           <DialogDescription className="text-sm text-[var(--color-text-muted)]">
-            Build a primary organizational unit for your community.
+            Build a collaboration Space for your community.
           </DialogDescription>
         </DialogHeader>
 
-        <ol className="mt-2 flex flex-wrap gap-2" aria-label="Create group steps">
+        <ol className="mt-2 flex flex-wrap gap-2" aria-label="Create Space steps">
           {STEPS.map((s) => (
             <li
               key={s.id}
@@ -222,7 +222,7 @@ export function CreateGroupWizard({
         <div className="mt-4 space-y-4">
           {step === 1 && (
             <>
-              <Field label="Group name">
+              <Field label="Space name">
                 <Input
                   value={draft.name}
                   onChange={(e) =>
@@ -253,7 +253,7 @@ export function CreateGroupWizard({
                     setDraft((d) => ({ ...d, description: e.target.value }))
                   }
                   rows={3}
-                  placeholder="Who is this group for?"
+                  placeholder="Who is this Space for?"
                 />
               </Field>
               <Field label="Icon">
@@ -376,7 +376,7 @@ export function CreateGroupWizard({
                 }
               />
               <RoleChecklist
-                label="Who can create channels"
+                label="Who can create rooms"
                 value={draft.permissionConfig.whoCanCreateChannels}
                 onChange={(whoCanCreateChannels) =>
                   setDraft((d) => ({
@@ -480,9 +480,9 @@ export function CreateGroupWizard({
                   rows={3}
                 />
               </Field>
-              <Field label="Channels (optional)">
+              <Field label="Rooms (optional)">
                 <p className="mb-2 text-[12px] text-[var(--color-text-muted)]">
-                  Leave empty to create the group first, then add channels later.
+                  Leave empty to create the Space first, then add rooms later.
                 </p>
                 <div className="space-y-2">
                   {draft.defaultContent.defaultChannels.map((ch, i) => (
@@ -500,7 +500,7 @@ export function CreateGroupWizard({
                             },
                           }));
                         }}
-                        placeholder="Channel name"
+                        placeholder="Room name"
                       />
                       <select
                         value={ch.roomType}
@@ -542,7 +542,7 @@ export function CreateGroupWizard({
                       }))
                     }
                   >
-                    Add channel
+                    Add room
                   </Button>
                 </div>
               </Field>
@@ -592,7 +592,7 @@ export function CreateGroupWizard({
                 value={GROUP_PRIVACY_LABELS[draft.privacy]}
               />
               <ReviewRow
-                label="Channels"
+                label="Rooms"
                 value={String(draft.defaultContent.defaultChannels.length)}
               />
               <ReviewRow

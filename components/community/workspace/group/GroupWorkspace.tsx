@@ -42,15 +42,14 @@ import { useCommunityRoster } from "@/components/community/workspace/shared/useC
 import { ChannelAiPanel } from "@/components/community/workspace/channel/panels/ChannelAiPanel";
 import { ChatRoom } from "@/components/community/chat/ChatRoom";
 import { WorkspaceSkeleton } from "@/components/community/workspace/shared/WorkspaceSkeleton";
-import { CreateChannelDialog } from "@/components/community/CreateChannelDialog";
 import { GroupHeader } from "./GroupHeader";
 import { GroupSidebar } from "./GroupSidebar";
 
 type DiscussionRoom = WorkspaceSpaceRow["rooms"][number];
 
 /**
- * Group = live conversation (Telegram/WhatsApp style).
- * Opening a Group always lands on Discussion (ChatRoom) — Overview is secondary.
+ * Space = live conversation (Telegram/WhatsApp style).
+ * Opening a Space always lands on Discussion (ChatRoom) — Overview is secondary.
  */
 export function GroupWorkspace({
   space,
@@ -79,7 +78,6 @@ export function GroupWorkspace({
   const [query, setQuery] = useState("");
   const [pending, startTransition] = useTransition();
   const { members } = useCommunityRoster(communityId);
-  const [createChannelOpen, setCreateChannelOpen] = useState(false);
   const [ensuredRoom, setEnsuredRoom] = useState<DiscussionRoom | null>(null);
   const [ensuring, setEnsuring] = useState(false);
   const [ensureError, setEnsureError] = useState<string | null>(null);
@@ -231,7 +229,7 @@ export function GroupWorkspace({
           onToggleNotifications={() => {
             setNotificationsOn((v) => !v);
             toast.success(
-              notificationsOn ? "Group notifications muted" : "Notifications on"
+              notificationsOn ? "Space notifications muted" : "Notifications on"
             );
           }}
           searchValue={query}
@@ -252,7 +250,7 @@ export function GroupWorkspace({
             tabs={GROUP_TABS}
             active={tab}
             onChange={(id) => startTransition(() => setTab(id as GroupTabId))}
-            ariaLabel="Group sections"
+            ariaLabel="Space sections"
             idPrefix="group-tab"
             className="border-0 px-0"
           />
@@ -278,7 +276,7 @@ export function GroupWorkspace({
                   emptyTitle={`Welcome to ${group.name}.`}
                   emptyDescription={
                     isEmptyGroup || otherChannels.length === 0
-                      ? "Start the first conversation.\nOr create your first Channel."
+                      ? "Start the first conversation."
                       : "Start the conversation — messages, replies, reactions, and files live here."
                   }
                   emptyActionLabel="Write a message"
@@ -292,8 +290,6 @@ export function GroupWorkspace({
                   </p>
                   <p className="max-w-sm text-[13px] leading-relaxed text-[var(--color-text-muted)]">
                     Start the first conversation.
-                    <br />
-                    Or create your first Channel.
                   </p>
                   {ensureError ? (
                     <p className="text-[12px] text-[var(--color-danger,#b91c1c)]">
@@ -312,29 +308,9 @@ export function GroupWorkspace({
                     >
                       Retry Discussion
                     </button>
-                    {isStaff ? (
-                      <button
-                        type="button"
-                        onClick={() => setCreateChannelOpen(true)}
-                        className="inline-flex min-h-10 items-center rounded-lg border border-[var(--color-border)] px-4 text-[13px] font-semibold text-[var(--color-text-primary)]"
-                      >
-                        Create Channel
-                      </button>
-                    ) : null}
                   </div>
                 </div>
               )}
-              {isStaff && discussionRoom ? (
-                <div className="shrink-0 border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setCreateChannelOpen(true)}
-                    className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline"
-                  >
-                    + Create Channel
-                  </button>
-                </div>
-              ) : null}
             </div>
           )}
 
@@ -431,7 +407,7 @@ export function GroupWorkspace({
                 {otherChannels.length > 0 ? (
                   <section>
                     <h3 className="mb-3 text-[13px] font-semibold text-[var(--color-text-primary)]">
-                      Channels
+                      Rooms
                     </h3>
                     <ul className="space-y-2">
                       {otherChannels.map((r) => {
@@ -508,7 +484,7 @@ export function GroupWorkspace({
                 <ChannelEmptyState
                   icon={GraduationCap}
                   title="No courses yet"
-                  description="Course channels in this group list here."
+                  description="Courses in this Space list here."
                   className="py-10"
                   actionLabel="Browse community courses"
                   onAction={() =>
@@ -583,12 +559,6 @@ export function GroupWorkspace({
         </div>
       </div>
 
-      <CreateChannelDialog
-        open={createChannelOpen}
-        onOpenChange={setCreateChannelOpen}
-        spaceId={space.id}
-        onCreated={() => router.refresh()}
-      />
     </div>
   );
 }
@@ -606,7 +576,7 @@ export function GroupTabs({
       tabs={GROUP_TABS}
       active={active}
       onChange={(id) => onChange(id as GroupTabId)}
-      ariaLabel="Group sections"
+      ariaLabel="Space sections"
       idPrefix="group-tab"
     />
   );

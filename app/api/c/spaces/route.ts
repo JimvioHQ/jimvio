@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getHubSpaces } from "@/services/community/hub-data";
+import {
+  isSpaceType,
+  SPACE_TYPE_LABELS,
+  SPACE_TYPE_TO_ROOM_TYPE,
+  type SpaceType,
+} from "@/lib/community/workspace/space-types";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +32,7 @@ export async function GET() {
   return NextResponse.json({ spaces });
 }
 
-/** Create a Group (space) with zero Channels — channels are added intentionally later. */
+/** Create a Space with a primary room matching the Space type. */
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const {
@@ -48,6 +54,18 @@ export async function POST(req: NextRequest) {
     typeof body.access_type === "string" && body.access_type.trim()
       ? body.access_type.trim()
       : "free";
+
+  const rawSpaceType = body.spaceType ?? body.space_type;
+  let spaceType: SpaceType = "discussion";
+  if (rawSpaceType !== undefined && rawSpaceType !== null && rawSpaceType !== "") {
+    if (!isSpaceType(rawSpaceType)) {
+      return NextResponse.json(
+        { error: "Invalid spaceType" },
+        { status: 400 }
+      );
+    }
+    spaceType = rawSpaceType;
+  }
 
   if (!communityId) {
     return NextResponse.json({ error: "communityId is required" }, { status: 400 });
@@ -99,16 +117,67 @@ export async function POST(req: NextRequest) {
       slug,
       description,
       access_type: accessType,
+      space_type: spaceType,
       sort_order: count ?? 0,
       is_active: true,
       room_count: 0,
     })
-    .select("id, name, slug, description, access_type, sort_order, community_id")
+    .select(
+      "id, name, slug, description, access_type, space_type, sort_order, community_id"
+    )
     .single();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ space, room: null });
+  const roomType = SPACE_TYPE_TO_ROOM_TYPE[spaceType] ?? "chat";
+  const roomName = SPACE_TYPE_LABELS[spaceType] ?? "Discussion";
+  const roomSlug = `${slugify(roomName) || "room"}-${Date.now().toString(36)}`.slice(
+    0,
+    80
+  );
+
+  const channelKindBySpaceType: Record<SpaceType, string> = {
+    discussion: "discussion",
+    voice: "voice",
+    live: "live",
+    course: "courses",
+    marketplace: "marketplace",
+    event: "events",
+    ai: "ai",
+  };
+
+  const { data: room, error: roomError } = await supabase
+    .from("rooms")
+    .insert({
+      space_id: space.id,
+      community_id: communityId,
+      name: roomName,
+      slug: roomSlug,
+      room_type: roomType,
+      access_type: "inherit",
+      sort_order: 0,
+      is_active: true,
+      channel_kind: channelKindBySpaceType[spaceType],
+    })
+    .select(
+      "id, name, slug, room_type, space_id, community_id, access_type, sort_order, channel_kind"
+    )
+    .single();
+
+  if (roomError) {
+    await supabase.from("spaces").delete().eq("id", space.id);
+    return NextResponse.json({ error: roomError.message }, { status: 400 });
+  }
+
+  await supabase
+    .from("spaces")
+    .update({ room_count: 1 })
+    .eq("id", space.id);
+
+  return NextResponse.json({
+    space: { ...space, room_count: 1 },
+    room,
+  });
 }

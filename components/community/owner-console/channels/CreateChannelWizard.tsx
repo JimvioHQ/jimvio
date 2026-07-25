@@ -182,14 +182,14 @@ export function CreateChannelWizard({
       <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-[var(--color-border)] bg-[var(--color-surface)]">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold tracking-tight">
-            Create Channel
+            Create Space room
           </DialogTitle>
           <DialogDescription className="text-sm text-[var(--color-text-muted)]">
-            Add a collaboration room inside a group.
+            Add a collaboration room inside a Space.
           </DialogDescription>
         </DialogHeader>
 
-        <ol className="mt-2 flex flex-wrap gap-2" aria-label="Create channel steps">
+        <ol className="mt-2 flex flex-wrap gap-2" aria-label="Create Space room steps">
           {STEPS.map((s) => (
             <li
               key={s.id}
@@ -263,7 +263,7 @@ export function CreateChannelWizard({
                   }}
                 />
               </Field>
-              <Field label="Group">
+              <Field label="Space">
                 <select
                   value={draft.groupId}
                   onChange={(e) =>
@@ -492,7 +492,7 @@ export function CreateChannelWizard({
             <div className="space-y-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 p-4 text-sm">
               <Row label="Name" value={`${draft.emoji} ${draft.name}`} />
               <Row
-                label="Group"
+                label="Space"
                 value={groups.find((g) => g.id === draft.groupId)?.name ?? "—"}
               />
               <Row label="Type" value={CHANNEL_KIND_LABELS[draft.kind]} />

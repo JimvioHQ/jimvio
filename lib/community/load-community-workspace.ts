@@ -78,7 +78,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
         .maybeSingle(),
       supabase
         .from("spaces")
-        .select("id, name, slug, icon, access_type, sort_order")
+        .select("id, name, slug, icon, access_type, sort_order, space_type")
         .eq("community_id", community.id)
         .eq("is_active", true)
         .order("sort_order"),
@@ -130,6 +130,8 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
     icon: s.icon,
     access_type: s.access_type ?? "free",
     sort_order: s.sort_order,
+    space_type:
+      (s as { space_type?: string | null }).space_type ?? "discussion",
     rooms: (roomsBySpace.get(s.id) ?? []).map((r) => ({
       id: r.id,
       name: r.name,

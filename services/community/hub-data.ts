@@ -806,7 +806,7 @@ export async function getHubChannels(userId: string): Promise<HubChannelItem[]> 
       const space = room.spaces as { name: string; slug: string } | null;
       const href =
         community && space?.slug && room.slug
-          ? `/communities/${community.slug}/channels/${room.slug}`
+          ? `/communities/${community.slug}/spaces/${room.slug}`
           : community && room.space_id
             ? `/communities/${community.slug}/chat`
             : community
@@ -917,7 +917,7 @@ export async function getHubCourses(userId: string): Promise<HubCourseItem[]> {
     const roomSlug = room?.slug?.trim() || "";
     const href =
       communitySlug && roomSlug
-        ? `/communities/${communitySlug}/channels/${encodeURIComponent(roomSlug)}`
+        ? `/communities/${communitySlug}/spaces/${encodeURIComponent(roomSlug)}`
         : communitySlug
           ? `/communities/${communitySlug}/courses`
           : "/communities/courses";
@@ -979,7 +979,7 @@ export async function getHubLiveRooms(userId: string): Promise<HubLiveRoom[]> {
         message_count: counts.get(room.id) ?? 0,
         href:
           community && space?.slug && room.slug
-            ? `/communities/${community.slug}/channels/${room.slug}`
+            ? `/communities/${community.slug}/spaces/${room.slug}`
             : community
               ? `/communities/${community.slug}/chats`
               : "/communities/live",
@@ -1531,7 +1531,7 @@ export async function getCommunityOverviewStats(
       progress,
       cover_image: course.thumbnail_url ?? null,
       href: roomSlug
-        ? `${base}/channels/${encodeURIComponent(roomSlug)}`
+        ? `${base}/spaces/${encodeURIComponent(roomSlug)}`
         : `${base}/courses`,
     };
   });

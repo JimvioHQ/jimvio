@@ -186,8 +186,8 @@ export function AiInsightsPanel({ analytics }: { analytics: OwnerAnalyticsBundle
         <InsightList title="Suggested actions" items={ai.recommendations} />
         <InsightList title="Risk detection" items={ai.risks} />
         <InsightList title="Creator opportunities" items={ai.creatorOpportunities} />
-        <RankedList title="Inactive groups" rows={ai.inactiveGroups} />
-        <RankedList title="Inactive channels" rows={ai.inactiveChannels} />
+        <RankedList title="Inactive Spaces" rows={ai.inactiveGroups} />
+        <RankedList title="Inactive rooms" rows={ai.inactiveChannels} />
         <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
           <h3 className="mb-3 text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
             Trending topics

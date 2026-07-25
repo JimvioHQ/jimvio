@@ -41,7 +41,7 @@ export const PAGE_SEO = {
   communities: {
     title: "Communities",
     description:
-      "Groups for affiliates, sellers, and creators. Some are free, some charge a monthly fee. Find one that fits and join.",
+      "Spaces for affiliates, sellers, and creators. Some are free, some charge a monthly fee. Find one that fits and join.",
     path: "/communities",
   },
   affiliates: {

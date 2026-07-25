@@ -144,7 +144,7 @@ function resourceKind(name: string, roomType: string) {
 
 /**
  * Premium Community Homepage — full-width product surface, not a document.
- * Groups/Channels appear only when intentionally created.
+ * Spaces appear only when intentionally created.
  */
 export function HubCommunityOverview() {
   const router = useRouter();
@@ -165,7 +165,7 @@ export function HubCommunityOverview() {
     ownerName,
   } = useWorkspace();
 
-  const [createGroupOpen, setCreateGroupOpen] = useState(false);
+  const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
 
   const base = `/communities/${slug}`;
   const cover = overview?.coverImage ?? coverUrl;
@@ -206,7 +206,7 @@ export function HubCommunityOverview() {
         ? [overview.featuredCourse]
         : [];
 
-  const hasGroups = spacesWithRooms.length > 0;
+  const hasSpaces = spacesWithRooms.length > 0;
   const canManage = Boolean(isOwner || isAdmin);
 
   const resourcesRooms = useMemo(
@@ -325,8 +325,8 @@ export function HubCommunityOverview() {
     <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
       {canManage && communityId ? (
         <CreateSpaceDialog
-          open={createGroupOpen}
-          onOpenChange={setCreateGroupOpen}
+          open={createSpaceOpen}
+          onOpenChange={setCreateSpaceOpen}
           communityId={communityId}
           onCreated={() => router.refresh()}
         />
@@ -437,7 +437,7 @@ export function HubCommunityOverview() {
 
       <div className="mx-auto w-full max-w-[1400px] px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         {/* Foundation empty states */}
-        {!hasGroups ? (
+        {!hasSpaces ? (
           <section className="mb-16 sm:mb-20">
             <div className="overflow-hidden rounded-[1.75rem] bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]/70">
               <div className="grid grid-cols-12 gap-0">
@@ -455,18 +455,17 @@ export function HubCommunityOverview() {
                           Welcome to your new Community
                         </h2>
                         <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-secondary)]">
-                          Create your first Group to organize members. Then add
-                          Channels inside that Group for discussion, resources,
-                          and live sessions.
+                          Create your first Space to organize members for
+                          discussion, resources, and live sessions.
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-3">
                         <button
                           type="button"
-                          onClick={() => setCreateGroupOpen(true)}
+                          onClick={() => setCreateSpaceOpen(true)}
                           className="inline-flex min-h-12 items-center justify-center rounded-full bg-[var(--color-accent)] px-6 text-[14px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                         >
-                          Create your first Group
+                          Create your first Space
                         </button>
                         <HubLinkButton
                           href={`/dashboard/communities/${encodeURIComponent(slug)}`}
@@ -487,7 +486,7 @@ export function HubCommunityOverview() {
                           This community is being prepared
                         </h2>
                         <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-secondary)]">
-                          No Groups have been published yet. Check back soon —
+                          No Spaces have been published yet. Check back soon —
                           your host is setting things up.
                         </p>
                       </div>

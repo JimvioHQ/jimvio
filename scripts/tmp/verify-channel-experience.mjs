@@ -92,11 +92,12 @@ assert.match(assertPublish, /assertCanPublishInRoom/);
 assert.match(loader, /channel_kind/);
 assert.match(mappers, /channel_kind/);
 
-assert.match(sidebar, /buildChannels\(slug, spacesWithRooms, \{ spaceId/);
-assert.match(sidebar, /shouldHideFromChannelNav|Discussion is the Group homepage/);
+assert.match(sidebar, /buildSpaceRooms\(slug, spacesWithRooms/);
+assert.match(sidebar, /shouldHideFromSpaceNav|Discussion is the Space homepage/);
 assert.match(createDialog, /CHANNEL_TEMPLATES/);
 assert.match(roomsApi, /DEFAULT_PERMISSION_CONFIG|DISCUSSION_PERMISSION_CONFIG/);
 assert.match(roomsApi, /channel_kind/);
-assert.match(channelPage, /ChannelWorkspacePage/);
+assert.match(channelPage, /permanentRedirect|ChannelWorkspacePage/);
+mustExist("app/communities/(hubs)/[slug]/spaces/[spaceSlug]/page.tsx");
 
 console.log("verify-channel-experience: ok");

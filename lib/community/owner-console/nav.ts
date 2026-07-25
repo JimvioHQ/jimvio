@@ -18,7 +18,10 @@ export const OWNER_CONSOLE_BASE = OWNER_CONSOLE_HUB;
 
 export type OwnerConsoleSectionId =
   | "overview"
+  | "spaces"
+  /** @deprecated Use "spaces" — kept for redirects / legacy consumers */
   | "groups"
+  /** @deprecated Use "spaces" — kept for redirects / legacy consumers */
   | "channels"
   | "members"
   | "roles"
@@ -83,19 +86,28 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
     "settings.manage",
     "Community health and operating dashboard"
   ),
-  groups: navItem(
-    "groups",
-    "Groups",
-    "groups",
+  spaces: navItem(
+    "spaces",
+    "Spaces",
+    "spaces",
     "group.manage",
     "Spaces and mini workspaces"
   ),
+  /** @deprecated alias — redirects to /spaces */
+  groups: navItem(
+    "groups",
+    "Spaces",
+    "spaces",
+    "group.manage",
+    "Spaces and mini workspaces"
+  ),
+  /** @deprecated alias — redirects to /spaces */
   channels: navItem(
     "channels",
-    "Channels",
-    "channels",
-    "channel.manage",
-    "Rooms and collaboration hubs"
+    "Spaces",
+    "spaces",
+    "group.manage",
+    "Spaces and mini workspaces"
   ),
   members: navItem(
     "members",
@@ -222,7 +234,7 @@ export const OWNER_NAV_SECTIONS: OwnerNavSection[] = [
     id: "structure",
     label: "Structure",
     collapsible: true,
-    items: ["groups", "channels", "members", "roles"],
+    items: ["spaces", "members", "roles"],
   },
   {
     id: "experience",
@@ -239,7 +251,10 @@ export const OWNER_NAV_SECTIONS: OwnerNavSection[] = [
 ];
 
 export type OwnerQuickActionId =
+  | "create_space"
+  /** @deprecated Use create_space */
   | "create_group"
+  /** @deprecated removed from UI */
   | "create_channel"
   | "invite_members"
   | "start_live"
@@ -257,7 +272,7 @@ export type OwnerQuickAction = {
 
 /**
  * Build Owner Console URL for a community slug.
- * @param section - path under the console (e.g. "groups", "channels/abc", "")
+ * @param section - path under the console (e.g. "spaces", "channels/abc", "")
  * @param query - optional search params (action, tab, …) — community id is NOT required
  */
 export function ownerConsoleHref(
@@ -266,8 +281,15 @@ export function ownerConsoleHref(
   query?: Record<string, string | undefined | null>
 ): string {
   const clean = section.replace(/^\/+/, "").replace(/^community-owner\/?/i, "");
-  const base = clean
-    ? `${OWNER_CONSOLE_HUB}/${encodeURIComponent(slug)}/${clean}`
+  // Legacy groups/channels console paths → spaces
+  const normalized =
+    clean === "groups" || clean.startsWith("groups/")
+      ? clean.replace(/^groups/, "spaces")
+      : clean === "channels" || clean.startsWith("channels/")
+        ? "spaces"
+        : clean;
+  const base = normalized
+    ? `${OWNER_CONSOLE_HUB}/${encodeURIComponent(slug)}/${normalized}`
     : `${OWNER_CONSOLE_HUB}/${encodeURIComponent(slug)}`;
   if (!query) return base;
   const params = new URLSearchParams();
@@ -280,17 +302,10 @@ export function ownerConsoleHref(
 
 export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
   {
-    id: "create_group",
-    label: "Create Group",
-    href: ({ slug }) => ownerConsoleHref(slug, "groups", { action: "create" }),
+    id: "create_space",
+    label: "Create Space",
+    href: ({ slug }) => ownerConsoleHref(slug, "spaces", { action: "create" }),
     capability: "group.manage",
-  },
-  {
-    id: "create_channel",
-    label: "Create Channel",
-    href: ({ slug }) =>
-      ownerConsoleHref(slug, "channels", { action: "create" }),
-    capability: "channel.manage",
   },
   {
     id: "invite_members",
@@ -374,8 +389,9 @@ export type OwnerConsoleBadges = {
 /** Icon keys resolved in UI layer (avoids Lucide in shared config). */
 export const OWNER_SECTION_ICON_KEYS: Record<OwnerConsoleSectionId, string> = {
   overview: "layout",
+  spaces: "layers",
   groups: "layers",
-  channels: "hash",
+  channels: "layers",
   members: "users",
   roles: "shield",
   content: "file",

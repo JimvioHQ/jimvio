@@ -67,7 +67,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
       const res = await fetch(`/api/c/owner/groups/${groupId}`);
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Group not found");
+        toast.error(data.error || "Space not found");
         setGroup(null);
         return;
       }
@@ -169,10 +169,10 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
   if (!group) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm font-semibold">Group not found</p>
+        <p className="text-sm font-semibold">Space not found</p>
         <Button asChild variant="outline" className="mt-4">
-          <Link href={sectionPath("groups", community?.slug)}>
-            Back to groups
+          <Link href={sectionPath("spaces", community?.slug)}>
+            Back to spaces
           </Link>
         </Button>
       </div>
@@ -184,11 +184,11 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
-            href={sectionPath("groups", community?.slug)}
+            href={sectionPath("spaces", community?.slug)}
             className="mb-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Groups
+            Spaces
           </Link>
           <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-[var(--color-text-primary)]">
             <span>{group.icon ?? DEFAULT_GROUP_ICON}</span>
@@ -197,7 +197,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
           <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
             {GROUP_STATUS_LABELS[group.status]} ·{" "}
             {GROUP_PRIVACY_LABELS[group.privacy]} · {group.memberCount} members ·{" "}
-            {group.channelCount} channels
+            {group.channelCount} rooms
           </p>
         </div>
         {saving && (
@@ -563,13 +563,12 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
         {tab === "channels" && (
           <div className="space-y-3">
             <p className="text-[13px] text-[var(--color-text-muted)]">
-              Channels in this group. Full channel management arrives in the
-              Channels Owner Console phase.
+              Rooms in this Space.
             </p>
             <ul className="divide-y divide-[var(--color-border)] rounded-xl border border-[var(--color-border)]">
               {channels.length === 0 && (
                 <li className="px-4 py-8 text-center text-sm text-[var(--color-text-muted)]">
-                  No channels yet
+                  No rooms yet
                 </li>
               )}
               {channels.map((c) => (
@@ -785,7 +784,7 @@ function PermissionsEditor({
       {(
         [
           ["whoCanInvite", "Who can invite"],
-          ["whoCanCreateChannels", "Who can create sub-channels"],
+          ["whoCanCreateChannels", "Who can create rooms"],
           ["whoCanUpload", "Who can upload files"],
           ["whoCanCreateEvents", "Who can create events"],
           ["whoCanCreateCourses", "Who can create courses"],

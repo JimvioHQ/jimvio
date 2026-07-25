@@ -1,5 +1,6 @@
 /**
- * Map DB space/room rows → Workspace Group/Channel view models.
+ * Map DB space/room rows → Workspace Space / room view models.
+ * Product hierarchy: Community → Spaces (rooms remain internal units).
  */
 
 import type {
@@ -13,6 +14,7 @@ import {
   type ResolveRoleInput,
 } from "./permissions";
 import { resolveChannelPostingAccess } from "./channel-posting";
+import { isSpaceType, spaceTypeFromRoom, type SpaceType } from "./space-types";
 import {
   ROOM_TYPE_TO_CHANNEL,
   SYSTEM_GROUP_SLUGS,
@@ -20,6 +22,7 @@ import {
   type GroupPrivacy,
   type WorkspaceChannel,
   type WorkspaceGroup,
+  type WorkspaceSpace,
 } from "./types";
 
 function channelIconForType(type: ChannelType, name: string): string {
@@ -117,12 +120,22 @@ export function mapRoomToChannel(
   };
 }
 
-export function mapSpaceToGroup(
+function resolveSpaceType(space: WorkspaceSpaceRow): SpaceType {
+  if (space.space_type && isSpaceType(space.space_type)) {
+    return space.space_type;
+  }
+  const primary = space.rooms[0];
+  if (primary) return spaceTypeFromRoom(primary);
+  return "discussion";
+}
+
+/** Preferred mapper name — Community → Spaces. */
+export function mapSpaceToWorkspaceSpace(
   space: WorkspaceSpaceRow,
   roleInput: ResolveRoleInput,
   extras?: Partial<
     Pick<
-      WorkspaceGroup,
+      WorkspaceSpace,
       | "cover"
       | "description"
       | "color"
@@ -132,9 +145,10 @@ export function mapSpaceToGroup(
       | "createdAt"
       | "tags"
       | "featured"
+      | "spaceType"
     >
   >
-): WorkspaceGroup {
+): WorkspaceSpace {
   const role = resolveWorkspaceRole(roleInput);
   return {
     id: space.id,
@@ -155,10 +169,33 @@ export function mapSpaceToGroup(
     tags: extras?.tags ?? [],
     featured: extras?.featured ?? false,
     permissions: buildPermissions(role),
+    spaceType: extras?.spaceType ?? resolveSpaceType(space),
     channels: space.rooms.map((r) => mapRoomToChannel(r, roleInput)),
   };
 }
 
+/** @deprecated Use mapSpaceToWorkspaceSpace. */
+export function mapSpaceToGroup(
+  space: WorkspaceSpaceRow,
+  roleInput: ResolveRoleInput,
+  extras?: Partial<
+    Pick<
+      WorkspaceGroup,
+      | "cover"
+      | "description"
+      | "color"
+      | "rules"
+      | "memberCount"
+      | "onlineCount"
+      | "createdAt"
+      | "tags"
+      | "featured"
+      | "spaceType"
+    >
+  >
+): WorkspaceGroup {
+  return mapSpaceToWorkspaceSpace(space, roleInput, extras);
+}
 export function mapSpacesToGroups(
   spaces: WorkspaceSpaceRow[],
   roleInput: ResolveRoleInput,

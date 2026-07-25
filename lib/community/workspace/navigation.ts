@@ -1,12 +1,15 @@
 /**
- * Canonical community group/channel URLs — no query params.
+ * Canonical community Space URLs — no query params.
+ *
+ * Product hierarchy: Community → Spaces
  *
  * /communities/[communitySlug]
- * /communities/[communitySlug]/groups/[groupSlug]
- * /communities/[communitySlug]/channels/[channelSlug]
+ * /communities/[communitySlug]/spaces/[spaceSlug]
  *
- * Channels still belong to Groups in the database; the URL no longer nests
- * the parent group slug.
+ * Rooms remain the internal realtime/message unit under a Space. Flat URLs
+ * resolve a slug as either a Space or a room across the community.
+ *
+ * Legacy paths (/groups/…, /channels/…) permanently redirect to /spaces/….
  */
 
 import type { LucideIcon } from "lucide-react";
@@ -24,29 +27,39 @@ import type {
   WorkspaceSpaceRow,
 } from "@/components/community/workspace-context";
 
-/** Group workspace page. */
+/** Canonical Space workspace page. */
+export function communitySpaceHref(
+  communitySlug: string,
+  spaceSlug: string
+): string {
+  return `/communities/${encodeURIComponent(communitySlug)}/spaces/${encodeURIComponent(spaceSlug)}`;
+}
+
+/**
+ * @deprecated Use communitySpaceHref. Wrapper kept for call-site migration.
+ */
 export function communityGroupHref(
   communitySlug: string,
   groupSlug: string
 ): string {
-  return `/communities/${encodeURIComponent(communitySlug)}/groups/${encodeURIComponent(groupSlug)}`;
+  return communitySpaceHref(communitySlug, groupSlug);
 }
 
 /**
- * Canonical channel URL (flat).
- * Parent Group is resolved from the workspace loader by channelSlug.
+ * Canonical room / Space-area URL (flat under /spaces/).
+ * Resolves by room slug across the community; parent Space is loader-resolved.
  */
 export function communityChannelHref(
   communitySlug: string,
   channelSlug: string
 ): string {
-  return `/communities/${encodeURIComponent(communitySlug)}/channels/${encodeURIComponent(channelSlug)}`;
+  return communitySpaceHref(communitySlug, channelSlug);
 }
 
 /**
- * Room → channel URL helper.
+ * Room → Space-area URL helper.
  * `groupSlug` is accepted for call-site convenience but ignored in the path
- * (Group remains a DB relationship only).
+ * (Space remains a DB relationship only).
  */
 export function communityRoomHref(
   communitySlug: string,
@@ -95,8 +108,8 @@ export function resolveRoom(
 }
 
 /**
- * Resolve a channel by slug (or id) across all groups in the community.
- * Optionally constrain to a known group when `spaceKey` is provided.
+ * Resolve a room by slug (or id) across all Spaces in the community.
+ * Optionally constrain to a known Space when `spaceKey` is provided.
  */
 export function resolveSpaceAndRoom(
   spaces: WorkspaceSpaceRow[],
@@ -128,7 +141,7 @@ export function canonicalFromSpaceRoom(
   if (room) {
     return communityChannelHref(communitySlug, room.slug);
   }
-  return communityGroupHref(communitySlug, space.slug);
+  return communitySpaceHref(communitySlug, space.slug);
 }
 
 export function roomTypeIcon(roomType: string): LucideIcon {

@@ -45,26 +45,34 @@ assert.match(perms, /canEnterChannel/);
 assert.match(mappers, /mapSpaceToGroup/);
 assert.match(mappers, /mapRoomToChannel/);
 assert.match(index, /export/);
+assert.match(nav, /communitySpaceHref/);
 assert.match(nav, /communityGroupHref/);
 assert.match(nav, /communityChannelHref/);
-assert.match(nav, /\/communities\/\$\{[^}]+\}\/channels\//);
+assert.match(nav, /\/spaces\//);
 assert.match(nav, /legacyNestedChannelHref/);
 assert.doesNotMatch(nav, /\?space=/);
 assert.match(shell, /ChannelWorkspace/);
 assert.match(shell, /discussion/);
-assert.match(channelPage, /RoomContent/);
-assert.match(channelPage, /ChannelWorkspacePage/);
-assert.match(channelPage, /resolveSpaceAndRoom/);
+assert.match(channelPage, /RoomContent|resolveSpaceAndRoom/);
 assert.match(groupPage, /GroupWorkspace/);
 assert.match(roomContent, /ChannelWorkspace/);
 assert.match(roomContent, /mapRoomToChannel/);
 
-mustExist("app/communities/(hubs)/[slug]/groups/[groupSlug]/page.tsx");
-mustExist("app/communities/(hubs)/[slug]/channels/[channelSlug]/page.tsx");
+const spaceRoute = mustExist(
+  "app/communities/(hubs)/[slug]/spaces/[spaceSlug]/page.tsx"
+);
+assert.match(spaceRoute, /SpaceWorkspacePage|GroupWorkspacePage/);
+const groupsRoute = mustExist(
+  "app/communities/(hubs)/[slug]/groups/[groupSlug]/page.tsx"
+);
+const channelsRoute = mustExist(
+  "app/communities/(hubs)/[slug]/channels/[channelSlug]/page.tsx"
+);
+assert.match(groupsRoute, /permanentRedirect/);
+assert.match(channelsRoute, /permanentRedirect/);
 const legacyChannel = mustExist(
   "app/communities/(hubs)/[slug]/groups/[groupSlug]/channels/[channelSlug]/page.tsx"
 );
 assert.match(legacyChannel, /permanentRedirect/);
-assert.match(legacyChannel, /\/channels\//);
 
 console.log("Community workspace foundation verification passed.");

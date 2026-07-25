@@ -1,21 +1,19 @@
-import { GroupWorkspacePage } from "@/components/community/workspace/group/GroupWorkspacePage";
-import { constructMetadata } from "@/lib/seo";
+import { permanentRedirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({
+/**
+ * Legacy Group URL — permanently redirects to the canonical Spaces path.
+ * /communities/[slug]/groups/[groupSlug]
+ *   → /communities/[slug]/spaces/[groupSlug]
+ */
+export default async function LegacyGroupRedirect({
   params,
 }: {
   params: Promise<{ slug: string; groupSlug: string }>;
 }) {
   const { slug, groupSlug } = await params;
-  return constructMetadata({
-    title: "Group",
-    description: `Group workspace in ${slug}.`,
-    path: `/communities/${slug}/groups/${groupSlug}`,
-  });
-}
-
-export default function CommunityGroupPage() {
-  return <GroupWorkspacePage />;
+  permanentRedirect(
+    `/communities/${encodeURIComponent(slug)}/spaces/${encodeURIComponent(groupSlug)}`
+  );
 }

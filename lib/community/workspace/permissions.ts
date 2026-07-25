@@ -27,6 +27,12 @@ export type PermissionCapability =
   | "group.manage"
   | "group.create"
   | "group.delete"
+  /** Product term Space — aliased to group.* / channel.* for checks. */
+  | "space.create"
+  | "space.manage"
+  | "space.delete"
+  | "space.read"
+  | "space.write"
   | "members.view"
   | "members.invite"
   | "members.manage"
@@ -69,6 +75,11 @@ export const ALL_CAPABILITIES = [
   "group.create",
   "group.manage",
   "group.delete",
+  "space.create",
+  "space.manage",
+  "space.delete",
+  "space.read",
+  "space.write",
   "channel.create",
   "channel.read",
   "channel.write",
@@ -111,6 +122,7 @@ export const ALL_CAPABILITIES = [
 /**
  * Product-facing aliases → engine keys (never invent parallel auth).
  * e.g. UI may show "groups.manage" while engine stores "group.manage".
+ * Space.* aliases onto group.* / channel.* so both product and legacy grants work.
  */
 export const CAPABILITY_ALIASES: Record<string, PermissionCapability> = {
   "groups.create": "group.create",
@@ -121,6 +133,39 @@ export const CAPABILITY_ALIASES: Record<string, PermissionCapability> = {
   "channels.delete": "channel.delete",
   "channels.read": "channel.read",
   "channels.write": "channel.write",
+  "spaces.create": "group.create",
+  "spaces.manage": "group.manage",
+  "spaces.delete": "group.delete",
+  "spaces.read": "channel.read",
+  "spaces.write": "channel.write",
+  "space.create": "group.create",
+  "space.manage": "group.manage",
+  "space.delete": "group.delete",
+  "space.read": "channel.read",
+  "space.write": "channel.write",
+};
+
+/**
+ * Extra satisfaction edges beyond 1:1 aliases.
+ * Having space.* in a grant set satisfies the legacy group.* / channel.* check
+ * (and the reverse for typed space.* still present in ALL_CAPABILITIES).
+ */
+const CAPABILITY_EQUIVALENTS: Partial<
+  Record<PermissionCapability, readonly PermissionCapability[]>
+> = {
+  "group.manage": ["space.manage"],
+  "channel.manage": ["space.manage"],
+  "space.manage": ["group.manage", "channel.manage"],
+  "group.create": ["space.create"],
+  "channel.create": ["space.create"],
+  "space.create": ["group.create", "channel.create"],
+  "group.delete": ["space.delete"],
+  "channel.delete": ["space.delete"],
+  "space.delete": ["group.delete", "channel.delete"],
+  "channel.read": ["space.read"],
+  "space.read": ["channel.read"],
+  "channel.write": ["space.write"],
+  "space.write": ["channel.write"],
 };
 
 export function normalizeCapability(
@@ -311,20 +356,50 @@ export function resolveWorkspaceRole(input: ResolveRoleInput): WorkspaceRole {
   return "member";
 }
 
+function capabilitySetHas(
+  set: ReadonlySet<PermissionCapability>,
+  cap: PermissionCapability
+): boolean {
+  if (set.has(cap)) return true;
+  for (const equiv of CAPABILITY_EQUIVALENTS[cap] ?? []) {
+    if (set.has(equiv)) return true;
+  }
+  return false;
+}
+
 export function hasCapability(
   role: WorkspaceRole,
   capability: PermissionCapability | string,
   customCapabilities?: readonly string[] | null
 ): boolean {
+  const raw =
+    typeof capability === "string"
+      ? capability.trim().toLowerCase()
+      : capability;
+
+  // space.manage is satisfied by group.manage OR channel.manage (product alias).
+  if (raw === "space.manage" || raw === "spaces.manage") {
+    const set =
+      customCapabilities && customCapabilities.length > 0
+        ? resolveEffectiveCapabilities({ role, customCapabilities })
+        : ROLE_CAPABILITIES[role];
+    return (
+      capabilitySetHas(set, "group.manage") ||
+      capabilitySetHas(set, "channel.manage") ||
+      set.has("space.manage")
+    );
+  }
+
   const cap =
     typeof capability === "string"
       ? normalizeCapability(capability)
-      : capability;
+      : CAPABILITY_ALIASES[capability] ?? capability;
   if (!cap) return false;
-  if (customCapabilities && customCapabilities.length > 0) {
-    return resolveEffectiveCapabilities({ role, customCapabilities }).has(cap);
-  }
-  return ROLE_CAPABILITIES[role].has(cap);
+  const set =
+    customCapabilities && customCapabilities.length > 0
+      ? resolveEffectiveCapabilities({ role, customCapabilities })
+      : ROLE_CAPABILITIES[role];
+  return capabilitySetHas(set, cap);
 }
 
 export function buildPermissions(role: WorkspaceRole): WorkspacePermissions {

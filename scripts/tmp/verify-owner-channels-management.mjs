@@ -67,15 +67,17 @@ assert.match(apiActions, /move/);
 assert.match(apiStaff, /room_staff/);
 assert.match(apiMembers, /space_access/);
 assert.match(apiAnalytics, /OwnerChannelAnalytics/);
-assert.match(page, /sectionId="channels"/);
-assert.match(page, /ChannelsManagement/);
+assert.match(page, /permanentRedirect/);
+assert.match(page, /spaces/);
 assert.match(settingsPage, /ChannelSettingsPage/);
-assert.match(management, /Create Channel/);
+// Management UI retained for APIs/detail; owner console list redirects to Spaces
+assert.match(management, /ChannelsManagement|Create Space/);
 assert.match(wizard, /STEPS/);
 assert.match(wizard, /Publish/);
 assert.match(list, /draggable|Drag to reorder/);
 assert.match(settings, /Danger Zone|danger/);
 assert.match(settings, /automation/);
 assert.match(settings, /CHANNEL_SETTINGS_TABS/);
+mustExist("app/dashboard/communities/[communitySlug]/spaces/page.tsx");
 
 console.log("Community owner channels management verification passed.");

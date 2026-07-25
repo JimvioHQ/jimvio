@@ -1,9 +1,16 @@
 /**
- * Community Workspace Foundation — domain types (Phase 1).
+ * Community Workspace Foundation — domain types.
  *
- * Group ↔ spaces table · Channel ↔ rooms table.
- * These view models are the single source of truth for future features.
+ * Product hierarchy: Community → Spaces (no Groups / Channels in product UI).
+ * DB: Space ↔ `spaces` table · Room ↔ `rooms` table (realtime/message unit).
+ *
+ * WorkspaceSpace is the preferred view-model name. WorkspaceGroup remains as a
+ * deprecated type alias for gradual migration.
  */
+
+import type { SpaceType } from "./space-types";
+
+export type { SpaceType } from "./space-types";
 
 export const WORKSPACE_ROLES = [
   "owner",
@@ -40,7 +47,10 @@ export type CustomRoleDefinition = {
   updatedAt: string | null;
 };
 
-/** Channel product types — maps to DB `rooms.room_type` where possible. */
+/**
+ * Internal room product types — maps to DB `rooms.room_type` where possible.
+ * Product term for a room under a Space is a Space area / room (not "Channel").
+ */
 export const CHANNEL_TYPES = [
   "discussion",
   "announcement",
@@ -104,6 +114,10 @@ export type WorkspacePermissions = {
   canUpload: boolean;
 };
 
+/**
+ * Internal mapping of a DB room under a Space.
+ * Product term: Space area / room (legacy code may still say "Channel").
+ */
 export type WorkspaceChannel = {
   id: string;
   groupId: string;
@@ -127,7 +141,11 @@ export type WorkspaceChannel = {
   sortOrder: number | null;
 };
 
-export type WorkspaceGroup = {
+/**
+ * Preferred Space view model (Community → Spaces).
+ * Maps to DB `spaces` table.
+ */
+export type WorkspaceSpace = {
   id: string;
   name: string;
   slug: string;
@@ -146,10 +164,21 @@ export type WorkspaceGroup = {
   tags: string[];
   featured: boolean;
   permissions: WorkspacePermissions;
+  /** Extensible product type (discussion | voice | live | …). */
+  spaceType?: SpaceType;
+  /**
+   * Internal rooms under this Space.
+   * Product term is Space area/room; field name kept for compatibility.
+   */
   channels: WorkspaceChannel[];
 };
 
-/** Spaces that hold community-wide channels (not member Groups). */
+/**
+ * @deprecated Use WorkspaceSpace. Alias retained for gradual migration.
+ */
+export type WorkspaceGroup = WorkspaceSpace;
+
+/** Spaces that hold community-wide rooms (system Spaces, not member Spaces). */
 export const SYSTEM_GROUP_SLUGS = [
   "general",
   "announcements",

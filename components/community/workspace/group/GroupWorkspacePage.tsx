@@ -8,7 +8,7 @@ import { resolveSpace } from "@/lib/community/workspace";
 import { GroupWorkspace } from "./GroupWorkspace";
 import { WorkspaceSkeleton } from "@/components/community/workspace/shared/WorkspaceSkeleton";
 import { VisitTracker } from "@/components/community/personalization/VisitTracker";
-import { communityGroupHref } from "@/lib/community/workspace/navigation";
+import { communitySpaceHref } from "@/lib/community/workspace/navigation";
 
 function GroupStatusCard({
   icon: Icon,
@@ -48,7 +48,7 @@ function GroupStatusCard({
 }
 
 /**
- * First-class Group page — resolves by groupSlug only (never legacy space IDs in the URL).
+ * First-class Space page — resolves by spaceSlug (or legacy groupSlug).
  * Soft-fails with Not Found / access UI instead of crashing the route.
  */
 export function GroupWorkspacePage() {
@@ -62,23 +62,30 @@ export function GroupWorkspacePage() {
       : Array.isArray(params.slug)
         ? params.slug[0]
         : "";
-  const groupSlug =
+  const spaceSlugParam =
+    typeof params.spaceSlug === "string"
+      ? params.spaceSlug
+      : Array.isArray(params.spaceSlug)
+        ? params.spaceSlug[0]
+        : "";
+  const groupSlugParam =
     typeof params.groupSlug === "string"
       ? params.groupSlug
       : Array.isArray(params.groupSlug)
         ? params.groupSlug[0]
         : "";
+  const resolvedSpaceSlug = spaceSlugParam || groupSlugParam;
 
   const homeBase = `/communities/${communitySlug}`;
 
   const space = useMemo(
-    () => resolveSpace(workspace?.spacesWithRooms ?? [], groupSlug),
-    [workspace?.spacesWithRooms, groupSlug]
+    () => resolveSpace(workspace?.spacesWithRooms ?? [], resolvedSpaceSlug),
+    [workspace?.spacesWithRooms, resolvedSpaceSlug]
   );
 
-  if (!groupSlug) {
+  if (!resolvedSpaceSlug) {
     return (
-      <div className="flex flex-1 flex-col" aria-busy aria-label="Loading group">
+      <div className="flex flex-1 flex-col" aria-busy aria-label="Loading space">
         <WorkspaceSkeleton rows={6} className="min-h-[280px]" />
       </div>
     );
@@ -88,8 +95,8 @@ export function GroupWorkspacePage() {
     return (
       <GroupStatusCard
         icon={Lock}
-        title="Sign in to open this group"
-        description="Group workspaces require an active community membership."
+        title="Sign in to open this Space"
+        description="Spaces require an active community membership."
         actionLabel="Back to community"
         onAction={() => router.push(homeBase)}
       />
@@ -100,8 +107,8 @@ export function GroupWorkspacePage() {
     return (
       <GroupStatusCard
         icon={Layers}
-        title="Group not found"
-        description="This group may have been renamed, archived, or removed. Check the community overview for current groups."
+        title="Space not found"
+        description="This Space may have been renamed, archived, or removed. Check the community overview for current Spaces."
         actionLabel="Back to community"
         onAction={() => router.push(homeBase)}
       />
@@ -109,13 +116,13 @@ export function GroupWorkspacePage() {
   }
 
   // Prefer slug for URLs — never emit bare UUIDs in the address bar.
-  const resolvedGroupSlug = space.slug?.trim() || groupSlug;
+  const resolvedSlug = space.slug?.trim() || resolvedSpaceSlug;
   if (!space.slug?.trim()) {
     return (
       <GroupStatusCard
         icon={Layers}
-        title="Group unavailable"
-        description="This group is missing a public slug and cannot be opened from a link. Ask an owner to republish it."
+        title="Space unavailable"
+        description="This Space is missing a public slug and cannot be opened from a link. Ask an owner to republish it."
         actionLabel="Back to community"
         onAction={() => router.push(homeBase)}
       />
@@ -123,7 +130,7 @@ export function GroupWorkspacePage() {
   }
 
   const slug = communitySlug || workspace.slug;
-  const groupHref = communityGroupHref(slug, resolvedGroupSlug);
+  const spaceHref = communitySpaceHref(slug, resolvedSlug);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -132,8 +139,8 @@ export function GroupWorkspacePage() {
         kind="group"
         communityId={workspace.communityId}
         title={space.name}
-        href={groupHref}
-        subtitle={`${space.rooms.length} channels`}
+        href={spaceHref}
+        subtitle={`${space.rooms.length} rooms`}
       />
       <GroupWorkspace
         space={space}

@@ -3,9 +3,9 @@ import { permanentRedirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 /**
- * Legacy nested channel URL — permanently redirects to the flat canonical path.
+ * Legacy nested channel URL — permanently redirects to the flat Spaces path.
  * /communities/[slug]/groups/[groupSlug]/channels/[channelSlug]
- *   → /communities/[slug]/channels/[channelSlug]
+ *   → /communities/[slug]/spaces/[channelSlug]
  */
 export default async function LegacyNestedChannelRedirect({
   params,
@@ -14,6 +14,6 @@ export default async function LegacyNestedChannelRedirect({
 }) {
   const { slug, channelSlug } = await params;
   permanentRedirect(
-    `/communities/${encodeURIComponent(slug)}/channels/${encodeURIComponent(channelSlug)}`
+    `/communities/${encodeURIComponent(slug)}/spaces/${encodeURIComponent(channelSlug)}`
   );
 }

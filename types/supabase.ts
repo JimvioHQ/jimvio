@@ -4011,6 +4011,7 @@ export type Database = {
           rules: string | null
           slug: string
           sort_order: number | null
+          space_type: string
           updated_at: string | null
           welcome_message: string | null
         }
@@ -4042,6 +4043,7 @@ export type Database = {
           rules?: string | null
           slug: string
           sort_order?: number | null
+          space_type?: string
           updated_at?: string | null
           welcome_message?: string | null
         }
@@ -4073,6 +4075,7 @@ export type Database = {
           rules?: string | null
           slug?: string
           sort_order?: number | null
+          space_type?: string
           updated_at?: string | null
           welcome_message?: string | null
         }

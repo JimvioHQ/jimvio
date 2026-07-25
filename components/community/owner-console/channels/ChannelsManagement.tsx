@@ -67,7 +67,7 @@ export function ChannelsManagement() {
   if (!community) {
     return (
       <p className="text-sm text-[var(--color-text-muted)]">
-        Select a community to manage channels.
+        Select a community to manage spaces.
       </p>
     );
   }
@@ -76,10 +76,10 @@ export function ChannelsManagement() {
     return (
       <div className="rounded-2xl border border-[var(--color-border)] px-5 py-10 text-center">
         <p className="text-sm font-semibold">
-          Channels management requires Owner or Admin
+          Spaces management requires Owner or Admin
         </p>
         <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
-          Your current role ({role}) does not include channel.manage.
+          Your current role ({role}) does not include space.manage.
         </p>
       </div>
     );
@@ -93,9 +93,9 @@ export function ChannelsManagement() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search channels, groups, types, moderators…"
+            placeholder="Search spaces, types, moderators…"
             className="h-10 pl-9"
-            aria-label="Search channels"
+            aria-label="Search spaces"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -103,9 +103,9 @@ export function ChannelsManagement() {
             value={groupFilter}
             onChange={(e) => setGroupFilter(e.target.value)}
             className="h-10 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-2 text-sm"
-            aria-label="Filter by group"
+            aria-label="Filter by space"
           >
-            <option value="all">All groups</option>
+            <option value="all">All spaces</option>
             {groups.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
@@ -196,14 +196,14 @@ export function ChannelsManagement() {
             disabled={groups.length === 0}
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            Create Channel
+            Create Space
           </Button>
         </div>
       </div>
 
       {groups.length === 0 && (
         <p className="text-[13px] text-amber-700 dark:text-amber-400">
-          Create a group first before adding channels.
+          Create a Space first before adding more rooms.
         </p>
       )}
 

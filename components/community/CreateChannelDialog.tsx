@@ -99,10 +99,10 @@ export function CreateChannelDialog({
     >
       <DialogContent className="max-w-md border-[var(--color-border)] bg-[var(--color-surface)]">
         <DialogHeader>
-          <DialogTitle className="text-base font-bold">Create Channel</DialogTitle>
+          <DialogTitle className="text-base font-bold">Create Space room</DialogTitle>
           <DialogDescription className="text-sm text-[var(--color-text-muted)]">
-            Channels live inside this Group. Discussion-style templates stay open for
-            members; announcements stay publisher-only.
+            Add a collaboration room inside this Space. Discussion-style templates stay
+            open for members; announcements stay publisher-only.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="mt-2 space-y-3">

@@ -127,7 +127,7 @@ export function MembersList({
           <span>Member</span>
           <span>Role</span>
           <span>Status</span>
-          <span>Groups</span>
+          <span>Spaces</span>
           <span>Joined</span>
           <span>Last active</span>
           <span>Score</span>

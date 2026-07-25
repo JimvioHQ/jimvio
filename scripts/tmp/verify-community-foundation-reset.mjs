@@ -1,5 +1,5 @@
 /**
- * Community foundation reset — no default Groups/Channels.
+ * Community foundation reset — no default Spaces/rooms.
  * Auto-picked up by ci:prepush via scripts/tmp/verify-*.mjs
  */
 import assert from "node:assert/strict";
@@ -35,9 +35,9 @@ assert.doesNotMatch(communitiesApi, /slug: "channels"/);
 assert.doesNotMatch(communitiesApi, /slug: "general"/);
 assert.doesNotMatch(communitiesApi, /Voice Room/);
 
-assert.doesNotMatch(spacesApi, /roomName/);
 assert.doesNotMatch(spacesApi, /name: "General"/);
-assert.match(spacesApi, /room: null/);
+assert.match(spacesApi, /spaceType|space_type/);
+assert.match(spacesApi, /SPACE_TYPE_TO_ROOM_TYPE|channel_kind/);
 
 assert.doesNotMatch(groupsApi, /name: "General"/);
 assert.match(groupDefaults, /defaultChannels: \[\]/);
@@ -45,12 +45,15 @@ assert.match(groupDefaults, /defaultChannels: \[\]/);
 assert.doesNotMatch(sidebar, /DEFAULT_CHANNEL_DEFS/);
 assert.doesNotMatch(sidebar, /label: "Signals"/);
 assert.doesNotMatch(sidebar, /fallbackHref/);
+assert.match(sidebar, /Spaces/);
+assert.match(sidebar, /Create your first Space|Create Space/);
+assert.doesNotMatch(sidebar, /CreateChannelDialog/);
 
-assert.doesNotMatch(createSpace, /defaultRoomType/);
 assert.doesNotMatch(createForm, /Default channels are created/);
+assert.match(createSpace, /Create Space|entityLabel/);
 
 assert.match(overview, /Welcome to your new Community|This community is being prepared/);
-assert.match(overview, /Create your first Group/);
+assert.match(overview, /Create your first Space/);
 assert.match(overview, /max-w-\[1400px\]/);
 assert.match(overview, /grid-cols-12/);
 

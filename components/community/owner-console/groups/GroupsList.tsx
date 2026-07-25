@@ -120,10 +120,10 @@ export function GroupsList({
           <thead className="bg-[var(--color-surface-secondary)]/60 text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
             <tr>
               <th className="px-3 py-3 w-8" />
-              <th className="px-3 py-3">Group</th>
+              <th className="px-3 py-3">Space</th>
               <th className="px-3 py-3">Visibility</th>
               <th className="px-3 py-3">Members</th>
-              <th className="px-3 py-3">Channels</th>
+              <th className="px-3 py-3">Rooms</th>
               <th className="px-3 py-3">Created</th>
               <th className="px-3 py-3">Activity</th>
               <th className="px-3 py-3">Status</th>

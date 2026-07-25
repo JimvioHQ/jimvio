@@ -25,8 +25,8 @@ export function AnalyticsSectionBody({
           items={[
             { label: "Members", value: analytics.overview.totals.members },
             { label: "Online", value: analytics.overview.totals.online },
-            { label: "Groups", value: analytics.overview.totals.groups },
-            { label: "Channels", value: analytics.overview.totals.channels },
+            { label: "Spaces", value: analytics.overview.totals.groups },
+            { label: "Rooms", value: analytics.overview.totals.channels },
             { label: "Messages", value: analytics.overview.totals.messages },
             { label: "Open reports", value: analytics.overview.totals.reportsOpen },
             {

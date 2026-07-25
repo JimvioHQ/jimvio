@@ -452,7 +452,7 @@ export function PersonalizedHome({
             {discovery.groups.length > 0 ? (
               <div className="col-span-12 lg:col-span-4 space-y-2.5">
                 <p className="text-[12px] font-semibold text-[var(--color-text-muted)]">
-                  Trending Groups
+                  Trending Spaces
                 </p>
                 {discovery.groups.map((g) => (
                   <RailCard

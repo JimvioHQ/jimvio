@@ -30,6 +30,8 @@ export type WorkspaceSpaceRow = {
   icon: string | null;
   access_type: string;
   sort_order: number | null;
+  /** Product Space type (discussion | voice | live | …). */
+  space_type?: string | null;
   rooms: WorkspaceRoomRow[];
 };
 

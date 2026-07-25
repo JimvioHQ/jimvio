@@ -11,7 +11,7 @@ import { GroupCard } from "@/components/community/workspace/group/GroupCard";
 import { ChannelEmptyState } from "@/components/community/workspace/channel/ChannelEmptyState";
 import { useWorkspaceFavorites } from "@/components/community/workspace/shared/useWorkspaceFavorites";
 import {
-  communityGroupHref,
+  communitySpaceHref,
   mapSpaceToGroup,
 } from "@/lib/community/workspace";
 
@@ -23,8 +23,8 @@ interface Props {
 }
 
 /**
- * Premium Groups gallery — collaboration spaces, not accordion lists.
- * Opens canonical /groups/[groupSlug] routes.
+ * Premium Spaces gallery — collaboration spaces, not accordion lists.
+ * Opens canonical /spaces/[spaceSlug] routes.
  */
 export function SpacesSection({
   community,
@@ -45,7 +45,7 @@ export function SpacesSection({
 
   const canCreate = isOwner || isAdmin;
 
-  const groups = useMemo(() => {
+  const spaceCards = useMemo(() => {
     const roleInput = { userId, ownerId, membership };
     const online = overview?.membersOnline ?? 0;
     return spacesWithRooms.map((space, index) => {
@@ -81,14 +81,14 @@ export function SpacesSection({
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-accent)]">
-            Collaboration spaces
+            Collaboration
           </p>
           <h2 className="mt-1 text-[22px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[26px]">
-            Groups
+            Spaces
           </h2>
           <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
-            Premium workspaces for channels, knowledge, courses, and live
-            sessions — open a group before you enter a discussion.
+            Premium workspaces for discussion, knowledge, courses, and live
+            sessions — open a Space to start collaborating.
           </p>
         </div>
         {canCreate && (
@@ -98,31 +98,31 @@ export function SpacesSection({
             className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
-            Create group
+            Create Space
           </button>
         )}
       </header>
 
-      {groups.length === 0 ? (
+      {spaceCards.length === 0 ? (
         <ChannelEmptyState
           icon={Layers}
-          title="No groups yet"
+          title="No Spaces yet"
           description={
             canCreate
-              ? "Create the first group to organize channels and collaboration."
-              : "This community has not published groups yet. Check back soon."
+              ? "Create your first Space to organize collaboration."
+              : "This community has not published Spaces yet. Check back soon."
           }
-          actionLabel={canCreate ? "Create the first group" : undefined}
+          actionLabel={canCreate ? "Create your first Space" : undefined}
           onAction={canCreate ? () => setCreateOpen(true) : undefined}
         />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {groups.map(({ space, group }, index) => {
-            const href = communityGroupHref(community.slug, space.slug);
+          {spaceCards.map(({ space, group }, index) => {
+            const href = communitySpaceHref(community.slug, space.slug);
             const latest =
               group.channels[0]?.name
                 ? `Latest · ${group.channels[0].name}`
-                : `${group.channels.length} channels ready`;
+                : `${group.channels.length} rooms ready`;
             return (
               <GroupCard
                 key={space.id}

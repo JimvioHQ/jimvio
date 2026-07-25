@@ -199,7 +199,7 @@ export async function searchCommunities(
             title: space.name,
             subtitle: space.description?.slice(0, 80) ?? community?.name ?? null,
             href: community
-              ? `/communities/${community.slug}/groups/${space.slug}`
+              ? `/communities/${community.slug}/spaces/${space.slug}`
               : "/communities/spaces",
             communityName: community?.name ?? null,
             communitySlug: community?.slug ?? null,
@@ -231,7 +231,7 @@ export async function searchCommunities(
             subtitle: community?.name ?? null,
             href:
               community && space
-                ? `/communities/${community.slug}/channels/${room.slug}`
+                ? `/communities/${community.slug}/spaces/${room.slug}`
                 : community
                   ? `/communities/${community.slug}/chats`
                   : "/communities",

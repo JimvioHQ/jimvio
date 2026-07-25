@@ -11,8 +11,8 @@ import type {
 export const SECTION_LABELS: Record<AnalyticsSectionId, string> = {
   overview: "Overview",
   members: "Members",
-  groups: "Groups",
-  channels: "Channels",
+  groups: "Spaces",
+  channels: "Rooms",
   messages: "Messages",
   knowledge: "Knowledge",
   courses: "Courses",

@@ -209,7 +209,7 @@ export function CreatorOSDashboard({
           {(
             [
               [`${base}/feed`, "Feed", MessageSquare],
-              [`${base}?section=spaces`, "Groups", Layers],
+              [`${base}?section=spaces`, "Spaces", Layers],
               [`${base}/live`, "Live", Radio],
               [`${base}/courses`, "Learn", GraduationCap],
             ] as const
@@ -306,7 +306,7 @@ export function CreatorOSDashboard({
         >
           <p className="rounded-lg border border-dashed border-[var(--color-border)] px-3 py-3 text-[13px] text-[var(--color-text-muted)]">
             {overview?.spacesCount
-              ? `${overview.spacesCount} spaces ready — open Groups to enter a mini workspace.`
+              ? `${overview.spacesCount} Spaces ready — open Spaces to enter a mini workspace.`
               : "Create or join a space to collaborate in channels, knowledge, and resources."}
           </p>
         </SectionShell>

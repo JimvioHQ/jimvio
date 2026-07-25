@@ -3,11 +3,13 @@ export type {
   ChannelType,
   ChannelVisibility,
   GroupPrivacy,
+  SpaceType,
   SystemGroupSlug,
   WorkspaceChannel,
   WorkspaceGroup,
   WorkspacePermissions,
   WorkspaceRole,
+  WorkspaceSpace,
 } from "./types";
 
 export {
@@ -19,6 +21,17 @@ export {
   SYSTEM_GROUP_SLUGS,
   WORKSPACE_ROLES,
 } from "./types";
+
+export {
+  SPACE_TYPES,
+  SPACE_TYPE_LABELS,
+  SPACE_TYPE_TO_ROOM_TYPE,
+  ROOM_TYPE_TO_SPACE_TYPE,
+  CHANNEL_KIND_TO_SPACE_TYPE,
+  isSpaceType,
+  spaceTypeFromRoom,
+  roomTypeForSpaceType,
+} from "./space-types";
 
 export {
   buildPermissions,
@@ -45,6 +58,7 @@ export {
   isSystemGroupSlug,
   mapRoomToChannel,
   mapSpaceToGroup,
+  mapSpaceToWorkspaceSpace,
   mapSpacesToGroups,
 } from "./mappers";
 
@@ -57,6 +71,7 @@ export {
   communityRoomHref,
   communityChannelHref,
   communityGroupHref,
+  communitySpaceHref,
   legacyNestedChannelHref,
   resolveSpace,
   resolveRoom,

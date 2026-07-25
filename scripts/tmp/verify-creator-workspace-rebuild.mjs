@@ -109,12 +109,12 @@ assert.match(media, /Images|Videos|Audio/);
 assert.match(members, /ROLE_STYLE|role/i);
 assert.match(roomContent, /ChannelWorkspace/);
 assert.doesNotMatch(roomContent, /Chat UI goes here/);
-assert.match(shell, /communityGroupHref|communityChannelHref/);
+assert.match(shell, /communityGroupHref|communityChannelHref|communitySpaceHref/);
 assert.match(shell, /WorkspaceProvider/);
 assert.doesNotMatch(shell, /searchParams\.get\([\"']space[\"']\)/);
 assert.doesNotMatch(nav, /\?space=/);
-assert.match(nav, /\/groups\//);
-assert.match(nav, /\/channels\//);
+assert.match(nav, /communitySpaceHref/);
+assert.match(nav, /\/spaces\//);
 assert.match(nav, /communityChannelHref\(\s*communitySlug,\s*channelSlug/);
 assert.match(roomIndex, /requestSearch/);
 assert.doesNotMatch(channelWs, /fork ChatRoom/i);
@@ -124,20 +124,31 @@ assert.match(communitySidebar, /label: "Overview"/);
 assert.match(communitySidebar, /label: "Courses"/);
 assert.match(communitySidebar, /label: "Challenges"/);
 assert.match(communitySidebar, /label: "About"/);
+assert.match(communitySidebar, /Spaces/);
 assert.doesNotMatch(communitySidebar, /label: "Announcements"/);
 assert.doesNotMatch(communitySidebar, /label: "Feed"/);
 assert.doesNotMatch(communitySidebar, /label: "Events"/);
+assert.doesNotMatch(communitySidebar, /CreateChannelDialog/);
 
 assert.match(roomsApi, /ensure_discussion/);
 assert.match(roomsApi, /DISCUSSION_PERMISSION_CONFIG/);
 assert.match(chatRoom, /emptyTitle/);
 
+mustExist("app/communities/(hubs)/[slug]/spaces/[spaceSlug]/page.tsx");
 mustExist("app/communities/(hubs)/[slug]/groups/[groupSlug]/page.tsx");
 mustExist("app/communities/(hubs)/[slug]/channels/[channelSlug]/page.tsx");
 const legacyNested = mustExist(
   "app/communities/(hubs)/[slug]/groups/[groupSlug]/channels/[channelSlug]/page.tsx"
 );
 assert.match(legacyNested, /permanentRedirect/);
+assert.match(
+  mustExist("app/communities/(hubs)/[slug]/groups/[groupSlug]/page.tsx"),
+  /permanentRedirect/
+);
+assert.match(
+  mustExist("app/communities/(hubs)/[slug]/channels/[channelSlug]/page.tsx"),
+  /permanentRedirect/
+);
 mustExist("lib/community/workspace/legacy-redirect.ts");
 assert.match(
   mustExist("lib/community/workspace/legacy-redirect.ts"),

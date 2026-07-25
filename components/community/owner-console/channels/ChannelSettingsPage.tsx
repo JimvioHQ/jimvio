@@ -175,11 +175,11 @@ export function ChannelSettingsPage({ channelId }: { channelId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link
-            href={sectionPath("channels", community?.slug)}
+            href={sectionPath("spaces", community?.slug)}
             className="mb-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Channels
+            Spaces
           </Link>
           <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
             <span>{channel.emoji ?? channel.icon ?? DEFAULT_CHANNEL_ICON}</span>

@@ -3,7 +3,11 @@
  */
 
 import type { PermissionCapability } from "@/lib/community/workspace/permissions";
-import { ALL_CAPABILITIES, capabilitiesForRole } from "@/lib/community/workspace/permissions";
+import {
+  ALL_CAPABILITIES,
+  capabilitiesForRole,
+  normalizeCapability,
+} from "@/lib/community/workspace/permissions";
 import type { WorkspaceRole } from "@/lib/community/workspace/types";
 import type {
   OwnerRoleTemplate,
@@ -63,8 +67,11 @@ export const SYSTEM_ROLE_ICONS: Record<SystemRoleKey, string> = {
 
 export const PERMISSION_CATEGORY_LABELS: Record<PermissionCategoryId, string> = {
   community: "Community",
-  groups: "Groups",
-  channels: "Channels",
+  spaces: "Spaces",
+  /** @deprecated Product term is Spaces — same label for legacy category ids. */
+  groups: "Spaces",
+  /** @deprecated Product term is Spaces — same label for legacy category ids. */
+  channels: "Spaces",
   members: "Members",
   roles: "Roles",
   moderation: "Moderation",
@@ -84,17 +91,17 @@ export const PERMISSION_CATEGORY_LABELS: Record<PermissionCategoryId, string> = 
 export const PERMISSION_CATALOG: PermissionCatalogItem[] = [
   { id: "community.view", label: "View community", description: "Access community surfaces", category: "community" },
   { id: "community.edit", label: "Edit community", description: "Update community profile settings", category: "community", alias: "community.edit" },
-  { id: "group.create", label: "Create groups", description: "Create new groups/spaces", category: "groups", alias: "groups.create" },
-  { id: "group.manage", label: "Manage groups", description: "Configure groups and staff", category: "groups", alias: "groups.manage" },
-  { id: "group.delete", label: "Delete groups", description: "Archive or delete groups", category: "groups", alias: "groups.delete" },
-  { id: "channel.create", label: "Create channels", description: "Create rooms/channels", category: "channels", alias: "channels.create" },
-  { id: "channel.read", label: "View channels", description: "Read channel content", category: "channels" },
-  { id: "channel.write", label: "Post in channels", description: "Post, reply, and react", category: "channels" },
-  { id: "channel.manage", label: "Manage channels", description: "Configure channel settings", category: "channels", alias: "channels.manage" },
-  { id: "channel.delete", label: "Delete channels", description: "Archive or delete channels", category: "channels", alias: "channels.delete" },
+  { id: "group.create", label: "Create spaces", description: "Create new spaces", category: "spaces", alias: "groups.create" },
+  { id: "group.manage", label: "Manage spaces", description: "Configure spaces and staff", category: "spaces", alias: "groups.manage" },
+  { id: "group.delete", label: "Delete spaces", description: "Archive or delete spaces", category: "spaces", alias: "groups.delete" },
+  { id: "channel.create", label: "Create space rooms", description: "Create rooms under a space", category: "spaces", alias: "channels.create" },
+  { id: "channel.read", label: "View spaces", description: "Read space content", category: "spaces", alias: "spaces.read" },
+  { id: "channel.write", label: "Post in spaces", description: "Post, reply, and react", category: "spaces", alias: "spaces.write" },
+  { id: "channel.manage", label: "Manage space rooms", description: "Configure room settings", category: "spaces", alias: "channels.manage" },
+  { id: "channel.delete", label: "Delete space rooms", description: "Archive or delete rooms", category: "spaces", alias: "channels.delete" },
   { id: "members.view", label: "View members", description: "See community roster", category: "members" },
   { id: "members.invite", label: "Invite members", description: "Send invites and share links", category: "members" },
-  { id: "members.manage", label: "Manage members", description: "Notes, groups, join requests", category: "members" },
+  { id: "members.manage", label: "Manage members", description: "Notes, spaces, join requests", category: "members" },
   { id: "members.role", label: "Change roles", description: "Assign system or custom roles", category: "members" },
   { id: "members.ban", label: "Moderate members", description: "Mute, timeout, suspend, ban", category: "members" },
   { id: "members.remove", label: "Remove members", description: "Remove members from community", category: "members" },
@@ -250,6 +257,11 @@ export function sanitizeCapabilities(
 ): PermissionCapability[] {
   const out = new Set<PermissionCapability>();
   for (const raw of input ?? []) {
+    const normalized = normalizeCapability(raw);
+    if (normalized) {
+      out.add(normalized);
+      continue;
+    }
     const hit = PERMISSION_CATALOG.find(
       (c) => c.id === raw || c.alias === raw
     );

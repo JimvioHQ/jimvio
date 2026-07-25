@@ -578,8 +578,8 @@ export function SettingsSectionForm({
 
   if (section === "groups") {
     return (
-      <SectionCard title="Groups Defaults" description="Starter groups and default permissions.">
-        <Field label="Default group template key">
+      <SectionCard title="Spaces Defaults" description="Starter Spaces and default permissions.">
+        <Field label="Default Space template key">
           <Input
             value={groupDefaults.templateKey ?? ""}
             onChange={(e) =>
@@ -590,7 +590,7 @@ export function SettingsSectionForm({
           />
         </Field>
         <Toggle
-          label="Auto-create starter groups"
+          label="Auto-create starter Spaces"
           checked={groupDefaults.autoCreateStarter}
           onChange={(v) => setGroupDefaults((g) => ({ ...g, autoCreateStarter: v }))}
           disabled={readOnly}
@@ -603,7 +603,7 @@ export function SettingsSectionForm({
               void onSave({ section: "groups", config: { groupDefaults } })
             }
           >
-            Save group defaults
+            Save Space defaults
           </Button>
         )}
       </SectionCard>
@@ -612,8 +612,8 @@ export function SettingsSectionForm({
 
   if (section === "channels") {
     return (
-      <SectionCard title="Channels Defaults" description="Default channel templates and behaviors.">
-        <Field label="Default channel template">
+      <SectionCard title="Rooms Defaults" description="Default room templates and behaviors.">
+        <Field label="Default room template">
           <Input
             value={channelDefaults.templateKey ?? ""}
             onChange={(e) =>
@@ -669,7 +669,7 @@ export function SettingsSectionForm({
               void onSave({ section: "channels", config: { channelDefaults } })
             }
           >
-            Save channel defaults
+            Save room defaults
           </Button>
         )}
       </SectionCard>

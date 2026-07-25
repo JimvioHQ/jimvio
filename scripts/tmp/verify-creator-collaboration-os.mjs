@@ -89,7 +89,7 @@ assert.match(resources, /RESOURCE_LIBRARY_SHELVES/);
 assert.match(groupWs, /GroupWorkspace/);
 assert.match(groupWs, /GROUP_TABS/);
 assert.match(spaces, /GroupCard/);
-assert.match(spaces, /communityGroupHref/);
+assert.match(spaces, /communitySpaceHref|communityGroupHref/);
 assert.match(eventsSection, /useCreatorOSStore/);
 assert.match(resourcesSection, /ResourceLibrary/);
 assert.match(eventsPanel, /Schedule event|RSVP/);

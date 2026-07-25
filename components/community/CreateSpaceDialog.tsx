@@ -13,28 +13,35 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  SPACE_TYPES,
+  SPACE_TYPE_LABELS,
+  type SpaceType,
+} from "@/lib/community/workspace/space-types";
 
 export function CreateSpaceDialog({
   open,
   onOpenChange,
   communityId,
   onCreated,
-  entityLabel = "Group",
+  entityLabel = "Space",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   communityId: string;
   onCreated?: (space: { id: string; name: string; slug: string }) => void;
-  /** UI label — Groups are spaces under the hood. */
-  entityLabel?: "Group" | "Space";
+  /** UI label — always Space in product UI. */
+  entityLabel?: "Space";
 }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [spaceType, setSpaceType] = useState<SpaceType>("discussion");
   const [saving, setSaving] = useState(false);
 
   function reset() {
     setName("");
     setDescription("");
+    setSpaceType("discussion");
   }
 
   async function submit(e: FormEvent) {
@@ -50,6 +57,7 @@ export function CreateSpaceDialog({
           communityId,
           name: trimmed,
           description: description.trim() || undefined,
+          spaceType,
         }),
       });
       const data = await res.json();
@@ -80,9 +88,8 @@ export function CreateSpaceDialog({
         <DialogHeader>
           <DialogTitle className="text-base font-bold">Create {entityLabel}</DialogTitle>
           <DialogDescription className="text-sm text-[var(--color-text-muted)]">
-            {entityLabel === "Group"
-              ? "Create a collaboration space. Add channels after the group exists."
-              : "Organize collaboration in this community. Channels are added separately."}
+            Spaces organize collaboration inside a community. Pick a type that
+            matches how members will use it.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="mt-2 space-y-3">
@@ -93,7 +100,7 @@ export function CreateSpaceDialog({
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={entityLabel === "Group" ? "e.g. Beginners" : "e.g. Mentorship"}
+              placeholder="e.g. Mentorship"
               className="rounded-sm border-[var(--color-border)]"
               maxLength={80}
               required
@@ -102,16 +109,28 @@ export function CreateSpaceDialog({
           </div>
           <div>
             <label className="mb-1 block text-xs font-bold text-[var(--color-text-secondary)]">
+              Space type
+            </label>
+            <select
+              value={spaceType}
+              onChange={(e) => setSpaceType(e.target.value as SpaceType)}
+              className="flex h-10 w-full rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+            >
+              {SPACE_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {SPACE_TYPE_LABELS[type]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-bold text-[var(--color-text-secondary)]">
               Description (optional)
             </label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={
-                entityLabel === "Group"
-                  ? "Who is this group for?"
-                  : "What is this space for?"
-              }
+              placeholder="What is this space for?"
               rows={2}
               className="resize-none rounded-sm border-[var(--color-border)]"
               maxLength={300}

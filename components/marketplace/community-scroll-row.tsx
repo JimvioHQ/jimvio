@@ -22,7 +22,7 @@ export function CommunityScrollRow({ communities }: CommunityScrollRowProps) {
             Communities
           </span>
           <h2 className="text-[20px] sm:text-[22px] font-bold text-[#11181c] dark:text-[#ededed] tracking-tight leading-tight">
-            Trending Groups
+            Trending Spaces
           </h2>
           <p className="text-[12px] text-[#889096] dark:text-[#6a6a6a] font-medium">
             Join elite groups to learn, share &amp; scale.

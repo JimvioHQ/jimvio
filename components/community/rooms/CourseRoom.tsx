@@ -209,7 +209,7 @@ export function CourseRoom({
       resourcesHref: resources
         ? communityChannelHref(slug, resources.slug)
         : null,
-      groupHref: `/communities/${slug}/groups/${space.slug}`,
+      groupHref: `/communities/${slug}/spaces/${space.slug}`,
     };
   }, [spacesWithRooms, roomId, slug]);
 
@@ -374,7 +374,7 @@ export function CourseRoom({
               href={learningLinks.groupHref}
               className="text-[12px] font-semibold text-[var(--color-text-muted)] hover:underline"
             >
-              Back to Group
+              Back to Space
             </Link>
           </div>
         ) : null}
@@ -792,7 +792,7 @@ export function CourseRoom({
                 href={learningLinks.groupHref}
                 className="font-semibold text-[var(--color-text-muted)] hover:underline"
               >
-                Back to Group
+                Back to Space
               </Link>
             </div>
           ) : null}

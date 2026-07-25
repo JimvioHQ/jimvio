@@ -159,7 +159,7 @@ function isKnowledgeRoom(room: RoomRow): boolean {
 
 /**
  * Permission-aware Community Brain snapshot for AI prompting.
- * Only includes Groups / Channels / Posts / Courses / Resources the member can access.
+ * Only includes Spaces / Posts / Courses / Resources the member can access.
  */
 export async function loadCommunityAiContext(
   communityId: string,
@@ -464,10 +464,10 @@ export function formatCommunityAiContext(
   ];
 
   if (context.groups.length) {
-    lines.push(`Groups (accessible): ${context.groups.join(", ")}`);
+    lines.push(`Spaces (accessible): ${context.groups.join(", ")}`);
   }
   if (context.channels.length) {
-    lines.push(`Channels (accessible): ${context.channels.join(", ")}`);
+    lines.push(`Space rooms (accessible): ${context.channels.join(", ")}`);
   }
 
   if (context.pinnedPosts.length) {

@@ -12,7 +12,6 @@ import {
   Compass,
   Crown,
   GraduationCap,
-  Hash,
   Home,
   Layers,
   MessageSquare,
@@ -52,8 +51,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "explore", label: "Explore", href: "/communities/explore", icon: Compass },
   { id: "live", label: "Live", href: "/communities/live", icon: Radio, badge: { type: "live" } },
   { id: "messages", label: "Messages", href: "/communities/messages", icon: MessageSquare, badge: { type: "count", value: 4 } },
-  { id: "groups", label: "Groups", href: "/communities/spaces", icon: Layers },
-  { id: "channels", label: "Channels", href: "/communities/channels", icon: Hash },
+  { id: "groups", label: "Spaces", href: "/communities/spaces", icon: Layers },
   { id: "missions", label: "Missions", href: "/communities/missions", icon: Target, badge: { type: "new" } },
   { id: "courses", label: "Courses", href: "/communities/courses", icon: GraduationCap },
   { id: "events", label: "Events", href: "/communities/events", icon: Calendar },
@@ -83,7 +81,7 @@ export function resolveSidebarActiveItem(pathname: string): SidebarItem {
   if (pathname.startsWith("/communities/explore")) return "explore";
   if (pathname.startsWith("/communities/live")) return "live";
   if (pathname.startsWith("/communities/messages")) return "messages";
-  if (pathname.startsWith("/communities/channels")) return "channels";
+  if (pathname.startsWith("/communities/channels")) return "groups";
   if (pathname.startsWith("/communities/spaces")) return "groups";
   if (pathname.startsWith("/communities/missions")) return "missions";
   if (pathname.startsWith("/communities/courses")) return "courses";

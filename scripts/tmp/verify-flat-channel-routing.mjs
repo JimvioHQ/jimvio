@@ -1,5 +1,5 @@
 /**
- * Flat channel routing — canonical /channels/[channelSlug] + legacy redirect.
+ * Flat Space routing — canonical /spaces/[spaceSlug] + legacy redirects.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -16,29 +16,35 @@ function mustExist(rel) {
 
 const nav = mustExist("lib/community/workspace/navigation.ts");
 const hubAuth = mustExist("lib/community/hub-auth.ts");
+const spacePage = mustExist(
+  "app/communities/(hubs)/[slug]/spaces/[spaceSlug]/page.tsx"
+);
 const channelPage = mustExist(
   "app/communities/(hubs)/[slug]/channels/[channelSlug]/page.tsx"
 );
 const legacyPage = mustExist(
   "app/communities/(hubs)/[slug]/groups/[groupSlug]/channels/[channelSlug]/page.tsx"
 );
-const channelWsPage = mustExist(
-  "components/community/workspace/channel/ChannelWorkspacePage.tsx"
+const groupsPage = mustExist(
+  "app/communities/(hubs)/[slug]/groups/[groupSlug]/page.tsx"
 );
 const sidebar = mustExist("components/shell/CommunitySidebar.tsx");
 const search = mustExist("services/community/search.ts");
 
-assert.match(nav, /\/channels\/\$\{encodeURIComponent\(channelSlug\)\}/);
+assert.match(nav, /communitySpaceHref/);
+assert.match(nav, /\/spaces\/\$\{encodeURIComponent\(spaceSlug\)\}/);
 assert.doesNotMatch(
   nav.split("legacyNestedChannelHref")[0],
   /\/groups\/\$\{encodeURIComponent\(groupSlug\)\}\/channels\//
 );
-assert.match(hubAuth, /"channels"/);
-assert.match(channelPage, /ChannelWorkspacePage/);
+assert.match(hubAuth, /"spaces"/);
+assert.match(spacePage, /SpaceWorkspacePage|GroupWorkspacePage/);
+assert.match(channelPage, /permanentRedirect/);
+assert.match(groupsPage, /permanentRedirect/);
 assert.match(legacyPage, /permanentRedirect/);
-assert.match(channelWsPage, /resolveSpaceAndRoom/);
-assert.match(sidebar, /\/channels\/\$\{channel\.channelSlug\}/);
-assert.match(search, /\/channels\/\$\{room\.slug\}/);
+assert.match(sidebar, /communitySpaceHref|communityChannelHref/);
+assert.match(sidebar, /\/spaces\/|buildSpaceRooms/);
+assert.match(search, /\/spaces\/|\/channels\//);
 assert.doesNotMatch(search, /\/groups\/\$\{space\.slug\}\/channels\//);
 
 console.log("Flat channel routing verification passed.");

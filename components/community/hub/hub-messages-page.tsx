@@ -70,7 +70,7 @@ type PeerInfo = {
 const TABS = [
   { id: "all", label: "All" },
   { id: "unread", label: "Unread" },
-  { id: "groups", label: "Groups" },
+  { id: "groups", label: "Spaces" },
   { id: "spaces", label: "Spaces" },
 ] as const;
 

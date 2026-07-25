@@ -28,7 +28,7 @@ const HUB_QUICK_LINKS = [
   { icon: Target, label: "Missions", href: "/communities/missions", color: "#3b82f6" },
   { icon: GraduationCap, label: "Courses", href: "/communities/courses", color: "#8b5cf6" },
   { icon: Calendar, label: "Events", href: "/communities/events", color: "#f59e0b" },
-  { icon: Layers, label: "Groups", href: "/communities/spaces", color: "#fd5000" },
+  { icon: Layers, label: "Spaces", href: "/communities/spaces", color: "#fd5000" },
 ] as const;
 
 type HubDashboard = {

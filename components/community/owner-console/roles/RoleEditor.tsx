@@ -158,7 +158,14 @@ export function RoleEditor({
       </div>
 
       <div className="flex flex-wrap gap-1 border-b border-[var(--color-border)] px-3 py-2">
-        {ROLE_EDITOR_TABS.map((id) => (
+        {ROLE_EDITOR_TABS.map((id) => {
+          const label =
+            id === "groups"
+              ? "Spaces"
+              : id === "channels"
+                ? "Space rooms"
+                : id;
+          return (
           <button
             key={id}
             type="button"
@@ -169,9 +176,10 @@ export function RoleEditor({
                 : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
             }`}
           >
-            {id}
+            {label}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       <div className="space-y-4 p-4">
@@ -401,11 +409,11 @@ export function RoleEditor({
         {tab === "groups" && (
           <>
             <p className="text-[13px] text-[var(--color-text-muted)]">
-              Limit this role to one or more groups (e.g. Mentor of VIP).
+              Limit this role to one or more Spaces (e.g. Mentor of VIP).
             </p>
             {groups.length === 0 ? (
               <p className="text-[13px] text-[var(--color-text-muted)]">
-                No groups available. Create groups first.
+                No Spaces available. Create a Space first.
               </p>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">
@@ -434,7 +442,7 @@ export function RoleEditor({
             )}
             {!readOnly && (
               <Button type="button" onClick={() => void saveScopes("groups")} disabled={saving}>
-                Save group scopes
+                Save Space scopes
               </Button>
             )}
           </>
@@ -443,7 +451,7 @@ export function RoleEditor({
         {tab === "channels" && (
           <>
             <p className="text-[13px] text-[var(--color-text-muted)]">
-              Scope channel access. Capability checks still use the shared engine.
+              Scope Space room access. Capability checks still use the shared engine.
             </p>
             <div className="mb-3 flex flex-wrap gap-2">
               {CHANNEL_CAPS.map((c) => (
@@ -458,7 +466,7 @@ export function RoleEditor({
             </div>
             {channels.length === 0 ? (
               <p className="text-[13px] text-[var(--color-text-muted)]">
-                No channels available.
+                No Space rooms available.
               </p>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">
@@ -491,7 +499,7 @@ export function RoleEditor({
                 onClick={() => void saveScopes("channels")}
                 disabled={saving}
               >
-                Save channel scopes
+                Save Space room scopes
               </Button>
             )}
           </>
