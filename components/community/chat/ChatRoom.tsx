@@ -38,6 +38,7 @@ import { ChatSidebar } from "./ChatSidebar";
 import { ChatSkeleton } from "./ChatSkeleton";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { IncomingCallModal } from "./IncomingCallModal";
+import { SpaceCallPanel } from "@/components/community/workspace/space/SpaceCallPanel";
 import { MessageRow } from "./MessageRow";
 import { ThreadPanel } from "./ThreadPanel";
 import {
@@ -54,6 +55,8 @@ interface ChatRoomProps {
   hideHeader?: boolean;
   /** Hide DM/inbox chat list — Space discussion is a pure conversation. */
   hideSidebar?: boolean;
+  /** Inline Audio/Video call panel above the timeline (Space discussion). */
+  showCallPanel?: boolean;
   /** When false, hide composer and show read-only notice. Default true. */
   canPost?: boolean;
   /** Optional empty-state copy (Group Discussion / channel templates). */
@@ -72,6 +75,7 @@ export function ChatRoom({
   slug,
   hideHeader,
   hideSidebar = false,
+  showCallPanel = false,
   canPost = true,
   emptyTitle,
   emptyDescription,
@@ -505,6 +509,7 @@ export function ChatRoom({
           activeConvPeer={hook.activeConvPeer}
           isChatting={hook.isChatting}
           hideHeader={hideHeader}
+          hideCallActions={showCallPanel}
           onlineCount={hook.onlineUserIds.length}
           searchOpen={hook.searchOpen}
           searchQuery={hook.searchQuery}
@@ -523,6 +528,13 @@ export function ChatRoom({
           onBack={() => hook.setForceShowList(true)}
           hideLegacySearchBar
         />
+
+        {showCallPanel ? (
+          <SpaceCallPanel
+            onAudioCall={() => void startNativeCall("audio")}
+            onVideoCall={() => void startNativeCall("video")}
+          />
+        ) : null}
 
         <MessageSearchBar
           open={hook.searchOpen}

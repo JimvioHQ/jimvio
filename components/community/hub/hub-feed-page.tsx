@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Radio, Mic, Users, Image as ImageIcon, Video, Scissors, BarChart3,
-  Layers, Target, Bot, DollarSign, Play, Loader2, Flame,
+  Layers, Target, Bot, Play, Loader2, Flame,
   Sparkles, Plus, GraduationCap, Calendar,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -82,14 +82,6 @@ type HubDashboard = {
 
 function formatStat(value: number) {
   return value.toLocaleString();
-}
-
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2,
-  }).format(amount);
 }
 
 export function HubFeedPage() {
@@ -226,13 +218,13 @@ export function HubFeedPage() {
             </HubCard>
           )}
 
-          {/* Stories */}
-          <HubCard>
+          {/* Stories — infinite horizontal row */}
+          <HubCard className="!overflow-hidden">
             <HubSectionTitle
               title="Stories"
               action={<Link href="/communities/events" className="text-[11px] font-semibold text-[#fd5000] hover:underline">View all</Link>}
             />
-            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 scrollbar-hide">
               <button
                 type="button"
                 className="flex shrink-0 flex-col items-center gap-1.5"
@@ -243,8 +235,16 @@ export function HubFeedPage() {
                 </div>
                 <span className="max-w-[56px] truncate text-[10px] font-semibold text-[var(--color-text-secondary)]">Your story</span>
               </button>
-              {(data?.stories ?? []).map((s) => (
-                <Link key={s.id} href={s.href} className="flex shrink-0 flex-col items-center gap-1.5">
+              {[
+                ...(data?.stories ?? []),
+                ...(data?.stories ?? []),
+                ...(data?.stories ?? []),
+              ].map((s, i) => (
+                <Link
+                  key={`${s.id}-${i}`}
+                  href={s.href}
+                  className="flex shrink-0 flex-col items-center gap-1.5"
+                >
                   <HubAvatar
                     name={s.name}
                     src={s.avatar_url}
@@ -450,9 +450,9 @@ export function HubFeedPage() {
 
           {(data?.stories?.length ?? 0) > 0 && (
             <HubCard>
-              <HubSectionTitle title="Activity" badge="Recent" />
+              <HubSectionTitle title="Recent Activity" badge="Live" />
               <div className="space-y-2">
-                {data!.stories.slice(0, 4).map((s) => (
+                {data!.stories.slice(0, 6).map((s) => (
                   <div key={s.id} className="flex items-center gap-2 py-1">
                     <HubAvatar name={s.name} src={s.avatar_url} size={28} live={s.live} />
                     <div className="min-w-0 flex-1">
@@ -464,33 +464,6 @@ export function HubFeedPage() {
                     {s.live && <HubBadge variant="live">LIVE</HubBadge>}
                   </div>
                 ))}
-              </div>
-            </HubCard>
-          )}
-
-          {data?.earnings && (
-            <HubCard className="overflow-hidden !p-0">
-              <div className="bg-gradient-to-br from-[#fd5000] to-[#ff7a30] p-4 text-white">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  <p className="text-[12px] font-bold">Earnings Overview</p>
-                </div>
-                <p className="mt-3 text-[24px] font-black tracking-tight">
-                  {formatMoney(data.earnings.total, data.earnings.currency)}
-                </p>
-                {data.earnings.monthChangePct != null && (
-                  <p className="text-[11px] text-white/90">
-                    {data.earnings.monthChangePct >= 0 ? "+" : ""}
-                    {data.earnings.monthChangePct.toFixed(1)}% this month
-                  </p>
-                )}
-                <HubLinkButton
-                  href="/dashboard/payments"
-                  variant="secondary"
-                  className="mt-3 w-full !rounded-md !border-white/25 !bg-white/15 !text-white hover:!bg-white/25"
-                >
-                  View Payouts
-                </HubLinkButton>
               </div>
             </HubCard>
           )}

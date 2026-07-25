@@ -22,16 +22,17 @@ function SpaceAvatar({
   const letter = (name.trim()[0] || "S").toUpperCase();
   return (
     <span
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#fd5000] text-[18px] font-bold text-white shadow-sm"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#fd5000] text-[17px] font-bold text-white shadow-sm"
       aria-hidden
     >
-      {icon ? <span className="text-[22px] leading-none">{icon}</span> : letter}
+      {icon ? <span className="text-[20px] leading-none">{icon}</span> : letter}
     </span>
   );
 }
 
 /**
- * Space header matching Jimvio Spaces mockup.
+ * Minimal Space header — logo, name, visibility, members, description, About, More.
+ * No cover photo.
  */
 export function GroupHeader({
   group,
@@ -64,6 +65,7 @@ export function GroupHeader({
   const typeLabel = isSpaceType(spaceType)
     ? SPACE_TYPE_LABELS[spaceType]
     : "Discussion";
+  const description = group.description?.trim() || null;
 
   return (
     <header
@@ -72,12 +74,12 @@ export function GroupHeader({
         className
       )}
     >
-      <div className="flex items-center gap-3.5">
+      <div className="flex items-start gap-3.5">
         <SpaceAvatar name={group.name} icon={group.icon} />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-[18px] font-bold tracking-tight text-gray-900">
+            <h1 className="truncate text-[17px] font-bold tracking-tight text-gray-900">
               {group.name}
             </h1>
             <span className="rounded-md bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-600">
@@ -93,9 +95,24 @@ export function GroupHeader({
               ? `${group.memberCount.toLocaleString()} members`
               : "Members"}
           </p>
+          {description ? (
+            <p className="mt-1.5 line-clamp-2 max-w-2xl text-[13px] leading-relaxed text-gray-600">
+              {description}
+            </p>
+          ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 pt-0.5">
+          {onAbout ? (
+            <button
+              type="button"
+              onClick={onAbout}
+              className="inline-flex h-9 items-center rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50"
+            >
+              About
+            </button>
+          ) : null}
+
           <WorkspaceActionMenu
             label={`${group.name} actions`}
             items={buildWorkspaceActions({
@@ -112,16 +129,6 @@ export function GroupHeader({
               onMute: onToggleNotifications,
             })}
           />
-
-          {onAbout ? (
-            <button
-              type="button"
-              onClick={onAbout}
-              className="inline-flex h-9 items-center rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition hover:bg-gray-50"
-            >
-              About
-            </button>
-          ) : null}
         </div>
       </div>
     </header>

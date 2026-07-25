@@ -17,9 +17,7 @@ import { ChatRoom } from "@/components/community/chat/ChatRoom";
 import { WorkspaceSkeleton } from "@/components/community/workspace/shared/WorkspaceSkeleton";
 import { SpaceAboutPanel } from "@/components/community/workspace/space/SpaceAboutPanel";
 import {
-  SpaceFeedFilters,
   SpaceViewTabs,
-  type SpaceFeedFilter,
   type SpaceViewTab,
 } from "@/components/community/workspace/space/SpaceViewChrome";
 import { MembersPanel } from "@/components/community/workspace/channel/panels/MembersPanel";
@@ -30,9 +28,7 @@ import { GroupHeader } from "./GroupHeader";
 type DiscussionRoom = WorkspaceSpaceRow["rooms"][number];
 
 /**
- * Member Space experience matching Jimvio Spaces mockup.
- * Header → Tabs → (Filters + Feed | Members | Files | Events) → Composer.
- * About opens as a right slide-over.
+ * Member Space experience — clean header, tabs, call panel, conversation.
  */
 export function GroupWorkspace({
   space,
@@ -59,8 +55,6 @@ export function GroupWorkspace({
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [tab, setTab] = useState<SpaceViewTab>("discussion");
-  const [feedFilter, setFeedFilter] = useState<SpaceFeedFilter>("latest");
-  const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const { members } = useCommunityRoster(communityId);
   const [ensuredRoom, setEnsuredRoom] = useState<DiscussionRoom | null>(null);
   const [ensuring, setEnsuring] = useState(false);
@@ -179,57 +173,50 @@ export function GroupWorkspace({
         onChange={setTab}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#fafafa]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
         {tab === "discussion" ? (
-          <>
-            <SpaceFeedFilters
-              active={feedFilter}
-              onChange={setFeedFilter}
-              sort={sort}
-              onSortChange={setSort}
-            />
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
-              {discussionRoom ? (
-                <ChatRoom
-                  roomId={discussionRoom.id}
-                  roomName={discussionRoom.name}
-                  communityId={communityId}
-                  slug={communitySlug}
-                  hideHeader
-                  hideSidebar
-                  canPost={canPost}
-                  emptyTitle={`Welcome to ${group.name}`}
-                  emptyDescription="Start the conversation — messages, replies, reactions, and files live here."
-                  emptyActionLabel="Write a message"
-                />
-              ) : ensuring ? (
-                <WorkspaceSkeleton rows={8} className="min-h-[320px]" />
-              ) : (
-                <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center">
-                  <p className="text-[16px] font-semibold text-gray-900">
-                    Welcome to {group.name}
-                  </p>
-                  <p className="max-w-sm text-[13px] leading-relaxed text-gray-500">
-                    Start the first conversation.
-                  </p>
-                  {ensureError ? (
-                    <p className="text-[12px] text-red-600">{ensureError}</p>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEnsuredRoom(null);
-                      setEnsureError(null);
-                      setEnsureAttempt((n) => n + 1);
-                    }}
-                    className="inline-flex min-h-10 items-center rounded-lg bg-[#fd5000] px-4 text-[13px] font-semibold text-white"
-                  >
-                    Retry Discussion
-                  </button>
-                </div>
-              )}
-            </div>
-          </>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+            {discussionRoom ? (
+              <ChatRoom
+                roomId={discussionRoom.id}
+                roomName={discussionRoom.name}
+                communityId={communityId}
+                slug={communitySlug}
+                hideHeader
+                hideSidebar
+                showCallPanel
+                canPost={canPost}
+                emptyTitle={`Welcome to ${group.name}`}
+                emptyDescription="Start the conversation — messages, replies, reactions, and files live here."
+                emptyActionLabel="Write a message"
+              />
+            ) : ensuring ? (
+              <WorkspaceSkeleton rows={8} className="min-h-[320px]" />
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+                <p className="text-[16px] font-semibold text-gray-900">
+                  Welcome to {group.name}
+                </p>
+                <p className="max-w-sm text-[13px] leading-relaxed text-gray-500">
+                  Start the first conversation.
+                </p>
+                {ensureError ? (
+                  <p className="text-[12px] text-red-600">{ensureError}</p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEnsuredRoom(null);
+                    setEnsureError(null);
+                    setEnsureAttempt((n) => n + 1);
+                  }}
+                  className="inline-flex min-h-10 items-center rounded-lg bg-[#fd5000] px-4 text-[13px] font-semibold text-white"
+                >
+                  Retry Discussion
+                </button>
+              </div>
+            )}
+          </div>
         ) : null}
 
         {tab === "members" ? (

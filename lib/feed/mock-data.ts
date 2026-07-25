@@ -13,6 +13,12 @@ export const STORIES = [
   { id: "4", name: "Maya Edits", live: true, verified: false, online: false, avatar: null },
   { id: "5", name: "Chris Clips", live: false, verified: false, online: true, avatar: null },
   { id: "6", name: "Sarah Chen", live: false, verified: true, online: false, avatar: null },
+  { id: "7", name: "Leo Craft", live: false, verified: false, online: true, avatar: null },
+  { id: "8", name: "Nina Labs", live: false, verified: true, online: false, avatar: null },
+  { id: "9", name: "Omar Live", live: true, verified: false, online: false, avatar: null },
+  { id: "10", name: "Priya Co", live: false, verified: false, online: true, avatar: null },
+  { id: "11", name: "Quinn Ads", live: false, verified: true, online: false, avatar: null },
+  { id: "12", name: "Rae Studio", live: false, verified: false, online: false, avatar: null },
 ];
 
 export const FEED_TABS = [

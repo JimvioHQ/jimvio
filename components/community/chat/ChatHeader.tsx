@@ -37,6 +37,8 @@ interface ChatHeaderProps {
   onBack: () => void;
   /** When true, MessageSearchBar owns the search UI */
   hideLegacySearchBar?: boolean;
+  /** Hide floating call buttons (Space page uses SpaceCallPanel instead). */
+  hideCallActions?: boolean;
 }
 
 export function ChatHeader({
@@ -57,6 +59,7 @@ export function ChatHeader({
   onStartVideoCall,
   onBack,
   hideLegacySearchBar,
+  hideCallActions,
 }: ChatHeaderProps) {
   return (
     <>
@@ -79,7 +82,7 @@ export function ChatHeader({
       )}
 
       {/* ── Minimal actions (hideHeader) — calls only; ChannelHeader owns search ─ */}
-      {(activeConvId || roomName) && hideHeader && (
+      {(activeConvId || roomName) && hideHeader && !hideCallActions && (
         <div className="absolute right-3 top-2 z-20 flex items-center gap-1.5">
           <button
             type="button"

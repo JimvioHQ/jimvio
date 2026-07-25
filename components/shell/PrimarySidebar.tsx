@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
-  Bookmark,
   Calendar,
   ChevronDown,
   ChevronUp,
@@ -33,8 +31,6 @@ export type SidebarItem =
   | "missions"
   | "courses"
   | "events"
-  | "bookmarks"
-  | "analytics"
   | "wallet"
   | "settings";
 
@@ -55,12 +51,16 @@ const NAV_ITEMS: NavItem[] = [
   { id: "missions", label: "Missions", href: "/communities/missions", icon: Target, badge: { type: "new" } },
   { id: "courses", label: "Courses", href: "/communities/courses", icon: GraduationCap },
   { id: "events", label: "Events", href: "/communities/events", icon: Calendar },
-  { id: "bookmarks", label: "Bookmarks", href: "/communities/bookmarks", icon: Bookmark },
-  { id: "analytics", label: "Analytics", href: "/communities/analytics", icon: BarChart3 },
   { id: "wallet", label: "Wallet", href: "/communities/wallet", icon: Wallet },
 ];
 
-type CommunityRow = { id: string; name: string; slug: string; unread?: boolean };
+type CommunityRow = {
+  id: string;
+  name: string;
+  slug: string;
+  avatar_url?: string | null;
+  unread?: boolean;
+};
 
 type PrimarySidebarProps = {
   activeItem?: SidebarItem;
@@ -86,8 +86,6 @@ export function resolveSidebarActiveItem(pathname: string): SidebarItem {
   if (pathname.startsWith("/communities/missions")) return "missions";
   if (pathname.startsWith("/communities/courses")) return "courses";
   if (pathname.startsWith("/communities/events")) return "events";
-  if (pathname.startsWith("/communities/bookmarks")) return "bookmarks";
-  if (pathname.startsWith("/communities/analytics")) return "analytics";
   if (pathname.startsWith("/communities/wallet")) return "wallet";
   if (pathname.startsWith("/communities/settings")) return "settings";
   return "feed";
@@ -162,11 +160,21 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
         .limit(20);
 
       if (cancelled) return;
-      setCommunities(
-        (data ?? [])
-          .map((row: { communities: CommunityRow | null }) => row.communities)
-          .filter(Boolean) as CommunityRow[]
-      );
+      const mapped: CommunityRow[] = [];
+      for (const row of data ?? []) {
+        const raw = (row as { communities: CommunityRow | CommunityRow[] | null })
+          .communities;
+        const c = Array.isArray(raw) ? raw[0] : raw;
+        if (c?.id && c?.slug && c?.name) {
+          mapped.push({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            avatar_url: c.avatar_url ?? null,
+          });
+        }
+      }
+      setCommunities(mapped);
     }
     load();
     return () => { cancelled = true; };
@@ -244,25 +252,38 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
           </button>
           {communitiesOpen && (
             <div className="space-y-0.5">
-              {(communities.length ? communities : [
-                { id: "1", name: "FX PROVIDER", slug: "fx-provider", unread: true },
-                { id: "2", name: "TradeHub", slug: "tradehub", unread: false },
-              ]).map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/communities/${c.slug}`}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                >
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-[10px] font-semibold text-gray-600">
-                    {c.name.slice(0, 2).toUpperCase()}
-                  </span>
-                  <span className="truncate">{c.name}</span>
-                  {c.unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-orange-500" />}
-                </Link>
-              ))}
+              {communities.length === 0 ? (
+                <p className="px-3 py-2 text-[12px] text-gray-400">
+                  No communities joined yet
+                </p>
+              ) : (
+                communities.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/communities/${c.slug}`}
+                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                  >
+                    {c.avatar_url ? (
+                      <img
+                        src={c.avatar_url}
+                        alt=""
+                        className="h-7 w-7 shrink-0 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-[10px] font-semibold text-gray-600">
+                        {c.name.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="truncate">{c.name}</span>
+                    {c.unread ? (
+                      <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-orange-500" />
+                    ) : null}
+                  </Link>
+                ))
+              )}
               <Link
                 href="/communities/explore"
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-gray-500 hover:text-gray-700"
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-gray-500 transition-colors hover:text-gray-700"
               >
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-dashed border-gray-300 text-gray-400">
                   +

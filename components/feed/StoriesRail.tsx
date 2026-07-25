@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, Plus } from "lucide-react";
+import { useMemo } from "react";
+import { Plus } from "lucide-react";
 import { STORIES } from "@/lib/feed/mock-data";
 import { cn } from "@/lib/utils";
 
 const STORY_RING = "border-2 border-[#FF5C00]";
 const AVATAR_SIZE = "h-[54px] w-[54px]";
-/** Show More when story count exceeds this or the row overflows */
-const STORY_MORE_THRESHOLD = 5;
+
+/** Repeat stories so the horizontal rail can fill wide viewports without blank space. */
+const FILL_COPIES = 4;
 
 function StoryAvatar({ name, seed }: { name: string; seed: string }) {
   return (
@@ -42,7 +43,13 @@ function StoryIndicator({ story }: { story: (typeof STORIES)[number] }) {
   return null;
 }
 
-function StoryItem({ story }: { story: (typeof STORIES)[number] }) {
+function StoryItem({
+  story,
+  instanceKey,
+}: {
+  story: (typeof STORIES)[number];
+  instanceKey: string;
+}) {
   return (
     <button
       type="button"
@@ -54,7 +61,7 @@ function StoryItem({ story }: { story: (typeof STORIES)[number] }) {
             {story.avatar ? (
               <img src={story.avatar} alt={story.name} className="h-full w-full object-cover" />
             ) : (
-              <StoryAvatar name={story.name} seed={`story-${story.id}`} />
+              <StoryAvatar name={story.name} seed={`story-${instanceKey}`} />
             )}
           </div>
         </div>
@@ -68,33 +75,18 @@ function StoryItem({ story }: { story: (typeof STORIES)[number] }) {
 }
 
 export function StoriesRail() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showMore, setShowMore] = useState(STORIES.length > STORY_MORE_THRESHOLD);
-
-  const updateShowMore = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const overflows = el.scrollWidth > el.clientWidth + 2;
-    setShowMore(STORIES.length > STORY_MORE_THRESHOLD || overflows);
+  const railStories = useMemo(() => {
+    const out: { story: (typeof STORIES)[number]; key: string }[] = [];
+    for (let copy = 0; copy < FILL_COPIES; copy += 1) {
+      for (const story of STORIES) {
+        out.push({ story, key: `${story.id}-${copy}` });
+      }
+    }
+    return out;
   }, []);
 
-  useEffect(() => {
-    updateShowMore();
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const observer = new ResizeObserver(updateShowMore);
-    observer.observe(el);
-    window.addEventListener("resize", updateShowMore);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", updateShowMore);
-    };
-  }, [updateShowMore]);
-
   return (
-    <section className="px-0.5">
+    <section className="w-full px-0.5">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-[13px] font-semibold tracking-tight text-gray-900">Stories</h2>
         <Link
@@ -105,11 +97,7 @@ export function StoriesRail() {
         </Link>
       </div>
 
-      <div
-        ref={scrollRef}
-        className="flex gap-3 overflow-x-auto pb-0.5 scrollbar-hide sm:gap-4"
-        onScroll={updateShowMore}
-      >
+      <div className="flex w-full gap-3 overflow-x-auto pb-0.5 scrollbar-hide sm:gap-4">
         <button
           type="button"
           className="flex w-[62px] shrink-0 flex-col items-center gap-1.5 transition-opacity hover:opacity-80"
@@ -134,27 +122,9 @@ export function StoriesRail() {
           </span>
         </button>
 
-        {STORIES.map((story) => (
-          <StoryItem key={story.id} story={story} />
+        {railStories.map(({ story, key }) => (
+          <StoryItem key={key} story={story} instanceKey={key} />
         ))}
-
-        {showMore && (
-          <Link
-            href="/communities/stories"
-            className="flex w-[62px] shrink-0 flex-col items-center gap-1.5 transition-opacity hover:opacity-80"
-            aria-label="View more stories"
-          >
-            <div
-              className={cn(
-                AVATAR_SIZE,
-                "flex items-center justify-center rounded-full bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
-              )}
-            >
-              <ArrowRight className="h-4 w-4 text-gray-700" strokeWidth={2} />
-            </div>
-            <span className="text-center text-[11px] font-medium text-gray-700">More</span>
-          </Link>
-        )}
       </div>
     </section>
   );
