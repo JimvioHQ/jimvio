@@ -10,16 +10,22 @@ export function LiveReactionsBar({
   sessionId,
   userId,
   userName,
+  handRaised,
+  onRaiseHand,
 }: {
   sessionId: string;
   userId?: string | null;
   userName?: string | null;
+  /** Server-authoritative raise-hand state when provided. */
+  handRaised?: boolean;
+  /** Production path: call session requestSpeak. */
+  onRaiseHand?: () => void | Promise<void>;
 }) {
   const addReaction = useLiveCollabStore((s) => s.addReaction);
-  const toggleHand = useLiveCollabStore((s) => s.toggleHand);
-  const handRaised = useLiveCollabStore((s) =>
+  const localHand = useLiveCollabStore((s) =>
     userId ? s.handRaisedUserIds.includes(userId) : false
   );
+  const raised = typeof handRaised === "boolean" ? handRaised : localHand;
   const recent = useLiveCollabStore((s) =>
     s.reactions.filter((r) => r.sessionId === sessionId).slice(-6)
   );
@@ -61,16 +67,21 @@ export function LiveReactionsBar({
         {userId && (
           <button
             type="button"
-            onClick={() => toggleHand(userId)}
+            disabled={!onRaiseHand || raised}
+            onClick={() => {
+              if (!onRaiseHand || raised) return;
+              void onRaiseHand();
+            }}
             className={cn(
               "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold",
-              handRaised
+              raised
                 ? "bg-amber-100 text-amber-800"
-                : "text-neutral-600 hover:bg-neutral-100"
+                : "text-neutral-600 hover:bg-neutral-100",
+              "disabled:opacity-60"
             )}
           >
             <Hand className="h-3.5 w-3.5" />
-            {handRaised ? "Lower hand" : "Raise hand"}
+            {raised ? "Hand raised" : "Raise hand"}
           </button>
         )}
       </div>
@@ -78,7 +89,7 @@ export function LiveReactionsBar({
         <p className="flex flex-wrap gap-1 text-[11px] text-neutral-400">
           <Heart className="h-3 w-3 text-[var(--color-accent)]" />
           {recent.map((r) => (
-            <span key={r.id}>{r.emoji || "👏"}</span>
+            <span key={r.id}>{r.emoji ?? "👏"}</span>
           ))}
         </p>
       )}

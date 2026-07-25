@@ -229,12 +229,18 @@ export function useLiveSession(initialSessionId?: string | null) {
   );
 
   const syncMedia = useCallback(
-    async (patch: { micOn?: boolean; camOn?: boolean; handRaised?: boolean; sharing?: boolean }) => {
+    async (patch: { micOn?: boolean; camOn?: boolean; sharing?: boolean }) => {
       if (!session) return;
       await sessionAction(session.id, { action: "media", ...patch });
     },
     [session]
   );
+
+  const requestSpeak = useCallback(async () => {
+    if (!session) return;
+    await sessionAction(session.id, { action: "request" });
+    await refresh(session.id);
+  }, [session, refresh]);
 
   const launchPoll = useCallback(
     async (question: string, options: string[]) => {
@@ -269,6 +275,7 @@ export function useLiveSession(initialSessionId?: string | null) {
     remove,
     mute,
     syncMedia,
+    requestSpeak,
     launchPoll,
     refresh,
     setSession,

@@ -260,35 +260,24 @@ export function useChatRoom({
         }
     }, [roomId, activeConvId]);
 
-    // Fetch sidebar members + inbox
+    // Fetch sidebar members (inbox is loaded + subscribed below, scoped to community)
     useEffect(() => {
         const controller = new AbortController();
-        async function fetchSidebar() {
+        async function fetchMembers() {
             try {
-                const [mr, cr] = await Promise.all([
-                    fetch(`/api/communities/${slug}/members`, { signal: controller.signal }),
-                    fetch(`/api/communities/${slug}/inbox`, { signal: controller.signal }),
-                ]);
+                const mr = await fetch(`/api/communities/${slug}/members`, {
+                    signal: controller.signal,
+                });
                 if (mr.ok) setSidebarMembers((await mr.json()).members ?? []);
-                if (cr.ok) setInboxConversations((await cr.json()).conversations ?? []);
             } catch (e: unknown) {
                 if (e instanceof Error && e.name !== "AbortError") console.error(e);
             }
         }
-        fetchSidebar();
-        const sub = supabase
-            .channel("inbox_updates")
-            .on(
-                "postgres_changes",
-                { event: "*", schema: "public", table: "community_inbox_conversations" },
-                fetchSidebar
-            )
-            .subscribe();
+        fetchMembers();
         return () => {
             controller.abort();
-            supabase.removeChannel(sub);
         };
-    }, [slug, supabase]);
+    }, [slug]);
 
     // Fetch inbox conversations for current user
     useEffect(() => {

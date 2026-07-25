@@ -1067,9 +1067,10 @@ export async function getHubLiveDashboard(
   let ended: Awaited<
     ReturnType<typeof import("@/services/live/session-service").getLatestEndedLiveForCommunity>
   > = null;
+  let liveSvc: typeof import("@/services/live/session-service") | null = null;
 
   if (scopedCommunityId) {
-    const liveSvc = await import("@/services/live/session-service");
+    liveSvc = await import("@/services/live/session-service");
     [activeLive, scheduled, ended] = await Promise.all([
       liveSvc.getActiveLiveForCommunity(scopedCommunityId),
       liveSvc.listScheduledLivesForCommunity(scopedCommunityId, 4),
@@ -1113,40 +1114,57 @@ export async function getHubLiveDashboard(
         reaction_count,
       };
     });
+  }
 
-    const seen = new Set<string>();
-    for (const m of reversed) {
-      if (seen.has(m.sender_id)) continue;
-      seen.add(m.sender_id);
-      const profile = m.profiles as {
-        full_name: string | null;
-        avatar_url: string | null;
-        username: string | null;
-      } | null;
-      speakers.push({
-        id: m.sender_id,
-        name: profile?.full_name ?? profile?.username ?? "Member",
-        avatar_url: profile?.avatar_url ?? null,
-        role: seen.size === 1 ? "Host" : "Speaker",
+  // Stage roster comes from live participants — never invent Host/Speaker from chat authors.
+  if (activeLive) {
+    const svc = liveSvc ?? (await import("@/services/live/session-service"));
+    const participants = await svc.listParticipants(activeLive.id);
+    const onStage = participants.filter(
+      (p) =>
+        p.status === "joined" &&
+        (p.role === "host" || p.role === "cohost" || p.role === "speaker")
+    );
+    if (onStage.length > 0) {
+      const ids = onStage.map((p) => p.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url, username")
+        .in("id", ids);
+      const byId = new Map(
+        (profiles ?? []).map((p) => [
+          p.id as string,
+          p as {
+            id: string;
+            full_name: string | null;
+            avatar_url: string | null;
+            username: string | null;
+          },
+        ])
+      );
+      speakers = onStage.slice(0, 8).map((p) => {
+        const profile = byId.get(p.user_id);
+        return {
+          id: p.user_id,
+          name: profile?.full_name ?? profile?.username ?? "Member",
+          avatar_url: profile?.avatar_url ?? null,
+          role: p.role === "host" ? "Host" : p.role === "cohost" ? "Co-host" : "Speaker",
+        };
       });
-      if (speakers.length >= 6) break;
     }
   }
 
-  const viewers = primaryRoom?.message_count ?? 0;
   const analytics: HubLiveAnalytics = {
-    viewers,
-    liveViewers: primaryRoom ? Math.round(viewers * 0.85) : 0,
+    viewers: 0,
+    liveViewers: 0,
     likes: chatMessages.reduce((sum, m) => sum + m.reaction_count, 0),
     newJoins: speakers.length,
     messages: chatMessages.length,
-    comments: chatMessages.filter((m) => m.body.length > 0).length,
-    shares: primaryRoom ? Math.round(chatMessages.length * 0.15) : 0,
-    reactionsPct: chatMessages.length
-      ? Math.min(99, Math.round((chatMessages.filter((m) => m.reaction_count > 0).length / chatMessages.length) * 100))
-      : 0,
-    peakViewers: viewers,
-    watchTimeMinutes: primaryRoom ? chatMessages.length * 2 : 0,
+    comments: 0,
+    shares: 0,
+    reactionsPct: 0,
+    peakViewers: 0,
+    watchTimeMinutes: 0,
     revenue: earnings.total,
   };
 

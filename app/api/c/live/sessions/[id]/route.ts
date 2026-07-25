@@ -159,7 +159,6 @@ export async function POST(
       const result = await updateSelfMedia(id, user.id, {
         ...(typeof body.micOn === "boolean" ? { mic_on: body.micOn } : {}),
         ...(typeof body.camOn === "boolean" ? { cam_on: body.camOn } : {}),
-        ...(typeof body.handRaised === "boolean" ? { hand_raised: body.handRaised } : {}),
         ...(typeof body.sharing === "boolean" ? { sharing: body.sharing } : {}),
       });
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });

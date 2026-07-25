@@ -29,3 +29,10 @@ export function sanitizePostImageUrls(input: unknown): string[] {
   if (!sanitized.ok) return [];
   return sanitized.attachments.map((a) => a.url);
 }
+
+/** Sanitize post file/link attachments the same way as chat attachments. */
+export function sanitizePostAttachments(input: unknown) {
+  const sanitized = sanitizeChatAttachments(input);
+  if (!sanitized.ok) return [];
+  return sanitized.attachments;
+}

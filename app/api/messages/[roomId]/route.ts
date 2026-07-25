@@ -7,6 +7,7 @@ import {
   escapeIlikePattern,
   sanitizeChatAttachments,
 } from "@/lib/community/chat/sanitize-attachments";
+import { rateLimit } from "@/lib/ops/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,14 @@ export async function POST(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const limited = rateLimit(`chat-write:${user.id}`, 90, 60_000);
+  if (!limited.allowed) {
+    return NextResponse.json(
+      { error: "Too many messages — try again shortly" },
+      { status: 429 }
+    );
+  }
 
   const hasAccess = await canAccessRoom(user.id, roomId);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });

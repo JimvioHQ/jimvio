@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo } from "react";
-import { LayoutList } from "lucide-react";
+import { LayoutList, Radio } from "lucide-react";
 import type { WorkspaceCommunity } from "@/types/workspace";
 import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
 import { ChatRoom } from "../chat/ChatRoom";
@@ -115,6 +116,26 @@ export function RoomContent({
         return <TasksRoom {...common} />;
       case "resources":
         return <ResourcesRoom {...common} />;
+      case "live":
+      case "voice":
+        return (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+            <Radio className="h-7 w-7 text-[var(--color-accent)]" />
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+              Live Studio
+            </p>
+            <p className="max-w-sm text-[13px] text-[var(--color-text-muted)]">
+              Host and join live sessions from Live Studio. Discussion stays available in this
+              group when you return.
+            </p>
+            <Link
+              href={`/communities/${community.slug}/live`}
+              className="mt-1 inline-flex rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white"
+            >
+              Open Live Studio
+            </Link>
+          </div>
+        );
       default:
         return (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">

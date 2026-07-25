@@ -342,12 +342,19 @@ export async function inviteSpeaker(
   const actor = await getParticipant(sessionId, actorId);
   if (!actor || !canInviteSpeaker(actor.role)) return { error: "Not allowed", status: 403 };
 
+  const targetId = targetUserId?.trim() ?? "";
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetId)) {
+    return { error: "Invalid target user", status: 400 };
+  }
+  const targetMember = await assertCommunityMember(targetId, session.community_id);
+  if (!targetMember) return { error: "Target is not a community member", status: 403 };
+
   const { data, error } = await db()
     .from("live_session_participants")
     .upsert(
       {
         session_id: sessionId,
-        user_id: targetUserId,
+        user_id: targetId,
         role: "viewer",
         status: "invited",
         updated_at: new Date().toISOString(),
@@ -520,14 +527,20 @@ export async function muteParticipant(
 export async function updateSelfMedia(
   sessionId: string,
   userId: string,
-  patch: Partial<Pick<LiveParticipantRow, "mic_on" | "cam_on" | "hand_raised" | "sharing">>
+  patch: Partial<Pick<LiveParticipantRow, "mic_on" | "cam_on" | "sharing">>
 ): Promise<{ participant: LiveParticipantRow } | { error: string; status: number }> {
   const me = await getParticipant(sessionId, userId);
   if (!me || me.status !== "joined") return { error: "Not in session", status: 403 };
 
+  // hand_raised is owned by requestSpeak / accept|reject — never via media patch.
+  const safe: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (typeof patch.mic_on === "boolean") safe.mic_on = patch.mic_on;
+  if (typeof patch.cam_on === "boolean") safe.cam_on = patch.cam_on;
+  if (typeof patch.sharing === "boolean") safe.sharing = patch.sharing;
+
   const { data, error } = await db()
     .from("live_session_participants")
-    .update({ ...patch, updated_at: new Date().toISOString() })
+    .update(safe)
     .eq("session_id", sessionId)
     .eq("user_id", userId)
     .select("*")

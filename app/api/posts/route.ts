@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
 import { Json } from "@/types/database.types";
 import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
-import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
+import { sanitizePostImageUrls, sanitizePostAttachments } from "@/lib/community/posts/sanitize-post-media";
+import { rateLimit } from "@/lib/ops/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,14 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const limited = rateLimit(`posts-write:${user.id}`, 40, 60_000);
+  if (!limited.allowed) {
+    return NextResponse.json(
+      { error: "Too many posts — try again shortly" },
+      { status: 429 }
+    );
+  }
 
   const body = (await req.json()) as {
     room_id?: string;
@@ -125,7 +134,7 @@ export async function POST(req: NextRequest) {
       body: content,
       post_type: body.post_type ?? "discussion",
       images: sanitizePostImageUrls(body.images) as never,
-      attachments: body.attachments ?? [],
+      attachments: sanitizePostAttachments(body.attachments) as never,
       video_url: body.video_url ?? null,
       is_pinned: canPin ? Boolean(body.is_pinned) : false,
       is_exclusive: body.is_exclusive ?? false,

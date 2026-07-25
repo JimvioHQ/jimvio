@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { canAccessRoom } from "@/services/accessControl";
 import { notifyPostAuthor } from "@/lib/community/notify-community";
 import { assertCanCommentInRoom } from "@/lib/community/workspace/assert-can-publish";
+import { rateLimit } from "@/lib/ops/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,14 @@ export async function POST(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const limited = rateLimit(`post-comment:${user.id}`, 60, 60_000);
+  if (!limited.allowed) {
+    return NextResponse.json(
+      { error: "Too many comments — try again shortly" },
+      { status: 429 }
+    );
+  }
 
   const { data: post } = await supabase
     .from("community_posts")

@@ -635,10 +635,6 @@ export function HubLivePage({
     return null;
   }, [live.speakers, live.userId, data?.speakers, livekit.remotes]);
 
-  const speakers = useMemo(
-    () => speakersFromLive ?? data?.speakers ?? [],
-    [speakersFromLive, data?.speakers]
-  );
   const analytics = data?.analytics;
   const session = data?.session ?? {
     title: "Community Live Room",
@@ -648,6 +644,12 @@ export function HubLivePage({
     roomId: null,
   };
   const hasSession = Boolean(live.session?.status === "live");
+  const speakers = useMemo(() => {
+    if (speakersFromLive) return speakersFromLive;
+    // Dashboard speakers are participant-backed only when a live session exists.
+    if (hasSession || data?.session?.liveSessionId) return data?.speakers ?? [];
+    return [];
+  }, [speakersFromLive, data?.speakers, data?.session?.liveSessionId, hasSession]);
   const liveStatusLabel =
     live.session?.status === "live"
       ? "LIVE"
@@ -664,40 +666,26 @@ export function HubLivePage({
 
   const speakerUi = useMemo(() => {
     const map: Record<string, SpeakerUi> = {};
-    speakers.forEach((s, i) => {
+    speakers.forEach((s) => {
       const liveP = live.participants.find((p) => p.user_id === s.id);
       const remote = livekit.remotes.find((r) => r.identity === s.id);
       const isSelf = s.id === live.userId;
+      const roleFromLabel =
+        s.role === "Host" || s.role === "host"
+          ? ("host" as const)
+          : s.role === "Co-host" || s.role === "cohost"
+            ? ("cohost" as const)
+            : ("speaker" as const);
       map[s.id] = {
-        micOn: isSelf
-          ? micOn
-          : remote
-            ? remote.micOn
-            : liveP
-              ? liveP.mic_on
-              : i === 0
-                ? micOn
-                : true,
-        camOn: isSelf
-          ? camOn
-          : remote
-            ? remote.camOn
-            : liveP
-              ? liveP.cam_on
-              : i === 0
-                ? camOn
-                : i !== 2,
+        micOn: isSelf ? micOn : remote ? remote.micOn : liveP ? liveP.mic_on : false,
+        camOn: isSelf ? camOn : remote ? remote.camOn : liveP ? liveP.cam_on : false,
         handRaised: liveP?.hand_raised ?? false,
         connection: String(livekit.connectionState) === "reconnecting" ? "warn" : "good",
         role:
           (liveP?.role as SpeakerUi["role"]) ??
           (remote?.role === "host" || remote?.role === "cohost" || remote?.role === "speaker"
             ? remote.role
-            : i === 0
-              ? "host"
-              : i === 1
-                ? "cohost"
-                : "speaker"),
+            : roleFromLabel),
         speaking:
           (livekit.activeSpeakerId ?? activeSpeakerId) === s.id ||
           Boolean(remote?.speaking),
@@ -1359,6 +1347,22 @@ export function HubLivePage({
                       sessionId={live.session.id}
                       userId={live.userId}
                       userName={null}
+                      handRaised={
+                        live.participants.find((p) => p.user_id === live.userId)
+                          ?.hand_raised === true ||
+                        live.participants.find((p) => p.user_id === live.userId)
+                          ?.status === "requested"
+                      }
+                      onRaiseHand={async () => {
+                        try {
+                          await live.requestSpeak();
+                          showToast("Hand raised — waiting for host");
+                        } catch (e) {
+                          showToast(
+                            e instanceof Error ? e.message : "Could not raise hand"
+                          );
+                        }
+                      }}
                     />
                   )}
                 </>
