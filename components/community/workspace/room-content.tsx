@@ -102,6 +102,7 @@ export function RoomContent({
         return (
           <ChatRoom
             {...common}
+            conversationSurface="space"
             canPost={channel.canPublish}
             emptyTitle={emptyCopy.emptyTitle}
             emptyDescription={emptyCopy.emptyDescription}

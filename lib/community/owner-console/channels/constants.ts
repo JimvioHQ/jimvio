@@ -237,20 +237,10 @@ export const CHANNEL_POSTING_MODE_DESCRIPTIONS: Record<
 export function permissionConfigForTemplate(
   templateId: ChannelTemplateId | undefined
 ): ChannelPermissionConfig {
-  // Open / member-writable templates (Group-chat style).
-  if (
-    templateId === "general_chat" ||
-    templateId === "introductions" ||
-    templateId === "wins" ||
-    templateId === "qa" ||
-    templateId === "course_discussion" ||
-    templateId === "support" ||
-    templateId === "marketplace" ||
-    templateId === "voice"
-  ) {
-    return { ...DISCUSSION_PERMISSION_CONFIG, publisherIds: [] };
-  }
-  // Broadcast / staff-first templates (announcements, resources, campaigns, etc.).
+  // All Channels are broadcast-first (Owner / Admin / Moderators publish).
+  // Open member posting exists only on the Group Discussion room
+  // via ensure_discussion + DISCUSSION_PERMISSION_CONFIG.
+  void templateId;
   return {
     ...DEFAULT_PERMISSION_CONFIG,
     whoCanPost: [...DEFAULT_PERMISSION_CONFIG.whoCanPost],

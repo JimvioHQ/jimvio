@@ -68,18 +68,22 @@ const chatRoom = mustExist("components/community/chat/ChatRoom.tsx");
 
 assert.match(osTypes, /GROUP_TABS/);
 assert.match(osTypes, /"discussion"/);
-assert.match(osTypes, /"live"/);
+assert.match(osTypes, /"announcements"/);
+assert.match(osTypes, /"marketplace"/);
+assert.match(osTypes, /"campaigns"/);
 assert.match(osTypes, /GROUP_SIDEBAR/);
+assert.match(osTypes, /GROUP_CHANNEL_SECTION_IDS/);
 assert.match(osTypes, /label: "Discussion"/);
-// Discussion first; Overview last; no member Events/Members/Activity tabs
+// Discussion first; Channel sections next; no member Events/Members/Activity tabs
 assert.match(
   osTypes,
-  /GROUP_TAB_IDS = \[\s*"discussion",\s*"knowledge"/s
+  /GROUP_TAB_IDS = \[\s*"discussion",\s*"announcements"/s
 );
-assert.match(osTypes, /"overview",\s*\] as const/);
+assert.match(osTypes, /"campaigns",\s*\] as const/);
 assert.doesNotMatch(osTypes, /GROUP_TAB_IDS = \[[^\]]*"events"/s);
 assert.doesNotMatch(osTypes, /GROUP_TAB_IDS = \[[^\]]*"members"/s);
 assert.doesNotMatch(osTypes, /GROUP_TAB_IDS = \[[^\]]*"activity"/s);
+assert.doesNotMatch(osTypes, /GROUP_TAB_IDS = \[[^\]]*"overview"/s);
 
 assert.match(nav, /communityRoomHref/);
 assert.match(nav, /roomTypeIcon/);
@@ -89,6 +93,7 @@ assert.match(groupWs, /GroupSidebar/);
 assert.match(groupWs, /communityRoomHref/);
 assert.match(groupWs, /useState<GroupTabId>\("discussion"\)/);
 assert.match(groupWs, /ChatRoom/);
+assert.match(groupWs, /conversationSurface="space"/);
 assert.match(groupWs, /ensure_discussion/);
 assert.doesNotMatch(groupWs, /tab === "events"/);
 assert.doesNotMatch(groupWs, /tab === "members"/);

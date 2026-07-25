@@ -52,6 +52,11 @@ interface ChatRoomProps {
   communityId: string;
   slug: string;
   hideHeader?: boolean;
+  /**
+   * `hub` — Direct Messages surface (Inbox / Calls / room list).
+   * `space` — Group Discussion or Channel chat only (no private chrome).
+   */
+  conversationSurface?: "hub" | "space";
   /** When false, hide composer and show read-only notice. Default true. */
   canPost?: boolean;
   /** Optional empty-state copy (Group Discussion / channel templates). */
@@ -69,6 +74,7 @@ export function ChatRoom({
   communityId,
   slug,
   hideHeader,
+  conversationSurface = "hub",
   canPost = true,
   emptyTitle,
   emptyDescription,
@@ -76,7 +82,14 @@ export function ChatRoom({
   readOnlyTitle,
   readOnlyDescription,
 }: ChatRoomProps) {
-  const hook = useChatRoom({ roomId, roomName, communityId, slug });
+  const isSpaceChat = conversationSurface === "space";
+  const hook = useChatRoom({
+    roomId,
+    roomName,
+    communityId,
+    slug,
+    enablePrivateMessages: !isSpaceChat,
+  });
   const syncRoomIndex = useRoomMessageIndex((s) => s.sync);
   const openThreadRequest = useRoomMessageIndex((s) => s.openThreadRequest);
   const convertThreadRequest = useRoomMessageIndex((s) => s.convertThreadRequest);
@@ -453,7 +466,7 @@ export function ChatRoom({
         sendingGif={hook.sendingGif}
       />
 
-      {callType && (
+      {callType && !isSpaceChat && (
         <CallOverlay
           callType={callType}
           roomName={roomName}
@@ -464,34 +477,36 @@ export function ChatRoom({
         />
       )}
 
-      <ChatSidebar
-        roomId={roomId}
-        activeConvId={hook.activeConvId}
-        isChatting={hook.isChatting}
-        allChatRooms={hook.allChatRooms}
-        sidebarMembers={hook.sidebarMembers}
-        inboxConversations={hook.inboxConversations}
-        unreadCounts={hook.unreadCounts}
-        sidebarFilter={hook.sidebarFilter}
-        userId={hook.userId}
-        setSidebarFilter={hook.setSidebarFilter}
-        onSelectRoom={hook.navigateToRoom}
-        onSelectConv={(conv) => {
-          hook.setActiveConvId(conv.id);
-          hook.setActiveConvPeer({
-            name: conv.peerName,
-            avatar: conv.peerAvatar,
-          });
-          hook.setForceShowList(false);
-        }}
-        onOpenDm={hook.openDmWith}
-      />
+      {!isSpaceChat && (
+        <ChatSidebar
+          roomId={roomId}
+          activeConvId={hook.activeConvId}
+          isChatting={hook.isChatting}
+          allChatRooms={hook.allChatRooms}
+          sidebarMembers={hook.sidebarMembers}
+          inboxConversations={hook.inboxConversations}
+          unreadCounts={hook.unreadCounts}
+          sidebarFilter={hook.sidebarFilter}
+          userId={hook.userId}
+          setSidebarFilter={hook.setSidebarFilter}
+          onSelectRoom={hook.navigateToRoom}
+          onSelectConv={(conv) => {
+            hook.setActiveConvId(conv.id);
+            hook.setActiveConvPeer({
+              name: conv.peerName,
+              avatar: conv.peerAvatar,
+            });
+            hook.setForceShowList(false);
+          }}
+          onOpenDm={hook.openDmWith}
+        />
+      )}
 
       <div
         className={cn(
           "flex h-full min-w-0 flex-1 flex-col overflow-hidden",
           "bg-[var(--color-bg)]",
-          hook.isChatting ? "flex" : "hidden md:flex"
+          isSpaceChat || hook.isChatting ? "flex" : "hidden md:flex"
         )}
       >
         <ChatHeader
@@ -500,6 +515,8 @@ export function ChatRoom({
           activeConvPeer={hook.activeConvPeer}
           isChatting={hook.isChatting}
           hideHeader={hideHeader}
+          enableCalls={!isSpaceChat}
+          showMobileBack={!isSpaceChat}
           onlineCount={hook.onlineUserIds.length}
           searchOpen={hook.searchOpen}
           searchQuery={hook.searchQuery}
@@ -791,7 +808,7 @@ export function ChatRoom({
         }}
       />
 
-      {incomingCall && (
+      {incomingCall && !isSpaceChat && (
         <IncomingCallModal
           incomingCall={incomingCall}
           onDecline={() => setIncomingCall(null)}

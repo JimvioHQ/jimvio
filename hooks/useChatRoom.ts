@@ -64,12 +64,18 @@ export interface UseChatRoomOptions {
     roomName: string;
     communityId: string;
     slug: string;
+    /**
+     * Hub chat (`/chat`) keeps Inbox / DMs / room switching.
+     * Group Discussion and Channel chat stay room-scoped only.
+     */
+    enablePrivateMessages?: boolean;
 }
 
 export function useChatRoom({
     roomId,
     communityId,
     slug,
+    enablePrivateMessages = true,
 }: UseChatRoomOptions) {
     const supabase = useMemo(() => createClient(), []);
     const router = useRouter();
@@ -279,9 +285,12 @@ export function useChatRoom({
         };
     }, [slug]);
 
-    // Fetch inbox conversations for current user
+    // Fetch inbox conversations for current user (Direct Messages hub only)
     useEffect(() => {
-        if (!userId || !communityId) return;
+        if (!enablePrivateMessages || !userId || !communityId) {
+            setInboxConversations([]);
+            return;
+        }
         const controller = new AbortController();
 
         const fetchInboxes = async () => {
@@ -329,7 +338,15 @@ export function useChatRoom({
             controller.abort();
             supabase.removeChannel(ch);
         };
-    }, [userId, communityId, supabase]);
+    }, [enablePrivateMessages, userId, communityId, supabase]);
+
+    // Group / Channel chat must never switch into private conversations.
+    useEffect(() => {
+        if (enablePrivateMessages) return;
+        setActiveConvId(null);
+        setActiveConvPeer(null);
+        setForceShowList(false);
+    }, [enablePrivateMessages, roomId]);
 
     // ── Presence (online members) + typing broadcast ────────────────────────────
     const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
@@ -1072,6 +1089,7 @@ export function useChatRoom({
     // ── DM inbox creation ────────────────────────────────────────────────────────
     const openDmWith = useCallback(
         async (member: SidebarMember) => {
+            if (!enablePrivateMessages) return;
             if (member.user_id === userId) return;
             const name = member.profile?.full_name ?? member.profile?.username ?? "Member";
             const av = member.profile?.avatar_url ?? null;
@@ -1092,7 +1110,7 @@ export function useChatRoom({
                 console.error(e);
             }
         },
-        [userId, slug]
+        [enablePrivateMessages, userId, slug]
     );
 
     const navigateToRoom = useCallback(

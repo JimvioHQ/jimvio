@@ -86,55 +86,61 @@ export type CommunityScoreBreakdown = {
   badges: string[];
 };
 
-/** Member-facing Group tabs — Discussion first; Overview last; management in Owner Console. */
+/** Member-facing Group tabs — Discussion first, then Channel sections. */
 export const GROUP_TAB_IDS = [
   "discussion",
-  "knowledge",
+  "announcements",
   "resources",
+  "knowledge",
   "courses",
-  "store",
-  "live",
-  "ai",
-  "overview",
+  "marketplace",
+  "campaigns",
 ] as const;
 
 export type GroupTabId = (typeof GROUP_TAB_IDS)[number];
 
 export const GROUP_TABS: { id: GroupTabId; label: string }[] = [
   { id: "discussion", label: "Discussion" },
-  { id: "knowledge", label: "Knowledge" },
+  { id: "announcements", label: "Announcements" },
   { id: "resources", label: "Resources" },
+  { id: "knowledge", label: "Knowledge" },
   { id: "courses", label: "Courses" },
-  { id: "store", label: "Store" },
-  { id: "live", label: "Live" },
-  { id: "ai", label: "AI" },
-  { id: "overview", label: "Overview" },
+  { id: "marketplace", label: "Marketplace" },
+  { id: "campaigns", label: "Campaigns" },
 ];
 
 /** Sidebar nav for Group workspace (Settings is owner/staff only). */
 export const GROUP_SIDEBAR_IDS = [
   "discussion",
-  "knowledge",
+  "announcements",
   "resources",
+  "knowledge",
   "courses",
-  "store",
-  "live",
-  "ai",
-  "overview",
+  "marketplace",
+  "campaigns",
   "settings",
 ] as const;
 
 export type GroupSidebarId = (typeof GROUP_SIDEBAR_IDS)[number];
 
+/** Channel section items (Discussion stays above this group). */
+export const GROUP_CHANNEL_SECTION_IDS: GroupTabId[] = [
+  "announcements",
+  "resources",
+  "knowledge",
+  "courses",
+  "marketplace",
+  "campaigns",
+];
+
 export const GROUP_SIDEBAR: { id: GroupSidebarId; label: string }[] = [
   { id: "discussion", label: "Discussion" },
-  { id: "knowledge", label: "Knowledge" },
+  { id: "announcements", label: "Announcements" },
   { id: "resources", label: "Resources" },
+  { id: "knowledge", label: "Knowledge" },
   { id: "courses", label: "Courses" },
-  { id: "store", label: "Store" },
-  { id: "live", label: "Live" },
-  { id: "ai", label: "AI" },
-  { id: "overview", label: "Overview" },
+  { id: "marketplace", label: "Marketplace" },
+  { id: "campaigns", label: "Campaigns" },
   { id: "settings", label: "Settings" },
 ];
 

@@ -51,11 +51,15 @@ assert.match(
   /whoCanPost:\s*\[\.\.\.POSTING_MODE_ACTORS\.admins_moderators\]/
 );
 
-// Discussion templates stay open for Group-style chat
+// Channels are always broadcast-first; open posting is Group Discussion only
 assert.match(channelConstants, /DISCUSSION_PERMISSION_CONFIG/);
 assert.match(channelConstants, /postingMode:\s*"everyone"/);
 assert.match(channelConstants, /permissionConfigForTemplate/);
 assert.match(channelConstants, /general_chat/);
+assert.match(
+  channelConstants,
+  /Open member posting exists only on the Group Discussion room/
+);
 
 // Engine helpers
 assert.match(posting, /export function canPublishInChannel/);

@@ -119,10 +119,11 @@ function channelEmoji(room: WorkspaceRoomRow): string {
 
 /** Rooms that should not appear as Channel links in the community sidebar. */
 function shouldHideFromChannelNav(room: WorkspaceRoomRow): boolean {
-  if (room.room_type === "posts" || /announcement/i.test(room.name)) return true;
   const slug = (room.slug ?? "").trim().toLowerCase();
   const name = (room.name ?? "").trim().toLowerCase();
-  // Group Discussion is the Group homepage — not a separate Channel entry.
+  const kind = (room.channel_kind ?? "").trim().toLowerCase();
+  // Group Discussion is the Group homepage — never listed as a Channel.
+  if (kind === "discussion") return true;
   return (
     (room.room_type === "chat" || !room.room_type) &&
     (/^(discussion|general|chat|lounge)$/.test(slug) ||
