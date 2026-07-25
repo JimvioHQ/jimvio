@@ -5,6 +5,31 @@ import { getUserMembership } from "@/services/communityService";
 
 export const dynamic = "force-dynamic";
 
+async function assertCourseStaff(roomId: string, userId: string) {
+  const admin = createServiceRoleClient();
+  const { data: room } = await admin
+    .from("rooms")
+    .select("community_id, name")
+    .eq("id", roomId)
+    .maybeSingle();
+  if (!room) return { error: "Room not found" as const, status: 404 as const };
+
+  const { data: community } = await admin
+    .from("communities")
+    .select("owner_id")
+    .eq("id", room.community_id)
+    .maybeSingle();
+  const membership = await getUserMembership(userId, room.community_id);
+  const staffRoles = new Set(["owner", "admin", "moderator"]);
+  const isAuthorized =
+    community?.owner_id === userId ||
+    (membership?.status === "active" && staffRoles.has(membership.role ?? ""));
+  if (!isAuthorized) {
+    return { error: "Unauthorized" as const, status: 403 as const };
+  }
+  return { admin, room };
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ roomId: string }> }
@@ -14,51 +39,75 @@ export async function POST(
   const { type, moduleId, title, description, video_url, body, sort_order } = resData;
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const admin = createServiceRoleClient();
-  const { data: room } = await admin.from("rooms").select("community_id, name").eq("id", roomId).maybeSingle();
-  if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
+  const gate = await assertCourseStaff(roomId, user.id);
+  if ("error" in gate && gate.error) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
+  }
+  const { admin, room } = gate as {
+    admin: ReturnType<typeof createServiceRoleClient>;
+    room: { community_id: string; name: string | null };
+  };
 
-  const membership = await getUserMembership(user.id, room.community_id);
-  const staffRoles = new Set(["owner", "admin"]);
-  const isAuthorized = staffRoles.has(membership?.role ?? "");
-  if (!isAuthorized) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-
-  let { data: course } = await admin.from("community_courses").select("id").eq("room_id", roomId).maybeSingle();
+  let { data: course } = await admin
+    .from("community_courses")
+    .select("id")
+    .eq("room_id", roomId)
+    .maybeSingle();
   if (!course) {
-    const { data: newCourse, error: createError } = await admin.from("community_courses").insert({
-      room_id: roomId,
-      community_id: room.community_id,
-      title: room.name || "New Course",
-    }).select("id").single();
-    if (createError) return NextResponse.json({ error: createError.message }, { status: 400 });
+    const { data: newCourse, error: createError } = await admin
+      .from("community_courses")
+      .insert({
+        room_id: roomId,
+        community_id: room.community_id,
+        creator_id: user.id,
+        title: room.name || "New Course",
+      })
+      .select("id")
+      .single();
+    if (createError) {
+      return NextResponse.json({ error: createError.message }, { status: 400 });
+    }
     course = newCourse;
   }
 
   if (type === "module") {
-    const { data: m, error } = await admin.from("course_modules").insert({
-      course_id: course.id,
-      title: title || "New Module",
-      description: description || null,
-      sort_order: sort_order || 0,
-    }).select().single();
+    const { data: m, error } = await admin
+      .from("course_modules")
+      .insert({
+        course_id: course.id,
+        title: title || "New Module",
+        description: description || null,
+        sort_order: sort_order || 0,
+      })
+      .select()
+      .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ module: m });
   }
 
   if (type === "lesson") {
-    if (!moduleId) return NextResponse.json({ error: "Module ID required" }, { status: 400 });
-    const { data: l, error } = await admin.from("course_lessons").insert({
-      course_id: course.id,
-      module_id: moduleId,
-      title: title || "New Lesson",
-      body: body || null,
-      video_url: video_url || null,
-      sort_order: sort_order || 0,
-      attachments: { files: [], slideshow: [], media_mode: "video" }
-    }).select().single();
+    if (!moduleId) {
+      return NextResponse.json({ error: "Module ID required" }, { status: 400 });
+    }
+    const { data: l, error } = await admin
+      .from("course_lessons")
+      .insert({
+        course_id: course.id,
+        module_id: moduleId,
+        title: title || "New Lesson",
+        body: body || null,
+        video_url: video_url || null,
+        sort_order: sort_order || 0,
+        is_free: true,
+        attachments: { files: [], slideshow: [], media_mode: "video" },
+      })
+      .select()
+      .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ lesson: l });
   }
@@ -75,20 +124,22 @@ export async function PATCH(
   const { type, id, ...updates } = resData;
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const admin = createServiceRoleClient();
-  const { data: room } = await admin.from("rooms").select("community_id").eq("id", roomId).maybeSingle();
-  if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
-
-  const membership = await getUserMembership(user.id, room.community_id);
-  const staffRoles = new Set(["owner", "admin"]);
-  const isAuthorized = staffRoles.has(membership?.role ?? "");
-  if (!isAuthorized) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  const gate = await assertCourseStaff(roomId, user.id);
+  if ("error" in gate && gate.error) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
+  }
+  const { admin } = gate as { admin: ReturnType<typeof createServiceRoleClient> };
 
   if (type === "course") {
-    const { error } = await admin.from("community_courses").update(updates).eq("room_id", roomId);
+    const { error } = await admin
+      .from("community_courses")
+      .update(updates)
+      .eq("room_id", roomId);
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ success: true });
   }
@@ -100,18 +151,28 @@ export async function PATCH(
   }
 
   if (type === "lesson") {
-    const { slideshow, media_mode, attachments, course_id, module_id, ...restUpdates } = updates;
+    const {
+      slideshow,
+      media_mode,
+      attachments,
+      course_id: _courseId,
+      module_id: _moduleId,
+      ...restUpdates
+    } = updates;
     const finalAttachments = {
       files: attachments || [],
       slideshow: slideshow || [],
-      media_mode: media_mode || "video"
+      media_mode: media_mode || "video",
     };
 
-    const { error } = await admin.from("course_lessons").update({ 
-      ...restUpdates, 
-      attachments: finalAttachments 
-    }).eq("id", id);
-    
+    const { error } = await admin
+      .from("course_lessons")
+      .update({
+        ...restUpdates,
+        attachments: finalAttachments,
+      })
+      .eq("id", id);
+
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
     return NextResponse.json({ success: true });
   }
@@ -128,21 +189,24 @@ export async function DELETE(
   const type = searchParams.get("type");
   const id = searchParams.get("id");
 
-  if (!type || !id) return NextResponse.json({ error: "Missing type or id" }, { status: 400 });
+  if (!type || !id) {
+    return NextResponse.json({ error: "Missing type or id" }, { status: 400 });
+  }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const admin = createServiceRoleClient();
-  const { data: room } = await admin.from("rooms").select("community_id").eq("id", roomId).maybeSingle();
-  if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
+  const gate = await assertCourseStaff(roomId, user.id);
+  if ("error" in gate && gate.error) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
+  }
+  const { admin } = gate as { admin: ReturnType<typeof createServiceRoleClient> };
 
-  const membership = await getUserMembership(user.id, room.community_id);
-  const staffRoles = new Set(["owner", "admin"]);
-  if (!staffRoles.has(membership?.role ?? "")) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-
-  const table = type === "module" ? "course_modules" : (type === "lesson" ? "course_lessons" : null);
+  const table =
+    type === "module" ? "course_modules" : type === "lesson" ? "course_lessons" : null;
   if (!table) return NextResponse.json({ error: "Invalid type" }, { status: 400 });
 
   const { error } = await admin.from(table).delete().eq("id", id);

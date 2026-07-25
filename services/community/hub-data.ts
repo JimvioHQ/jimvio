@@ -876,7 +876,7 @@ export async function getHubCourses(userId: string): Promise<HubCourseItem[]> {
 
   const { data: courses } = await supabase
     .from("community_courses")
-    .select("id, title, description, difficulty, total_lessons, communities(name, slug)")
+    .select("id, title, description, difficulty, total_lessons, room_id, communities(name, slug), rooms(slug)")
     .in("community_id", communityIds)
     .eq("is_published", true)
     .order("published_at", { ascending: false })
@@ -902,6 +902,7 @@ export async function getHubCourses(userId: string): Promise<HubCourseItem[]> {
 
   return (courses ?? []).map((course) => {
     const community = course.communities as { name: string; slug: string } | null;
+    const room = course.rooms as { slug: string | null } | null;
     const progress = progressByCourse.get(course.id);
     const totalLessons = course.total_lessons ?? 0;
     const progressPct =
@@ -911,6 +912,15 @@ export async function getHubCourses(userId: string): Promise<HubCourseItem[]> {
           ? 100
           : 0;
 
+    const communitySlug = community?.slug ?? "";
+    const roomSlug = room?.slug?.trim() || "";
+    const href =
+      communitySlug && roomSlug
+        ? `/communities/${communitySlug}/channels/${encodeURIComponent(roomSlug)}`
+        : communitySlug
+          ? `/communities/${communitySlug}/courses`
+          : "/communities/courses";
+
     return {
       id: course.id,
       title: course.title,
@@ -919,8 +929,8 @@ export async function getHubCourses(userId: string): Promise<HubCourseItem[]> {
       total_lessons: totalLessons,
       progress: Math.min(progressPct, 100),
       community_name: community?.name ?? "Community",
-      community_slug: community?.slug ?? "",
-      href: community ? `/communities/${community.slug}/courses` : "/communities/courses",
+      community_slug: communitySlug,
+      href,
     };
   });
 }
@@ -1219,7 +1229,7 @@ export async function getCommunityOverviewStats(
       .lt("last_active_at", onlineCutoff),
     supabase
       .from("community_courses")
-      .select("id, title, difficulty, total_lessons, thumbnail_url")
+      .select("id, title, difficulty, total_lessons, thumbnail_url, room_id, rooms(slug)")
       .eq("community_id", communityId)
       .eq("is_published", true)
       .order("published_at", { ascending: false })
@@ -1415,6 +1425,8 @@ export async function getCommunityOverviewStats(
     const totalLessons = course.total_lessons ?? 0;
     const progress =
       totalLessons > 0 ? Math.min(Math.round((completed / totalLessons) * 100), 100) : 0;
+    const room = (course as { rooms?: { slug: string | null } | null }).rooms;
+    const roomSlug = room?.slug?.trim() || "";
     return {
       id: course.id,
       title: course.title,
@@ -1422,7 +1434,9 @@ export async function getCommunityOverviewStats(
       total_lessons: totalLessons,
       progress,
       cover_image: course.thumbnail_url ?? null,
-      href: `${base}/courses`,
+      href: roomSlug
+        ? `${base}/channels/${encodeURIComponent(roomSlug)}`
+        : `${base}/courses`,
     };
   });
   const featuredCourse = courses[0] ?? null;

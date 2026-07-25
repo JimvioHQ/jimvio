@@ -46,7 +46,11 @@ export function CoursesSection() {
               href={course.href || base}
               className="mt-3 inline-block text-xs font-semibold text-[#fd5000]"
             >
-              Continue learning
+              {course.progress > 0 && course.progress < 100
+                ? "Continue learning"
+                : course.progress >= 100
+                  ? "Review course"
+                  : "Start course"}
             </Link>
           </HubCard>
         ))}

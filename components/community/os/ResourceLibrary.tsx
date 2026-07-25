@@ -47,6 +47,7 @@ export function ResourceLibrary({
 }) {
   const byRoom = useRoomMessageIndex((s) => s.byRoom);
   const [shelf, setShelf] = useState<ResourceLibraryShelf>("pdf");
+  const [query, setQuery] = useState("");
 
   const messages = useMemo(() => {
     const out = [];
@@ -61,43 +62,51 @@ export function ResourceLibrary({
   const media = useMemo(() => extractMediaItems(messages), [messages]);
 
   const items = useMemo(() => {
-    if (shelf === "pdf") {
-      return files.filter((f) => f.kind === "pdf");
-    }
-    if (shelf === "video") {
-      return media.filter((f) => f.kind === "video").map((m) => ({
-        message: m.message,
-        attachment: m.attachment,
-        kind: m.kind,
-      }));
-    }
-    if (shelf === "image") {
-      return media.filter((f) => f.kind === "image").map((m) => ({
-        message: m.message,
-        attachment: m.attachment,
-        kind: m.kind,
-      }));
-    }
-    if (shelf === "templates" || shelf === "downloads") {
-      return files.filter(
-        (f) => f.kind === "document" || f.kind === "other" || f.kind === "pdf"
-      );
-    }
-    // links — messages with http links in body
-    return messages
-      .filter((m) => /https?:\/\//i.test(m.body || ""))
-      .slice(0, 40)
-      .map((m) => ({
-        message: m,
-        attachment: {
-          url: (m.body.match(/https?:\/\/[^\s]+/) || [""])[0],
-          name: "Link",
-          mime: "text/uri-list",
-        },
-        kind: "other" as const,
-      }))
-      .filter((x) => x.attachment.url);
-  }, [shelf, files, media, messages]);
+    const q = query.trim().toLowerCase();
+    let rows =
+      shelf === "pdf"
+        ? files.filter((f) => f.kind === "pdf")
+        : shelf === "video"
+          ? media
+              .filter((f) => f.kind === "video")
+              .map((m) => ({
+                message: m.message,
+                attachment: m.attachment,
+                kind: m.kind,
+              }))
+          : shelf === "image"
+            ? media
+                .filter((f) => f.kind === "image")
+                .map((m) => ({
+                  message: m.message,
+                  attachment: m.attachment,
+                  kind: m.kind,
+                }))
+            : shelf === "templates" || shelf === "downloads"
+              ? files.filter(
+                  (f) =>
+                    f.kind === "document" || f.kind === "other" || f.kind === "pdf"
+                )
+              : messages
+                  .filter((m) => /https?:\/\//i.test(m.body || ""))
+                  .slice(0, 40)
+                  .map((m) => ({
+                    message: m,
+                    attachment: {
+                      url: (m.body.match(/https?:\/\/[^\s]+/) || [""])[0],
+                      name: "Link",
+                      mime: "text/uri-list",
+                    },
+                    kind: "other" as const,
+                  }))
+                  .filter((x) => x.attachment.url);
+
+    if (!q) return rows;
+    return rows.filter((row) => {
+      const hay = `${row.attachment?.name ?? ""} ${row.attachment?.url ?? ""} ${row.message?.body ?? ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [shelf, files, media, messages, query]);
 
   if (roomIds.length === 0) {
     return (
@@ -115,6 +124,16 @@ export function ResourceLibrary({
         <p className="mb-2 text-[12px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
           {title}
         </p>
+        <div className="relative mb-2">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search library…"
+            aria-label="Search resource library"
+            className="w-full rounded-md border-0 bg-[var(--color-surface-secondary)] px-3 py-2 text-[12px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
+          />
+        </div>
         <div className="flex gap-1 overflow-x-auto scrollbar-hide">
           {RESOURCE_LIBRARY_SHELVES.map((id) => {
             const Meta = SHELF_META[id];
@@ -143,8 +162,12 @@ export function ResourceLibrary({
         {items.length === 0 ? (
           <ChannelEmptyState
             icon={SHELF_META[shelf].icon}
-            title={SHELF_META[shelf].label}
-            description="Nothing in this shelf yet. Share files in Discussion to grow the library."
+            title={query ? "No matches" : SHELF_META[shelf].label}
+            description={
+              query
+                ? "Try a different search term."
+                : "Nothing in this shelf yet. Share files in Discussion to grow the library."
+            }
             className="py-10"
           />
         ) : (

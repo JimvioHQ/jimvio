@@ -103,8 +103,18 @@ export function KnowledgePanel({ roomId }: { roomId?: string }) {
     return (
       <ChannelEmptyState
         icon={BookOpen}
-        title="No knowledge yet"
+        title="Create your first knowledge article"
         description="Moderators can convert messages and threads into Guides, FAQs, Course Notes, and Knowledge Cards."
+      />
+    );
+  }
+
+  if (empty && filter === "discovery") {
+    return (
+      <ChannelEmptyState
+        icon={BookOpen}
+        title="No knowledge yet"
+        description="Convert a great answer into a guide so members can find it later. Use Discussion to capture knowledge."
       />
     );
   }

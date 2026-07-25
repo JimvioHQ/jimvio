@@ -15,6 +15,12 @@ import { useWorkspace, WorkspaceProvider } from "@/components/community/workspac
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
+import { toast } from "sonner";
+import Link from "next/link";
+import {
+  communityChannelHref,
+  resolveGroupDiscussionRoom,
+} from "@/lib/community/workspace";
 
 type Attachment = { url: string; name: string; type: string; size?: string };
 
@@ -67,30 +73,48 @@ export function CourseRoom({
   const [currentSlide, setCurrentSlide] = useState(0);
   // Mobile: "list" = sidebar, "lesson" = lesson player
   const [mobileView, setMobileView] = useState<"list" | "lesson">("list");
-  const { membership, ownerId } = useWorkspace();
-  const isStaff = membership?.role === "owner" || membership?.role === "admin" || ownerId === userId;
+  const { membership, ownerId, spacesWithRooms } = useWorkspace();
+  const isStaff =
+    membership?.role === "owner" ||
+    membership?.role === "admin" ||
+    membership?.role === "moderator" ||
+    ownerId === userId;
+  const [progressReady, setProgressReady] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch(`/api/courses/${roomId}`);
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed");
+      if (!res.ok) throw new Error(data.error || "Failed to load course");
       const c = data.course;
       if (c?.course_modules) {
-        c.course_modules.forEach((m: any) => {
-          m.course_lessons?.forEach((l: any) => {
+        c.course_modules.forEach((m: Module & { course_lessons?: Lesson[] }) => {
+          m.course_lessons?.forEach((l: Lesson & { attachments?: unknown }) => {
             if (l.attachments && typeof l.attachments === "object" && !Array.isArray(l.attachments)) {
-              l.slideshow = l.attachments.slideshow || [];
-              l.media_mode = l.attachments.media_mode || "video";
-              l.attachments = l.attachments.files || [];
+              const bag = l.attachments as {
+                slideshow?: Attachment[];
+                media_mode?: string;
+                files?: Attachment[];
+              };
+              l.slideshow = bag.slideshow || [];
+              l.media_mode = bag.media_mode || "video";
+              l.attachments = bag.files || [];
             }
           });
         });
       }
       setCourse(c ?? null);
-    } catch { setCourse(null); }
-    finally { setLoading(false); }
+    } catch (e: unknown) {
+      setCourse(null);
+      const msg = e instanceof Error ? e.message : "Failed to load course";
+      setLoadError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   }, [roomId]);
 
   useEffect(() => { load(); }, [load]);
@@ -106,30 +130,59 @@ export function CourseRoom({
   }, [course]);
 
   useEffect(() => {
-    if (!course || flatLessons.length === 0) return;
-    if (!activeLessonId) setActiveLessonId(flatLessons[0].id);
-  }, [course, flatLessons, activeLessonId]);
-
-  useEffect(() => {
     let cancelled = false;
     async function loadProgress() {
-      if (!course) return;
+      if (!course) {
+        setProgressReady(false);
+        return;
+      }
+      setProgressReady(false);
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
+      if (!user) {
+        if (!cancelled) setProgressReady(true);
+        return;
+      }
+      const { data, error } = await supabase
         .from("lesson_progress")
         .select("lesson_id, is_completed")
         .eq("course_id", course.id)
         .eq("user_id", user.id);
-      if (cancelled || !data) return;
+      if (cancelled) return;
+      if (error) {
+        toast.error("Could not load lesson progress");
+        setProgressReady(true);
+        return;
+      }
       const map: Record<string, boolean> = {};
-      data.forEach((r: { lesson_id: string; is_completed: boolean }) => { map[r.lesson_id] = !!r.is_completed; });
+      (data ?? []).forEach((r: { lesson_id: string; is_completed: boolean }) => {
+        map[r.lesson_id] = !!r.is_completed;
+      });
       setProgress(map);
+      setProgressReady(true);
     }
-    loadProgress();
+    void loadProgress();
     return () => { cancelled = true; };
   }, [course]);
+
+  // Resume first incomplete lesson once progress is known.
+  useEffect(() => {
+    if (!progressReady || flatLessons.length === 0) return;
+    if (activeLessonId) return;
+    const resume =
+      flatLessons.find((l) => !progress[l.id]) ?? flatLessons[0];
+    setActiveLessonId(resume.id);
+  }, [progressReady, flatLessons, progress, activeLessonId]);
+
+  function isLessonLocked(lessonId: string): boolean {
+    if (isStaff) return false;
+    const index = flatLessons.findIndex((l) => l.id === lessonId);
+    if (index <= 0) return false;
+    const lesson = flatLessons[index];
+    if (lesson?.is_free) return false;
+    const prev = flatLessons[index - 1];
+    return Boolean(prev && !progress[prev.id]);
+  }
 
   const activeLesson = flatLessons.find((l) => l.id === activeLessonId) ?? null;
   const completedCount = flatLessons.filter((l) => progress[l.id]).length;
@@ -138,7 +191,33 @@ export function CourseRoom({
   const prevLesson = idx > 0 ? flatLessons[idx - 1] : null;
   const nextLesson = idx >= 0 && idx < flatLessons.length - 1 ? flatLessons[idx + 1] : null;
 
+  const learningLinks = useMemo(() => {
+    const space = spacesWithRooms.find((s) =>
+      s.rooms.some((r) => r.id === roomId)
+    );
+    if (!space || !slug) return null;
+    const discussion = resolveGroupDiscussionRoom(space.rooms);
+    const resources = space.rooms.find(
+      (r) =>
+        r.room_type === "resources" ||
+        /resource|guide|knowledge/i.test(r.name)
+    );
+    return {
+      discussionHref: discussion
+        ? communityChannelHref(slug, discussion.slug)
+        : communityChannelHref(slug, space.rooms[0]?.slug ?? ""),
+      resourcesHref: resources
+        ? communityChannelHref(slug, resources.slug)
+        : null,
+      groupHref: `/communities/${slug}/groups/${space.slug}`,
+    };
+  }, [spacesWithRooms, roomId, slug]);
+
   function selectLesson(id: string) {
+    if (isLessonLocked(id)) {
+      toast.error("Complete the previous lesson to unlock this one.");
+      return;
+    }
     setActiveLessonId(id);
     setMobileView("lesson");
   }
@@ -152,9 +231,17 @@ export function CourseRoom({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ watchTime: 0 }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Could not save progress");
+      }
       setProgress((p) => ({ ...p, [activeLesson.id]: true }));
-    } finally { setMarking(false); }
+      toast.success("Lesson completed");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Could not save progress");
+    } finally {
+      setMarking(false);
+    }
   }
 
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -237,10 +324,26 @@ export function CourseRoom({
           <BookOpen size={36} className="text-[var(--color-accent)]" />
         </div>
         <div>
-          <p className="font-bold text-[var(--color-text-primary)] text-base">No course yet</p>
-          <p className="text-xs text-[var(--color-text-muted)] mt-1">Content will appear here once it is added.</p>
+          <p className="font-bold text-[var(--color-text-primary)] text-base">
+            {loadError ? "Could not load course" : "No lessons yet"}
+          </p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-1 max-w-sm">
+            {loadError
+              ? loadError
+              : isStaff
+                ? "Add your first module and lesson to start teaching."
+                : "Content will appear here once the instructor publishes lessons."}
+          </p>
         </div>
-        {isStaff && (
+        {loadError ? (
+          <Button
+            onClick={() => void load()}
+            className="rounded-sm bg-[var(--color-accent)] text-white font-bold"
+          >
+            Retry
+          </Button>
+        ) : null}
+        {isStaff && !loadError && (
           <Button
             onClick={() => setEditing(true)}
             className="rounded-sm border-[var(--color-accent)] text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white font-bold"
@@ -249,6 +352,32 @@ export function CourseRoom({
             Build Course
           </Button>
         )}
+        {learningLinks ? (
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+            {learningLinks.discussionHref ? (
+              <Link
+                href={learningLinks.discussionHref}
+                className="text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
+              >
+                Open Discussion
+              </Link>
+            ) : null}
+            {learningLinks.resourcesHref ? (
+              <Link
+                href={learningLinks.resourcesHref}
+                className="text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
+              >
+                Resources
+              </Link>
+            ) : null}
+            <Link
+              href={learningLinks.groupHref}
+              className="text-[12px] font-semibold text-[var(--color-text-muted)] hover:underline"
+            >
+              Back to Group
+            </Link>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -367,6 +496,7 @@ export function CourseRoom({
                     {lessons.map((les) => {
                       const isActive = activeLessonId === les.id;
                       const isDone = progress[les.id];
+                      const locked = isLessonLocked(les.id);
                       return (
                         <li key={les.id}>
                           <div
@@ -379,20 +509,28 @@ export function CourseRoom({
                           >
                             <button
                               onClick={() => selectLesson(les.id)}
-                              className="flex-1 flex items-center gap-2.5 px-3 py-2.5 text-left min-w-0"
+                              disabled={locked}
+                              className={cn(
+                                "flex-1 flex items-center gap-2.5 px-3 py-2.5 text-left min-w-0",
+                                locked && "opacity-60 cursor-not-allowed"
+                              )}
                             >
                               <div
                                 className={cn(
                                   "h-5 w-5 rounded-sm shrink-0 flex items-center justify-center border",
                                   isDone
                                     ? "bg-[var(--color-success)] border-[var(--color-success)]"
-                                    : isActive
-                                      ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10"
-                                      : "border-[var(--color-border)]"
+                                    : locked
+                                      ? "border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+                                      : isActive
+                                        ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10"
+                                        : "border-[var(--color-border)]"
                                 )}
                               >
                                 {isDone ? (
                                   <Check size={11} className="text-white" />
+                                ) : locked ? (
+                                  <Lock size={10} className="text-[var(--color-text-muted)]" />
                                 ) : isActive ? (
                                   <div className="h-2 w-2 rounded-sm bg-[var(--color-accent)]" />
                                 ) : null}
@@ -630,6 +768,35 @@ export function CourseRoom({
             </div>
           </div>
 
+          {/* Learning continuity */}
+          {learningLinks ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]/60 px-4 py-2 text-[11px]">
+              <span className="font-semibold text-[var(--color-text-muted)]">Continue:</span>
+              {learningLinks.discussionHref ? (
+                <Link
+                  href={learningLinks.discussionHref}
+                  className="font-semibold text-[var(--color-accent)] hover:underline"
+                >
+                  Discussion
+                </Link>
+              ) : null}
+              {learningLinks.resourcesHref ? (
+                <Link
+                  href={learningLinks.resourcesHref}
+                  className="font-semibold text-[var(--color-accent)] hover:underline"
+                >
+                  Resources
+                </Link>
+              ) : null}
+              <Link
+                href={learningLinks.groupHref}
+                className="font-semibold text-[var(--color-text-muted)] hover:underline"
+              >
+                Back to Group
+              </Link>
+            </div>
+          ) : null}
+
           {/* Bottom nav bar */}
           <div className="border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 flex items-center justify-between gap-2">
             <Button
@@ -667,7 +834,7 @@ export function CourseRoom({
               variant="outline"
               size="sm"
               className="rounded-sm border-[var(--color-border)] h-9 px-3"
-              disabled={!nextLesson}
+              disabled={!nextLesson || (nextLesson ? isLessonLocked(nextLesson.id) : true)}
               onClick={() => nextLesson && selectLesson(nextLesson.id)}
             >
               <span className="hidden sm:inline">Next</span>
