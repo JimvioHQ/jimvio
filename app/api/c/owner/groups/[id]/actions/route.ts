@@ -100,6 +100,7 @@ export async function POST(
         banner_url: row.banner_url ?? null,
         privacy: row.privacy ?? "public",
         access_type: row.access_type ?? "free",
+        space_type: row.space_type ?? "discussion",
         is_featured: false,
         is_pinned: false,
         is_hidden: row.is_hidden ?? false,
@@ -176,6 +177,7 @@ export async function POST(
       .update({
         is_active: false,
         archived_at: new Date().toISOString(),
+        archived_by: user.id,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -202,10 +204,12 @@ export async function POST(
     case "archive":
       patch.is_active = false;
       patch.archived_at = new Date().toISOString();
+      patch.archived_by = user.id;
       break;
     case "restore":
       patch.is_active = true;
       patch.archived_at = null;
+      patch.archived_by = null;
       break;
     case "feature":
       patch.is_featured = true;
@@ -249,6 +253,17 @@ export async function POST(
       { error: error?.message ?? "Action failed" },
       { status: 400 }
     );
+  }
+
+  if (action === "lock" || action === "unlock") {
+    await admin
+      .from("rooms")
+      .update({
+        is_locked: action === "lock",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("space_id", id)
+      .eq("is_active", true);
   }
 
   return NextResponse.json({

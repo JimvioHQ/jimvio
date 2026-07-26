@@ -9,11 +9,14 @@
 /** Canonical Space types — append new entries here to extend the product. */
 export const SPACE_TYPES = [
   "discussion",
+  "announcement",
+  "resources",
+  "qa",
+  "event",
   "voice",
   "live",
   "course",
   "marketplace",
-  "event",
   "ai",
 ] as const;
 
@@ -21,11 +24,14 @@ export type SpaceType = (typeof SPACE_TYPES)[number];
 
 export const SPACE_TYPE_LABELS: Record<SpaceType, string> = {
   discussion: "Discussion",
+  announcement: "Announcement",
+  resources: "Resources",
+  qa: "Q&A",
+  event: "Events",
   voice: "Voice",
   live: "Live",
   course: "Course",
   marketplace: "Marketplace",
-  event: "Event",
   ai: "AI",
 };
 
@@ -35,52 +41,75 @@ export const SPACE_TYPE_LABELS: Record<SpaceType, string> = {
  */
 export const SPACE_TYPE_TO_ROOM_TYPE: Record<SpaceType, string> = {
   discussion: "chat",
+  announcement: "posts",
+  resources: "resources",
+  qa: "qa",
+  event: "tasks",
   voice: "voice",
   live: "live",
   course: "course",
   marketplace: "chat",
-  event: "tasks",
   ai: "chat",
+};
+
+/** Preferred channel_kind for primary room. */
+export const SPACE_TYPE_TO_CHANNEL_KIND: Record<SpaceType, string> = {
+  discussion: "discussion",
+  announcement: "announcement",
+  resources: "resources",
+  qa: "qa",
+  event: "events",
+  voice: "voice",
+  live: "live",
+  course: "courses",
+  marketplace: "marketplace",
+  ai: "ai",
 };
 
 /** DB `rooms.room_type` → SpaceType (best-effort; unknown → discussion). */
 export const ROOM_TYPE_TO_SPACE_TYPE: Record<string, SpaceType> = {
   chat: "discussion",
-  posts: "discussion",
-  resources: "discussion",
+  posts: "announcement",
+  resources: "resources",
   voice: "voice",
   live: "live",
   course: "course",
   tasks: "event",
-  files: "discussion",
+  files: "resources",
   signals: "discussion",
-  knowledge: "discussion",
-  media: "discussion",
-  qa: "discussion",
+  knowledge: "resources",
+  media: "resources",
+  qa: "qa",
   feed: "discussion",
 };
 
 /** Owner Console / DB `rooms.channel_kind` → SpaceType. */
 export const CHANNEL_KIND_TO_SPACE_TYPE: Record<string, SpaceType> = {
   discussion: "discussion",
-  announcement: "discussion",
-  resources: "discussion",
-  knowledge: "discussion",
-  files: "discussion",
-  media: "discussion",
+  announcement: "announcement",
+  resources: "resources",
+  knowledge: "resources",
+  files: "resources",
+  media: "resources",
   voice: "voice",
   live: "live",
   events: "event",
   event: "event",
   courses: "course",
   course: "course",
-  qa: "discussion",
+  qa: "qa",
   signals: "discussion",
   support: "discussion",
   marketplace: "marketplace",
   commerce: "marketplace",
   ai: "ai",
 };
+
+/** Types where only staff should post by default (broadcast / curated). */
+export const STAFF_POSTING_SPACE_TYPES: ReadonlySet<SpaceType> = new Set([
+  "announcement",
+  "resources",
+]);
 
 const SPACE_TYPE_SET: ReadonlySet<string> = new Set(SPACE_TYPES);
 
@@ -106,4 +135,8 @@ export function spaceTypeFromRoom(room: {
 
 export function roomTypeForSpaceType(spaceType: SpaceType): string {
   return SPACE_TYPE_TO_ROOM_TYPE[spaceType] ?? "chat";
+}
+
+export function channelKindForSpaceType(spaceType: SpaceType): string {
+  return SPACE_TYPE_TO_CHANNEL_KIND[spaceType] ?? "discussion";
 }

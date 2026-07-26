@@ -2,11 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getHubSpaces } from "@/services/community/hub-data";
 import {
+  channelKindForSpaceType,
   isSpaceType,
   SPACE_TYPE_LABELS,
   SPACE_TYPE_TO_ROOM_TYPE,
+  STAFF_POSTING_SPACE_TYPES,
   type SpaceType,
 } from "@/lib/community/workspace/space-types";
+import {
+  DEFAULT_PERMISSION_CONFIG,
+  DISCUSSION_PERMISSION_CONFIG,
+} from "@/lib/community/owner-console/channels";
+import { rateLimit } from "@/lib/ops/rate-limit";
+import { hasCapability, resolveWorkspaceRole } from "@/lib/community/workspace/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -43,17 +51,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const limited = rateLimit(`space-create:${user.id}`, 20, 60_000);
+  if (!limited.allowed) {
+    return NextResponse.json(
+      { error: "Too many spaces created — try again shortly" },
+      { status: 429 }
+    );
+  }
+
   const body = (await req.json()) as Record<string, unknown>;
   const communityId = typeof body.communityId === "string" ? body.communityId : "";
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const description =
     typeof body.description === "string" && body.description.trim()
-      ? body.description.trim()
+      ? body.description.trim().slice(0, 2000)
       : null;
   const accessType =
     typeof body.access_type === "string" && body.access_type.trim()
       ? body.access_type.trim()
       : "free";
+  const icon =
+    typeof body.icon === "string" && body.icon.trim() ? body.icon.trim() : null;
+  const bannerUrl =
+    typeof body.bannerUrl === "string" && body.bannerUrl.trim()
+      ? body.bannerUrl.trim()
+      : typeof body.banner_url === "string" && body.banner_url.trim()
+        ? body.banner_url.trim()
+        : null;
+  const coverUrl =
+    typeof body.coverUrl === "string" && body.coverUrl.trim()
+      ? body.coverUrl.trim()
+      : typeof body.cover_url === "string" && body.cover_url.trim()
+        ? body.cover_url.trim()
+        : null;
+  const privacy =
+    typeof body.privacy === "string" && body.privacy.trim()
+      ? body.privacy.trim()
+      : "public";
 
   const rawSpaceType = body.spaceType ?? body.space_type;
   let spaceType: SpaceType = "discussion";
@@ -85,20 +119,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Community not found" }, { status: 404 });
   }
 
-  const isOwner = community.owner_id === user.id;
-  if (!isOwner) {
-    const { data: membership } = await supabase
-      .from("community_memberships")
-      .select("role")
-      .eq("community_id", communityId)
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
+  const { data: membership } = await supabase
+    .from("community_memberships")
+    .select("role, status, plan_type")
+    .eq("community_id", communityId)
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle();
 
-    const role = membership?.role;
-    if (role !== "admin" && role !== "owner") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  const role = resolveWorkspaceRole({
+    userId: user.id,
+    ownerId: community.owner_id,
+    membership: membership
+      ? {
+          role: String(membership.role),
+          status: String(membership.status),
+          plan_type: membership.plan_type ? String(membership.plan_type) : null,
+        }
+      : null,
+  });
+
+  if (!hasCapability(role, "space.create") && !hasCapability(role, "group.create")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { count } = await supabase
@@ -113,17 +155,23 @@ export async function POST(req: NextRequest) {
     .from("spaces")
     .insert({
       community_id: communityId,
-      name,
+      name: name.slice(0, 120),
       slug,
       description,
+      icon,
+      cover_url: coverUrl,
+      banner_url: bannerUrl,
+      privacy,
       access_type: accessType,
       space_type: spaceType,
       sort_order: count ?? 0,
       is_active: true,
       room_count: 0,
+      member_count: 0,
+      last_activity_at: new Date().toISOString(),
     })
     .select(
-      "id, name, slug, description, access_type, space_type, sort_order, community_id"
+      "id, name, slug, description, access_type, space_type, sort_order, community_id, icon, banner_url, cover_url, privacy"
     )
     .single();
 
@@ -137,16 +185,10 @@ export async function POST(req: NextRequest) {
     0,
     80
   );
-
-  const channelKindBySpaceType: Record<SpaceType, string> = {
-    discussion: "discussion",
-    voice: "voice",
-    live: "live",
-    course: "courses",
-    marketplace: "marketplace",
-    event: "events",
-    ai: "ai",
-  };
+  const channelKind = channelKindForSpaceType(spaceType);
+  const permissionConfig = STAFF_POSTING_SPACE_TYPES.has(spaceType)
+    ? DEFAULT_PERMISSION_CONFIG
+    : DISCUSSION_PERMISSION_CONFIG;
 
   const { data: room, error: roomError } = await supabase
     .from("rooms")
@@ -159,7 +201,8 @@ export async function POST(req: NextRequest) {
       access_type: "inherit",
       sort_order: 0,
       is_active: true,
-      channel_kind: channelKindBySpaceType[spaceType],
+      channel_kind: channelKind,
+      permission_config: permissionConfig,
     })
     .select(
       "id, name, slug, room_type, space_id, community_id, access_type, sort_order, channel_kind"

@@ -164,6 +164,7 @@ export type UpdateOwnerGroupInput = {
   isHidden?: boolean;
   isLocked?: boolean;
   sortOrder?: number;
+  spaceType?: string;
 };
 
 export type OwnerGroupAction =

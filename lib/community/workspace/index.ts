@@ -26,11 +26,14 @@ export {
   SPACE_TYPES,
   SPACE_TYPE_LABELS,
   SPACE_TYPE_TO_ROOM_TYPE,
+  SPACE_TYPE_TO_CHANNEL_KIND,
   ROOM_TYPE_TO_SPACE_TYPE,
   CHANNEL_KIND_TO_SPACE_TYPE,
+  STAFF_POSTING_SPACE_TYPES,
   isSpaceType,
   spaceTypeFromRoom,
   roomTypeForSpaceType,
+  channelKindForSpaceType,
 } from "./space-types";
 
 export {

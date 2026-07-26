@@ -16,6 +16,7 @@ import {
   type OwnerGroupStaffMember,
   type UpdateOwnerGroupInput,
 } from "@/lib/community/owner-console/groups";
+import { isSpaceType } from "@/lib/community/workspace/space-types";
 
 export const dynamic = "force-dynamic";
 
@@ -204,6 +205,12 @@ export async function PATCH(
   }
   if (typeof body.isLocked === "boolean") patch.is_locked = body.isLocked;
   if (typeof body.sortOrder === "number") patch.sort_order = body.sortOrder;
+  if (body.spaceType !== undefined) {
+    if (!isSpaceType(body.spaceType)) {
+      return NextResponse.json({ error: "Invalid spaceType" }, { status: 400 });
+    }
+    patch.space_type = body.spaceType;
+  }
 
   const { data: updated, error } = await admin
     .from("spaces")

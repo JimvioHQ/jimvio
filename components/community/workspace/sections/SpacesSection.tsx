@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Layers, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import {
   communitySpaceHref,
   mapSpaceToGroup,
 } from "@/lib/community/workspace";
+import { useSpacesRealtime } from "@/lib/community/workspace/use-spaces-realtime";
 
 interface Props {
   community: WorkspaceCommunity;
@@ -44,6 +45,16 @@ export function SpacesSection({
   const [createOpen, setCreateOpen] = useState(false);
 
   const canCreate = isOwner || isAdmin;
+
+  const refreshSpaces = useCallback(() => {
+    router.refresh();
+  }, [router]);
+
+  useSpacesRealtime({
+    communityId: community.id,
+    enabled: !!community.id,
+    onChange: refreshSpaces,
+  });
 
   const spaceCards = useMemo(() => {
     const roleInput = { userId, ownerId, membership };

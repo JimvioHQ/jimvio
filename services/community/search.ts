@@ -17,6 +17,7 @@ export type CommunitySearchOptions = {
   q: string;
   userId: string;
   communityId?: string | null;
+  spaceId?: string | null;
   types?: CommunitySearchType[];
   limit?: number;
 };
@@ -94,14 +95,20 @@ export async function searchCommunities(
   if (types.includes("posts")) {
     tasks.push(
       (async () => {
-        const { data } = await supabase
+        let query = supabase
           .from("community_posts")
-          .select("id, title, body, community_id")
+          .select("id, title, body, community_id, space_id")
           .in("community_id", communityIds)
           .eq("is_published", true)
           .or([orIlike("title", pattern), orIlike("body", pattern)].join(","))
           .order("created_at", { ascending: false })
           .limit(perType);
+
+        if (options.spaceId) {
+          query = query.eq("space_id", options.spaceId);
+        }
+
+        const { data } = await query;
 
         for (const post of data ?? []) {
           const community = communityMap.get(post.community_id);
@@ -186,9 +193,10 @@ export async function searchCommunities(
       (async () => {
         const { data } = await supabase
           .from("spaces")
-          .select("id, name, slug, description, community_id")
+          .select("id, name, slug, description, community_id, space_type")
           .in("community_id", communityIds)
           .eq("is_active", true)
+          .eq("is_hidden", false)
           .or([orIlike("name", pattern), orIlike("description", pattern)].join(","))
           .order("sort_order", { ascending: true })
           .limit(perType);
@@ -199,7 +207,11 @@ export async function searchCommunities(
             id: space.id,
             type: "spaces",
             title: space.name,
-            subtitle: space.description?.slice(0, 80) ?? community?.name ?? null,
+            subtitle:
+              (space as { space_type?: string }).space_type ||
+              space.description?.slice(0, 80) ||
+              community?.name ||
+              null,
             href: community
               ? `/communities/${community.slug}/spaces/${space.slug}`
               : "/communities/spaces",

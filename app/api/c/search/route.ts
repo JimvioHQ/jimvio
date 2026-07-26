@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
   }
 
   const communityId = searchParams.get("communityId");
+  const spaceId = searchParams.get("spaceId");
   const limit = Math.min(Number(searchParams.get("limit") ?? 20) || 20, 40);
   const typesParam = searchParams.get("types");
   const types = typesParam
@@ -56,6 +57,7 @@ export async function GET(req: NextRequest) {
     q,
     userId: user.id,
     communityId,
+    spaceId,
     types,
     limit,
   });

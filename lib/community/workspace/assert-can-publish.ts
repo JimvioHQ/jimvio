@@ -32,7 +32,7 @@ async function resolveRoomPostingAccess(
   const { data: room } = await supabase
     .from("rooms")
     .select(
-      "id, community_id, permission_config, behavior_config, is_locked, channel_kind, slug, room_type"
+      "id, community_id, space_id, permission_config, behavior_config, is_locked, channel_kind, slug, room_type"
     )
     .eq("id", roomId)
     .maybeSingle();
@@ -96,6 +96,27 @@ async function resolveRoomPostingAccess(
   return { room, access };
 }
 
+function lockedOrArchivedError(
+  room: { is_locked?: boolean | null },
+  space: { is_locked?: boolean | null; is_active?: boolean | null; archived_at?: string | null } | null
+): { ok: false; status: number; error: string } | null {
+  if (space && (space.is_active === false || space.archived_at)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "This space is archived — posting is disabled.",
+    };
+  }
+  if (space?.is_locked || room.is_locked) {
+    return {
+      ok: false,
+      status: 403,
+      error: "This discussion is locked — only staff can post.",
+    };
+  }
+  return null;
+}
+
 export async function assertCanPublishInRoom(
   supabase: Supabase,
   userId: string,
@@ -105,6 +126,31 @@ export async function assertCanPublishInRoom(
   if (!room || !access) {
     return { ok: false, status: 404, error: "Room not found" };
   }
+
+  const { data: space } = room.space_id
+    ? await supabase
+        .from("spaces")
+        .select("id, is_locked, is_active, archived_at")
+        .eq("id", room.space_id)
+        .maybeSingle()
+    : { data: null };
+
+  // Staff (moderation.delete / channel.manage) may still post in locked rooms.
+  const canBypassLock =
+    access.role === "owner" ||
+    access.role === "admin" ||
+    access.role === "moderator";
+  if (!canBypassLock) {
+    const locked = lockedOrArchivedError(room, space);
+    if (locked) return locked;
+  } else if (space && (space.is_active === false || space.archived_at)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "This space is archived — posting is disabled.",
+    };
+  }
+
   if (!access.canPublish) {
     return {
       ok: false,
@@ -124,6 +170,30 @@ export async function assertCanCommentInRoom(
   if (!room || !access) {
     return { ok: false, status: 404, error: "Room not found" };
   }
+
+  const { data: space } = room.space_id
+    ? await supabase
+        .from("spaces")
+        .select("id, is_locked, is_active, archived_at")
+        .eq("id", room.space_id)
+        .maybeSingle()
+    : { data: null };
+
+  const canBypassLock =
+    access.role === "owner" ||
+    access.role === "admin" ||
+    access.role === "moderator";
+  if (!canBypassLock) {
+    const locked = lockedOrArchivedError(room, space);
+    if (locked) return locked;
+  } else if (space && (space.is_active === false || space.archived_at)) {
+    return {
+      ok: false,
+      status: 403,
+      error: "This space is archived — commenting is disabled.",
+    };
+  }
+
   if (!access.canComment) {
     return {
       ok: false,

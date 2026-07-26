@@ -42,6 +42,8 @@ export type SpaceManagementRow = {
   default_content?: unknown;
   last_activity_at?: string | null;
   archived_at?: string | null;
+  archived_by?: string | null;
+  space_type?: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -51,7 +53,7 @@ const SPACE_SELECT = `
   member_count, room_count, sort_order, is_active, created_at, updated_at,
   cover_url, banner_url, privacy, is_featured, is_pinned, is_hidden, is_locked,
   welcome_message, rules, permission_config, default_content,
-  last_activity_at, archived_at
+  last_activity_at, archived_at, archived_by, space_type
 `.replace(/\s+/g, " ").trim();
 
 export { SPACE_SELECT };

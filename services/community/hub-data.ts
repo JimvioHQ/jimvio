@@ -765,9 +765,10 @@ export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
 
   const { data: spaces } = await supabase
     .from("spaces")
-    .select("id, name, slug, description, community_id, room_count, member_count, communities(name, slug)")
+    .select("id, name, slug, description, community_id, room_count, member_count, space_type, communities(name, slug)")
     .in("community_id", communityIds)
     .eq("is_active", true)
+    .eq("is_hidden", false)
     .order("sort_order", { ascending: true })
     .limit(50);
 
@@ -780,12 +781,15 @@ export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
         name: space.name,
         slug: space.slug,
         description: space.description,
+        space_type: (space as { space_type?: string }).space_type ?? "discussion",
         community_id: space.community_id,
         community_name: community?.name ?? "Community",
         community_slug: community?.slug ?? "",
         room_count: space.room_count ?? 0,
         member_count: space.member_count ?? 0,
-        href: community ? `/communities/${community.slug}` : "/communities",
+        href: community
+          ? `/communities/${community.slug}/spaces/${space.slug}`
+          : "/communities",
       };
     });
 }
