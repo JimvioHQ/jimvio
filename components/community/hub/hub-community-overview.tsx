@@ -7,7 +7,6 @@ import {
   BadgeCheck,
   Bell,
   BellOff,
-  Calendar,
   Check,
   ChevronDown,
   Eye,
@@ -19,6 +18,7 @@ import {
   LogOut,
   Megaphone,
   MoreHorizontal,
+  Newspaper,
   Radio,
   Share2,
   ShoppingBag,
@@ -33,8 +33,8 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import {
   OverviewCoursesPanel,
-  OverviewEventsPanel,
   OverviewLivePanel,
+  OverviewPostsPanel,
   OverviewSpacesPanel,
   OverviewStorePanel,
 } from "@/components/community/hub/overview-section-panels";
@@ -43,7 +43,7 @@ type OverviewTabId =
   | "overview"
   | "spaces"
   | "courses"
-  | "events"
+  | "posts"
   | "live"
   | "store";
 
@@ -200,6 +200,7 @@ export function HubCommunityOverview() {
         ? [overview.featuredCourse]
         : [];
   const upcomingEvents = overview?.upcomingEvents ?? [];
+  void upcomingEvents;
   const liveCount = overview?.liveNow ?? 0;
 
   const hasSpaces = spacesWithRooms.length > 0;
@@ -226,10 +227,10 @@ export function HubCommunityOverview() {
         icon: GraduationCap,
       },
       {
-        id: "events" as const,
-        label: "Events",
-        count: upcomingEvents.length,
-        icon: Calendar,
+        id: "posts" as const,
+        label: "Posts",
+        count: overview?.postCount ?? null,
+        icon: Newspaper,
       },
       {
         id: "live" as const,
@@ -248,7 +249,7 @@ export function HubCommunityOverview() {
       spacesWithRooms.length,
       overview?.courseCount,
       publishedCourses.length,
-      upcomingEvents.length,
+      overview?.postCount,
       liveCount,
     ]
   );
@@ -727,12 +728,8 @@ export function HubCommunityOverview() {
                 ownerName={ownerName}
               />
             ) : null}
-            {activeTab === "events" ? (
-              <OverviewEventsPanel
-                slug={slug}
-                communityId={communityId}
-                upcomingEvents={upcomingEvents}
-              />
+            {activeTab === "posts" ? (
+              <OverviewPostsPanel communityId={communityId} slug={slug} />
             ) : null}
             {activeTab === "live" ? (
               <OverviewLivePanel

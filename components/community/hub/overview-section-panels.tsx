@@ -10,7 +10,6 @@ import {
   Layers,
   Radio,
   ShoppingBag,
-  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -22,6 +21,7 @@ import type { WorkspaceSpaceRow } from "@/components/community/workspace-context
 import type { CommunityOverviewStats } from "@/services/community/hub-data";
 import { useCreatorOSStore } from "@/lib/community/os";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
+import { FeedSection } from "@/components/community/workspace/sections/Feed";
 
 const SPACE_ICON_COLORS = [
   "bg-violet-500",
@@ -242,6 +242,31 @@ export function OverviewCoursesPanel({
   );
 }
 
+export function OverviewPostsPanel({
+  communityId,
+  slug,
+}: {
+  communityId: string;
+  slug: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[13px] text-gray-500">
+          Posts created inside this community
+        </p>
+        <Link
+          href={`/create/post?community=${encodeURIComponent(slug)}`}
+          className="inline-flex items-center rounded-full bg-[#fd5000]/10 px-3 py-1.5 text-[12px] font-semibold text-[#fd5000] hover:bg-[#fd5000]/15"
+        >
+          Upload Post
+        </Link>
+      </div>
+      <FeedSection communityId={communityId} filter="for-you" variant="hub" />
+    </div>
+  );
+}
+
 export function OverviewEventsPanel({
   slug,
   communityId,
@@ -321,17 +346,14 @@ export function OverviewEventsPanel({
                 </h3>
                 <p className="mt-1 text-[12px] text-gray-500">
                   {timeLabel ? `${timeLabel} · ` : ""}
-                  Hosted by {event.host}
-                </p>
-                <p className="mt-2 inline-flex items-center gap-1 text-[12px] text-gray-500">
-                  <Users className="h-3.5 w-3.5" />
-                  {formatCompact(event.going)} going
+                  {event.host}
+                  {event.going > 0 ? ` · ${event.going} going` : ""}
                 </p>
                 <Link
-                  href={event.href}
-                  className="mt-auto inline-flex min-h-9 items-center justify-center rounded-xl border border-gray-200 bg-white px-3.5 text-[12px] font-semibold text-gray-800 transition hover:bg-gray-50"
+                  href={event.href || `/communities/${slug}/events`}
+                  className="mt-auto pt-3 text-[12px] font-semibold text-[#fd5000]"
                 >
-                  Register
+                  View event
                 </Link>
               </div>
             </article>

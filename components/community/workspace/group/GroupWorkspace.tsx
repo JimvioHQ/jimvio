@@ -22,7 +22,7 @@ import {
 } from "@/components/community/workspace/space/SpaceViewChrome";
 import { MembersPanel } from "@/components/community/workspace/channel/panels/MembersPanel";
 import { FilesPanel } from "@/components/community/workspace/channel/panels/FilesPanel";
-import { EventsPanel } from "@/components/community/workspace/channel/panels/EventsPanel";
+import { FeedSection } from "@/components/community/workspace/sections/Feed";
 import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
 import { GroupHeader } from "./GroupHeader";
 
@@ -259,15 +259,9 @@ export function GroupWorkspace({
           </div>
         ) : null}
 
-        {tab === "events" ? (
+        {tab === "posts" ? (
           <div className="min-h-0 flex-1 overflow-y-auto bg-white p-4 sm:p-6">
-            <EventsPanel
-              channelName={group.name}
-              roomId={discussionRoom?.id}
-              communityId={communityId}
-              userId={userId}
-              canManage={Boolean(isStaff)}
-            />
+            <FeedSection communityId={communityId} filter="for-you" />
           </div>
         ) : null}
       </div>

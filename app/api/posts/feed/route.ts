@@ -47,14 +47,14 @@ export async function GET(req: NextRequest) {
   let query = supabase
     .from("community_posts")
     .select(
-      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug)"
+      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug, name)"
     )
     .in("community_id", communityId ? [communityId] : communityIds);
 
   if (draftsOnly) {
     query = query.eq("author_id", user.id).eq("is_published", false);
   } else {
-    query = query.eq("is_published", true);
+    query = query.eq("is_published", true).is("archived_at", null);
   }
 
   if (cursor) {

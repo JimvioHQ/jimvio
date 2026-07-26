@@ -195,7 +195,7 @@ export const CHANNEL_TAB_IDS = [
   "files",
   "media",
   "pinned",
-  "events",
+  "posts",
   "members",
   "ai",
   "home",
@@ -213,6 +213,6 @@ export const CHANNEL_TABS: { id: ChannelTabId; label: string }[] = [
   { id: "members", label: "Members" },
   { id: "discussion", label: "Discussion" },
   { id: "threads", label: "Threads" },
-  { id: "events", label: "Events" },
+  { id: "posts", label: "Posts" },
   { id: "ai", label: "AI" },
 ];

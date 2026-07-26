@@ -143,7 +143,7 @@ export const CREATE_QUICK_LAUNCH = [
     icon: "upload",
     label: "Upload Post",
     subtitle: "Photo, video, carousel & mixed media",
-    href: "/communities?create=post",
+    href: "/create/post",
   },
   { icon: "graduation", label: "Create Course", subtitle: "Build a new course", href: "/communities/courses" },
   { icon: "target", label: "Create Mission", subtitle: "Engage your community", href: "/communities/missions" },

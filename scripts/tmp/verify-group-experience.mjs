@@ -50,7 +50,8 @@ assert.doesNotMatch(groupWs, /showCallPanel/);
 assert.doesNotMatch(groupWs, /SpaceFeedFilters/);
 assert.match(groupWs, /tab === "members"/);
 assert.match(groupWs, /tab === "files"/);
-assert.match(groupWs, /tab === "events"/);
+assert.match(groupWs, /tab === "posts"/);
+assert.match(groupWs, /FeedSection/);
 assert.doesNotMatch(groupWs, /GroupSidebar/);
 assert.doesNotMatch(groupWs, /Create Channel/);
 
@@ -60,7 +61,7 @@ assert.match(groupHeader, /onAudioCall|Audio call/);
 assert.match(groupHeader, /onVideoCall|Video call/);
 assert.doesNotMatch(groupHeader, /Online|67 Online/);
 assert.match(chrome, /Discussion/);
-assert.match(chrome, /Members|Files|Events|About/);
+assert.match(chrome, /Members|Files|Posts|About/);
 assert.doesNotMatch(chrome, /SpaceFeedFilters|Unanswered|Newest/);
 assert.match(aboutPanel, /About this space/i);
 assert.match(aboutPanel, /View all details/);

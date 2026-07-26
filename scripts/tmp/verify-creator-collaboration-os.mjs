@@ -108,7 +108,8 @@ assert.match(messageCard, /Convert to Task/);
 assert.match(memberProfile, /Knowledge contributions/);
 assert.match(creatorTabs, /contributions/);
 assert.match(creatorProfile, /contributions/);
-assert.match(channelWs, /EventsPanel/);
+assert.match(channelWs, /FeedSection/);
+assert.match(channelWs, /tab === "posts"/);
 assert.doesNotMatch(chatRoom, /fork ChatRoom/i);
 assert.doesNotMatch(channelWs, /fork ChatRoom/i);
 

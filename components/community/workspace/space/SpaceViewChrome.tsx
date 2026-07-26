@@ -6,7 +6,7 @@ export type SpaceViewTab =
   | "discussion"
   | "members"
   | "files"
-  | "events"
+  | "posts"
   | "about";
 
 function formatCompact(n: number): string {
@@ -40,7 +40,7 @@ export function SpaceViewTabs({
           : "Members",
     },
     { id: "files", label: "Files" },
-    { id: "events", label: "Events" },
+    { id: "posts", label: "Posts" },
     { id: "about", label: "About" },
   ];
 

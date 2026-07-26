@@ -448,6 +448,58 @@ export async function getHubStories(userId: string): Promise<HubStory[]> {
 
   const dayAgo = new Date(Date.now() - DAY_MS).toISOString();
   const liveCutoff = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
+  const nowIso = new Date().toISOString();
+
+  // Prefer real community_stories when available; fall back to post-derived rings.
+  const { data: storyRows, error: storiesError } = await (supabase as any)
+    .from("community_stories")
+    .select(
+      "author_id, created_at, expires_at, community_id, profiles!community_stories_author_id_fkey(full_name, avatar_url, username)"
+    )
+    .gt("expires_at", nowIso)
+    .order("created_at", { ascending: false })
+    .limit(40);
+
+  if (!storiesError && Array.isArray(storyRows) && storyRows.length > 0) {
+    const communitySet = new Set(communityIds);
+    const seen = new Set<string>();
+    const stories: HubStory[] = [];
+
+    for (const row of storyRows) {
+      if (!row.author_id || seen.has(row.author_id)) continue;
+      // Include public/followers stories and those scoped to user's communities
+      if (
+        row.community_id &&
+        !communitySet.has(row.community_id) &&
+        row.author_id !== userId
+      ) {
+        continue;
+      }
+      seen.add(row.author_id);
+
+      const profile = (Array.isArray(row.profiles) ? row.profiles[0] : row.profiles) as {
+        full_name: string | null;
+        avatar_url: string | null;
+        username: string | null;
+      } | null;
+
+      const name = profile?.full_name ?? profile?.username ?? "Member";
+      stories.push({
+        id: row.author_id,
+        name,
+        username: profile?.username ?? null,
+        avatar_url: profile?.avatar_url ?? null,
+        href: profile?.username
+          ? `/communities/profile/${profile.username}`
+          : "/communities/profile",
+        live: (row.created_at ?? "") >= liveCutoff,
+      });
+
+      if (stories.length >= 8) break;
+    }
+
+    if (stories.length > 0) return stories;
+  }
 
   const { data: posts } = await supabase
     .from("community_posts")

@@ -44,11 +44,13 @@ const ThreadsPanel = lazy(() =>
 const KnowledgePanel = lazy(() =>
   import("./panels/KnowledgePanel").then((m) => ({ default: m.KnowledgePanel }))
 );
-const EventsPanel = lazy(() =>
-  import("./panels/EventsPanel").then((m) => ({ default: m.EventsPanel }))
-);
 const ChannelAiPanel = lazy(() =>
   import("./panels/ChannelAiPanel").then((m) => ({ default: m.ChannelAiPanel }))
+);
+const FeedSection = lazy(() =>
+  import("@/components/community/workspace/sections/Feed").then((m) => ({
+    default: m.FeedSection,
+  }))
 );
 
 /**
@@ -69,7 +71,7 @@ export function ChannelWorkspace({
   roomId,
   communityId,
   communitySlug,
-  userId,
+  userId: _userId,
   canManageKnowledge,
 }: {
   channel: WorkspaceChannel;
@@ -214,16 +216,8 @@ export function ChannelWorkspace({
                   onJumpToMessage={() => openDiscussion()}
                 />
               )}
-              {tab === "events" && (
-                <EventsPanel
-                  channelName={channel.name}
-                  roomId={resolvedRoomId}
-                  communityId={communityId}
-                  userId={userId}
-                  canManage={
-                    canManageKnowledge ?? channel.permissions.canModerate
-                  }
-                />
+              {tab === "posts" && (
+                <FeedSection communityId={communityId ?? undefined} filter="for-you" />
               )}
               {tab === "members" && <MembersPanel members={members} />}
               {tab === "ai" && (

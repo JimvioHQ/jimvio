@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
   subscribePostgresChangesMany,
@@ -40,6 +41,8 @@ import {
     Pencil,
     Globe,
     RefreshCw,
+    Archive,
+    MessageSquareOff,
 } from "lucide-react";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 import { formatDistanceToNow } from "date-fns";
@@ -101,6 +104,9 @@ interface Post {
     video_url?: string | null;
     user_reaction?: string | null;
     audience?: string | null;
+    comments_disabled?: boolean | null;
+    archived_at?: string | null;
+    communities?: { slug?: string | null; name?: string | null } | null;
 }
 
 type ComposerMode = "discussion" | "poll";
@@ -1126,6 +1132,41 @@ export function FeedSection({
         }
     }
 
+    async function patchPost(postId: string, patch: Record<string, unknown>) {
+        const res = await fetch(`/api/posts/${postId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+            post?: Post;
+            error?: string;
+        };
+        if (!res.ok) {
+            toast.error(data.error || "Failed to update post");
+            return null;
+        }
+        if (data.post) {
+            const archivedAt = (data.post as Post).archived_at ?? null;
+            if (archivedAt) {
+                setPosts((prev) => prev.filter((p) => p.id !== postId));
+                if (detailId === postId) setDetailId(null);
+            } else {
+                setPosts((prev) =>
+                    prev.map((p) => (p.id === postId ? normalizePost({ ...p, ...data.post! }) : p))
+                );
+            }
+        } else if (patch.archived_at === true) {
+            setPosts((prev) => prev.filter((p) => p.id !== postId));
+            if (detailId === postId) setDetailId(null);
+        } else {
+            setPosts((prev) =>
+                prev.map((p) => (p.id === postId ? normalizePost({ ...p, ...patch } as Post) : p))
+            );
+        }
+        return data.post ?? true;
+    }
+
     // ── Share post ────────────────────────────────────────────────────────────
     async function sharePost(
         postId: string,
@@ -1737,6 +1778,7 @@ export function FeedSection({
                             onQuote={() => startQuote(p)}
                             onReport={() => reportPost(p.id)}
                             onVotePoll={(idx) => votePoll(p.id, idx)}
+                            onPatch={(patch) => patchPost(p.id, patch)}
                             isDetailOpen={detailId === p.id}
                         />
                     ))}
@@ -1811,6 +1853,7 @@ function PostCard({
     onQuote,
     onReport,
     onVotePoll,
+    onPatch,
     isDetailOpen,
 }: {
     post: Post;
@@ -1826,6 +1869,7 @@ function PostCard({
     onQuote: () => void;
     onReport: () => void;
     onVotePoll: (optionIndex: number) => void;
+    onPatch: (patch: Record<string, unknown>) => Promise<unknown>;
     isDetailOpen: boolean;
 }) {
     const profile = post.profiles ?? post.author ?? null;
@@ -1834,6 +1878,8 @@ function PostCard({
         ? (post.images as string[]).filter(Boolean)
         : [];
     const isOwn = currentUserId && post.author_id === currentUserId;
+    const communitySlug = post.communities?.slug ?? null;
+    const communityName = post.communities?.name ?? null;
     const poll = (post.attachments as { poll?: { options?: Array<{ text: string; votes?: number }> } } | null)
         ?.poll;
     const productId = (post.attachments as { product_id?: string } | null)?.product_id;
@@ -1843,6 +1889,9 @@ function PostCard({
     const [menuOpen, setMenuOpen] = useState(false);
     const [shareOpen, setShareOpen] = useState(false);
     const [pickerOpen, setPickerOpen] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const [editBody, setEditBody] = useState(post.body);
+    const [ownerBusy, setOwnerBusy] = useState(false);
     const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pickerOpenedByHoldRef = useRef(false);
     const cardRef = useRef<HTMLElement | null>(null);
@@ -1854,6 +1903,10 @@ function PostCard({
     const reactionSummary = Object.entries(post.reaction_counts ?? {})
         .filter(([, n]) => n > 0)
         .sort((a, b) => b[1] - a[1]);
+
+    useEffect(() => {
+        setEditBody(post.body);
+    }, [post.body]);
 
     useEffect(() => {
         const el = cardRef.current;
@@ -1897,6 +1950,17 @@ function PostCard({
         clearHold();
     }
 
+    async function runOwnerAction(action: () => Promise<void>) {
+        if (ownerBusy) return;
+        setOwnerBusy(true);
+        setMenuOpen(false);
+        try {
+            await action();
+        } finally {
+            setOwnerBusy(false);
+        }
+    }
+
     return (
         <article
             ref={cardRef}
@@ -1937,6 +2001,15 @@ function PostCard({
                             {locationLabel ? ` · ${locationLabel}` : ""}
                         </p>
                     )}
+                    {communitySlug && communityName ? (
+                        <Link
+                            href={`/communities/${communitySlug}`}
+                            className="mt-0.5 inline-block text-[11px] font-medium text-[#fd5000] hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {communityName}
+                        </Link>
+                    ) : null}
                 </div>
 
                 <div className="relative flex items-center gap-1">
@@ -1959,7 +2032,7 @@ function PostCard({
                         <MoreHorizontal className="w-3.5 h-3.5" />
                     </button>
                     {menuOpen && (
-                        <div className="absolute right-0 top-full mt-1 z-20 min-w-[140px] rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
+                        <div className="absolute right-0 top-full mt-1 z-20 min-w-[168px] rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
                             <button
                                 type="button"
                                 onClick={() => { onQuote(); setMenuOpen(false); }}
@@ -1967,6 +2040,96 @@ function PostCard({
                             >
                                 <Quote className="w-3.5 h-3.5" /> Quote
                             </button>
+                            {isOwn && (
+                                <>
+                                    <button
+                                        type="button"
+                                        disabled={ownerBusy}
+                                        onClick={() => {
+                                            setEditing(true);
+                                            setEditBody(post.body);
+                                            setMenuOpen(false);
+                                        }}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-text-primary hover:bg-surface-secondary disabled:opacity-40"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" /> Edit
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={ownerBusy}
+                                        onClick={() =>
+                                            void runOwnerAction(async () => {
+                                                const ok = await onPatch({
+                                                    archived_at: post.archived_at ? null : true,
+                                                });
+                                                if (ok) {
+                                                    toast.success(
+                                                        post.archived_at ? "Post restored" : "Post archived"
+                                                    );
+                                                }
+                                            })
+                                        }
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-text-primary hover:bg-surface-secondary disabled:opacity-40"
+                                    >
+                                        <Archive className="w-3.5 h-3.5" />
+                                        {post.archived_at ? "Unarchive" : "Archive"}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={ownerBusy}
+                                        onClick={() =>
+                                            void runOwnerAction(async () => {
+                                                const next = !post.is_pinned;
+                                                const ok = await onPatch({ is_pinned: next });
+                                                if (ok) toast.success(next ? "Post pinned" : "Post unpinned");
+                                            })
+                                        }
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-text-primary hover:bg-surface-secondary disabled:opacity-40"
+                                    >
+                                        <Pin className="w-3.5 h-3.5" />
+                                        {post.is_pinned ? "Unpin" : "Pin"}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={ownerBusy}
+                                        onClick={() =>
+                                            void runOwnerAction(async () => {
+                                                const res = await fetch(`/api/posts/${post.id}/analytics`);
+                                                const data = await res.json().catch(() => ({}));
+                                                if (!res.ok) {
+                                                    toast.error(data.error || "Analytics unavailable");
+                                                    return;
+                                                }
+                                                toast.message("Post analytics", {
+                                                    description: `Views ${data.views ?? 0} · Reach ${data.reach ?? 0} · Likes ${data.likes ?? 0} · Comments ${data.comments ?? 0} · Shares ${data.shares ?? 0}`,
+                                                });
+                                            })
+                                        }
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-text-primary hover:bg-surface-secondary disabled:opacity-40"
+                                    >
+                                        <BarChart3 className="w-3.5 h-3.5" /> Analytics
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={ownerBusy}
+                                        onClick={() =>
+                                            void runOwnerAction(async () => {
+                                                const next = !post.comments_disabled;
+                                                const ok = await onPatch({ comments_disabled: next });
+                                                if (ok) {
+                                                    toast.success(
+                                                        next ? "Comments disabled" : "Comments enabled"
+                                                    );
+                                                }
+                                            })
+                                        }
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-text-primary hover:bg-surface-secondary disabled:opacity-40"
+                                    >
+                                        <MessageSquareOff className="w-3.5 h-3.5" />
+                                        {post.comments_disabled ? "Enable comments" : "Disable comments"}
+                                    </button>
+                                </>
+                            )}
                             {!isOwn && (
                                 <button
                                     type="button"
@@ -1981,9 +2144,48 @@ function PostCard({
                 </div>
             </header>
 
+            {editing ? (
+                <div className="mb-3 space-y-2">
+                    <textarea
+                        value={editBody}
+                        onChange={(e) => setEditBody(e.target.value.slice(0, COMPOSER_MAX_CHARS))}
+                        rows={4}
+                        className="w-full resize-none rounded-xl border border-border bg-surface-secondary/40 px-3 py-2 text-[14px] text-text-primary outline-none focus:border-[#fd5000]/40"
+                    />
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setEditing(false);
+                                setEditBody(post.body);
+                            }}
+                            className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-text-muted hover:bg-surface-secondary"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            disabled={ownerBusy || !editBody.trim()}
+                            onClick={() =>
+                                void runOwnerAction(async () => {
+                                    const ok = await onPatch({ body: editBody.trim() });
+                                    if (ok) {
+                                        setEditing(false);
+                                        toast.success("Post updated");
+                                    }
+                                })
+                            }
+                            className="rounded-lg bg-[#fd5000] px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-40"
+                        >
+                            Save
+                        </button>
+                    </div>
+                </div>
+            ) : (
             <p className="text-[14px] text-text-primary leading-relaxed whitespace-pre-wrap mb-3">
                 {post.body}
             </p>
+            )}
 
             {post.quoted_post && (
                 <div className="mb-3 rounded-xl border border-border bg-surface-secondary/50 px-3 py-2">

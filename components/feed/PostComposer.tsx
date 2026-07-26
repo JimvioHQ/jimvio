@@ -44,6 +44,7 @@ type MediaItem = {
   file?: File;
   alt?: string;
 };
+type CommunityOption = { id: string; name: string; slug: string };
 
 const AUDIENCE_OPTIONS: { id: Audience; label: string }[] = [
   { id: "public", label: "Public" },
@@ -54,12 +55,23 @@ const AUDIENCE_OPTIONS: { id: Audience; label: string }[] = [
 
 const LINK_RE = /https?:\/\/[^\s]+/i;
 
-export function PostComposer() {
+export function PostComposer({
+  initialCommunitySlug = null,
+  variant = "inline",
+  onPublished,
+}: {
+  /** Prefill community from `?community=slug` on /create/post */
+  initialCommunitySlug?: string | null;
+  variant?: "inline" | "page";
+  onPublished?: (postId?: string) => void;
+} = {}) {
   const { user, isLoading, isAuthenticated } = useFeedUser();
   const displayName = user?.displayName ?? "there";
   const avatarLabel = user?.fullName ?? user?.username ?? "You";
+  const isPage = variant === "page";
 
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(isPage);
+  const [preview, setPreview] = useState(false);
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState<Audience>("community");
   const [location, setLocation] = useState("");
@@ -71,11 +83,12 @@ export function PostComposer() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [communityId, setCommunityId] = useState<string | null>(null);
+  const [communities, setCommunities] = useState<CommunityOption[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
-  // Prefetch a default community for shell composer posts
+  // Prefetch communities (slug preselect when provided)
   useEffect(() => {
     if (!isAuthenticated) return;
     let cancelled = false;
@@ -83,14 +96,25 @@ export function PostComposer() {
       try {
         const { createClient } = await import("@/lib/supabase/client");
         const supabase = createClient();
-        const { data } = await supabase
+        const { data: mships } = await supabase
           .from("community_memberships")
           .select("community_id")
           .eq("status", "active")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (!cancelled && data?.community_id) setCommunityId(data.community_id);
+          .order("created_at", { ascending: false });
+        if (cancelled || !mships?.length) return;
+        const ids = mships.map((m: { community_id: string }) => m.community_id);
+        const { data: comms } = await supabase
+          .from("communities")
+          .select("id, name, slug")
+          .in("id", ids)
+          .eq("is_active", true);
+        if (cancelled || !comms?.length) return;
+        const options = comms as CommunityOption[];
+        setCommunities(options);
+        const bySlug = initialCommunitySlug
+          ? options.find((c) => c.slug === initialCommunitySlug)
+          : null;
+        setCommunityId(bySlug?.id ?? options[0]?.id ?? null);
       } catch {
         /* ignore */
       }
@@ -98,7 +122,7 @@ export function PostComposer() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, initialCommunitySlug]);
 
   // Restore local draft
   useEffect(() => {
@@ -272,20 +296,26 @@ export function PostComposer() {
         toast.error(err.error ?? "Failed to post");
         return;
       }
+      const created = (await res.json().catch(() => ({}))) as { post?: { id?: string } };
       setBody("");
       setMedia([]);
       setPollOptions(["", ""]);
       setMode("discussion");
       setLocation("");
-      setExpanded(false);
+      setPreview(false);
+      if (!isPage) setExpanded(false);
       if (user?.id) clearLocalDraft(draftStorageKey(user.id, communityId));
       toast.success(asDraft ? "Draft saved" : "Post published");
+      if (!asDraft) onPublished?.(created.post?.id);
     } catch {
       toast.error("Network error");
     } finally {
       setSaving(false);
     }
   }
+
+  const selectedCommunity = communities.find((c) => c.id === communityId) ?? null;
+  const readyMedia = media.filter((m) => m.status === "ready" && m.url);
 
   function openComposer(nextMode?: "discussion" | "poll") {
     if (!isAuthenticated) return;
@@ -298,7 +328,8 @@ export function PostComposer() {
     <div
       className={cn(
         "rounded-2xl bg-white p-4 shadow-[0_0_0_1px_rgba(0,0,0,0.06)] transition-shadow",
-        dragOver && "ring-2 ring-orange-400/40"
+        isPage && "p-5 sm:p-6",
+        dragOver && "ring-2 ring-[#fd5000]/40"
       )}
       onDragOver={(e) => {
         e.preventDefault();
@@ -314,6 +345,135 @@ export function PostComposer() {
         }
       }}
     >
+      {isPage && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
+          <div>
+            <h1 className="text-lg font-semibold text-gray-900">Upload Post</h1>
+            <p className="text-[13px] text-gray-500">
+              Text, photo, video, carousel, or poll
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {communities.length > 0 && (
+              <label className="flex items-center gap-2 text-[12px] text-gray-600">
+                Community
+                <select
+                  value={communityId ?? ""}
+                  onChange={(e) => setCommunityId(e.target.value || null)}
+                  className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-[12px] font-medium text-gray-900 outline-none focus:border-[#fd5000]"
+                >
+                  {communities.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <button
+              type="button"
+              onClick={() => setPreview((v) => !v)}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-semibold",
+                preview
+                  ? "bg-[#fd5000]/10 text-[#fd5000]"
+                  : "text-gray-600 hover:bg-gray-100"
+              )}
+            >
+              {preview ? "Edit" : "Preview"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {preview && isAuthenticated ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            {user?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.avatarUrl}
+                alt={avatarLabel}
+                className="h-10 w-10 rounded-full object-cover"
+              />
+            ) : (
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fd5000] text-sm font-semibold text-white">
+                {getInitials(avatarLabel)}
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="text-[13px] font-semibold text-gray-900">{avatarLabel}</p>
+              <p className="text-[11px] text-gray-500">
+                {selectedCommunity?.name ?? "Community"} · Preview
+              </p>
+            </div>
+          </div>
+          {body.trim() ? (
+            <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-gray-900">
+              {body}
+            </p>
+          ) : (
+            <p className="text-[13px] text-gray-400">No text yet</p>
+          )}
+          {mode === "poll" && (
+            <div className="space-y-1.5">
+              {pollOptions
+                .map((o) => o.trim())
+                .filter(Boolean)
+                .map((opt, i) => (
+                  <div
+                    key={i}
+                    className="rounded-xl border border-gray-100 px-3 py-2 text-[12px] font-medium text-gray-800"
+                  >
+                    {opt}
+                  </div>
+                ))}
+            </div>
+          )}
+          {readyMedia.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {readyMedia.map((m) =>
+                m.kind === "image" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={m.id}
+                    src={m.url}
+                    alt={m.alt || m.name}
+                    className="h-28 w-28 rounded-lg object-cover"
+                  />
+                ) : (
+                  <video
+                    key={m.id}
+                    src={m.url}
+                    className="h-28 w-28 rounded-lg object-cover"
+                    muted
+                  />
+                )
+              )}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => void submit(true)}
+              className="rounded-full px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+            >
+              Draft
+            </button>
+            <button
+              type="button"
+              disabled={saving || media.some((m) => m.status === "uploading")}
+              onClick={() => void submit(false)}
+              className="inline-flex items-center gap-1 rounded-full bg-[#fd5000] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#e04800] disabled:opacity-40"
+            >
+              {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Publish
+            </button>
+          </div>
+        </div>
+      ) : (
+      <>
       <div className="flex items-start gap-3">
         {isLoading ? (
           <span className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-gray-100" />
@@ -324,7 +484,7 @@ export function PostComposer() {
             className="h-10 w-10 shrink-0 rounded-full object-cover"
           />
         ) : (
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-semibold text-white">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fd5000] text-sm font-semibold text-white">
             {getInitials(isAuthenticated ? avatarLabel : "?")}
           </span>
         )}
@@ -344,7 +504,7 @@ export function PostComposer() {
                   }
                 }}
                 placeholder={`What's on your mind, ${displayName}?`}
-                rows={4}
+                rows={isPage ? 6 : 4}
                 className="w-full resize-none rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:bg-gray-100/80"
               />
             ) : (
@@ -358,7 +518,7 @@ export function PostComposer() {
             )
           ) : (
             <Link
-              href={buildHubLoginUrl("/communities")}
+              href={buildHubLoginUrl(isPage ? "/create/post" : "/communities")}
               className="block min-w-0 flex-1 rounded-full bg-gray-50 px-4 py-2.5 text-sm text-gray-500 transition-colors hover:bg-gray-100"
             >
               Sign in to share what&apos;s on your mind…
@@ -570,7 +730,7 @@ export function PostComposer() {
                 type="button"
                 disabled={saving || media.some((m) => m.status === "uploading")}
                 onClick={() => void submit(false)}
-                className="inline-flex items-center gap-1 rounded-full bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-600 disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-full bg-[#fd5000] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#e04800] disabled:opacity-40"
               >
                 {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                 Post
@@ -580,7 +740,7 @@ export function PostComposer() {
         </div>
       )}
 
-      {!expanded && (
+      {!expanded && !isPage && (
         <div className="mt-3 flex gap-1 overflow-x-auto border-t border-gray-100 pt-3 scrollbar-hide">
           <button
             type="button"
@@ -618,9 +778,9 @@ export function PostComposer() {
           </button>
           <Link
             href="/communities/live"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-600 hover:bg-orange-100"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#fd5000]/10 px-3 py-1.5 text-xs font-medium text-[#fd5000] hover:bg-[#fd5000]/15"
           >
-            <Radio className="h-3.5 w-3.5 text-orange-500" /> Go Live
+            <Radio className="h-3.5 w-3.5 text-[#fd5000]" /> Go Live
           </Link>
           <Link
             href="/communities/missions"
@@ -631,11 +791,13 @@ export function PostComposer() {
           <button
             type="button"
             onClick={() => openComposer()}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-600 hover:bg-orange-100"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#fd5000]/10 px-3 py-1.5 text-xs font-medium text-[#fd5000] hover:bg-[#fd5000]/15"
           >
-            <Sparkles className="h-3.5 w-3.5 text-orange-500" /> AI Assist
+            <Sparkles className="h-3.5 w-3.5 text-[#fd5000]" /> AI Assist
           </button>
         </div>
+      )}
+      </>
       )}
 
       <input

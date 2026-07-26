@@ -102,13 +102,17 @@ export async function POST(
     );
   }
 
-  const { data: post } = await supabase
+  const { data: post } = await (supabase as any)
     .from("community_posts")
-    .select("room_id, author_id, title, community_id")
+    .select("room_id, author_id, title, community_id, comments_disabled")
     .eq("id", postId)
     .maybeSingle();
 
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (post.comments_disabled) {
+    return NextResponse.json({ error: "Comments are disabled on this post" }, { status: 403 });
+  }
 
   const hasAccess = await canAccessRoom(user.id, post.room_id);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
