@@ -34,6 +34,26 @@ export async function POST(
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
+    if (user) {
+      try {
+        const { data: product } = await admin
+          .from("products")
+          .select("name, slug")
+          .eq("id", productId)
+          .maybeSingle();
+        const { recordDiscoveryView } = await import("@/lib/discovery/recommendations");
+        await recordDiscoveryView({
+          userId: user.id,
+          entityType: "product",
+          entityId: productId,
+          title: product?.name,
+          href: product?.slug ? `/marketplace/${product.slug}` : undefined,
+        });
+      } catch (err) {
+        console.warn("[recordProductView] discovery_views skipped:", err);
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     console.error("[recordProductView] error:", err);
