@@ -33,11 +33,34 @@ import {
     Package,
     Radio,
     MoreHorizontal,
+    Video,
+    MapPin,
+    Copy,
+    ExternalLink,
+    Pencil,
+    Globe,
+    RefreshCw,
 } from "lucide-react";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import {
+    POST_REACTIONS,
+    isPostReactionId,
+    reactionEmoji,
+    type PostReactionId,
+} from "@/lib/feed/reactions";
+import {
+    extractMentions,
+    extractHashtags,
+    draftStorageKey,
+    saveLocalDraft,
+    loadLocalDraft,
+    clearLocalDraft,
+    COMPOSER_MAX_CHARS,
+    compressImageFile,
+} from "@/lib/feed/composer-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,9 +96,27 @@ interface Post {
     reactions_count?: number;
     comments_count?: number;
     user_has_liked?: boolean;
+    reaction_counts?: Record<string, number> | null;
+    unique_view_count?: number | null;
+    video_url?: string | null;
+    user_reaction?: string | null;
+    audience?: string | null;
 }
 
 type ComposerMode = "discussion" | "poll";
+type Audience = "public" | "followers" | "community" | "private";
+type CommentSort = "top" | "newest" | "oldest";
+
+type PendingMedia = {
+    id: string;
+    file?: File;
+    url: string;
+    name: string;
+    mime: string;
+    kind: "image" | "video";
+    progress: number;
+    status: "uploading" | "done" | "error";
+};
 
 interface Comment {
     id: string;
@@ -84,6 +125,9 @@ interface Comment {
     author_id: string;
     profiles?: Profile | null;
     parent_id: string | null;
+    like_count?: number;
+    is_pinned?: boolean | null;
+    edited_at?: string | null;
 }
 
 interface Community {
@@ -105,14 +149,29 @@ interface Membership {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function normalizePost(raw: Post): Post {
+    const userReaction = raw.user_reaction ?? (raw.user_has_liked ? "like" : null);
     return {
         ...raw,
         body: raw.body ?? raw.content ?? "",
         profiles: raw.profiles ?? raw.author ?? null,
         like_count: raw.like_count ?? raw.reactions_count ?? 0,
         comment_count: raw.comment_count ?? raw.comments_count ?? 0,
-        user_has_liked: raw.user_has_liked ?? false,
+        user_has_liked: raw.user_has_liked ?? Boolean(userReaction),
+        user_reaction: userReaction,
+        reaction_counts: raw.reaction_counts ?? null,
+        unique_view_count: raw.unique_view_count ?? null,
+        video_url: raw.video_url ?? null,
+        audience: raw.audience ?? null,
     };
+}
+
+function extractFirstUrl(text: string): string | null {
+    const m = text.match(/https?:\/\/[^\s<>"{}|\\^`[\]]+/i);
+    return m?.[0] ?? null;
+}
+
+function newMediaId() {
+    return `m_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function timeAgo(dateStr: string): string {
@@ -133,6 +192,8 @@ function getPostPermalink(postId: string): string {
 }
 
 const PAGE_SIZE = 20;
+/** Dedupes feed view POSTs across remounts in the same session. */
+const viewedPostIds = new Set<string>();
 
 // ─── FeedSection ──────────────────────────────────────────────────────────────
 
@@ -174,6 +235,11 @@ export function FeedSection({
     const [composer, setComposer] = useState("");
     const [composerMode, setComposerMode] = useState<ComposerMode>("discussion");
     const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+    const [pollMultiple, setPollMultiple] = useState(false);
+    const [pollAnonymous, setPollAnonymous] = useState(false);
+    const [pollExpiresAt, setPollExpiresAt] = useState("");
+    const [audience, setAudience] = useState<Audience>("community");
+    const [locationText, setLocationText] = useState("");
     const [quoteOfPostId, setQuoteOfPostId] = useState<string | null>(null);
     const [quotePreview, setQuotePreview] = useState<Post | null>(null);
     const [productAttachId, setProductAttachId] = useState("");
@@ -185,20 +251,21 @@ export function FeedSection({
     const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
     const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
     const [detailId, setDetailId] = useState<string | null>(null);
-    const [pendingImages, setPendingImages] = useState<
-        Array<{ url: string; name: string; mime: string }>
-    >([]);
+    const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
     const [uploading, setUploading] = useState(false);
     const [showCommunityPicker, setShowCommunityPicker] = useState(false);
     const [showDrafts, setShowDrafts] = useState(false);
     const [drafts, setDrafts] = useState<Post[]>([]);
     const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+    const [draftRestored, setDraftRestored] = useState(false);
 
     const imageInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
     const composerRef = useRef<HTMLTextAreaElement>(null);
     const realtimeRef = useRef<RealtimeChannel | null>(null);
     const communityPickerRef = useRef<HTMLDivElement>(null);
     const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
+    const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // ── Bootstrap current user + memberships ──────────────────────────────────
     useEffect(() => {
@@ -330,7 +397,9 @@ export function FeedSection({
 
             // Sync liked + saved IDs from server response
             const liked = new Set<string>(
-                normalized.filter((p: Post) => p.user_has_liked).map((p: Post) => p.id)
+                normalized
+                    .filter((p: Post) => p.user_has_liked || Boolean(p.user_reaction))
+                    .map((p: Post) => p.id)
             );
             setLikedIds((prev) => replace ? liked : new Set([...prev, ...liked]));
         } finally {
@@ -339,6 +408,49 @@ export function FeedSection({
     }, [feedFilter, scopedCommunityId]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Restore local composer draft once user + community are known
+    useEffect(() => {
+        if (!currentUserId || draftRestored) return;
+        const key = draftStorageKey(currentUserId, selectedCommunity?.id ?? scopedCommunityId);
+        const draft = loadLocalDraft(key);
+        if (draft?.body) {
+            setComposer(draft.body);
+            if (draft.audience === "public" || draft.audience === "followers" || draft.audience === "community" || draft.audience === "private") {
+                setAudience(draft.audience);
+            }
+            if (draft.mode === "poll" || draft.mode === "discussion") {
+                setComposerMode(draft.mode);
+            }
+            if (Array.isArray(draft.pollOptions) && draft.pollOptions.length >= 2) {
+                setPollOptions(draft.pollOptions);
+            }
+        }
+        setDraftRestored(true);
+    }, [currentUserId, selectedCommunity?.id, scopedCommunityId, draftRestored]);
+
+    // Debounced local draft auto-save
+    useEffect(() => {
+        if (!currentUserId || !draftRestored) return;
+        if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = setTimeout(() => {
+            const key = draftStorageKey(currentUserId, selectedCommunity?.id ?? scopedCommunityId);
+            if (!composer.trim() && pollOptions.every((o) => !o.trim())) {
+                clearLocalDraft(key);
+                return;
+            }
+            saveLocalDraft(key, {
+                body: composer,
+                updatedAt: new Date().toISOString(),
+                audience,
+                pollOptions,
+                mode: composerMode,
+            });
+        }, 600);
+        return () => {
+            if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+        };
+    }, [composer, audience, pollOptions, composerMode, currentUserId, selectedCommunity?.id, scopedCommunityId, draftRestored]);
 
     // Open post detail from ?post= deep links (notifications, search, share)
     useEffect(() => {
@@ -388,7 +500,9 @@ export function FeedSection({
             setCursor(data.next_cursor ?? null);
 
             const liked = new Set<string>(
-                normalized.filter((p: Post) => p.user_has_liked).map((p: Post) => p.id)
+                normalized
+                    .filter((p: Post) => p.user_has_liked || Boolean(p.user_reaction))
+                    .map((p: Post) => p.id)
             );
             setLikedIds((prev) => new Set([...prev, ...liked]));
         } finally {
@@ -530,28 +644,126 @@ export function FeedSection({
         };
     }, [supabase, memberships, scopedCommunityId]);
 
-    // ── Image upload ──────────────────────────────────────────────────────────
-    async function handleImageUpload(files: FileList | null) {
-        if (!files?.length) return;
-        for (const file of Array.from(files)) {
-            if (!file.type.startsWith("image/")) continue;
-            const tempEntry = { url: "", name: file.name, mime: file.type };
-            setPendingImages((prev) => [...prev, tempEntry]);
-            setUploading(true);
-            try {
-                const uploaded = await uploadCommunityChatFile("", "feed", file);
-                setPendingImages((prev) =>
-                    prev.map((img) =>
-                        img === tempEntry ? { ...uploaded, url: uploaded.url || "" } : img
-                    )
+    // ── Media upload (images + videos) ────────────────────────────────────────
+    async function uploadOneMedia(entry: PendingMedia, file: File) {
+        setPendingMedia((prev) =>
+            prev.map((m) =>
+                m.id === entry.id
+                    ? { ...m, status: "uploading", progress: 12, file }
+                    : m
+            )
+        );
+        setUploading(true);
+        try {
+            let toUpload = file;
+            if (file.type.startsWith("image/")) {
+                toUpload = await compressImageFile(file);
+                setPendingMedia((prev) =>
+                    prev.map((m) => (m.id === entry.id ? { ...m, progress: 35 } : m))
                 );
-            } catch {
-                setPendingImages((prev) => prev.filter((img) => img !== tempEntry));
-                toast.error(`Failed to upload ${file.name}`);
-            } finally {
-                setUploading(false);
             }
+            setPendingMedia((prev) =>
+                prev.map((m) => (m.id === entry.id ? { ...m, progress: 55 } : m))
+            );
+            const uploaded = await uploadCommunityChatFile("", "feed", toUpload);
+            setPendingMedia((prev) =>
+                prev.map((m) =>
+                    m.id === entry.id
+                        ? {
+                              ...m,
+                              url: uploaded.url || "",
+                              name: uploaded.name || file.name,
+                              mime: uploaded.mime || file.type,
+                              progress: 100,
+                              status: "done",
+                              file: undefined,
+                          }
+                        : m
+                )
+            );
+        } catch {
+            setPendingMedia((prev) =>
+                prev.map((m) =>
+                    m.id === entry.id ? { ...m, status: "error", progress: 0 } : m
+                )
+            );
+            toast.error(`Failed to upload ${file.name}`);
+        } finally {
+            setUploading(false);
         }
+    }
+
+    async function handleMediaUpload(files: FileList | File[] | null) {
+        if (!files) return;
+        const list = Array.from(files);
+        for (const file of list) {
+            const isImage = file.type.startsWith("image/");
+            const isVideo = file.type.startsWith("video/");
+            if (!isImage && !isVideo) continue;
+            const entry: PendingMedia = {
+                id: newMediaId(),
+                file,
+                url: "",
+                name: file.name,
+                mime: file.type,
+                kind: isVideo ? "video" : "image",
+                progress: 0,
+                status: "uploading",
+            };
+            setPendingMedia((prev) => [...prev, entry]);
+            await uploadOneMedia(entry, file);
+        }
+    }
+
+    async function retryMediaUpload(id: string) {
+        const entry = pendingMedia.find((m) => m.id === id);
+        if (!entry?.file) {
+            toast.error("Original file unavailable — re-select the file");
+            return;
+        }
+        await uploadOneMedia(entry, entry.file);
+    }
+
+    function resetComposerFields() {
+        setComposer("");
+        setPollOptions(["", ""]);
+        setPollMultiple(false);
+        setPollAnonymous(false);
+        setPollExpiresAt("");
+        setLocationText("");
+        setComposerMode("discussion");
+        setPendingMedia([]);
+        setQuoteOfPostId(null);
+        setQuotePreview(null);
+        setProductAttachId("");
+        setLiveAttachId("");
+        setShowAttachPanel(false);
+        setEditingDraftId(null);
+        if (currentUserId) {
+            clearLocalDraft(draftStorageKey(currentUserId, selectedCommunity?.id ?? scopedCommunityId));
+        }
+    }
+
+    function buildAttachmentsPayload(cleanPoll: string[]) {
+        const attachments: Record<string, unknown> = {};
+        if (productAttachId.trim()) attachments.product_id = productAttachId.trim();
+        if (liveAttachId.trim()) attachments.live_session_id = liveAttachId.trim();
+        if (locationText.trim()) attachments.location = locationText.trim();
+        const mentions = extractMentions(composer);
+        const hashtags = extractHashtags(composer);
+        if (mentions.length) attachments.mentions = mentions;
+        if (hashtags.length) attachments.hashtags = hashtags;
+        if (composerMode === "poll") {
+            attachments.poll = {
+                options: cleanPoll.map((text) => ({ text, votes: 0 })),
+                multiple: pollMultiple,
+                anonymous: pollAnonymous,
+                expires_at: pollExpiresAt.trim() || null,
+            };
+        }
+        const videos = pendingMedia.filter((m) => m.kind === "video" && m.url).map((m) => m.url);
+        if (videos.length > 1) attachments.videos = videos;
+        return attachments;
     }
 
     // ── Submit post ───────────────────────────────────────────────────────────
@@ -559,13 +771,22 @@ export function FeedSection({
         setComposerError(null);
 
         const trimmed = composer.trim();
+        if (trimmed.length > COMPOSER_MAX_CHARS) {
+            setComposerError(`Post is too long (max ${COMPOSER_MAX_CHARS} characters).`);
+            return;
+        }
         const cleanPoll = pollOptions.map((o) => o.trim()).filter(Boolean);
+        const readyMedia = pendingMedia.filter((m) => m.status === "done" && m.url);
+        if (pendingMedia.some((m) => m.status === "uploading")) {
+            setComposerError("Wait for uploads to finish.");
+            return;
+        }
         if (composerMode === "poll") {
             if (cleanPoll.length < 2) {
                 setComposerError("Add at least 2 poll options.");
                 return;
             }
-        } else if (!trimmed && pendingImages.every((i) => !i.url)) {
+        } else if (!trimmed && readyMedia.length === 0) {
             return;
         }
 
@@ -593,9 +814,10 @@ export function FeedSection({
             return;
         }
 
-        const attachments: Record<string, unknown> = {};
-        if (productAttachId.trim()) attachments.product_id = productAttachId.trim();
-        if (liveAttachId.trim()) attachments.live_session_id = liveAttachId.trim();
+        const attachments = buildAttachmentsPayload(cleanPoll);
+        const imageUrls = readyMedia.filter((m) => m.kind === "image").map((m) => m.url);
+        const videoUrls = readyMedia.filter((m) => m.kind === "video").map((m) => m.url);
+        const video_url = videoUrls.length === 1 ? videoUrls[0] : undefined;
 
         setSaving(true);
         try {
@@ -606,8 +828,10 @@ export function FeedSection({
                     body: JSON.stringify({
                         body: trimmed || (composerMode === "poll" ? "Poll" : ""),
                         post_type: composerMode === "poll" ? "poll" : "discussion",
-                        images: pendingImages.filter((i) => i.url).map((i) => i.url),
+                        images: imageUrls,
                         attachments,
+                        audience,
+                        video_url: video_url ?? (videoUrls.length ? null : undefined),
                         is_published: true,
                     }),
                 });
@@ -619,16 +843,7 @@ export function FeedSection({
                 }
                 const published = await patchRes.json().catch(() => ({}));
                 const draftId = editingDraftId;
-                setComposer("");
-                setPollOptions(["", ""]);
-                setComposerMode("discussion");
-                setPendingImages([]);
-                setQuoteOfPostId(null);
-                setQuotePreview(null);
-                setProductAttachId("");
-                setLiveAttachId("");
-                setShowAttachPanel(false);
-                setEditingDraftId(null);
+                resetComposerFields();
                 setDrafts((prev) => prev.filter((d) => d.id !== draftId));
                 if (published.post) {
                     const normalized = normalizePost(published.post);
@@ -658,11 +873,13 @@ export function FeedSection({
                     community_id: selectedCommunity.id,
                     room_id: selectedCommunity.default_room_id,
                     space_id: selectedCommunity.default_space_id,
-                    images: pendingImages.filter((i) => i.url).map((i) => i.url),
+                    images: imageUrls,
                     attachments,
                     poll_options: composerMode === "poll" ? cleanPoll : undefined,
                     is_published: !asDraft,
                     quote_of_post_id: quoteOfPostId,
+                    audience,
+                    video_url,
                 }),
             });
 
@@ -674,16 +891,7 @@ export function FeedSection({
             }
 
             const created = await res.json().catch(() => ({}));
-            setComposer("");
-            setPollOptions(["", ""]);
-            setComposerMode("discussion");
-            setPendingImages([]);
-            setQuoteOfPostId(null);
-            setQuotePreview(null);
-            setProductAttachId("");
-            setLiveAttachId("");
-            setShowAttachPanel(false);
-            setEditingDraftId(null);
+            resetComposerFields();
             if (asDraft) {
                 toast.success("Draft saved");
                 await loadDrafts();
@@ -778,43 +986,89 @@ export function FeedSection({
         }
     }
 
-    // ── Toggle like (optimistic) ──────────────────────────────────────────────
-    async function toggleLike(postId: string) {
-        const wasLiked = likedIds.has(postId);
+    // ── Reactions (optimistic) ────────────────────────────────────────────────
+    async function setReaction(postId: string, next: PostReactionId | null) {
+        const post = posts.find((p) => p.id === postId);
+        const prevReaction = (post?.user_reaction as PostReactionId | null | undefined)
+            ?? (likedIds.has(postId) ? "like" as const : null);
+        if (prevReaction === next) return;
 
-        // Optimistic update
+        const bump = (counts: Record<string, number> | null | undefined, from: string | null, to: string | null) => {
+            const c = { ...(counts ?? {}) };
+            if (from) c[from] = Math.max(0, (c[from] ?? 0) - 1);
+            if (to) c[to] = (c[to] ?? 0) + 1;
+            return c;
+        };
+
         setLikedIds((prev) => {
-            const next = new Set(prev);
-            wasLiked ? next.delete(postId) : next.add(postId);
-            return next;
+            const s = new Set(prev);
+            if (next) s.add(postId);
+            else s.delete(postId);
+            return s;
         });
         setPosts((prev) =>
-            prev.map((p) =>
-                p.id === postId
-                    ? { ...p, like_count: p.like_count + (wasLiked ? -1 : 1) }
-                    : p
-            )
+            prev.map((p) => {
+                if (p.id !== postId) return p;
+                const reaction_counts = bump(p.reaction_counts, prevReaction, next);
+                const likeDelta =
+                    (next ? 1 : 0) - (prevReaction ? 1 : 0);
+                return {
+                    ...p,
+                    user_reaction: next,
+                    user_has_liked: Boolean(next),
+                    reaction_counts,
+                    like_count: Math.max(0, (p.like_count ?? 0) + likeDelta),
+                };
+            })
         );
 
         try {
-            const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
-            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "like failed");
+            const res = await fetch(`/api/posts/${postId}/react`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ reaction: next }),
+            });
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "reaction failed");
+            const data = await res.json().catch(() => ({}));
+            if (data.counts) {
+                setPosts((prev) =>
+                    prev.map((p) =>
+                        p.id === postId
+                            ? { ...p, reaction_counts: data.counts, user_reaction: data.reaction ?? next }
+                            : p
+                    )
+                );
+            }
         } catch (e: unknown) {
-            // Revert
             setLikedIds((prev) => {
-                const next = new Set(prev);
-                wasLiked ? next.add(postId) : next.delete(postId);
-                return next;
+                const s = new Set(prev);
+                if (prevReaction) s.add(postId);
+                else s.delete(postId);
+                return s;
             });
             setPosts((prev) =>
-                prev.map((p) =>
-                    p.id === postId
-                        ? { ...p, like_count: p.like_count + (wasLiked ? 1 : -1) }
-                        : p
-                )
+                prev.map((p) => {
+                    if (p.id !== postId) return p;
+                    return {
+                        ...p,
+                        user_reaction: prevReaction,
+                        user_has_liked: Boolean(prevReaction),
+                        reaction_counts: bump(p.reaction_counts, next, prevReaction),
+                        like_count: Math.max(
+                            0,
+                            (p.like_count ?? 0) + ((prevReaction ? 1 : 0) - (next ? 1 : 0))
+                        ),
+                    };
+                })
             );
-            toast.error(e instanceof Error ? e.message : "Failed to update like");
+            toast.error(e instanceof Error ? e.message : "Failed to update reaction");
         }
+    }
+
+    function toggleLike(postId: string) {
+        const post = posts.find((p) => p.id === postId);
+        const current = post?.user_reaction ?? (likedIds.has(postId) ? "like" : null);
+        void setReaction(postId, current === "like" ? null : "like");
     }
 
     // ── Toggle save ───────────────────────────────────────────────────────────
@@ -873,15 +1127,33 @@ export function FeedSection({
     }
 
     // ── Share post ────────────────────────────────────────────────────────────
-    async function sharePost(postId: string) {
+    async function sharePost(
+        postId: string,
+        type: "link" | "copy" | "repost" | "quote" | "external" = "link"
+    ) {
         const url = getPostPermalink(postId);
+        const communityId = posts.find((p) => p.id === postId)?.community_id;
         try {
-            if (navigator.share) {
-                await navigator.share({ url });
-            } else {
-                await navigator.clipboard?.writeText(url);
+            if (type === "copy" || type === "link") {
+                if (type === "link" && navigator.share) {
+                    await navigator.share({ url });
+                } else {
+                    await navigator.clipboard?.writeText(url);
+                    toast.success("Link copied");
+                }
+            } else if (type === "external") {
+                window.open(url, "_blank", "noopener,noreferrer");
+            } else if (type === "quote") {
+                const post = posts.find((p) => p.id === postId);
+                if (post) startQuote(post);
+            } else if (type === "repost") {
+                toast.success("Repost recorded");
             }
-            void fetch(`/api/posts/${postId}/share`, { method: "POST" });
+            void fetch(`/api/posts/${postId}/share`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type, communityId }),
+            });
             setPosts((prev) =>
                 prev.map((p) =>
                     p.id === postId ? { ...p, share_count: (p.share_count ?? 0) + 1 } : p
@@ -902,6 +1174,8 @@ export function FeedSection({
     const isMemberOfSelected = selectedCommunity
         ? memberships.some((m) => m.community_id === selectedCommunity.id && m.status === "active")
         : false;
+    const linkPreviewUrl = extractFirstUrl(composer);
+    const charCount = composer.length;
 
     return (
         <div className={cn("flex flex-col", isHub ? "gap-3" : "gap-4")}>
@@ -1047,7 +1321,31 @@ export function FeedSection({
                     id={isHub ? "hub-community-composer" : undefined}
                     ref={composerRef}
                     value={composer}
-                    onChange={(e) => { setComposer(e.target.value); setComposerError(null); }}
+                    onChange={(e) => {
+                        const v = e.target.value.slice(0, COMPOSER_MAX_CHARS);
+                        setComposer(v);
+                        setComposerError(null);
+                    }}
+                    onPaste={(e) => {
+                        const files = e.clipboardData?.files;
+                        if (files?.length) {
+                            const media = Array.from(files).filter(
+                                (f) => f.type.startsWith("image/") || f.type.startsWith("video/")
+                            );
+                            if (media.length) {
+                                e.preventDefault();
+                                void handleMediaUpload(media);
+                            }
+                        }
+                    }}
+                    onDragOver={(e) => {
+                        if (e.dataTransfer?.types?.includes("Files")) e.preventDefault();
+                    }}
+                    onDrop={(e) => {
+                        if (!e.dataTransfer?.files?.length) return;
+                        e.preventDefault();
+                        void handleMediaUpload(e.dataTransfer.files);
+                    }}
                     placeholder={
                         !selectedCommunity
                             ? "Select a community above to post…"
@@ -1057,11 +1355,65 @@ export function FeedSection({
                     }
                     rows={isHub ? 2 : 3}
                     disabled={!isMemberOfSelected && communities.length > 0}
+                    maxLength={COMPOSER_MAX_CHARS}
                     className={cn(
                         "w-full resize-none text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
                         isHub ? "min-h-[56px] bg-transparent" : "bg-transparent"
                     )}
                 />
+
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-surface-secondary/50 p-0.5">
+                        {(
+                            [
+                                { id: "public" as const, label: "Public", icon: Globe },
+                                { id: "followers" as const, label: "Followers", icon: Users },
+                                { id: "community" as const, label: "Community", icon: Users },
+                                { id: "private" as const, label: "Private", icon: Lock },
+                            ] as const
+                        ).map((a) => (
+                            <button
+                                key={a.id}
+                                type="button"
+                                onClick={() => setAudience(a.id)}
+                                className={cn(
+                                    "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md transition-colors",
+                                    audience === a.id
+                                        ? "bg-[#fd5000]/12 text-[#fd5000]"
+                                        : "text-text-muted hover:text-text-primary"
+                                )}
+                            >
+                                <a.icon className="w-3 h-3" />
+                                {a.label}
+                            </button>
+                        ))}
+                    </div>
+                    <span
+                        className={cn(
+                            "ml-auto text-[10px] font-semibold tabular-nums",
+                            charCount > COMPOSER_MAX_CHARS * 0.9 ? "text-[#fd5000]" : "text-text-muted"
+                        )}
+                    >
+                        {charCount}/{COMPOSER_MAX_CHARS}
+                    </span>
+                </div>
+
+                {linkPreviewUrl && (
+                    <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border bg-surface-secondary/60 px-2.5 py-1.5 text-[11px] text-text-muted">
+                        <ExternalLink className="w-3 h-3 text-[#fd5000] shrink-0" />
+                        <span className="truncate">{linkPreviewUrl}</span>
+                    </div>
+                )}
+
+                <label className="mt-2 flex items-center gap-1.5 text-[11px] text-text-muted">
+                    <MapPin className="w-3 h-3 shrink-0" />
+                    <input
+                        value={locationText}
+                        onChange={(e) => setLocationText(e.target.value)}
+                        placeholder="Add location (optional)"
+                        className="flex-1 bg-transparent text-[12px] text-text-primary placeholder:text-text-muted focus:outline-none"
+                    />
+                </label>
 
                 {composerMode === "poll" && (
                     <div className="mt-2 space-y-2">
@@ -1099,6 +1451,35 @@ export function FeedSection({
                                 + Add option
                             </button>
                         )}
+                        <div className="flex flex-wrap items-center gap-3 pt-1">
+                            <label className="inline-flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={pollMultiple}
+                                    onChange={(e) => setPollMultiple(e.target.checked)}
+                                    className="rounded border-border"
+                                />
+                                Multiple choice
+                            </label>
+                            <label className="inline-flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={pollAnonymous}
+                                    onChange={(e) => setPollAnonymous(e.target.checked)}
+                                    className="rounded border-border"
+                                />
+                                Anonymous
+                            </label>
+                            <label className="inline-flex items-center gap-1.5 text-[11px] text-text-muted">
+                                Expires
+                                <input
+                                    type="datetime-local"
+                                    value={pollExpiresAt}
+                                    onChange={(e) => setPollExpiresAt(e.target.value)}
+                                    className="ml-1 rounded-lg border border-border bg-surface-secondary px-2 py-1 text-[11px] text-text-primary focus:outline-none"
+                                />
+                            </label>
+                        </div>
                     </div>
                 )}
 
@@ -1125,26 +1506,50 @@ export function FeedSection({
                     </div>
                 )}
 
-                {/* Pending images */}
-                {pendingImages.length > 0 && (
+                {/* Pending media */}
+                {pendingMedia.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto pb-2 mt-2">
-                        {pendingImages.map((img, i) => (
-                            <div key={i} className="relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border border-border">
-                                {!img.url ? (
-                                    <div className="h-full w-full flex items-center justify-center bg-surface-secondary">
-                                        <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
+                        {pendingMedia.map((media) => (
+                            <div key={media.id} className="relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border border-border">
+                                {media.status === "uploading" || !media.url ? (
+                                    <div className="h-full w-full flex flex-col items-center justify-center bg-surface-secondary gap-0.5">
+                                        {media.status === "error" ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => void retryMediaUpload(media.id)}
+                                                className="text-[#fd5000]"
+                                                aria-label="Retry upload"
+                                            >
+                                                <RefreshCw className="h-4 w-4" />
+                                            </button>
+                                        ) : (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
+                                                <span className="text-[9px] text-text-muted">{media.progress}%</span>
+                                            </>
+                                        )}
                                     </div>
                                 ) : (
                                     <>
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={img.url} alt="" className="object-cover w-full h-full" />
+                                        {media.kind === "video" ? (
+                                            <video src={media.url} className="object-cover w-full h-full" muted />
+                                        ) : (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={media.url} alt="" className="object-cover w-full h-full" />
+                                        )}
                                         <button
-                                            onClick={() => setPendingImages((prev) => prev.filter((_, j) => j !== i))}
+                                            type="button"
+                                            onClick={() => setPendingMedia((prev) => prev.filter((m) => m.id !== media.id))}
                                             className="absolute top-0.5 right-0.5 p-0.5 bg-black/50 text-white rounded"
                                         >
                                             <X className="h-3 w-3" />
                                         </button>
                                     </>
+                                )}
+                                {media.status === "error" && (
+                                    <span className="absolute bottom-0 inset-x-0 bg-red-500/80 text-white text-[8px] text-center py-0.5">
+                                        Failed
+                                    </span>
                                 )}
                             </div>
                         ))}
@@ -1164,14 +1569,32 @@ export function FeedSection({
                                         setComposer(d.body);
                                         setComposerMode(d.post_type === "poll" ? "poll" : "discussion");
                                         setEditingDraftId(d.id);
+                                        if (d.audience === "public" || d.audience === "followers" || d.audience === "community" || d.audience === "private") {
+                                            setAudience(d.audience);
+                                        }
                                         const imgs = Array.isArray(d.images)
                                             ? (d.images as string[]).filter(Boolean).map((url) => ({
+                                                  id: newMediaId(),
                                                   url,
                                                   name: "image",
                                                   mime: "image/*",
+                                                  kind: "image" as const,
+                                                  progress: 100,
+                                                  status: "done" as const,
                                               }))
                                             : [];
-                                        setPendingImages(imgs);
+                                        const vids = d.video_url
+                                            ? [{
+                                                  id: newMediaId(),
+                                                  url: d.video_url,
+                                                  name: "video",
+                                                  mime: "video/*",
+                                                  kind: "video" as const,
+                                                  progress: 100,
+                                                  status: "done" as const,
+                                              }]
+                                            : [];
+                                        setPendingMedia([...imgs, ...vids]);
                                         setShowDrafts(false);
                                     }}
                                     className="w-full text-left rounded-lg px-2 py-1.5 text-[12px] text-text-primary hover:bg-surface"
@@ -1201,6 +1624,15 @@ export function FeedSection({
                             aria-label="Attach photo"
                         >
                             <ImageIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => videoInputRef.current?.click()}
+                            disabled={!isMemberOfSelected}
+                            className="p-2 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                            aria-label="Attach video"
+                        >
+                            <Video className="w-4 h-4" />
                         </button>
                         <button
                             type="button"
@@ -1238,7 +1670,7 @@ export function FeedSection({
                         <button
                             type="button"
                             disabled={
-                                (composerMode === "discussion" && !composer.trim() && pendingImages.every((i) => !i.url)) ||
+                                (composerMode === "discussion" && !composer.trim() && pendingMedia.every((i) => !i.url)) ||
                                 saving ||
                                 uploading ||
                                 !isMemberOfSelected
@@ -1261,10 +1693,24 @@ export function FeedSection({
                 <input
                     ref={imageInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/*,video/*"
                     multiple
                     className="hidden"
-                    onChange={(e) => handleImageUpload(e.target.files)}
+                    onChange={(e) => {
+                        void handleMediaUpload(e.target.files);
+                        e.target.value = "";
+                    }}
+                />
+                <input
+                    ref={videoInputRef}
+                    type="file"
+                    accept="video/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                        void handleMediaUpload(e.target.files);
+                        e.target.value = "";
+                    }}
                 />
             </div>
 
@@ -1280,13 +1726,14 @@ export function FeedSection({
                             key={p.id}
                             post={p}
                             saved={savedIds.has(p.id)}
-                            liked={likedIds.has(p.id)}
+                            liked={likedIds.has(p.id) || Boolean(p.user_reaction)}
                             currentUserId={currentUserId}
                             onLike={() => toggleLike(p.id)}
+                            onReact={(reaction) => void setReaction(p.id, reaction)}
                             onSave={() => toggleSave(p.id)}
                             onSelect={() => setDetailId(detailId === p.id ? null : p.id)}
                             onDelete={() => deletePost(p.id)}
-                            onShare={() => sharePost(p.id)}
+                            onShare={(type) => sharePost(p.id, type)}
                             onQuote={() => startQuote(p)}
                             onReport={() => reportPost(p.id)}
                             onVotePoll={(idx) => votePoll(p.id, idx)}
@@ -1317,6 +1764,14 @@ export function FeedSection({
                     postId={detailId}
                     post={detail}
                     currentUserId={currentUserId}
+                    canPin={Boolean(
+                        detail &&
+                        currentUserId &&
+                        (detail.author_id === currentUserId ||
+                            ["owner", "admin", "moderator"].includes(
+                                memberships.find((m) => m.community_id === detail.community_id)?.role ?? ""
+                            ))
+                    )}
                     onClose={() => setDetailId(null)}
                     onCommentAdded={(postId) => {
                         setPosts((prev) =>
@@ -1348,6 +1803,7 @@ function PostCard({
     liked,
     currentUserId,
     onLike,
+    onReact,
     onSave,
     onSelect,
     onDelete,
@@ -1362,10 +1818,11 @@ function PostCard({
     liked: boolean;
     currentUserId: string | null;
     onLike: () => void;
+    onReact: (reaction: PostReactionId | null) => void;
     onSave: () => void;
     onSelect: () => void;
     onDelete: () => void;
-    onShare: () => void;
+    onShare: (type: "link" | "copy" | "repost" | "quote" | "external") => void;
     onQuote: () => void;
     onReport: () => void;
     onVotePoll: (optionIndex: number) => void;
@@ -1381,10 +1838,68 @@ function PostCard({
         ?.poll;
     const productId = (post.attachments as { product_id?: string } | null)?.product_id;
     const liveSessionId = (post.attachments as { live_session_id?: string } | null)?.live_session_id;
+    const altTexts = (post.attachments as { alt_texts?: Record<string, string> } | null)?.alt_texts;
+    const locationLabel = (post.attachments as { location?: string } | null)?.location;
     const [menuOpen, setMenuOpen] = useState(false);
+    const [shareOpen, setShareOpen] = useState(false);
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pickerOpenedByHoldRef = useRef(false);
+    const cardRef = useRef<HTMLElement | null>(null);
+    const activeReaction = post.user_reaction && isPostReactionId(post.user_reaction)
+        ? post.user_reaction
+        : liked
+          ? "like"
+          : null;
+    const reactionSummary = Object.entries(post.reaction_counts ?? {})
+        .filter(([, n]) => n > 0)
+        .sort((a, b) => b[1] - a[1]);
+
+    useEffect(() => {
+        const el = cardRef.current;
+        if (!el || viewedPostIds.has(post.id)) return;
+        const obs = new IntersectionObserver(
+            (entries) => {
+                if (!entries[0]?.isIntersecting || viewedPostIds.has(post.id)) return;
+                viewedPostIds.add(post.id);
+                void fetch(`/api/posts/${post.id}/view`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ source: "feed" }),
+                });
+                obs.disconnect();
+            },
+            { threshold: 0.5 }
+        );
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, [post.id]);
+
+    function clearHold() {
+        if (holdTimerRef.current) {
+            clearTimeout(holdTimerRef.current);
+            holdTimerRef.current = null;
+        }
+    }
+
+    function startHold() {
+        clearHold();
+        pickerOpenedByHoldRef.current = false;
+        holdTimerRef.current = setTimeout(() => {
+            pickerOpenedByHoldRef.current = true;
+            setPickerOpen(true);
+            holdTimerRef.current = null;
+        }, 400);
+    }
+
+    function endHold() {
+        // Always clear the pending timer; picker stays open if hold already fired.
+        clearHold();
+    }
 
     return (
         <article
+            ref={cardRef}
             className={`bg-surface border rounded-2xl p-4 hover:border-border-hover transition-colors ${isDetailOpen ? "border-[#fd5000]/40" : "border-border"}`}
         >
             {/* Pinned badge */}
@@ -1419,6 +1934,7 @@ function PostCard({
                         <p className="text-[11px] text-text-muted truncate">
                             @{profile.username} · {timeAgo(post.created_at)}
                             {post.post_type === "poll" ? " · Poll" : ""}
+                            {locationLabel ? ` · ${locationLabel}` : ""}
                         </p>
                     )}
                 </div>
@@ -1516,6 +2032,17 @@ function PostCard({
                 </div>
             )}
 
+            {post.video_url && (
+                <div className="mb-3 overflow-hidden rounded-lg border border-border">
+                    <video
+                        src={post.video_url}
+                        controls
+                        preload="none"
+                        className="w-full max-h-72 bg-black"
+                    />
+                </div>
+            )}
+
             {imgs.length > 0 && (
                 <div className="flex gap-2 flex-wrap mb-3">
                     {imgs.map((url) => (
@@ -1523,7 +2050,7 @@ function PostCard({
                         <img
                             key={url}
                             src={url}
-                            alt=""
+                            alt={altTexts?.[url] ?? ""}
                             loading="lazy"
                             decoding="async"
                             className="h-32 w-auto rounded-lg object-cover border border-border"
@@ -1532,17 +2059,75 @@ function PostCard({
                 </div>
             )}
 
-            <div className="flex items-center gap-1 -ml-2">
-                {/* Like */}
-                <button
-                    type="button"
-                    onClick={onLike}
-                    aria-label={liked ? "Unlike post" : "Like post"}
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] transition-colors ${liked ? "text-[#fd5000]" : "text-text-muted hover:bg-surface-secondary hover:text-[#fd5000]"}`}
-                >
-                    <Heart className={`w-3.5 h-3.5 ${liked ? "fill-[#fd5000]" : ""}`} />
-                    {(post.like_count ?? 0) > 0 && <span className="font-semibold">{post.like_count}</span>}
-                </button>
+            {reactionSummary.length > 0 && (
+                <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                    {reactionSummary.slice(0, 6).map(([id, count]) => (
+                        <span
+                            key={id}
+                            className="inline-flex items-center gap-1 rounded-full bg-surface-secondary px-2 py-0.5 text-[11px] text-text-muted"
+                        >
+                            <span>{isPostReactionId(id) ? reactionEmoji(id) : "👍"}</span>
+                            <span className="font-semibold">{count}</span>
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            <div className="flex items-center gap-1 -ml-2 relative">
+                {/* Reactions */}
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (pickerOpenedByHoldRef.current || pickerOpen) {
+                                pickerOpenedByHoldRef.current = false;
+                                setPickerOpen(false);
+                                return;
+                            }
+                            onLike();
+                        }}
+                        onPointerDown={startHold}
+                        onPointerUp={endHold}
+                        onPointerLeave={endHold}
+                        onPointerCancel={endHold}
+                        onContextMenu={(e) => {
+                            e.preventDefault();
+                            pickerOpenedByHoldRef.current = true;
+                            setPickerOpen(true);
+                        }}
+                        aria-label={activeReaction ? "Change reaction" : "Like post"}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] transition-colors ${activeReaction ? "text-[#fd5000]" : "text-text-muted hover:bg-surface-secondary hover:text-[#fd5000]"}`}
+                    >
+                        {activeReaction && activeReaction !== "like" ? (
+                            <span className="text-sm leading-none">{reactionEmoji(activeReaction)}</span>
+                        ) : (
+                            <Heart className={`w-3.5 h-3.5 ${activeReaction === "like" ? "fill-[#fd5000]" : ""}`} />
+                        )}
+                        {(post.like_count ?? 0) > 0 && <span className="font-semibold">{post.like_count}</span>}
+                    </button>
+                    {pickerOpen && (
+                        <div className="absolute bottom-full left-0 mb-1 z-30 flex gap-0.5 rounded-xl border border-border bg-surface p-1 shadow-lg">
+                            {POST_REACTIONS.map((r) => (
+                                <button
+                                    key={r.id}
+                                    type="button"
+                                    title={r.label}
+                                    onClick={() => {
+                                        onReact(activeReaction === r.id ? null : r.id);
+                                        setPickerOpen(false);
+                                        pickerOpenedByHoldRef.current = false;
+                                    }}
+                                    className={cn(
+                                        "h-8 w-8 rounded-lg text-base hover:bg-surface-secondary",
+                                        activeReaction === r.id && "bg-[#fd5000]/12"
+                                    )}
+                                >
+                                    {r.emoji}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
 
                 {/* Comments */}
                 <button
@@ -1568,15 +2153,41 @@ function PostCard({
                     )}
                 </button>
 
-                {/* Share — deep link */}
-                <button
-                    type="button"
-                    onClick={onShare}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
-                >
-                    <Share2 className="w-3.5 h-3.5" />
-                    {(post.share_count ?? 0) > 0 && <span className="font-semibold">{post.share_count}</span>}
-                </button>
+                {/* Share menu */}
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => setShareOpen((v) => !v)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
+                    >
+                        <Share2 className="w-3.5 h-3.5" />
+                        {(post.share_count ?? 0) > 0 && <span className="font-semibold">{post.share_count}</span>}
+                    </button>
+                    {shareOpen && (
+                        <div className="absolute bottom-full left-0 mb-1 z-30 min-w-[150px] rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
+                            {(
+                                [
+                                    { type: "copy" as const, label: "Copy Link", icon: Copy },
+                                    { type: "link" as const, label: "Share", icon: Share2 },
+                                    { type: "repost" as const, label: "Repost", icon: RefreshCw },
+                                    { type: "external" as const, label: "External", icon: ExternalLink },
+                                ] as const
+                            ).map((item) => (
+                                <button
+                                    key={item.type}
+                                    type="button"
+                                    onClick={() => {
+                                        onShare(item.type);
+                                        setShareOpen(false);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-text-primary hover:bg-surface-secondary"
+                                >
+                                    <item.icon className="w-3.5 h-3.5" /> {item.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </article>
     );
@@ -1588,6 +2199,7 @@ function PostDetailPanel({
     postId,
     post,
     currentUserId,
+    canPin,
     onClose,
     onCommentAdded,
     onCommentRemoved,
@@ -1595,6 +2207,7 @@ function PostDetailPanel({
     postId: string;
     post: Post | undefined | null;
     currentUserId: string | null;
+    canPin?: boolean;
     onClose: () => void;
     onCommentAdded: (postId: string) => void;
     onCommentRemoved?: (postId: string) => void;
@@ -1606,19 +2219,20 @@ function PostDetailPanel({
     const [sendError, setSendError] = useState<string | null>(null);
     const [sending, setSending] = useState(false);
     const [replyTo, setReplyTo] = useState<Comment | null>(null);
+    const [commentSort, setCommentSort] = useState<CommentSort>("newest");
     const textRef = useRef<HTMLTextAreaElement>(null);
 
     useEffect(() => {
         let cancelled = false;
         (async () => {
             setLoadingComments(true);
-            const res = await fetch(`/api/posts/${postId}/comments`);
+            const res = await fetch(`/api/posts/${postId}/comments?sort=${commentSort}`);
             const data = await res.json();
             if (!cancelled && res.ok) setComments(data.comments ?? []);
             if (!cancelled) setLoadingComments(false);
         })();
         return () => { cancelled = true; };
-    }, [postId]);
+    }, [postId, commentSort]);
 
     // Realtime on comments (shared chat realtime subscribe helper)
     useEffect(() => {
@@ -1651,6 +2265,21 @@ function PostDetailPanel({
                                 if (prev.find((c) => c.id === data.id)) return prev;
                                 return [...prev, data as Comment];
                             });
+                        },
+                    },
+                    {
+                        config: {
+                            event: "UPDATE",
+                            schema: "public",
+                            table: "community_post_comments",
+                            filter: `post_id=eq.${postId}`,
+                        },
+                        onChange: (payload) => {
+                            const row = payload?.new;
+                            if (!row?.id) return;
+                            setComments((prev) =>
+                                prev.map((c) => (c.id === row.id ? { ...c, ...row } as Comment : c))
+                            );
                         },
                     },
                     {
@@ -1727,6 +2356,64 @@ function PostDetailPanel({
         }
     }
 
+    async function editComment(commentId: string, body: string) {
+        const res = await fetch(`/api/posts/${postId}/comments/${commentId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ body }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            toast.error(err.error || "Failed to edit comment");
+            return;
+        }
+        const data = await res.json().catch(() => ({}));
+        if (data.comment) {
+            setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, ...data.comment } : c)));
+        } else {
+            setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, body } : c)));
+        }
+        toast.success("Comment updated");
+    }
+
+    async function pinComment(commentId: string, is_pinned: boolean) {
+        const res = await fetch(`/api/posts/${postId}/comments/${commentId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_pinned }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            toast.error(err.error || "Failed to pin comment");
+            return;
+        }
+        const data = await res.json().catch(() => ({}));
+        if (data.comment) {
+            setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, ...data.comment } : c)));
+        } else {
+            setComments((prev) => prev.map((c) => (c.id === commentId ? { ...c, is_pinned } : c)));
+        }
+    }
+
+    async function likeComment(commentId: string) {
+        const res = await fetch(`/api/posts/${postId}/comments/${commentId}/like`, {
+            method: "POST",
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            toast.error(err.error || "Failed to like comment");
+            return;
+        }
+        const data = await res.json().catch(() => ({}));
+        setComments((prev) =>
+            prev.map((c) =>
+                c.id === commentId
+                    ? { ...c, like_count: typeof data.like_count === "number" ? data.like_count : c.like_count }
+                    : c
+            )
+        );
+    }
+
     const topComments = comments.filter((c) => !c.parent_id);
     // Include direct replies and any legacy deeper nested replies under this thread.
     const replies = (parentId: string) => {
@@ -1746,13 +2433,36 @@ function PostDetailPanel({
 
     return (
         <div className="bg-surface border border-[#fd5000]/30 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 gap-2">
                 <button
                     onClick={onClose}
                     className="p-1 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors"
                 >
                     <ChevronLeft className="w-4 h-4" />
                 </button>
+                <div className="inline-flex items-center gap-0.5 rounded-lg border border-border p-0.5">
+                    {(
+                        [
+                            { id: "top" as const, label: "Top" },
+                            { id: "newest" as const, label: "Newest" },
+                            { id: "oldest" as const, label: "Oldest" },
+                        ] as const
+                    ).map((s) => (
+                        <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setCommentSort(s.id)}
+                            className={cn(
+                                "text-[10px] font-semibold px-2 py-1 rounded-md transition-colors",
+                                commentSort === s.id
+                                    ? "bg-[#fd5000]/12 text-[#fd5000]"
+                                    : "text-text-muted hover:text-text-primary"
+                            )}
+                        >
+                            {s.label}
+                        </button>
+                    ))}
+                </div>
                 <span className="text-[12px] font-semibold text-text-muted">
                     {comments.length} comment{comments.length !== 1 ? "s" : ""}
                 </span>
@@ -1775,16 +2485,24 @@ function PostDetailPanel({
                             <CommentItem
                                 comment={c}
                                 currentUserId={currentUserId}
+                                canPin={canPin}
                                 onReply={(c) => { setReplyTo(c); setTimeout(() => textRef.current?.focus(), 50); }}
                                 onDelete={deleteComment}
+                                onEdit={editComment}
+                                onPin={pinComment}
+                                onLike={likeComment}
                             />
                             {replies(c.id).map((r) => (
                                 <div key={r.id} className="ml-8 mt-3 pl-3 border-l-2 border-border">
                                     <CommentItem
                                         comment={r}
                                         currentUserId={currentUserId}
+                                        canPin={canPin}
                                         onReply={(c) => { setReplyTo(c); setTimeout(() => textRef.current?.focus(), 50); }}
                                         onDelete={deleteComment}
+                                        onEdit={editComment}
+                                        onPin={pinComment}
+                                        onLike={likeComment}
                                     />
                                 </div>
                             ))}
@@ -1856,17 +2574,27 @@ function PostDetailPanel({
 function CommentItem({
     comment,
     currentUserId,
+    canPin,
     onReply,
     onDelete,
+    onEdit,
+    onPin,
+    onLike,
 }: {
     comment: Comment;
     currentUserId: string | null;
+    canPin?: boolean;
     onReply: (c: Comment) => void;
     onDelete: (id: string) => void;
+    onEdit: (id: string, body: string) => void;
+    onPin: (id: string, isPinned: boolean) => void;
+    onLike: (id: string) => void;
 }) {
     const profile = comment.profiles;
     const name = profile?.full_name ?? profile?.username ?? "Member";
     const isOwn = currentUserId && comment.author_id === currentUserId;
+    const [editing, setEditing] = useState(false);
+    const [editBody, setEditBody] = useState(comment.body);
 
     return (
         <div className="flex gap-2">
@@ -1886,32 +2614,105 @@ function CommentItem({
                 </div>
             )}
             <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <span className="text-[12px] font-semibold text-text-primary">{name}</span>
                     <span className="text-[10px] text-text-muted">
                         {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                        {comment.edited_at ? " · edited" : ""}
                     </span>
-                    {isOwn && (
-                        <button
-                            type="button"
-                            onClick={() => onDelete(comment.id)}
-                            className="ml-auto text-text-muted hover:text-red-500 transition-colors"
-                            aria-label="Delete comment"
-                        >
-                            <Trash2 className="h-3 w-3" />
-                        </button>
+                    {comment.is_pinned && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[#fd5000]">
+                            <Pin className="h-2.5 w-2.5" /> Pinned
+                        </span>
                     )}
+                    <div className="ml-auto flex items-center gap-1">
+                        {canPin && (
+                            <button
+                                type="button"
+                                onClick={() => onPin(comment.id, !comment.is_pinned)}
+                                className="text-text-muted hover:text-[#fd5000] transition-colors"
+                                aria-label={comment.is_pinned ? "Unpin comment" : "Pin comment"}
+                            >
+                                <Pin className="h-3 w-3" />
+                            </button>
+                        )}
+                        {isOwn && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setEditBody(comment.body);
+                                        setEditing((v) => !v);
+                                    }}
+                                    className="text-text-muted hover:text-[#fd5000] transition-colors"
+                                    aria-label="Edit comment"
+                                >
+                                    <Pencil className="h-3 w-3" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => onDelete(comment.id)}
+                                    className="text-text-muted hover:text-red-500 transition-colors"
+                                    aria-label="Delete comment"
+                                >
+                                    <Trash2 className="h-3 w-3" />
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
-                <p className="text-[13px] text-text-primary leading-relaxed whitespace-pre-wrap">
-                    {comment.body}
-                </p>
-                <button
-                    type="button"
-                    onClick={() => onReply(comment)}
-                    className="mt-1 inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-[#fd5000] transition-colors font-semibold"
-                >
-                    <Reply className="h-3 w-3" /> Reply
-                </button>
+                {editing ? (
+                    <div className="space-y-1.5">
+                        <textarea
+                            value={editBody}
+                            onChange={(e) => setEditBody(e.target.value)}
+                            rows={2}
+                            className="w-full rounded-lg border border-border bg-surface-secondary px-2 py-1.5 text-[13px] text-text-primary focus:outline-none resize-none"
+                        />
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const trimmed = editBody.trim();
+                                    if (!trimmed) return;
+                                    onEdit(comment.id, trimmed);
+                                    setEditing(false);
+                                }}
+                                className="text-[11px] font-semibold text-[#fd5000]"
+                            >
+                                Save
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setEditing(false)}
+                                className="text-[11px] font-semibold text-text-muted"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <p className="text-[13px] text-text-primary leading-relaxed whitespace-pre-wrap">
+                        {comment.body}
+                    </p>
+                )}
+                <div className="mt-1 flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => onReply(comment)}
+                        className="inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-[#fd5000] transition-colors font-semibold"
+                    >
+                        <Reply className="h-3 w-3" /> Reply
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onLike(comment.id)}
+                        className="inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-[#fd5000] transition-colors font-semibold"
+                    >
+                        <Heart className="h-3 w-3" />
+                        {(comment.like_count ?? 0) > 0 ? comment.like_count : "Like"}
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -139,7 +139,12 @@ export const ACTIVITY_FEED = [
 export const CREATE_QUICK_LAUNCH = [
   { icon: "radio", label: "Go Live", subtitle: "Start a livestream", href: "/communities/live" },
   { icon: "mic", label: "Start Voice Room", subtitle: "Audio conversation", href: "/communities/live" },
-  { icon: "scissors", label: "Upload Clip", subtitle: "Share short video", href: "/communities" },
+  {
+    icon: "upload",
+    label: "Upload Post",
+    subtitle: "Photo, video, carousel & mixed media",
+    href: "/communities?create=post",
+  },
   { icon: "graduation", label: "Create Course", subtitle: "Build a new course", href: "/communities/courses" },
   { icon: "target", label: "Create Mission", subtitle: "Engage your community", href: "/communities/missions" },
   { icon: "layers", label: "Create Space", subtitle: "Build your community", href: "/communities" },

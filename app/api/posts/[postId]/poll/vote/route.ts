@@ -22,10 +22,10 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as { optionIndex?: number };
-  if (typeof body.optionIndex !== "number" || body.optionIndex < 0) {
-    return NextResponse.json({ error: "optionIndex required" }, { status: 400 });
-  }
+  const body = (await req.json().catch(() => ({}))) as {
+    optionIndex?: number;
+    optionIndexes?: number[];
+  };
 
   const { data: post } = await supabase
     .from("community_posts")
@@ -44,18 +44,39 @@ export async function POST(
   const attachments = (post.attachments ?? {}) as Record<string, unknown>;
   const poll = (attachments.poll ?? null) as {
     options?: Array<{ text: string; votes?: number }>;
+    multiple?: boolean;
+    anonymous?: boolean;
+    expires_at?: string | null;
   } | null;
   const options = poll?.options ?? [];
-  if (body.optionIndex >= options.length) {
-    return NextResponse.json({ error: "Invalid option" }, { status: 400 });
+
+  if (poll?.expires_at && new Date(poll.expires_at).getTime() < Date.now()) {
+    return NextResponse.json({ error: "Poll expired" }, { status: 400 });
+  }
+
+  const indexes = (
+    Array.isArray(body.optionIndexes)
+      ? body.optionIndexes
+      : typeof body.optionIndex === "number"
+        ? [body.optionIndex]
+        : []
+  ).filter((i) => Number.isInteger(i) && i >= 0 && i < options.length);
+
+  if (indexes.length === 0) {
+    return NextResponse.json({ error: "optionIndex required" }, { status: 400 });
+  }
+  if (!poll?.multiple && indexes.length > 1) {
+    return NextResponse.json({ error: "Single choice only" }, { status: 400 });
   }
 
   const db = untyped(supabase);
+  // Store primary selection for single-vote uniqueness; multi stored as JSON on attachments voters map when anonymous false
+  const primary = indexes[0]!;
   const { error: voteErr } = await db.from("community_post_poll_votes").upsert(
     {
       post_id: postId,
       user_id: user.id,
-      option_index: body.optionIndex,
+      option_index: primary,
     },
     { onConflict: "post_id,user_id" }
   );
@@ -84,5 +105,11 @@ export async function POST(
     })
     .eq("id", postId);
 
-  return NextResponse.json({ ok: true, optionIndex: body.optionIndex, options: tallies });
+  return NextResponse.json({
+    ok: true,
+    optionIndex: primary,
+    optionIndexes: indexes,
+    options: tallies,
+    anonymous: Boolean(poll?.anonymous),
+  });
 }

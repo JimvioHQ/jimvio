@@ -5,7 +5,7 @@ import {
   Mic,
   Monitor,
   Radio,
-  Scissors,
+  SquarePen,
   Target,
 } from "lucide-react";
 import { CREATE_QUICK_LAUNCH } from "@/lib/feed/mock-data";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 const ICON_MAP = {
   radio: Radio,
   mic: Mic,
-  scissors: Scissors,
+  upload: SquarePen,
   graduation: GraduationCap,
   target: Target,
   layers: Layers,
@@ -24,7 +24,7 @@ const ICON_MAP = {
 const COLOR_MAP = {
   radio: "bg-red-50 text-red-500",
   mic: "bg-violet-50 text-violet-500",
-  scissors: "bg-orange-50 text-orange-500",
+  upload: "bg-orange-50 text-orange-500",
   graduation: "bg-orange-50 text-orange-500",
   target: "bg-orange-50 text-orange-500",
   layers: "bg-orange-50 text-orange-500",

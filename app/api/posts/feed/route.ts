@@ -3,10 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { Json } from "@/types/supabase";
 import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
 import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
+import { extractHashtags, extractMentions } from "@/lib/feed/composer-utils";
+import { rankFeedItems } from "@/lib/growth/feed-ranking";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 20;
+const AUDIENCES = new Set(["public", "followers", "community", "private"]);
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -104,16 +107,41 @@ export async function GET(req: NextRequest) {
   const posts = hasMore ? rows.slice(0, limit) : rows;
   const postIds = posts.map((post) => post.id);
 
-  const { data: likedRows } =
+  const db = supabase as any;
+
+  const [{ data: likedRows }, { data: reactionRows }, { data: savedRows }] =
     postIds.length > 0
-      ? await supabase
-          .from("community_post_likes")
-          .select("post_id")
-          .eq("user_id", user.id)
-          .in("post_id", postIds)
-      : { data: [] as { post_id: string }[] };
+      ? await Promise.all([
+          supabase
+            .from("community_post_likes")
+            .select("post_id")
+            .eq("user_id", user.id)
+            .in("post_id", postIds),
+          db
+            .from("community_post_reactions")
+            .select("post_id, reaction")
+            .eq("user_id", user.id)
+            .in("post_id", postIds),
+          supabase
+            .from("community_saved_posts")
+            .select("post_id")
+            .eq("user_id", user.id)
+            .in("post_id", postIds),
+        ])
+      : [
+          { data: [] as { post_id: string }[] },
+          { data: [] as { post_id: string; reaction: string }[] },
+          { data: [] as { post_id: string }[] },
+        ];
 
   const likedSet = new Set((likedRows ?? []).map((row) => row.post_id));
+  const reactionByPost = new Map(
+    ((reactionRows ?? []) as { post_id: string; reaction: string }[]).map((r) => [
+      r.post_id,
+      r.reaction,
+    ])
+  );
+  const savedSet = new Set((savedRows ?? []).map((row) => row.post_id));
 
   // Enrich quote posts (best-effort; quote_of_post_id may be missing pre-migration)
   const quoteIds = posts
@@ -128,14 +156,21 @@ export async function GET(req: NextRequest) {
     quotedById = new Map((quoted ?? []).map((q) => [q.id, q]));
   }
 
-  const enriched = posts.map((post) => {
+  let enriched = posts.map((post) => {
     const quoteId = (post as { quote_of_post_id?: string | null }).quote_of_post_id;
+    const userReaction = reactionByPost.get(post.id) ?? null;
     return {
       ...post,
-      user_has_liked: likedSet.has(post.id),
+      user_has_liked: likedSet.has(post.id) || Boolean(userReaction),
+      user_reaction: userReaction,
+      user_has_saved: savedSet.has(post.id),
       quoted_post: quoteId ? quotedById.get(quoteId) ?? null : null,
     };
   });
+
+  if ((filter === "trending" || filter === "ai-picks" || filter === "for-you") && !draftsOnly) {
+    enriched = rankFeedItems(enriched, { viewerId: user.id });
+  }
 
   const next_cursor =
     hasMore && posts.length > 0 ? posts[posts.length - 1].created_at : null;
@@ -165,6 +200,13 @@ export async function POST(req: NextRequest) {
     is_published?: boolean;
     quote_of_post_id?: string | null;
     poll_options?: string[];
+    poll_multiple?: boolean;
+    poll_anonymous?: boolean;
+    poll_expires_at?: string | null;
+    audience?: string;
+    location?: string | null;
+    scheduled_at?: string | null;
+    alt_texts?: Record<string, string>;
   };
 
   const communityId = body.community_id;
@@ -232,13 +274,40 @@ export async function POST(req: NextRequest) {
   const attachments: Record<string, unknown> = {
     ...((body.attachments as Record<string, unknown> | null) ?? {}),
   };
+  const mentions = extractMentions(content);
+  const hashtags = extractHashtags(content);
+  if (mentions.length) attachments.mentions = mentions;
+  if (hashtags.length) attachments.hashtags = hashtags;
+  if (typeof body.location === "string" && body.location.trim()) {
+    attachments.location = body.location.trim().slice(0, 120);
+  }
+  if (body.alt_texts && typeof body.alt_texts === "object") {
+    attachments.alt_texts = body.alt_texts;
+  }
+  // GIF-ready / scheduling / long-form flags for future clients
+  if (attachments.gif == null) attachments.gif_ready = true;
+  if (content.length > 800) attachments.long_form = true;
+
   if (postType === "poll") {
     attachments.poll = {
       options: pollOptions.map((text) => ({ text, votes: 0 })),
+      multiple: Boolean(body.poll_multiple),
+      anonymous: Boolean(body.poll_anonymous),
+      expires_at:
+        typeof body.poll_expires_at === "string" && body.poll_expires_at
+          ? body.poll_expires_at
+          : null,
     };
   }
 
-  const isPublished = body.is_published !== false;
+  const audience = AUDIENCES.has(body.audience ?? "")
+    ? (body.audience as string)
+    : "community";
+  const scheduledAt =
+    typeof body.scheduled_at === "string" && body.scheduled_at
+      ? body.scheduled_at
+      : null;
+  const isPublished = body.is_published !== false && !scheduledAt;
 
   let canPin = false;
   if (body.is_pinned) {
@@ -273,9 +342,11 @@ export async function POST(req: NextRequest) {
     attachments: attachments as never,
     video_url: body.video_url ?? null,
     is_pinned: canPin ? Boolean(body.is_pinned) : false,
-    is_exclusive: body.is_exclusive ?? false,
+    is_exclusive: Boolean(body.is_exclusive) || audience === "private",
     is_published: isPublished,
     published_at: isPublished ? new Date().toISOString() : null,
+    audience,
+    scheduled_at: scheduledAt,
     ...(body.quote_of_post_id ? { quote_of_post_id: body.quote_of_post_id } : {}),
   };
 

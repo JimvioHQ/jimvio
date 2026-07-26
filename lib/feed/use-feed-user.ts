@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export type FeedUser = {
+  id: string;
   displayName: string;
   fullName: string | null;
   username: string | null;
@@ -52,6 +53,7 @@ export function useFeedUser() {
       const username = profile?.username ?? null;
 
       setUser({
+        id: authUser.id,
         displayName: toDisplayName(fullName, username),
         fullName,
         username,

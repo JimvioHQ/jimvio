@@ -31,6 +31,7 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
   const before = searchParams.get("before");
+  const sort = searchParams.get("sort") ?? "newest"; // top | newest | oldest
 
   let query = supabase
     .from("community_post_comments")
@@ -40,17 +41,46 @@ export async function GET(
 
   if (before) query = query.lt("created_at", before);
 
+  // Fetch newest-first from DB; apply sort client-side for pinned/top.
   const { data, error } = await query
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(Math.min(200, limit * 2));
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  const comments = ((data ?? []) as { created_at: string }[]).slice().reverse();
-  const nextCursor =
-    comments.length === limit ? comments[0]?.created_at ?? null : null;
+  type CommentRow = {
+    created_at: string;
+    is_pinned?: boolean | null;
+    like_count?: number | null;
+    parent_id?: string | null;
+  };
 
-  return NextResponse.json({ comments, nextCursor });
+  let comments = (data ?? []) as CommentRow[];
+
+  if (sort === "oldest") {
+    comments = comments.slice().sort((a, b) => a.created_at.localeCompare(b.created_at));
+  } else if (sort === "top") {
+    comments = comments.slice().sort((a, b) => {
+      const pin = Number(Boolean(b.is_pinned)) - Number(Boolean(a.is_pinned));
+      if (pin !== 0) return pin;
+      const likes = (b.like_count ?? 0) - (a.like_count ?? 0);
+      if (likes !== 0) return likes;
+      return b.created_at.localeCompare(a.created_at);
+    });
+  } else {
+    // newest — pinned first, then by time
+    comments = comments.slice().sort((a, b) => {
+      const pin = Number(Boolean(b.is_pinned)) - Number(Boolean(a.is_pinned));
+      if (pin !== 0) return pin;
+      return b.created_at.localeCompare(a.created_at);
+    });
+  }
+
+  comments = comments.slice(0, limit);
+  const nextCursor =
+    comments.length === limit ? comments[comments.length - 1]?.created_at ?? null : null;
+
+  return NextResponse.json({ comments, nextCursor, sort });
 }
 
 export async function POST(
