@@ -26,7 +26,7 @@ mustExist("components/community/hub/messages/ChatDetailsAside.tsx");
 mustExist("components/community/hub/messages/ShareActionSheet.tsx");
 mustExist("app/api/c/messages/read/route.ts");
 mustExist("database/migrations/104_messaging_conversation_reads.sql");
-mustExist("supabase/migrations/20260726120000_messaging_conversation_reads.sql");
+mustExist("supabase/migrations/20260725231240_messaging_conversation_reads.sql");
 
 assert.match(page, /ThreadSidebar/);
 assert.match(page, /MessagesComposer/);
