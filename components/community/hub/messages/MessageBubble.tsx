@@ -25,6 +25,25 @@ import {
 
 const QUICK_EMOJIS = ["❤️", "🔥", "😂", "👍", "🙏"];
 
+function highlightText(text: string, query: string) {
+  const q = query.trim();
+  if (!q) return text;
+  try {
+    const parts = text.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"));
+    return parts.map((part, i) =>
+      part.toLowerCase() === q.toLowerCase() ? (
+        <mark key={i} className="rounded-sm bg-amber-200/80 px-0.5 text-inherit">
+          {part}
+        </mark>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
+  } catch {
+    return text;
+  }
+}
+
 export function MessageBubble({
   msg,
   mine,
@@ -155,10 +174,13 @@ export function MessageBubble({
               "rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-relaxed shadow-sm",
               mine
                 ? "rounded-br-md bg-emerald-100 text-zinc-900"
-                : "rounded-bl-md border border-[var(--color-border)]/70 bg-white text-[var(--color-text-primary)] dark:bg-[var(--color-surface-secondary)]"
+                : "rounded-bl-md border border-[var(--color-border)]/70 bg-white text-[var(--color-text-primary)] dark:bg-[var(--color-surface-secondary)]",
+              msg.deliveryStatus === "failed" && "opacity-70 ring-1 ring-red-300"
             )}
           >
-            {msg.body}
+            {msg.highlightQuery && msg.body
+              ? highlightText(msg.body, msg.highlightQuery)
+              : msg.body}
             {msg.is_edited && (
               <span className="ml-1 text-[10px] text-[var(--color-text-muted)]">(edited)</span>
             )}
@@ -189,7 +211,11 @@ export function MessageBubble({
           <span className="text-[10px] tabular-nums text-[var(--color-text-muted)]">{time}</span>
           {mine && (
             <span className="inline-flex text-[var(--color-text-muted)]">
-              {msg.deliveryStatus === "seen" || msg.deliveryStatus === "delivered" ? (
+              {msg.deliveryStatus === "failed" ? (
+                <span className="text-[10px] font-semibold text-red-500">!</span>
+              ) : msg.deliveryStatus === "sending" ? (
+                <Check className="h-3.5 w-3.5 opacity-40" />
+              ) : msg.deliveryStatus === "seen" || msg.deliveryStatus === "delivered" ? (
                 <CheckCheck
                   className={cn(
                     "h-3.5 w-3.5",

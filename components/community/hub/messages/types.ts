@@ -48,8 +48,9 @@ export type HubChatMessage = {
   reply_count?: number;
   is_pinned?: boolean;
   is_edited?: boolean;
-  deliveryStatus?: "sending" | "sent" | "delivered" | "seen";
+  deliveryStatus?: "sending" | "sent" | "delivered" | "seen" | "failed";
   optimistic?: boolean;
+  highlightQuery?: string | null;
 };
 
 export type HubPeerInfo = {

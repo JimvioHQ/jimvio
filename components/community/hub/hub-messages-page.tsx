@@ -28,6 +28,7 @@ import {
   MessageTimeline,
   msgToHubMessage,
   NewMessageDialog,
+  resolveOwnDeliveryStatus,
   savePinnedThreadIds,
   ShareActionSheet,
   ThreadSidebar,
@@ -40,6 +41,14 @@ import {
   type QuickActionId,
   type SharePayload,
 } from "./messages";
+import {
+  enqueueOutbox,
+  loadOutbox,
+  newOutboxClientId,
+  patchOutbox,
+  removeOutbox,
+  type HubOutboxItem,
+} from "@/lib/community/chat/message-outbox";
 
 export function HubMessagesPage() {
   const router = useRouter();
@@ -91,6 +100,10 @@ export function HubMessagesPage() {
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [chatSearch, setChatSearch] = useState("");
   const [showChatSearch, setShowChatSearch] = useState(false);
+  const [peerLastReadAt, setPeerLastReadAt] = useState<string | null>(null);
+  const [localStatus, setLocalStatus] = useState<
+    Record<string, HubChatMessage["deliveryStatus"]>
+  >({});
   const { openAssistant } = useAIStore();
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -140,19 +153,42 @@ export function HubMessagesPage() {
   });
 
   const visibleMessages = useMemo((): HubChatMessage[] => {
+    const peerOnline =
+      (activeThread?.peerId ? presence.isPeerOnline(activeThread.peerId) : false) ||
+      peer?.isOnline ||
+      activeThread?.isOnline ||
+      false;
+    const q = chatSearch.trim();
     const mapped = engine.messages
       .filter((m) => !isCallSignalingMessage(m.message_type, m.body))
-      .map((m) =>
-        msgToHubMessage(
-          m,
-          // No peer read-receipt data in hub messages — show sent, not fake seen.
-          m.sender_id === currentUserId ? "sent" : undefined
-        )
-      );
-    if (!chatSearch.trim()) return mapped;
-    const q = chatSearch.toLowerCase();
-    return mapped.filter((m) => m.body.toLowerCase().includes(q));
-  }, [engine.messages, currentUserId, chatSearch]);
+      .map((m) => {
+        const local = localStatus[m.id];
+        let delivery: HubChatMessage["deliveryStatus"] | undefined;
+        if (m.sender_id === currentUserId) {
+          if (local === "sending" || local === "failed") delivery = local;
+          else if (activeThread?.kind === "direct") {
+            delivery = resolveOwnDeliveryStatus(m.created_at, peerLastReadAt, peerOnline);
+          } else {
+            delivery = local ?? "sent";
+          }
+        }
+        return msgToHubMessage(m, delivery, q || null);
+      });
+    if (!q) return mapped;
+    const needle = q.toLowerCase();
+    return mapped.filter((m) => m.body.toLowerCase().includes(needle));
+  }, [
+    engine.messages,
+    currentUserId,
+    chatSearch,
+    peerLastReadAt,
+    localStatus,
+    activeThread?.kind,
+    activeThread?.peerId,
+    activeThread?.isOnline,
+    peer?.isOnline,
+    presence,
+  ]);
 
   const loadThreads = useCallback(async () => {
     setLoading(true);
@@ -193,6 +229,7 @@ export function HubMessagesPage() {
 
   useEffect(() => {
     if (!activeThread || activeThread.kind === "space") {
+      setPeerLastReadAt(null);
       return;
     }
 
@@ -220,6 +257,9 @@ export function HubMessagesPage() {
         setPinnedMessage(data.pinnedMessage ?? null);
         setPinnedCount(data.pinnedMessage ? 1 : 0);
         setShowPinnedBanner(!!data.pinnedMessage);
+        setPeerLastReadAt(
+          typeof data.peerLastReadAt === "string" ? data.peerLastReadAt : null
+        );
       } catch {
         /* ignore */
       }
@@ -260,6 +300,49 @@ export function HubMessagesPage() {
       if (voiceTimerRef.current) clearInterval(voiceTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const onOnline = () => {
+      void flushOutbox();
+    };
+    window.addEventListener("online", onOnline);
+    if (navigator.onLine) void flushOutbox();
+    return () => window.removeEventListener("online", onOnline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threads.length, activeThreadId]);
+
+  useEffect(() => {
+    if (!activeThread || activeThread.kind !== "direct" || !currentUserId) return;
+    const key = conversationKey(activeThread.kind, activeThread.id, activeThread.roomId);
+    const supabase = createClient();
+    let cancelled = false;
+    const channel = supabase
+      .channel(`reads:${key}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messaging_conversation_reads",
+          filter: `conversation_key=eq.${key}`,
+        },
+        (payload: {
+          new: Record<string, unknown> | null;
+        }) => {
+          const row = (payload.new ?? {}) as {
+            user_id?: string;
+            last_read_at?: string;
+          };
+          if (!row.last_read_at || row.user_id === currentUserId) return;
+          if (!cancelled) setPeerLastReadAt(row.last_read_at);
+        }
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [activeThread?.id, activeThread?.kind, activeThread?.roomId, currentUserId]);
 
   const { setTypingState, typing, isPeerOnline } = presence;
 
@@ -398,56 +481,178 @@ export function HubMessagesPage() {
     body: string,
     attachments: ChatAttachmentPayload[],
     messageType?: string,
-    replyTo?: HubChatMessage | null
+    replyTo?: HubChatMessage | null,
+    clientIdOverride?: string
   ) {
     if (!activeThreadId || !activeThread) return;
+    if (activeThread.kind === "space") return;
+
+    const clientId = clientIdOverride ?? newOutboxClientId();
+    const messageTypeResolved = messageType ?? deriveMessageType(attachments, body);
+    const optimistic: Msg = {
+      id: clientId,
+      body,
+      sender_id: currentUserId ?? "me",
+      created_at: new Date().toISOString(),
+      message_type: messageTypeResolved,
+      thread_id: null,
+      attachments,
+      reactions: {},
+      profiles: {
+        full_name: displayName,
+        username: null,
+        avatar_url: avatarUrl,
+      },
+      reply_to_id: replyTo?.id ?? null,
+      reply_to_body: replyTo?.body?.slice(0, 200) ?? null,
+      reply_to_sender: replyTo?.sender_name ?? null,
+      is_edited: false,
+      reply_count: 0,
+    };
+    engine.upsertMessage(optimistic);
+    setLocalStatus((prev) => ({ ...prev, [clientId]: "sending" }));
+    setDraft("");
+    setPendingMain([]);
+    setReplyingTo(null);
+    setTypingState(false);
+
+    const outboxItem: HubOutboxItem = {
+      clientId,
+      threadId: activeThreadId,
+      kind: activeThread.kind === "group" ? "group" : "direct",
+      communitySlug: activeThread.communitySlug || null,
+      roomId: activeThread.roomId,
+      body,
+      attachments,
+      messageType: messageTypeResolved,
+      replyToId: replyTo?.id ?? null,
+      replyToBody: replyTo?.body?.slice(0, 200) ?? null,
+      replyToSender: replyTo?.sender_name ?? null,
+      createdAt: optimistic.created_at,
+      attempts: 0,
+    };
+
     if (!navigator.onLine) {
-      toast.error("You're offline — reconnect to send.");
+      enqueueOutbox(outboxItem);
+      setLocalStatus((prev) => ({ ...prev, [clientId]: "failed" }));
+      toast.error("You're offline — message queued for retry.");
       return;
     }
 
     const payload = {
       body,
       attachments,
-      message_type: messageType ?? deriveMessageType(attachments, body),
+      message_type: messageTypeResolved,
       reply_to_id: replyTo?.id ?? null,
+      reply_to_body: replyTo?.body?.slice(0, 200) ?? null,
+      reply_to_sender: replyTo?.sender_name ?? null,
     };
 
-    let res: Response;
-    if (activeThread.kind === "direct" && activeThread.communitySlug) {
-      res = await fetch(
-        `/api/communities/${activeThread.communitySlug}/inbox/${activeThreadId}/messages`,
-        {
+    try {
+      let res: Response;
+      if (activeThread.kind === "direct" && activeThread.communitySlug) {
+        res = await fetch(
+          `/api/communities/${activeThread.communitySlug}/inbox/${activeThreadId}/messages`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+      } else if (activeThread.kind === "group" && activeThread.roomId) {
+        res = await fetch(`/api/messages/${activeThread.roomId}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        }
-      );
-    } else if (activeThread.kind === "group" && activeThread.roomId) {
-      res = await fetch(`/api/messages/${activeThread.roomId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-    } else {
-      throw new Error("Cannot send in this conversation");
-    }
+        });
+      } else {
+        throw new Error("Cannot send in this conversation");
+      }
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(
-        (data as { error?: string }).error ?? "Failed to send message"
-      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          (data as { error?: string }).error ?? "Failed to send message"
+        );
+      }
+      const data = await res.json();
+      const msg = data.message ?? data.row;
+      if (msg) {
+        engine.removeMessage(clientId);
+        engine.upsertMessage(msg as Msg);
+        setLocalStatus((prev) => {
+          const next = { ...prev };
+          delete next[clientId];
+          next[(msg as Msg).id] = "sent";
+          return next;
+        });
+        removeOutbox(clientId);
+        void loadThreads();
+      }
+    } catch (e: unknown) {
+      enqueueOutbox({
+        ...outboxItem,
+        attempts: outboxItem.attempts + 1,
+        lastError: e instanceof Error ? e.message : "Failed to send",
+      });
+      setLocalStatus((prev) => ({ ...prev, [clientId]: "failed" }));
+      throw e;
     }
-    const data = await res.json();
-    const msg = data.message ?? data.row;
-    if (msg) {
-      engine.upsertMessage(msg as Msg);
-      setDraft("");
-      setPendingMain([]);
-      setReplyingTo(null);
-      setTypingState(false);
-      void loadThreads();
+  }
+
+  async function flushOutbox() {
+    if (!navigator.onLine) return;
+    const items = loadOutbox();
+    for (const item of items) {
+      const thread = threads.find((t) => t.id === item.threadId);
+      if (!thread) continue;
+      try {
+        const payload = {
+          body: item.body,
+          attachments: item.attachments,
+          message_type: item.messageType,
+          reply_to_id: item.replyToId ?? null,
+          reply_to_body: item.replyToBody ?? null,
+          reply_to_sender: item.replyToSender ?? null,
+        };
+        let res: Response;
+        if (item.kind === "direct" && item.communitySlug) {
+          res = await fetch(
+            `/api/communities/${item.communitySlug}/inbox/${item.threadId}/messages`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            }
+          );
+        } else if (item.kind === "group" && item.roomId) {
+          res = await fetch(`/api/messages/${item.roomId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          continue;
+        }
+        if (!res.ok) throw new Error("retry failed");
+        const data = await res.json();
+        const msg = data.message ?? data.row;
+        if (msg && activeThreadId === item.threadId) {
+          engine.removeMessage(item.clientId);
+          engine.upsertMessage(msg as Msg);
+        }
+        removeOutbox(item.clientId);
+        setLocalStatus((prev) => {
+          const next = { ...prev };
+          delete next[item.clientId];
+          return next;
+        });
+      } catch {
+        patchOutbox(item.clientId, {
+          attempts: item.attempts + 1,
+          lastError: "retry failed",
+        });
+      }
     }
   }
 

@@ -27,13 +27,27 @@ mustExist("components/community/hub/messages/ShareActionSheet.tsx");
 mustExist("app/api/c/messages/read/route.ts");
 mustExist("database/migrations/104_messaging_conversation_reads.sql");
 mustExist("supabase/migrations/20260725231240_messaging_conversation_reads.sql");
+mustExist("database/migrations/105_messaging_production_hardening.sql");
+mustExist("supabase/migrations/20260726075025_messaging_production_hardening.sql");
+mustExist("supabase/migrations/20260726080110_messaging_reads_realtime.sql");
+mustExist("lib/community/chat/message-outbox.ts");
 
 assert.match(page, /ThreadSidebar/);
 assert.match(page, /MessagesComposer/);
 assert.match(page, /ChatDetailsAside/);
 assert.match(page, /useConversationMessages/);
 assert.match(page, /useHubChatPresence/);
+assert.match(page, /resolveOwnDeliveryStatus/);
+assert.match(page, /message-outbox/);
 assert.match(index, /ThreadSidebar/);
 assert.match(index, /MessagesComposer/);
+
+const migration = mustExist(
+  "supabase/migrations/20260726075025_messaging_production_hardening.sql"
+);
+assert.match(migration, /toggle_inbox_message_reaction/);
+assert.match(migration, /hub_room_last_messages/);
+assert.match(migration, /hub_message_unread_counts/);
+assert.match(migration, /messaging_reads_select_peer_inbox/);
 
 console.log("verify-hub-messages-experience: ok");

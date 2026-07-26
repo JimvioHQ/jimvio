@@ -7,38 +7,42 @@ export async function POST(
 ) {
   const { conversationId, messageId } = await params;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // 1. Get current reactions
   const { data: msg, error: mErr } = await supabase
     .from("community_inbox_messages")
-    .select("reactions, conversation_id")
+    .select("conversation_id")
     .eq("id", messageId)
-    .single();
+    .maybeSingle();
 
   if (mErr || !msg) return NextResponse.json({ error: "Message not found" }, { status: 404 });
-  if (msg.conversation_id !== conversationId) return NextResponse.json({ error: "Invalid context" }, { status: 400 });
+  if (msg.conversation_id !== conversationId) {
+    return NextResponse.json({ error: "Invalid context" }, { status: 400 });
+  }
 
   const { emoji } = await req.json();
-  if (!emoji) return NextResponse.json({ error: "Emoji required" }, { status: 400 });
+  if (!emoji || typeof emoji !== "string") {
+    return NextResponse.json({ error: "Emoji required" }, { status: 400 });
+  }
 
-  const reactions = (msg.reactions as Record<string, string[]>) || {};
-  const current = reactions[emoji] || [];
-  const updated = current.includes(user.id)
-    ? current.filter((id) => id !== user.id)
-    : [...current, user.id];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any).rpc("toggle_inbox_message_reaction", {
+    p_message_id: messageId,
+    p_emoji: emoji.trim(),
+  });
 
-  const newReactions = { ...reactions, [emoji]: updated };
+  if (error) {
+    const msgText = error.message || "Failed";
+    const status = msgText.includes("not found")
+      ? 404
+      : msgText.includes("forbidden")
+        ? 403
+        : 400;
+    return NextResponse.json({ error: msgText }, { status });
+  }
 
-  const { data, error } = await supabase
-    .from("community_inbox_messages")
-    .update({ reactions: newReactions })
-    .eq("id", messageId)
-    .select("reactions")
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-
-  return NextResponse.json({ reactions: data.reactions });
+  return NextResponse.json({ reactions: data });
 }

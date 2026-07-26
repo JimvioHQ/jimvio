@@ -75,6 +75,7 @@ function countReactions(raw: unknown) {
 async function loadReadCursors(userId: string) {
   const supabase = await createClient();
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from("messaging_conversation_reads")
       .select("conversation_key, last_read_at")
@@ -90,6 +91,7 @@ async function loadReadCursors(userId: string) {
   }
 }
 
+/** Fallback when unread RPC is unavailable — binary unread from last visible message. */
 function unreadFromLast(
   last: { created_at?: string | null; sender_id: string } | null | undefined,
   userId: string,
@@ -101,6 +103,93 @@ function unreadFromLast(
     return 0;
   }
   return 1;
+}
+
+async function loadUnreadCounts(
+  userId: string,
+  inboxIds: string[],
+  roomIds: string[]
+): Promise<Map<string, number>> {
+  const supabase = await createClient();
+  const out = new Map<string, number>();
+  if (inboxIds.length === 0 && roomIds.length === 0) return out;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("hub_message_unread_counts", {
+      p_user_id: userId,
+      p_inbox_ids: inboxIds,
+      p_room_ids: roomIds,
+    });
+    if (error || !data) return out;
+    for (const row of data as Array<{ conversation_key: string; unread_count: number | string }>) {
+      const n = typeof row.unread_count === "number" ? row.unread_count : Number(row.unread_count);
+      if (row.conversation_key && Number.isFinite(n) && n > 0) {
+        out.set(row.conversation_key, Math.min(Math.floor(n), 999));
+      }
+    }
+  } catch {
+    /* RPC may be missing until migration applies */
+  }
+  return out;
+}
+
+async function loadRoomLastMessages(
+  roomIds: string[]
+): Promise<Map<string, { body: string; created_at: string; sender_id: string; message_type: string | null }>> {
+  const supabase = await createClient();
+  const roomLastMsg = new Map<
+    string,
+    { body: string; created_at: string; sender_id: string; message_type: string | null }
+  >();
+  if (roomIds.length === 0) return roomLastMsg;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("hub_room_last_messages", {
+      p_room_ids: roomIds,
+    });
+    if (!error && data) {
+      for (const msg of data as Array<{
+        room_id: string;
+        body: string | null;
+        created_at: string | null;
+        sender_id: string;
+        message_type: string | null;
+      }>) {
+        if (isCallSignalingMessage(msg.message_type, msg.body)) continue;
+        roomLastMsg.set(msg.room_id, {
+          body: msg.body ?? "",
+          created_at: msg.created_at ?? new Date().toISOString(),
+          sender_id: msg.sender_id,
+          message_type: msg.message_type,
+        });
+      }
+      return roomLastMsg;
+    }
+  } catch {
+    /* fall through */
+  }
+
+  // Legacy fallback: global newest-N can starve quiet rooms — keep as safety net only.
+  const { data: roomMsgs } = await supabase
+    .from("community_messages")
+    .select("room_id, body, created_at, sender_id, message_type")
+    .in("room_id", roomIds)
+    .eq("is_deleted", false)
+    .order("created_at", { ascending: false })
+    .limit(Math.min(500, Math.max(roomIds.length * 3, 100)));
+
+  for (const msg of roomMsgs ?? []) {
+    if (roomLastMsg.has(msg.room_id)) continue;
+    if (isCallSignalingMessage(msg.message_type, msg.body)) continue;
+    roomLastMsg.set(msg.room_id, {
+      body: msg.body ?? "",
+      created_at: msg.created_at ?? new Date().toISOString(),
+      sender_id: msg.sender_id,
+      message_type: msg.message_type,
+    });
+  }
+  return roomLastMsg;
 }
 
 export async function getHubMessageThreads(userId: string) {
@@ -121,7 +210,9 @@ export async function getHubMessageThreads(userId: string) {
       .in("community_id", communityIds)
       .or(`user_high.eq.${userId},user_low.eq.${userId}`)
       .order("updated_at", { ascending: false })
-      .limit(50);
+      .limit(50)
+      .order("created_at", { ascending: false, referencedTable: "community_inbox_messages" })
+      .limit(30, { referencedTable: "community_inbox_messages" });
 
     const peerIds = (convs ?? []).map((c) =>
       c.user_high === userId ? c.user_low : c.user_high
@@ -241,27 +332,7 @@ export async function getHubMessageThreads(userId: string) {
     }
 
     const roomIds = roomsForLastMsg.map((r) => r.id);
-    const roomLastMsg = new Map<string, { body: string; created_at: string; sender_id: string; message_type: string | null }>();
-    if (roomIds.length > 0) {
-      const { data: roomMsgs } = await supabase
-        .from("community_messages")
-        .select("room_id, body, created_at, sender_id, message_type")
-        .in("room_id", roomIds)
-        .eq("is_deleted", false)
-        .order("created_at", { ascending: false })
-        .limit(300);
-
-      for (const msg of roomMsgs ?? []) {
-        if (roomLastMsg.has(msg.room_id)) continue;
-        if (isCallSignalingMessage(msg.message_type, msg.body)) continue;
-        roomLastMsg.set(msg.room_id, {
-          body: msg.body ?? "",
-          created_at: msg.created_at ?? new Date().toISOString(),
-          sender_id: msg.sender_id,
-          message_type: msg.message_type,
-        });
-      }
-    }
+    const roomLastMsg = await loadRoomLastMessages(roomIds);
 
     const pushGroupRoomThread = (room: RoomRow) => {
       const community = room.communities;
@@ -336,6 +407,26 @@ export async function getHubMessageThreads(userId: string) {
         href: spaceHref,
       });
     }
+
+    const inboxIds = threads.filter((t) => t.kind === "direct").map((t) => t.id);
+    const unreadRoomIds = threads
+      .filter((t) => t.kind === "group" && t.roomId)
+      .map((t) => t.roomId as string);
+    const unreadMap = await loadUnreadCounts(userId, inboxIds, unreadRoomIds);
+    if (unreadMap.size > 0) {
+      for (const thread of threads) {
+        const key =
+          thread.kind === "direct"
+            ? `inbox:${thread.id}`
+            : thread.roomId
+              ? `room:${thread.roomId}`
+              : null;
+        if (!key) continue;
+        if (unreadMap.has(key)) {
+          thread.unreadCount = unreadMap.get(key) ?? 0;
+        }
+      }
+    }
   }
 
   threads.sort(
@@ -359,6 +450,8 @@ export async function getHubMessageThreads(userId: string) {
 
 export async function getHubDirectMessages(userId: string, conversationId: string) {
   const supabase = await createClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = supabase as any;
 
   const { data: conv } = await supabase
     .from("community_inbox_conversations")
@@ -370,13 +463,53 @@ export async function getHubDirectMessages(userId: string, conversationId: strin
     return null;
   }
 
-  const { data: rows } = await supabase
-    .from("community_inbox_messages")
-    .select("id, body, sender_id, created_at, message_type, attachments, reactions")
-    .eq("conversation_id", conversationId)
-    .eq("is_deleted", false)
-    .order("created_at", { ascending: true })
-    .limit(200);
+  let rows: Array<{
+    id: string;
+    body: string;
+    sender_id: string;
+    created_at: string | null;
+    message_type: string | null;
+    attachments: unknown;
+    reactions: unknown;
+  }> | null = null;
+
+  {
+    const primary = await db
+      .from("community_inbox_messages")
+      .select(
+        "id, body, sender_id, created_at, message_type, attachments, reactions, reply_to_id, reply_to_body, reply_to_sender, is_edited"
+      )
+      .eq("conversation_id", conversationId)
+      .eq("is_deleted", false)
+      .order("created_at", { ascending: true })
+      .limit(200);
+    if (primary.error) {
+      const fallback = await supabase
+        .from("community_inbox_messages")
+        .select("id, body, sender_id, created_at, message_type, attachments, reactions")
+        .eq("conversation_id", conversationId)
+        .eq("is_deleted", false)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      rows = fallback.data;
+    } else {
+      rows = primary.data;
+    }
+  }
+
+  const peerId = conv.user_low === userId ? conv.user_high : conv.user_low;
+  let peerLastReadAt: string | null = null;
+  try {
+    const { data: peerRead } = await db
+      .from("messaging_conversation_reads")
+      .select("last_read_at")
+      .eq("user_id", peerId)
+      .eq("conversation_key", `inbox:${conversationId}`)
+      .maybeSingle();
+    peerLastReadAt = peerRead?.last_read_at ?? null;
+  } catch {
+    peerLastReadAt = null;
+  }
 
   const senderIds = [...new Set((rows ?? []).map((r) => r.sender_id))];
   const { data: profs } = senderIds.length
@@ -405,7 +538,12 @@ export async function getHubDirectMessages(userId: string, conversationId: strin
       };
     });
 
-  return { conversationId, messages, pinnedMessage: null as string | null };
+  return {
+    conversationId,
+    messages,
+    pinnedMessage: null as string | null,
+    peerLastReadAt,
+  };
 }
 
 export async function getHubRoomMessages(userId: string, roomId: string) {

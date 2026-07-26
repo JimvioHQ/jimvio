@@ -71,7 +71,11 @@ export function reactionUsers(raw: unknown): Record<string, string[]> {
   return out;
 }
 
-export function msgToHubMessage(m: Msg, deliveryStatus?: HubChatMessage["deliveryStatus"]): HubChatMessage {
+export function msgToHubMessage(
+  m: Msg,
+  deliveryStatus?: HubChatMessage["deliveryStatus"],
+  highlightQuery?: string | null
+): HubChatMessage {
   return {
     id: m.id,
     body: m.body,
@@ -93,7 +97,20 @@ export function msgToHubMessage(m: Msg, deliveryStatus?: HubChatMessage["deliver
     is_pinned: m.is_pinned ?? false,
     is_edited: m.is_edited ?? false,
     deliveryStatus,
+    highlightQuery: highlightQuery ?? null,
   };
+}
+
+export function resolveOwnDeliveryStatus(
+  createdAt: string,
+  peerLastReadAt: string | null | undefined,
+  peerOnline: boolean
+): HubChatMessage["deliveryStatus"] {
+  if (peerLastReadAt && new Date(createdAt).getTime() <= new Date(peerLastReadAt).getTime()) {
+    return "seen";
+  }
+  if (peerOnline || peerLastReadAt) return "delivered";
+  return "sent";
 }
 
 export function groupMessagesByDay(messages: HubChatMessage[]) {

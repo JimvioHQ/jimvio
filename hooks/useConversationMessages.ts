@@ -302,6 +302,8 @@ export function useConversationMessages({
               onChange: (payload) => {
                 const row = payload?.new;
                 if (!row?.id) return;
+                const eventKey = `u:${row.id}:${row.edited_at ?? row.is_deleted ?? ""}:${JSON.stringify(row.reactions ?? {})}`;
+                if (!remember(eventKey)) return;
                 if (row.is_deleted) {
                   removeMessage(String(row.id));
                   return;
@@ -309,6 +311,11 @@ export function useConversationMessages({
                 patchMessage(String(row.id), {
                   body: String(row.body ?? ""),
                   reactions: (row.reactions as Record<string, unknown>) ?? {},
+                  is_edited: (row.is_edited as boolean) ?? false,
+                  edited_at: (row.edited_at as string) ?? null,
+                  reply_to_id: (row.reply_to_id as string) ?? null,
+                  reply_to_body: (row.reply_to_body as string) ?? null,
+                  reply_to_sender: (row.reply_to_sender as string) ?? null,
                 });
               },
             },

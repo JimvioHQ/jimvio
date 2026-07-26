@@ -29,15 +29,33 @@ export async function PATCH(
   const body = payload.body?.trim();
   if (!body) return NextResponse.json({ error: "Empty body" }, { status: 400 });
 
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
     .from("community_inbox_messages")
-    .update({ body })
+    .update({
+      body,
+      is_edited: true,
+      edited_at: new Date().toISOString(),
+    })
     .eq("id", messageId)
     .eq("conversation_id", conversationId)
     .eq("sender_id", user.id)
     .select("*")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    const fallback = await supabase
+      .from("community_inbox_messages")
+      .update({ body })
+      .eq("id", messageId)
+      .eq("conversation_id", conversationId)
+      .eq("sender_id", user.id)
+      .select("*")
+      .single();
+    if (fallback.error) {
+      return NextResponse.json({ error: fallback.error.message }, { status: 400 });
+    }
+    return NextResponse.json({ message: fallback.data });
+  }
   return NextResponse.json({ message: data });
 }

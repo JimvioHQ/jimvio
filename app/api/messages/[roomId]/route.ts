@@ -48,6 +48,8 @@ export async function GET(
 
   if (before) query = query.lt("created_at", before);
   if (q) query = query.ilike("body", `%${escapeIlikePattern(q)}%`);
+  const senderId = searchParams.get("senderId")?.trim();
+  if (senderId) query = query.eq("sender_id", senderId);
 
   // Newest-first for pagination, reversed below to chronological order.
   const { data, error } = await query.order("created_at", { ascending: false }).limit(limit);
