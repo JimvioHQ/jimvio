@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { canRecord } from "@/lib/live/roles";
 import { assertLiveStudioInfra, LiveStudioEnvError } from "@/lib/live/env";
 import { liveStudioLog } from "@/lib/live/observability";
-import { getParticipant, getSession } from "@/services/live/session-service";
+import { getParticipant, getSession, canViewLiveSession, listSessionRecordings } from "@/services/live/session-service";
 import { startSessionEgress, stopSessionEgress } from "@/lib/live/egress";
 
 export const dynamic = "force-dynamic";
@@ -105,4 +105,46 @@ export async function POST(
   }
 
   return NextResponse.json({ error: "action must be start|stop" }, { status: 400 });
+}
+
+/** GET — list recording metadata / replay entries for a session. */
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: sessionId } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const session = await getSession(sessionId);
+  if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const allowed = await canViewLiveSession(user.id, session);
+  if (!allowed) return NextResponse.json({ error: "No access" }, { status: 403 });
+
+  const recordings = await listSessionRecordings(sessionId);
+  return NextResponse.json({
+    recordings,
+    recordingStatus:
+      recordings.find((r) => (r as { status?: string }).status === "recording") != null
+        ? "recording"
+        : recordings.find((r) => (r as { status?: string }).status === "ready") != null
+          ? "ready"
+          : recordings.length > 0
+            ? "processing"
+            : "none",
+    replayUrl:
+      (
+        recordings.find(
+          (r) =>
+            (r as { status?: string; cloudinary_url?: string | null }).status === "ready" &&
+            (r as { cloudinary_url?: string | null }).cloudinary_url
+        ) as { cloudinary_url?: string | null } | undefined
+      )?.cloudinary_url ??
+      session.recording_url ??
+      null,
+  });
 }

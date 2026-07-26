@@ -3,20 +3,31 @@ import { createClient } from "@/lib/supabase/server";
 import {
   acceptSpeaker,
   acceptInvite,
+  averageViewers,
+  cancelLiveSession,
   canViewLiveSession,
   createPoll,
+  emitLiveReaction,
   endLiveSession,
   getSession,
   inviteSpeaker,
   joinLiveSession,
   leaveLiveSession,
   listParticipants,
+  listSessionRecordings,
   muteParticipant,
   rejectSpeaker,
   removeSpeaker,
   requestSpeak,
+  sessionDurationSeconds,
+  setParticipantRole,
+  startScheduledLive,
+  transferHost,
+  updateLiveChatSettings,
   updateSelfMedia,
+  type LiveChatSettings,
 } from "@/services/live/session-service";
+import type { LiveStageRole } from "@/lib/live/roles";
 import { liveStudioLog } from "@/lib/live/observability";
 import { rateLimit } from "@/lib/ops/rate-limit";
 
@@ -31,10 +42,13 @@ type ActionBody = {
   sharing?: boolean;
   question?: string;
   options?: string[];
+  role?: LiveStageRole;
+  emoji?: string;
+  chatSettings?: LiveChatSettings;
 };
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -58,8 +72,27 @@ export async function GET(
     return NextResponse.json({ error: "No access" }, { status: 403 });
   }
 
-  const participants = await listParticipants(id);
-  return NextResponse.json({ session, participants });
+  const url = new URL(req.url);
+  const includeRecordings = url.searchParams.get("recordings") === "1";
+
+  const [participants, recordings] = await Promise.all([
+    listParticipants(id),
+    includeRecordings ? listSessionRecordings(id) : Promise.resolve(null),
+  ]);
+
+  return NextResponse.json({
+    session,
+    participants,
+    recordings: recordings ?? undefined,
+    metrics: {
+      durationSeconds: sessionDurationSeconds(session),
+      peakViewers: session.peak_viewers ?? 0,
+      averageViewers: averageViewers(session),
+      totalWatchSeconds: session.total_watch_seconds ?? 0,
+      engagementEvents: session.engagement_events ?? 0,
+      viewerCount: session.viewer_count ?? participants.filter((p) => p.status === "joined").length,
+    },
+  });
 }
 
 export async function POST(
@@ -111,6 +144,16 @@ export async function POST(
         return NextResponse.json({ error: result.error }, { status: result.status });
       }
       liveStudioLog("info", "session_end", { sessionId: id, userId: user.id });
+      return NextResponse.json(result);
+    }
+    case "start": {
+      const result = await startScheduledLive(id, user.id);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "cancel": {
+      const result = await cancelLiveSession(id, user.id);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }
     case "invite": {
@@ -166,6 +209,34 @@ export async function POST(
     }
     case "poll": {
       const result = await createPoll(id, user.id, body.question ?? "", body.options ?? []);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "promote":
+    case "set-role": {
+      if (!body.targetUserId || !body.role) {
+        return NextResponse.json({ error: "targetUserId and role required" }, { status: 400 });
+      }
+      const result = await setParticipantRole(id, user.id, body.targetUserId, body.role);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "transfer-host": {
+      if (!body.targetUserId) return NextResponse.json({ error: "targetUserId required" }, { status: 400 });
+      const result = await transferHost(id, user.id, body.targetUserId);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "react": {
+      const result = await emitLiveReaction(id, user.id, body.emoji ?? "");
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "chat-settings": {
+      if (!body.chatSettings) {
+        return NextResponse.json({ error: "chatSettings required" }, { status: 400 });
+      }
+      const result = await updateLiveChatSettings(id, user.id, body.chatSettings);
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }

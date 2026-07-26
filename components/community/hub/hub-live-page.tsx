@@ -1380,9 +1380,9 @@ export function HubLivePage({
                       setChatInput(v);
                       liveChat.signalTyping();
                     }}
-                    onSend={async (body) => {
+                    onSend={async (body, reply) => {
                       try {
-                        await liveChat.send(body);
+                        await liveChat.send(body, reply);
                       } catch (e) {
                         showToast(e instanceof Error ? e.message : "Message failed");
                       }
@@ -1399,6 +1399,13 @@ export function HubLivePage({
                         live.participants.find((p) => p.user_id === live.userId)
                           ?.status === "requested"
                       }
+                      onReact={async (emoji) => {
+                        try {
+                          await live.react(emoji);
+                        } catch {
+                          /* local reaction already shown */
+                        }
+                      }}
                       onRaiseHand={async () => {
                         try {
                           await live.requestSpeak();

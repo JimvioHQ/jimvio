@@ -1172,16 +1172,28 @@ export async function getHubLiveDashboard(
   }
 
   const analytics: HubLiveAnalytics = {
-    viewers: 0,
-    liveViewers: 0,
+    viewers: activeLive?.viewer_count ?? 0,
+    liveViewers: activeLive?.viewer_count ?? 0,
     likes: chatMessages.reduce((sum, m) => sum + m.reaction_count, 0),
     newJoins: speakers.length,
     messages: chatMessages.length,
     comments: 0,
     shares: 0,
-    reactionsPct: 0,
-    peakViewers: 0,
-    watchTimeMinutes: 0,
+    reactionsPct:
+      chatMessages.length > 0
+        ? Math.min(
+            100,
+            Math.round(
+              (chatMessages.reduce((sum, m) => sum + m.reaction_count, 0) /
+                chatMessages.length) *
+                10
+            )
+          )
+        : 0,
+    peakViewers: activeLive?.peak_viewers ?? ended?.peak_viewers ?? 0,
+    watchTimeMinutes: Math.round(
+      ((activeLive ?? ended)?.total_watch_seconds ?? 0) / 60
+    ),
     revenue: earnings.total,
   };
 
@@ -1189,7 +1201,7 @@ export async function getHubLiveDashboard(
     id: s.id,
     title: s.title,
     host: "Community",
-    start_date: s.scheduled_at ?? s.started_at,
+    start_date: s.scheduled_at ?? s.started_at ?? s.created_at,
     href: scopedSlug
       ? `/communities/live/${s.id}`
       : `/communities/live/${s.id}`,
@@ -1509,20 +1521,33 @@ export async function getCommunityOverviewStats(
   const chatRooms = (roomsRes.data ?? []).filter((r) => r.room_type === "chat");
   const chatRoomIds = new Set(chatRooms.map((r) => r.id));
   const activeRoomIds = new Set((recentMessagesRes.data ?? []).map((m) => m.room_id));
-  const liveRoomIds = [...activeRoomIds].filter((id) => chatRoomIds.has(id));
-  const liveNow = liveRoomIds.length;
-  const voiceRooms = liveNow;
+  const activeChatRooms = [...activeRoomIds].filter((id) => chatRoomIds.has(id));
+  const voiceRooms = activeChatRooms.length;
   const roomNameById = new Map((roomsRes.data ?? []).map((r) => [r.id, r.name]));
-  const activeLiveSession: OverviewLiveSession =
-    liveNow > 0
-      ? {
-          id: liveRoomIds[0],
-          title: `Live in ${communityName}`,
-          room_name: roomNameById.get(liveRoomIds[0]) ?? "Live Room",
-          href: `${base}/live`,
-          active_count: liveNow,
-        }
-      : null;
+
+  // Prefer real live_sessions over chat activity heuristics.
+  let overviewActiveLive: Awaited<
+    ReturnType<typeof import("@/services/live/session-service").getActiveLiveForCommunity>
+  > = null;
+  try {
+    const liveSvc = await import("@/services/live/session-service");
+    overviewActiveLive = await liveSvc.getActiveLiveForCommunity(communityId);
+  } catch {
+    overviewActiveLive = null;
+  }
+  const liveNow = overviewActiveLive ? 1 : 0;
+  const activeLiveSession: OverviewLiveSession = overviewActiveLive
+    ? {
+        id: overviewActiveLive.id,
+        title: overviewActiveLive.title,
+        room_name:
+          (overviewActiveLive.room_id &&
+            roomNameById.get(overviewActiveLive.room_id)) ||
+          "Live Studio",
+        href: `${base}/live/${overviewActiveLive.id}`,
+        active_count: overviewActiveLive.viewer_count ?? 1,
+      }
+    : null;
 
   const courseIds = (coursesRes.data ?? []).map((c) => c.id);
   const progressByCourse = new Map<string, number>();

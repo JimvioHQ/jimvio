@@ -26,7 +26,10 @@ function ChatWorkspaceImpl({
   onScrollSave: (y: number) => void;
   chatInput: string;
   setChatInput: (v: string) => void;
-  onSend?: (body: string) => void | Promise<void>;
+  onSend?: (
+    body: string,
+    reply?: { reply_to_id: string; reply_to_body?: string; reply_to_sender?: string }
+  ) => void | Promise<void>;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [replyTo, setReplyTo] = useState<Enriched | null>(null);
@@ -41,17 +44,17 @@ function ChatWorkspaceImpl({
 
   const enriched: Enriched[] = useMemo(
     () =>
-      windowed.map((m, i) => ({
+      windowed.map((m) => ({
         ...m,
-        pinned: i === windowed.length - 1 && m.body.length > 40,
+        pinned: Boolean(m.is_pinned),
         highlight: m.reaction_count > 2,
-        replyTo: i > 0 && i % 5 === 0 ? windowed[i - 1]?.sender_name : null,
+        replyTo: m.reply_to_sender ?? null,
       })),
     [windowed]
   );
 
   const pinned = useMemo(() => enriched.filter((m) => m.pinned), [enriched]);
-  const queueCount = Math.min(2, Math.floor(messages.length / 8));
+  const queueCount = 0;
 
   useEffect(() => {
     const el = listRef.current;
@@ -218,7 +221,18 @@ function ChatWorkspaceImpl({
             e.preventDefault();
             const body = chatInput.trim();
             if (!body) return;
-            void Promise.resolve(onSend?.(body)).finally(() => {
+            void Promise.resolve(
+              onSend?.(
+                body,
+                replyTo
+                  ? {
+                      reply_to_id: replyTo.id,
+                      reply_to_body: replyTo.body.slice(0, 200),
+                      reply_to_sender: replyTo.sender_name,
+                    }
+                  : undefined
+              )
+            ).finally(() => {
               setChatInput("");
               setReplyTo(null);
             });

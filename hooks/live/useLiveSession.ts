@@ -20,6 +20,21 @@ async function sessionAction(sessionId: string, body: Record<string, unknown>) {
   return json;
 }
 
+function eventKey(payload: {
+  eventType?: string;
+  new?: { id?: string; updated_at?: string; status?: string } | null;
+  old?: { id?: string } | null;
+}): string {
+  const row = payload.new ?? payload.old;
+  return [
+    payload.eventType ?? "*",
+    row?.id ?? "",
+    (payload.new as { updated_at?: string } | null)?.updated_at ??
+      (payload.new as { status?: string } | null)?.status ??
+      "",
+  ].join(":");
+}
+
 export function useLiveSession(initialSessionId?: string | null) {
   const supabase = useMemo(() => createClient(), []);
   const [session, setSession] = useState<LiveSessionRow | null>(null);
@@ -28,6 +43,8 @@ export function useLiveSession(initialSessionId?: string | null) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const cancelled = useRef(false);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seenEvents = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     cancelled.current = false;
@@ -52,6 +69,24 @@ export function useLiveSession(initialSessionId?: string | null) {
     setParticipants(json.participants ?? []);
   }, []);
 
+  const scheduleRefresh = useCallback(
+    (sessionId: string, payload?: Parameters<typeof eventKey>[0]) => {
+      if (payload) {
+        const key = eventKey(payload);
+        if (seenEvents.current.has(key)) return;
+        seenEvents.current.add(key);
+        if (seenEvents.current.size > 200) {
+          seenEvents.current = new Set(Array.from(seenEvents.current).slice(-80));
+        }
+      }
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+      refreshTimer.current = setTimeout(() => {
+        void refresh(sessionId).catch(() => undefined);
+      }, 180);
+    },
+    [refresh]
+  );
+
   useEffect(() => {
     if (!initialSessionId) return;
     let cancelledLoad = false;
@@ -75,39 +110,67 @@ export function useLiveSession(initialSessionId?: string | null) {
     return "viewer";
   }, [participants, userId, session?.host_id]);
 
-  /* Realtime sync */
+  /* Realtime sync — debounced + deduped full refresh */
   useEffect(() => {
     if (!session?.id) return;
     let cancelledSub = false;
     let chSession: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
     let chPart: Awaited<ReturnType<typeof subscribePostgresChanges>> = null;
+    const sid = session.id;
 
     void (async () => {
       chSession = await subscribePostgresChanges(
         supabase,
-        `live_session:${session.id}`,
+        `live_session:${sid}`,
         {
           event: "*",
           schema: "public",
           table: "live_sessions",
-          filter: `id=eq.${session.id}`,
+          filter: `id=eq.${sid}`,
         },
-        () => {
-          void refresh(session.id);
+        (payload) => {
+          const row = payload?.new as LiveSessionRow | null;
+          if (row && typeof row === "object" && "id" in row) {
+            setSession((prev) => (prev ? { ...prev, ...row } : row));
+          }
+          if (payload) scheduleRefresh(sid, payload as Parameters<typeof eventKey>[0]);
         },
         () => cancelledSub
       );
       chPart = await subscribePostgresChanges(
         supabase,
-        `live_session_participants:${session.id}`,
+        `live_session_participants:${sid}`,
         {
           event: "*",
           schema: "public",
           table: "live_session_participants",
-          filter: `session_id=eq.${session.id}`,
+          filter: `session_id=eq.${sid}`,
         },
-        () => {
-          void refresh(session.id);
+        (payload) => {
+          const eventType = payload?.eventType;
+          const row = payload?.new as LiveParticipantRow | null;
+          const old = payload?.old as LiveParticipantRow | null;
+
+          if (eventType === "DELETE" && old?.user_id) {
+            setParticipants((prev) => prev.filter((p) => p.user_id !== old.user_id));
+          } else if (row?.user_id) {
+            setParticipants((prev) => {
+              const idx = prev.findIndex((p) => p.user_id === row.user_id);
+              if (row.status === "left" || row.status === "removed") {
+                return prev.filter((p) => p.user_id !== row.user_id);
+              }
+              if (idx >= 0) {
+                const next = prev.slice();
+                next[idx] = { ...next[idx], ...row };
+                return next;
+              }
+              if (["joined", "requested", "invited"].includes(row.status)) {
+                return [...prev, row];
+              }
+              return prev;
+            });
+          }
+          if (payload) scheduleRefresh(sid, payload as Parameters<typeof eventKey>[0]);
         },
         () => cancelledSub
       );
@@ -115,13 +178,21 @@ export function useLiveSession(initialSessionId?: string | null) {
 
     return () => {
       cancelledSub = true;
-      unsubscribeRealtime(supabase, chSession, `live_session:${session.id}`);
-      unsubscribeRealtime(supabase, chPart, `live_session_participants:${session.id}`);
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+      unsubscribeRealtime(supabase, chSession, `live_session:${sid}`);
+      unsubscribeRealtime(supabase, chPart, `live_session_participants:${sid}`);
     };
-  }, [session?.id, supabase, refresh]);
+  }, [session?.id, supabase, scheduleRefresh]);
 
   const createLive = useCallback(
-    async (input: { communityId: string; roomId?: string | null; title?: string }) => {
+    async (input: {
+      communityId: string;
+      roomId?: string | null;
+      spaceId?: string | null;
+      title?: string;
+      scheduledAt?: string | null;
+      privacy?: string;
+    }) => {
       setBusy(true);
       setError(null);
       try {
@@ -133,7 +204,9 @@ export function useLiveSession(initialSessionId?: string | null) {
         const json = (await res.json()) as { session?: LiveSessionRow; error?: string };
         if (!res.ok || !json.session) throw new Error(json.error ?? "Create failed");
         setSession(json.session);
-        await refresh(json.session.id);
+        if (json.session.status === "live") {
+          await refresh(json.session.id);
+        }
         return json.session;
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Create failed";
@@ -174,6 +247,18 @@ export function useLiveSession(initialSessionId?: string | null) {
     if (!session) return;
     await sessionAction(session.id, { action: "end" });
     setSession((s) => (s ? { ...s, status: "ended" } : null));
+    await refresh(session.id);
+  }, [session, refresh]);
+
+  const startScheduled = useCallback(async () => {
+    if (!session) return;
+    await sessionAction(session.id, { action: "start" });
+    await refresh(session.id);
+  }, [session, refresh]);
+
+  const cancelScheduled = useCallback(async () => {
+    if (!session) return;
+    await sessionAction(session.id, { action: "cancel" });
     await refresh(session.id);
   }, [session, refresh]);
 
@@ -228,6 +313,32 @@ export function useLiveSession(initialSessionId?: string | null) {
     [session, refresh]
   );
 
+  const promote = useCallback(
+    async (targetUserId: string, role: LiveStageRole) => {
+      if (!session) return;
+      await sessionAction(session.id, { action: "promote", targetUserId, role });
+      await refresh(session.id);
+    },
+    [session, refresh]
+  );
+
+  const transferHost = useCallback(
+    async (targetUserId: string) => {
+      if (!session) return;
+      await sessionAction(session.id, { action: "transfer-host", targetUserId });
+      await refresh(session.id);
+    },
+    [session, refresh]
+  );
+
+  const react = useCallback(
+    async (emoji: string) => {
+      if (!session) return;
+      await sessionAction(session.id, { action: "react", emoji });
+    },
+    [session]
+  );
+
   const syncMedia = useCallback(
     async (patch: { micOn?: boolean; camOn?: boolean; sharing?: boolean }) => {
       if (!session) return;
@@ -250,7 +361,9 @@ export function useLiveSession(initialSessionId?: string | null) {
     [session]
   );
 
-  const viewerCount = participants.filter((p) => p.status === "joined").length;
+  const viewerCount =
+    session?.viewer_count ??
+    participants.filter((p) => p.status === "joined").length;
   const speakers = participants.filter(
     (p) => p.status === "joined" && (p.role === "host" || p.role === "cohost" || p.role === "speaker")
   );
@@ -268,12 +381,17 @@ export function useLiveSession(initialSessionId?: string | null) {
     join,
     leave,
     endLive,
+    startScheduled,
+    cancelScheduled,
     invite,
     acceptInvite,
     accept,
     reject,
     remove,
     mute,
+    promote,
+    transferHost,
+    react,
     syncMedia,
     requestSpeak,
     launchPoll,

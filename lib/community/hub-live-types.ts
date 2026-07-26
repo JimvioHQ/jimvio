@@ -15,6 +15,10 @@ export type ChatMessage = {
   sender_name: string;
   sender_avatar: string | null;
   reaction_count: number;
+  is_pinned?: boolean;
+  reply_to_id?: string | null;
+  reply_to_body?: string | null;
+  reply_to_sender?: string | null;
 };
 
 export type Speaker = {

@@ -10,7 +10,7 @@ export type LiveParticipantStatus =
   | "left"
   | "removed";
 
-export type LiveSessionStatus = "scheduled" | "live" | "ended";
+export type LiveSessionStatus = "scheduled" | "live" | "ended" | "cancelled";
 
 /** Community membership roles that may create / host a live session. */
 export const COMMUNITY_STAFF_ROLES = new Set(["owner", "admin", "moderator"]);

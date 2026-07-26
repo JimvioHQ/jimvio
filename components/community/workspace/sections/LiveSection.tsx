@@ -10,10 +10,16 @@ import { useWorkspace } from "@/components/community/workspace-context";
  * Discussion stays available before / during / after Live.
  */
 export function LiveSection() {
-  const { slug, communityName } = useWorkspace();
+  const { slug, communityName, spacesWithRooms } = useWorkspace();
   const href = slug ? `/communities/${slug}/live` : "/communities/live";
   const discussionHref = slug ? `/communities/${slug}` : "/communities";
   const [liveNow, setLiveNow] = useState(false);
+  const [sessionHref, setSessionHref] = useState(href);
+  const [historyCount, setHistoryCount] = useState(0);
+
+  const liveSpace = spacesWithRooms?.find(
+    (s) => s.space_type === "live" || s.space_type === "voice"
+  );
 
   useEffect(() => {
     if (!slug) return;
@@ -23,13 +29,26 @@ export function LiveSection() {
         const res = await fetch(`/api/c/live?slug=${encodeURIComponent(slug)}`);
         if (!res.ok || cancelled) return;
         const json = (await res.json()) as {
-          session?: { liveStatus?: string; liveSessionId?: string | null };
+          session?: {
+            liveStatus?: string;
+            liveSessionId?: string | null;
+            endedSessionId?: string | null;
+            href?: string;
+          };
+          upcomingSessions?: unknown[];
         };
-        if (!cancelled) {
-          setLiveNow(
-            json.session?.liveStatus === "live" || Boolean(json.session?.liveSessionId)
-          );
+        if (cancelled) return;
+        const live =
+          json.session?.liveStatus === "live" || Boolean(json.session?.liveSessionId);
+        setLiveNow(live);
+        if (json.session?.liveSessionId) {
+          setSessionHref(`/communities/live/${json.session.liveSessionId}`);
+        } else if (json.session?.href) {
+          setSessionHref(json.session.href);
+        } else {
+          setSessionHref(href);
         }
+        setHistoryCount(json.session?.endedSessionId ? 1 : 0);
       } catch {
         /* ignore */
       }
@@ -37,7 +56,7 @@ export function LiveSection() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, href]);
 
   return (
     <div className="mx-auto flex max-w-lg flex-col items-center px-4 py-16 text-center">
@@ -55,11 +74,17 @@ export function LiveSection() {
         <p className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-semibold text-red-600">
           <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
           Live now{communityName ? ` in ${communityName}` : ""}
+          {liveSpace ? ` · ${liveSpace.name}` : ""}
+        </p>
+      )}
+      {!liveNow && historyCount > 0 && (
+        <p className="mt-3 text-[12px] text-[var(--color-text-muted)]">
+          Recent replay available in Live Studio
         </p>
       )}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
         <Link
-          href={href}
+          href={sessionHref}
           className="inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white"
         >
           {liveNow ? "Join Live Studio" : "Open Live Studio"}
