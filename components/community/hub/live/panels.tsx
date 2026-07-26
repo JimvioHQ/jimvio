@@ -223,6 +223,9 @@ export function PeoplePanel({
   onSelect,
   query,
   onQuery,
+  pendingRequests,
+  onAcceptRequest,
+  onRejectRequest,
 }: {
   speakers: Speaker[];
   viewers: number;
@@ -230,9 +233,14 @@ export function PeoplePanel({
   onSelect: (id: string) => void;
   query: string;
   onQuery: (q: string) => void;
+  pendingRequests?: Speaker[];
+  onAcceptRequest?: (id: string) => void;
+  onRejectRequest?: (id: string) => void;
 }) {
-  const filtered = speakers.filter((s) =>
-    s.name.toLowerCase().includes(query.trim().toLowerCase())
+  const q = query.trim().toLowerCase();
+  const filtered = speakers.filter((s) => s.name.toLowerCase().includes(q));
+  const filteredRequests = (pendingRequests ?? []).filter((s) =>
+    s.name.toLowerCase().includes(q)
   );
   return (
     <div className="space-y-3">
@@ -249,6 +257,51 @@ export function PeoplePanel({
       <p className="px-1 text-[12px] text-neutral-400">
         {speakers.length} on stage · {formatCount(viewers)} watching
       </p>
+      {filteredRequests.length > 0 && (
+        <div className="space-y-0.5">
+          <p className="px-1 text-[11px] font-medium text-neutral-400">Hand raises</p>
+          {filteredRequests.map((s) => (
+            <div
+              key={s.id}
+              className="flex w-full items-center gap-3 rounded-xl px-2 py-2"
+            >
+              <HubAvatar name={s.name} src={s.avatar_url} size={32} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium">{s.name}</p>
+                <p className="text-[11px] text-neutral-400">Requested to speak</p>
+              </div>
+              {(onAcceptRequest || onRejectRequest) && (
+                <div className="flex shrink-0 gap-1.5">
+                  {onRejectRequest && (
+                    <button
+                      type="button"
+                      onClick={() => onRejectRequest(s.id)}
+                      className={cn(
+                        "rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600 hover:bg-neutral-200",
+                        FOCUS_RING
+                      )}
+                    >
+                      Reject
+                    </button>
+                  )}
+                  {onAcceptRequest && (
+                    <button
+                      type="button"
+                      onClick={() => onAcceptRequest(s.id)}
+                      className={cn(
+                        "rounded-full bg-neutral-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-neutral-800",
+                        FOCUS_RING
+                      )}
+                    >
+                      Accept
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="space-y-0.5">
         {filtered.map((s, i) => (
           <button

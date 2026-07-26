@@ -137,13 +137,13 @@ export const ACTIVITY_FEED = [
 ];
 
 export const CREATE_QUICK_LAUNCH = [
-  { icon: "radio", label: "Go Live", subtitle: "Start a livestream" },
-  { icon: "mic", label: "Start Voice Room", subtitle: "Audio conversation" },
-  { icon: "scissors", label: "Upload Clip", subtitle: "Share short video" },
-  { icon: "graduation", label: "Create Course", subtitle: "Build a new course" },
-  { icon: "target", label: "Create Mission", subtitle: "Engage your community" },
-  { icon: "layers", label: "Create Space", subtitle: "Build your community" },
-  { icon: "monitor", label: "Share Screen", subtitle: "Present with others" },
+  { icon: "radio", label: "Go Live", subtitle: "Start a livestream", href: "/communities/live" },
+  { icon: "mic", label: "Start Voice Room", subtitle: "Audio conversation", href: "/communities/live" },
+  { icon: "scissors", label: "Upload Clip", subtitle: "Share short video", href: "/communities" },
+  { icon: "graduation", label: "Create Course", subtitle: "Build a new course", href: "/communities/courses" },
+  { icon: "target", label: "Create Mission", subtitle: "Engage your community", href: "/communities/missions" },
+  { icon: "layers", label: "Create Space", subtitle: "Build your community", href: "/communities" },
+  { icon: "monitor", label: "Share Screen", subtitle: "Present with others", href: "/communities/live" },
 ];
 
 export const FEATURED_LIVE = {

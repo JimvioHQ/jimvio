@@ -676,7 +676,7 @@ export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
       ? supabase
           .from("community_tasks")
           .select(
-            "id, title, description, due_date, completion_count, community_id, communities(name, slug)"
+            "id, title, description, due_date, completion_count, community_id, room_id, communities(name, slug), rooms(slug)"
           )
           .in("community_id", communityIds)
           .eq("is_active", true)
@@ -700,6 +700,7 @@ export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
 
   for (const task of tasksRes.data ?? []) {
     const community = task.communities as { name: string; slug: string } | null;
+    const room = task.rooms as { slug: string } | null;
     if (!task.due_date) continue;
     events.push({
       id: task.id,
@@ -712,7 +713,12 @@ export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
       attendee_count: task.completion_count ?? 0,
       is_going: completedTaskIds.has(task.id),
       kind: "task",
-      href: community ? `/communities/${community.slug}` : null,
+      href:
+        community && room?.slug
+          ? `/communities/${community.slug}/spaces/${room.slug}`
+          : community
+            ? `/communities/${community.slug}/missions`
+            : null,
     });
   }
 
@@ -729,7 +735,7 @@ export async function getHubEvents(userId: string): Promise<HubEventItem[]> {
       attendee_count: campaign.submission_count ?? 0,
       is_going: false,
       kind: "campaign",
-      href: "/dashboard/ugc",
+      href: `/ugc/${campaign.id}`,
     });
   }
 
@@ -834,7 +840,7 @@ export async function getHubMissions(userId: string): Promise<HubMissionItem[]> 
   const { data: tasks } = await supabase
     .from("community_tasks")
     .select(
-      "id, title, description, due_date, points, completion_count, communities(name, slug)"
+      "id, title, description, due_date, points, completion_count, room_id, communities(name, slug), rooms(slug)"
     )
     .in("community_id", communityIds)
     .eq("is_active", true)
@@ -855,6 +861,13 @@ export async function getHubMissions(userId: string): Promise<HubMissionItem[]> 
 
   return (tasks ?? []).map((task) => {
     const community = task.communities as { name: string; slug: string } | null;
+    const room = task.rooms as { slug: string } | null;
+    const href =
+      community && room?.slug
+        ? `/communities/${community.slug}/spaces/${room.slug}`
+        : community
+          ? `/communities/${community.slug}/missions`
+          : "/communities/missions";
     return {
       id: task.id,
       title: task.title,
@@ -865,7 +878,7 @@ export async function getHubMissions(userId: string): Promise<HubMissionItem[]> 
       is_completed: completedSet.has(task.id),
       community_name: community?.name ?? "Community",
       community_slug: community?.slug ?? "",
-      href: community ? `/communities/${community.slug}` : "/communities/missions",
+      href,
     };
   });
 }

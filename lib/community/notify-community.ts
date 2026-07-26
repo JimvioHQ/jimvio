@@ -39,7 +39,7 @@ export async function notifyPostAuthor(
     message: isLike
       ? `${params.actorName} liked ${preview}`
       : `${params.actorName} commented on ${preview}`,
-    actionUrl: `/communities/${params.communitySlug}?post=${params.postId}`,
+    actionUrl: `/communities/${params.communitySlug}/feed?post=${params.postId}`,
     data: { event: `post_${params.event}`, postId: params.postId, actorId: params.actorId },
   });
 }

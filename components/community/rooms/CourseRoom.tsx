@@ -245,18 +245,27 @@ export function CourseRoom({
   }
 
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const progressPostedRef = React.useRef<Set<string>>(new Set());
   async function onVideoTime() {
     const el = videoRef.current;
     if (!el || !activeLesson?.video_url) return;
+    const lessonId = activeLesson.id;
+    if (progress[lessonId] || progressPostedRef.current.has(lessonId)) return;
     const pct = el.duration > 0 ? el.currentTime / el.duration : 0;
-    if (pct >= 0.8 && !progress[activeLesson.id]) {
-      fetch(`/api/courses/lessons/${activeLesson.id}/progress`, {
+    if (pct >= 0.8) {
+      progressPostedRef.current.add(lessonId);
+      fetch(`/api/courses/lessons/${lessonId}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ watchTime: Math.round(el.currentTime) }),
-      }).then(() => {
-        if (activeLesson) setProgress((p) => ({ ...p, [activeLesson.id]: true }));
-      });
+      })
+        .then((res) => {
+          if (res.ok) setProgress((p) => ({ ...p, [lessonId]: true }));
+          else progressPostedRef.current.delete(lessonId);
+        })
+        .catch(() => {
+          progressPostedRef.current.delete(lessonId);
+        });
     }
   }
 

@@ -23,11 +23,13 @@ import { useLiveSession } from "@/hooks/live/useLiveSession";
 import { useLiveChat } from "@/hooks/live/useLiveChat";
 import { useLiveKitRoom } from "@/hooks/live/useLiveKitRoom";
 import {
+  canAcceptSpeaker,
   canEndLive,
   canInviteSpeaker,
   canLaunchPoll,
   canPublishAv,
   canRecord,
+  canRejectSpeaker,
   canShareScreen,
 } from "@/lib/live/roles";
 import { uploadLiveRecording } from "@/lib/live/upload-recording";
@@ -247,6 +249,7 @@ export function HubLivePage({
 
   const [pendingInvite, setPendingInvite] = useState(false);
   const invitePromptedRef = useRef(false);
+  const wasPublishableRef = useRef<boolean | null>(null);
   useEffect(() => {
     if (!live.userId || !live.session) return;
     const me = live.participants.find((p) => p.user_id === live.userId);
@@ -261,6 +264,30 @@ export function HubLivePage({
     setPendingInvite(false);
     if (me?.status === "joined") invitePromptedRef.current = false;
   }, [live.participants, live.userId, live.session, showToast]);
+
+  /* Remint LiveKit token when role upgrades to publishable (e.g. host accepts hand raise). */
+  useEffect(() => {
+    if (!live.session || live.session.status !== "live") {
+      wasPublishableRef.current = null;
+      return;
+    }
+    const publishable = canPublishAv(live.myRole);
+    const prev = wasPublishableRef.current;
+    wasPublishableRef.current = publishable;
+    if (prev === false && publishable) {
+      void livekit.reconnect().catch(() => undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- remint on role upgrade only
+  }, [live.myRole, live.session?.id, live.session?.status, livekit.reconnect]);
+
+  /* Host mute: force local mic off when server marks mic_on false. */
+  useEffect(() => {
+    if (!live.userId) return;
+    const me = live.participants.find((p) => p.user_id === live.userId);
+    if (me && me.mic_on === false && media.micOn) {
+      media.plane.current?.setMicEnabled(false);
+    }
+  }, [live.participants, live.userId, media.micOn, media.plane]);
 
   useEffect(() => {
     if (live.session?.status !== "live" || !live.session.started_at) {
@@ -650,6 +677,69 @@ export function HubLivePage({
     if (hasSession || data?.session?.liveSessionId) return data?.speakers ?? [];
     return [];
   }, [speakersFromLive, data?.speakers, data?.session?.liveSessionId, hasSession]);
+
+  const pendingHandRaises = useMemo(() => {
+    return live.participants
+      .filter((p) => p.status === "requested")
+      .map((p) => {
+        const dash = data?.speakers.find((s) => s.id === p.user_id);
+        const remote = livekit.remotes.find((r) => r.identity === p.user_id);
+        return {
+          id: p.user_id,
+          name: dash?.name ?? remote?.name ?? (p.user_id === live.userId ? "You" : "Viewer"),
+          avatar_url: dash?.avatar_url ?? null,
+          role: "requested",
+        };
+      });
+  }, [live.participants, live.userId, data?.speakers, livekit.remotes]);
+
+  const peoplePanelProps = useMemo(() => {
+    const canManageRequests =
+      canAcceptSpeaker(live.myRole) || canRejectSpeaker(live.myRole);
+    return {
+      speakers,
+      viewers: live.viewerCount || analytics?.liveViewers || 0,
+      activeSpeakerId,
+      onSelect: (id: string) => {
+        // Speakers are already on stage — only focus them; never re-invite.
+        setActiveSpeakerId(id);
+      },
+      query: peopleQuery,
+      onQuery: setPeopleQuery,
+      pendingRequests: canManageRequests ? pendingHandRaises : undefined,
+      onAcceptRequest: canAcceptSpeaker(live.myRole)
+        ? (id: string) => {
+            void live
+              .accept(id)
+              .then(() => showToast("Speaker accepted"))
+              .catch((e) =>
+                showToast(e instanceof Error ? e.message : "Accept failed")
+              );
+          }
+        : undefined,
+      onRejectRequest: canRejectSpeaker(live.myRole)
+        ? (id: string) => {
+            void live
+              .reject(id)
+              .then(() => showToast("Request declined"))
+              .catch((e) =>
+                showToast(e instanceof Error ? e.message : "Reject failed")
+              );
+          }
+        : undefined,
+    };
+  }, [
+    speakers,
+    live.viewerCount,
+    live.myRole,
+    live.accept,
+    live.reject,
+    analytics?.liveViewers,
+    activeSpeakerId,
+    peopleQuery,
+    pendingHandRaises,
+    showToast,
+  ]);
   const liveStatusLabel =
     live.session?.status === "live"
       ? "LIVE"
@@ -841,7 +931,9 @@ export function HubLivePage({
             <button
               type="button"
               onClick={() => {
-                void live.acceptInvite()
+                void live
+                  .acceptInvite()
+                  .then(() => livekit.reconnect())
                   .then(() => {
                     setPendingInvite(false);
                     showToast("You’re on stage");
@@ -1021,30 +1113,7 @@ export function HubLivePage({
                 onClose={() => updateDrawer({ leftPanel: "none" })}
               />
               <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
-                {drawer.leftPanel === "people" && (
-                  <PeoplePanel
-                    speakers={speakers}
-                    viewers={live.viewerCount || analytics?.liveViewers || 0}
-                    activeSpeakerId={activeSpeakerId}
-                    onSelect={(id) => {
-                      setActiveSpeakerId(id);
-                      if (
-                        live.session &&
-                        canInviteSpeaker(live.myRole) &&
-                        id !== live.userId
-                      ) {
-                        void live
-                          .invite(id)
-                          .then(() => showToast("Invite sent"))
-                          .catch((e) =>
-                            showToast(e instanceof Error ? e.message : "Invite failed")
-                          );
-                      }
-                    }}
-                    query={peopleQuery}
-                    onQuery={setPeopleQuery}
-                  />
-                )}
+                {drawer.leftPanel === "people" && <PeoplePanel {...peoplePanelProps} />}
                 {drawer.leftPanel === "rooms" && (
                   <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
                 )}
@@ -1070,30 +1139,7 @@ export function HubLivePage({
                   onClose={() => updateDrawer({ leftPanel: "none" })}
                 />
                 <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
-                  {drawer.leftPanel === "people" && (
-                    <PeoplePanel
-                      speakers={speakers}
-                      viewers={live.viewerCount || analytics?.liveViewers || 0}
-                      activeSpeakerId={activeSpeakerId}
-                      onSelect={(id) => {
-                        setActiveSpeakerId(id);
-                        if (
-                          live.session &&
-                          canInviteSpeaker(live.myRole) &&
-                          id !== live.userId
-                        ) {
-                          void live
-                            .invite(id)
-                            .then(() => showToast("Invite sent"))
-                            .catch((e) =>
-                              showToast(e instanceof Error ? e.message : "Invite failed")
-                            );
-                        }
-                      }}
-                      query={peopleQuery}
-                      onQuery={setPeopleQuery}
-                    />
-                  )}
+                  {drawer.leftPanel === "people" && <PeoplePanel {...peoplePanelProps} />}
                   {drawer.leftPanel === "rooms" && (
                     <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
                   )}

@@ -192,6 +192,7 @@ export function FeedSection({
     const [showCommunityPicker, setShowCommunityPicker] = useState(false);
     const [showDrafts, setShowDrafts] = useState(false);
     const [drafts, setDrafts] = useState<Post[]>([]);
+    const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
 
     const imageInputRef = useRef<HTMLInputElement>(null);
     const composerRef = useRef<HTMLTextAreaElement>(null);
@@ -338,6 +339,13 @@ export function FeedSection({
     }, [feedFilter, scopedCommunityId]);
 
     useEffect(() => { load(); }, [load]);
+
+    // Open post detail from ?post= deep links (notifications, search, share)
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const postId = new URLSearchParams(window.location.search).get("post");
+        if (postId) setDetailId(postId);
+    }, []);
 
     // ── Infinite scroll ───────────────────────────────────────────────────────
     useEffect(() => {
@@ -591,6 +599,56 @@ export function FeedSection({
 
         setSaving(true);
         try {
+            if (editingDraftId && !asDraft) {
+                const patchRes = await fetch(`/api/posts/${editingDraftId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        body: trimmed || (composerMode === "poll" ? "Poll" : ""),
+                        post_type: composerMode === "poll" ? "poll" : "discussion",
+                        images: pendingImages.filter((i) => i.url).map((i) => i.url),
+                        attachments,
+                        is_published: true,
+                    }),
+                });
+                if (!patchRes.ok) {
+                    const err = await patchRes.json().catch(() => ({}));
+                    setComposerError(err.error ?? "Failed to publish draft.");
+                    toast.error(err.error ?? "Failed to publish draft");
+                    return;
+                }
+                const published = await patchRes.json().catch(() => ({}));
+                const draftId = editingDraftId;
+                setComposer("");
+                setPollOptions(["", ""]);
+                setComposerMode("discussion");
+                setPendingImages([]);
+                setQuoteOfPostId(null);
+                setQuotePreview(null);
+                setProductAttachId("");
+                setLiveAttachId("");
+                setShowAttachPanel(false);
+                setEditingDraftId(null);
+                setDrafts((prev) => prev.filter((d) => d.id !== draftId));
+                if (published.post) {
+                    const normalized = normalizePost(published.post);
+                    setPosts((prev) => {
+                        if (prev.find((p) => p.id === normalized.id)) {
+                            return prev.map((p) => (p.id === normalized.id ? normalized : p));
+                        }
+                        const without = prev.filter((p) => p.id !== normalized.id);
+                        if (normalized.is_pinned) return [normalized, ...without];
+                        const pinned = without.filter((p) => p.is_pinned);
+                        const rest = without.filter((p) => !p.is_pinned);
+                        return [...pinned, normalized, ...rest];
+                    });
+                } else {
+                    await load();
+                }
+                toast.success("Draft published");
+                return;
+            }
+
             const res = await fetch(`/api/posts/feed`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -625,6 +683,7 @@ export function FeedSection({
             setProductAttachId("");
             setLiveAttachId("");
             setShowAttachPanel(false);
+            setEditingDraftId(null);
             if (asDraft) {
                 toast.success("Draft saved");
                 await loadDrafts();
@@ -1104,6 +1163,15 @@ export function FeedSection({
                                     onClick={() => {
                                         setComposer(d.body);
                                         setComposerMode(d.post_type === "poll" ? "poll" : "discussion");
+                                        setEditingDraftId(d.id);
+                                        const imgs = Array.isArray(d.images)
+                                            ? (d.images as string[]).filter(Boolean).map((url) => ({
+                                                  url,
+                                                  name: "image",
+                                                  mime: "image/*",
+                                              }))
+                                            : [];
+                                        setPendingImages(imgs);
                                         setShowDrafts(false);
                                     }}
                                     className="w-full text-left rounded-lg px-2 py-1.5 text-[12px] text-text-primary hover:bg-surface"
@@ -1254,6 +1322,15 @@ export function FeedSection({
                         setPosts((prev) =>
                             prev.map((p) =>
                                 p.id === postId ? { ...p, comment_count: p.comment_count + 1 } : p
+                            )
+                        );
+                    }}
+                    onCommentRemoved={(postId) => {
+                        setPosts((prev) =>
+                            prev.map((p) =>
+                                p.id === postId
+                                    ? { ...p, comment_count: Math.max(0, p.comment_count - 1) }
+                                    : p
                             )
                         );
                     }}
@@ -1513,12 +1590,14 @@ function PostDetailPanel({
     currentUserId,
     onClose,
     onCommentAdded,
+    onCommentRemoved,
 }: {
     postId: string;
     post: Post | undefined | null;
     currentUserId: string | null;
     onClose: () => void;
     onCommentAdded: (postId: string) => void;
+    onCommentRemoved?: (postId: string) => void;
 }) {
     const supabase = createClient();
     const [comments, setComments] = useState<Comment[]>([]);
@@ -1606,7 +1685,13 @@ function PostDetailPanel({
             const res = await fetch(`/api/posts/${postId}/comments`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ body: text.trim(), parent_id: replyTo?.id ?? null }),
+                body: JSON.stringify({
+                    body: text.trim(),
+                    // Collapse nested replies onto the top-level thread parent so they remain visible.
+                    parent_id: replyTo
+                        ? replyTo.parent_id ?? replyTo.id
+                        : null,
+                }),
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
@@ -1634,6 +1719,7 @@ function PostDetailPanel({
         const res = await fetch(`/api/posts/${postId}/comments/${commentId}`, { method: "DELETE" });
         if (res.ok) {
             setComments((prev) => prev.filter((c) => c.id !== commentId));
+            onCommentRemoved?.(postId);
             toast.success("Comment deleted");
         } else {
             const err = await res.json().catch(() => ({}));
@@ -1642,7 +1728,21 @@ function PostDetailPanel({
     }
 
     const topComments = comments.filter((c) => !c.parent_id);
-    const replies = (parentId: string) => comments.filter((c) => c.parent_id === parentId);
+    // Include direct replies and any legacy deeper nested replies under this thread.
+    const replies = (parentId: string) => {
+        const byId = new Map(comments.map((c) => [c.id, c]));
+        return comments.filter((c) => {
+            if (!c.parent_id) return false;
+            if (c.parent_id === parentId) return true;
+            let cursor: Comment | undefined = byId.get(c.parent_id);
+            while (cursor) {
+                if (cursor.id === parentId) return true;
+                if (!cursor.parent_id) return false;
+                cursor = byId.get(cursor.parent_id);
+            }
+            return false;
+        });
+    };
 
     return (
         <div className="bg-surface border border-[#fd5000]/30 rounded-2xl p-4">

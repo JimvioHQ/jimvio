@@ -101,11 +101,19 @@ export async function PATCH(
     update.images = sanitizePostImageUrls(update.images) as never;
   }
 
-  // Authors may edit content; only staff may change pin / exclusivity / publish flags.
+  // Authors may edit content and publish/unpublish their own posts.
+  // Only staff may change pin / exclusivity.
   if (!isStaff) {
     delete update.is_pinned;
     delete update.is_exclusive;
-    delete update.is_published;
+    // Authors may set is_published on their own posts (draft → publish).
+    if (!isAuthor) {
+      delete update.is_published;
+    }
+  }
+
+  if (update.is_published === true && isAuthor) {
+    (update as Record<string, unknown>).published_at = new Date().toISOString();
   }
 
   const { data, error } = await supabase.from("community_posts").update(update).eq("id", postId).select().single();

@@ -30,6 +30,8 @@ export type LiveSessionRow = {
   started_at: string;
   ended_at: string | null;
   created_at: string;
+  viewer_count?: number | null;
+  peak_viewers?: number | null;
 };
 
 export type LiveParticipantRow = {
@@ -278,7 +280,27 @@ export async function joinLiveSession(
     .single();
 
   if (error || !data) return { error: error?.message ?? "Join failed", status: 400 };
+  await syncViewerCount(sessionId);
   return { participant: data as LiveParticipantRow, session };
+}
+
+async function syncViewerCount(sessionId: string): Promise<void> {
+  const { count } = await db()
+    .from("live_session_participants")
+    .select("id", { count: "exact", head: true })
+    .eq("session_id", sessionId)
+    .eq("status", "joined");
+  const viewerCount = count ?? 0;
+  const session = await getSession(sessionId);
+  const peak = Math.max(session?.peak_viewers ?? 0, viewerCount);
+  await db()
+    .from("live_sessions")
+    .update({
+      viewer_count: viewerCount,
+      peak_viewers: peak,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", sessionId);
 }
 
 export async function leaveLiveSession(
@@ -295,6 +317,7 @@ export async function leaveLiveSession(
     .update({ status: "left", updated_at: new Date().toISOString() })
     .eq("session_id", sessionId)
     .eq("user_id", userId);
+  await syncViewerCount(sessionId);
   return { ok: true };
 }
 
@@ -348,6 +371,15 @@ export async function inviteSpeaker(
   }
   const targetMember = await assertCommunityMember(targetId, session.community_id);
   if (!targetMember) return { error: "Target is not a community member", status: 403 };
+
+  const existing = await getParticipant(sessionId, targetId);
+  if (
+    existing &&
+    existing.status === "joined" &&
+    (existing.role === "host" || existing.role === "cohost" || existing.role === "speaker")
+  ) {
+    return { error: "Already on stage", status: 400 };
+  }
 
   const { data, error } = await db()
     .from("live_session_participants")

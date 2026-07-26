@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Pin, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn, deriveMessageType, pickMime } from "@/lib/utils";
@@ -41,6 +42,7 @@ import {
 } from "./messages";
 
 export function HubMessagesPage() {
+  const router = useRouter();
   const [threads, setThreads] = useState<HubThread[]>([]);
   const [tabCounts, setTabCounts] = useState({
     all: 0,
@@ -143,7 +145,8 @@ export function HubMessagesPage() {
       .map((m) =>
         msgToHubMessage(
           m,
-          m.sender_id === currentUserId ? "seen" : undefined
+          // No peer read-receipt data in hub messages — show sent, not fake seen.
+          m.sender_id === currentUserId ? "sent" : undefined
         )
       );
     if (!chatSearch.trim()) return mapped;
@@ -589,6 +592,12 @@ export function HubMessagesPage() {
         onSearchChange={setSearch}
         onTabChange={setActiveTab}
         onSelectThread={(id) => {
+          const thread = threads.find((t) => t.id === id);
+          // Space stubs without a chat room: navigate instead of empty chat.
+          if (thread?.kind === "space" && !thread.roomId && thread.href) {
+            router.push(thread.href);
+            return;
+          }
           setActiveThreadId(id);
           setMobileShowChat(true);
           setReplyingTo(null);
@@ -705,13 +714,10 @@ export function HubMessagesPage() {
                 onLoadOlder={() => void engine.loadOlder()}
                 onReply={setReplyingTo}
                 onReact={(msg, emoji) => void handleReact(msg, emoji)}
-                onOpenThread={(msg) =>
-                  toast.message("Thread", {
-                    description: msg.reply_count
-                      ? `${msg.reply_count} replies`
-                      : "Reply to start a thread",
-                  })
-                }
+                onOpenThread={(msg) => {
+                  // Hub messages has no ThreadPanel wiring; use reply-to instead.
+                  setReplyingTo(msg);
+                }}
                 onOpenMedia={(url, kind) => setLightbox({ url, kind })}
               />
 

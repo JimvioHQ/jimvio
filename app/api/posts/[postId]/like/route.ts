@@ -34,15 +34,40 @@ export async function POST(
     .eq("user_id", user.id)
     .maybeSingle();
   if (existing) {
-    await supabase.from("community_post_likes").delete().eq("id", existing.id);
+    const { error: delError } = await supabase
+      .from("community_post_likes")
+      .delete()
+      .eq("id", existing.id);
+    if (delError) {
+      return NextResponse.json({ error: delError.message }, { status: 400 });
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await supabase.rpc("decrement_post_like_count" as any, { p_post_id: postId });
+    const { error: decError } = await supabase.rpc("decrement_post_like_count" as any, {
+      p_post_id: postId,
+    });
+    if (decError) {
+      console.error("[posts/like] decrement failed:", decError.message);
+    }
     return NextResponse.json({ liked: false });
   }
 
-  await supabase.from("community_post_likes").insert({ post_id: postId, user_id: user.id });
+  const { error: insertError } = await supabase
+    .from("community_post_likes")
+    .insert({ post_id: postId, user_id: user.id });
+  if (insertError) {
+    // Unique violation = concurrent like; treat as liked.
+    if (insertError.code === "23505") {
+      return NextResponse.json({ liked: true });
+    }
+    return NextResponse.json({ error: insertError.message }, { status: 400 });
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await supabase.rpc("increment_post_like_count" as any, { p_post_id: postId });
+  const { error: incError } = await supabase.rpc("increment_post_like_count" as any, {
+    p_post_id: postId,
+  });
+  if (incError) {
+    console.error("[posts/like] increment failed:", incError.message);
+  }
 
   void notifyPostAuthorOfLike(supabase, post, postId, user.id);
 

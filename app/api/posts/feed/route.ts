@@ -43,7 +43,9 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from("community_posts")
-    .select("*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username)")
+    .select(
+      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug)"
+    )
     .in("community_id", communityId ? [communityId] : communityIds);
 
   if (draftsOnly) {
@@ -218,12 +220,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Poll needs at least 2 options" }, { status: 400 });
   }
 
+  const safeImages = sanitizePostImageUrls(body.images);
   const content = body.body?.trim() ?? "";
-  if (!content && postType !== "poll") {
+  const hasMedia =
+    safeImages.length > 0 ||
+    Boolean(typeof body.video_url === "string" && body.video_url.trim());
+  if (!content && postType !== "poll" && !hasMedia) {
     return NextResponse.json({ error: "body is required" }, { status: 400 });
   }
-
-  const safeImages = sanitizePostImageUrls(body.images);
 
   const attachments: Record<string, unknown> = {
     ...((body.attachments as Record<string, unknown> | null) ?? {}),

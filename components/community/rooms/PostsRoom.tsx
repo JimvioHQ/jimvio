@@ -222,7 +222,11 @@ function PostCard({
                     ? "bg-rose-500/10 text-rose-500"
                     : "hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-rose-500"
                 )}
-                onClick={() => setShowReactions((v) => !v)}
+                onClick={() => onLike()}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setShowReactions((v) => !v);
+                }}
               >
                 <Heart className={cn("h-3.5 w-3.5", post.user_has_liked && "fill-current")} />
                 <span>{post.like_count ?? 0}</span>
@@ -239,7 +243,8 @@ function PostCard({
                       onClick={() => {
                         setPickedReaction(r);
                         setShowReactions(false);
-                        onLike();
+                        // Only like if not already liked — never unlike via emoji pick.
+                        if (!post.user_has_liked) onLike();
                       }}
                     >
                       {r}
@@ -274,7 +279,11 @@ function PostCard({
             <button
               type="button"
               className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-sm transition-colors hover:bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
-              onClick={() => navigator.clipboard?.writeText(window.location.href)}
+              onClick={() => {
+                const url = `${window.location.origin}${window.location.pathname}?post=${post.id}`;
+                void navigator.clipboard?.writeText(url);
+                void fetch(`/api/posts/${post.id}/share`, { method: "POST" }).catch(() => undefined);
+              }}
             >
               <Share2 className="h-3.5 w-3.5" />
             </button>

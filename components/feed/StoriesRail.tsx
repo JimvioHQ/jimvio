@@ -90,7 +90,7 @@ export function StoriesRail() {
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-[13px] font-semibold tracking-tight text-gray-900">Stories</h2>
         <Link
-          href="/communities/stories"
+          href="/communities/live"
           className="text-[12px] font-medium text-[#FF5C00] transition-opacity hover:opacity-80"
         >
           View all

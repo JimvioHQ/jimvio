@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   GraduationCap,
   Layers,
@@ -46,16 +47,12 @@ export function CreateMenuPanel({ onItemClick, className }: CreateMenuPanelProps
       {CREATE_QUICK_LAUNCH.map((item, index) => {
         const Icon = ICON_MAP[item.icon as keyof typeof ICON_MAP];
         const colorCls = COLOR_MAP[item.icon as keyof typeof COLOR_MAP];
-        return (
-          <button
-            key={item.label}
-            type="button"
-            onClick={onItemClick}
-            className={cn(
-              "flex w-full items-center gap-4 px-3 py-3 text-left transition-colors hover:bg-gray-50",
-              index > 0 && "border-t border-gray-100"
-            )}
-          >
+        const className = cn(
+          "flex w-full items-center gap-4 px-3 py-3 text-left transition-colors hover:bg-gray-50",
+          index > 0 && "border-t border-gray-100"
+        );
+        const content = (
+          <>
             <span
               className={cn(
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
@@ -68,6 +65,28 @@ export function CreateMenuPanel({ onItemClick, className }: CreateMenuPanelProps
               <p className="text-sm font-semibold text-gray-900">{item.label}</p>
               <p className="text-xs text-gray-500">{item.subtitle}</p>
             </div>
+          </>
+        );
+        if ("href" in item && item.href) {
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              onClick={onItemClick}
+              className={className}
+            >
+              {content}
+            </Link>
+          );
+        }
+        return (
+          <button
+            key={item.label}
+            type="button"
+            onClick={onItemClick}
+            className={className}
+          >
+            {content}
           </button>
         );
       })}

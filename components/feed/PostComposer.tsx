@@ -22,13 +22,13 @@ type ActionChip = {
 };
 
 const ACTION_CHIPS: ActionChip[] = [
-  { icon: ImageIcon, label: "Photo" },
-  { icon: Video, label: "Video" },
-  { icon: Scissors, label: "Clip" },
-  { icon: List, label: "Poll" },
-  { icon: Radio, label: "Go Live", highlight: true },
+  { icon: ImageIcon, label: "Photo", href: "/communities" },
+  { icon: Video, label: "Video", href: "/communities" },
+  { icon: Scissors, label: "Clip", href: "/communities" },
+  { icon: List, label: "Poll", href: "/communities" },
+  { icon: Radio, label: "Go Live", highlight: true, href: "/communities/live" },
   { icon: SquareArrowUpRight, label: "Mission", href: "/communities/missions" },
-  { icon: Sparkles, label: "AI Assist", highlight: true },
+  { icon: Sparkles, label: "AI Assist", highlight: true, href: "/communities" },
 ];
 
 function ActionChipButton({ chip }: { chip: ActionChip }) {

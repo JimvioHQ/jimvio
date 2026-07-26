@@ -244,6 +244,7 @@ export function WorkspaceLayout({
                   profile={profile}
                   points={points}
                   overview={overview}
+                  membership={membership}
                   spacesWithRooms={spacesWithRooms}
                   expandedSpaces={expandedSpaces}
                   onToggleSpace={(id) =>
@@ -276,7 +277,7 @@ export function WorkspaceLayout({
 
 function Sidebar({
   community, basePath, pathname, view, isAdmin, onViewToggle,
-  profile, points, overview, spacesWithRooms, expandedSpaces, onToggleSpace, onNavigateRoom,
+  profile, points, overview, membership, spacesWithRooms, expandedSpaces, onToggleSpace, onNavigateRoom,
   onOpenGroup,
 }: {
   community: WorkspaceCommunity;
@@ -288,6 +289,7 @@ function Sidebar({
   profile: { full_name: string | null; avatar_url: string | null; username: string | null } | null;
   points: PointsSnapshot | null;
   overview: CommunityOverviewStats | null;
+  membership?: MembershipLite | null;
   spacesWithRooms: WorkspaceSpaceRow[];
   expandedSpaces: Record<string, boolean>;
   onToggleSpace: (id: string) => void;
@@ -296,7 +298,11 @@ function Sidebar({
 }) {
   const router = useRouter();
   const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
-  const isPremium = false; // TODO: wire to community_memberships.plan_type !== 'free'
+  const isPremium =
+    membership?.plan_type === "monthly" ||
+    membership?.plan_type === "yearly" ||
+    membership?.plan_type === "lifetime" ||
+    (membership?.plan_type != null && membership.plan_type !== "free");
 
   const isActive = (item: NavItem) => {
     const fullPath = item.external ? item.href : `${basePath}${item.href}`;

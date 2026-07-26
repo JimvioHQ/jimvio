@@ -113,7 +113,9 @@ export async function searchCommunities(
             type: "posts",
             title,
             subtitle: community?.name ?? null,
-            href: community ? `/communities/${community.slug}` : "/communities",
+            href: community
+              ? `/communities/${community.slug}/feed?post=${post.id}`
+              : "/communities",
             communityName: community?.name ?? null,
             communitySlug: community?.slug ?? null,
           });

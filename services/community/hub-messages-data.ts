@@ -179,10 +179,20 @@ export async function getHubMessageThreads(userId: string) {
       });
     }
 
+    type RoomRow = {
+      id: string;
+      name: string;
+      slug: string;
+      community_id: string;
+      space_id: string | null;
+      spaces: { slug: string } | null;
+      communities: { name: string; slug: string } | null;
+    };
+
     const [{ data: rooms }, { data: spaces }] = await Promise.all([
       supabase
         .from("rooms")
-        .select("id, name, slug, community_id, spaces(slug), communities(name, slug)")
+        .select("id, name, slug, community_id, space_id, spaces(slug), communities(name, slug)")
         .in("community_id", communityIds)
         .eq("room_type", "chat")
         .eq("is_active", true)
@@ -197,7 +207,40 @@ export async function getHubMessageThreads(userId: string) {
         .limit(20),
     ]);
 
-    const roomIds = (rooms ?? []).map((r) => r.id);
+    const roomRows = (rooms ?? []) as unknown as RoomRow[];
+    const spaceIdsWithGroupRooms = new Set(
+      roomRows.map((r) => r.space_id).filter((id): id is string => !!id)
+    );
+
+    // Primary chat rooms for spaces not already covered by the group-room list
+    // (e.g. beyond the rooms limit above).
+    const uncoveredSpaceIds = (spaces ?? [])
+      .map((s) => s.id)
+      .filter((id) => !spaceIdsWithGroupRooms.has(id));
+    const primaryRoomBySpace = new Map<string, RoomRow>();
+    if (uncoveredSpaceIds.length > 0) {
+      const { data: spaceRooms } = await supabase
+        .from("rooms")
+        .select("id, name, slug, community_id, space_id, spaces(slug), communities(name, slug)")
+        .in("space_id", uncoveredSpaceIds)
+        .eq("room_type", "chat")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      for (const room of (spaceRooms ?? []) as unknown as RoomRow[]) {
+        if (!room.space_id || primaryRoomBySpace.has(room.space_id)) continue;
+        primaryRoomBySpace.set(room.space_id, room);
+      }
+    }
+
+    const roomsForLastMsg: RoomRow[] = [...roomRows];
+    const roomIdsSeenForLastMsg = new Set(roomRows.map((r) => r.id));
+    for (const room of primaryRoomBySpace.values()) {
+      if (roomIdsSeenForLastMsg.has(room.id)) continue;
+      roomsForLastMsg.push(room);
+      roomIdsSeenForLastMsg.add(room.id);
+    }
+
+    const roomIds = roomsForLastMsg.map((r) => r.id);
     const roomLastMsg = new Map<string, { body: string; created_at: string; sender_id: string; message_type: string | null }>();
     if (roomIds.length > 0) {
       const { data: roomMsgs } = await supabase
@@ -220,9 +263,9 @@ export async function getHubMessageThreads(userId: string) {
       }
     }
 
-    for (const room of rooms ?? []) {
-      const community = room.communities as { name: string; slug: string } | null;
-      const space = room.spaces as { slug: string } | null;
+    const pushGroupRoomThread = (room: RoomRow) => {
+      const community = room.communities;
+      const space = room.spaces;
       const last = roomLastMsg.get(room.id);
       threads.push({
         id: `room:${room.id}`,
@@ -248,10 +291,33 @@ export async function getHubMessageThreads(userId: string) {
               ? `/communities/${community.slug}/chats`
               : null,
       });
+    };
+
+    const pushedRoomIds = new Set<string>();
+    for (const room of roomRows) {
+      pushGroupRoomThread(room);
+      pushedRoomIds.add(room.id);
     }
 
     for (const space of spaces ?? []) {
+      // Already represented by a group room thread — avoid duplicate stubs.
+      if (spaceIdsWithGroupRooms.has(space.id)) continue;
+
       const community = space.communities as { name: string; slug: string } | null;
+      const primaryRoom = primaryRoomBySpace.get(space.id);
+      const spaceHref = community
+        ? `/communities/${community.slug}/spaces/${space.slug}`
+        : null;
+
+      if (primaryRoom) {
+        // Attach primary chat room so selecting opens real messages.
+        if (!pushedRoomIds.has(primaryRoom.id)) {
+          pushGroupRoomThread(primaryRoom);
+          pushedRoomIds.add(primaryRoom.id);
+        }
+        continue;
+      }
+
       threads.push({
         id: `space:${space.id}`,
         kind: "space",
@@ -267,9 +333,7 @@ export async function getHubMessageThreads(userId: string) {
         communitySlug: community?.slug ?? "",
         peerId: null,
         roomId: null,
-        href: community
-          ? `/communities/${community.slug}/spaces/${space.slug}`
-          : null,
+        href: spaceHref,
       });
     }
   }

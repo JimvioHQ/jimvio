@@ -1,9 +1,12 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Check,
   Flame,
   Heart,
+  Loader2,
   MessageCircle,
   MoreHorizontal,
   Pause,
@@ -11,7 +14,104 @@ import {
   Play,
   Share2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { FEED_POSTS } from "@/lib/feed/mock-data";
+import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
+
+type ApiPost = {
+  id: string;
+  body: string | null;
+  title?: string | null;
+  images?: string[] | null;
+  video_url?: string | null;
+  is_pinned?: boolean | null;
+  like_count?: number | null;
+  comment_count?: number | null;
+  share_count?: number | null;
+  created_at?: string | null;
+  user_has_liked?: boolean | null;
+  community_id?: string | null;
+  communities?: { slug?: string | null } | null;
+  profiles?: {
+    full_name?: string | null;
+    avatar_url?: string | null;
+    username?: string | null;
+  } | null;
+};
+
+type DisplayPost = {
+  id: string;
+  author: {
+    name: string;
+    handle: string;
+    level: number;
+    verified: boolean;
+    avatar: string | null;
+  };
+  timestamp: string;
+  pinned: boolean;
+  body: string;
+  media:
+    | { type: "video"; duration: string; thumbnail: string; overlay?: { title: string; subtitle: string } }
+    | { type: "image"; thumbnail: string }
+    | null;
+  engagement: {
+    likes: number | string;
+    comments: number;
+    shares: number;
+    socialProof?: {
+      names: string[];
+      avatars: string[];
+      others: number;
+    };
+  };
+  liked?: boolean;
+  href?: string;
+};
+
+function mapApiPost(post: ApiPost): DisplayPost {
+  const name = post.profiles?.full_name || post.profiles?.username || "Member";
+  const username = post.profiles?.username;
+  const images = Array.isArray(post.images) ? post.images.filter(Boolean) : [];
+  const video = post.video_url?.trim() || null;
+  let media: DisplayPost["media"] = null;
+  if (video) {
+    media = {
+      type: "video",
+      duration: "",
+      thumbnail: images[0] || video,
+    };
+  } else if (images[0]) {
+    media = { type: "image", thumbnail: images[0] };
+  }
+
+  return {
+    id: post.id,
+    author: {
+      name,
+      handle: username ? `@${username}` : "@member",
+      level: 1,
+      verified: false,
+      avatar: post.profiles?.avatar_url ?? null,
+    },
+    timestamp: post.created_at
+      ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
+      : "",
+    pinned: Boolean(post.is_pinned),
+    body: (post.body || post.title || "").trim(),
+    media,
+    engagement: {
+      likes: post.like_count ?? 0,
+      comments: post.comment_count ?? 0,
+      shares: post.share_count ?? 0,
+    },
+    liked: Boolean(post.user_has_liked),
+    href: post.communities?.slug
+      ? `/communities/${post.communities.slug}/feed?post=${post.id}`
+      : `/communities?post=${post.id}`,
+  };
+}
 
 function FeedVideoPlayer({
   thumbnail,
@@ -65,10 +165,152 @@ function formatEngagement(value: number | string): string {
   return String(value);
 }
 
+function mockFallbackPosts(): DisplayPost[] {
+  return FEED_POSTS.map((post) => ({
+    id: post.id,
+    author: post.author,
+    timestamp: post.timestamp,
+    pinned: post.pinned,
+    body: post.body,
+    media: post.media ?? null,
+    engagement: post.engagement,
+  }));
+}
+
 export function FeedPostCard() {
+  const [posts, setPosts] = useState<DisplayPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [usingMock, setUsingMock] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const load = useCallback(async (nextCursor?: string | null) => {
+    const isMore = Boolean(nextCursor);
+    if (isMore) setLoadingMore(true);
+    else setLoading(true);
+    try {
+      const params = new URLSearchParams({ limit: "20", filter: "for-you" });
+      if (nextCursor) params.set("cursor", nextCursor);
+      const res = await fetch(`/api/posts/feed?${params}`);
+      if (res.status === 401) {
+        if (!isMore) {
+          setPosts(mockFallbackPosts());
+          setUsingMock(true);
+          setHasMore(false);
+          setCursor(null);
+        }
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (!isMore) {
+          setPosts(mockFallbackPosts());
+          setUsingMock(true);
+        }
+        toast.error(data.error || "Failed to load feed");
+        return;
+      }
+      const mapped = ((data.posts ?? []) as ApiPost[]).map(mapApiPost);
+      setUsingMock(false);
+      setPosts((prev) => {
+        if (!isMore) return mapped;
+        const seen = new Set(prev.map((p) => p.id));
+        return [...prev, ...mapped.filter((p) => !seen.has(p.id))];
+      });
+      setHasMore(Boolean(data.next_cursor));
+      setCursor(data.next_cursor ?? null);
+    } catch {
+      if (!isMore) {
+        setPosts(mockFallbackPosts());
+        setUsingMock(true);
+      }
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore || usingMock) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && cursor && !loadingMore) {
+          void load(cursor);
+        }
+      },
+      { rootMargin: "240px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, cursor, loadingMore, usingMock, load]);
+
+  async function toggleLike(postId: string) {
+    if (usingMock) {
+      toast.message("Sign in to like posts");
+      return;
+    }
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const liked = !p.liked;
+        const likes =
+          typeof p.engagement.likes === "number"
+            ? Math.max(0, p.engagement.likes + (liked ? 1 : -1))
+            : p.engagement.likes;
+        return {
+          ...p,
+          liked,
+          engagement: { ...p.engagement, likes },
+        };
+      })
+    );
+    try {
+      const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
+      if (!res.ok) throw new Error("like failed");
+    } catch {
+      toast.error("Could not update like");
+      void load();
+    }
+  }
+
+  async function sharePost(post: DisplayPost) {
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/communities?post=${post.id}`
+        : `/communities?post=${post.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: post.body.slice(0, 80), url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Link copied");
+      }
+      if (!usingMock) {
+        void fetch(`/api/posts/${post.id}/share`, { method: "POST" }).catch(() => undefined);
+      }
+    } catch {
+      /* user cancelled share */
+    }
+  }
+
+  if (loading && posts.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-16 text-gray-400">
+        <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="divide-y divide-gray-100">
-      {FEED_POSTS.map((post) => (
+      {posts.map((post) => (
         <article
           key={post.id}
           className="bg-transparent px-0.5 py-5 transition-colors first:pt-4 hover:bg-white/40"
@@ -146,20 +388,30 @@ export function FeedPostCard() {
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-red-50 hover:text-red-500"
+                  onClick={() => void toggleLike(post.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:bg-red-50 hover:text-red-500",
+                    post.liked ? "text-red-500" : "text-gray-500"
+                  )}
                 >
-                  <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+                  <Heart
+                    className={cn(
+                      "h-4 w-4",
+                      post.liked ? "fill-red-500 text-red-500" : ""
+                    )}
+                  />
                   {formatEngagement(post.engagement.likes)}
                 </button>
-                <button
-                  type="button"
+                <Link
+                  href={post.href ?? `/communities?post=${post.id}`}
                   className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-600"
                 >
                   <MessageCircle className="h-4 w-4" />
                   {post.engagement.comments}
-                </button>
+                </Link>
                 <button
                   type="button"
+                  onClick={() => void sharePost(post)}
                   className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"
                 >
                   <Share2 className="h-4 w-4" />
@@ -196,6 +448,12 @@ export function FeedPostCard() {
           </div>
         </article>
       ))}
+      <div ref={sentinelRef} className="h-4" />
+      {loadingMore && (
+        <div className="flex justify-center py-4 text-gray-400">
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </div>
+      )}
     </div>
   );
 }
