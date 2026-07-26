@@ -234,5 +234,18 @@ export async function finalizeCommunityPayment(
     });
   }
 
+  // Affiliate attribution hook for future subscription commissions
+  try {
+    const { attributeSubscriptionSignup } = await import("@/lib/affiliate/surfaces");
+    await attributeSubscriptionSignup({
+      buyerUserId: ctx.userId,
+      subscriptionId: ctx.paymentReference,
+      amount: ctx.amount,
+      currency: ctx.currency,
+    });
+  } catch (err) {
+    console.warn("[finalizeCommunityPayment] affiliate attribution skipped:", err);
+  }
+
   return { skipped: false, creatorEarnings, platformEarnings };
 }

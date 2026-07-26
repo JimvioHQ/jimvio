@@ -1,144 +1,69 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { setReferralCookies, resolveReferralCode } from "@/lib/affiliate/attribution";
 
 /**
- * Captures a referral visit, sets the cookie, and increments click count.
- * Handles both affiliate_code (AFF-) and link_code (LNK-).
+ * Captures a referral visit, sets first/last-touch cookies, and records a click when possible.
  */
 export async function recordReferralVisit(code: string, pathname?: string) {
   if (!code) return { success: false };
 
-  console.log(`[recordReferralVisit] Processing code: ${code}, pathname: ${pathname}`);
+  const resolved = await resolveReferralCode(code);
+  if (!resolved) return { success: false };
 
-  const supabase = await createClient();
-  const cookieStore = await cookies();
+  const supabase = createServiceRoleClient() as any;
+  let linkId = resolved.linkId;
 
-  let affiliateId: string | null = null;
-  let linkId: string | null = null;
-
-  if (code.startsWith("LNK-")) {
-    const { data: link, error: linkErr } = await supabase
-      .from("affiliate_links")
-      .select("id, affiliate_id")
-      .eq("link_code", code)
-      .maybeSingle();
-
-    if (linkErr) console.error("[recordReferralVisit] Link error:", linkErr);
-
-    if (link) {
-      affiliateId = link.affiliate_id;
-      linkId = link.id;
-      console.log(`[recordReferralVisit] Resolved as LNK, linkId: ${linkId}`);
-    }
-  } else {
-    const { data: aff, error: affErr } = await supabase
-      .from("affiliates")
-      .select("id")
-      .eq("affiliate_code", code)
-      .maybeSingle();
-
-    if (affErr) console.error("[recordReferralVisit] Affiliate error:", affErr);
-
-    if (aff) {
-      affiliateId = aff.id;
-      console.log(`[recordReferralVisit] Resolved as AFF, affiliateId: ${affiliateId}`);
-
-      if (pathname?.startsWith("/marketplace/")) {
-        const slug = pathname.split("/").filter(Boolean).pop();
-        if (slug && slug !== "marketplace") {
-          console.log(`[recordReferralVisit] Searching for product link, slug: ${slug}`);
-
-          const { data: product } = await supabase
-            .from("products")
-            .select("id")
-            .eq("slug", slug)
-            .maybeSingle();
-
-          if (product) {
-            const { data: productLink, error: plErr } = await supabase
-              .from("affiliate_links")
-              .select("id")
-              .eq("affiliate_id", aff.id)
-              .eq("product_id", product.id) // FIX: filter by product_id directly — correct FK column
-              .eq("is_active", true)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-
-            if (plErr) console.error("[recordReferralVisit] ProductLink error:", plErr);
-            if (productLink) {
-              linkId = productLink.id;
-              console.log(`[recordReferralVisit] Found product linkId: ${linkId}`);
-            }
-          }
-        }
+  // Prefer product-specific link when visiting a PDP with an AFF- code
+  if (!linkId && pathname?.startsWith("/marketplace/") && !code.startsWith("LNK-")) {
+    const slug = pathname.split("/").filter(Boolean).pop();
+    if (slug && slug !== "marketplace") {
+      const { data: product } = await supabase
+        .from("products")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      if (product) {
+        const { data: productLink } = await supabase
+          .from("affiliate_links")
+          .select("id")
+          .eq("affiliate_id", resolved.affiliateId)
+          .eq("product_id", product.id)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (productLink) linkId = productLink.id;
       }
     }
-  }
-
-  if (!affiliateId) {
-    console.log("[recordReferralVisit] Could not resolve affiliateId");
-    return { success: false };
   }
 
   if (linkId) {
-    const { error: clickErr } = await supabase
-      .from("affiliate_links")
-      .update({
-        total_clicks: supabase.rpc("increment_affiliate_click" as any, {
-          link_id: linkId,
-        }) as any,
-      })
-      .eq("id", linkId);
-
-    if (clickErr) {
-      console.error("[recordReferralVisit] RPC error, falling back to manual increment:", clickErr);
-
-      // Increment on the link
-      const { data: currentLink } = await supabase
-        .from("affiliate_links")
-        .select("total_clicks, unique_clicks, affiliate_id")
-        .eq("id", linkId)
-        .single();
-
-      if (currentLink) {
-        await supabase
-          .from("affiliate_links")
-          .update({
-            total_clicks: (currentLink.total_clicks ?? 0) + 1,
-            unique_clicks: (currentLink.unique_clicks ?? 0) + 1,
-          })
-          .eq("id", linkId);
-
-        // Also increment on the parent affiliate row
-        const { data: currentAff } = await supabase
-          .from("affiliates")
-          .select("total_clicks")
-          .eq("id", currentLink.affiliate_id)
-          .single();
-
-        if (currentAff) {
-          await supabase
-            .from("affiliates")
-            .update({ total_clicks: (currentAff.total_clicks ?? 0) + 1 })
-            .eq("id", currentLink.affiliate_id);
-        }
-      }
-    } else {
-      console.log("[recordReferralVisit] Click incremented");
+    await supabase.rpc("record_affiliate_click", {
+      p_link_id: linkId,
+      p_affiliate_id: resolved.affiliateId,
+      p_campaign_id: resolved.campaignId,
+      p_ip: null,
+      p_user_agent: null,
+      p_referrer: pathname ?? null,
+      p_device_type: null,
+      p_session_key: null,
+    });
+  } else {
+    const { data: aff } = await supabase
+      .from("affiliates")
+      .select("total_clicks")
+      .eq("id", resolved.affiliateId)
+      .maybeSingle();
+    if (aff) {
+      await supabase
+        .from("affiliates")
+        .update({ total_clicks: Number(aff.total_clicks ?? 0) + 1 })
+        .eq("id", resolved.affiliateId);
     }
   }
 
-  // Set cookie (expires in 30 days)
-  cookieStore.set("jimvio_ref", code, {
-    maxAge: 30 * 24 * 60 * 60,
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  });
-
+  await setReferralCookies(code, resolved.attributionWindowDays);
   return { success: true };
 }

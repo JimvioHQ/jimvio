@@ -86,6 +86,23 @@ export async function enrollInCourse(input: {
     .select("*")
     .single();
   if (error || !data) throw new Error(error?.message ?? "Enrollment failed");
+
+  // Non-order purchase path: record affiliate attribution hook
+  if (input.source === "purchase" && !input.orderId && Number(input.amountCents ?? 0) > 0) {
+    try {
+      const { attributeCourseEnrollment } = await import("@/lib/affiliate/surfaces");
+      await attributeCourseEnrollment({
+        buyerUserId: input.userId,
+        courseId: input.courseId,
+        enrollmentId: data.id,
+        amount: Number(input.amountCents) / 100,
+        currency: input.currency ?? "USD",
+      });
+    } catch (err) {
+      console.warn("[enrollInCourse] affiliate attribution skipped:", err);
+    }
+  }
+
   return data as CourseEnrollmentRow;
 }
 

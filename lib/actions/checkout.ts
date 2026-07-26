@@ -15,6 +15,7 @@ import {
   mergeAffiliateMetadata,
   resolveAffiliateReferralFromCookies,
 } from "@/lib/commerce/affiliate-hooks";
+import { buildLineAttribution } from "@/lib/affiliate/attribution";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -137,6 +138,7 @@ type CartItem = {
   vendor_id: string;
   product_source: string;
   source_metadata: Json;
+  affiliate_link_id?: string | null;
   products: {
     id: string;
     name: string;
@@ -153,6 +155,8 @@ type CartItem = {
     images: string[] | null;
     pricing_type: string | null;
     billing_period: string | null;
+    affiliate_enabled?: boolean | null;
+    affiliate_commission_rate?: number | null;
   } | null;
   product_variants: {
     id: string;
@@ -215,11 +219,13 @@ async function createVendorOrder(
   vendorItems: CartItem[],
   buyerId: string,
   cartId: string,
-  currency: string
+  currency: string,
+  referralCode: string | null
 ): Promise<string> {
   let subtotal = 0;
 
-  const orderItemsPayload = vendorItems.map((item) => {
+  const orderItemsPayload = [];
+  for (const item of vendorItems) {
     const p = item.products!;
     const v = item.product_variants;
     const unitPrice = Number(v?.price ?? p.price);
@@ -230,7 +236,16 @@ async function createVendorOrder(
       v?.image_url ??
       (Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : null);
 
-    return {
+    const attribution = await buildLineAttribution({
+      buyerUserId: buyerId,
+      productSource: item.product_source,
+      affiliateEnabled: Boolean(p.affiliate_enabled),
+      productCommissionRate: p.affiliate_commission_rate ?? null,
+      lineTotal: totalPrice,
+      cartAffiliateLinkId: item.affiliate_link_id ?? null,
+    });
+
+    orderItemsPayload.push({
       product_id: item.product_id,
       variant_id: item.variant_id,
       vendor_id: vendorId,
@@ -243,11 +258,13 @@ async function createVendorOrder(
       product_source: item.product_source,
       source_metadata: item.source_metadata,
       product_type: p.is_digital ? "digital" : "physical",
-      pricing_type: p.pricing_type ?? "one_time",     // ✅ Added with safe default
-      billing_period: p.billing_period ?? null,       // ✅ Added
-    };
-  });
-
+      pricing_type: p.pricing_type ?? "one_time",
+      billing_period: p.billing_period ?? null,
+      affiliate_id: attribution?.affiliate_id ?? null,
+      affiliate_commission_rate: attribution?.affiliate_commission_rate ?? null,
+      affiliate_commission_amount: attribution?.affiliate_commission_amount ?? null,
+    });
+  }
 
   const safeCurrency = (currency || "RWF").toUpperCase();
   console.log({ orderItemsPayload });
@@ -265,13 +282,20 @@ async function createVendorOrder(
       subtotal,
       total_amount: subtotal,
       currency: safeCurrency,
-      metadata: { cart_id: cartId },
-    })
+      referral_code: referralCode,
+      affiliate_attributed_at: referralCode ? new Date().toISOString() : null,
+      metadata: mergeAffiliateMetadata(
+        { cart_id: cartId },
+        buildAffiliateAttribution({
+          referralCode,
+          source: referralCode ? "cookie" : "none",
+        })
+      ) as Json,
+    } as any)
     .select("id, order_number, total_amount, currency")
     .single();
 
   if (orderError || !order) {
-    // ✅ Detailed error so we can see what's actually broken
     throw new Error(
       `Order insert failed for vendor ${vendorId}: ${orderError?.message ?? "no data returned"}${orderError?.details ? ` | details: ${orderError.details}` : ""
       }${orderError?.hint ? ` | hint: ${orderError.hint}` : ""}`
@@ -604,12 +628,13 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
   const { data: rawItems, error: itemsError } = await supabase
     .from("cart_items")
     .select(`
-      id, quantity, product_id, variant_id, vendor_id, product_source, source_metadata,
+      id, quantity, product_id, variant_id, vendor_id, product_source, source_metadata, affiliate_link_id,
       products(
         id, name, price, currency, status, is_active, deleted_at,
         track_inventory, inventory_quantity, allow_backorder,
         is_digital, requires_shipping,
-        images, pricing_type, billing_period
+        images, pricing_type, billing_period,
+        affiliate_enabled, affiliate_commission_rate
       ),
       product_variants(id, name, price, inventory_quantity, is_active, image_url)
     `)
@@ -646,7 +671,7 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
 
   const createdOrderIds: string[] = [];
   console.log({ cart });
-
+  const referralCode = await resolveAffiliateReferralFromCookies();
 
   for (const [vendorId, vendorItems] of byVendor) {
     try {
@@ -656,7 +681,8 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
         vendorItems,
         userId,
         cartId,
-        cart.currency as string
+        cart.currency as string,
+        referralCode
       );
       createdOrderIds.push(orderId);
       await recordStatusChange(admin, orderId, null, "pending", "Order created at checkout");

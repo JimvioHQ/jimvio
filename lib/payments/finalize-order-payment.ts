@@ -879,33 +879,25 @@ async function insertAffiliateCommissions(
   orderId: string,
   orderItems: CJOrderItem[]
 ): Promise<void> {
+  const { createPendingCommission } = await import("@/lib/affiliate/commissions");
+
   for (const item of orderItems) {
     if (!item.affiliate_id || !item.affiliate_commission_amount) continue;
 
-    const { data: existing } = await db
-      .from("affiliate_commissions")
-      .select("id")
-      .eq("order_item_id", item.id)
-      .maybeSingle();
-
-    if (existing) continue;
-
-    await db.from("affiliate_commissions").insert({
-      affiliate_id: item.affiliate_id,
-      order_id: orderId,
-      order_item_id: item.id,
-      product_id: item.product_id,
-      vendor_id: item.vendor_id,
-      commission_rate: item.affiliate_commission_rate,
-      order_amount: item.total_price,
-      commission_amount: item.affiliate_commission_amount,
-      status: "pending",
-    });
-
-    await db.rpc("increment_affiliate_earnings", {
-      p_affiliate_id: item.affiliate_id,
-      p_amount: item.affiliate_commission_amount,
-    });
+    try {
+      await createPendingCommission({
+        affiliateId: item.affiliate_id,
+        orderId,
+        orderItemId: item.id,
+        productId: item.product_id,
+        vendorId: item.vendor_id,
+        commissionRate: Number(item.affiliate_commission_rate ?? 0),
+        orderAmount: Number(item.total_price ?? 0),
+        commissionAmount: Number(item.affiliate_commission_amount),
+      });
+    } catch (err) {
+      console.warn(`[insertAffiliateCommissions] item ${item.id}:`, err);
+    }
   }
 }
 

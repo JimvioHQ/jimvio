@@ -1689,6 +1689,7 @@ export async function addToCart(
           variant_id: effectiveVariantId,
           unit_price_at_add: effectivePrice,
           source_metadata: lineMeta as Json,
+          ...(affiliateLinkId ? { affiliate_link_id: affiliateLinkId } : {}),
         })
         .eq("id", existingItem.id);
 
