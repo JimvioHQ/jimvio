@@ -29,7 +29,10 @@ export default function HubCoursesPage() {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/c/courses");
+        const params = new URLSearchParams();
+        if (searchQuery.trim()) params.set("q", searchQuery.trim());
+        const qs = params.toString();
+        const res = await fetch(`/api/c/courses${qs ? `?${qs}` : ""}`);
         if (!res.ok) return;
         const json = (await res.json()) as { courses: HubCourse[] };
         if (!cancelled) setCourses(json.courses ?? []);
@@ -38,7 +41,7 @@ export default function HubCoursesPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [searchQuery]);
 
   const filtered = useMemo(() => {
     return courses

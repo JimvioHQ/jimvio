@@ -17,7 +17,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cou
   try {
     const body = await req.json();
     if (body.action === "quiz") return NextResponse.json({ quiz: await saveQuiz({ ...body, userId: current.id, courseId }) });
-    if (body.action === "submit_quiz") return NextResponse.json({ attempt: await submitQuiz({ userId: current.id, quizId: body.quizId, answers: body.answers ?? [] }) });
+    if (body.action === "submit_quiz") {
+      return NextResponse.json({
+        attempt: await submitQuiz({
+          userId: current.id,
+          quizId: body.quizId,
+          answers: body.answers ?? [],
+          courseId,
+        }),
+      });
+    }
     if (body.action === "certificate") return NextResponse.json({ certificate: await issueCertificate(courseId, current.id) });
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Failed" }, { status: 400 }); }

@@ -42,6 +42,7 @@ type Lesson = {
   sort_order: number | null; is_free: boolean | null;
   attachments: Attachment[] | null; media_mode: string | null;
   slideshow: Attachment[] | null;
+  locked?: boolean;
 };
 
 type Module = {
@@ -65,6 +66,8 @@ export function CourseRoom({
   const [loading, setLoading] = useState(true);
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
   const [progress, setProgress] = useState<Record<string, boolean>>({});
+  const [lastPositions, setLastPositions] = useState<Record<string, number>>({});
+  const [lastWatchedLessonId, setLastWatchedLessonId] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
   const [openModule, setOpenModule] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState(false);
@@ -92,7 +95,7 @@ export function CourseRoom({
       const c = data.course;
       if (c?.course_modules) {
         c.course_modules.forEach((m: Module & { course_lessons?: Lesson[] }) => {
-          m.course_lessons?.forEach((l: Lesson & { attachments?: unknown }) => {
+          m.course_lessons?.forEach((l: Lesson & { attachments?: unknown; locked?: boolean }) => {
             if (l.attachments && typeof l.attachments === "object" && !Array.isArray(l.attachments)) {
               const bag = l.attachments as {
                 slideshow?: Attachment[];
@@ -102,6 +105,7 @@ export function CourseRoom({
               l.slideshow = bag.slideshow || [];
               l.media_mode = bag.media_mode || "video";
               l.attachments = bag.files || [];
+              if (bag.media_mode === "locked") l.locked = true;
             }
           });
         });
@@ -145,7 +149,7 @@ export function CourseRoom({
       }
       const { data, error } = await supabase
         .from("lesson_progress")
-        .select("lesson_id, is_completed")
+        .select("lesson_id, is_completed, last_position_seconds, updated_at")
         .eq("course_id", course.id)
         .eq("user_id", user.id);
       if (cancelled) return;
@@ -155,30 +159,55 @@ export function CourseRoom({
         return;
       }
       const map: Record<string, boolean> = {};
-      (data ?? []).forEach((r: { lesson_id: string; is_completed: boolean }) => {
-        map[r.lesson_id] = !!r.is_completed;
-      });
+      const positions: Record<string, number> = {};
+      let latestId: string | null = null;
+      let latestAt = 0;
+      (data ?? []).forEach(
+        (r: {
+          lesson_id: string;
+          is_completed: boolean;
+          last_position_seconds?: number | null;
+          updated_at?: string | null;
+        }) => {
+          map[r.lesson_id] = !!r.is_completed;
+          positions[r.lesson_id] = Number(r.last_position_seconds ?? 0);
+          const ts = r.updated_at ? new Date(r.updated_at).getTime() : 0;
+          if (ts >= latestAt) {
+            latestAt = ts;
+            latestId = r.lesson_id;
+          }
+        }
+      );
       setProgress(map);
+      setLastPositions(positions);
+      setLastWatchedLessonId(latestId);
       setProgressReady(true);
     }
     void loadProgress();
     return () => { cancelled = true; };
   }, [course]);
 
-  // Resume first incomplete lesson once progress is known.
+  // Resume last watched / first incomplete lesson once progress is known.
   useEffect(() => {
     if (!progressReady || flatLessons.length === 0) return;
     if (activeLessonId) return;
+    const last =
+      (lastWatchedLessonId &&
+        flatLessons.find((l) => l.id === lastWatchedLessonId)) ||
+      null;
     const resume =
-      flatLessons.find((l) => !progress[l.id]) ?? flatLessons[0];
+      last ??
+      flatLessons.find((l) => !progress[l.id]) ??
+      flatLessons[0];
     setActiveLessonId(resume.id);
-  }, [progressReady, flatLessons, progress, activeLessonId]);
+  }, [progressReady, flatLessons, progress, activeLessonId, lastWatchedLessonId]);
 
   function isLessonLocked(lessonId: string): boolean {
     if (isStaff) return false;
+    const lesson = flatLessons.find((l) => l.id === lessonId);
+    if ((lesson as { locked?: boolean } | undefined)?.locked) return true;
     const index = flatLessons.findIndex((l) => l.id === lessonId);
     if (index <= 0) return false;
-    const lesson = flatLessons[index];
     if (lesson?.is_free) return false;
     const prev = flatLessons[index - 1];
     return Boolean(prev && !progress[prev.id]);
@@ -229,7 +258,7 @@ export function CourseRoom({
       const res = await fetch(`/api/courses/lessons/${activeLesson.id}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ watchTime: 0 }),
+        body: JSON.stringify({ watchTime: 0, completed: true }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -246,10 +275,26 @@ export function CourseRoom({
 
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const progressPostedRef = React.useRef<Set<string>>(new Set());
+  const lastHeartbeatRef = React.useRef(0);
   async function onVideoTime() {
     const el = videoRef.current;
     if (!el || !activeLesson?.video_url) return;
     const lessonId = activeLesson.id;
+    const position = Math.round(el.currentTime);
+    const now = Date.now();
+    // Heartbeat resume position every ~15s without forcing completion.
+    if (position > 0 && now - lastHeartbeatRef.current > 15_000) {
+      lastHeartbeatRef.current = now;
+      void fetch(`/api/courses/lessons/${lessonId}/progress`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          watchTime: position,
+          lastPositionSeconds: position,
+          completed: false,
+        }),
+      }).catch(() => undefined);
+    }
     if (progress[lessonId] || progressPostedRef.current.has(lessonId)) return;
     const pct = el.duration > 0 ? el.currentTime / el.duration : 0;
     if (pct >= 0.8) {
@@ -257,7 +302,11 @@ export function CourseRoom({
       fetch(`/api/courses/lessons/${lessonId}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ watchTime: Math.round(el.currentTime) }),
+        body: JSON.stringify({
+          watchTime: Math.round(el.currentTime),
+          lastPositionSeconds: Math.round(el.currentTime),
+          completed: true,
+        }),
       })
         .then((res) => {
           if (res.ok) setProgress((p) => ({ ...p, [lessonId]: true }));
@@ -266,6 +315,15 @@ export function CourseRoom({
         .catch(() => {
           progressPostedRef.current.delete(lessonId);
         });
+    }
+  }
+
+  function onVideoLoaded() {
+    const el = videoRef.current;
+    if (!el || !activeLesson) return;
+    const pos = lastPositions[activeLesson.id] ?? 0;
+    if (pos > 5 && pos < (el.duration || Infinity) - 5) {
+      el.currentTime = pos;
     }
   }
 
@@ -695,6 +753,7 @@ export function CourseRoom({
                     controls
                     className="w-full rounded-sm border border-[var(--color-border)] bg-black shadow-none max-h-[480px]"
                     onTimeUpdate={onVideoTime}
+                    onLoadedMetadata={onVideoLoaded}
                   />
                 )
               ) : activeLesson.slideshow && activeLesson.slideshow.length > 0 ? (

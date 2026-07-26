@@ -23,6 +23,15 @@ export async function getCreatorAnalytics(userId: string) {
     : { data: [] };
   const products = productResult.data ?? [];
 
+  const { data: creatorCourses } = await client
+    .from("community_courses")
+    .select("id")
+    .eq("creator_id", userId);
+  const creatorCourseIds =
+    (creatorCourses ?? []).map((c) => c.id).length > 0
+      ? (creatorCourses ?? []).map((c) => c.id)
+      : ["00000000-0000-0000-0000-000000000000"];
+
   const [memberships, cancelled, clicks, sales, progress] = await Promise.all([
     communityIds.length
       ? client
@@ -53,8 +62,8 @@ export async function getCreatorAnalytics(userId: string) {
       : Promise.resolve({ count: 0, data: [] }),
     client
       .from("lesson_progress")
-      .select("id, is_completed", { count: "exact" })
-      .eq("user_id", userId),
+      .select("id, is_completed, course_id", { count: "exact" })
+      .in("course_id", creatorCourseIds),
   ]);
 
   const views = products.reduce((total, product) => total + Number(product.view_count ?? 0), 0);

@@ -30,6 +30,8 @@ export async function canAccessRoom(userId: string, roomId: string): Promise<boo
 
   const accessType = room.access_type === "inherit" ? "paid" : room.access_type;
   if (accessType === "free") return true;
+  // "paid" = active community membership (already verified above).
+  // Course purchase/enrollment is enforced separately in course content APIs.
   if (accessType === "paid") return true;
   if (accessType === "premium") {
     return (

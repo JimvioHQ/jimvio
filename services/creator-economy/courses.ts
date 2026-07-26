@@ -33,9 +33,67 @@ export async function listCourseTree(courseId: string, userId?: string) {
   if (error) throw error;
   if (!course) throw new Error("Course not found");
   if (!course.is_published && course.creator_id !== userId) throw new Error("Course is not published");
-  const { data: modules, error: modulesError } = await client.from("course_modules").select("*, course_lessons(*)").eq("course_id", courseId).order("sort_order");
+  if (course.archived_at && course.creator_id !== userId) throw new Error("Course is archived");
+
+  let fullContent = course.creator_id === userId;
+  if (!fullContent && userId && course.room_id) {
+    const { assertCourseAccess, redactCourseTreeForAccess } = await import(
+      "@/lib/community/courses/access"
+    );
+    const access = await assertCourseAccess({
+      userId,
+      roomId: course.room_id,
+      courseId: course.id,
+      communityId: course.community_id,
+      creatorId: course.creator_id,
+      priceCents: course.price_cents,
+      isPublished: course.is_published,
+      archivedAt: course.archived_at,
+    });
+    fullContent = access.fullContent;
+    const { data: modules, error: modulesError } = await client
+      .from("course_modules")
+      .select("*, course_lessons(*)")
+      .eq("course_id", courseId)
+      .order("sort_order");
+    if (modulesError) throw modulesError;
+    const tree = {
+      ...course,
+      modules: (modules ?? []).map((module) => ({
+        ...module,
+        course_lessons: [...(module.course_lessons ?? [])].sort(
+          (a, b) => a.sort_order - b.sort_order
+        ),
+      })),
+    };
+    // redact expects course_modules key used by room API; CE uses modules
+    const redacted = redactCourseTreeForAccess(
+      { ...tree, course_modules: tree.modules } as Record<string, unknown>,
+      fullContent
+    );
+    return {
+      ...tree,
+      modules:
+        (redacted as { course_modules?: typeof tree.modules }).course_modules ??
+        tree.modules,
+    };
+  }
+
+  const { data: modules, error: modulesError } = await client
+    .from("course_modules")
+    .select("*, course_lessons(*)")
+    .eq("course_id", courseId)
+    .order("sort_order");
   if (modulesError) throw modulesError;
-  return { ...course, modules: (modules ?? []).map((module) => ({ ...module, course_lessons: [...(module.course_lessons ?? [])].sort((a, b) => a.sort_order - b.sort_order) })) };
+  return {
+    ...course,
+    modules: (modules ?? []).map((module) => ({
+      ...module,
+      course_lessons: [...(module.course_lessons ?? [])].sort(
+        (a, b) => a.sort_order - b.sort_order
+      ),
+    })),
+  };
 }
 
 export async function saveQuiz(input: { userId: string; courseId: string; lessonId: string; title: string; questions: unknown[]; passScore?: number }) {
@@ -48,10 +106,23 @@ export async function saveQuiz(input: { userId: string; courseId: string; lesson
   return data;
 }
 
-export async function submitQuiz(input: { userId: string; quizId: string; answers: unknown[] }) {
+export async function submitQuiz(input: { userId: string; quizId: string; answers: unknown[]; courseId?: string }) {
   const { data: quiz, error } = await db().from("course_quizzes").select("*").eq("id", input.quizId).maybeSingle();
   if (error) throw error;
   if (!quiz) throw new Error("Quiz not found");
+  if (input.courseId && quiz.course_id !== input.courseId) {
+    throw new Error("Quiz does not belong to this course");
+  }
+  const { data: course } = await db()
+    .from("community_courses")
+    .select("room_id, creator_id")
+    .eq("id", quiz.course_id)
+    .maybeSingle();
+  if (course?.room_id && course.creator_id !== input.userId) {
+    const { canAccessRoom } = await import("@/services/accessControl");
+    const ok = await canAccessRoom(input.userId, course.room_id);
+    if (!ok) throw new Error("No access");
+  }
   const questions = Array.isArray(quiz.questions) ? quiz.questions as Array<{ correctAnswer?: unknown; answer?: unknown }> : [];
   const submitted = Array.isArray(input.answers) ? input.answers : [];
   const correct = questions.reduce((total, question, index) => total + Number(JSON.stringify(submitted[index]) === JSON.stringify(question.correctAnswer ?? question.answer)), 0);
@@ -76,7 +147,7 @@ export async function getProgress(courseId: string, userId: string) {
 export async function issueCertificate(courseId: string, userId: string) {
   const { data: course, error: courseError } = await db()
     .from("community_courses")
-    .select("id, certificate_enabled, is_published, creator_id")
+    .select("id, certificate_enabled, is_published, creator_id, room_id")
     .eq("id", courseId)
     .maybeSingle();
   if (courseError) throw courseError;
@@ -85,20 +156,31 @@ export async function issueCertificate(courseId: string, userId: string) {
   if (!course.is_published && course.creator_id !== userId) {
     throw new Error("Course is not published");
   }
+  if (course.room_id) {
+    const { canAccessRoom } = await import("@/services/accessControl");
+    const ok = await canAccessRoom(userId, course.room_id);
+    if (!ok && course.creator_id !== userId) throw new Error("No access");
+  }
   const progress = await getProgress(courseId, userId);
   if (!progress.lessons || progress.completed !== progress.lessons) {
     throw new Error("Complete all lessons first");
   }
+
+  const { data: existing } = await db()
+    .from("course_certificates")
+    .select("*")
+    .eq("course_id", courseId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (existing) return existing;
+
   const { data, error } = await db()
     .from("course_certificates")
-    .upsert(
-      {
-        course_id: courseId,
-        user_id: userId,
-        certificate_code: `JMV-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-      },
-      { onConflict: "course_id,user_id" }
-    )
+    .insert({
+      course_id: courseId,
+      user_id: userId,
+      certificate_code: `JMV-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+    })
     .select()
     .single();
   if (error) throw error;

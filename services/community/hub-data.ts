@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { aggregateMemberPoints, buildPointsSnapshot, levelFromTotalPoints, progressPercentInLevel } from "@/lib/community/points";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
@@ -120,10 +121,14 @@ export type HubCourseItem = {
   title: string;
   description: string | null;
   difficulty: string;
+  category?: string | null;
+  tags?: string[];
   total_lessons: number;
   progress: number;
   community_name: string;
   community_slug: string;
+  instructor_name?: string | null;
+  instructor_id?: string;
   href: string;
 };
 
@@ -887,20 +892,80 @@ export async function getHubMissions(userId: string): Promise<HubMissionItem[]> 
   });
 }
 
-export async function getHubCourses(userId: string): Promise<HubCourseItem[]> {
+export async function getHubCourses(
+  userId: string,
+  opts?: {
+    q?: string | null;
+    category?: string | null;
+    difficulty?: string | null;
+    instructorId?: string | null;
+    lessonQ?: string | null;
+  }
+): Promise<HubCourseItem[]> {
   const supabase = await createClient();
   const communityIds = await getUserCommunityIds(supabase, userId);
   if (communityIds.length === 0) return [];
 
-  const { data: courses } = await supabase
+  // Service role + loose typing until generated DB types include new catalog columns.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query: any = (createServiceRoleClient() as any)
     .from("community_courses")
-    .select("id, title, description, difficulty, total_lessons, room_id, communities(name, slug), rooms(slug)")
+    .select(
+      "id, title, description, difficulty, category, tags, total_lessons, room_id, creator_id, trailer_url, thumbnail_url, communities(name, slug), rooms(slug), profiles!community_courses_creator_id_fkey(full_name, username)"
+    )
     .in("community_id", communityIds)
     .eq("is_published", true)
+    .is("archived_at", null)
     .order("published_at", { ascending: false })
-    .limit(50);
+    .limit(80);
 
-  const courseIds = (courses ?? []).map((c) => c.id);
+  if (opts?.category?.trim()) {
+    query = query.ilike("category", opts.category.trim());
+  }
+  if (opts?.difficulty?.trim()) {
+    query = query.eq("difficulty", opts.difficulty.trim());
+  }
+  if (opts?.instructorId?.trim()) {
+    query = query.eq("creator_id", opts.instructorId.trim());
+  }
+  if (opts?.q?.trim()) {
+    const q = opts.q.trim();
+    query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,category.ilike.%${q}%`);
+  }
+
+  const { data: courses } = await query;
+
+  type CourseRow = {
+    id: string;
+    title: string;
+    description: string | null;
+    difficulty: string | null;
+    category?: string | null;
+    tags?: string[] | null;
+    total_lessons: number | null;
+    room_id: string;
+    creator_id: string;
+    communities: { name: string; slug: string } | null;
+    rooms: { slug: string | null } | null;
+    profiles: { full_name: string | null; username: string | null } | null;
+  };
+
+  let filtered = (courses ?? []) as CourseRow[];
+  if (opts?.lessonQ?.trim()) {
+    const lessonQ = opts.lessonQ.trim();
+    const ids = filtered.map((c) => c.id);
+    if (ids.length === 0) return [];
+    const { data: lessons } = await supabase
+      .from("course_lessons")
+      .select("course_id, title")
+      .in("course_id", ids)
+      .ilike("title", `%${lessonQ}%`)
+      .limit(100);
+    const hit = new Set((lessons ?? []).map((l) => l.course_id));
+    filtered = filtered.filter((c) => hit.has(c.id));
+  }
+
+  const courseIds = filtered.map((c) => c.id);
   const { data: progressRows } =
     courseIds.length > 0
       ? await supabase
@@ -918,9 +983,10 @@ export async function getHubCourses(userId: string): Promise<HubCourseItem[]> {
     progressByCourse.set(row.course_id, current);
   }
 
-  return (courses ?? []).map((course) => {
-    const community = course.communities as { name: string; slug: string } | null;
-    const room = course.rooms as { slug: string | null } | null;
+  return filtered.map((course) => {
+    const community = course.communities;
+    const room = course.rooms;
+    const instructor = course.profiles;
     const progress = progressByCourse.get(course.id);
     const totalLessons = course.total_lessons ?? 0;
     const progressPct =
@@ -944,10 +1010,14 @@ export async function getHubCourses(userId: string): Promise<HubCourseItem[]> {
       title: course.title,
       description: course.description,
       difficulty: course.difficulty ?? "beginner",
+      category: course.category ?? null,
+      tags: course.tags ?? [],
       total_lessons: totalLessons,
       progress: Math.min(progressPct, 100),
       community_name: community?.name ?? "Community",
       community_slug: communitySlug,
+      instructor_name: instructor?.full_name ?? instructor?.username ?? null,
+      instructor_id: course.creator_id,
       href,
     };
   });
