@@ -15,14 +15,18 @@ import {
     dismissNotification,
     markAllNotificationsRead,
     markNotificationRead,
+    archiveNotification,
+    trackNotificationClick,
 } from "@/lib/actions/notifications";
 import {
     formatNotificationTime,
     getNotificationUiCategory,
     sortNotificationsByPriority,
+    groupActivityByDate,
     type DbNotification,
     type NotificationUiCategory,
 } from "@/lib/notifications/ui-utils";
+import { subscribeUserNotifications } from "@/lib/notifications/realtime";
 
 const VALID_CATEGORIES = new Set<NotificationUiCategory>([
     "order", "shipping", "message", "payment", "community", "system",
@@ -48,12 +52,14 @@ function NotificationRow({
     n,
     onRead,
     onDismiss,
+    onArchive,
     index,
     busy,
 }: {
     n: DbNotification;
     onRead: (id: string) => void;
     onDismiss: (id: string) => void;
+    onArchive: (id: string) => void;
     index: number;
     busy: string | null;
 }) {
@@ -122,6 +128,9 @@ function NotificationRow({
                     {n.action_url && (
                         <Link
                             href={n.action_url}
+                            onClick={() => {
+                                void trackNotificationClick(n.id);
+                            }}
                             className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
                         >
                             View details <ArrowUpRight className="h-3 w-3" />
@@ -139,6 +148,14 @@ function NotificationRow({
                             Mark read
                         </button>
                     )}
+                    <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => onArchive(n.id)}
+                        className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 hover:text-zinc-700 disabled:opacity-50"
+                    >
+                        Archive
+                    </button>
                 </div>
             </div>
 
@@ -179,15 +196,19 @@ export default function NotificationsPage() {
     const searchParams = useSearchParams();
     const [notifications, setNotifications] = useState<DbNotification[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
     const [filter, setFilter] = useState<NotificationUiCategory | "all">("all");
     const [busyId, setBusyId] = useState<string | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
+    const [search, setSearch] = useState("");
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(false);
 
     useEffect(() => {
         setFilter(initialFilterFromSearch(searchParams.get("category")));
     }, [searchParams]);
 
-    const loadNotifications = useCallback(async () => {
+    const loadNotifications = useCallback(async (opts?: { cursor?: string | null; append?: boolean; q?: string }) => {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
@@ -197,45 +218,60 @@ export default function NotificationsPage() {
         }
 
         setUserId(user.id);
+        if (opts?.append) setLoadingMore(true);
+        else setLoading(true);
 
-        const { data, error } = await supabase
-            .from("notifications")
-            .select("id, user_id, type, title, message, data, is_read, read_at, action_url, created_at")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(100);
+        const params = new URLSearchParams();
+        params.set("limit", "30");
+        if (opts?.cursor) params.set("cursor", opts.cursor);
+        const q = opts?.q ?? search;
+        if (q.trim()) params.set("q", q.trim());
 
-        if (error) {
-            console.error("[NotificationsPage] load failed:", error.message);
+        try {
+            const res = await fetch(`/api/notifications?${params.toString()}`);
+            if (res.ok) {
+                const json = await res.json();
+                const items = (json.items ?? []) as DbNotification[];
+                setNotifications((prev) => (opts?.append ? [...prev, ...items] : items));
+                setNextCursor(json.nextCursor ?? null);
+                setHasMore(Boolean(json.hasMore));
+            } else {
+                // Fallback to direct client query
+                const { data, error } = await supabase
+                    .from("notifications")
+                    .select("id, user_id, type, title, message, data, is_read, read_at, action_url, created_at")
+                    .eq("user_id", user.id)
+                    .order("created_at", { ascending: false })
+                    .limit(100);
+                if (error) console.error("[NotificationsPage] load failed:", error.message);
+                setNotifications(data ?? []);
+                setHasMore(false);
+                setNextCursor(null);
+            }
+        } catch (err) {
+            console.error("[NotificationsPage] load error:", err);
         }
 
-        setNotifications(data ?? []);
         setLoading(false);
-    }, []);
+        setLoadingMore(false);
+    }, [search]);
 
     useEffect(() => {
-        loadNotifications();
-    }, [loadNotifications]);
+        const t = setTimeout(() => {
+            void loadNotifications({ q: search });
+        }, 250);
+        return () => clearTimeout(t);
+    }, [loadNotifications, search]);
 
     useEffect(() => {
         if (!userId) return;
-
         const supabase = createClient();
-        const channel = supabase
-            .channel(`dashboard-notifications-${userId}`)
-            .on(
-                "postgres_changes",
-                { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
-                () => {
-                    loadNotifications();
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [userId, loadNotifications]);
+        return subscribeUserNotifications(supabase, userId, {
+            onChange: () => {
+                void loadNotifications({ q: search });
+            },
+        });
+    }, [userId, loadNotifications, search]);
 
     const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -244,6 +280,8 @@ export default function NotificationsPage() {
             ? notifications
             : notifications.filter((n) => getNotificationUiCategory(n) === filter)
     );
+
+    const dateGroups = groupActivityByDate(filtered);
 
     const markRead = async (id: string) => {
         setBusyId(id);
@@ -272,6 +310,15 @@ export default function NotificationsPage() {
         const prev = notifications;
         setNotifications((list) => list.filter((n) => n.id !== id));
         const result = await dismissNotification(id);
+        if (!result.ok) setNotifications(prev);
+        setBusyId(null);
+    };
+
+    const archive = async (id: string) => {
+        setBusyId(id);
+        const prev = notifications;
+        setNotifications((list) => list.filter((n) => n.id !== id));
+        const result = await archiveNotification(id);
         if (!result.ok) setNotifications(prev);
         setBusyId(null);
     };
@@ -310,6 +357,17 @@ export default function NotificationsPage() {
                     ) : undefined
                 }
             />
+
+                <div className="mb-3">
+                    <input
+                        type="search"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search notifications"
+                        className="w-full h-9 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 text-sm text-zinc-800 dark:text-zinc-100 placeholder:text-zinc-400"
+                        aria-label="Search notifications"
+                    />
+                </div>
 
                 <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-hide">
                     {filterTabs.map((tab) => {
@@ -361,17 +419,38 @@ export default function NotificationsPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-2">
-                        {filtered.map((n, i) => (
-                            <NotificationRow
-                                key={n.id}
-                                n={n}
-                                index={i}
-                                busy={busyId}
-                                onRead={markRead}
-                                onDismiss={dismiss}
-                            />
+                    <div className="space-y-6">
+                        {dateGroups.map((group) => (
+                            <div key={group.dateKey} className="space-y-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 px-1">
+                                    {group.label}
+                                </p>
+                                {group.items.map((n, i) => (
+                                    <NotificationRow
+                                        key={n.id}
+                                        n={n as unknown as DbNotification}
+                                        index={i}
+                                        busy={busyId}
+                                        onRead={markRead}
+                                        onDismiss={dismiss}
+                                        onArchive={archive}
+                                    />
+                                ))}
+                            </div>
                         ))}
+                        {hasMore && filter === "all" && !search.trim() && (
+                            <div className="flex justify-center pt-2">
+                                <button
+                                    type="button"
+                                    disabled={loadingMore}
+                                    onClick={() => void loadNotifications({ cursor: nextCursor, append: true })}
+                                    className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-[12px] font-medium text-zinc-500 ring-1 ring-zinc-200 hover:text-zinc-800 disabled:opacity-50"
+                                >
+                                    {loadingMore ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                                    Load more
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -382,7 +461,7 @@ export default function NotificationsPage() {
                             Live updates enabled
                         </div>
                         <Link
-                            href="/dashboard/settings"
+                            href="/settings/notifications"
                             className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center gap-1"
                         >
                             Settings <ArrowUpRight className="h-3 w-3" />

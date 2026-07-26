@@ -147,7 +147,7 @@ export async function getProgress(courseId: string, userId: string) {
 export async function issueCertificate(courseId: string, userId: string) {
   const { data: course, error: courseError } = await db()
     .from("community_courses")
-    .select("id, certificate_enabled, is_published, creator_id, room_id")
+    .select("id, certificate_enabled, is_published, creator_id, room_id, title")
     .eq("id", courseId)
     .maybeSingle();
   if (courseError) throw courseError;
@@ -184,6 +184,19 @@ export async function issueCertificate(courseId: string, userId: string) {
     .select()
     .single();
   if (error) throw error;
+
+  try {
+    const { notifyCertificateIssued } = await import("@/lib/notifications/publishers");
+    await notifyCertificateIssued({
+      userId,
+      courseId,
+      certificateCode: data.certificate_code,
+      courseTitle: (course as { title?: string } | null)?.title,
+    });
+  } catch (err) {
+    console.warn("[issueCertificate] notification skipped:", err);
+  }
+
   return data;
 }
 

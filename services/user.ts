@@ -62,6 +62,12 @@ export async function getUserNotifications(userId: string, limit = 20) {
 
 export async function getUnreadNotificationCount(userId: string) {
   const db = await getDB();
+  const { data, error } = await (db as any).rpc("get_unread_notification_count", {
+    p_user_id: userId,
+  });
+  if (!error && (typeof data === "number" || typeof data === "string")) {
+    return Number(data) || 0;
+  }
   const { count } = await db
     .from("notifications")
     .select("id", { count: "exact", head: true })

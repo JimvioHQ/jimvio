@@ -32,14 +32,21 @@ export async function notifyCommunityLiveEvent(
 
   const actionUrl = `/communities/live/${params.sessionId}`;
 
+  const category =
+    params.event === "live_reminder" ? ("live_reminder" as const) : ("live_started" as const);
+
   await Promise.all(
     Array.from(ids).map((userId) =>
       notifyUser(db, {
         userId,
         type: "community",
+        category,
         title: params.title,
         message: params.message,
         actionUrl,
+        actorId: params.actorId,
+        groupKey: `live:${params.sessionId}:${params.event}`,
+        eventKey: `live:${userId}:${params.sessionId}:${params.event}`,
         data: {
           event: params.event,
           live: true,

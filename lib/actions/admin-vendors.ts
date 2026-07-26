@@ -39,6 +39,19 @@ export async function approveVendor(vendorId: string, notes?: string) {
             },
             { onConflict: "user_id,role" }
         );
+
+        try {
+            const { notifyAdminAnnouncement } = await import("@/lib/notifications/publishers");
+            await notifyAdminAnnouncement({
+                userIds: [vendor.user_id],
+                title: "Vendor approved",
+                message: "Your vendor account has been verified. You can start selling on Jimvio.",
+                actionUrl: "/dashboard",
+                announcementId: `vendor-approved-${vendorId}`,
+            });
+        } catch (err) {
+            console.warn("[approveVendor] notification skipped:", err);
+        }
     }
 
     revalidatePath("/admin/verifications");
@@ -58,6 +71,29 @@ export async function rejectVendor(vendorId: string, notes: string) {
         .eq("id", vendorId);
 
     if (error) return { success: false, error: error.message };
+
+    try {
+        const { data: vendor } = await admin
+            .from("vendors")
+            .select("user_id")
+            .eq("id", vendorId)
+            .maybeSingle();
+        if (vendor?.user_id) {
+            const { notifyAdminAnnouncement } = await import("@/lib/notifications/publishers");
+            await notifyAdminAnnouncement({
+                userIds: [vendor.user_id],
+                title: "Vendor application update",
+                message: notes?.trim()
+                    ? `Your vendor application was not approved: ${notes.trim()}`
+                    : "Your vendor application was not approved.",
+                actionUrl: "/dashboard",
+                announcementId: `vendor-rejected-${vendorId}`,
+            });
+        }
+    } catch (err) {
+        console.warn("[rejectVendor] notification skipped:", err);
+    }
+
     revalidatePath("/admin/verifications");
     revalidatePath(`/admin/vendors/${vendorId}`);
     return { success: true };

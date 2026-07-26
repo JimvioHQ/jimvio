@@ -103,6 +103,22 @@ export async function enrollInCourse(input: {
     }
   }
 
+  try {
+    const { data: course } = await db()
+      .from("community_courses")
+      .select("title")
+      .eq("id", input.courseId)
+      .maybeSingle();
+    const { notifyCourseEnrollment } = await import("@/lib/notifications/publishers");
+    await notifyCourseEnrollment({
+      userId: input.userId,
+      courseId: input.courseId,
+      courseTitle: (course as { title?: string } | null)?.title ?? "your course",
+    });
+  } catch (err) {
+    console.warn("[enrollInCourse] notification skipped:", err);
+  }
+
   return data as CourseEnrollmentRow;
 }
 

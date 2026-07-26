@@ -129,6 +129,36 @@ export async function POST(req: NextRequest) {
   }
 
   const invite = mapInviteRow(data, ctx.communitySlug, req.nextUrl.origin);
+
+  // In-app notify when invite targets an existing Jimvio user
+  const inviteEmail = body.email?.trim();
+  if (inviteEmail) {
+    try {
+      const {
+        findUserIdByEmail,
+        notifyCommunityInvite,
+      } = await import("@/lib/notifications/publishers");
+      const inviteeId = await findUserIdByEmail(inviteEmail);
+      if (inviteeId) {
+        const { data: community } = await admin
+          .from("communities")
+          .select("name, slug")
+          .eq("id", communityId)
+          .maybeSingle();
+        await notifyCommunityInvite({
+          userId: inviteeId,
+          actorId: user.id,
+          communityName: (community as { name?: string } | null)?.name ?? "a community",
+          communitySlug:
+            (community as { slug?: string } | null)?.slug ?? ctx.communitySlug,
+          inviteCode: code,
+        });
+      }
+    } catch (err) {
+      console.warn("[community-invite] notification skipped:", err);
+    }
+  }
+
   return NextResponse.json({ invite }, { status: 201 });
 }
 

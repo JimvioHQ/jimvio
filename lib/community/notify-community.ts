@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { notifyUser } from "@/lib/notifications/notify-user";
+import { notifyMention, notifyReply, notifyReaction } from "@/lib/notifications/publishers";
 
 /** Matches @username mentions (letters, numbers, ._- , 2-32 chars). */
 const MENTION_RE = /@([a-zA-Z0-9_.]{2,32})/g;
@@ -32,15 +33,23 @@ export async function notifyPostAuthor(
   const preview = params.postTitle?.trim() || "your post";
   const isLike = params.event === "like";
 
-  await notifyUser(db, {
+  const actionUrl = `/communities/${params.communitySlug}/feed?post=${params.postId}`;
+  if (isLike) {
+    await notifyReaction({
+      userId: params.postAuthorId,
+      actorId: params.actorId,
+      actorName: params.actorName,
+      actionUrl,
+    });
+    return;
+  }
+
+  await notifyReply({
     userId: params.postAuthorId,
-    type: "community",
-    title: isLike ? "New like" : "New comment",
-    message: isLike
-      ? `${params.actorName} liked ${preview}`
-      : `${params.actorName} commented on ${preview}`,
-    actionUrl: `/communities/${params.communitySlug}/feed?post=${params.postId}`,
-    data: { event: `post_${params.event}`, postId: params.postId, actorId: params.actorId },
+    actorId: params.actorId,
+    actorName: params.actorName,
+    actionUrl,
+    preview,
   });
 }
 
@@ -127,13 +136,12 @@ export async function notifyMentionedUsers(
 
   await Promise.all(
     Array.from(mentionedIds).map((userId) =>
-      notifyUser(db, {
+      notifyMention({
         userId,
-        type: "community",
-        title: "You were mentioned",
-        message: `${params.actorName} mentioned you in a message`,
+        actorId: params.actorId,
+        actorName: params.actorName,
         actionUrl: params.actionUrl ?? `/communities/${params.communitySlug}`,
-        data: { event: "mention", actorId: params.actorId },
+        context: "a message",
       })
     )
   );

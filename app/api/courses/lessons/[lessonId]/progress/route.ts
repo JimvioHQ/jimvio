@@ -95,6 +95,27 @@ export async function POST(
   );
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  // First-time completion → lesson completed notification
+  if (markComplete && !existing?.is_completed) {
+    try {
+      const { data: lessonMeta } = await admin
+        .from("course_lessons")
+        .select("title")
+        .eq("id", lessonId)
+        .maybeSingle();
+      const { notifyLessonCompleted } = await import("@/lib/notifications/publishers");
+      await notifyLessonCompleted({
+        userId: user.id,
+        courseId: lesson.course_id,
+        lessonId,
+        lessonTitle: (lessonMeta as { title?: string } | null)?.title,
+      });
+    } catch (err) {
+      console.warn("[lesson-progress] notification skipped:", err);
+    }
+  }
+
   return NextResponse.json({
     completed: isCompleted,
     watchTime,

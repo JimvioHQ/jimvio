@@ -116,14 +116,61 @@ export async function createPendingCommission(input: {
     }
   }
 
+  try {
+    const { data: affiliate } = await client
+      .from("affiliates")
+      .select("user_id")
+      .eq("id", input.affiliateId)
+      .maybeSingle();
+    if (affiliate?.user_id) {
+      const { notifyAffiliateCommission } = await import("@/lib/notifications/publishers");
+      await notifyAffiliateCommission({
+        affiliateUserId: affiliate.user_id,
+        amount: input.commissionAmount,
+        commissionId: data.id,
+        status: "pending",
+      });
+    }
+  } catch (err) {
+    console.warn("[createPendingCommission] notification skipped:", err);
+  }
+
   return { created: true, commissionId: data.id };
 }
 
 export async function approveCommission(commissionId: string) {
-  const { data, error } = await db().rpc("approve_affiliate_commission", {
+  const client = db();
+  const { data, error } = await client.rpc("approve_affiliate_commission", {
     p_commission_id: commissionId,
   });
   if (error) throw error;
+
+  try {
+    const { data: row } = await client
+      .from("affiliate_commissions")
+      .select("commission_amount, affiliate_id")
+      .eq("id", commissionId)
+      .maybeSingle();
+    if (row?.affiliate_id) {
+      const { data: affiliate } = await client
+        .from("affiliates")
+        .select("user_id")
+        .eq("id", row.affiliate_id)
+        .maybeSingle();
+      if (affiliate?.user_id) {
+        const { notifyAffiliateCommission } = await import("@/lib/notifications/publishers");
+        await notifyAffiliateCommission({
+          affiliateUserId: affiliate.user_id,
+          amount: Number(row.commission_amount ?? 0),
+          commissionId,
+          status: "approved",
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("[approveCommission] notification skipped:", err);
+  }
+
   return Boolean(data);
 }
 

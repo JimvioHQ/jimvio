@@ -88,6 +88,19 @@ export async function setCampaignStatus(
     .select("*")
     .single();
   if (error) throw error;
+
+  try {
+    const { notifyCampaignUpdate } = await import("@/lib/notifications/publishers");
+    await notifyCampaignUpdate({
+      userId,
+      campaignId,
+      campaignName: data.name ?? "Campaign",
+      status,
+    });
+  } catch (err) {
+    console.warn("[setCampaignStatus] notification skipped:", err);
+  }
+
   return data;
 }
 

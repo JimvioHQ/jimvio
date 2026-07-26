@@ -88,3 +88,38 @@ export function formatNotificationTime(iso: string | null | undefined): string {
         return "";
     }
 }
+
+/** Group feed items by calendar day (UTC date key). Client-safe. */
+export function groupActivityByDate<T extends { created_at?: string | null; id: string }>(
+  items: T[]
+): Array<{ dateKey: string; label: string; items: T[] }> {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const iso = item.created_at ?? new Date().toISOString();
+    const dateKey = iso.slice(0, 10);
+    const list = groups.get(dateKey) ?? [];
+    list.push(item);
+    groups.set(dateKey, list);
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+
+  return Array.from(groups.entries()).map(([dateKey, groupItems]) => {
+    let label = dateKey;
+    if (dateKey === today) label = "Today";
+    else if (dateKey === yesterday) label = "Yesterday";
+    else {
+      try {
+        label = new Date(`${dateKey}T00:00:00Z`).toLocaleDateString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+      } catch {
+        label = dateKey;
+      }
+    }
+    return { dateKey, label, items: groupItems };
+  });
+}

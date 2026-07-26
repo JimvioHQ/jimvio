@@ -2,134 +2,104 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 import type { TransactionalEmailKind } from "@/lib/email/transactional";
 import {
-    sendOrderConfirmationEmail,
-    sendOrderShippedEmail,
-    sendPaymentFailedEmail,
-    sendPaymentSuccessEmail,
-    sendPayoutSentEmail,
-    sendWelcomeEmail,
-} from "@/lib/email/transactional";
+  publishNotification,
+  type PublishNotificationInput,
+  type PublishResult,
+} from "@/lib/notifications/platform";
+import type { NotificationCategory } from "@/lib/notifications/categories";
 
 type NotificationType = Database["public"]["Enums"]["notification_type"];
 
 type EmailPayload = {
-    kind: TransactionalEmailKind;
-    orderNumber?: string;
-    orderId?: string;
-    totalAmount?: number;
-    amount?: number;
-    currency?: string;
-    providerLabel?: string;
-    reason?: string;
-    trackingNumber?: string | null;
-    trackingUrl?: string | null;
-    destinationLabel?: string;
-    intent?: string | null;
+  kind: TransactionalEmailKind;
+  orderNumber?: string;
+  orderId?: string;
+  totalAmount?: number;
+  amount?: number;
+  currency?: string;
+  providerLabel?: string;
+  reason?: string;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  destinationLabel?: string;
+  intent?: string | null;
 };
 
 export type NotifyUserInput = {
-    userId: string;
-    type: NotificationType;
-    title: string;
-    message: string;
-    actionUrl?: string;
-    data?: Record<string, unknown>;
-    email?: EmailPayload;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  actionUrl?: string;
+  data?: Record<string, unknown>;
+  email?: EmailPayload;
+  /** Preferred fine-grained category; inferred from type/data when omitted. */
+  category?: NotificationCategory;
+  eventKey?: string;
+  groupKey?: string;
+  actorId?: string;
+  force?: boolean;
 };
 
-async function dispatchEmail(
-    to: string,
-    toName: string | null | undefined,
-    email: EmailPayload
-): Promise<void> {
-    const recipient = { to, toName };
+function inferCategory(input: NotifyUserInput): NotificationCategory {
+  if (input.category) return input.category;
+  const data = (input.data ?? {}) as Record<string, unknown>;
+  const event = String(data.event ?? data.kind ?? "").toLowerCase();
+  const title = (input.title ?? "").toLowerCase();
 
-    switch (email.kind) {
-        case "order_confirmation":
-            if (!email.orderId || !email.orderNumber || email.totalAmount == null || !email.currency) return;
-            await sendOrderConfirmationEmail(recipient, {
-                orderId: email.orderId,
-                orderNumber: email.orderNumber,
-                totalAmount: email.totalAmount,
-                currency: email.currency,
-            });
-            break;
-        case "payment_success":
-            if (!email.orderId || !email.orderNumber || email.amount == null || !email.currency) return;
-            await sendPaymentSuccessEmail(recipient, {
-                orderId: email.orderId,
-                orderNumber: email.orderNumber,
-                amount: email.amount,
-                currency: email.currency,
-                providerLabel: email.providerLabel,
-            });
-            break;
-        case "payment_failed":
-            await sendPaymentFailedEmail(recipient, {
-                orderId: email.orderId,
-                orderNumber: email.orderNumber,
-                reason: email.reason,
-            });
-            break;
-        case "order_shipped":
-            if (!email.orderId || !email.orderNumber) return;
-            await sendOrderShippedEmail(recipient, {
-                orderId: email.orderId,
-                orderNumber: email.orderNumber,
-                trackingNumber: email.trackingNumber,
-                trackingUrl: email.trackingUrl,
-            });
-            break;
-        case "payout_sent":
-            if (email.amount == null || !email.currency) return;
-            await sendPayoutSentEmail(recipient, {
-                amount: email.amount,
-                currency: email.currency,
-                destinationLabel: email.destinationLabel,
-            });
-            break;
-        case "welcome":
-            await sendWelcomeEmail(recipient, {
-                intent: email.intent,
-            });
-            break;
-    }
+  if (event.includes("mention") || title.includes("mentioned")) return "mention";
+  if (event.includes("reply") || title.includes("replied")) return "reply";
+  if (event.includes("reaction") || title.includes("reacted")) return "reaction";
+  if (event === "live_started" || title.includes("going live") || title.includes("live started"))
+    return "live_started";
+  if (event === "live_reminder" || title.includes("reminder")) return "live_reminder";
+  if (event.includes("invite") && event.includes("space")) return "space_invite";
+  if (event.includes("invite") || title.includes("invite")) return "community_invite";
+  if (event.includes("enroll") || title.includes("enrolled")) return "course_enrollment";
+  if (event.includes("lesson") || title.includes("lesson")) return "lesson_completed";
+  if (event.includes("certificate") || title.includes("certificate")) return "certificate_issued";
+  if (event.includes("affiliate") || input.type === "affiliate") return "affiliate_commission";
+  if (event.includes("campaign")) return "campaign_update";
+  if (event.includes("refund") || title.includes("refund")) return "refund";
+  if (event.includes("ship") || title.includes("shipped")) return "shipping_update";
+  if (input.type === "message") return "new_message";
+  if (input.type === "order" || input.type === "payment") {
+    if (title.includes("purchased") || event.includes("purchase")) return "product_purchased";
+    return "order_update";
+  }
+  if (event.includes("admin") || title.includes("announcement")) return "admin_announcement";
+  if (input.type === "community") return "reply";
+  return "system";
 }
 
-/** Insert in-app notification and optionally send a transactional email. */
+/**
+ * Backward-compatible facade. Always publishes via the unified platform
+ * (service-role insert + prefs + analytics). The `db` arg is ignored for writes.
+ */
 export async function notifyUser(
-    db: SupabaseClient,
-    input: NotifyUserInput
-): Promise<void> {
-    try {
-        const { error } = await db.from("notifications").insert({
-            user_id: input.userId,
-            type: input.type,
-            title: input.title,
-            message: input.message,
-            action_url: input.actionUrl ?? null,
-            data: input.data ?? {},
-        });
-        if (error) {
-            console.error("[notifyUser] insert failed:", error.message);
-        }
-    } catch (err) {
-        console.error("[notifyUser] insert error:", err);
-    }
+  _db: SupabaseClient,
+  input: NotifyUserInput
+): Promise<PublishResult | void> {
+  const payload: PublishNotificationInput = {
+    userId: input.userId,
+    category: inferCategory(input),
+    type: input.type,
+    title: input.title,
+    message: input.message,
+    actionUrl: input.actionUrl,
+    data: input.data,
+    email: input.email,
+    eventKey: input.eventKey,
+    groupKey: input.groupKey,
+    actorId: input.actorId,
+    force: input.force,
+  };
 
-    if (!input.email) return;
-
-    try {
-        const { data: profile } = await db
-            .from("profiles")
-            .select("email, full_name")
-            .eq("id", input.userId)
-            .maybeSingle();
-
-        if (!profile?.email) return;
-
-        await dispatchEmail(profile.email, profile.full_name, input.email);
-    } catch (err) {
-        console.warn("[notifyUser] email failed (non-fatal):", err);
-    }
+  try {
+    return await publishNotification(payload);
+  } catch (err) {
+    console.error("[notifyUser] publish error:", err);
+  }
 }
+
+export { publishNotification, publishMany } from "@/lib/notifications/platform";
