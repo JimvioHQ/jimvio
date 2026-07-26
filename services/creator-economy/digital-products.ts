@@ -1,4 +1,5 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { createSignedDownloadToken } from "@/lib/commerce/signed-download";
 
 export const DIGITAL_SUBTYPES = ["pdf", "zip", "video", "template", "source_code", "notion", "figma"] as const;
 export type DigitalSubtype = (typeof DIGITAL_SUBTYPES)[number];
@@ -64,8 +65,26 @@ export async function issueLicenseKey(accessId: string, userId: string) {
   return key;
 }
 
+async function resolveDigitalFileUrl(productId: string, accessUrl: string | null) {
+  const client = db();
+  const [{ data: newest }, { data: product, error: productError }] = await Promise.all([
+    client.from("digital_product_versions").select("file_url, version").eq("product_id", productId)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    client.from("products").select("digital_file_url").eq("id", productId).maybeSingle(),
+  ]);
+  if (productError || !product) throw productError ?? new Error("Product not found");
+  const url = newest?.file_url || product.digital_file_url || accessUrl;
+  if (!url) throw new Error("Download file is unavailable");
+  return { url, version: newest?.version ?? null };
+}
+
+/**
+ * Issue a short-lived signed download handoff URL (not the permanent file URL).
+ * Authorization + audit logging stay server-side; the file route re-validates.
+ */
 export async function requestSecureDownload(input: {
   userId: string; productId: string; ip?: string | null; userAgent?: string | null;
+  origin?: string | null;
 }) {
   const client = db();
   const { data: access, error } = await client.from("digital_access").select("*")
@@ -77,14 +96,9 @@ export async function requestSecureDownload(input: {
   if (access.download_limit !== null && Number(access.download_count) >= Number(access.download_limit)) {
     throw new Error("Download limit reached");
   }
-  const [{ data: newest }, { data: product, error: productError }] = await Promise.all([
-    client.from("digital_product_versions").select("file_url, version").eq("product_id", input.productId)
-      .order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    client.from("products").select("digital_file_url").eq("id", input.productId).maybeSingle(),
-  ]);
-  if (productError || !product) throw productError ?? new Error("Product not found");
-  const url = newest?.file_url || product.digital_file_url || access.access_url;
-  if (!url) throw new Error("Download file is unavailable");
+
+  // Ensure a file exists before consuming a download slot
+  const file = await resolveDigitalFileUrl(input.productId, access.access_url);
 
   const now = new Date().toISOString();
   const { error: updateError } = await client.from("digital_access").update({
@@ -95,6 +109,43 @@ export async function requestSecureDownload(input: {
     access_id: access.id, user_id: input.userId, product_id: input.productId,
     ip: input.ip ?? null, user_agent: input.userAgent ?? null,
   });
-  // This API-only handoff keeps authorization and audit logging server-side.
-  return { url, version: newest?.version ?? null, remaining: access.download_limit === null ? null : Number(access.download_limit) - Number(access.download_count) - 1 };
+
+  const signed = createSignedDownloadToken({
+    accessId: access.id,
+    userId: input.userId,
+    productId: input.productId,
+  });
+
+  const base = (input.origin || process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+  const url = `${base}/api/creator/digital/file?token=${encodeURIComponent(signed.token)}`;
+
+  return {
+    url,
+    version: file.version,
+    expiresAt: signed.expiresAt,
+    expiresIn: signed.expiresIn,
+    remaining:
+      access.download_limit === null
+        ? null
+        : Number(access.download_limit) - Number(access.download_count) - 1,
+  };
+}
+
+/** Resolve the real file URL after validating a signed download token (no extra count). */
+export async function resolveSignedDownloadFile(input: {
+  accessId: string;
+  userId: string;
+  productId: string;
+}) {
+  const client = db();
+  const { data: access, error } = await client.from("digital_access").select("*")
+    .eq("id", input.accessId)
+    .eq("user_id", input.userId)
+    .eq("product_id", input.productId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!access || access.revoked_at || (access.expires_at && new Date(access.expires_at) <= new Date())) {
+    throw new Error("No active access to this product");
+  }
+  return resolveDigitalFileUrl(input.productId, access.access_url);
 }

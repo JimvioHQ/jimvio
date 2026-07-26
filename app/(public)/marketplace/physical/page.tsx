@@ -18,6 +18,10 @@ interface PageProps {
     sort?: string;
     page?: string;
     affiliate?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    minRating?: string;
+    brand?: string;
   }>;
 }
 
@@ -37,6 +41,10 @@ export default async function MarketplacePhysicalPage({ searchParams }: PageProp
     affiliate: params.affiliate === "1" ? true : undefined,
     type: "physical",
     catalog: isShopifyOnly ? "shopify" : undefined,
+    minPrice: params.minPrice ? Number(params.minPrice) : undefined,
+    maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
+    minRating: params.minRating ? Number(params.minRating) : undefined,
+    brand: params.brand || undefined,
   };
 
   const [categories, coreProductsResult, shopifyCount, listingCount, cartProductIds, followedVendorIds] =

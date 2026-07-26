@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-/** POST — mark a review as helpful (increments helpful_count once per user via client optimism). */
+/** POST — mark a review as helpful once per user (atomic via vote_review_helpful). */
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ reviewId: string }> }
@@ -23,12 +23,32 @@ export async function POST(
 
   if (!review) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const next = (review.helpful_count ?? 0) + 1;
-  const { error } = await supabase
-    .from("reviews")
-    .update({ helpful_count: next })
-    .eq("id", reviewId);
+  const { data: helpfulCount, error } = await (supabase as any).rpc("vote_review_helpful", {
+    p_review_id: reviewId,
+  });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ ok: true, helpful_count: next });
+  if (error) {
+    // Fallback if migration not applied yet — still avoid unbounded client writes
+    const { data: existing } = await (supabase as any)
+      .from("review_helpful_votes")
+      .select("id")
+      .eq("review_id", reviewId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existing) {
+      return NextResponse.json({
+        ok: true,
+        helpful_count: review.helpful_count ?? 0,
+        alreadyVoted: true,
+      });
+    }
+
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    helpful_count: Number(helpfulCount ?? review.helpful_count ?? 0),
+  });
 }

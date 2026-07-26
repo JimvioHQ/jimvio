@@ -8,6 +8,8 @@ import {
     type CheckoutShippingSelection,
     type CjFreightProduct,
 } from "@/lib/cj/checkout-shipping";
+import { computeOrderTotalAmount } from "@/lib/commerce/order-totals";
+import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 
 // Expected, user-facing errors — logged at debug level, not as errors
 class UserError extends Error {
@@ -105,7 +107,7 @@ async function saveSelection(
     const { data: orders, error } = await supabase
         .from("orders")
         .select(
-            "id, buyer_id, payment_status, shipping_address, metadata, order_items(variant_id, quantity, product_source)"
+            "id, buyer_id, payment_status, shipping_address, metadata, subtotal, discount_amount, tax_amount, shipping_amount, total_amount, order_items(variant_id, quantity, product_source)"
         )
         .in("id", orderIds);
 
@@ -117,7 +119,7 @@ async function saveSelection(
         throw new UserError("Unauthorized: orders do not belong to this user");
     }
 
-    const alreadyPaid = orders.filter((o) => o.payment_status === "paid" || o.payment_status === "completed");
+    const alreadyPaid = orders.filter((o) => isOrderPaymentComplete(o.payment_status));
     if (alreadyPaid.length) {
         throw new UserError("Cannot change shipping on a paid order");
     }
@@ -151,36 +153,49 @@ async function saveSelection(
         );
     }
 
-    const { error: updateErr } = await supabase
-        .from("orders")
-        .update({
-            cj_shipping_method: trusted.name,
-            cj_supplier_cost: trusted.priceUSD,
-            updated_at: new Date().toISOString(),
-        })
-        .in("id", orderIds);
+    for (const order of orders) {
+        const existingMeta =
+            order && typeof (order as { metadata?: unknown }).metadata === "object" &&
+            (order as { metadata?: unknown }).metadata
+                ? ((order as { metadata: Record<string, unknown> }).metadata)
+                : {};
 
-    if (!updateErr) {
-        for (const order of orders) {
-            const existingMeta =
-                order && typeof (order as any).metadata === "object" && (order as any).metadata
-                    ? ((order as any).metadata as Record<string, unknown>)
-                    : {};
-            await supabase
-                .from("orders")
-                .update({
-                    metadata: {
-                        ...existingMeta,
-                        cj_logistic_code: trusted.channelId,
-                        cj_shipping_cost_usd: trusted.priceUSD,
-                    },
-                })
-                .eq("id", order.id);
+        const subtotal = Number(
+            (order as { subtotal?: number | null }).subtotal ??
+                (order as { total_amount?: number | null }).total_amount ??
+                0
+        );
+        const discountAmount = Number(
+            (order as { discount_amount?: number | null }).discount_amount ?? 0
+        );
+        const taxAmount = Number((order as { tax_amount?: number | null }).tax_amount ?? 0);
+        const shippingAmount = trusted.priceUSD;
+        const totalAmount = computeOrderTotalAmount({
+            subtotal,
+            discount_amount: discountAmount,
+            shipping_amount: shippingAmount,
+            tax_amount: taxAmount,
+        });
+
+        const { error: updateErr } = await supabase
+            .from("orders")
+            .update({
+                cj_shipping_method: trusted.name,
+                cj_supplier_cost: trusted.priceUSD,
+                shipping_amount: shippingAmount,
+                total_amount: totalAmount,
+                updated_at: new Date().toISOString(),
+                metadata: {
+                    ...existingMeta,
+                    cj_logistic_code: trusted.channelId,
+                    cj_shipping_cost_usd: trusted.priceUSD,
+                },
+            })
+            .eq("id", order.id);
+
+        if (updateErr) {
+            throw new Error(`Failed to save shipping method: ${updateErr.message}`);
         }
-    }
-
-    if (updateErr) {
-        throw new Error(`Failed to save shipping method: ${updateErr.message}`);
     }
 
     return { priceUSD: trusted.priceUSD, name: trusted.name };

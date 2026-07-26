@@ -41,7 +41,7 @@ export async function GET() {
       .from("orders")
       .select("total_amount, payment_status, created_at")
       .eq("vendor_id", vendor.id)
-      .eq("payment_status", "paid")
+      .in("payment_status", ["paid", "completed"])
       .gte("created_at", since),
     productIds.length > 0
       ? supabase

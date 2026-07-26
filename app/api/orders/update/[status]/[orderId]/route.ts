@@ -4,6 +4,9 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 import { getSupabaseSecretKey, getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
+import { restockOrderInventory } from "@/lib/actions/inventory-management";
+
 // ─── Constants & Types ────────────────────────────────────────────────────────
 
 const VALID_ORDER_STATUSES = [
@@ -11,7 +14,14 @@ const VALID_ORDER_STATUSES = [
     "delivered", "cancelled", "refunded", "completed",
 ] as const;
 
+/** Fulfillment transitions vendors may set after payment clears. */
 const VENDOR_ONLY_STATUSES = ["processing", "shipped", "delivered", "completed"] as const;
+
+/** Buyers may only cancel unpaid pending orders via this route. */
+const BUYER_ALLOWED_STATUSES = ["cancelled"] as const;
+
+/** Refunds must go through admin / PSP webhooks — never this route. */
+const ADMIN_ONLY_STATUSES = ["refunded"] as const;
 
 type OrderStatus = (typeof VALID_ORDER_STATUSES)[number];
 
@@ -92,9 +102,9 @@ export async function PATCH(
     }
 
     const isBuyer = existingOrder.buyer_id === user.id;
-    const vendorUserId = Array.isArray(existingOrder.vendors) 
-        ? existingOrder.vendors[0]?.user_id 
-        : (existingOrder.vendors as any)?.user_id;
+    const vendorUserId = Array.isArray(existingOrder.vendors)
+        ? existingOrder.vendors[0]?.user_id
+        : (existingOrder.vendors as { user_id?: string } | null)?.user_id;
     const isVendor = vendorUserId === user.id;
 
     if (!isBuyer && !isVendor) {
@@ -110,15 +120,57 @@ export async function PATCH(
         );
     }
 
-    // 5. Vendor-only status guard
+    // 5. Role + transition guards
+    if (ADMIN_ONLY_STATUSES.includes(status as (typeof ADMIN_ONLY_STATUSES)[number])) {
+        return NextResponse.json(
+            { error: "Refunds must be processed by support or the payment provider" },
+            { status: 403 }
+        );
+    }
+
     if (VENDOR_ONLY_STATUSES.includes(status as (typeof VENDOR_ONLY_STATUSES)[number])) {
         if (!isVendor) {
             return NextResponse.json(
-                { error: `Status '${status}' can only be set by the vendor. Buyers may set: pending, confirmed, cancelled, refunded` },
+                { error: `Status '${status}' can only be set by the vendor` },
                 { status: 403 }
             );
         }
+        if (!isOrderPaymentComplete(existingOrder.payment_status)) {
+            return NextResponse.json(
+                { error: "Order must be paid before fulfillment updates" },
+                { status: 409 }
+            );
+        }
     }
+
+    if (isBuyer && !isVendor) {
+        if (!BUYER_ALLOWED_STATUSES.includes(status as (typeof BUYER_ALLOWED_STATUSES)[number])) {
+            return NextResponse.json(
+                { error: "Buyers may only cancel unpaid pending orders" },
+                { status: 403 }
+            );
+        }
+        if (status === "cancelled") {
+            if (isOrderPaymentComplete(existingOrder.payment_status)) {
+                return NextResponse.json(
+                    { error: "Paid orders cannot be cancelled here — request a refund instead" },
+                    { status: 409 }
+                );
+            }
+            if (existingOrder.status !== "pending") {
+                return NextResponse.json(
+                    { error: "Only pending unpaid orders can be cancelled by the buyer" },
+                    { status: 409 }
+                );
+            }
+        }
+    }
+
+    // Vendor cancelling a paid order may restock; unpaid cancel is always safe
+    const shouldRestock =
+        status === "cancelled" &&
+        isVendor &&
+        isOrderPaymentComplete(existingOrder.payment_status);
 
     // 6. Build update payload — order table only, nothing else
     const now = new Date().toISOString();
@@ -141,6 +193,13 @@ export async function PATCH(
     if (updateError || !updatedOrder) {
         console.error("[orders/update] Update error:", updateError);
         return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
+    }
+
+    if (shouldRestock) {
+        const restock = await restockOrderInventory(orderId);
+        if (!restock.success) {
+            console.warn("[orders/update] restock failed (non-fatal):", restock.error);
+        }
     }
 
     // 8. Return updated order state

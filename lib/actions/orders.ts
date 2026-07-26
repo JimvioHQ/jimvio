@@ -29,7 +29,9 @@ export async function createOrder(productId: string, quantity: number = 1) {
 
   const cookieStore = await cookies();
   const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value;
-  const refCode = cookieStore.get("jimvio_ref")?.value;
+  const refCode =
+    cookieStore.get("jimvio_ref")?.value ??
+    cookieStore.get("_aff_ref")?.value;
 
   let affiliateId = null;
   const defaultAffiliate = await getDefaultAffiliateCommissionPercent();

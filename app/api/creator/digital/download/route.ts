@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       userId: user.id, productId,
       ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
       userAgent: req.headers.get("user-agent"),
+      origin: req.nextUrl.origin,
     });
     return NextResponse.json({ download });
   } catch (error) {

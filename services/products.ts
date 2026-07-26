@@ -76,6 +76,8 @@ export interface ProductQuery {
   vendorId?: string;
   minPrice?: number;
   maxPrice?: number;
+  minRating?: number;
+  brand?: string;
   /** When set to `shopify`, only products synced from Shopify. */
   catalog?: "shopify";
 }
@@ -273,7 +275,7 @@ export async function getProducts(query: ProductQuery = {}) {
   const {
     limit = 24, offset = 0, category, type, search,
     sort = "trending", featured, affiliate, vendorId,
-    minPrice, maxPrice, catalog,
+    minPrice, maxPrice, minRating, brand, catalog,
   } = query;
 
   let q = db
@@ -283,7 +285,7 @@ export async function getProducts(query: ProductQuery = {}) {
       images, rating, review_count, is_featured, is_digital,
       product_type, status, affiliate_enabled, affiliate_commission_rate,
       sale_count, view_count, wishlist_count, inventory_quantity,
-      created_at, source, currency, button_text,
+      created_at, source, currency, button_text, brand,
       pricing_type, billing_period,
       vendors ( id, business_name, business_slug, rating, verification_status, business_country ),
       product_categories${category ? "!inner" : ""} ( id, name, slug )
@@ -300,6 +302,8 @@ export async function getProducts(query: ProductQuery = {}) {
   if (search) q = q.ilike("name", `%${search}%`);
   if (minPrice != null) q = q.gte("price", minPrice);
   if (maxPrice != null) q = q.lte("price", maxPrice);
+  if (minRating != null && minRating > 0) q = q.gte("rating", minRating);
+  if (brand) q = q.ilike("brand", brand);
 
   switch (sort) {
     case "newest": q = q.order("created_at", { ascending: false }); break;

@@ -19,6 +19,7 @@ import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { notifyUser } from "@/lib/notifications/notify-user";
+import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 
 import { getSupabaseSecretKey, getSupabasePublishableKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
@@ -88,8 +89,8 @@ export async function PATCH(
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  // --- Payment guard: must be paid ---
-  if (order.payment_status !== "completed") {
+  // --- Payment guard: must be paid (accept legacy + current terminal statuses) ---
+  if (!isOrderPaymentComplete(order.payment_status)) {
     return NextResponse.json(
       { error: "Cannot fulfill an unpaid order" },
       { status: 422 }

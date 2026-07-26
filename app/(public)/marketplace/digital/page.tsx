@@ -18,6 +18,10 @@ interface PageProps {
     sort?: string;
     page?: string;
     affiliate?: string;
+    minPrice?: string;
+    maxPrice?: string;
+    minRating?: string;
+    brand?: string;
   }>;
 }
 
@@ -35,6 +39,10 @@ export default async function MarketplaceDigitalPage({ searchParams }: PageProps
     sort: (params.sort as ProductQuery["sort"]) ?? "trending",
     affiliate: params.affiliate === "1" ? true : undefined,
     type: "digital",
+    minPrice: params.minPrice ? Number(params.minPrice) : undefined,
+    maxPrice: params.maxPrice ? Number(params.maxPrice) : undefined,
+    minRating: params.minRating ? Number(params.minRating) : undefined,
+    brand: params.brand || undefined,
   };
 
   const [categories, coreProductsResult, listingCount, cartProductIds, followedVendorIds] =

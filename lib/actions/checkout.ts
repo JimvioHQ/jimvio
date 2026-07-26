@@ -8,6 +8,13 @@ import { OrderUpdate } from "@/types/db";
 import { Json } from "@/types/supabase";
 import { revalidatePath } from "next/cache";
 import { notifyUser } from "@/lib/notifications/notify-user";
+import { computeOrderTotalAmount } from "@/lib/commerce/order-totals";
+import { estimateOrderTax } from "@/lib/commerce/tax-hooks";
+import {
+  buildAffiliateAttribution,
+  mergeAffiliateMetadata,
+  resolveAffiliateReferralFromCookies,
+} from "@/lib/commerce/affiliate-hooks";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -384,7 +391,7 @@ export async function updatePendingOrdersShipping(
   }
   const payload = parsed.data;
 
-  // ── Build update ───────────────────────────────────────────────────────────
+  // ── Build shipping address ─────────────────────────────────────────────────
   const shipping_address = {
     firstName: payload.firstName,
     lastName: payload.lastName,
@@ -398,26 +405,15 @@ export async function updatePendingOrdersShipping(
     zip: payload.zip,
   };
 
-  const update: OrderUpdate = {
-    shipping_address,
-    updated_at: new Date().toISOString(),
-  };
-
-  if (typeof payload.shippingAmount === "number") {
-    update.shipping_amount = payload.shippingAmount;
-  }
-
-  if (typeof payload.discountAmount === "number") {
-    update.discount_amount = payload.discountAmount;
-  }
-
   // ✅ Use admin client (matches startCheckout) so RLS doesn't silently block
   const admin = getAdminDB();
 
   // ✅ Pre-check: fetch the actual state of those orders so we can give a real error
   const { data: existingOrders, error: fetchError } = await admin
     .from("orders")
-    .select("id, buyer_id, status, payment_status")
+    .select(
+      "id, buyer_id, status, payment_status, subtotal, shipping_amount, discount_amount, tax_amount, total_amount, shipping_address, metadata"
+    )
     .in("id", payload.orderIds);
 
   if (fetchError) {
@@ -443,27 +439,85 @@ export async function updatePendingOrdersShipping(
   if (notPending.length) {
     console.warn("[updatePendingOrdersShipping] Not pending:", notPending);
     return err(
-      `Order already ${notPending[0].payment_status === "paid" ? "paid" : "in progress"}. Refresh the page to continue.`
+      `Order already ${notPending[0].payment_status === "paid" || notPending[0].payment_status === "completed" ? "paid" : "in progress"}. Refresh the page to continue.`
     );
   }
 
-  // ── Persist ────────────────────────────────────────────────────────────────
-  const { error: updateError, data } = await admin
-    .from("orders")
-    .update(update)
-    .eq("buyer_id", userId)
-    .eq("status", "pending")
-    .in("payment_status", ["pending", "failed"])
-    .in("id", payload.orderIds)
-    .select("id");
+  const referralCode = await resolveAffiliateReferralFromCookies();
+  const attribution = buildAffiliateAttribution({
+    referralCode,
+    source: referralCode ? "cookie" : "none",
+  });
 
-  if (updateError) {
-    console.error("[updatePendingOrdersShipping] Update failed:", updateError);
-    return err(updateError.message);
+  // ── Persist per-order with recomputed payable total ─────────────────────────
+  const updatedIds: string[] = [];
+
+  for (const order of existingOrders) {
+    const shippingAmount =
+      typeof payload.shippingAmount === "number"
+        ? payload.shippingAmount
+        : Number(order.shipping_amount ?? 0);
+    const discountAmount =
+      typeof payload.discountAmount === "number"
+        ? payload.discountAmount
+        : Number(order.discount_amount ?? 0);
+    const subtotal = Number(order.subtotal ?? order.total_amount ?? 0);
+
+    const taxEstimate = estimateOrderTax({
+      subtotal,
+      shippingAmount,
+      countryCode: payload.countryCode,
+      currency: undefined,
+    });
+
+    const taxAmount =
+      taxEstimate.taxAmount > 0
+        ? taxEstimate.taxAmount
+        : Number(order.tax_amount ?? 0);
+
+    const totalAmount = computeOrderTotalAmount({
+      subtotal,
+      discount_amount: discountAmount,
+      shipping_amount: shippingAmount,
+      tax_amount: taxAmount,
+    });
+
+    const existingMeta =
+      order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+        ? (order.metadata as Record<string, unknown>)
+        : {};
+
+    const orderUpdate: Record<string, unknown> = {
+      shipping_address,
+      shipping_amount: shippingAmount,
+      discount_amount: discountAmount,
+      tax_amount: taxAmount,
+      total_amount: totalAmount,
+      updated_at: new Date().toISOString(),
+      metadata: mergeAffiliateMetadata(existingMeta, attribution) as Json,
+    };
+
+    if (referralCode) {
+      orderUpdate.referral_code = referralCode;
+    }
+
+    const { error: updateError, data } = await admin
+      .from("orders")
+      .update(orderUpdate as OrderUpdate)
+      .eq("id", order.id)
+      .eq("buyer_id", userId)
+      .eq("status", "pending")
+      .in("payment_status", ["pending", "failed"])
+      .select("id");
+
+    if (updateError) {
+      console.error("[updatePendingOrdersShipping] Update failed:", updateError);
+      return err(updateError.message);
+    }
+    if (data?.[0]?.id) updatedIds.push(data[0].id);
   }
 
-  if (!data?.length) {
-    // Should be unreachable now (pre-check above catches all cases)
+  if (!updatedIds.length) {
     console.error(
       "[updatePendingOrdersShipping] Update returned 0 rows despite passing pre-check",
       { userId, orderIds: payload.orderIds, existingOrders }

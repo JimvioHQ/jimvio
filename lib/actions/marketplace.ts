@@ -1602,7 +1602,10 @@ export async function addToCart(
     }
 
     const cookieStore = await cookies();
-    const refCode = cookieStore.get("jimvio_ref")?.value ?? null;
+    const refCode =
+      cookieStore.get("jimvio_ref")?.value ??
+      cookieStore.get("_aff_ref")?.value ??
+      null;
 
     let affiliateLinkId: string | null = null;
     const affiliatesAllowed = supportsAffiliateCommission(
@@ -2299,7 +2302,10 @@ export async function buyDirectCheckout(
 
     const cookieStore = await cookies();
     const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value ?? null;
-    const refCode = cookieStore.get("jimvio_ref")?.value ?? null;
+    const refCode =
+      cookieStore.get("jimvio_ref")?.value ??
+      cookieStore.get("_aff_ref")?.value ??
+      null;
 
     const affiliatesAllowed = supportsAffiliateCommission(
       productSource,

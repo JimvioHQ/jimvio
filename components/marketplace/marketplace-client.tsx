@@ -47,7 +47,7 @@ interface Category { id: string; name: string; slug: string; }
 interface MarketplaceClientProps {
   initialProducts: Product[]; categories: Category[];
   total: number; currentPage: number; limit: number;
-  params: { cat?: string; type?: string; catalog?: string; q?: string; sort?: string; affiliate?: string; minPrice?: string; maxPrice?: string; minRating?: string; };
+  params: { cat?: string; type?: string; catalog?: string; q?: string; sort?: string; affiliate?: string; minPrice?: string; maxPrice?: string; minRating?: string; brand?: string; };
   viralClips?: any[]; topCreators?: any[]; popularStores?: any[];
   hasShopifyProducts?: boolean; cartProductIds?: string[];
   followedVendorIds?: string[];
@@ -828,6 +828,10 @@ export function MarketplaceClient({
     if (params.q) q = q.ilike("name", `%${params.q}%`);
     if (params.minPrice) q = q.gte("price", Number(params.minPrice));
     if (params.maxPrice) q = q.lte("price", Number(params.maxPrice));
+    if (params.minRating) q = q.gte("rating", Number(params.minRating));
+    if ((params as { brand?: string }).brand) {
+      q = q.ilike("brand", (params as { brand?: string }).brand!);
+    }
 
     switch (params.sort ?? "trending") {
       case "newest": q = q.order("created_at", { ascending: false }); break;

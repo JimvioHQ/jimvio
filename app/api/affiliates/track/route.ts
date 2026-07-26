@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  AFFILIATE_REF_COOKIE,
+  AFFILIATE_REF_COOKIE_LEGACY,
+} from "@/lib/commerce/affiliate-hooks";
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,7 +14,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL("/marketplace", req.url));
     }
 
-    const supabase = await createClient();
+    // Service role: affiliate_clicks insert is locked down from anon/authenticated.
+    const supabase = createServiceRoleClient();
 
     const { data: link } = await supabase
       .from("affiliate_links")
@@ -26,7 +31,6 @@ export async function GET(req: NextRequest) {
     const userAgent = req.headers.get("user-agent") || "";
     const referer = req.headers.get("referer") || "";
 
-    // Detect device type from user agent
     const deviceType = /mobile|android|iphone|ipad/i.test(userAgent) ? "mobile" : "desktop";
 
     await supabase.from("affiliate_clicks").insert({
@@ -41,15 +45,21 @@ export async function GET(req: NextRequest) {
     await supabase.rpc("increment_link_clicks", { p_link_id: link.id });
     await supabase.rpc("increment_affiliate_clicks", { p_affiliate_id: link.affiliate_id });
 
-    const redirectUrl = new URL(link.destination_url);
+    const redirectUrl = new URL(link.destination_url, req.url);
     redirectUrl.searchParams.set("_aff", linkCode);
 
     const response = NextResponse.redirect(redirectUrl);
-    response.cookies.set("_aff_ref", linkCode, {
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+    const cookieOpts = {
+      maxAge: 30 * 24 * 60 * 60,
       httpOnly: true,
-      sameSite: "lax",
-    });
+      sameSite: "lax" as const,
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+    };
+    // Canonical cookie used by checkout + cart attribution
+    response.cookies.set(AFFILIATE_REF_COOKIE, linkCode, cookieOpts);
+    // Keep legacy name briefly for any older readers
+    response.cookies.set(AFFILIATE_REF_COOKIE_LEGACY, linkCode, cookieOpts);
 
     return response;
   } catch (error) {
