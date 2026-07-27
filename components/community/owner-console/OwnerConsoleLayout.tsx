@@ -1,5 +1,6 @@
 "use client";
 
+import { Inter } from "next/font/google";
 import { OwnerConsoleSidebar } from "./OwnerConsoleSidebar";
 import { OwnerConsoleTopBar } from "./OwnerConsoleTopBar";
 import {
@@ -7,9 +8,15 @@ import {
   type OwnerConsoleContextValue,
 } from "./OwnerConsoleContext";
 
+const ownerInter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-owner-inter",
+});
+
 /**
- * Single reusable Owner Console layout — sidebar + top bar + workspace.
- * Context panel reserved for future phases.
+ * Premium Owner Console layout — sidebar + top bar + workspace.
+ * Context panel mounts from dashboard / section children when needed.
  */
 export function OwnerConsoleLayout({
   value,
@@ -20,7 +27,10 @@ export function OwnerConsoleLayout({
 }) {
   return (
     <OwnerConsoleProvider value={value}>
-      <div className="flex h-[100dvh] flex-col overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+      <div
+        className={`${ownerInter.variable} flex h-[100dvh] flex-col overflow-hidden bg-[#FAFAFB] text-[#111827]`}
+        style={{ fontFamily: "var(--font-owner-inter), ui-sans-serif, system-ui, sans-serif" }}
+      >
         <OwnerConsoleTopBar
           communities={value.communities}
           community={value.community}
@@ -37,25 +47,12 @@ export function OwnerConsoleLayout({
             communitySlug={value.community?.slug ?? null}
             role={value.role}
             badges={value.badges}
+            userName={value.userName}
+            userAvatar={value.userAvatar}
           />
           <main className="min-w-0 flex-1 overflow-y-auto">
-            <div className="mx-auto flex max-w-[1400px] gap-5 p-4 sm:p-5 lg:p-6">
-              <div className="min-w-0 flex-1">{children}</div>
-              {/* Context panel — reserved for Phase A.x */}
-              <aside
-                className="hidden w-[300px] shrink-0 xl:block"
-                aria-label="Context panel"
-              >
-                <div className="sticky top-0 rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-4">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
-                    Context
-                  </p>
-                  <p className="mt-2 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
-                    Contextual details, inspectors, and secondary tools will
-                    mount here without leaving the Owner Console.
-                  </p>
-                </div>
-              </aside>
+            <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+              {children}
             </div>
           </main>
         </div>

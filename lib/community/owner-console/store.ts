@@ -22,7 +22,13 @@ export const useOwnerConsoleUiStore = create<OwnerConsoleUiState>()(
     (set, get) => ({
       sidebarCollapsed: false,
       sidebarMobileOpen: false,
-      expandedSections: ["command", "structure", "experience", "trust"],
+      expandedSections: [
+        "community",
+        "content",
+        "commerce",
+        "engagement",
+        "settings",
+      ],
       navQuery: "",
       selectedCommunityId: null,
       setSidebarCollapsed(v) {

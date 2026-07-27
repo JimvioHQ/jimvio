@@ -81,7 +81,7 @@ function navItem(
 export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   overview: navItem(
     "overview",
-    "Overview",
+    "Dashboard",
     "",
     "settings.manage",
     "Community health and operating dashboard"
@@ -119,17 +119,17 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   ),
   roles: navItem(
     "roles",
-    "Roles & Permissions",
+    "Roles",
     "roles",
     "roles.manage",
     "Owner, admin, moderator, and custom roles"
   ),
   content: navItem(
     "content",
-    "Content",
+    "Media",
     "content",
     "channel.manage",
-    "Posts, pins, and published assets"
+    "Posts, pins, and media library"
   ),
   courses: navItem(
     "courses",
@@ -155,21 +155,21 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   ),
   commerce: navItem(
     "commerce",
-    "Commerce",
+    "Products",
     "commerce",
     "commerce.manage",
-    "Storefront, offers, and monetization"
+    "Storefront, products, orders, and revenue"
   ),
   analytics: navItem(
     "analytics",
     "Analytics",
     "analytics",
     "analytics.view",
-    "Growth, engagement, and trust"
+    "Growth, engagement, and revenue"
   ),
   moderation: navItem(
     "moderation",
-    "Moderation",
+    "Reports",
     "moderation",
     "moderation.view",
     "Reports, queues, and safety",
@@ -177,24 +177,24 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   ),
   ai: navItem(
     "ai",
-    "AI",
+    "Notifications",
     "ai",
     "intelligence.view",
-    "Intelligence platform controls"
+    "Alerts and intelligence suggestions"
   ),
   automations: navItem(
     "automations",
-    "Automations",
+    "Billing",
     "automations",
     "settings.manage",
-    "Suggested workflows and rules"
+    "Billing and automation workflows"
   ),
   security: navItem(
     "security",
-    "Security",
+    "API",
     "security",
     "settings.manage",
-    "Access policies and safeguards"
+    "API keys, access policies, and safeguards"
   ),
   integrations: navItem(
     "integrations",
@@ -219,38 +219,42 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   ),
 };
 
+/** Grouped Owner Console navigation — collapsible sections. */
 export const OWNER_NAV_SECTIONS: OwnerNavSection[] = [
   {
-    id: "hub",
-    label: "Navigate",
-    items: ["overview"],
-  },
-  {
-    id: "command",
-    label: "Command",
-    items: ["analytics", "ai", "automations"],
-  },
-  {
-    id: "structure",
-    label: "Structure",
+    id: "community",
+    label: "Community",
     collapsible: true,
-    items: ["spaces", "members", "roles"],
+    items: ["members", "spaces", "roles", "live"],
   },
   {
-    id: "experience",
-    label: "Experience",
+    id: "content",
+    label: "Content",
     collapsible: true,
-    items: ["content", "courses", "events", "live", "commerce"],
+    items: ["courses", "events", "content"],
   },
   {
-    id: "trust",
-    label: "Trust & Ops",
+    id: "commerce",
+    label: "Commerce",
     collapsible: true,
-    items: ["moderation", "security", "integrations", "audit", "settings"],
+    items: ["commerce", "analytics"],
+  },
+  {
+    id: "engagement",
+    label: "Engagement",
+    collapsible: true,
+    items: ["moderation", "ai"],
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    collapsible: true,
+    items: ["settings", "automations", "security", "integrations", "audit"],
   },
 ];
 
 export type OwnerQuickActionId =
+  | "create_community"
   | "create_space"
   /** @deprecated Use create_space */
   | "create_group"
@@ -268,6 +272,8 @@ export type OwnerQuickAction = {
   label: string;
   href: (ctx: { communityId: string; slug: string }) => string;
   capability: PermissionCapability;
+  /** When true, shown in the dashboard Quick Actions grid. */
+  primary?: boolean;
 };
 
 /**
@@ -302,10 +308,11 @@ export function ownerConsoleHref(
 
 export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
   {
-    id: "create_space",
-    label: "Create Space",
-    href: ({ slug }) => ownerConsoleHref(slug, "spaces", { action: "create" }),
-    capability: "group.manage",
+    id: "create_community",
+    label: "Create Community",
+    href: () => "/communities/create",
+    capability: "settings.manage",
+    primary: true,
   },
   {
     id: "invite_members",
@@ -313,12 +320,14 @@ export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
     href: ({ slug }) =>
       ownerConsoleHref(slug, "members", { action: "invite" }),
     capability: "members.invite",
+    primary: true,
   },
   {
     id: "start_live",
     label: "Start Live",
     href: ({ slug }) => `/communities/${slug}/live`,
     capability: "live.manage",
+    primary: true,
   },
   {
     id: "create_course",
@@ -326,19 +335,28 @@ export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
     href: ({ slug }) =>
       ownerConsoleHref(slug, "courses", { action: "create" }),
     capability: "knowledge.manage",
+    primary: true,
   },
   {
     id: "create_event",
-    label: "Create Event",
+    label: "Schedule Event",
     href: ({ slug }) =>
       ownerConsoleHref(slug, "events", { action: "create" }),
     capability: "channel.manage",
+    primary: true,
   },
   {
     id: "open_moderation",
     label: "Open Moderation",
     href: ({ slug }) => ownerConsoleHref(slug, "moderation"),
     capability: "moderation.view",
+    primary: true,
+  },
+  {
+    id: "create_space",
+    label: "Create Space",
+    href: ({ slug }) => ownerConsoleHref(slug, "spaces", { action: "create" }),
+    capability: "group.manage",
   },
   {
     id: "community_settings",
@@ -351,6 +369,8 @@ export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
 export type OwnerDashboardCardId =
   | "health"
   | "members"
+  | "communities"
+  | "revenue"
   | "growth"
   | "reports"
   | "joins"
@@ -369,6 +389,9 @@ export type OwnerDashboardMetric = {
   hint: string;
   href?: string;
   tone?: "default" | "accent" | "warn" | "success";
+  trend?: string;
+  trendUp?: boolean;
+  sparkline?: number[];
 };
 
 export type OwnerCommunitySummary = {

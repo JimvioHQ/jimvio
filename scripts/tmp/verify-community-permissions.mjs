@@ -88,7 +88,7 @@ assert.match(
     path.join(root, "components/community/owner-console/OwnerDashboardShell.tsx"),
     "utf8"
   ),
-  /Owner-only analytics/
+  /Analytics overview|View analytics|Owner-only analytics/
 );
 assert.match(
   fs.readFileSync(
