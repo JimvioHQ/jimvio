@@ -157,13 +157,16 @@ export function defaultLiveCommands(handlers: {
   poll: () => void;
   share: () => void;
   record: () => void;
+  pauseRecord?: () => void;
+  resumeRecord?: () => void;
   analytics: () => void;
   searchPeople: () => void;
+  copyLink?: () => void;
 }): CommandAction[] {
   const icon = (node: React.ReactNode) => (
     <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-black/[0.04]">{node}</span>
   );
-  return [
+  const actions: CommandAction[] = [
     {
       id: "invite",
       label: "Invite Speaker",
@@ -198,6 +201,24 @@ export function defaultLiveCommands(handlers: {
       icon: icon(<Radio className="h-3.5 w-3.5" />),
       run: handlers.record,
     },
+  ];
+  if (handlers.pauseRecord) {
+    actions.push({
+      id: "pause-record",
+      label: "Pause Recording",
+      icon: icon(<Radio className="h-3.5 w-3.5" />),
+      run: handlers.pauseRecord,
+    });
+  }
+  if (handlers.resumeRecord) {
+    actions.push({
+      id: "resume-record",
+      label: "Resume Recording",
+      icon: icon(<Radio className="h-3.5 w-3.5" />),
+      run: handlers.resumeRecord,
+    });
+  }
+  actions.push(
     {
       id: "analytics",
       label: "Open Analytics",
@@ -214,13 +235,14 @@ export function defaultLiveCommands(handlers: {
       id: "share-link",
       label: "Copy Invite Link",
       icon: icon(<Share2 className="h-3.5 w-3.5" />),
-      run: handlers.invite,
+      run: handlers.copyLink ?? handlers.invite,
     },
     {
       id: "users",
       label: "Open People",
       icon: icon(<Users className="h-3.5 w-3.5" />),
       run: handlers.searchPeople,
-    },
-  ];
+    }
+  );
+  return actions;
 }

@@ -1,16 +1,25 @@
 "use client";
 
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, CornerDownRight, Heart, Pin, Shield, Smile, Send } from "lucide-react";
+import {
+  CornerDownRight,
+  Heart,
+  MoreHorizontal,
+  Pin,
+  Smile,
+  Send,
+  Trash2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/lib/community/hub-live-types";
 import { HubAvatar } from "../hub-ui";
 import { formatTime } from "./studio-utils";
 import { CHAT_RENDER_CAP, FOCUS_RING, FOCUS_RING_INSET, MOTION_COLORS } from "./studio-ui";
+import { ChatEmojiPickerDialog } from "@/components/community/chat/chat-emoji-picker-dialog";
+import type { LiveTypingUser } from "@/hooks/live/useLiveChat";
 
 type Enriched = ChatMessage & {
   pinned?: boolean;
-  highlight?: boolean;
   replyTo?: string | null;
 };
 
@@ -23,6 +32,18 @@ function ChatWorkspaceImpl({
   hostName,
   participantAvatars,
   onSend,
+  onReact,
+  onPin,
+  onDelete,
+  onEdit,
+  onSendGif,
+  onTyping,
+  typingUsers = [],
+  mentionCandidates = [],
+  canModerate = false,
+  roomActions = false,
+  connected = true,
+  queuedCount = 0,
   slowModeSeconds = 0,
 }: {
   messages: ChatMessage[];
@@ -36,14 +57,29 @@ function ChatWorkspaceImpl({
     body: string,
     reply?: { reply_to_id: string; reply_to_body?: string; reply_to_sender?: string }
   ) => void | Promise<void>;
+  onReact?: (messageId: string) => void | Promise<void>;
+  onPin?: (messageId: string, pin: boolean) => void | Promise<void>;
+  onDelete?: (messageId: string) => void | Promise<void>;
+  onEdit?: (messageId: string, body: string) => void | Promise<void>;
+  onSendGif?: (url: string, title?: string) => void | Promise<void>;
+  onTyping?: () => void;
+  typingUsers?: LiveTypingUser[];
+  mentionCandidates?: string[];
+  canModerate?: boolean;
+  roomActions?: boolean;
+  connected?: boolean;
+  queuedCount?: number;
   slowModeSeconds?: number;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [replyTo, setReplyTo] = useState<Enriched | null>(null);
-  const [modOpen, setModOpen] = useState(false);
-  const [filter, setFilter] = useState<"Top" | "Recent">("Top");
   const [atBottom, setAtBottom] = useState(true);
   const [unread, setUnread] = useState(0);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevLen = useRef(messages.length);
 
@@ -58,15 +94,21 @@ function ChatWorkspaceImpl({
       windowed.map((m) => ({
         ...m,
         pinned: Boolean(m.is_pinned),
-        highlight: m.reaction_count > 2,
         replyTo: m.reply_to_sender ?? null,
       })),
     [windowed]
   );
 
   const pinned = useMemo(() => enriched.filter((m) => m.pinned), [enriched]);
-  const queueCount = 0;
   const avatars = (participantAvatars ?? []).slice(0, 6);
+
+  const mentionMatches = useMemo(() => {
+    if (!mentionOpen) return [];
+    const q = mentionQuery.toLowerCase();
+    return mentionCandidates
+      .filter((n) => n && (!q || n.toLowerCase().includes(q)))
+      .slice(0, 6);
+  }, [mentionOpen, mentionQuery, mentionCandidates]);
 
   useEffect(() => {
     const el = listRef.current;
@@ -121,26 +163,50 @@ function ChatWorkspaceImpl({
     return null;
   };
 
+  const handleInputChange = (value: string) => {
+    setChatInput(value);
+    onTyping?.();
+    const at = value.lastIndexOf("@");
+    if (at >= 0) {
+      const after = value.slice(at + 1);
+      if (!/\s/.test(after) && mentionCandidates.length > 0) {
+        setMentionOpen(true);
+        setMentionQuery(after);
+        return;
+      }
+    }
+    setMentionOpen(false);
+    setMentionQuery("");
+  };
+
+  const insertMention = (name: string) => {
+    const at = chatInput.lastIndexOf("@");
+    const next =
+      at >= 0 ? `${chatInput.slice(0, at)}@${name.replace(/\s+/g, "")} ` : `${chatInput}@${name} `;
+    setChatInput(next);
+    setMentionOpen(false);
+    setMentionQuery("");
+    inputRef.current?.focus();
+  };
+
+  const typingLabel =
+    typingUsers.length === 0
+      ? null
+      : typingUsers.length === 1
+        ? `${typingUsers[0].name} is typing…`
+        : `${typingUsers.length} people typing…`;
+
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white" role="region" aria-label="Live chat">
       <div className="flex items-center justify-between gap-2 border-b border-neutral-100 px-4 py-3">
         <h2 className="text-[14px] font-semibold tracking-[-0.02em] text-neutral-900">
           Live Chat
         </h2>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setFilter((f) => (f === "Top" ? "Recent" : "Top"))}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-neutral-500 hover:bg-neutral-50 hover:text-neutral-800",
-              FOCUS_RING
-            )}
-            aria-label={`Sort messages by ${filter}`}
-          >
-            {filter}
-            <ChevronDown className="h-3 w-3" aria-hidden />
-          </button>
-        </div>
+        {queuedCount > 0 && (
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+            {queuedCount} queued
+          </span>
+        )}
       </div>
 
       {avatars.length > 0 && (
@@ -175,27 +241,6 @@ function ChatWorkspaceImpl({
               {m.body}
             </p>
           ))}
-        </div>
-      )}
-
-      {queueCount > 0 && (
-        <div className="mx-3 mt-2">
-          <button
-            type="button"
-            onClick={() => setModOpen((v) => !v)}
-            aria-expanded={modOpen}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium",
-              MOTION_COLORS,
-              FOCUS_RING,
-              modOpen
-                ? "bg-neutral-900 text-white"
-                : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
-            )}
-          >
-            <Shield className="h-3 w-3" strokeWidth={1.6} aria-hidden />
-            {queueCount} to review
-          </button>
         </div>
       )}
 
@@ -258,11 +303,32 @@ function ChatWorkspaceImpl({
                     </div>
                     <p className="mt-0.5 text-[13px] leading-[1.45] text-neutral-600">{m.body}</p>
                     <div className="mt-1 flex items-center gap-2">
-                      {m.reaction_count > 0 && (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-neutral-400">
-                          <Heart className="h-3 w-3 fill-red-500 text-red-500" aria-hidden />
-                          {m.reaction_count}
-                        </span>
+                      {roomActions && onReact ? (
+                        <button
+                          type="button"
+                          onClick={() => void onReact(m.id)}
+                          className={cn(
+                            "inline-flex items-center gap-1 text-[11px] text-neutral-400 hover:text-red-500",
+                            FOCUS_RING
+                          )}
+                          aria-label="React"
+                        >
+                          <Heart
+                            className={cn(
+                              "h-3 w-3",
+                              m.reaction_count > 0 && "fill-red-500 text-red-500"
+                            )}
+                            aria-hidden
+                          />
+                          {m.reaction_count > 0 ? m.reaction_count : null}
+                        </button>
+                      ) : (
+                        m.reaction_count > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-neutral-400">
+                            <Heart className="h-3 w-3 fill-red-500 text-red-500" aria-hidden />
+                            {m.reaction_count}
+                          </span>
+                        )
                       )}
                       <button
                         type="button"
@@ -274,6 +340,63 @@ function ChatWorkspaceImpl({
                       >
                         Reply
                       </button>
+                      {roomActions && (canModerate || onDelete || onEdit) && (
+                        <div className="relative opacity-0 group-hover:opacity-100 group-focus-within:opacity-100">
+                          <button
+                            type="button"
+                            onClick={() => setMenuId((id) => (id === m.id ? null : m.id))}
+                            className={cn("rounded p-0.5 text-neutral-400 hover:text-neutral-700", FOCUS_RING)}
+                            aria-label="Message actions"
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+                          </button>
+                          {menuId === m.id && (
+                            <div className="absolute right-0 z-20 mt-1 min-w-[120px] rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
+                              {onEdit && (
+                                <button
+                                  type="button"
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-neutral-700 hover:bg-neutral-50"
+                                  onClick={() => {
+                                    setMenuId(null);
+                                    const next = window.prompt("Edit message", m.body);
+                                    if (next != null && next.trim() && next.trim() !== m.body) {
+                                      void onEdit(m.id, next.trim());
+                                    }
+                                  }}
+                                >
+                                  Edit
+                                </button>
+                              )}
+                              {canModerate && onPin && (
+                                <button
+                                  type="button"
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-neutral-700 hover:bg-neutral-50"
+                                  onClick={() => {
+                                    setMenuId(null);
+                                    void onPin(m.id, !m.pinned);
+                                  }}
+                                >
+                                  <Pin className="h-3 w-3" aria-hidden />
+                                  {m.pinned ? "Unpin" : "Pin"}
+                                </button>
+                              )}
+                              {onDelete && (
+                                <button
+                                  type="button"
+                                  className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-red-600 hover:bg-red-50"
+                                  onClick={() => {
+                                    setMenuId(null);
+                                    void onDelete(m.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-3 w-3" aria-hidden />
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -298,6 +421,11 @@ function ChatWorkspaceImpl({
       </div>
 
       <div className="border-t border-neutral-100 px-3 pb-3 pt-2">
+        {typingLabel && (
+          <p className="mb-1 px-1 text-[10px] text-neutral-400" aria-live="polite">
+            {typingLabel}
+          </p>
+        )}
         {replyTo && (
           <div className="mb-1.5 flex items-center justify-between px-1 text-[11px] text-neutral-400">
             <span className="truncate">
@@ -312,76 +440,119 @@ function ChatWorkspaceImpl({
             </button>
           </div>
         )}
-        <form
-          className="flex items-center gap-2 rounded-2xl border border-neutral-200/80 bg-neutral-50/80 px-2.5 py-1.5 focus-within:border-accent/30 focus-within:bg-white"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const body = chatInput.trim();
-            if (!body) return;
-            void Promise.resolve(
-              onSend?.(
-                body,
-                replyTo
-                  ? {
-                      reply_to_id: replyTo.id,
-                      reply_to_body: replyTo.body.slice(0, 200),
-                      reply_to_sender: replyTo.sender_name,
-                    }
-                  : undefined
-              )
-            ).finally(() => {
-              setChatInput("");
-              setReplyTo(null);
-            });
-          }}
-        >
-          <button
-            type="button"
-            className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:bg-white hover:text-neutral-700",
-              FOCUS_RING
-            )}
-            aria-label="Insert emoji"
-            title="Emoji"
-            onClick={() => setChatInput(chatInput ? `${chatInput} 👍` : "👍")}
+        <div className="relative">
+          {mentionMatches.length > 0 && (
+            <ul
+              className="absolute bottom-full left-0 z-20 mb-1 max-h-36 w-full overflow-y-auto rounded-xl border border-neutral-200 bg-white py-1 shadow-lg"
+              role="listbox"
+            >
+              {mentionMatches.map((name) => (
+                <li key={name}>
+                  <button
+                    type="button"
+                    className="w-full px-3 py-1.5 text-left text-[12px] text-neutral-700 hover:bg-neutral-50"
+                    onClick={() => insertMention(name)}
+                  >
+                    @{name.replace(/\s+/g, "")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form
+            className="flex items-center gap-2 rounded-2xl border border-neutral-200/80 bg-neutral-50/80 px-2.5 py-1.5 focus-within:border-accent/30 focus-within:bg-white"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const body = chatInput.trim();
+              if (!body) return;
+              void Promise.resolve(
+                onSend?.(
+                  body,
+                  replyTo
+                    ? {
+                        reply_to_id: replyTo.id,
+                        reply_to_body: replyTo.body.slice(0, 200),
+                        reply_to_sender: replyTo.sender_name,
+                      }
+                    : undefined
+                )
+              ).finally(() => {
+                setChatInput("");
+                setReplyTo(null);
+                setMentionOpen(false);
+              });
+            }}
           >
-            <Smile className="h-4 w-4" strokeWidth={1.6} aria-hidden />
-          </button>
-          <label className="sr-only" htmlFor="live-chat-input">
-            Message the room
-          </label>
-          <input
-            id="live-chat-input"
-            value={chatInput}
-            onChange={(e) => setChatInput(e.target.value)}
-            placeholder="Type a message..."
-            autoComplete="off"
-            className={cn(
-              "min-w-0 flex-1 bg-transparent py-2 text-[13px] outline-none placeholder:text-neutral-400",
-              FOCUS_RING_INSET
-            )}
-          />
-          <button
-            type="submit"
-            disabled={!chatInput.trim()}
-            className={cn(
-              "flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white disabled:opacity-25",
-              MOTION_COLORS,
-              FOCUS_RING,
-              "hover:bg-accent-hover"
-            )}
-            aria-label="Send message"
-          >
-            <Send className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-          </button>
-        </form>
+            <button
+              type="button"
+              className={cn(
+                "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-400 hover:bg-white hover:text-neutral-700",
+                FOCUS_RING
+              )}
+              aria-label="Emoji and GIFs"
+              title="Emoji & GIFs"
+              onClick={() => setEmojiOpen(true)}
+            >
+              <Smile className="h-4 w-4" strokeWidth={1.6} aria-hidden />
+            </button>
+            <label className="sr-only" htmlFor="live-chat-input">
+              Message the room
+            </label>
+            <input
+              ref={inputRef}
+              id="live-chat-input"
+              value={chatInput}
+              onChange={(e) => handleInputChange(e.target.value)}
+              placeholder="Type a message..."
+              autoComplete="off"
+              className={cn(
+                "min-w-0 flex-1 bg-transparent py-2 text-[13px] outline-none placeholder:text-neutral-400",
+                FOCUS_RING_INSET
+              )}
+            />
+            <button
+              type="submit"
+              disabled={!chatInput.trim()}
+              className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white disabled:opacity-25",
+                MOTION_COLORS,
+                FOCUS_RING,
+                "hover:bg-accent-hover"
+              )}
+              aria-label="Send message"
+            >
+              <Send className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+            </button>
+          </form>
+        </div>
         <p className="mt-2 flex items-center gap-1.5 px-1 text-[10px] text-neutral-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              connected ? "bg-emerald-400" : "bg-amber-400"
+            )}
+            aria-hidden
+          />
           {slowModeSeconds > 0
             ? `Slow mode ${slowModeSeconds}s`
-            : "Chat connected"}
+            : connected
+              ? "Chat connected"
+              : "Reconnecting…"}
         </p>
       </div>
+
+      <ChatEmojiPickerDialog
+        open={emojiOpen}
+        onOpenChange={setEmojiOpen}
+        onSelect={(native) => setChatInput(chatInput ? `${chatInput}${native}` : native)}
+        onSelectGif={
+          roomActions && onSendGif
+            ? (gif) => {
+                void onSendGif(gif.url || "", gif.title);
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }

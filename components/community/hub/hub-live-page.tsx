@@ -32,6 +32,7 @@ import {
   canEndLive,
   canInviteSpeaker,
   canLaunchPoll,
+  canModerateChat,
   canPublishAv,
   canRecord,
   canRejectSpeaker,
@@ -140,7 +141,11 @@ export function HubLivePage({
   const chatRoomId = live.session?.room_id ?? data?.session.roomId ?? null;
   const liveChat = useLiveChat(
     chatRoomId,
-    live.session?.status === "live" ? live.session.id : null
+    live.session?.status === "live" ? live.session.id : null,
+    {
+      userId: live.userId,
+      displayName: "You",
+    }
   );
   const hostUserId = live.session?.host_id ?? null;
   const follow = useFollowUser(
@@ -350,6 +355,10 @@ export function HubLivePage({
   mediaRecoverRef.current = media.recover;
   const livekitReconnectRef = useRef(livekit.reconnect);
   livekitReconnectRef.current = livekit.reconnect;
+  const liveChatReloadRef = useRef(liveChat.reload);
+  liveChatReloadRef.current = liveChat.reload;
+  const liveChatFlushRef = useRef(liveChat.flushOutbox);
+  liveChatFlushRef.current = liveChat.flushOutbox;
   const sessionLiveRef = useRef(live.session?.status === "live");
   sessionLiveRef.current = live.session?.status === "live";
   const livekitConnectedRef = useRef(livekit.connected);
@@ -374,6 +383,8 @@ export function HubLivePage({
       if (sessionLiveRef.current && !livekitConnectedRef.current) {
         void livekitReconnectRef.current().catch(() => undefined);
       }
+      void liveChatReloadRef.current().catch(() => undefined);
+      void liveChatFlushRef.current();
     };
     const onOffline = () => {
       setOnline(false);
@@ -1054,6 +1065,26 @@ export function HubLivePage({
     }
   }, [hostUserId, live.userId, follow, showToast]);
 
+  const reportLive = useCallback(() => {
+    if (!live.session?.id) {
+      showToast("No live session to report");
+      return;
+    }
+    void fetch(`/api/c/live/sessions/${live.session.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "report" }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const j = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(j.error ?? "Report failed");
+        }
+        showToast("Report submitted — our team will review");
+      })
+      .catch((e) => showToast(e instanceof Error ? e.message : "Report failed"));
+  }, [live.session?.id, showToast]);
+
   const commands = useMemo(
     () =>
       defaultLiveCommands({
@@ -1062,7 +1093,18 @@ export function HubLivePage({
           toggleLeft("people");
           showToast("Invite speakers");
         },
-        muteAll: () => showToast("Muted all guests"),
+        muteAll: () => {
+          if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
+          const targets = live.participants.filter(
+            (p) =>
+              p.status === "joined" &&
+              p.user_id !== live.userId &&
+              p.role !== "host"
+          );
+          void Promise.all(
+            targets.map((p) => live.mute(p.user_id, false).catch(() => undefined))
+          ).then(() => showToast(`Muted ${targets.length} guest${targets.length === 1 ? "" : "s"}`));
+        },
         poll: () => {
           if (live.session && !gate(canLaunchPoll(live.myRole), "Moderators only")) return;
           setHasPolls(true);
@@ -1073,10 +1115,36 @@ export function HubLivePage({
         },
         share: () => void startShare(),
         record: () => void toggleRecord(),
+        pauseRecord:
+          media.recordingState === "recording" && !egressRecording
+            ? () => {
+                media.pauseRecording();
+                showToast("Recording paused");
+              }
+            : undefined,
+        resumeRecord:
+          media.recordingState === "paused"
+            ? () => {
+                media.resumeRecording();
+                showToast("Recording resumed");
+              }
+            : undefined,
         analytics: () => openRight("analytics"),
         searchPeople: () => toggleLeft("people"),
+        copyLink: () => void copyUrl(),
       }),
-    [openRight, showToast, toggleLeft, toggleRecord, startShare, gate, live]
+    [
+      openRight,
+      showToast,
+      toggleLeft,
+      toggleRecord,
+      startShare,
+      gate,
+      live,
+      media.recordingState,
+      egressRecording,
+      media,
+    ]
   );
 
   const showLeftRail = !focusMode;
@@ -1133,6 +1201,8 @@ export function HubLivePage({
             type="button"
             onClick={() => {
               void loadDashboard();
+              void liveChat.reload().catch(() => undefined);
+              void liveChat.flushOutbox();
               if (sessionIdProp) {
                 void live.join(sessionIdProp).catch(() => undefined);
               }
@@ -1383,7 +1453,7 @@ export function HubLivePage({
                 toggleLeft("people");
                 setLiveNavOpen(false);
               }}
-              onReport={() => showToast("Report submitted")}
+              onReport={reportLive}
             />
             {liveNavOpen && (
               <div className="fixed inset-0 z-50 lg:hidden">
@@ -1429,7 +1499,7 @@ export function HubLivePage({
                         toggleLeft("people");
                         setLiveNavOpen(false);
                       }}
-                      onReport={() => showToast("Report submitted")}
+                      onReport={reportLive}
                     />
                   </div>
                 </div>
@@ -1715,13 +1785,7 @@ export function HubLivePage({
               onReact={() => openRight("chat")}
               onQa={() => openRight("qa")}
               onCopyLink={copyUrl}
-              onAnnotate={() => showToast("Annotate")}
-              onLaser={() => showToast("Laser pointer")}
               onFullscreen={() => setFocusMode(true)}
-              onPrev={() => showToast("Previous slide")}
-              onNext={() => showToast("Next slide")}
-              onTimer={() => showToast("Timer started")}
-              onSlides={() => showToast("Slides")}
               onMore={() => openRight("tools")}
               onEnd={() => void endLive()}
               onLeave={() => void leaveLive()}
@@ -1804,15 +1868,25 @@ export function HubLivePage({
                     scrollTop={drawer.chatScroll}
                     onScrollSave={(y) => updateDrawer({ chatScroll: y })}
                     chatInput={chatInput}
-                    setChatInput={(v) => {
-                      setChatInput(v);
-                      liveChat.signalTyping();
-                    }}
+                    setChatInput={setChatInput}
                     hostName={session.host}
                     participantAvatars={speakers.slice(0, 6).map((s) => ({
                       name: s.name,
                       src: s.avatar_url,
                     }))}
+                    mentionCandidates={[
+                      ...new Set(
+                        [session.host, ...speakers.map((s) => s.name), ...chatMessages.map((m) => m.sender_name)].filter(
+                          Boolean
+                        )
+                      ),
+                    ]}
+                    typingUsers={liveChat.typingUsers}
+                    onTyping={() => liveChat.signalTyping()}
+                    connected={liveChat.connected}
+                    queuedCount={liveChat.queuedCount}
+                    roomActions={liveChat.roomActions}
+                    canModerate={canModerateChat(live.myRole)}
                     slowModeSeconds={
                       Number(
                         (
@@ -1830,6 +1904,64 @@ export function HubLivePage({
                         showToast(e instanceof Error ? e.message : "Message failed");
                       }
                     }}
+                    onReact={
+                      liveChat.roomActions
+                        ? async (id) => {
+                            try {
+                              await liveChat.toggleReaction(id);
+                            } catch (e) {
+                              showToast(e instanceof Error ? e.message : "React failed");
+                            }
+                          }
+                        : undefined
+                    }
+                    onPin={
+                      liveChat.roomActions && canModerateChat(live.myRole)
+                        ? async (id, pin) => {
+                            try {
+                              await liveChat.togglePin(id, pin);
+                              showToast(pin ? "Message pinned" : "Message unpinned");
+                            } catch (e) {
+                              showToast(e instanceof Error ? e.message : "Pin failed");
+                            }
+                          }
+                        : undefined
+                    }
+                    onDelete={
+                      liveChat.roomActions
+                        ? async (id) => {
+                            try {
+                              await liveChat.deleteMessage(id);
+                              showToast("Message deleted");
+                            } catch (e) {
+                              showToast(e instanceof Error ? e.message : "Delete failed");
+                            }
+                          }
+                        : undefined
+                    }
+                    onEdit={
+                      liveChat.roomActions
+                        ? async (id, body) => {
+                            try {
+                              await liveChat.editMessage(id, body);
+                              showToast("Message updated");
+                            } catch (e) {
+                              showToast(e instanceof Error ? e.message : "Edit failed");
+                            }
+                          }
+                        : undefined
+                    }
+                    onSendGif={
+                      liveChat.roomActions
+                        ? async (url, title) => {
+                            try {
+                              await liveChat.sendGif(url, title);
+                            } catch (e) {
+                              showToast(e instanceof Error ? e.message : "GIF failed");
+                            }
+                          }
+                        : undefined
+                    }
                   />
                   {live.session?.id && (
                     <LiveReactionsBar

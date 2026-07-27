@@ -18,6 +18,15 @@ export async function POST(
   const hasAccess = await canAccessRoom(user.id, roomId);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
 
+  const { data: msgRow } = await supabase
+    .from("community_messages")
+    .select("id, room_id")
+    .eq("id", messageId)
+    .maybeSingle();
+  if (!msgRow || msgRow.room_id !== roomId) {
+    return NextResponse.json({ error: "Message not found" }, { status: 404 });
+  }
+
   const { emoji } = (await req.json()) as { emoji?: string };
   if (typeof emoji !== "string" || !emoji.trim()) {
     return NextResponse.json({ error: "emoji required" }, { status: 400 });

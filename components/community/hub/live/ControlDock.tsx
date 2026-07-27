@@ -192,12 +192,16 @@ function ControlDockImpl({
             <DockBtn accent onClick={onStopShare} label="Stop Share">
               <ScreenShareOff className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn onClick={onAnnotate} label="Annotate">
-              <PenLine className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
-            <DockBtn onClick={onLaser} label="Laser" className="hidden sm:flex">
-              <MousePointer2 className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
+            {onAnnotate && (
+              <DockBtn onClick={onAnnotate} label="Annotate">
+                <PenLine className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            )}
+            {onLaser && (
+              <DockBtn onClick={onLaser} label="Laser" className="hidden sm:flex">
+                <MousePointer2 className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            )}
             <DockBtn onClick={onFullscreen} label="Fullscreen" className="hidden sm:flex">
               <Fullscreen className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
@@ -215,18 +219,26 @@ function ControlDockImpl({
 
         {activity === "present" && (
           <>
-            <DockBtn onClick={onSlides} label="Slides">
-              <Presentation className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
-            <DockBtn onClick={onPrev} label="Prev">
-              <ChevronLeft className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
-            <DockBtn onClick={onNext} label="Next">
-              <ChevronRight className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
-            <DockBtn onClick={onTimer} label="Timer" className="hidden sm:flex">
-              <Timer className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
+            {onSlides && (
+              <DockBtn onClick={onSlides} label="Slides">
+                <Presentation className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            )}
+            {onPrev && (
+              <DockBtn onClick={onPrev} label="Prev">
+                <ChevronLeft className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            )}
+            {onNext && (
+              <DockBtn onClick={onNext} label="Next">
+                <ChevronRight className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            )}
+            {onTimer && (
+              <DockBtn onClick={onTimer} label="Timer" className="hidden sm:flex">
+                <Timer className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            )}
             <DockBtn onClick={onPoll} label="Polls" hint="P">
               <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>

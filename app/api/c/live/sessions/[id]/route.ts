@@ -236,6 +236,25 @@ export async function POST(
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }
+    case "report": {
+      const session = await getSession(id);
+      if (!session) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      const allowed = await canViewLiveSession(user.id, session);
+      if (!allowed) return NextResponse.json({ error: "No access" }, { status: 403 });
+      const { createServiceRoleClient } = await import("@/lib/supabase/service-role");
+      const db = createServiceRoleClient();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (db as any).from("live_session_signals").insert({
+        session_id: id,
+        from_user_id: user.id,
+        to_user_id: session.host_id,
+        signal_type: "report",
+        payload: { reason: "user_report", at: new Date().toISOString() },
+      });
+      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      liveStudioLog("info", "session_report", { sessionId: id, userId: user.id });
+      return NextResponse.json({ ok: true });
+    }
     case "chat-settings": {
       if (!body.chatSettings) {
         return NextResponse.json({ error: "chatSettings required" }, { status: 400 });

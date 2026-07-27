@@ -52,8 +52,9 @@ export async function getDiscoveryShelves(): Promise<DiscoveryShelves> {
       .limit(6),
     db
       .from("live_sessions")
-      .select("id, title, description, settings, status, scheduled_at, created_at")
+      .select("id, title, description, settings, status, scheduled_at, created_at, privacy")
       .in("status", ["live", "scheduled"])
+      .eq("privacy", "public")
       .order("scheduled_at", { ascending: true, nullsFirst: false })
       .limit(6),
   ]);

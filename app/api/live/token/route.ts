@@ -100,8 +100,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not allowed in this session" }, { status: 403 });
   }
 
+  // Waiting room: no LiveKit media until host admits.
+  if (participant.status === "requested") {
+    liveStudioLog("warn", "token_denied", {
+      reason: "waiting_room",
+      sessionId,
+      userId: user.id,
+    });
+    return NextResponse.json(
+      { error: "Waiting for host admission" },
+      { status: 403 }
+    );
+  }
+
+  // Invited speakers may subscribe only until they accept the invite.
   const role: LiveStageRole =
-    participant.role || (session.host_id === user.id ? "host" : "viewer");
+    participant.status === "invited"
+      ? "viewer"
+      : participant.role || (session.host_id === user.id ? "host" : "viewer");
 
   const admin = createServiceRoleClient();
   const { data: profile } = await admin

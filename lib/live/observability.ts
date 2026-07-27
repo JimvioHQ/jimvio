@@ -9,6 +9,7 @@ export type LiveStudioEvent =
   | "session_create"
   | "session_join"
   | "session_end"
+  | "session_report"
   | "token_mint"
   | "token_denied"
   | "token_failed"
