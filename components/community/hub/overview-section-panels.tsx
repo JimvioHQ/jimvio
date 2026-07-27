@@ -401,7 +401,7 @@ export function OverviewLivePanel({
 
     setCards(fallback);
 
-    void (async () => {
+    const load = async () => {
       try {
         const res = await fetch(
           `/api/c/live?slug=${encodeURIComponent(slug)}`
@@ -449,14 +449,22 @@ export function OverviewLivePanel({
               live: true,
             },
           ]);
+        } else if (!activeLiveSession) {
+          setCards([]);
         }
       } catch {
         /* keep fallback */
       }
-    })();
+    };
+
+    void load();
+    const poll = setInterval(() => {
+      void load();
+    }, 12_000);
 
     return () => {
       cancelled = true;
+      clearInterval(poll);
     };
   }, [slug, activeLiveSession, liveNow]);
 

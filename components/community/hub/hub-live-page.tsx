@@ -138,7 +138,10 @@ export function HubLivePage({
   const media = useLiveMediaPlane(true);
   const live = useLiveSession(sessionIdProp ?? null);
   const chatRoomId = live.session?.room_id ?? data?.session.roomId ?? null;
-  const liveChat = useLiveChat(chatRoomId);
+  const liveChat = useLiveChat(
+    chatRoomId,
+    live.session?.status === "live" ? live.session.id : null
+  );
 
   const livekit = useLiveKitRoom({
     sessionId: live.session?.status === "live" ? live.session.id : null,
@@ -258,16 +261,26 @@ export function HubLivePage({
     showToast(livekit.error);
   }, [livekit.error, showToast]);
 
-  /* Keep activity mode in sync when share track ends externally */
+  /* Keep activity + server share flag in sync when share track ends externally */
+  const wasSharingRef = useRef(false);
+  const syncMediaRef = useRef(live.syncMedia);
+  syncMediaRef.current = live.syncMedia;
+  const hasLiveSessionRef = useRef(Boolean(live.session));
+  hasLiveSessionRef.current = Boolean(live.session);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mirror media plane share flag into existing activity chrome
     setActivity((prev) => {
       if (media.sharing) return "share";
-      return prev === "share" ? "live" : prev;
+      return prev === "share" || prev === "present" ? "live" : prev;
     });
+    if (wasSharingRef.current && !media.sharing && hasLiveSessionRef.current) {
+      void syncMediaRef.current({ sharing: false });
+    }
+    wasSharingRef.current = media.sharing;
   }, [media.sharing]);
 
   const [pendingInvite, setPendingInvite] = useState(false);
+  const [inviteUserId, setInviteUserId] = useState("");
   const invitePromptedRef = useRef(false);
   const wasPublishableRef = useRef<boolean | null>(null);
   useEffect(() => {
@@ -521,7 +534,8 @@ export function HubLivePage({
       quality: prefs.shareQuality,
     });
     if (ok) {
-      setActivity(prefs.presenterMode ? "present" : "share");
+      // Always use share dock (Stop Share / mic path) — presenter prefs stay in Tools.
+      setActivity("share");
       void live.syncMedia({ sharing: true });
     }
   }, [gate, live, media]);
@@ -531,6 +545,16 @@ export function HubLivePage({
     setActivity("live");
     void live.syncMedia({ sharing: false });
   }, [live, media]);
+
+  const switchShareSource = useCallback(async () => {
+    if (live.session && !gate(canShareScreen(live.myRole), "Speakers only")) return;
+    const ok = await media.switchScreenShare();
+    if (ok) {
+      setActivity("share");
+      void live.syncMedia({ sharing: true });
+      showToast("Share source updated");
+    }
+  }, [gate, live, media, showToast]);
 
   const leaveLive = useCallback(async () => {
     if (!live.session) return;
@@ -756,7 +780,7 @@ export function HubLivePage({
 
   const pendingHandRaises = useMemo(() => {
     return live.participants
-      .filter((p) => p.status === "requested")
+      .filter((p) => p.status === "requested" && p.hand_raised)
       .map((p) => {
         const dash = data?.speakers.find((s) => s.id === p.user_id);
         const remote = livekit.remotes.find((r) => r.identity === p.user_id);
@@ -769,15 +793,30 @@ export function HubLivePage({
       });
   }, [live.participants, live.userId, data?.speakers, livekit.remotes]);
 
+  const waitingRoomList = useMemo(() => {
+    return live.participants
+      .filter((p) => p.status === "requested" && !p.hand_raised)
+      .map((p) => {
+        const dash = data?.speakers.find((s) => s.id === p.user_id);
+        const remote = livekit.remotes.find((r) => r.identity === p.user_id);
+        return {
+          id: p.user_id,
+          name: dash?.name ?? remote?.name ?? (p.user_id === live.userId ? "You" : "Viewer"),
+          avatar_url: dash?.avatar_url ?? null,
+          role: "waiting",
+        };
+      });
+  }, [live.participants, live.userId, data?.speakers, livekit.remotes]);
+
   const peoplePanelProps = useMemo(() => {
     const canManageRequests =
       canAcceptSpeaker(live.myRole) || canRejectSpeaker(live.myRole);
+    const canManagePeople = canInviteSpeaker(live.myRole);
     return {
       speakers,
       viewers: live.viewerCount || analytics?.liveViewers || 0,
       activeSpeakerId,
       onSelect: (id: string) => {
-        // Speakers are already on stage — only focus them; never re-invite.
         setActiveSpeakerId(id);
       },
       query: peopleQuery,
@@ -803,17 +842,96 @@ export function HubLivePage({
               );
           }
         : undefined,
+      waitingRoom: canManageRequests ? waitingRoomList : undefined,
+      onAdmitWaiting: canAcceptSpeaker(live.myRole)
+        ? (id: string) => {
+            void live
+              .admit(id)
+              .then(() => showToast("Admitted"))
+              .catch((e) =>
+                showToast(e instanceof Error ? e.message : "Admit failed")
+              );
+          }
+        : undefined,
+      onRejectWaiting: canRejectSpeaker(live.myRole)
+        ? (id: string) => {
+            void live
+              .reject(id)
+              .then(() => showToast("Rejected"))
+              .catch((e) =>
+                showToast(e instanceof Error ? e.message : "Reject failed")
+              );
+          }
+        : undefined,
+      canManage: canManagePeople,
+      inviteValue: inviteUserId,
+      onInviteValue: setInviteUserId,
+      onInvite: canManagePeople
+        ? () => {
+            const id = inviteUserId.trim();
+            if (!id) {
+              showToast("Enter a user id to invite");
+              return;
+            }
+            void live
+              .invite(id)
+              .then(() => {
+                setInviteUserId("");
+                showToast("Invite sent");
+              })
+              .catch((e) =>
+                showToast(e instanceof Error ? e.message : "Invite failed")
+              );
+          }
+        : undefined,
+      onMute: canManagePeople
+        ? (id: string) => {
+            void live
+              .mute(id, false)
+              .then(() => showToast("Muted"))
+              .catch((e) =>
+                showToast(e instanceof Error ? e.message : "Mute failed")
+              );
+          }
+        : undefined,
+      onPromote: canManagePeople
+        ? (id: string) => {
+            void live
+              .promote(id, "speaker")
+              .then(() => showToast("Promoted to speaker"))
+              .catch((e) =>
+                showToast(e instanceof Error ? e.message : "Promote failed")
+              );
+          }
+        : undefined,
+      onRemove: canManagePeople
+        ? (id: string) => {
+            void live
+              .remove(id)
+              .then(() => showToast("Removed"))
+              .catch((e) =>
+                showToast(e instanceof Error ? e.message : "Remove failed")
+              );
+          }
+        : undefined,
     };
   }, [
     speakers,
     live.viewerCount,
     live.myRole,
     live.accept,
+    live.admit,
     live.reject,
+    live.invite,
+    live.mute,
+    live.promote,
+    live.remove,
     analytics?.liveViewers,
     activeSpeakerId,
     peopleQuery,
     pendingHandRaises,
+    waitingRoomList,
+    inviteUserId,
     showToast,
   ]);
   const liveStatusLabel =
@@ -1718,6 +1836,16 @@ export function HubLivePage({
                       name: s.name,
                       src: s.avatar_url,
                     }))}
+                    slowModeSeconds={
+                      Number(
+                        (
+                          live.session?.settings as
+                            | { chat?: { slow_mode_seconds?: number } }
+                            | null
+                          | undefined
+                        )?.chat?.slow_mode_seconds ?? 0
+                      ) || 0
+                    }
                     onSend={async (body, reply) => {
                       try {
                         await liveChat.send(body, reply);
@@ -1835,11 +1963,22 @@ export function HubLivePage({
                       sharing={media.sharing}
                       onStart={() => void startShare()}
                       onStop={stopShare}
+                      onSwitchSource={() => void switchShareSource()}
                     />
                   </div>
                   <LiveCreatorTools
                     sessionId={live.session.id}
                     canManage={canInviteSpeaker(live.myRole)}
+                    waitingRoomEnabled={Boolean(
+                      (live.session.settings as { waiting_room?: boolean } | null)
+                        ?.waiting_room
+                    )}
+                    waitingCount={waitingRoomList.length}
+                    onToggleWaitingRoom={(enabled) => live.setWaitingRoom(enabled)}
+                    onInviteCohost={async (userId) => {
+                      await live.invite(userId);
+                      await live.promote(userId, "cohost").catch(() => undefined);
+                    }}
                   />
                 </div>
               )}

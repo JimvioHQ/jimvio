@@ -124,25 +124,29 @@ export async function getSession(sessionId: string): Promise<LiveSessionRow | nu
   return (data as LiveSessionRow | null) ?? null;
 }
 
-/** True when the user may view session metadata (member / owner / public creator live). */
+/** True when the user may view session metadata (member / owner / public live). */
 export async function canViewLiveSession(
   userId: string,
   session: LiveSessionRow
 ): Promise<boolean> {
-  if (!session.community_id) {
-    const privacy = normalizePrivacy(session.privacy);
-    if (privacy === "public") return true;
-    if (session.host_id === userId) return true;
-    const participant = await getParticipant(session.id, userId);
-    return Boolean(
-      participant &&
-        (participant.status === "joined" ||
-          participant.status === "invited" ||
-          participant.role === "cohost" ||
-          participant.role === "speaker" ||
-          participant.role === "moderator")
-    );
+  const privacy = normalizePrivacy(session.privacy);
+  if (privacy === "public") return true;
+  if (session.host_id === userId) return true;
+
+  const participant = await getParticipant(session.id, userId);
+  if (
+    participant &&
+    (participant.status === "joined" ||
+      participant.status === "invited" ||
+      participant.status === "requested" ||
+      participant.role === "cohost" ||
+      participant.role === "speaker" ||
+      participant.role === "moderator")
+  ) {
+    return true;
   }
+
+  if (!session.community_id) return false;
   return assertCommunityMember(userId, session.community_id);
 }
 
@@ -692,6 +696,26 @@ export async function joinLiveSession(
         ? "host"
         : "viewer";
 
+  // Preserve pending speaker invites — accept-invite promotes them later.
+  if (existing?.status === "invited") {
+    return { participant: existing, session };
+  }
+
+  const settings = (session.settings ?? {}) as Record<string, unknown>;
+  const waitingRoom = Boolean(settings.waiting_room);
+  const isStage =
+    role === "host" || role === "cohost" || role === "speaker" || role === "moderator";
+  const alreadyJoined = existing?.status === "joined";
+  let joinStatus: LiveParticipantStatus = "joined";
+  if (
+    waitingRoom &&
+    session.host_id !== userId &&
+    !alreadyJoined &&
+    !isStage
+  ) {
+    joinStatus = "requested";
+  }
+
   const now = new Date().toISOString();
   const { data, error } = await db()
     .from("live_session_participants")
@@ -700,9 +724,15 @@ export async function joinLiveSession(
         session_id: sessionId,
         user_id: userId,
         role,
-        status: "joined",
+        status: joinStatus,
+        hand_raised: joinStatus === "requested" ? false : (existing?.hand_raised ?? false),
         left_at: null,
-        joined_at: existing?.status === "joined" ? existing.joined_at : now,
+        joined_at:
+          joinStatus === "joined"
+            ? existing?.status === "joined"
+              ? existing.joined_at
+              : now
+            : existing?.joined_at ?? null,
         updated_at: now,
       },
       { onConflict: "session_id,user_id" }
@@ -1232,6 +1262,67 @@ export async function emitLiveReaction(
   return { ok: true };
 }
 
+/** Admit a waiting-room viewer (requested, not a hand-raise) as a joined viewer. */
+export async function admitViewer(
+  sessionId: string,
+  actorId: string,
+  targetUserId: string
+): Promise<{ participant: LiveParticipantRow } | { error: string; status: number }> {
+  const actor = await getParticipant(sessionId, actorId);
+  if (!actor || !canAcceptSpeaker(actor.role)) return { error: "Not allowed", status: 403 };
+
+  const target = await getParticipant(sessionId, targetUserId);
+  if (!target || target.status !== "requested") {
+    return { error: "No one waiting", status: 400 };
+  }
+
+  const { data, error } = await db()
+    .from("live_session_participants")
+    .update({
+      role: "viewer",
+      status: "joined",
+      hand_raised: false,
+      updated_at: new Date().toISOString(),
+      joined_at: new Date().toISOString(),
+    })
+    .eq("session_id", sessionId)
+    .eq("user_id", targetUserId)
+    .select("*")
+    .single();
+
+  if (error || !data) return { error: error?.message ?? "Admit failed", status: 400 };
+  await syncViewerCount(sessionId);
+  return { participant: data as LiveParticipantRow };
+}
+
+export async function setWaitingRoomEnabled(
+  sessionId: string,
+  userId: string,
+  enabled: boolean
+): Promise<{ session: LiveSessionRow } | { error: string; status: number }> {
+  const session = await getSession(sessionId);
+  if (!session || session.status !== "live") return { error: "Session not live", status: 400 };
+  const me = await getParticipant(sessionId, userId);
+  const role = me?.role ?? (session.host_id === userId ? "host" : "viewer");
+  if (role !== "host" && role !== "cohost") {
+    return { error: "Not allowed", status: 403 };
+  }
+
+  const prev = (session.settings ?? {}) as Record<string, unknown>;
+  const { data, error } = await db()
+    .from("live_sessions")
+    .update({
+      settings: { ...prev, waiting_room: enabled },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", sessionId)
+    .select("*")
+    .single();
+
+  if (error || !data) return { error: error?.message ?? "Update failed", status: 400 };
+  return { session: data as LiveSessionRow };
+}
+
 export async function updateLiveChatSettings(
   sessionId: string,
   userId: string,
@@ -1314,6 +1405,141 @@ export async function listSessionRecordings(sessionId: string) {
     .eq("session_id", sessionId)
     .order("created_at", { ascending: false });
   return data ?? [];
+}
+
+export type LiveSessionChatMessage = {
+  id: string;
+  body: string;
+  created_at: string;
+  sender_id: string;
+  sender_name: string;
+  sender_avatar: string | null;
+  is_pinned?: boolean;
+  reply_to_id?: string | null;
+  reply_to_body?: string | null;
+  reply_to_sender?: string | null;
+  reaction_count?: number;
+};
+
+export async function listLiveSessionMessages(
+  sessionId: string,
+  limit = 100,
+  userId?: string
+): Promise<LiveSessionChatMessage[]> {
+  // live_session_messages exists in production (082 repair); not always in generated types.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const client = db() as any;
+  let q = client
+    .from("live_session_messages")
+    .select("id, body, created_at, user_id, metadata")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (userId) q = q.eq("user_id", userId);
+
+  const { data } = await q;
+  const rows = (data ?? []) as Array<{
+    id: string;
+    body: string;
+    created_at: string;
+    user_id: string;
+    metadata?: Record<string, unknown> | null;
+  }>;
+
+  const userIds = [...new Set(rows.map((r) => r.user_id))];
+  const profileMap = new Map<string, { full_name: string | null; avatar_url: string | null; username: string | null }>();
+  if (userIds.length > 0) {
+    const { data: profiles } = await db()
+      .from("profiles")
+      .select("id, full_name, avatar_url, username")
+      .in("id", userIds);
+    for (const p of profiles ?? []) {
+      profileMap.set(p.id, {
+        full_name: p.full_name,
+        avatar_url: p.avatar_url,
+        username: p.username,
+      });
+    }
+  }
+
+  return rows
+    .slice()
+    .reverse()
+    .map((r) => {
+      const meta = (r.metadata ?? {}) as Record<string, unknown>;
+      const profile = profileMap.get(r.user_id);
+      return {
+        id: r.id,
+        body: r.body,
+        created_at: r.created_at,
+        sender_id: r.user_id,
+        sender_name: profile?.full_name || profile?.username || "Member",
+        sender_avatar: profile?.avatar_url ?? null,
+        is_pinned: Boolean(meta.is_pinned),
+        reply_to_id: typeof meta.reply_to_id === "string" ? meta.reply_to_id : null,
+        reply_to_body: typeof meta.reply_to_body === "string" ? meta.reply_to_body : null,
+        reply_to_sender:
+          typeof meta.reply_to_sender === "string" ? meta.reply_to_sender : null,
+        reaction_count: typeof meta.reaction_count === "number" ? meta.reaction_count : 0,
+      };
+    });
+}
+
+export async function postLiveSessionMessage(input: {
+  sessionId: string;
+  userId: string;
+  body: string;
+  replyToId?: string | null;
+  replyToBody?: string | null;
+  replyToSender?: string | null;
+}): Promise<{ message: LiveSessionChatMessage } | { error: string; status: number }> {
+  const metadata: Record<string, unknown> = {};
+  if (input.replyToId) {
+    metadata.reply_to_id = input.replyToId;
+    metadata.reply_to_body = (input.replyToBody ?? "").slice(0, 200);
+    metadata.reply_to_sender = (input.replyToSender ?? "").slice(0, 120);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (db() as any)
+    .from("live_session_messages")
+    .insert({
+      session_id: input.sessionId,
+      user_id: input.userId,
+      body: input.body.slice(0, 4000),
+      message_type: "text",
+      metadata,
+    })
+    .select("id, body, created_at, user_id, metadata")
+    .single();
+
+  if (error || !data) {
+    return { error: error?.message ?? "Failed to send", status: 400 };
+  }
+
+  const { data: profile } = await db()
+    .from("profiles")
+    .select("full_name, avatar_url, username")
+    .eq("id", input.userId)
+    .maybeSingle();
+
+  const meta = (data.metadata ?? {}) as Record<string, unknown>;
+  return {
+    message: {
+      id: data.id,
+      body: data.body,
+      created_at: data.created_at,
+      sender_id: data.user_id,
+      sender_name: profile?.full_name || profile?.username || "Member",
+      sender_avatar: profile?.avatar_url ?? null,
+      is_pinned: Boolean(meta.is_pinned),
+      reply_to_id: typeof meta.reply_to_id === "string" ? meta.reply_to_id : null,
+      reply_to_body: typeof meta.reply_to_body === "string" ? meta.reply_to_body : null,
+      reply_to_sender:
+        typeof meta.reply_to_sender === "string" ? meta.reply_to_sender : null,
+      reaction_count: 0,
+    },
+  };
 }
 
 export async function getActiveLiveForCommunity(communityId: string) {

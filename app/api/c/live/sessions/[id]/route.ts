@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   acceptSpeaker,
   acceptInvite,
+  admitViewer,
   averageViewers,
   cancelLiveSession,
   canViewLiveSession,
@@ -21,6 +22,7 @@ import {
   requestSpeak,
   sessionDurationSeconds,
   setParticipantRole,
+  setWaitingRoomEnabled,
   startScheduledLive,
   transferHost,
   updateLiveChatSettings,
@@ -45,6 +47,7 @@ type ActionBody = {
   role?: LiveStageRole;
   emoji?: string;
   chatSettings?: LiveChatSettings;
+  enabled?: boolean;
 };
 
 export async function GET(
@@ -237,6 +240,18 @@ export async function POST(
         return NextResponse.json({ error: "chatSettings required" }, { status: 400 });
       }
       const result = await updateLiveChatSettings(id, user.id, body.chatSettings);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "admit": {
+      if (!body.targetUserId) return NextResponse.json({ error: "targetUserId required" }, { status: 400 });
+      const result = await admitViewer(id, user.id, body.targetUserId);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "waiting-room": {
+      const enabled = Boolean((body as { enabled?: boolean }).enabled);
+      const result = await setWaitingRoomEnabled(id, user.id, enabled);
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }

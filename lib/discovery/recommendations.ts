@@ -83,8 +83,9 @@ async function recommendCommunities(limit: number): Promise<DiscoveryHit[]> {
 async function recommendLive(limit: number): Promise<DiscoveryHit[]> {
   const { data } = await admin()
     .from("live_sessions")
-    .select("id, title, description, status, settings")
+    .select("id, title, description, status, settings, privacy")
     .in("status", ["live", "scheduled"])
+    .eq("privacy", "public")
     .order("scheduled_at", { ascending: true, nullsFirst: false })
     .limit(limit);
   return (data ?? []).map((row: any, i: number) => ({

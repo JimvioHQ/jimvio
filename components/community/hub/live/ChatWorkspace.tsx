@@ -23,6 +23,7 @@ function ChatWorkspaceImpl({
   hostName,
   participantAvatars,
   onSend,
+  slowModeSeconds = 0,
 }: {
   messages: ChatMessage[];
   scrollTop: number;
@@ -35,6 +36,7 @@ function ChatWorkspaceImpl({
     body: string,
     reply?: { reply_to_id: string; reply_to_body?: string; reply_to_sender?: string }
   ) => void | Promise<void>;
+  slowModeSeconds?: number;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const [replyTo, setReplyTo] = useState<Enriched | null>(null);
@@ -375,7 +377,9 @@ function ChatWorkspaceImpl({
         </form>
         <p className="mt-2 flex items-center gap-1.5 px-1 text-[10px] text-neutral-400">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
-          Slow mode is on
+          {slowModeSeconds > 0
+            ? `Slow mode ${slowModeSeconds}s`
+            : "Chat connected"}
         </p>
       </div>
     </div>

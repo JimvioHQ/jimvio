@@ -286,6 +286,24 @@ export function useLiveSession(initialSessionId?: string | null) {
     [session, refresh]
   );
 
+  const admit = useCallback(
+    async (targetUserId: string) => {
+      if (!session) return;
+      await sessionAction(session.id, { action: "admit", targetUserId });
+      await refresh(session.id);
+    },
+    [session, refresh]
+  );
+
+  const setWaitingRoom = useCallback(
+    async (enabled: boolean) => {
+      if (!session) return;
+      await sessionAction(session.id, { action: "waiting-room", enabled });
+      await refresh(session.id);
+    },
+    [session, refresh]
+  );
+
   const reject = useCallback(
     async (targetUserId: string) => {
       if (!session) return;
@@ -386,6 +404,8 @@ export function useLiveSession(initialSessionId?: string | null) {
     invite,
     acceptInvite,
     accept,
+    admit,
+    setWaitingRoom,
     reject,
     remove,
     mute,

@@ -38,6 +38,8 @@ export type LiveKitRoomSnapshot = {
   /** Prefer screen share, else first camera among remotes / local. */
   stageStream: MediaStream | null;
   activeSpeakerId: string | null;
+  /** Bumps after LiveKit auto-reconnect so publishers re-sync tracks. */
+  resyncGeneration: number;
 };
 
 type Listener = (snap: LiveKitRoomSnapshot) => void;
@@ -58,7 +60,8 @@ function parseRole(metadata: string | undefined): LiveStageRole | "unknown" {
 
 function remoteToMedia(
   p: RemoteParticipant,
-  speakingIds: Set<string>
+  speakingIds: Set<string>,
+  streamCache: Map<string, MediaStream>
 ): LiveKitRemoteMedia {
   let cameraStream: MediaStream | null = null;
   let screenStream: MediaStream | null = null;
@@ -67,19 +70,37 @@ function remoteToMedia(
   let micOn = false;
   let sharing = false;
 
+  const trackMs = (trackId: string, mediaTrack: MediaStreamTrack): MediaStream => {
+    const existing = streamCache.get(trackId);
+    if (existing) {
+      const current = existing.getTracks()[0];
+      if (current === mediaTrack) return existing;
+    }
+    const ms = new MediaStream([mediaTrack]);
+    streamCache.set(trackId, ms);
+    return ms;
+  };
+
   p.trackPublications.forEach((pub) => {
     const track = pub.track;
     if (!track || pub.isMuted) return;
-    const ms = new MediaStream([track.mediaStreamTrack]);
+    const ms = trackMs(track.sid || `${p.identity}:${pub.trackSid}`, track.mediaStreamTrack);
     if (pub.source === Track.Source.Camera && pub.kind === Track.Kind.Video) {
       cameraStream = ms;
       camOn = true;
     } else if (pub.source === Track.Source.ScreenShare && pub.kind === Track.Kind.Video) {
       screenStream = ms;
       sharing = true;
-    } else if (pub.kind === Track.Kind.Audio && pub.source === Track.Source.Microphone) {
-      audioStream = ms;
-      micOn = true;
+    } else if (
+      pub.kind === Track.Kind.Audio &&
+      (pub.source === Track.Source.Microphone || pub.source === Track.Source.ScreenShareAudio)
+    ) {
+      if (!audioStream) {
+        audioStream = new MediaStream([track.mediaStreamTrack]);
+      } else if (!audioStream.getAudioTracks().includes(track.mediaStreamTrack)) {
+        audioStream.addTrack(track.mediaStreamTrack);
+      }
+      if (pub.source === Track.Source.Microphone) micOn = true;
     }
   });
 
@@ -106,8 +127,13 @@ export class LiveKitRoomTransport {
   private publishedCamera: LocalTrack | null = null;
   private publishedMic: LocalTrack | null = null;
   private publishedScreen: LocalTrack | null = null;
+  private publishedScreenAudio: LocalTrack | null = null;
   private disposed = false;
   private localPreview: MediaStream | null = null;
+  private preferLocalStage = false;
+  private resyncGeneration = 0;
+  private remoteStreamCache = new Map<string, MediaStream>();
+  private syncQueue: Promise<void> = Promise.resolve();
 
   subscribe(fn: Listener): () => void {
     this.listeners.add(fn);
@@ -126,6 +152,11 @@ export class LiveKitRoomTransport {
       remotes.find((r) => r.sharing || r.camOn)?.identity ??
       null;
 
+    const stageStream =
+      this.preferLocalStage && this.localPreview
+        ? this.localPreview
+        : (stageFromRemote ?? this.localPreview);
+
     return {
       connected: this.room?.state === ConnectionState.Connected,
       connecting: this.connecting,
@@ -133,14 +164,21 @@ export class LiveKitRoomTransport {
       roomName: this.room?.name ?? null,
       error: this.error,
       remotes,
-      stageStream: stageFromRemote ?? this.localPreview,
+      stageStream,
       activeSpeakerId: active,
+      resyncGeneration: this.resyncGeneration,
     };
   }
 
   setLocalPreview(stream: MediaStream | null): void {
     if (this.localPreview === stream) return;
     this.localPreview = stream;
+    this.emit();
+  }
+
+  setPreferLocalStage(prefer: boolean): void {
+    if (this.preferLocalStage === prefer) return;
+    this.preferLocalStage = prefer;
     this.emit();
   }
 
@@ -185,6 +223,7 @@ export class LiveKitRoomTransport {
       this.room = null;
     }
     this.speakingIds.clear();
+    this.remoteStreamCache.clear();
     this.emit();
   }
 
@@ -192,86 +231,106 @@ export class LiveKitRoomTransport {
    * Publish camera + mic tracks from an existing MediaStream (from LiveMediaPlane).
    */
   async syncLocalAv(stream: MediaStream | null, opts: { camOn: boolean; micOn: boolean }): Promise<void> {
-    if (!this.room || this.room.state !== ConnectionState.Connected) return;
-    const lp = this.room.localParticipant;
-    let changed = false;
+    return this.enqueueSync(async () => {
+      if (!this.room || this.room.state !== ConnectionState.Connected) return;
+      const lp = this.room.localParticipant;
+      let changed = false;
 
-    const videoTrack = stream?.getVideoTracks().find((t) => t.readyState === "live") ?? null;
-    const audioTrack = stream?.getAudioTracks().find((t) => t.readyState === "live") ?? null;
+      const videoTrack = stream?.getVideoTracks().find((t) => t.readyState === "live") ?? null;
+      const audioTrack = stream?.getAudioTracks().find((t) => t.readyState === "live") ?? null;
 
-    if (opts.camOn && videoTrack) {
-      if (!this.publishedCamera || this.publishedCamera.mediaStreamTrack !== videoTrack) {
+      if (opts.camOn && videoTrack) {
+        if (!this.publishedCamera || this.publishedCamera.mediaStreamTrack !== videoTrack) {
+          if (this.publishedCamera) {
+            await lp.unpublishTrack(this.publishedCamera);
+            this.publishedCamera = null;
+          }
+          const pubs = await lp.publishTrack(videoTrack, {
+            source: Track.Source.Camera,
+            simulcast: true,
+          });
+          this.publishedCamera = pubs.track ?? null;
+          changed = true;
+        }
+      } else {
         if (this.publishedCamera) {
           await lp.unpublishTrack(this.publishedCamera);
           this.publishedCamera = null;
+          changed = true;
         }
-        const pubs = await lp.publishTrack(videoTrack, {
-          source: Track.Source.Camera,
-          simulcast: true,
-        });
-        this.publishedCamera = pubs.track ?? null;
-        changed = true;
       }
-      await lp.setCameraEnabled(true);
-    } else {
-      if (this.publishedCamera) {
-        await lp.unpublishTrack(this.publishedCamera);
-        this.publishedCamera = null;
-        changed = true;
-      }
-      await lp.setCameraEnabled(false);
-    }
 
-    if (opts.micOn && audioTrack) {
-      if (!this.publishedMic || this.publishedMic.mediaStreamTrack !== audioTrack) {
+      if (opts.micOn && audioTrack) {
+        if (!this.publishedMic || this.publishedMic.mediaStreamTrack !== audioTrack) {
+          if (this.publishedMic) {
+            await lp.unpublishTrack(this.publishedMic);
+            this.publishedMic = null;
+          }
+          const pubs = await lp.publishTrack(audioTrack, {
+            source: Track.Source.Microphone,
+          });
+          this.publishedMic = pubs.track ?? null;
+          changed = true;
+        }
+      } else {
         if (this.publishedMic) {
           await lp.unpublishTrack(this.publishedMic);
           this.publishedMic = null;
+          changed = true;
         }
-        const pubs = await lp.publishTrack(audioTrack, {
-          source: Track.Source.Microphone,
-        });
-        this.publishedMic = pubs.track ?? null;
-        changed = true;
       }
-      await lp.setMicrophoneEnabled(true);
-    } else {
-      if (this.publishedMic) {
-        await lp.unpublishTrack(this.publishedMic);
-        this.publishedMic = null;
-        changed = true;
-      }
-      await lp.setMicrophoneEnabled(false);
-    }
 
-    if (changed) this.emit();
+      if (changed) this.emit();
+    });
   }
 
   async syncScreenShare(stream: MediaStream | null, sharing: boolean): Promise<void> {
-    if (!this.room || this.room.state !== ConnectionState.Connected) return;
-    const lp = this.room.localParticipant;
-    const videoTrack = stream?.getVideoTracks().find((t) => t.readyState === "live") ?? null;
-    let changed = false;
+    return this.enqueueSync(async () => {
+      if (!this.room || this.room.state !== ConnectionState.Connected) return;
+      const lp = this.room.localParticipant;
+      const videoTrack = stream?.getVideoTracks().find((t) => t.readyState === "live") ?? null;
+      const audioTrack = stream?.getAudioTracks().find((t) => t.readyState === "live") ?? null;
+      let changed = false;
 
-    if (sharing && videoTrack) {
-      if (!this.publishedScreen || this.publishedScreen.mediaStreamTrack !== videoTrack) {
-        if (this.publishedScreen) {
-          await lp.unpublishTrack(this.publishedScreen);
-          this.publishedScreen = null;
+      if (sharing && videoTrack) {
+        if (!this.publishedScreen || this.publishedScreen.mediaStreamTrack !== videoTrack) {
+          if (this.publishedScreen) {
+            await lp.unpublishTrack(this.publishedScreen);
+            this.publishedScreen = null;
+          }
+          const pubs = await lp.publishTrack(videoTrack, {
+            source: Track.Source.ScreenShare,
+            simulcast: true,
+          });
+          this.publishedScreen = pubs.track ?? null;
+          changed = true;
         }
-        const pubs = await lp.publishTrack(videoTrack, {
-          source: Track.Source.ScreenShare,
-          simulcast: true,
-        });
-        this.publishedScreen = pubs.track ?? null;
+      } else if (this.publishedScreen) {
+        await lp.unpublishTrack(this.publishedScreen);
+        this.publishedScreen = null;
         changed = true;
       }
-    } else if (this.publishedScreen) {
-      await lp.unpublishTrack(this.publishedScreen);
-      this.publishedScreen = null;
-      changed = true;
-    }
-    if (changed) this.emit();
+
+      if (sharing && audioTrack) {
+        if (!this.publishedScreenAudio || this.publishedScreenAudio.mediaStreamTrack !== audioTrack) {
+          if (this.publishedScreenAudio) {
+            await lp.unpublishTrack(this.publishedScreenAudio);
+            this.publishedScreenAudio = null;
+          }
+          const pubs = await lp.publishTrack(audioTrack, {
+            source: Track.Source.ScreenShareAudio,
+          });
+          this.publishedScreenAudio = pubs.track ?? null;
+          changed = true;
+        }
+      } else if (this.publishedScreenAudio) {
+        await lp.unpublishTrack(this.publishedScreenAudio);
+        this.publishedScreenAudio = null;
+        changed = true;
+      }
+
+      if (changed) this.emit();
+    });
   }
 
   async dispose(): Promise<void> {
@@ -280,31 +339,43 @@ export class LiveKitRoomTransport {
     this.listeners.clear();
   }
 
+  private enqueueSync(fn: () => Promise<void>): Promise<void> {
+    const run = this.syncQueue.then(fn, fn);
+    this.syncQueue = run.then(
+      () => undefined,
+      () => undefined
+    );
+    return run;
+  }
+
   private async unpublishAll(): Promise<void> {
     const lp = this.room?.localParticipant;
     if (!lp) {
       this.publishedCamera = null;
       this.publishedMic = null;
       this.publishedScreen = null;
+      this.publishedScreenAudio = null;
       return;
     }
     try {
       if (this.publishedCamera) await lp.unpublishTrack(this.publishedCamera);
       if (this.publishedMic) await lp.unpublishTrack(this.publishedMic);
       if (this.publishedScreen) await lp.unpublishTrack(this.publishedScreen);
+      if (this.publishedScreenAudio) await lp.unpublishTrack(this.publishedScreenAudio);
     } catch {
       /* ignore */
     }
     this.publishedCamera = null;
     this.publishedMic = null;
     this.publishedScreen = null;
+    this.publishedScreenAudio = null;
   }
 
   private listRemotes(): LiveKitRemoteMedia[] {
     if (!this.room) return [];
     const out: LiveKitRemoteMedia[] = [];
     this.room.remoteParticipants.forEach((p) => {
-      out.push(remoteToMedia(p, this.speakingIds));
+      out.push(remoteToMedia(p, this.speakingIds, this.remoteStreamCache));
     });
     return out;
   }
@@ -330,7 +401,10 @@ export class LiveKitRoomTransport {
       refresh();
     });
     room.on(RoomEvent.Reconnecting, refresh);
-    room.on(RoomEvent.Reconnected, refresh);
+    room.on(RoomEvent.Reconnected, () => {
+      this.resyncGeneration += 1;
+      refresh();
+    });
     room.on(RoomEvent.MediaDevicesError, (e: Error) => {
       this.error = e.message;
       refresh();

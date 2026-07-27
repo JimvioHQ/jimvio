@@ -254,8 +254,9 @@ async function searchLessons(pattern: string, query: string, limit: number) {
 async function searchLive(pattern: string, query: string, limit: number) {
   const { data } = await admin()
     .from("live_sessions")
-    .select("id, title, description, status, scheduled_at, created_at, settings")
+    .select("id, title, description, status, scheduled_at, created_at, settings, privacy")
     .in("status", ["live", "scheduled"])
+    .eq("privacy", "public")
     .ilike("title", pattern)
     .order("scheduled_at", { ascending: true, nullsFirst: false })
     .limit(limit);

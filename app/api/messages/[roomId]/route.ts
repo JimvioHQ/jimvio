@@ -136,6 +136,42 @@ export async function POST(
   const { data: room } = await supabase.from("rooms").select("community_id").eq("id", roomId).single();
   if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
 
+  // Live slow mode — when this room is bound to an active live session.
+  {
+    const { data: liveBound } = await untyped(supabase)
+      .from("live_sessions")
+      .select("id, settings, status")
+      .eq("room_id", roomId)
+      .eq("status", "live")
+      .maybeSingle();
+    const slow = Math.max(
+      0,
+      Number(
+        (liveBound?.settings as { chat?: { slow_mode_seconds?: number } } | null)?.chat
+          ?.slow_mode_seconds ?? 0
+      )
+    );
+    if (slow > 0) {
+      const { data: lastMsg } = await untyped(supabase)
+        .from("community_messages")
+        .select("created_at")
+        .eq("room_id", roomId)
+        .eq("sender_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (lastMsg?.created_at) {
+        const elapsed = (Date.now() - new Date(lastMsg.created_at).getTime()) / 1000;
+        if (elapsed < slow) {
+          return NextResponse.json(
+            { error: `Slow mode — wait ${Math.ceil(slow - elapsed)}s` },
+            { status: 429 }
+          );
+        }
+      }
+    }
+  }
+
   // Metadata is a passthrough bag (link previews, gif hints, etc). Cap its
   // serialized size defensively — this is untrusted client input.
   let safeMetadata: Record<string, unknown> = {};

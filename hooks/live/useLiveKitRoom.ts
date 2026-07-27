@@ -16,6 +16,7 @@ const INITIAL: LiveKitRoomSnapshot = {
   remotes: [],
   stageStream: null,
   activeSpeakerId: null,
+  resyncGeneration: 0,
 };
 
 type TokenResponse = {
@@ -108,17 +109,17 @@ export function useLiveKitRoom(opts: {
     };
   }, [enabled, sessionId]);
 
-  /* Publish local AV — only when connected; avoid emit storms when nothing changed */
+  /* Publish local AV — only when connected; re-run after LiveKit reconnect */
   useEffect(() => {
     if (!snap.connected) return;
     void transportRef.current?.syncLocalAv(localAvStream, { camOn, micOn });
-  }, [localAvStream, camOn, micOn, snap.connected]);
+  }, [localAvStream, camOn, micOn, snap.connected, snap.resyncGeneration]);
 
-  /* Publish screen share */
+  /* Publish screen share (+ screen audio) */
   useEffect(() => {
     if (!snap.connected) return;
     void transportRef.current?.syncScreenShare(shareStream, sharing);
-  }, [shareStream, sharing, snap.connected]);
+  }, [shareStream, sharing, snap.connected, snap.resyncGeneration]);
 
   /* Stage composition: local preview preferred for host; remotes for viewers */
   useEffect(() => {
@@ -127,6 +128,7 @@ export function useLiveKitRoom(opts: {
       if (sharing) localStage = shareStream ?? null;
       else if ((camOn || micOn) && localAvStream) localStage = localAvStream;
     }
+    transportRef.current?.setPreferLocalStage(preferLocalStage);
     transportRef.current?.setLocalPreview(localStage);
   }, [preferLocalStage, sharing, shareStream, localAvStream, camOn, micOn]);
 

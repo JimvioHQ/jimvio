@@ -1,6 +1,6 @@
 "use client";
 
-import { Monitor, Presentation } from "lucide-react";
+import { Monitor, Presentation, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   SCREEN_SHARE_QUALITY,
@@ -24,10 +24,12 @@ export function ScreenShareMenu({
   onStart,
   sharing,
   onStop,
+  onSwitchSource,
 }: {
   onStart: () => void;
   sharing?: boolean;
   onStop?: () => void;
+  onSwitchSource?: () => void;
 }) {
   const target = useLiveCollabStore((s) => s.shareTarget);
   const quality = useLiveCollabStore((s) => s.shareQuality);
@@ -89,13 +91,25 @@ export function ScreenShareMenu({
         Presenter mode {presenterMode ? "on" : "off"}
       </button>
       {sharing ? (
-        <button
-          type="button"
-          onClick={onStop}
-          className="w-full rounded-lg bg-red-600 px-3 py-2 text-[12px] font-semibold text-white"
-        >
-          Stop sharing
-        </button>
+        <div className="space-y-1.5">
+          {onSwitchSource && (
+            <button
+              type="button"
+              onClick={onSwitchSource}
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-neutral-100 px-3 py-2 text-[12px] font-semibold text-neutral-800"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Change window / tab
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onStop}
+            className="w-full rounded-lg bg-red-600 px-3 py-2 text-[12px] font-semibold text-white"
+          >
+            Stop sharing
+          </button>
+        </div>
       ) : (
         <button
           type="button"

@@ -226,6 +226,16 @@ export function PeoplePanel({
   pendingRequests,
   onAcceptRequest,
   onRejectRequest,
+  waitingRoom,
+  onAdmitWaiting,
+  onRejectWaiting,
+  inviteValue,
+  onInviteValue,
+  onInvite,
+  canManage,
+  onMute,
+  onPromote,
+  onRemove,
 }: {
   speakers: Speaker[];
   viewers: number;
@@ -236,10 +246,23 @@ export function PeoplePanel({
   pendingRequests?: Speaker[];
   onAcceptRequest?: (id: string) => void;
   onRejectRequest?: (id: string) => void;
+  waitingRoom?: Speaker[];
+  onAdmitWaiting?: (id: string) => void;
+  onRejectWaiting?: (id: string) => void;
+  inviteValue?: string;
+  onInviteValue?: (v: string) => void;
+  onInvite?: () => void;
+  canManage?: boolean;
+  onMute?: (id: string) => void;
+  onPromote?: (id: string) => void;
+  onRemove?: (id: string) => void;
 }) {
   const q = query.trim().toLowerCase();
   const filtered = speakers.filter((s) => s.name.toLowerCase().includes(q));
   const filteredRequests = (pendingRequests ?? []).filter((s) =>
+    s.name.toLowerCase().includes(q)
+  );
+  const filteredWaiting = (waitingRoom ?? []).filter((s) =>
     s.name.toLowerCase().includes(q)
   );
   return (
@@ -254,9 +277,78 @@ export function PeoplePanel({
         )}
         aria-label="Search participants"
       />
+      {canManage && onInvite && onInviteValue && (
+        <div className="flex gap-1.5">
+          <input
+            value={inviteValue ?? ""}
+            onChange={(e) => onInviteValue(e.target.value)}
+            placeholder="Invite by user id…"
+            className={cn(
+              "min-w-0 flex-1 rounded-xl bg-neutral-50 px-3 py-2 text-[12px] outline-none ring-1 ring-black/[0.04]",
+              FOCUS_RING
+            )}
+            aria-label="Invite user id"
+          />
+          <button
+            type="button"
+            onClick={onInvite}
+            className={cn(
+              "rounded-xl bg-neutral-900 px-3 py-2 text-[11px] font-semibold text-white",
+              FOCUS_RING
+            )}
+          >
+            Invite
+          </button>
+        </div>
+      )}
       <p className="px-1 text-[12px] text-neutral-400">
         {speakers.length} on stage · {formatCount(viewers)} watching
       </p>
+      {filteredWaiting.length > 0 && (
+        <div className="space-y-0.5">
+          <p className="px-1 text-[11px] font-medium text-neutral-400">Waiting room</p>
+          {filteredWaiting.map((s) => (
+            <div
+              key={`wait-${s.id}`}
+              className="flex w-full items-center gap-3 rounded-xl px-2 py-2"
+            >
+              <HubAvatar name={s.name} src={s.avatar_url} size={32} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium">{s.name}</p>
+                <p className="text-[11px] text-neutral-400">Waiting for admission</p>
+              </div>
+              {(onAdmitWaiting || onRejectWaiting) && (
+                <div className="flex shrink-0 gap-1.5">
+                  {onRejectWaiting && (
+                    <button
+                      type="button"
+                      onClick={() => onRejectWaiting(s.id)}
+                      className={cn(
+                        "rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600 hover:bg-neutral-200",
+                        FOCUS_RING
+                      )}
+                    >
+                      Reject
+                    </button>
+                  )}
+                  {onAdmitWaiting && (
+                    <button
+                      type="button"
+                      onClick={() => onAdmitWaiting(s.id)}
+                      className={cn(
+                        "rounded-full bg-neutral-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-neutral-800",
+                        FOCUS_RING
+                      )}
+                    >
+                      Admit
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       {filteredRequests.length > 0 && (
         <div className="space-y-0.5">
           <p className="px-1 text-[11px] font-medium text-neutral-400">Hand raises</p>
@@ -304,24 +396,59 @@ export function PeoplePanel({
       )}
       <div className="space-y-0.5">
         {filtered.map((s, i) => (
-          <button
+          <div
             key={s.id}
-            type="button"
-            onClick={() => onSelect(s.id)}
             className={cn(
               "flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors duration-150",
               activeSpeakerId === s.id ? "bg-neutral-100" : "hover:bg-neutral-50"
             )}
           >
-            <HubAvatar name={s.name} src={s.avatar_url} size={32} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium">
-                {i === 0 ? `${s.name} (Host)` : s.name}
-              </p>
-              <p className="text-[11px] text-neutral-400">{s.role || "Speaker"}</p>
-            </div>
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          </button>
+            <button
+              type="button"
+              onClick={() => onSelect(s.id)}
+              className="flex min-w-0 flex-1 items-center gap-3 text-left"
+            >
+              <HubAvatar name={s.name} src={s.avatar_url} size={32} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium">
+                  {i === 0 ? `${s.name} (Host)` : s.name}
+                </p>
+                <p className="text-[11px] text-neutral-400">{s.role || "Speaker"}</p>
+              </div>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </button>
+            {canManage && i > 0 && (
+              <div className="flex shrink-0 gap-1">
+                {onMute && (
+                  <button
+                    type="button"
+                    onClick={() => onMute(s.id)}
+                    className="rounded-md px-1.5 py-1 text-[10px] font-medium text-neutral-500 hover:bg-neutral-200"
+                  >
+                    Mute
+                  </button>
+                )}
+                {onPromote && (
+                  <button
+                    type="button"
+                    onClick={() => onPromote(s.id)}
+                    className="rounded-md px-1.5 py-1 text-[10px] font-medium text-neutral-500 hover:bg-neutral-200"
+                  >
+                    Promote
+                  </button>
+                )}
+                {onRemove && (
+                  <button
+                    type="button"
+                    onClick={() => onRemove(s.id)}
+                    className="rounded-md px-1.5 py-1 text-[10px] font-medium text-red-600 hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         ))}
         {filtered.length === 0 && (
           <p className="px-2 py-8 text-center text-[12px] leading-relaxed text-neutral-400" role="status">

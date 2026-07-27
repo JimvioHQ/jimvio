@@ -53,7 +53,7 @@ export function useLiveMediaPlane(enabled = true) {
     };
   }, [enabled]);
 
-  /* Network: pause tracks offline, recover on reconnect */
+  /* Network: recover media plane when connectivity returns */
   useEffect(() => {
     if (!enabled) return;
     const onOffline = () => {
