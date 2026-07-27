@@ -8,6 +8,7 @@ import {
   Check,
   Fullscreen,
   Loader2,
+  Menu,
   MessageSquare,
   MonitorPlay,
   MoreHorizontal,
@@ -129,6 +130,7 @@ export function HubLivePage({
   const [chatIdle, setChatIdle] = useState(false);
   const [hasPolls, setHasPolls] = useState(false);
   const [egressRecording, setEgressRecording] = useState(false);
+  const [liveNavOpen, setLiveNavOpen] = useState(false);
   const chatIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { msg: toast, show: showToast } = useEphemeralToast();
@@ -555,26 +557,25 @@ export function HubLivePage({
     const communityId =
       data?.session.communityId ?? data?.rooms[0]?.community_id ?? null;
     const roomId = data?.session.roomId ?? data?.rooms[0]?.id ?? null;
-    if (!communityId) {
-      showToast("Join a community to go live");
-      return;
-    }
     try {
       if (live.session?.status === "live") {
         showToast("Already live");
         return;
       }
-      await live.createLive({
-        communityId,
-        roomId,
-        title: data?.session.title,
-      }).then((session) => {
-        if (session?.id && !sessionIdProp) {
-          router.replace(`/communities/live/${session.id}`);
-        }
-      });
+      await live
+        .createLive({
+          communityId,
+          roomId: communityId ? roomId : null,
+          title: data?.session.title || (communityId ? undefined : "Creator Live"),
+          privacy: communityId ? undefined : "public",
+        })
+        .then((session) => {
+          if (session?.id && !sessionIdProp) {
+            router.replace(`/communities/live/${session.id}`);
+          }
+        });
       setElapsed(0);
-      showToast("You are live");
+      showToast(communityId ? "You are live" : "Creator Live started");
       void loadDashboard();
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Could not start live");
@@ -969,17 +970,31 @@ export function HubLivePage({
             immersive ? "bg-black/30 text-white" : "bg-white"
           )}
         >
-          <Link
-            href="/communities/live"
-            className={cn(
-              "mb-1.5 inline-flex items-center gap-1 text-[12px] font-medium",
-              immersive ? "text-white/55 hover:text-white" : "text-neutral-500 hover:text-neutral-800",
-              FOCUS_RING
-            )}
-          >
-            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-            Back to Live
-          </Link>
+          <div className="mb-1.5 flex items-center gap-2">
+            <button
+              type="button"
+              className={cn(
+                "inline-flex h-8 w-8 items-center justify-center rounded-lg lg:hidden",
+                immersive ? "text-white/70 hover:bg-white/10" : "text-neutral-500 hover:bg-neutral-50",
+                FOCUS_RING
+              )}
+              aria-label="Open live menu"
+              onClick={() => setLiveNavOpen(true)}
+            >
+              <Menu className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+            </button>
+            <Link
+              href="/communities/live"
+              className={cn(
+                "inline-flex items-center gap-1 text-[12px] font-medium",
+                immersive ? "text-white/55 hover:text-white" : "text-neutral-500 hover:text-neutral-800",
+                FOCUS_RING
+              )}
+            >
+              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+              Back to Live
+            </Link>
+          </div>
 
           <div className="flex min-w-0 items-center gap-3">
             <div className="min-w-0 flex-1">
@@ -1131,32 +1146,120 @@ export function HubLivePage({
               leftPanel={drawer.leftPanel}
               rightTab={drawer.rightTab}
               viewerCount={live.viewerCount || analytics?.viewers || 0}
+              liveStatus={
+                hasSession
+                  ? "LIVE"
+                  : liveStatusLabel === "ENDED"
+                    ? "ENDED"
+                    : liveStatusLabel === "UPCOMING"
+                      ? "UPCOMING"
+                      : "OFFLINE"
+              }
+              title={session.title}
+              category={session.tag || "Live Room"}
               onOverview={() => {
                 updateDrawer({ leftPanel: "none", rightTab: "chat", rightOpen: true });
+                setLiveNavOpen(false);
               }}
-              onOpenLeft={(panel) => toggleLeft(panel)}
-              onOpenRight={(tab) => openRight(tab)}
+              onOpenLeft={(panel) => {
+                toggleLeft(panel);
+                setLiveNavOpen(false);
+              }}
+              onOpenRight={(tab) => {
+                openRight(tab);
+                setLiveNavOpen(false);
+              }}
               onShare={copyUrl}
               onInvite={() => {
                 if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
                 toggleLeft("people");
+                setLiveNavOpen(false);
               }}
-              onClip={() => openRight("clips")}
-              onSave={() => openRight("recording")}
+              onClip={() => {
+                openRight("clips");
+                setLiveNavOpen(false);
+              }}
+              onSave={() => {
+                openRight("recording");
+                setLiveNavOpen(false);
+              }}
               onReport={() => showToast("Report submitted")}
+              onFollow={() => showToast("Following host")}
+              onGoLive={() => void createOrJoinLive()}
+              hasSession={hasSession}
             />
-            <aside className="relative z-20 flex w-11 shrink-0 flex-col items-center gap-0.5 border-r border-neutral-100 bg-white py-3 lg:hidden">
-              {LEFT_TOOLS.map(({ id, label, icon: Icon }) => (
-                <RailIcon
-                  key={id}
-                  label={label}
-                  active={drawer.leftPanel === id}
-                  onClick={() => toggleLeft(id)}
-                >
-                  <Icon className="h-4 w-4" strokeWidth={1.6} />
-                </RailIcon>
-              ))}
-            </aside>
+            {liveNavOpen && (
+              <div className="fixed inset-0 z-50 lg:hidden">
+                <button
+                  type="button"
+                  className="absolute inset-0 bg-black/30"
+                  aria-label="Close live menu"
+                  onClick={() => setLiveNavOpen(false)}
+                />
+                <div className="absolute inset-y-0 left-0 flex w-[min(280px,88vw)] flex-col bg-white shadow-2xl">
+                  <div className="flex items-center justify-end border-b border-neutral-100 px-2 py-1">
+                    <button
+                      type="button"
+                      onClick={() => setLiveNavOpen(false)}
+                      className={cn("rounded-lg p-2 text-neutral-400 hover:text-neutral-700", FOCUS_RING)}
+                      aria-label="Close"
+                    >
+                      <X className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <LiveContextNav
+                      variant="drawer"
+                      leftPanel={drawer.leftPanel}
+                      rightTab={drawer.rightTab}
+                      viewerCount={live.viewerCount || analytics?.viewers || 0}
+                      liveStatus={
+                        hasSession
+                          ? "LIVE"
+                          : liveStatusLabel === "ENDED"
+                            ? "ENDED"
+                            : liveStatusLabel === "UPCOMING"
+                              ? "UPCOMING"
+                              : "OFFLINE"
+                      }
+                      title={session.title}
+                      category={session.tag || "Live Room"}
+                      onOverview={() => {
+                        updateDrawer({ leftPanel: "none", rightTab: "chat", rightOpen: true });
+                        setLiveNavOpen(false);
+                      }}
+                      onOpenLeft={(panel) => {
+                        toggleLeft(panel);
+                        setLiveNavOpen(false);
+                      }}
+                      onOpenRight={(tab) => {
+                        openRight(tab);
+                        setLiveNavOpen(false);
+                      }}
+                      onShare={copyUrl}
+                      onInvite={() => {
+                        if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only"))
+                          return;
+                        toggleLeft("people");
+                        setLiveNavOpen(false);
+                      }}
+                      onClip={() => {
+                        openRight("clips");
+                        setLiveNavOpen(false);
+                      }}
+                      onSave={() => {
+                        openRight("recording");
+                        setLiveNavOpen(false);
+                      }}
+                      onReport={() => showToast("Report submitted")}
+                      onFollow={() => showToast("Following host")}
+                      onGoLive={() => void createOrJoinLive()}
+                      hasSession={hasSession}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -1167,7 +1270,7 @@ export function HubLivePage({
               className={cn(
                 "absolute inset-y-0 z-30 hidden w-[280px] flex-col bg-white shadow-[8px_0_40px_rgba(0,0,0,0.06)] md:flex",
                 "animate-in fade-in slide-in-from-left-1 duration-[180ms]",
-                showLeftRail ? "left-11 lg:left-[176px]" : "left-0"
+                showLeftRail ? "left-[220px]" : "left-0"
               )}
             >
               <DrawerHeader
@@ -1743,41 +1846,5 @@ function ConnectionPill({
     >
       <Icon className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
     </span>
-  );
-}
-
-function RailIcon({
-  children,
-  label,
-  active,
-  onClick,
-}: {
-  children: React.ReactNode;
-  label: string;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <div className="group/item relative">
-      <button
-        type="button"
-        onClick={onClick}
-        aria-label={label}
-        aria-pressed={active}
-        className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-xl",
-          MOTION_COLORS,
-          FOCUS_RING,
-          active
-            ? "bg-neutral-900 text-white"
-            : "text-neutral-400 hover:bg-black/[0.04] hover:text-neutral-700"
-        )}
-      >
-        {children}
-      </button>
-      <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-x-0.5 -translate-y-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-lg motion-safe:transition-all motion-safe:duration-150 group-hover/item:translate-x-0 group-hover/item:opacity-100">
-        {label}
-      </span>
-    </div>
   );
 }

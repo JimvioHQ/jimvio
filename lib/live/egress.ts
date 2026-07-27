@@ -66,7 +66,7 @@ function buildFileOutput(sessionId: string): EncodedFileOutput {
 
 export async function startSessionEgress(input: {
   sessionId: string;
-  communityId: string;
+  communityId: string | null;
   userId: string;
 }): Promise<{ recordingId: string; egressId: string } | { error: string; status: number }> {
   const client = createEgressClient();

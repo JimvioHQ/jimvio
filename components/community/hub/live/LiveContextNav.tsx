@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { memo } from "react";
 import {
+  ArrowLeft,
   BarChart3,
   Bookmark,
   ClipboardList,
@@ -35,6 +37,9 @@ function LiveContextNavImpl({
   rightTab,
   viewerCount,
   qaCount,
+  liveStatus,
+  title,
+  category,
   onOverview,
   onOpenLeft,
   onOpenRight,
@@ -43,11 +48,18 @@ function LiveContextNavImpl({
   onClip,
   onSave,
   onReport,
+  onFollow,
+  onGoLive,
+  hasSession,
+  variant = "desktop",
 }: {
   leftPanel: LeftPanel;
   rightTab: RightTab;
   viewerCount: number;
   qaCount?: number;
+  liveStatus: "LIVE" | "OFFLINE" | "ENDED" | "UPCOMING";
+  title: string;
+  category: string;
   onOverview: () => void;
   onOpenLeft: (panel: Exclude<LeftPanel, "none">) => void;
   onOpenRight: (tab: RightTab) => void;
@@ -56,6 +68,10 @@ function LiveContextNavImpl({
   onClip: () => void;
   onSave: () => void;
   onReport: () => void;
+  onFollow: () => void;
+  onGoLive: () => void;
+  hasSession: boolean;
+  variant?: "desktop" | "drawer";
 }) {
   const liveNow: NavItem[] = [
     {
@@ -131,12 +147,82 @@ function LiveContextNavImpl({
     { id: "report", label: "Report Live", icon: Flag, onClick: onReport },
   ];
 
+  const isLive = liveStatus === "LIVE";
+
   return (
     <nav
       aria-label="Live session navigation"
-      className="hidden h-full w-[176px] shrink-0 flex-col bg-white lg:flex"
+      className={cn(
+        "h-full shrink-0 flex-col bg-white",
+        variant === "drawer"
+          ? "flex w-full border-0"
+          : "hidden w-[220px] border-r border-neutral-100 lg:flex"
+      )}
     >
-      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-3 scrollbar-hide">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 scrollbar-hide">
+        <Link
+          href="/communities/live"
+          className={cn(
+            "mb-3 inline-flex items-center gap-1 text-[12px] font-medium text-neutral-500 hover:text-neutral-800",
+            FOCUS_RING
+          )}
+        >
+          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+          Back to Live
+        </Link>
+
+        <div className="mb-4 rounded-2xl bg-neutral-50/90 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-neutral-400">
+            Live status
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            {isLive ? (
+              <span className="inline-flex items-center gap-1 rounded-md bg-red-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                LIVE
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-md bg-neutral-200 px-1.5 py-0.5 text-[10px] font-bold text-neutral-600">
+                {liveStatus === "ENDED" ? "Ended" : liveStatus === "UPCOMING" ? "Upcoming" : "Offline"}
+              </span>
+            )}
+          </div>
+          <p className="mt-2 line-clamp-2 text-[13px] font-semibold tracking-[-0.02em] text-neutral-900">
+            {title}
+          </p>
+          <p className="mt-1 text-[11px] text-neutral-500">
+            {category}
+            <span className="mx-1 text-neutral-300" aria-hidden>
+              ·
+            </span>
+            <span className="tabular-nums">{formatCount(viewerCount)} watching</span>
+          </p>
+          <div className="mt-3 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={onFollow}
+              className={cn(
+                "h-8 rounded-full border border-neutral-200 bg-white text-[12px] font-semibold text-neutral-800 hover:bg-neutral-50",
+                FOCUS_RING
+              )}
+            >
+              Follow
+            </button>
+            {!hasSession && (
+              <button
+                type="button"
+                onClick={onGoLive}
+                className={cn(
+                  "h-8 rounded-full bg-accent text-[12px] font-semibold text-white hover:bg-accent-hover",
+                  FOCUS_RING
+                )}
+              >
+                Go Live
+              </button>
+            )}
+          </div>
+        </div>
+
         <Section label="Live now">
           {liveNow.map((item) => (
             <NavRow key={item.id} item={item} />

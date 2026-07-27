@@ -163,7 +163,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const communitySlug = getCommunitySlugFromPath(pathname);
     const communityId = useCommunityIdFromPath(pathname);
     const isCommunityWorkspace = Boolean(communitySlug);
-    const isLiveStudio = pathname.startsWith("/communities/live");
+    const isLiveStudio =
+      pathname.startsWith("/communities/live") ||
+      /\/communities\/[^/]+\/live(?:\/|$)/.test(pathname);
     const { cartCount, refreshCounts } = useCartStore();
     const { openAssistant } = useAIStore();
 
@@ -419,7 +421,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
             {/* ── Body row: sidebar + content ── */}
             <div className="flex min-h-0 flex-1">
-                {!isCommunityWorkspace && (
+                {!isLiveStudio && !isCommunityWorkspace && (
                     <Suspense fallback={null}>
                         <HubPrimarySidebar
                             collapsed={collapsed}
@@ -432,7 +434,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     </Suspense>
                 )}
 
-                {isCommunityWorkspace && communitySlug && (
+                {!isLiveStudio && isCommunityWorkspace && communitySlug && (
                     <Suspense fallback={null}>
                         <CommunitySidebar
                             slug={communitySlug}
@@ -444,7 +446,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 )}
 
                 {/* Mobile overlay backdrop (hub mode only — community drawer owns its backdrop) */}
-                {!isCommunityWorkspace && mobileNavOpen && (
+                {!isLiveStudio && !isCommunityWorkspace && mobileNavOpen && (
                     <div
                         className="fixed inset-0 z-[98] bg-black/50 lg:hidden"
                         onClick={() => setMobileNavOpen(false)}
@@ -460,14 +462,14 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         <h1 className="text-[14px] font-bold text-[var(--color-text-primary)]">{pageTitle}</h1>
                     </div>
                     )}
-                    <div className={cn("flex min-h-0 flex-1 flex-col", !isCommunityWorkspace && "pb-14 lg:pb-0")}>
+                    <div className={cn("flex min-h-0 flex-1 flex-col", !isLiveStudio && !isCommunityWorkspace && "pb-14 lg:pb-0")}>
                         {children}
                     </div>
                 </main>
             </div>
 
-            {/* ── Mobile bottom nav (hub only — community uses workspace bottom nav) ── */}
-            {!isCommunityWorkspace && (
+            {/* ── Mobile bottom nav (hub only — hidden inside Live workspace) ── */}
+            {!isLiveStudio && !isCommunityWorkspace && (
             <nav
                 className="fixed inset-x-0 bottom-0 z-[60] flex h-14 items-stretch justify-around border-t border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] lg:hidden"
                 style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}

@@ -186,7 +186,7 @@ export function useLiveSession(initialSessionId?: string | null) {
 
   const createLive = useCallback(
     async (input: {
-      communityId: string;
+      communityId?: string | null;
       roomId?: string | null;
       spaceId?: string | null;
       title?: string;

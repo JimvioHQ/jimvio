@@ -21,6 +21,8 @@ const createRoute = mustExist("app/api/c/live/sessions/route.ts");
 const tokenRoute = mustExist("app/api/live/token/route.ts");
 const liveApi = mustExist("app/api/c/live/route.ts");
 const hubLive = mustExist("components/community/hub/hub-live-page.tsx");
+const hubLayout = mustExist("app/communities/components/Layout.tsx");
+const liveNav = mustExist("components/community/hub/live/LiveContextNav.tsx");
 const liveSection = mustExist(
   "components/community/workspace/sections/LiveSection.tsx"
 );
@@ -80,6 +82,19 @@ assert.match(hubLive, /Discussion/);
 assert.match(hubLive, /liveStatusLabel|ENDED|UPCOMING|OFFLINE/);
 assert.match(hubLive, /discussionHref/);
 assert.match(hubLive, /live\.react|onReact/);
+assert.doesNotMatch(hubLive, /Join a community to go live/);
+
+assert.match(hubLayout, /isLiveStudio/);
+assert.match(hubLayout, /!isLiveStudio && !isCommunityWorkspace/);
+assert.match(liveNav, /Live status|LIVE NOW|Quick actions/i);
+assert.match(liveNav, /Go Live|Follow|Back to Live/);
+
+const creatorMigration = mustExist(
+  "supabase/migrations/20260727133149_creator_independent_live.sql"
+);
+assert.match(creatorMigration, /ALTER COLUMN community_id DROP NOT NULL/);
+assert.match(creatorMigration, /live_recordings/);
+assert.match(creatorMigration, /uq_live_sessions_host_one_creator_live/);
 
 assert.match(liveSection, /Discussion/);
 assert.match(liveSection, /Open Live Studio|Join Live Studio/);
@@ -107,6 +122,9 @@ const dock = mustExist("components/community/hub/live/ControlDock.tsx");
 assert.match(dock, /onLeave/);
 assert.match(dock, /Leave/);
 assert.match(sessionSvc, /assertCanHostLive|creator/);
+assert.match(sessionSvc, /live_kind|Creator Live|communityId \?\? null|isCreatorLive|assertNoActiveCreatorLive/);
+assert.match(createRoute, /communityId \?\? null|body\.communityId/);
+assert.doesNotMatch(createRoute, /communityId required/);
 assert.match(sessionSvc, /Join the live session before requesting/);
 assert.match(sessionSvc, /No pending speak request/);
 

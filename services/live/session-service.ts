@@ -26,9 +26,9 @@ export type LiveChatSettings = {
 
 export type LiveSessionRow = {
   id: string;
-  community_id: string;
+  community_id: string | null;
   /** Production schema uses space_id; room_id added by 082 repair for chat binding. */
-  space_id: string;
+  space_id: string | null;
   room_id: string | null;
   host_id: string;
   title: string;
@@ -124,11 +124,25 @@ export async function getSession(sessionId: string): Promise<LiveSessionRow | nu
   return (data as LiveSessionRow | null) ?? null;
 }
 
-/** True when the user may view session metadata (member / owner). */
+/** True when the user may view session metadata (member / owner / public creator live). */
 export async function canViewLiveSession(
   userId: string,
   session: LiveSessionRow
 ): Promise<boolean> {
+  if (!session.community_id) {
+    const privacy = normalizePrivacy(session.privacy);
+    if (privacy === "public") return true;
+    if (session.host_id === userId) return true;
+    const participant = await getParticipant(session.id, userId);
+    return Boolean(
+      participant &&
+        (participant.status === "joined" ||
+          participant.status === "invited" ||
+          participant.role === "cohost" ||
+          participant.role === "speaker" ||
+          participant.role === "moderator")
+    );
+  }
   return assertCommunityMember(userId, session.community_id);
 }
 
@@ -258,7 +272,20 @@ async function assertNoActiveLiveInSpace(spaceId: string) {
   return data?.id ?? null;
 }
 
-async function communitySlug(communityId: string): Promise<string | null> {
+async function assertNoActiveCreatorLive(hostId: string) {
+  const { data } = await db()
+    .from("live_sessions")
+    .select("id")
+    .eq("host_id", hostId)
+    .is("community_id", null)
+    .eq("status", "live")
+    .limit(1)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+async function communitySlug(communityId: string | null | undefined): Promise<string | null> {
+  if (!communityId) return null;
   const { data } = await db()
     .from("communities")
     .select("slug")
@@ -282,7 +309,8 @@ function normalizeChatSettings(raw: LiveChatSettings | undefined): Record<string
 
 export async function createLiveSession(input: {
   userId: string;
-  communityId: string;
+  /** When omitted/null, creates an independent Creator Live (no community). */
+  communityId?: string | null;
   roomId?: string | null;
   spaceId?: string | null;
   title?: string;
@@ -291,15 +319,27 @@ export async function createLiveSession(input: {
   scheduledAt?: string | null;
   chatSettings?: LiveChatSettings;
 }): Promise<{ session: LiveSessionRow } | { error: string; status: number }> {
-  const ok = await assertCanHostLive(input.userId, input.communityId);
-  if (!ok) return { error: "Only community hosts can create a live session", status: 403 };
+  const communityId = input.communityId?.trim() || null;
+  const isCreatorLive = !communityId;
 
-  const resolved = await resolveSpaceAndRoom({
-    communityId: input.communityId,
-    roomId: input.roomId,
-    spaceId: input.spaceId,
-  });
-  if ("error" in resolved) return resolved;
+  if (!isCreatorLive) {
+    const ok = await assertCanHostLive(input.userId, communityId);
+    if (!ok) return { error: "Only community hosts can create a live session", status: 403 };
+  }
+
+  let roomId: string | null = null;
+  let spaceId: string | null = null;
+
+  if (!isCreatorLive) {
+    const resolved = await resolveSpaceAndRoom({
+      communityId,
+      roomId: input.roomId,
+      spaceId: input.spaceId,
+    });
+    if ("error" in resolved) return resolved;
+    roomId = resolved.roomId;
+    spaceId = resolved.spaceId;
+  }
 
   const scheduledAt = input.scheduledAt?.trim() || null;
   const scheduleDate = scheduledAt ? new Date(scheduledAt) : null;
@@ -309,27 +349,39 @@ export async function createLiveSession(input: {
     scheduleDate.getTime() > Date.now() + 30_000;
 
   if (!isSchedule) {
-    const existingLive = await assertNoActiveLiveInSpace(resolved.spaceId);
-    if (existingLive) {
-      return {
-        error: "This space already has a live session",
-        status: 409,
-      };
+    if (isCreatorLive) {
+      const existingCreator = await assertNoActiveCreatorLive(input.userId);
+      if (existingCreator) {
+        return { error: "You already have a live session", status: 409 };
+      }
+    } else if (spaceId) {
+      const existingLive = await assertNoActiveLiveInSpace(spaceId);
+      if (existingLive) {
+        return {
+          error: "This space already has a live session",
+          status: 409,
+        };
+      }
     }
   }
 
   const now = new Date().toISOString();
-  const privacy = normalizePrivacy(input.privacy);
-  const settings = normalizeChatSettings(input.chatSettings);
+  const privacy = normalizePrivacy(input.privacy ?? (isCreatorLive ? "public" : "private"));
+  const settings = {
+    ...normalizeChatSettings(input.chatSettings),
+    live_kind: isCreatorLive ? "creator" : "community",
+  };
 
   const { data: session, error } = await db()
     .from("live_sessions")
     .insert({
-      community_id: input.communityId,
-      space_id: resolved.spaceId,
-      room_id: resolved.roomId,
+      community_id: communityId,
+      space_id: spaceId,
+      room_id: roomId,
       host_id: input.userId,
-      title: input.title?.trim() || "Community Live Room",
+      title:
+        input.title?.trim() ||
+        (isCreatorLive ? "Creator Live" : "Community Live Room"),
       status: isSchedule ? "scheduled" : "live",
       privacy,
       scheduled_at: isSchedule ? scheduleDate!.toISOString() : null,
@@ -349,7 +401,12 @@ export async function createLiveSession(input: {
 
   if (error || !session) {
     if (error?.code === "23505") {
-      return { error: "This space already has a live session", status: 409 };
+      return {
+        error: isCreatorLive
+          ? "You already have a live session"
+          : "This space already has a live session",
+        status: 409,
+      };
     }
     return { error: error?.message ?? "Failed to create session", status: 400 };
   }
@@ -370,19 +427,21 @@ export async function createLiveSession(input: {
     );
   }
 
-  const slug = await communitySlug(input.communityId);
-  if (slug) {
-    void notifyCommunityLiveEvent(db(), {
-      communityId: input.communityId,
-      actorId: input.userId,
-      communitySlug: slug,
-      sessionId: session.id,
-      event: isSchedule ? "live_scheduled" : "live_started",
-      title: isSchedule ? "Live scheduled" : "Live started",
-      message: isSchedule
-        ? `${(session as LiveSessionRow).title} is scheduled`
-        : `${(session as LiveSessionRow).title} is live now`,
-    }).catch(() => undefined);
+  if (communityId) {
+    const slug = await communitySlug(communityId);
+    if (slug) {
+      void notifyCommunityLiveEvent(db(), {
+        communityId,
+        actorId: input.userId,
+        communitySlug: slug,
+        sessionId: session.id,
+        event: isSchedule ? "live_scheduled" : "live_started",
+        title: isSchedule ? "Live scheduled" : "Live started",
+        message: isSchedule
+          ? `${(session as LiveSessionRow).title} is scheduled`
+          : `${(session as LiveSessionRow).title} is live now`,
+      }).catch(() => undefined);
+    }
   }
 
   return { session: session as LiveSessionRow };
@@ -398,13 +457,23 @@ export async function startScheduledLive(
     return { error: "Session is not scheduled", status: 400 };
   }
   if (session.host_id !== userId) {
+    if (!session.community_id) {
+      return { error: "Only the host can start this live", status: 403 };
+    }
     const staff = await assertCanHostLive(userId, session.community_id);
     if (!staff) return { error: "Only the host can start this live", status: 403 };
   }
 
-  const conflict = await assertNoActiveLiveInSpace(session.space_id);
-  if (conflict && conflict !== sessionId) {
-    return { error: "This space already has a live session", status: 409 };
+  if (session.space_id) {
+    const conflict = await assertNoActiveLiveInSpace(session.space_id);
+    if (conflict && conflict !== sessionId) {
+      return { error: "This space already has a live session", status: 409 };
+    }
+  } else {
+    const conflict = await assertNoActiveCreatorLive(session.host_id);
+    if (conflict && conflict !== sessionId) {
+      return { error: "You already have a live session", status: 409 };
+    }
   }
 
   const now = new Date().toISOString();
@@ -442,7 +511,7 @@ export async function startScheduledLive(
   );
 
   const slug = await communitySlug(session.community_id);
-  if (slug) {
+  if (slug && session.community_id) {
     void notifyCommunityLiveEvent(db(), {
       communityId: session.community_id,
       actorId: userId,
@@ -467,6 +536,9 @@ export async function cancelLiveSession(
     return { error: "Only scheduled lives can be cancelled", status: 400 };
   }
   if (session.host_id !== userId) {
+    if (!session.community_id) {
+      return { error: "Only the host can cancel", status: 403 };
+    }
     const staff = await assertCanHostLive(userId, session.community_id);
     if (!staff) return { error: "Only the host can cancel", status: 403 };
   }
@@ -509,7 +581,7 @@ export async function sendDueLiveReminders(withinMinutes = 15): Promise<number> 
     if (settings.reminder_sent === true) continue;
 
     const slug = await communitySlug(session.community_id);
-    if (!slug) continue;
+    if (!slug || !session.community_id) continue;
 
     await notifyCommunityLiveEvent(db(), {
       communityId: session.community_id,
@@ -548,9 +620,22 @@ export async function joinLiveSession(
   if (session.status !== "live") return { error: "Session is not live", status: 400 };
 
   const privacy = normalizePrivacy(session.privacy);
-  const member = await assertCommunityMember(userId, session.community_id);
-  if (!member && privacy !== "public") {
-    return { error: "Not a community member", status: 403 };
+  if (session.community_id) {
+    const member = await assertCommunityMember(userId, session.community_id);
+    if (!member && privacy !== "public") {
+      return { error: "Not a community member", status: 403 };
+    }
+  } else if (privacy === "private" && session.host_id !== userId) {
+    const existingPreview = await getParticipant(sessionId, userId);
+    const invited =
+      existingPreview?.status === "invited" ||
+      existingPreview?.status === "joined" ||
+      existingPreview?.role === "cohost" ||
+      existingPreview?.role === "speaker" ||
+      existingPreview?.role === "moderator";
+    if (!invited) {
+      return { error: "This live is private", status: 403 };
+    }
   }
 
   const existing = await getParticipant(sessionId, userId);
@@ -562,7 +647,9 @@ export async function joinLiveSession(
   }
 
   if (privacy === "invite_only" && session.host_id !== userId) {
-    const staff = await assertCommunityStaff(userId, session.community_id);
+    const staff = session.community_id
+      ? await assertCommunityStaff(userId, session.community_id)
+      : false;
     const invited =
       existing?.status === "invited" ||
       existing?.status === "joined" ||
@@ -729,7 +816,7 @@ export async function endLiveSession(
     .neq("status", "removed");
 
   const slug = await communitySlug(session.community_id);
-  if (slug) {
+  if (slug && session.community_id) {
     void notifyCommunityLiveEvent(db(), {
       communityId: session.community_id,
       actorId: userId,
@@ -758,8 +845,10 @@ export async function inviteSpeaker(
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(targetId)) {
     return { error: "Invalid target user", status: 400 };
   }
-  const targetMember = await assertCommunityMember(targetId, session.community_id);
-  if (!targetMember) return { error: "Target is not a community member", status: 403 };
+  if (session.community_id) {
+    const targetMember = await assertCommunityMember(targetId, session.community_id);
+    if (!targetMember) return { error: "Target is not a community member", status: 403 };
+  }
 
   const existing = await getParticipant(sessionId, targetId);
   if (
@@ -796,8 +885,10 @@ export async function requestSpeak(
   const session = await getSession(sessionId);
   if (!session || session.status !== "live") return { error: "Session not live", status: 400 };
 
-  const member = await assertCommunityMember(userId, session.community_id);
-  if (!member) return { error: "Not a community member", status: 403 };
+  if (session.community_id) {
+    const member = await assertCommunityMember(userId, session.community_id);
+    if (!member) return { error: "Not a community member", status: 403 };
+  }
 
   const existing = await getParticipant(sessionId, userId);
   if (!existing || existing.status === "left" || existing.status === "removed") {
@@ -1056,8 +1147,10 @@ export async function transferHost(
     return { error: "Target must be joined", status: 400 };
   }
 
-  const member = await assertCommunityMember(targetUserId, session.community_id);
-  if (!member) return { error: "Target is not a community member", status: 403 };
+  if (session.community_id) {
+    const member = await assertCommunityMember(targetUserId, session.community_id);
+    if (!member) return { error: "Target is not a community member", status: 403 };
+  }
 
   const now = new Date().toISOString();
   const { data: updatedSession, error: sessionError } = await db()

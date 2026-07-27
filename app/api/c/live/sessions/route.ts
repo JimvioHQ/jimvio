@@ -45,12 +45,12 @@ export async function POST(req: Request) {
   };
 
   if (!body.communityId) {
-    return NextResponse.json({ error: "communityId required" }, { status: 400 });
+    // Creator / independent live — community optional
   }
 
   const result = await createLiveSession({
     userId: user.id,
-    communityId: body.communityId,
+    communityId: body.communityId ?? null,
     roomId: body.roomId,
     spaceId: body.spaceId,
     title: body.title,
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
   if ("error" in result) {
     liveStudioLog("error", "session_create", {
       userId: user.id,
-      communityId: body.communityId,
+      communityId: body.communityId ?? null,
       error: result.error,
     });
     return NextResponse.json({ error: result.error }, { status: result.status });
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
   liveStudioLog("info", "session_create", {
     userId: user.id,
     sessionId: result.session.id,
-    communityId: body.communityId,
+    communityId: body.communityId ?? null,
     status: result.session.status,
   });
   return NextResponse.json({ session: result.session });
