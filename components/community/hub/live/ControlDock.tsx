@@ -7,14 +7,18 @@ import {
   CircleDot,
   ClipboardList,
   Fullscreen,
+  HelpCircle,
   LogOut,
   Mic,
   MicOff,
+  MoreHorizontal,
   MousePointer2,
   PenLine,
   Presentation,
   ScreenShare,
   ScreenShareOff,
+  Share2,
+  Smile,
   Square,
   Timer,
   UsersRound,
@@ -23,7 +27,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ActivityMode } from "./studio-types";
-import { FOCUS_RING, MOTION } from "./studio-ui";
+import { FOCUS_RING, LIVE_SHADOW, MOTION } from "./studio-ui";
 
 export function useEphemeralToast() {
   const [msg, setMsg] = useState<string | null>(null);
@@ -47,6 +51,7 @@ function ControlDockImpl({
   micOn,
   camOn,
   recording,
+  sharing,
   focusMode,
   onMic,
   onCam,
@@ -56,6 +61,9 @@ function ControlDockImpl({
   onRecord,
   onPoll,
   onInvite,
+  onReact,
+  onQa,
+  onCopyLink,
   onAnnotate,
   onLaser,
   onFullscreen,
@@ -63,6 +71,7 @@ function ControlDockImpl({
   onNext,
   onTimer,
   onSlides,
+  onMore,
   onEnd,
   onLeave,
   canEnd = true,
@@ -71,6 +80,7 @@ function ControlDockImpl({
   micOn: boolean;
   camOn: boolean;
   recording: boolean;
+  sharing?: boolean;
   focusMode?: boolean;
   onMic: () => void;
   onCam: () => void;
@@ -80,6 +90,9 @@ function ControlDockImpl({
   onRecord: () => void;
   onPoll: () => void;
   onInvite: () => void;
+  onReact?: () => void;
+  onQa?: () => void;
+  onCopyLink?: () => void;
   onAnnotate?: () => void;
   onLaser?: () => void;
   onFullscreen?: () => void;
@@ -87,6 +100,7 @@ function ControlDockImpl({
   onNext?: () => void;
   onTimer?: () => void;
   onSlides?: () => void;
+  onMore?: () => void;
   onEnd?: () => void;
   onLeave?: () => void;
   /** When false, show Leave instead of End Live (non-host participants). */
@@ -96,58 +110,109 @@ function ControlDockImpl({
   const sw = 1.6;
 
   return (
-    <div className={cn("flex justify-center px-2", focusMode ? "mt-5" : "mt-4")}>
+    <div className={cn("flex justify-center px-2", focusMode ? "mt-4" : "mt-3")}>
       <div
         role="toolbar"
         aria-label="Live session controls"
         className={cn(
-          "inline-flex items-center gap-0.5 rounded-full px-1.5 py-1.5 sm:gap-1 sm:px-2 sm:py-1.5",
-          "bg-white/65 backdrop-blur-2xl",
-          "shadow-[0_8px_30px_rgba(0,0,0,0.08)]",
-          MOTION
+          "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[22px] border border-neutral-200/80 bg-white px-2 py-2 sm:gap-1 sm:px-3",
+          LIVE_SHADOW,
+          MOTION,
+          "scrollbar-hide"
         )}
       >
         {activity === "live" && (
           <>
-            <DockBtn pressed={micOn} off={!micOn} onClick={onMic} label={micOn ? "Mute microphone" : "Unmute microphone"} hint="M">
-              {micOn ? <Mic className={icon} strokeWidth={sw} aria-hidden /> : <MicOff className={icon} strokeWidth={sw} aria-hidden />}
+            <DockBtn
+              pressed={micOn}
+              off={!micOn}
+              onClick={onMic}
+              label={micOn ? "Mute" : "Unmute"}
+              hint="M"
+            >
+              {micOn ? (
+                <Mic className={icon} strokeWidth={sw} aria-hidden />
+              ) : (
+                <MicOff className={icon} strokeWidth={sw} aria-hidden />
+              )}
             </DockBtn>
-            <DockBtn pressed={camOn} off={!camOn} onClick={onCam} label={camOn ? "Stop camera" : "Start camera"} hint="V">
-              {camOn ? <Video className={icon} strokeWidth={sw} aria-hidden /> : <VideoOff className={icon} strokeWidth={sw} aria-hidden />}
+            <DockBtn
+              pressed={camOn}
+              off={!camOn}
+              onClick={onCam}
+              label={camOn ? "Stop Video" : "Start Video"}
+              hint="V"
+            >
+              {camOn ? (
+                <Video className={icon} strokeWidth={sw} aria-hidden />
+              ) : (
+                <VideoOff className={icon} strokeWidth={sw} aria-hidden />
+              )}
             </DockBtn>
-            <DockBtn onClick={onShare} label="Share screen" hint="S">
+            <DockBtn
+              pressed={sharing}
+              success={sharing}
+              onClick={onShare}
+              label="Share Screen"
+              hint="S"
+            >
               <ScreenShare className={icon} strokeWidth={sw} aria-hidden />
+            </DockBtn>
+            <DockBtn
+              onClick={onCopyLink}
+              label="Share"
+              className="hidden sm:flex"
+            >
+              <Share2 className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
             <DockBtn onClick={onInvite} label="Invite" className="hidden sm:flex">
               <UsersRound className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn pressed={recording} recording={recording} onClick={onRecord} label={recording ? "Stop recording" : "Start recording"} hint="R">
+            <DockBtn
+              pressed={recording}
+              recording={recording}
+              onClick={onRecord}
+              label="Record"
+              hint="R"
+            >
               <CircleDot className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn onClick={onPresent} label="Present" className="hidden md:flex">
-              <Presentation className={icon} strokeWidth={sw} aria-hidden />
+            <DockBtn onClick={onReact} label="React" className="hidden sm:flex">
+              <Smile className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn onClick={onPoll} label="Poll" hint="P" className="hidden sm:flex">
+            <DockBtn onClick={onPoll} label="Polls" hint="P" className="hidden md:flex">
               <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
+            </DockBtn>
+            <DockBtn onClick={onQa} label="Q&A" className="hidden md:flex">
+              <HelpCircle className={icon} strokeWidth={sw} aria-hidden />
+            </DockBtn>
+            <DockBtn onClick={onMore ?? onPresent} label="More" className="hidden lg:flex">
+              <MoreHorizontal className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
           </>
         )}
 
         {activity === "share" && (
           <>
-            <DockBtn accent onClick={onStopShare} label="Stop sharing">
+            <DockBtn accent onClick={onStopShare} label="Stop Share">
               <ScreenShareOff className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
             <DockBtn onClick={onAnnotate} label="Annotate">
               <PenLine className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn onClick={onLaser} label="Laser pointer" className="hidden sm:flex">
+            <DockBtn onClick={onLaser} label="Laser" className="hidden sm:flex">
               <MousePointer2 className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
             <DockBtn onClick={onFullscreen} label="Fullscreen" className="hidden sm:flex">
               <Fullscreen className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn pressed={recording} recording={recording} onClick={onRecord} label={recording ? "Stop recording" : "Start recording"} hint="R">
+            <DockBtn
+              pressed={recording}
+              recording={recording}
+              onClick={onRecord}
+              label="Record"
+              hint="R"
+            >
               <CircleDot className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
           </>
@@ -158,23 +223,23 @@ function ControlDockImpl({
             <DockBtn onClick={onSlides} label="Slides">
               <Presentation className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn onClick={onPrev} label="Previous slide">
+            <DockBtn onClick={onPrev} label="Prev">
               <ChevronLeft className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn onClick={onNext} label="Next slide">
+            <DockBtn onClick={onNext} label="Next">
               <ChevronRight className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
             <DockBtn onClick={onTimer} label="Timer" className="hidden sm:flex">
               <Timer className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn onClick={onPoll} label="Poll" hint="P">
+            <DockBtn onClick={onPoll} label="Polls" hint="P">
               <ClipboardList className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
             <DockBtn
               pressed={recording}
               recording={recording}
               onClick={onRecord}
-              label={recording ? "Stop recording" : "Start recording"}
+              label="Record"
               hint="R"
               className="hidden md:flex"
             >
@@ -183,23 +248,23 @@ function ControlDockImpl({
           </>
         )}
 
-        <span className="mx-1.5 hidden h-5 w-px bg-neutral-200/60 sm:block" aria-hidden />
+        <span className="mx-1.5 hidden h-8 w-px bg-neutral-200/80 sm:block" aria-hidden />
 
         {canEnd ? (
           <button
             type="button"
-            title="End Live"
+            title="End Room"
             aria-label="End live session"
             onClick={onEnd}
             className={cn(
-              "inline-flex h-10 items-center gap-2 rounded-full bg-red-500/95 px-3.5 text-[12px] font-medium tracking-[-0.01em] text-white",
+              "inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-accent px-4 text-[12px] font-semibold tracking-[-0.01em] text-white",
               MOTION,
               FOCUS_RING,
-              "hover:bg-red-500 active:scale-[0.98] sm:px-4"
+              "hover:bg-accent-hover active:scale-[0.98] sm:px-5"
             )}
           >
             <Square className="h-2.5 w-2.5" fill="currentColor" aria-hidden />
-            <span className="hidden sm:inline">End Live</span>
+            <span className="hidden sm:inline">End Room</span>
             <span className="sm:hidden">End</span>
           </button>
         ) : (
@@ -209,15 +274,14 @@ function ControlDockImpl({
             aria-label="Leave live session"
             onClick={onLeave}
             className={cn(
-              "inline-flex h-10 items-center gap-2 rounded-full bg-neutral-900/90 px-3.5 text-[12px] font-medium tracking-[-0.01em] text-white",
+              "inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-neutral-900 px-4 text-[12px] font-semibold tracking-[-0.01em] text-white",
               MOTION,
               FOCUS_RING,
-              "hover:bg-neutral-900 active:scale-[0.98] sm:px-4"
+              "hover:bg-neutral-800 active:scale-[0.98] sm:px-5"
             )}
           >
             <LogOut className="h-3.5 w-3.5" aria-hidden />
-            <span className="hidden sm:inline">Leave</span>
-            <span className="sm:hidden">Leave</span>
+            <span>Leave Live</span>
           </button>
         )}
       </div>
@@ -233,6 +297,7 @@ function DockBtn({
   accent,
   recording,
   pressed,
+  success,
   onClick,
   className,
 }: {
@@ -243,6 +308,7 @@ function DockBtn({
   accent?: boolean;
   recording?: boolean;
   pressed?: boolean;
+  success?: boolean;
   onClick?: () => void;
   className?: string;
 }) {
@@ -254,21 +320,37 @@ function DockBtn({
       aria-pressed={typeof pressed === "boolean" ? pressed : undefined}
       onClick={onClick}
       className={cn(
-        "inline-flex h-10 w-10 items-center justify-center rounded-full",
+        "inline-flex min-w-[52px] flex-col items-center justify-center gap-0.5 rounded-xl px-1.5 py-1.5 sm:min-w-[58px]",
         MOTION,
         FOCUS_RING,
-        "hover:scale-[1.02] active:scale-[0.97] motion-reduce:hover:scale-100 motion-reduce:active:scale-100",
+        "hover:scale-[1.01] active:scale-[0.97] motion-reduce:hover:scale-100 motion-reduce:active:scale-100",
         off
           ? "bg-red-500/10 text-red-600"
           : accent
             ? "bg-neutral-900 text-white"
             : recording
               ? "bg-red-500 text-white"
-              : "text-neutral-600 hover:bg-black/[0.035] hover:text-neutral-900",
+              : success
+                ? "bg-emerald-500/10 text-emerald-600"
+                : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
         className
       )}
     >
       {children}
+      <span
+        className={cn(
+          "max-w-[64px] truncate text-[9px] font-medium leading-none tracking-[-0.01em] sm:text-[10px]",
+          off
+            ? "text-red-600"
+            : accent || recording
+              ? "text-white/90"
+              : success
+                ? "text-emerald-600"
+                : "text-neutral-400"
+        )}
+      >
+        {label}
+      </span>
     </button>
   );
 }

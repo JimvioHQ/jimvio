@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 
-/** Functional media layer only — fills existing stage bounds, no chrome changes. */
-export function StageMediaPreview({ stream }: { stream: MediaStream | null }) {
+/** Functional media layer only — fills existing stage bounds. */
+export function StageMediaPreview({
+  stream,
+  cover = false,
+  className,
+}: {
+  stream: MediaStream | null;
+  cover?: boolean;
+  className?: string;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -21,7 +30,11 @@ export function StageMediaPreview({ stream }: { stream: MediaStream | null }) {
       autoPlay
       playsInline
       muted
-      className="absolute inset-0 z-[1] h-full w-full object-contain bg-neutral-950"
+      className={cn(
+        "absolute inset-0 z-[1] h-full w-full bg-neutral-950",
+        cover ? "object-cover" : "object-contain",
+        className
+      )}
       aria-label="Live media preview"
     />
   );

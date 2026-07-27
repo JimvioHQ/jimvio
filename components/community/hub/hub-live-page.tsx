@@ -4,12 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowLeft,
   Check,
-  Copy,
+  Fullscreen,
   Loader2,
   MessageSquare,
   MonitorPlay,
+  MoreHorizontal,
   Radio,
+  Settings,
+  Share2,
   Users,
   Wifi,
   WifiOff,
@@ -37,6 +41,7 @@ import { AiFab } from "./live/AiFab";
 import { CommandPalette, defaultLiveCommands } from "./live/CommandPalette";
 import { ControlDock, useEphemeralToast } from "./live/ControlDock";
 import { ChatWorkspace } from "./live/ChatWorkspace";
+import { LiveContextNav } from "./live/LiveContextNav";
 import { StageMediaPreview } from "./live/StageMediaPreview";
 import { RemoteAudioSink } from "./live/RemoteAudioSink";
 import {
@@ -89,7 +94,15 @@ import {
   writeDrawerState,
   writeMode,
 } from "./live/studio-utils";
-import { FOCUS_RING, FOCUS_RING_DARK, MOTION_COLORS } from "./live/studio-ui";
+import {
+  FOCUS_RING,
+  FOCUS_RING_DARK,
+  LIVE_PAGE_BG,
+  LIVE_RADIUS_LG,
+  LIVE_SHADOW,
+  LIVE_SHADOW_LG,
+  MOTION_COLORS,
+} from "./live/studio-ui";
 
 type LoadError = "network" | "server" | null;
 
@@ -876,13 +889,16 @@ export function HubLivePage({
   if (loading) {
     return (
       <div
-        className="flex min-h-[calc(100vh-56px)] items-center justify-center bg-[#f7f7f8]"
+        className={cn("flex min-h-[calc(100vh-56px)] items-center justify-center", LIVE_PAGE_BG)}
         role="status"
         aria-live="polite"
         aria-busy="true"
       >
-        <Loader2 className="h-4 w-4 animate-spin text-neutral-300" aria-hidden />
-        <span className="sr-only">Loading live studio</span>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-40 w-full max-w-md animate-pulse rounded-2xl bg-neutral-200/70" />
+          <Loader2 className="h-4 w-4 animate-spin text-neutral-300" aria-hidden />
+          <span className="sr-only">Loading live studio</span>
+        </div>
       </div>
     );
   }
@@ -891,7 +907,7 @@ export function HubLivePage({
     <div
       className={cn(
         "relative flex h-[calc(100vh-56px)] min-h-[520px] flex-col text-neutral-900 motion-safe:transition-colors motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
-        immersive ? "bg-neutral-950" : "bg-[#f7f7f8]"
+        immersive ? "bg-neutral-950" : LIVE_PAGE_BG
       )}
     >
       {/* Status banners — offline / load errors */}
@@ -922,7 +938,7 @@ export function HubLivePage({
       {pendingInvite && hasSession && !focusMode && (
         <div
           role="status"
-          className="flex shrink-0 items-center justify-between gap-3 bg-[#fd5000] px-4 py-2 text-[12px] text-white"
+          className="flex shrink-0 items-center justify-between gap-3 bg-accent px-4 py-2 text-[12px] text-white"
         >
           <p className="min-w-0 truncate font-medium">
             You’ve been invited to speak on stage.
@@ -942,7 +958,7 @@ export function HubLivePage({
                     showToast(e instanceof Error ? e.message : "Could not accept")
                   );
               }}
-              className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-[#fd5000]"
+              className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-accent"
             >
               Accept
             </button>
@@ -953,130 +969,181 @@ export function HubLivePage({
       {!focusMode && (
         <header
           className={cn(
-            "flex h-10 shrink-0 items-center gap-3 px-3 transition-colors duration-[180ms] sm:px-5",
+            "flex shrink-0 flex-col gap-2 border-b px-3 py-3 transition-colors duration-[180ms] sm:px-5",
             immersive
-              ? "bg-black/30 text-white backdrop-blur-xl"
-              : "bg-white/50 backdrop-blur-xl"
+              ? "border-white/10 bg-black/30 text-white backdrop-blur-xl"
+              : "border-neutral-200/70 bg-white/80 backdrop-blur-xl"
           )}
         >
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            {hasSession ? (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 text-[10px] font-medium tracking-[0.06em]",
-                  immersive ? "text-red-400/90" : "text-red-600/90"
-                )}
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                LIVE
-              </span>
-            ) : (
-              <span className={cn("text-[10px] font-medium tracking-[0.06em]", immersive ? "text-white/35" : "text-neutral-400")}>
-                {liveStatusLabel}
-              </span>
-            )}
-            <h1
-              className={cn(
-                "truncate text-[13px] font-medium tracking-[-0.02em]",
-                immersive ? "text-white/95" : "text-neutral-900"
-              )}
-            >
-              {session.title}
-            </h1>
-            {hasSession && (
-              <span
-                className={cn(
-                  "hidden tabular-nums text-[11px] sm:inline",
-                  immersive ? "text-white/35" : "text-neutral-400"
-                )}
-              >
-                {formatElapsed(elapsed)}
-              </span>
-            )}
+          <div className="flex items-center gap-2">
             <Link
-              href={discussionHref}
+              href="/communities/live"
               className={cn(
-                "hidden shrink-0 text-[11px] font-medium underline-offset-2 hover:underline sm:inline",
-                immersive ? "text-white/55" : "text-neutral-500"
+                "inline-flex items-center gap-1 text-[12px] font-medium",
+                immersive ? "text-white/55 hover:text-white" : "text-neutral-500 hover:text-neutral-800",
+                FOCUS_RING
               )}
             >
-              Discussion
+              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+              Back to Live
             </Link>
           </div>
 
-          <div
-            className={cn(
-              "flex items-center gap-2.5 text-[12px]",
-              immersive ? "text-white/45" : "text-neutral-500"
-            )}
-          >
-            <span className="inline-flex items-center gap-1 tabular-nums tracking-[-0.01em]">
-              <Users className="h-3.5 w-3.5 opacity-50" strokeWidth={1.6} />
-              {formatCount(live.viewerCount || analytics?.viewers || 0)}
-            </span>
-            <ConnectionPill quality={connection} dark={immersive} />
-          </div>
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {hasSession ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold tracking-[0.06em] text-white">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                    LIVE
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "text-[10px] font-medium tracking-[0.06em]",
+                      immersive ? "text-white/35" : "text-neutral-400"
+                    )}
+                  >
+                    {liveStatusLabel}
+                  </span>
+                )}
+                <h1
+                  className={cn(
+                    "truncate text-[16px] font-semibold tracking-[-0.03em] sm:text-[18px]",
+                    immersive ? "text-white/95" : "text-neutral-900"
+                  )}
+                >
+                  {session.title}
+                </h1>
+              </div>
+              <p
+                className={cn(
+                  "mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]",
+                  immersive ? "text-white/45" : "text-neutral-500"
+                )}
+              >
+                <span>{session.tag || "Live Room"}</span>
+                <span aria-hidden>·</span>
+                <span className="inline-flex items-center gap-1 tabular-nums">
+                  <Users className="h-3 w-3 opacity-60" strokeWidth={1.6} aria-hidden />
+                  {formatCount(live.viewerCount || analytics?.viewers || 0)} watching
+                </span>
+                {hasSession && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span className="tabular-nums text-red-500">{formatElapsed(elapsed)}</span>
+                  </>
+                )}
+                <span aria-hidden>·</span>
+                <Link
+                  href={discussionHref}
+                  className={cn(
+                    "font-medium underline-offset-2 hover:underline",
+                    immersive ? "text-white/55" : "text-neutral-500"
+                  )}
+                >
+                  Discussion
+                </Link>
+                <ConnectionPill quality={connection} dark={immersive} />
+              </p>
+            </div>
 
-          <div className="flex items-center gap-0.5">
-            <ModeSwitcher
-              mode={mode}
-              open={modeMenuOpen}
-              dark={immersive}
-              onOpenChange={setModeMenuOpen}
-              onSelect={persistMode}
-            />
-            <button
-              type="button"
-              onClick={copyUrl}
-              title="Copy link"
-              className={cn(
-                "inline-flex h-8 w-8 items-center justify-center rounded-full",
-                MOTION_COLORS,
-                immersive ? FOCUS_RING_DARK : FOCUS_RING,
-                immersive
-                  ? "text-white/50 hover:bg-white/10 hover:text-white"
-                  : "text-neutral-400 hover:bg-black/[0.04] hover:text-neutral-700"
-              )}
-            >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" aria-hidden /> : <Copy className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (live.session) {
-                  if (!gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
-                  toggleLeft("people");
-                  return;
-                }
-                void createOrJoinLive();
-              }}
-              className={cn(
-                "ml-0.5 inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium tracking-[-0.01em] active:scale-[0.98]",
-                MOTION_COLORS,
-                immersive ? FOCUS_RING_DARK : FOCUS_RING,
-                immersive
-                  ? "bg-white text-neutral-900 hover:bg-white/90"
-                  : "bg-neutral-900 text-white hover:bg-neutral-800"
-              )}
-            >
-              {live.session ? "Invite" : "Go Live"}
-            </button>
-            <button
-              type="button"
-              onClick={() => updateDrawer({ rightOpen: !drawer.rightOpen })}
-              className={cn(
-                "inline-flex h-8 w-8 items-center justify-center rounded-full lg:hidden",
-                MOTION_COLORS,
-                immersive ? FOCUS_RING_DARK : FOCUS_RING,
-                immersive
-                  ? "text-white/50 hover:bg-white/10"
-                  : "text-neutral-400 hover:bg-black/[0.04]"
-              )}
-              aria-label={drawer.rightOpen ? "Hide side panel" : "Show side panel"}
-              aria-expanded={drawer.rightOpen}
-            >
-              <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
-            </button>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <ModeSwitcher
+                mode={mode}
+                open={modeMenuOpen}
+                dark={immersive}
+                onOpenChange={setModeMenuOpen}
+                onSelect={persistMode}
+              />
+              <button
+                type="button"
+                onClick={() => showToast("Following host")}
+                className={cn(
+                  "hidden h-9 items-center rounded-full border px-3.5 text-[12px] font-semibold sm:inline-flex",
+                  MOTION_COLORS,
+                  immersive ? FOCUS_RING_DARK : FOCUS_RING,
+                  immersive
+                    ? "border-white/20 text-white hover:bg-white/10"
+                    : "border-neutral-200 text-neutral-800 hover:bg-neutral-50"
+                )}
+              >
+                Follow
+              </button>
+              <button
+                type="button"
+                onClick={copyUrl}
+                title="Share"
+                aria-label="Share live link"
+                className={cn(
+                  "inline-flex h-9 w-9 items-center justify-center rounded-full",
+                  MOTION_COLORS,
+                  immersive ? FOCUS_RING_DARK : FOCUS_RING,
+                  immersive
+                    ? "text-white/50 hover:bg-white/10 hover:text-white"
+                    : "text-neutral-400 hover:bg-black/[0.04] hover:text-neutral-700"
+                )}
+              >
+                {copied ? (
+                  <Check className="h-3.5 w-3.5 text-emerald-500" aria-hidden />
+                ) : (
+                  <Share2 className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleLeft("settings")}
+                title="More"
+                aria-label="More options"
+                className={cn(
+                  "inline-flex h-9 w-9 items-center justify-center rounded-full",
+                  MOTION_COLORS,
+                  immersive ? FOCUS_RING_DARK : FOCUS_RING,
+                  immersive
+                    ? "text-white/50 hover:bg-white/10 hover:text-white"
+                    : "text-neutral-400 hover:bg-black/[0.04] hover:text-neutral-700"
+                )}
+              >
+                <MoreHorizontal className="h-4 w-4" strokeWidth={1.6} aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (live.session) {
+                    if (!gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
+                    toggleLeft("people");
+                    return;
+                  }
+                  void createOrJoinLive();
+                }}
+                className={cn(
+                  "ml-0.5 inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold tracking-[-0.01em] active:scale-[0.98]",
+                  MOTION_COLORS,
+                  immersive ? FOCUS_RING_DARK : FOCUS_RING,
+                  immersive
+                    ? "bg-white text-neutral-900 hover:bg-white/90"
+                    : "bg-accent text-white hover:bg-accent-hover"
+                )}
+              >
+                {live.session ? "Invite" : "Go Live"}
+              </button>
+              <button
+                type="button"
+                onClick={() => updateDrawer({ rightOpen: !drawer.rightOpen })}
+                className={cn(
+                  "inline-flex h-9 w-9 items-center justify-center rounded-full lg:hidden",
+                  MOTION_COLORS,
+                  immersive ? FOCUS_RING_DARK : FOCUS_RING,
+                  immersive
+                    ? "text-white/50 hover:bg-white/10"
+                    : "text-neutral-400 hover:bg-black/[0.04]"
+                )}
+                aria-label={drawer.rightOpen ? "Hide side panel" : "Show side panel"}
+                aria-expanded={drawer.rightOpen}
+              >
+                <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
+              </button>
+            </div>
           </div>
         </header>
       )}
@@ -1084,18 +1151,38 @@ export function HubLivePage({
       {/* Body */}
       <div className="relative flex min-h-0 flex-1">
         {showLeftRail && (
-          <aside className="relative z-20 hidden w-11 shrink-0 flex-col items-center gap-0.5 bg-transparent py-3 md:flex">
-            {LEFT_TOOLS.map(({ id, label, icon: Icon }) => (
-              <RailIcon
-                key={id}
-                label={label}
-                active={drawer.leftPanel === id}
-                onClick={() => toggleLeft(id)}
-              >
-                <Icon className="h-4 w-4" strokeWidth={1.6} />
-              </RailIcon>
-            ))}
-          </aside>
+          <>
+            <LiveContextNav
+              leftPanel={drawer.leftPanel}
+              rightTab={drawer.rightTab}
+              viewerCount={live.viewerCount || analytics?.viewers || 0}
+              onOverview={() => {
+                updateDrawer({ leftPanel: "none", rightTab: "chat", rightOpen: true });
+              }}
+              onOpenLeft={(panel) => toggleLeft(panel)}
+              onOpenRight={(tab) => openRight(tab)}
+              onShare={copyUrl}
+              onInvite={() => {
+                if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
+                toggleLeft("people");
+              }}
+              onClip={() => openRight("clips")}
+              onSave={() => openRight("recording")}
+              onReport={() => showToast("Report submitted")}
+            />
+            <aside className="relative z-20 hidden w-11 shrink-0 flex-col items-center gap-0.5 border-r border-neutral-200/60 bg-white py-3 md:flex xl:hidden">
+              {LEFT_TOOLS.map(({ id, label, icon: Icon }) => (
+                <RailIcon
+                  key={id}
+                  label={label}
+                  active={drawer.leftPanel === id}
+                  onClick={() => toggleLeft(id)}
+                >
+                  <Icon className="h-4 w-4" strokeWidth={1.6} />
+                </RailIcon>
+              ))}
+            </aside>
+          </>
         )}
 
         {/* Left drawer */}
@@ -1103,9 +1190,10 @@ export function HubLivePage({
           <>
             <aside
               className={cn(
-                "absolute inset-y-0 z-30 hidden w-[272px] flex-col bg-white/97 shadow-[8px_0_40px_rgba(0,0,0,0.06)] backdrop-blur-xl md:flex",
+                "absolute inset-y-0 z-30 hidden w-[280px] flex-col border-r border-neutral-200/70 bg-white/98 backdrop-blur-xl md:flex",
+                LIVE_SHADOW,
                 "animate-in fade-in slide-in-from-left-1 duration-[180ms]",
-                showLeftRail ? "left-11" : "left-0"
+                showLeftRail ? "left-11 xl:left-[200px]" : "left-0"
               )}
             >
               <DrawerHeader
@@ -1160,7 +1248,7 @@ export function HubLivePage({
           <div
             className={cn(
               "flex min-h-0 flex-1 flex-col transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-              immersive ? "p-0 sm:p-1.5" : "p-2 sm:p-3 lg:p-5"
+              immersive ? "p-0 sm:p-2" : "p-3 sm:p-4 lg:p-5"
             )}
           >
             <div
@@ -1168,78 +1256,130 @@ export function HubLivePage({
               onDoubleClick={() => setFocusMode((v) => !v)}
               className={cn(
                 "relative flex min-h-0 flex-1 cursor-default overflow-hidden bg-neutral-950",
-                immersive ? "rounded-none sm:rounded-[16px]" : "rounded-[20px]",
+                immersive ? "rounded-none sm:rounded-[16px]" : LIVE_RADIUS_LG,
+                !immersive && LIVE_SHADOW_LG,
                 activity === "share" && "motion-safe:sm:scale-[1.002]",
                 "motion-safe:transition-transform motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]"
               )}
             >
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,#171717_0%,#050505_72%)]" />
-              <StageMediaPreview stream={stageStream} />
+              <StageMediaPreview stream={stageStream} cover={Boolean(stageStream)} />
               {livekit.remotes.map((r) => (
                 <RemoteAudioSink key={`audio-${r.identity}`} stream={r.audioStream} />
               ))}
 
               {hasSession ? (
-                <div className="relative z-[1] flex h-full w-full flex-col">
-                  <div
-                    className={cn(
-                      "flex min-h-0 flex-1 items-center justify-center",
-                      immersive ? "p-4 sm:p-8 lg:p-14" : "p-5 sm:p-10 lg:p-14"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "w-full overflow-hidden rounded-2xl bg-white/98 shadow-[0_24px_80px_rgba(0,0,0,0.4)] transition-all duration-[180ms]",
-                        activity === "share" ? "max-w-5xl" : "max-w-4xl"
-                      )}
-                    >
-                      <div className="flex items-center gap-1.5 px-4 py-2">
-                        <span className="h-1.5 w-1.5 rounded-full bg-neutral-200" />
-                        <span className="h-1.5 w-1.5 rounded-full bg-neutral-200" />
-                        <span className="h-1.5 w-1.5 rounded-full bg-neutral-200" />
-                        <span className="ml-2 text-[10px] tracking-[-0.01em] text-neutral-400">
-                          {activity === "share"
-                            ? "Screen share"
-                            : activity === "present"
-                              ? "Presentation"
-                              : layout}{" "}
-                          · {session.host}
+                <div className="relative z-[2] flex h-full w-full flex-col">
+                  {/* Player overlays */}
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-3 sm:p-4">
+                    <div className="pointer-events-auto flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2 py-1 text-[10px] font-bold tracking-[0.06em] text-white shadow-sm">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                        LIVE
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-md">
+                        <Users className="h-3 w-3 opacity-80" strokeWidth={1.6} aria-hidden />
+                        {formatCount(live.viewerCount || analytics?.viewers || 0)}
+                      </span>
+                      {recordingActive && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-600/90 px-2 py-1 text-[10px] font-semibold text-white">
+                          <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                          REC
                         </span>
-                      </div>
-                      <div
+                      )}
+                    </div>
+                    <div className="pointer-events-auto flex items-center gap-1.5">
+                      <span className="rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white/90 backdrop-blur-md">
+                        1080p
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => toggleLeft("settings")}
                         className={cn(
-                          "border-t border-neutral-100/80 bg-gradient-to-b from-neutral-50/80 to-white text-center",
-                          immersive ? "px-10 py-24 sm:py-28" : "px-8 py-16 sm:py-20 lg:py-24"
+                          "inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white/85 backdrop-blur-md hover:bg-black/70",
+                          FOCUS_RING_DARK
                         )}
+                        aria-label="Player settings"
                       >
-                        <p className="text-[11px] font-normal tracking-[0.04em] text-neutral-400">
-                          {session.tag}
-                        </p>
-                        <p className="mt-2.5 text-[1.45rem] font-medium tracking-[-0.04em] text-neutral-900 sm:text-[1.75rem] lg:text-[2rem]">
-                          {session.title}
-                        </p>
-                      </div>
+                        <Settings className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
+                      </button>
                     </div>
                   </div>
 
-                  {showSpeakers && (
-                    <div className="relative z-[2] flex justify-center px-3 pb-5 sm:pb-6">
-                      <SpeakerStrip
-                        speakers={speakers}
-                        ui={speakerUi}
-                        activeId={activeSpeakerId}
-                        onSelect={setActiveSpeakerId}
-                        onInvite={() => toggleLeft("people")}
-                      />
+                  {!stageStream && (
+                    <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center">
+                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.06]">
+                        <Radio className="h-6 w-6 text-white/40" strokeWidth={1.5} aria-hidden />
+                      </div>
+                      <p className="text-[13px] font-medium tracking-[-0.01em] text-white/50">
+                        {session.tag}
+                      </p>
+                      <p className="mt-1.5 max-w-lg text-[1.35rem] font-semibold tracking-[-0.04em] text-white sm:text-[1.6rem]">
+                        {session.title}
+                      </p>
+                      <p className="mt-2 text-[12px] text-white/35">
+                        Hosted by {session.host} · Waiting for media…
+                      </p>
+                      {livekit.connecting && (
+                        <p className="mt-4 inline-flex items-center gap-2 text-[12px] text-white/50">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                          Connecting to room…
+                        </p>
+                      )}
+                      {livekit.error && (
+                        <div className="mt-4 max-w-sm rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[12px] text-red-200">
+                          <p className="font-medium">Connection issue</p>
+                          <p className="mt-1 text-red-200/80">{livekit.error}</p>
+                          <button
+                            type="button"
+                            onClick={() => void livekit.reconnect()}
+                            className={cn(
+                              "mt-2 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/15",
+                              FOCUS_RING_DARK
+                            )}
+                          >
+                            Reconnect
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
+
+                  {/* Bottom player chrome */}
+                  <div className="pointer-events-none mt-auto absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-3 pb-3 pt-10 sm:px-4 sm:pb-4">
+                    <div className="mb-2 h-0.5 overflow-hidden rounded-full bg-white/20">
+                      <div className="h-full w-full rounded-full bg-red-500" />
+                    </div>
+                    <div className="pointer-events-auto flex items-center gap-2 text-white/85">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                        LIVE
+                      </span>
+                      <span className="tabular-nums text-[11px] text-white/70">
+                        {formatElapsed(elapsed)}
+                      </span>
+                      <div className="ml-auto flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setFocusMode(true)}
+                          className={cn(
+                            "inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/10",
+                            FOCUS_RING_DARK
+                          )}
+                          aria-label="Enter fullscreen"
+                        >
+                          <Fullscreen className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
 
                   {focusMode && (
                     <button
                       type="button"
                       onClick={() => setFocusMode(false)}
                       className={cn(
-                        "absolute right-4 top-4 z-10 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium tracking-[-0.01em] text-white/75 backdrop-blur-md hover:bg-white/15",
+                        "absolute right-4 top-4 z-20 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium tracking-[-0.01em] text-white/75 backdrop-blur-md hover:bg-white/15",
                         MOTION_COLORS,
                         FOCUS_RING_DARK
                       )}
@@ -1263,7 +1403,7 @@ export function HubLivePage({
                     <button
                       type="button"
                       onClick={() => void createOrJoinLive()}
-                      className="rounded-full bg-white px-4 py-2 text-[12px] font-medium text-neutral-900 transition-opacity duration-200 hover:opacity-90"
+                      className="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition-opacity duration-200 hover:bg-accent-hover"
                     >
                       Go Live
                     </button>
@@ -1278,12 +1418,25 @@ export function HubLivePage({
               )}
             </div>
 
+            {hasSession && showSpeakers && (
+              <div className="mt-3 shrink-0 sm:mt-4">
+                <SpeakerStrip
+                  speakers={speakers}
+                  ui={speakerUi}
+                  activeId={activeSpeakerId}
+                  onSelect={setActiveSpeakerId}
+                  onInvite={() => toggleLeft("people")}
+                />
+              </div>
+            )}
+
             {hasSession ? (
             <ControlDock
               activity={activity}
               micOn={micOn}
               camOn={camOn}
               recording={recordingActive}
+              sharing={media.sharing}
               focusMode={focusMode}
               onMic={() => void toggleMic()}
               onCam={() => void toggleCam()}
@@ -1303,6 +1456,9 @@ export function HubLivePage({
                 if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
                 toggleLeft("people");
               }}
+              onReact={() => openRight("chat")}
+              onQa={() => openRight("qa")}
+              onCopyLink={copyUrl}
               onAnnotate={() => showToast("Annotate")}
               onLaser={() => showToast("Laser pointer")}
               onFullscreen={() => setFocusMode(true)}
@@ -1310,6 +1466,7 @@ export function HubLivePage({
               onNext={() => showToast("Next slide")}
               onTimer={() => showToast("Timer started")}
               onSlides={() => showToast("Slides")}
+              onMore={() => openRight("tools")}
               onEnd={() => void endLive()}
               onLeave={() => void leaveLive()}
               canEnd={canEndLive(live.myRole)}
@@ -1322,7 +1479,7 @@ export function HubLivePage({
         {showRight && (
           <aside
             className={cn(
-              "flex w-full max-w-[340px] shrink-0 flex-col bg-white/90 backdrop-blur-xl sm:w-[300px]",
+              "flex w-full max-w-[360px] shrink-0 flex-col border-l border-neutral-200/70 bg-white sm:w-[320px]",
               "fixed inset-y-0 right-0 z-40",
               "transition-transform duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
               "lg:static lg:z-auto lg:max-w-none",
@@ -1333,7 +1490,7 @@ export function HubLivePage({
             <div
               role="tablist"
               aria-label="Workspace panels"
-              className="flex items-end gap-0 overflow-x-auto px-2 pt-1 scrollbar-hide"
+              className="flex items-end gap-0 overflow-x-auto border-b border-neutral-100 px-2 pt-1 scrollbar-hide"
             >
               {visibleRightTabs.map((tab) => (
                 <button
@@ -1347,8 +1504,8 @@ export function HubLivePage({
                     MOTION_COLORS,
                     FOCUS_RING,
                     drawer.rightTab === tab.id
-                      ? "border-neutral-900 font-medium text-neutral-900"
-                      : "border-transparent font-normal text-neutral-400 hover:text-neutral-600"
+                      ? "border-accent font-semibold text-accent"
+                      : "border-transparent font-medium text-neutral-400 hover:text-neutral-600"
                   )}
                 >
                   {tab.label}
@@ -1380,6 +1537,11 @@ export function HubLivePage({
                       setChatInput(v);
                       liveChat.signalTyping();
                     }}
+                    hostName={session.host}
+                    participantAvatars={speakers.slice(0, 6).map((s) => ({
+                      name: s.name,
+                      src: s.avatar_url,
+                    }))}
                     onSend={async (body, reply) => {
                       try {
                         await liveChat.send(body, reply);
