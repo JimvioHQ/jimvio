@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { HubAvatar } from "../hub-ui";
 import type { Speaker } from "@/lib/community/hub-live-types";
 import type { SpeakerUi } from "./studio-types";
-import { FOCUS_RING, LIVE_SHADOW, MOTION, MOTION_COLORS } from "./studio-ui";
+import { FOCUS_RING, MOTION, MOTION_COLORS } from "./studio-ui";
 
 function SpeakerStripImpl({
   speakers,
@@ -26,16 +26,16 @@ function SpeakerStripImpl({
       <div
         role="status"
         aria-label="No speakers on stage"
-        className="flex items-center gap-3 overflow-x-auto pb-1 scrollbar-hide"
+        className="flex gap-2.5 overflow-x-auto scrollbar-hide"
       >
         <button
           type="button"
           onClick={onInvite}
           className={cn(
-            "flex h-[88px] w-[140px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-neutral-200 bg-white text-neutral-400",
+            "flex aspect-[4/3] w-[160px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl bg-neutral-100 text-neutral-400",
             MOTION,
             FOCUS_RING,
-            "hover:border-accent/40 hover:text-accent"
+            "hover:bg-neutral-50 hover:text-accent"
           )}
         >
           <Users className="h-5 w-5" strokeWidth={1.6} aria-hidden />
@@ -45,21 +45,21 @@ function SpeakerStripImpl({
     );
   }
 
-  const visible = speakers.slice(0, 5);
-  const overflow = Math.max(speakers.length - 5, 0);
+  const visible = speakers.slice(0, 4);
+  const overflow = Math.max(speakers.length - 4, 0);
 
   return (
     <div
       role="list"
       aria-label="Speakers on stage"
-      className="flex items-stretch gap-3 overflow-x-auto pb-1 scrollbar-hide"
+      className="flex gap-2.5 overflow-x-auto scrollbar-hide"
     >
       {visible.map((s, i) => {
         const state = ui[s.id];
         const speaking = state?.speaking || activeId === s.id;
         const micOn = state?.micOn ?? true;
         const camOn = state?.camOn ?? true;
-        const role = state?.role ?? (i === 0 ? "host" : "speaker");
+        const role = state?.role ?? (i === 0 ? "host" : "cohost");
         const roleLabel =
           role === "host" ? "Host" : role === "cohost" ? "Co-host" : "Speaker";
 
@@ -72,48 +72,44 @@ function SpeakerStripImpl({
             aria-current={speaking ? "true" : undefined}
             aria-label={`${s.name}, ${roleLabel}${!micOn ? ", muted" : ""}${!camOn ? ", camera off" : ""}${speaking ? ", speaking" : ""}`}
             className={cn(
-              "group relative h-[104px] w-[148px] shrink-0 overflow-hidden rounded-2xl border bg-neutral-900 text-left",
-              LIVE_SHADOW,
+              "group relative aspect-[4/3] w-[min(22%,180px)] min-w-[132px] shrink-0 overflow-hidden rounded-2xl bg-neutral-900 text-left shadow-[0_4px_20px_rgba(0,0,0,0.08)]",
               MOTION,
               FOCUS_RING,
-              speaking
-                ? "border-emerald-400/80 ring-2 ring-emerald-400/40"
-                : "border-neutral-200/60 hover:border-neutral-300",
-              "hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] motion-reduce:hover:translate-y-0"
+              speaking && "ring-2 ring-emerald-400/70",
+              "hover:-translate-y-0.5 motion-reduce:hover:translate-y-0"
             )}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-neutral-800 via-neutral-900 to-black" />
-            <div className="absolute inset-0 flex items-center justify-center opacity-90">
-              <HubAvatar name={s.name} src={s.avatar_url} size={56} className="!ring-0" />
+            <div className="absolute inset-0 bg-gradient-to-br from-neutral-700 via-neutral-900 to-black" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <HubAvatar name={s.name} src={s.avatar_url} size={64} className="!ring-0 scale-110" />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
-            <span
-              className={cn(
-                "absolute left-2 top-2 rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wide",
-                role === "host"
-                  ? "bg-accent text-white"
-                  : "bg-white/90 text-neutral-700"
-              )}
-            >
-              {roleLabel}
-            </span>
-
-            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-1 p-2">
-              <span className="min-w-0 truncate text-[11px] font-semibold tracking-[-0.01em] text-white">
-                {s.name}
-              </span>
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-1.5 p-2.5">
+              <div className="min-w-0">
+                <span
+                  className={cn(
+                    "inline-flex rounded-md px-1.5 py-0.5 text-[9px] font-bold tracking-wide",
+                    role === "host" ? "bg-accent text-white" : "bg-white/90 text-neutral-700"
+                  )}
+                >
+                  {roleLabel}
+                </span>
+                <p className="mt-1 truncate text-[12px] font-semibold tracking-[-0.01em] text-white">
+                  {s.name}
+                </p>
+              </div>
               <span
                 className={cn(
-                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
+                  "flex h-5 w-5 shrink-0 items-center justify-center rounded-full shadow-sm",
                   micOn ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
                 )}
                 aria-hidden
               >
                 {micOn ? (
-                  <Mic className="h-2.5 w-2.5" strokeWidth={2} />
+                  <Mic className="h-2.5 w-2.5" strokeWidth={2.2} />
                 ) : (
-                  <MicOff className="h-2.5 w-2.5" strokeWidth={2} />
+                  <MicOff className="h-2.5 w-2.5" strokeWidth={2.2} />
                 )}
               </span>
             </div>
@@ -139,44 +135,34 @@ function SpeakerStripImpl({
         );
       })}
 
-      {overflow > 0 ? (
-        <button
-          type="button"
-          onClick={onInvite}
-          className={cn(
-            "flex h-[104px] w-[120px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-neutral-200/80 bg-white",
-            LIVE_SHADOW,
-            MOTION_COLORS,
-            FOCUS_RING,
-            "hover:border-accent/30 hover:bg-accent/5"
+      <button
+        type="button"
+        onClick={onInvite}
+        className={cn(
+          "flex aspect-[4/3] w-[min(18%,140px)] min-w-[110px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl bg-neutral-100 shadow-[0_4px_20px_rgba(0,0,0,0.04)]",
+          MOTION_COLORS,
+          FOCUS_RING,
+          "hover:bg-neutral-50"
+        )}
+        aria-label={overflow > 0 ? `${overflow} more speakers` : "Invite more speakers"}
+      >
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-neutral-500 shadow-sm">
+          <Users className="h-4 w-4" strokeWidth={1.6} aria-hidden />
+        </span>
+        <span className="px-2 text-center text-[12px] font-semibold leading-tight text-neutral-700">
+          {overflow > 0 ? (
+            <>
+              +{overflow} More
+              <span className="mt-0.5 block text-[10px] font-medium text-neutral-400">speakers</span>
+            </>
+          ) : (
+            <>
+              Invite
+              <span className="mt-0.5 block text-[10px] font-medium text-neutral-400">speakers</span>
+            </>
           )}
-          aria-label={`${overflow} more speakers`}
-        >
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-neutral-500">
-            <Users className="h-4 w-4" strokeWidth={1.6} aria-hidden />
-          </span>
-          <span className="text-[11px] font-semibold text-neutral-700">
-            +{overflow} More
-          </span>
-          <span className="text-[10px] text-neutral-400">speakers</span>
-        </button>
-      ) : (
-        <button
-          type="button"
-          title="Invite speaker"
-          aria-label="Invite speaker"
-          onClick={onInvite}
-          className={cn(
-            "flex h-[104px] w-[88px] shrink-0 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-neutral-200 bg-white/80 text-neutral-400",
-            MOTION,
-            FOCUS_RING,
-            "hover:border-accent/40 hover:text-accent"
-          )}
-        >
-          <Users className="h-5 w-5" strokeWidth={1.6} aria-hidden />
-          <span className="text-[10px] font-medium">Invite</span>
-        </button>
-      )}
+        </span>
+      </button>
     </div>
   );
 }

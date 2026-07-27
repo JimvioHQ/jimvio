@@ -14,7 +14,6 @@ import {
   Radio,
   Settings,
   Share2,
-  Users,
   Wifi,
   WifiOff,
   X,
@@ -98,9 +97,6 @@ import {
   FOCUS_RING,
   FOCUS_RING_DARK,
   LIVE_PAGE_BG,
-  LIVE_RADIUS_LG,
-  LIVE_SHADOW,
-  LIVE_SHADOW_LG,
   MOTION_COLORS,
 } from "./live/studio-ui";
 
@@ -129,7 +125,6 @@ export function HubLivePage({
   const [copied, setCopied] = useState(false);
   const [online, setOnline] = useState(true);
   const [connection, setConnection] = useState<"excellent" | "good" | "poor">("excellent");
-  const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [peopleQuery, setPeopleQuery] = useState("");
   const [chatIdle, setChatIdle] = useState(false);
   const [hasPolls, setHasPolls] = useState(false);
@@ -370,7 +365,6 @@ export function HubLivePage({
     (next: StudioMode) => {
       setMode(next);
       writeMode(next);
-      setModeMenuOpen(false);
       if (next === "minimal") updateDrawer({ leftPanel: "none", rightOpen: true });
     },
     [updateDrawer]
@@ -385,7 +379,6 @@ export function HubLivePage({
 
   const closeDrawers = useCallback(() => {
     updateDrawer({ leftPanel: "none" });
-    setModeMenuOpen(false);
     setPaletteOpen(false);
   }, [updateDrawer]);
 
@@ -878,13 +871,16 @@ export function HubLivePage({
     [openRight, showToast, toggleLeft, toggleRecord, startShare, gate, live]
   );
 
-  const showLeftRail = mode === "studio" && !focusMode;
+  const showLeftRail = !focusMode;
   const showSpeakers = mode !== "minimal" && !focusMode && hasSession;
   const showRight =
     !focusMode &&
     (mode === "minimal" || mode === "creator" || mode === "studio") &&
     (drawer.rightOpen || mode === "minimal");
   const immersive = activity === "share" || focusMode;
+  const startedLabel = live.session?.started_at
+    ? `Started ${formatTime(live.session.started_at)}`
+    : null;
 
   if (loading) {
     return (
@@ -965,52 +961,42 @@ export function HubLivePage({
           </div>
         </div>
       )}
-      {/* Header */}
+      {/* Header — match reference: back link + one info/actions row */}
       {!focusMode && (
         <header
           className={cn(
-            "flex shrink-0 flex-col gap-2 border-b px-3 py-3 transition-colors duration-[180ms] sm:px-5",
-            immersive
-              ? "border-white/10 bg-black/30 text-white backdrop-blur-xl"
-              : "border-neutral-200/70 bg-white/80 backdrop-blur-xl"
+            "shrink-0 px-4 py-2.5 transition-colors duration-[180ms] sm:px-5",
+            immersive ? "bg-black/30 text-white" : "bg-white"
           )}
         >
-          <div className="flex items-center gap-2">
-            <Link
-              href="/communities/live"
-              className={cn(
-                "inline-flex items-center gap-1 text-[12px] font-medium",
-                immersive ? "text-white/55 hover:text-white" : "text-neutral-500 hover:text-neutral-800",
-                FOCUS_RING
-              )}
-            >
-              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-              Back to Live
-            </Link>
-          </div>
+          <Link
+            href="/communities/live"
+            className={cn(
+              "mb-1.5 inline-flex items-center gap-1 text-[12px] font-medium",
+              immersive ? "text-white/55 hover:text-white" : "text-neutral-500 hover:text-neutral-800",
+              FOCUS_RING
+            )}
+          >
+            <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
+            Back to Live
+          </Link>
 
-          <div className="flex min-w-0 items-start gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 {hasSession ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold tracking-[0.06em] text-white">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
+                  <span className="inline-flex items-center gap-1 rounded-md bg-red-500 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.04em] text-white">
                     LIVE
                   </span>
                 ) : (
-                  <span
-                    className={cn(
-                      "text-[10px] font-medium tracking-[0.06em]",
-                      immersive ? "text-white/35" : "text-neutral-400"
-                    )}
-                  >
+                  <span className={cn("text-[10px] font-semibold tracking-[0.06em]", immersive ? "text-white/35" : "text-neutral-400")}>
                     {liveStatusLabel}
                   </span>
                 )}
                 <h1
                   className={cn(
-                    "truncate text-[16px] font-semibold tracking-[-0.03em] sm:text-[18px]",
-                    immersive ? "text-white/95" : "text-neutral-900"
+                    "min-w-0 truncate text-[17px] font-bold tracking-[-0.03em] sm:text-[18px]",
+                    immersive ? "text-white" : "text-neutral-900"
                   )}
                 >
                   {session.title}
@@ -1018,20 +1004,25 @@ export function HubLivePage({
               </div>
               <p
                 className={cn(
-                  "mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]",
+                  "mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px]",
                   immersive ? "text-white/45" : "text-neutral-500"
                 )}
               >
                 <span>{session.tag || "Live Room"}</span>
                 <span aria-hidden>·</span>
-                <span className="inline-flex items-center gap-1 tabular-nums">
-                  <Users className="h-3 w-3 opacity-60" strokeWidth={1.6} aria-hidden />
+                <span className="tabular-nums">
                   {formatCount(live.viewerCount || analytics?.viewers || 0)} watching
                 </span>
+                {startedLabel && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>{startedLabel}</span>
+                  </>
+                )}
                 {hasSession && (
                   <>
                     <span aria-hidden>·</span>
-                    <span className="tabular-nums text-red-500">{formatElapsed(elapsed)}</span>
+                    <span className="font-medium tabular-nums text-red-500">{formatElapsed(elapsed)}</span>
                   </>
                 )}
                 <span aria-hidden>·</span>
@@ -1049,13 +1040,18 @@ export function HubLivePage({
             </div>
 
             <div className="flex shrink-0 items-center gap-1.5">
-              <ModeSwitcher
-                mode={mode}
-                open={modeMenuOpen}
-                dark={immersive}
-                onOpenChange={setModeMenuOpen}
-                onSelect={persistMode}
-              />
+              {!hasSession && (
+                <button
+                  type="button"
+                  onClick={() => void createOrJoinLive()}
+                  className={cn(
+                    "inline-flex h-9 items-center rounded-full bg-accent px-3.5 text-[12px] font-semibold text-white hover:bg-accent-hover",
+                    FOCUS_RING
+                  )}
+                >
+                  Go Live
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => showToast("Following host")}
@@ -1065,7 +1061,7 @@ export function HubLivePage({
                   immersive ? FOCUS_RING_DARK : FOCUS_RING,
                   immersive
                     ? "border-white/20 text-white hover:bg-white/10"
-                    : "border-neutral-200 text-neutral-800 hover:bg-neutral-50"
+                    : "border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50"
                 )}
               >
                 Follow
@@ -1081,7 +1077,7 @@ export function HubLivePage({
                   immersive ? FOCUS_RING_DARK : FOCUS_RING,
                   immersive
                     ? "text-white/50 hover:bg-white/10 hover:text-white"
-                    : "text-neutral-400 hover:bg-black/[0.04] hover:text-neutral-700"
+                    : "text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700"
                 )}
               >
                 {copied ? (
@@ -1101,31 +1097,10 @@ export function HubLivePage({
                   immersive ? FOCUS_RING_DARK : FOCUS_RING,
                   immersive
                     ? "text-white/50 hover:bg-white/10 hover:text-white"
-                    : "text-neutral-400 hover:bg-black/[0.04] hover:text-neutral-700"
+                    : "text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700"
                 )}
               >
                 <MoreHorizontal className="h-4 w-4" strokeWidth={1.6} aria-hidden />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (live.session) {
-                    if (!gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
-                    toggleLeft("people");
-                    return;
-                  }
-                  void createOrJoinLive();
-                }}
-                className={cn(
-                  "ml-0.5 inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[12px] font-semibold tracking-[-0.01em] active:scale-[0.98]",
-                  MOTION_COLORS,
-                  immersive ? FOCUS_RING_DARK : FOCUS_RING,
-                  immersive
-                    ? "bg-white text-neutral-900 hover:bg-white/90"
-                    : "bg-accent text-white hover:bg-accent-hover"
-                )}
-              >
-                {live.session ? "Invite" : "Go Live"}
               </button>
               <button
                 type="button"
@@ -1136,7 +1111,7 @@ export function HubLivePage({
                   immersive ? FOCUS_RING_DARK : FOCUS_RING,
                   immersive
                     ? "text-white/50 hover:bg-white/10"
-                    : "text-neutral-400 hover:bg-black/[0.04]"
+                    : "text-neutral-400 hover:bg-neutral-50"
                 )}
                 aria-label={drawer.rightOpen ? "Hide side panel" : "Show side panel"}
                 aria-expanded={drawer.rightOpen}
@@ -1148,8 +1123,8 @@ export function HubLivePage({
         </header>
       )}
 
-      {/* Body */}
-      <div className="relative flex min-h-0 flex-1">
+      {/* Body — three columns: LIVE NOW | Stage | Chat */}
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {showLeftRail && (
           <>
             <LiveContextNav
@@ -1170,7 +1145,7 @@ export function HubLivePage({
               onSave={() => openRight("recording")}
               onReport={() => showToast("Report submitted")}
             />
-            <aside className="relative z-20 hidden w-11 shrink-0 flex-col items-center gap-0.5 border-r border-neutral-200/60 bg-white py-3 md:flex xl:hidden">
+            <aside className="relative z-20 flex w-11 shrink-0 flex-col items-center gap-0.5 border-r border-neutral-100 bg-white py-3 lg:hidden">
               {LEFT_TOOLS.map(({ id, label, icon: Icon }) => (
                 <RailIcon
                   key={id}
@@ -1190,10 +1165,9 @@ export function HubLivePage({
           <>
             <aside
               className={cn(
-                "absolute inset-y-0 z-30 hidden w-[280px] flex-col border-r border-neutral-200/70 bg-white/98 backdrop-blur-xl md:flex",
-                LIVE_SHADOW,
+                "absolute inset-y-0 z-30 hidden w-[280px] flex-col bg-white shadow-[8px_0_40px_rgba(0,0,0,0.06)] md:flex",
                 "animate-in fade-in slide-in-from-left-1 duration-[180ms]",
-                showLeftRail ? "left-11 xl:left-[200px]" : "left-0"
+                showLeftRail ? "left-11 lg:left-[176px]" : "left-0"
               )}
             >
               <DrawerHeader
@@ -1243,60 +1217,64 @@ export function HubLivePage({
           </>
         )}
 
-        {/* Stage */}
-        <main className="relative flex min-w-0 flex-1 flex-col">
+        {/* Stage — large 16:9 player, speakers, dock */}
+        <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f7f7f8]">
           <div
             className={cn(
-              "flex min-h-0 flex-1 flex-col transition-all duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-              immersive ? "p-0 sm:p-2" : "p-3 sm:p-4 lg:p-5"
+              "flex min-h-0 flex-1 flex-col overflow-y-auto",
+              immersive ? "p-0" : "px-3 pb-3 pt-1 sm:px-4 sm:pb-4"
             )}
           >
             <div
               role="presentation"
               onDoubleClick={() => setFocusMode((v) => !v)}
               className={cn(
-                "relative flex min-h-0 flex-1 cursor-default overflow-hidden bg-neutral-950",
-                immersive ? "rounded-none sm:rounded-[16px]" : LIVE_RADIUS_LG,
-                !immersive && LIVE_SHADOW_LG,
+                "relative w-full shrink-0 cursor-default overflow-hidden bg-neutral-950 shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
+                immersive ? "min-h-0 flex-1 rounded-none" : "aspect-video rounded-2xl",
                 activity === "share" && "motion-safe:sm:scale-[1.002]",
-                "motion-safe:transition-transform motion-safe:duration-[180ms] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]"
+                "motion-safe:transition-transform motion-safe:duration-[180ms]"
               )}
             >
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,#171717_0%,#050505_72%)]" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,#1a1a1a_0%,#050505_72%)]" />
               <StageMediaPreview stream={stageStream} cover={Boolean(stageStream)} />
               {livekit.remotes.map((r) => (
                 <RemoteAudioSink key={`audio-${r.identity}`} stream={r.audioStream} />
               ))}
 
               {hasSession ? (
-                <div className="relative z-[2] flex h-full w-full flex-col">
-                  {/* Player overlays */}
-                  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-3 sm:p-4">
+                <div className="relative z-[2] h-full w-full">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between p-3">
                     <div className="pointer-events-auto flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2 py-1 text-[10px] font-bold tracking-[0.06em] text-white shadow-sm">
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-red-500 px-2 py-1 text-[10px] font-bold tracking-[0.04em] text-white">
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
                         LIVE
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-md">
-                        <Users className="h-3 w-3 opacity-80" strokeWidth={1.6} aria-hidden />
+                      <span className="inline-flex items-center gap-1 rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium tabular-nums text-white backdrop-blur-md">
                         {formatCount(live.viewerCount || analytics?.viewers || 0)}
                       </span>
                       {recordingActive && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-600/90 px-2 py-1 text-[10px] font-semibold text-white">
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-red-600/90 px-2 py-1 text-[10px] font-semibold text-white">
                           <span className="h-1.5 w-1.5 rounded-full bg-white" />
                           REC
                         </span>
                       )}
                     </div>
                     <div className="pointer-events-auto flex items-center gap-1.5">
-                      <span className="rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white/90 backdrop-blur-md">
+                      <button
+                        type="button"
+                        className={cn(
+                          "rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium text-white/90 backdrop-blur-md hover:bg-black/70",
+                          FOCUS_RING_DARK
+                        )}
+                        aria-label="Quality 1080p"
+                      >
                         1080p
-                      </span>
+                      </button>
                       <button
                         type="button"
                         onClick={() => toggleLeft("settings")}
                         className={cn(
-                          "inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white/85 backdrop-blur-md hover:bg-black/70",
+                          "inline-flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white/85 backdrop-blur-md hover:bg-black/70",
                           FOCUS_RING_DARK
                         )}
                         aria-label="Player settings"
@@ -1307,27 +1285,14 @@ export function HubLivePage({
                   </div>
 
                   {!stageStream && (
-                    <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center">
-                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.06]">
-                        <Radio className="h-6 w-6 text-white/40" strokeWidth={1.5} aria-hidden />
-                      </div>
-                      <p className="text-[13px] font-medium tracking-[-0.01em] text-white/50">
-                        {session.tag}
-                      </p>
-                      <p className="mt-1.5 max-w-lg text-[1.35rem] font-semibold tracking-[-0.04em] text-white sm:text-[1.6rem]">
-                        {session.title}
-                      </p>
-                      <p className="mt-2 text-[12px] text-white/35">
-                        Hosted by {session.host} · Waiting for media…
-                      </p>
-                      {livekit.connecting && (
-                        <p className="mt-4 inline-flex items-center gap-2 text-[12px] text-white/50">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                          Connecting to room…
+                    <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+                      {livekit.connecting ? (
+                        <p className="inline-flex items-center gap-2 text-[13px] text-white/55">
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                          Connecting…
                         </p>
-                      )}
-                      {livekit.error && (
-                        <div className="mt-4 max-w-sm rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[12px] text-red-200">
+                      ) : livekit.error ? (
+                        <div className="max-w-sm rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-[12px] text-red-200">
                           <p className="font-medium">Connection issue</p>
                           <p className="mt-1 text-red-200/80">{livekit.error}</p>
                           <button
@@ -1341,29 +1306,42 @@ export function HubLivePage({
                             Reconnect
                           </button>
                         </div>
+                      ) : (
+                        <>
+                          <Radio className="mb-3 h-8 w-8 text-white/30" strokeWidth={1.5} aria-hidden />
+                          <p className="text-[14px] font-medium text-white/70">{session.host}</p>
+                          <p className="mt-1 text-[12px] text-white/35">Waiting for media…</p>
+                        </>
                       )}
                     </div>
                   )}
 
-                  {/* Bottom player chrome */}
-                  <div className="pointer-events-none mt-auto absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/70 via-black/25 to-transparent px-3 pb-3 pt-10 sm:px-4 sm:pb-4">
-                    <div className="mb-2 h-0.5 overflow-hidden rounded-full bg-white/20">
-                      <div className="h-full w-full rounded-full bg-red-500" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/75 via-black/30 to-transparent px-3 pb-2.5 pt-10">
+                    <div className="mb-2 h-[3px] overflow-hidden rounded-full bg-white/25">
+                      <div className="h-full w-full rounded-full bg-accent" />
                     </div>
-                    <div className="pointer-events-auto flex items-center gap-2 text-white/85">
-                      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium">
+                    <div className="pointer-events-auto flex items-center gap-2.5 text-white/90">
+                      <button
+                        type="button"
+                        className={cn("rounded p-0.5 hover:bg-white/10", FOCUS_RING_DARK)}
+                        aria-label="Play"
+                        onClick={() => undefined}
+                      >
+                        <MonitorPlay className="h-4 w-4" strokeWidth={1.6} aria-hidden />
+                      </button>
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold">
                         <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
                         LIVE
                       </span>
                       <span className="tabular-nums text-[11px] text-white/70">
                         {formatElapsed(elapsed)}
                       </span>
-                      <div className="ml-auto flex items-center gap-1">
+                      <div className="ml-auto flex items-center gap-0.5">
                         <button
                           type="button"
                           onClick={() => setFocusMode(true)}
                           className={cn(
-                            "inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/10",
+                            "inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-white/10",
                             FOCUS_RING_DARK
                           )}
                           aria-label="Enter fullscreen"
@@ -1379,7 +1357,7 @@ export function HubLivePage({
                       type="button"
                       onClick={() => setFocusMode(false)}
                       className={cn(
-                        "absolute right-4 top-4 z-20 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium tracking-[-0.01em] text-white/75 backdrop-blur-md hover:bg-white/15",
+                        "absolute right-4 top-4 z-20 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium text-white/75 backdrop-blur-md hover:bg-white/15",
                         MOTION_COLORS,
                         FOCUS_RING_DARK
                       )}
@@ -1389,27 +1367,27 @@ export function HubLivePage({
                   )}
                 </div>
               ) : (
-                <div className="relative z-[1] flex h-full w-full flex-col items-center justify-center px-6 text-center">
-                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.06]">
-                    <Radio className="h-6 w-6 text-white/35" strokeWidth={1.5} />
+                <div className="relative z-[1] flex h-full min-h-[220px] w-full flex-col items-center justify-center px-6 text-center aspect-video">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.06]">
+                    <Radio className="h-5 w-5 text-white/35" strokeWidth={1.5} />
                   </div>
-                  <p className="text-[15px] font-medium tracking-[-0.02em] text-white">
+                  <p className="text-[15px] font-semibold tracking-[-0.02em] text-white">
                     Ready when you are
                   </p>
                   <p className="mt-1.5 max-w-sm text-[13px] text-white/40">
                     Open a community room to start streaming.
                   </p>
-                  <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                  <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
                     <button
                       type="button"
                       onClick={() => void createOrJoinLive()}
-                      className="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white transition-opacity duration-200 hover:bg-accent-hover"
+                      className="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white hover:bg-accent-hover"
                     >
                       Go Live
                     </button>
                     <Link
                       href="/communities/explore"
-                      className="rounded-full bg-white/10 px-4 py-2 text-[12px] font-medium text-white/80 transition-opacity duration-200 hover:opacity-90"
+                      className="rounded-full bg-white/10 px-4 py-2 text-[12px] font-medium text-white/80 hover:opacity-90"
                     >
                       Browse communities
                     </Link>
@@ -1419,7 +1397,7 @@ export function HubLivePage({
             </div>
 
             {hasSession && showSpeakers && (
-              <div className="mt-3 shrink-0 sm:mt-4">
+              <div className="mt-2.5 shrink-0 sm:mt-3">
                 <SpeakerStrip
                   speakers={speakers}
                   ui={speakerUi}
@@ -1475,18 +1453,19 @@ export function HubLivePage({
           </div>
         </main>
 
-        {/* Right workspace */}
+        {/* Right workspace — Live Chat column */}
         {showRight && (
           <aside
             className={cn(
-              "flex w-full max-w-[360px] shrink-0 flex-col border-l border-neutral-200/70 bg-white sm:w-[320px]",
+              "flex w-full max-w-[300px] shrink-0 flex-col bg-white sm:w-[300px]",
               "fixed inset-y-0 right-0 z-40",
               "transition-transform duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-              "lg:static lg:z-auto lg:max-w-none",
+              "lg:static lg:z-auto lg:max-w-none lg:border-l lg:border-neutral-100",
               drawer.rightOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
               !drawer.rightOpen && mode !== "minimal" && "lg:hidden"
             )}
           >
+            {drawer.rightTab !== "chat" && (
             <div
               role="tablist"
               aria-label="Workspace panels"
@@ -1524,10 +1503,24 @@ export function HubLivePage({
                 <X className="h-4 w-4" aria-hidden />
               </button>
             </div>
+            )}
 
             <div className="flex min-h-0 flex-1 flex-col">
               {drawer.rightTab === "chat" && (
                 <>
+                  <div className="flex items-center justify-end px-2 pt-1 lg:hidden">
+                    <button
+                      type="button"
+                      onClick={() => updateDrawer({ rightOpen: false })}
+                      className={cn(
+                        "rounded-lg p-1.5 text-neutral-400 hover:text-neutral-600",
+                        FOCUS_RING
+                      )}
+                      aria-label="Close side panel"
+                    >
+                      <X className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
                   <ChatWorkspace
                     messages={chatMessages}
                     scrollTop={drawer.chatScroll}
@@ -1785,84 +1778,6 @@ function RailIcon({
       <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-x-0.5 -translate-y-1/2 whitespace-nowrap rounded-md bg-neutral-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-lg motion-safe:transition-all motion-safe:duration-150 group-hover/item:translate-x-0 group-hover/item:opacity-100">
         {label}
       </span>
-    </div>
-  );
-}
-
-function ModeSwitcher({
-  mode,
-  open,
-  dark,
-  onOpenChange,
-  onSelect,
-}: {
-  mode: StudioMode;
-  open: boolean;
-  dark?: boolean;
-  onOpenChange: (v: boolean) => void;
-  onSelect: (m: StudioMode) => void;
-}) {
-  const labels: Record<StudioMode, string> = {
-    minimal: "Minimal",
-    creator: "Creator",
-    studio: "Studio",
-  };
-  return (
-    <div className="relative hidden sm:block">
-      <button
-        type="button"
-        onClick={() => onOpenChange(!open)}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label={`Workspace mode: ${labels[mode]}`}
-        className={cn(
-          "inline-flex h-8 items-center gap-1 rounded-full px-2 text-[11px] font-normal tracking-[-0.01em]",
-          MOTION_COLORS,
-          dark ? FOCUS_RING_DARK : FOCUS_RING,
-          dark
-            ? "text-white/40 hover:bg-white/10 hover:text-white/80"
-            : "text-neutral-400 hover:bg-black/[0.04] hover:text-neutral-700"
-        )}
-      >
-        <MonitorPlay className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
-        {labels[mode]}
-      </button>
-      {open && (
-        <>
-          <button type="button" className="fixed inset-0 z-40" aria-label="Close mode menu" onClick={() => onOpenChange(false)} />
-          <div
-            role="menu"
-            className="absolute right-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-xl bg-white p-1 shadow-[0_12px_40px_rgba(0,0,0,0.1)] motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-150"
-          >
-            {(
-              [
-                ["minimal", "Minimal", "Stage + Chat"],
-                ["creator", "Creator", "Stage + Speakers"],
-                ["studio", "Studio", "Full tools"],
-              ] as const
-            ).map(([id, title, desc]) => (
-              <button
-                key={id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={mode === id}
-                onClick={() => onSelect(id)}
-                className={cn(
-                  "flex w-full flex-col rounded-lg px-3 py-2 text-left",
-                  MOTION_COLORS,
-                  FOCUS_RING,
-                  mode === id ? "bg-neutral-900 text-white" : "hover:bg-neutral-50"
-                )}
-              >
-                <span className="text-[12px] font-medium tracking-[-0.01em]">{title}</span>
-                <span className={cn("text-[10px]", mode === id ? "text-white/50" : "text-neutral-400")}>
-                  {desc}
-                </span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
     </div>
   );
 }

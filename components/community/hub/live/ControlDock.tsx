@@ -19,7 +19,6 @@ import {
   ScreenShareOff,
   Share2,
   Smile,
-  Square,
   Timer,
   UsersRound,
   Video,
@@ -27,7 +26,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ActivityMode } from "./studio-types";
-import { FOCUS_RING, LIVE_SHADOW, MOTION } from "./studio-ui";
+import { FOCUS_RING, MOTION } from "./studio-ui";
 
 export function useEphemeralToast() {
   const [msg, setMsg] = useState<string | null>(null);
@@ -103,20 +102,18 @@ function ControlDockImpl({
   onMore?: () => void;
   onEnd?: () => void;
   onLeave?: () => void;
-  /** When false, show Leave instead of End Live (non-host participants). */
   canEnd?: boolean;
 }) {
-  const icon = "h-[18px] w-[18px]";
-  const sw = 1.6;
+  const icon = "h-[17px] w-[17px]";
+  const sw = 1.65;
 
   return (
-    <div className={cn("flex justify-center px-2", focusMode ? "mt-4" : "mt-3")}>
+    <div className={cn("flex justify-center", focusMode ? "mt-3" : "mt-2.5")}>
       <div
         role="toolbar"
         aria-label="Live session controls"
         className={cn(
-          "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-[22px] border border-neutral-200/80 bg-white px-2 py-2 sm:gap-1 sm:px-3",
-          LIVE_SHADOW,
+          "inline-flex max-w-full items-center gap-0.5 overflow-x-auto rounded-full bg-white px-2 py-1.5 shadow-[0_8px_30px_rgba(15,23,42,0.10)] sm:gap-1 sm:px-2.5 sm:py-2",
           MOTION,
           "scrollbar-hide"
         )}
@@ -158,11 +155,7 @@ function ControlDockImpl({
             >
               <ScreenShare className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn
-              onClick={onCopyLink}
-              label="Share"
-              className="hidden sm:flex"
-            >
+            <DockBtn onClick={onCopyLink} label="Share" className="hidden sm:flex">
               <Share2 className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
             <DockBtn onClick={onInvite} label="Invite" className="hidden sm:flex">
@@ -248,7 +241,7 @@ function ControlDockImpl({
           </>
         )}
 
-        <span className="mx-1.5 hidden h-8 w-px bg-neutral-200/80 sm:block" aria-hidden />
+        <span className="mx-1 hidden h-8 w-px bg-neutral-200/80 sm:block" aria-hidden />
 
         {canEnd ? (
           <button
@@ -257,13 +250,13 @@ function ControlDockImpl({
             aria-label="End live session"
             onClick={onEnd}
             className={cn(
-              "inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-accent px-4 text-[12px] font-semibold tracking-[-0.01em] text-white",
+              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-accent px-4 text-[12px] font-semibold tracking-[-0.01em] text-white",
               MOTION,
               FOCUS_RING,
-              "hover:bg-accent-hover active:scale-[0.98] sm:px-5"
+              "hover:bg-accent-hover active:scale-[0.98] sm:h-11 sm:px-5"
             )}
           >
-            <Square className="h-2.5 w-2.5" fill="currentColor" aria-hidden />
+            <LogOut className="h-3.5 w-3.5" aria-hidden />
             <span className="hidden sm:inline">End Room</span>
             <span className="sm:hidden">End</span>
           </button>
@@ -274,10 +267,10 @@ function ControlDockImpl({
             aria-label="Leave live session"
             onClick={onLeave}
             className={cn(
-              "inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-neutral-900 px-4 text-[12px] font-semibold tracking-[-0.01em] text-white",
+              "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-neutral-900 px-4 text-[12px] font-semibold tracking-[-0.01em] text-white",
               MOTION,
               FOCUS_RING,
-              "hover:bg-neutral-800 active:scale-[0.98] sm:px-5"
+              "hover:bg-neutral-800 active:scale-[0.98] sm:h-11 sm:px-5"
             )}
           >
             <LogOut className="h-3.5 w-3.5" aria-hidden />
@@ -320,7 +313,7 @@ function DockBtn({
       aria-pressed={typeof pressed === "boolean" ? pressed : undefined}
       onClick={onClick}
       className={cn(
-        "inline-flex min-w-[52px] flex-col items-center justify-center gap-0.5 rounded-xl px-1.5 py-1.5 sm:min-w-[58px]",
+        "inline-flex min-w-[52px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 sm:min-w-[56px]",
         MOTION,
         FOCUS_RING,
         "hover:scale-[1.01] active:scale-[0.97] motion-reduce:hover:scale-100 motion-reduce:active:scale-100",
@@ -339,7 +332,7 @@ function DockBtn({
       {children}
       <span
         className={cn(
-          "max-w-[64px] truncate text-[9px] font-medium leading-none tracking-[-0.01em] sm:text-[10px]",
+          "max-w-[68px] truncate text-[9px] font-medium leading-none tracking-[-0.01em] sm:text-[10px]",
           off
             ? "text-red-600"
             : accent || recording
