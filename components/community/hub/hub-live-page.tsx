@@ -249,11 +249,13 @@ export function HubLivePage({
   }, [sessionIdProp, data?.session.liveSessionId, communitySlugProp]);
 
   useEffect(() => {
-    if (media.lastError) showToast(media.lastError);
+    if (!media.lastError) return;
+    showToast(media.lastError);
   }, [media.lastError, showToast]);
 
   useEffect(() => {
-    if (livekit.error) showToast(livekit.error);
+    if (!livekit.error) return;
+    showToast(livekit.error);
   }, [livekit.error, showToast]);
 
   /* Keep activity mode in sync when share track ends externally */
@@ -321,36 +323,51 @@ export function HubLivePage({
     return () => clearInterval(t);
   }, [live.session?.status, live.session?.started_at]);
 
+  // Refs keep recover/reconnect out of effect deps — `media` / livekit return
+  // new object identities every render; putting them in deps + calling recover()
+  // caused React #185 (Maximum update depth exceeded).
+  const mediaRecoverRef = useRef(media.recover);
+  mediaRecoverRef.current = media.recover;
+  const livekitReconnectRef = useRef(livekit.reconnect);
+  livekitReconnectRef.current = livekit.reconnect;
+  const sessionLiveRef = useRef(live.session?.status === "live");
+  sessionLiveRef.current = live.session?.status === "live";
+  const livekitConnectedRef = useRef(livekit.connected);
+  livekitConnectedRef.current = livekit.connected;
+
   useEffect(() => {
-    const sync = () => {
+    const applyOnline = () => {
       const on = typeof navigator !== "undefined" ? navigator.onLine : true;
       setOnline(on);
       if (!on) {
         setConnection("poor");
         return;
       }
-      if (String(livekit.connectionState) === "reconnecting") setConnection("good");
-      else setConnection("excellent");
-      void media.recover();
-      if (live.session?.status === "live" && !livekit.connected) {
-        void livekit.reconnect().catch(() => undefined);
+      setConnection(
+        String(livekit.connectionState) === "reconnecting" ? "good" : "excellent"
+      );
+    };
+
+    const onOnline = () => {
+      applyOnline();
+      void mediaRecoverRef.current();
+      if (sessionLiveRef.current && !livekitConnectedRef.current) {
+        void livekitReconnectRef.current().catch(() => undefined);
       }
     };
-    sync();
-    window.addEventListener("online", sync);
-    window.addEventListener("offline", sync);
-    return () => {
-      window.removeEventListener("online", sync);
-      window.removeEventListener("offline", sync);
+    const onOffline = () => {
+      setOnline(false);
+      setConnection("poor");
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reconnect on network only; livekit object identity churns
-  }, [
-    media,
-    livekit.connectionState,
-    livekit.connected,
-    livekit.reconnect,
-    live.session?.status,
-  ]); // narrowed livekit deps — avoid reconnect loops
+
+    applyOnline();
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+  }, [livekit.connectionState]);
 
   useEffect(() => {
     if (mode === "minimal" || focusMode) return;

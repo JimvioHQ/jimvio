@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -37,11 +37,13 @@ export function useEphemeralToast() {
     },
     []
   );
-  const show = (text: string) => {
+  // Stable identity — callers put `show` in effect deps; a new function each
+  // render + sticky error string caused React #185 (maximum update depth).
+  const show = useCallback((text: string) => {
     setMsg(text);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => setMsg(null), 1600);
-  };
+  }, []);
   return { msg, show };
 }
 

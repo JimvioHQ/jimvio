@@ -118,9 +118,15 @@ assert.match(useChat, /reply_to_id|seenInserts|scheduleReload/);
 assert.match(recordingRoute, /export async function GET/);
 assert.match(recordingRoute, /listSessionRecordings|replayUrl/);
 
+assert.match(hubLive, /mediaRecoverRef|livekitReconnectRef/);
+assert.doesNotMatch(
+  hubLive,
+  /void media\.recover\(\);[\s\S]{0,200}livekit\.reconnect/
+);
 const dock = mustExist("components/community/hub/live/ControlDock.tsx");
 assert.match(dock, /onLeave/);
 assert.match(dock, /Leave/);
+assert.match(dock, /useCallback\(\(text: string\)/);
 assert.match(sessionSvc, /assertCanHostLive|creator/);
 assert.match(sessionSvc, /live_kind|Creator Live|communityId \?\? null|isCreatorLive|assertNoActiveCreatorLive/);
 assert.match(createRoute, /communityId \?\? null|body\.communityId/);

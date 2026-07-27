@@ -23,6 +23,7 @@ export function useLiveMediaPlane(enabled = true) {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [shareStream, setShareStream] = useState<MediaStream | null>(null);
   const onlineRef = useRef(true);
+  const previewTrackKeyRef = useRef<string>("");
 
   useEffect(() => {
     if (!enabled) return;
@@ -31,7 +32,17 @@ export function useLiveMediaPlane(enabled = true) {
     void plane.init();
     const unsub = plane.subscribe((s) => {
       setSnap(s);
-      setPreviewStream(plane.getPreviewStream());
+      const nextPreview = plane.getPreviewStream();
+      const key = nextPreview
+        ? nextPreview
+            .getTracks()
+            .map((t) => `${t.id}:${t.readyState}:${t.enabled}`)
+            .join("|")
+        : "";
+      if (key !== previewTrackKeyRef.current) {
+        previewTrackKeyRef.current = key;
+        setPreviewStream(nextPreview);
+      }
       setCameraStream(plane.getCameraStream());
       setShareStream(plane.getShareStream());
     });

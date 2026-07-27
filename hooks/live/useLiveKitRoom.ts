@@ -108,13 +108,15 @@ export function useLiveKitRoom(opts: {
     };
   }, [enabled, sessionId]);
 
-  /* Publish local AV */
+  /* Publish local AV — only when connected; avoid emit storms when nothing changed */
   useEffect(() => {
+    if (!snap.connected) return;
     void transportRef.current?.syncLocalAv(localAvStream, { camOn, micOn });
   }, [localAvStream, camOn, micOn, snap.connected]);
 
   /* Publish screen share */
   useEffect(() => {
+    if (!snap.connected) return;
     void transportRef.current?.syncScreenShare(shareStream, sharing);
   }, [shareStream, sharing, snap.connected]);
 

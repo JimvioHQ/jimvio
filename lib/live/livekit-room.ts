@@ -139,6 +139,7 @@ export class LiveKitRoomTransport {
   }
 
   setLocalPreview(stream: MediaStream | null): void {
+    if (this.localPreview === stream) return;
     this.localPreview = stream;
     this.emit();
   }
@@ -193,6 +194,7 @@ export class LiveKitRoomTransport {
   async syncLocalAv(stream: MediaStream | null, opts: { camOn: boolean; micOn: boolean }): Promise<void> {
     if (!this.room || this.room.state !== ConnectionState.Connected) return;
     const lp = this.room.localParticipant;
+    let changed = false;
 
     const videoTrack = stream?.getVideoTracks().find((t) => t.readyState === "live") ?? null;
     const audioTrack = stream?.getAudioTracks().find((t) => t.readyState === "live") ?? null;
@@ -208,12 +210,14 @@ export class LiveKitRoomTransport {
           simulcast: true,
         });
         this.publishedCamera = pubs.track ?? null;
+        changed = true;
       }
       await lp.setCameraEnabled(true);
     } else {
       if (this.publishedCamera) {
         await lp.unpublishTrack(this.publishedCamera);
         this.publishedCamera = null;
+        changed = true;
       }
       await lp.setCameraEnabled(false);
     }
@@ -228,23 +232,26 @@ export class LiveKitRoomTransport {
           source: Track.Source.Microphone,
         });
         this.publishedMic = pubs.track ?? null;
+        changed = true;
       }
       await lp.setMicrophoneEnabled(true);
     } else {
       if (this.publishedMic) {
         await lp.unpublishTrack(this.publishedMic);
         this.publishedMic = null;
+        changed = true;
       }
       await lp.setMicrophoneEnabled(false);
     }
 
-    this.emit();
+    if (changed) this.emit();
   }
 
   async syncScreenShare(stream: MediaStream | null, sharing: boolean): Promise<void> {
     if (!this.room || this.room.state !== ConnectionState.Connected) return;
     const lp = this.room.localParticipant;
     const videoTrack = stream?.getVideoTracks().find((t) => t.readyState === "live") ?? null;
+    let changed = false;
 
     if (sharing && videoTrack) {
       if (!this.publishedScreen || this.publishedScreen.mediaStreamTrack !== videoTrack) {
@@ -257,12 +264,14 @@ export class LiveKitRoomTransport {
           simulcast: true,
         });
         this.publishedScreen = pubs.track ?? null;
+        changed = true;
       }
     } else if (this.publishedScreen) {
       await lp.unpublishTrack(this.publishedScreen);
       this.publishedScreen = null;
+      changed = true;
     }
-    this.emit();
+    if (changed) this.emit();
   }
 
   async dispose(): Promise<void> {
