@@ -93,15 +93,27 @@ assert.match(liveNav, /Invite People/);
 assert.match(liveNav, /Report Live/);
 assert.match(liveNav, /Participants/);
 assert.doesNotMatch(liveNav, /label: \"Clips\"/);
-assert.match(liveNav, /Back to Live/);
+assert.match(hubLive, />\s*Back\s*</);
+assert.doesNotMatch(hubLive, /Back to Live/);
+assert.doesNotMatch(liveNav, /Back to Live|\bBack\b/);
 assert.doesNotMatch(liveNav, /\bFollow\b/);
 
-const creatorMigration = mustExist(
-  "supabase/migrations/20260727133149_creator_independent_live.sql"
+const creatorIndependent = mustExist(
+  "supabase/migrations/20260727133215_creator_independent_live.sql"
 );
-assert.match(creatorMigration, /ALTER COLUMN community_id DROP NOT NULL/);
-assert.match(creatorMigration, /live_recordings/);
-assert.match(creatorMigration, /uq_live_sessions_host_one_creator_live/);
+assert.match(creatorIndependent, /ALTER COLUMN community_id DROP NOT NULL/);
+assert.match(creatorIndependent, /uq_live_sessions_host_one_creator_live/);
+const creatorRecordings = mustExist(
+  "supabase/migrations/20260727134814_creator_live_recordings_nullable_community.sql"
+);
+assert.match(creatorRecordings, /live_recordings/);
+assert.match(creatorRecordings, /ALTER COLUMN community_id DROP NOT NULL/);
+const creatorRls = mustExist("supabase/migrations/20260727151746_creator_live_rls.sql");
+assert.match(creatorRls, /live_sessions_select_creator_public/);
+assert.match(
+  mustExist("supabase/migrations/20260727200000_user_follows_live_host.sql"),
+  /user_follows/
+);
 
 assert.match(liveSection, /Discussion/);
 assert.match(liveSection, /Open Live Studio|Join Live Studio/);

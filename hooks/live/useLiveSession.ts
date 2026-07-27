@@ -389,11 +389,20 @@ export function useLiveSession(initialSessionId?: string | null) {
     [session]
   );
 
-  const viewerCount =
-    session?.viewer_count ??
-    participants.filter((p) => p.status === "joined").length;
-  const speakers = participants.filter(
-    (p) => p.status === "joined" && (p.role === "host" || p.role === "cohost" || p.role === "speaker")
+  const viewerCount = useMemo(
+    () =>
+      session?.viewer_count ??
+      participants.filter((p) => p.status === "joined").length,
+    [session?.viewer_count, participants]
+  );
+  const speakers = useMemo(
+    () =>
+      participants.filter(
+        (p) =>
+          p.status === "joined" &&
+          (p.role === "host" || p.role === "cohost" || p.role === "speaker")
+      ),
+    [participants]
   );
 
   return {

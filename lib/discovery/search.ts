@@ -558,6 +558,6 @@ export async function globalSearch(
     query,
     tookMs: Date.now() - started,
   };
-  discoveryCacheSet(cacheKey, result, 45_000);
+  discoveryCacheSet(cacheKey, result, types.includes("live") ? 5_000 : 45_000);
   return result;
 }

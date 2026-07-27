@@ -54,8 +54,8 @@ export function LiveStudioErrorView({
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 text-[13px] font-semibold text-neutral-800"
           >
             <Radio className="h-3.5 w-3.5" aria-hidden />
-            Back to Live
-          </Link>
+              Back
+            </Link>
         </div>
       </div>
     </div>

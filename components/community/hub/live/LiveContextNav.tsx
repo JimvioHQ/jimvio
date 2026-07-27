@@ -1,18 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import {
-  ArrowLeft,
   BarChart3,
   ClipboardList,
   Flag,
   HelpCircle,
   LayoutGrid,
   MessageSquare,
-  Radio,
   Share2,
-  Smile,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -55,70 +51,64 @@ function LiveContextNavImpl({
   onReport: () => void;
   variant?: "desktop" | "drawer";
 }) {
-  const liveNow: NavItem[] = [
-    {
-      id: "overview",
-      label: "Overview",
-      icon: LayoutGrid,
-      active: leftPanel === "none" && rightTab === "chat",
-      onClick: onOverview,
-    },
-    {
-      id: "people",
-      label: "Participants",
-      icon: Users,
-      badge: formatCount(viewerCount),
-      active: leftPanel === "people",
-      onClick: () => onOpenLeft("people"),
-    },
-    {
-      id: "chat",
-      label: "Chat",
-      icon: MessageSquare,
-      onClick: () => onOpenRight("chat"),
-    },
-    {
-      id: "qa",
-      label: "Q&A",
-      icon: HelpCircle,
-      badge: qaCount && qaCount > 0 ? qaCount : undefined,
-      active: rightTab === "qa",
-      onClick: () => onOpenRight("qa"),
-    },
-    {
-      id: "polls",
-      label: "Polls",
-      icon: ClipboardList,
-      active: rightTab === "polls",
-      onClick: () => onOpenRight("polls"),
-    },
-    {
-      id: "reactions",
-      label: "Reactions",
-      icon: Smile,
-      onClick: () => onOpenRight("chat"),
-    },
-    {
-      id: "rooms",
-      label: "Rooms",
-      icon: Radio,
-      active: leftPanel === "rooms",
-      onClick: () => onOpenLeft("rooms"),
-    },
-    {
-      id: "leaderboard",
-      label: "Leaderboard",
-      icon: BarChart3,
-      active: rightTab === "analytics",
-      onClick: () => onOpenRight("analytics"),
-    },
-  ];
+  const liveNow: NavItem[] = useMemo(
+    () => [
+      {
+        id: "overview",
+        label: "Overview",
+        icon: LayoutGrid,
+        active: leftPanel === "none" && rightTab === "chat",
+        onClick: onOverview,
+      },
+      {
+        id: "people",
+        label: "Participants",
+        icon: Users,
+        badge: formatCount(viewerCount),
+        active: leftPanel === "people",
+        onClick: () => onOpenLeft("people"),
+      },
+      {
+        id: "chat",
+        label: "Chat",
+        icon: MessageSquare,
+        active: rightTab === "chat",
+        onClick: () => onOpenRight("chat"),
+      },
+      {
+        id: "qa",
+        label: "Q&A",
+        icon: HelpCircle,
+        badge: qaCount && qaCount > 0 ? qaCount : undefined,
+        active: rightTab === "qa",
+        onClick: () => onOpenRight("qa"),
+      },
+      {
+        id: "polls",
+        label: "Polls",
+        icon: ClipboardList,
+        active: rightTab === "polls",
+        onClick: () => onOpenRight("polls"),
+      },
+      {
+        id: "analytics",
+        label: "Analytics",
+        icon: BarChart3,
+        active: rightTab === "analytics",
+        onClick: () => onOpenRight("analytics"),
+      },
+    ],
+    [leftPanel, rightTab, viewerCount, qaCount, onOverview, onOpenLeft, onOpenRight]
+  );
 
-  const quick: NavItem[] = [
-    { id: "share", label: "Share Live", icon: Share2, onClick: onShare },
-    { id: "invite", label: "Invite People", icon: UsersRound, onClick: onInvite },
-    { id: "report", label: "Report Live", icon: Flag, onClick: onReport },
-  ];
+  const quick: NavItem[] = useMemo(
+    () => [
+      { id: "share", label: "Share Live", icon: Share2, onClick: onShare },
+      { id: "invite", label: "Invite People", icon: UsersRound, onClick: onInvite },
+      { id: "report", label: "Report Live", icon: Flag, onClick: onReport },
+    ],
+    [onShare, onInvite, onReport]
+  );
 
   return (
     <nav
@@ -131,17 +121,6 @@ function LiveContextNavImpl({
       )}
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 scrollbar-hide">
-        <Link
-          href="/communities/live"
-          className={cn(
-            "mb-3 inline-flex items-center gap-1 text-[12px] font-medium text-neutral-500 hover:text-neutral-800",
-            FOCUS_RING
-          )}
-        >
-          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-          Back to Live
-        </Link>
-
         <Section label="Live now">
           {liveNow.map((item) => (
             <NavRow key={item.id} item={item} />
@@ -184,7 +163,7 @@ function NavRow({ item, muted }: { item: NavItem; muted?: boolean }) {
       onClick={item.onClick}
       aria-current={item.active ? "page" : undefined}
       className={cn(
-        "flex w-full items-center gap-2 rounded-[10px] px-2.5 py-[7px] text-left text-[12.5px]",
+        "flex w-full items-center gap-1.5 rounded-[10px] px-2.5 py-[7px] text-left text-[12.5px]",
         MOTION_COLORS,
         FOCUS_RING,
         item.active

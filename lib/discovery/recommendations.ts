@@ -167,7 +167,11 @@ export async function getRecommendations(input: {
     }
   }
 
-  discoveryCacheSet(cacheKey, shelves, 90_000);
+  discoveryCacheSet(
+    cacheKey,
+    shelves,
+    input.entity === "live" ? 5_000 : 90_000
+  );
   return shelves;
 }
 

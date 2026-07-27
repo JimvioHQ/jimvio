@@ -144,7 +144,10 @@ export class LiveKitRoomTransport {
   snapshot(): LiveKitRoomSnapshot {
     const remotes = this.listRemotes();
     const stageFromRemote =
+      remotes.find((r) => r.role === "host" && r.screenStream)?.screenStream ??
+      remotes.find((r) => r.role === "cohost" && r.screenStream)?.screenStream ??
       remotes.find((r) => r.screenStream)?.screenStream ??
+      remotes.find((r) => r.role === "host" && r.cameraStream)?.cameraStream ??
       remotes.find((r) => r.cameraStream)?.cameraStream ??
       null;
     const active =
@@ -390,6 +393,7 @@ export class LiveKitRoomTransport {
       refresh();
     });
     room.on(RoomEvent.TrackUnsubscribed, refresh);
+    room.on(RoomEvent.TrackPublished, refresh);
     room.on(RoomEvent.TrackMuted, refresh);
     room.on(RoomEvent.TrackUnmuted, refresh);
     room.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => {

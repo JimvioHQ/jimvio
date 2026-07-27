@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { LiveDashboard } from "@/lib/community/hub-live-types";
+import type { LiveDashboard, Speaker } from "@/lib/community/hub-live-types";
 import { normalizeHubLiveDashboard } from "@/lib/community/hub-live-demo";
 import { useLiveMediaPlane } from "@/hooks/live/useLiveMediaPlane";
 import { useLiveSession } from "@/hooks/live/useLiveSession";
@@ -39,6 +39,9 @@ import {
   canShareScreen,
 } from "@/lib/live/roles";
 import { uploadLiveRecording } from "@/lib/live/upload-recording";
+import { liveStudioLog } from "@/lib/live/observability";
+
+const EMPTY_SPEAKERS: Speaker[] = Object.freeze([]) as unknown as Speaker[];
 import { AiFab } from "./live/AiFab";
 import { CommandPalette, defaultLiveCommands } from "./live/CommandPalette";
 import { ControlDock, useEphemeralToast } from "./live/ControlDock";
@@ -166,12 +169,20 @@ export function HubLivePage({
   const micOn = media.micOn;
   const camOn = media.camOn;
   const recording = media.recordingState === "recording" || media.recordingState === "paused";
-  const stageStream = livekit.stageStream ?? media.previewStream;
+  const stageStream =
+    livekit.stageStream ??
+    (live.myRole === "host" || live.myRole === "cohost" || live.myRole === "speaker"
+      ? media.previewStream
+      : null);
 
   const sessionUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/communities/live`
-      : "jimvio.com/communities/live";
+      ? live.session?.id
+        ? `${window.location.origin}/communities/live/${live.session.id}`
+        : `${window.location.origin}/communities/live`
+      : live.session?.id
+        ? `jimvio.com/communities/live/${live.session.id}`
+        : "jimvio.com/communities/live";
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -552,16 +563,31 @@ export function HubLivePage({
       quality: prefs.shareQuality,
     });
     if (ok) {
-      // Always use share dock (Stop Share / mic path) — presenter prefs stay in Tools.
       setActivity("share");
       void live.syncMedia({ sharing: true });
+      liveStudioLog("info", "media_publish", {
+        kind: "screen_share",
+        sessionId: live.session?.id ?? null,
+        target: prefs.shareTarget,
+      });
+    } else if (media.lastError) {
+      liveStudioLog("error", "media_publish_failed", {
+        kind: "screen_share",
+        sessionId: live.session?.id ?? null,
+        error: media.lastError,
+      });
+      showToast(media.lastError);
     }
-  }, [gate, live, media]);
+  }, [gate, live, media, showToast]);
 
   const stopShare = useCallback(() => {
     media.stopScreenShare();
     setActivity("live");
     void live.syncMedia({ sharing: false });
+    liveStudioLog("info", "media_publish", {
+      kind: "screen_share_stop",
+      sessionId: live.session?.id ?? null,
+    });
   }, [live, media]);
 
   const switchShareSource = useCallback(async () => {
@@ -748,7 +774,9 @@ export function HubLivePage({
     startShare,
     stopShare,
     gate,
-    live,
+    live.session,
+    live.myRole,
+    live.launchPoll,
   ]);
 
   const speakersFromLive = useMemo(() => {
@@ -792,8 +820,10 @@ export function HubLivePage({
   const speakers = useMemo(() => {
     if (speakersFromLive) return speakersFromLive;
     // Dashboard speakers are participant-backed only when a live session exists.
-    if (hasSession || data?.session?.liveSessionId) return data?.speakers ?? [];
-    return [];
+    if (hasSession || data?.session?.liveSessionId) {
+      return data?.speakers ?? EMPTY_SPEAKERS;
+    }
+    return EMPTY_SPEAKERS;
   }, [speakersFromLive, data?.speakers, data?.session?.liveSessionId, hasSession]);
 
   const pendingHandRaises = useMemo(() => {
@@ -1041,13 +1071,35 @@ export function HubLivePage({
   }, [data, drawer.rightTab]);
 
   const copyUrl = async () => {
+    const url = sessionUrl.startsWith("http")
+      ? sessionUrl
+      : typeof window !== "undefined"
+        ? `${window.location.origin}/communities/live/${live.session?.id ?? ""}`
+        : sessionUrl;
     try {
-      await navigator.clipboard.writeText(sessionUrl);
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({
+          title: live.session?.title ?? session.title,
+          text: "Join this Jimvio Live",
+          url,
+        });
+        showToast("Share sheet opened");
+        return;
+      }
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       showToast("Link copied");
       setTimeout(() => setCopied(false), 1600);
-    } catch {
-      /* ignore */
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        showToast("Link copied");
+        setTimeout(() => setCopied(false), 1600);
+      } catch {
+        showToast("Could not share link");
+      }
     }
   };
 
@@ -1276,7 +1328,7 @@ export function HubLivePage({
               )}
             >
               <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-              Back to Live
+              Back
             </Link>
           </div>
 
@@ -1584,7 +1636,13 @@ export function HubLivePage({
               )}
             >
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_40%,#1a1a1a_0%,#050505_72%)]" />
-              <StageMediaPreview stream={stageStream} cover={Boolean(stageStream)} />
+              <StageMediaPreview
+                stream={stageStream}
+                cover={
+                  !(media.sharing || livekit.remotes.some((r) => r.sharing)) &&
+                  Boolean(stageStream)
+                }
+              />
               {livekit.remotes.map((r) => (
                 <RemoteAudioSink key={`audio-${r.identity}`} stream={r.audioStream} />
               ))}
