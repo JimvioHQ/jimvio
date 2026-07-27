@@ -26,6 +26,7 @@ import { useLiveMediaPlane } from "@/hooks/live/useLiveMediaPlane";
 import { useLiveSession } from "@/hooks/live/useLiveSession";
 import { useLiveChat } from "@/hooks/live/useLiveChat";
 import { useLiveKitRoom } from "@/hooks/live/useLiveKitRoom";
+import { useFollowUser } from "@/hooks/live/useFollowUser";
 import {
   canAcceptSpeaker,
   canEndLive,
@@ -46,7 +47,6 @@ import { StageMediaPreview } from "./live/StageMediaPreview";
 import { RemoteAudioSink } from "./live/RemoteAudioSink";
 import {
   AnalyticsPanel,
-  ClipsPanel,
   DrawerHeader,
   EventsPanel,
   LayoutPanel,
@@ -141,6 +141,10 @@ export function HubLivePage({
   const liveChat = useLiveChat(
     chatRoomId,
     live.session?.status === "live" ? live.session.id : null
+  );
+  const hostUserId = live.session?.host_id ?? null;
+  const follow = useFollowUser(
+    hostUserId && live.userId && hostUserId !== live.userId ? hostUserId : null
   );
 
   const livekit = useLiveKitRoom({
@@ -281,6 +285,9 @@ export function HubLivePage({
 
   const [pendingInvite, setPendingInvite] = useState(false);
   const [inviteUserId, setInviteUserId] = useState("");
+  const [inviteRole, setInviteRole] = useState<"speaker" | "cohost" | "moderator" | "viewer">(
+    "speaker"
+  );
   const invitePromptedRef = useRef(false);
   const wasPublishableRef = useRef<boolean | null>(null);
   useEffect(() => {
@@ -866,6 +873,12 @@ export function HubLivePage({
       canManage: canManagePeople,
       inviteValue: inviteUserId,
       onInviteValue: setInviteUserId,
+      inviteRole,
+      onInviteRole: (v: string) => {
+        if (v === "speaker" || v === "cohost" || v === "moderator" || v === "viewer") {
+          setInviteRole(v);
+        }
+      },
       onInvite: canManagePeople
         ? () => {
             const id = inviteUserId.trim();
@@ -874,13 +887,23 @@ export function HubLivePage({
               return;
             }
             void live
-              .invite(id)
+              .invite(id, inviteRole)
               .then(() => {
                 setInviteUserId("");
-                showToast("Invite sent");
+                showToast(`Invite sent (${inviteRole})`);
               })
               .catch((e) =>
                 showToast(e instanceof Error ? e.message : "Invite failed")
+              );
+          }
+        : undefined,
+      onAdmitAllWaiting: canAcceptSpeaker(live.myRole)
+        ? () => {
+            void live
+              .admitAll()
+              .then(() => showToast("Admitted all waiting"))
+              .catch((e) =>
+                showToast(e instanceof Error ? e.message : "Admit all failed")
               );
           }
         : undefined,
@@ -921,6 +944,7 @@ export function HubLivePage({
     live.myRole,
     live.accept,
     live.admit,
+    live.admitAll,
     live.reject,
     live.invite,
     live.mute,
@@ -932,6 +956,7 @@ export function HubLivePage({
     pendingHandRaises,
     waitingRoomList,
     inviteUserId,
+    inviteRole,
     showToast,
   ]);
   const liveStatusLabel =
@@ -988,29 +1013,11 @@ export function HubLivePage({
     livekit.activeSpeakerId,
   ]);
 
-  const clips = useMemo(() => {
-    const msgs = liveChat.messages.length ? liveChat.messages : data?.chatMessages ?? [];
-    return msgs
-      .filter((m) => typeof m.body === "string" && m.body.length > 15)
-      .slice(-5)
-      .reverse()
-      .map((m) => {
-        const body = m.body ?? "";
-        const sender = m.sender_name || "Member";
-        return {
-          id: m.id,
-          author: sender.split(" ")[0] || "Member",
-          text: body.slice(0, 90) + (body.length > 90 ? "…" : ""),
-          time: formatTime(m.created_at),
-        };
-      });
-  }, [data?.chatMessages, liveChat.messages]);
-
   const chatMessages = liveChat.messages.length ? liveChat.messages : data?.chatMessages ?? [];
 
   const visibleRightTabs = useMemo(() => {
     return RIGHT_TABS.filter((t) => {
-      if (t.id === "clips" && clips.length === 0 && drawer.rightTab !== "clips") return false;
+      if (t.id === "clips") return false;
       if (
         t.id === "events" &&
         (data?.upcomingSessions?.length ?? 0) === 0 &&
@@ -1018,10 +1025,9 @@ export function HubLivePage({
         drawer.rightTab !== "events"
       )
         return false;
-      // Always expose collaboration suite tabs
       return true;
     });
-  }, [clips.length, data, drawer.rightTab]);
+  }, [data, drawer.rightTab]);
 
   const copyUrl = async () => {
     try {
@@ -1033,6 +1039,20 @@ export function HubLivePage({
       /* ignore */
     }
   };
+
+  const toggleFollowHost = useCallback(async () => {
+    if (!hostUserId || hostUserId === live.userId) {
+      showToast("You are the host");
+      return;
+    }
+    const willFollow = !follow.following;
+    try {
+      await follow.toggle();
+      showToast(willFollow ? "Following host" : "Unfollowed host");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Follow failed");
+    }
+  }, [hostUserId, live.userId, follow, showToast]);
 
   const commands = useMemo(
     () =>
@@ -1050,10 +1070,6 @@ export function HubLivePage({
           void live
             .launchPoll("Which pair are you watching?", ["EUR/USD", "GBP/USD", "XAU/USD"])
             .catch(() => undefined);
-        },
-        clip: () => {
-          openRight("clips");
-          showToast("Moment clipped");
         },
         share: () => void startShare(),
         record: () => void toggleRecord(),
@@ -1267,17 +1283,22 @@ export function HubLivePage({
               )}
               <button
                 type="button"
-                onClick={() => showToast("Following host")}
+                onClick={() => void toggleFollowHost()}
+                disabled={follow.busy || !hostUserId || hostUserId === live.userId}
                 className={cn(
                   "hidden h-9 items-center rounded-full border px-3.5 text-[12px] font-semibold sm:inline-flex",
                   MOTION_COLORS,
                   immersive ? FOCUS_RING_DARK : FOCUS_RING,
-                  immersive
-                    ? "border-white/20 text-white hover:bg-white/10"
-                    : "border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50"
+                  follow.following
+                    ? immersive
+                      ? "border-white/30 bg-white/10 text-white"
+                      : "border-neutral-300 bg-neutral-100 text-neutral-700"
+                    : immersive
+                      ? "border-white/20 text-white hover:bg-white/10"
+                      : "border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50"
                 )}
               >
-                Follow
+                {follow.following ? "Following" : "Follow"}
               </button>
               <button
                 type="button"
@@ -1344,17 +1365,6 @@ export function HubLivePage({
               leftPanel={drawer.leftPanel}
               rightTab={drawer.rightTab}
               viewerCount={live.viewerCount || analytics?.viewers || 0}
-              liveStatus={
-                hasSession
-                  ? "LIVE"
-                  : liveStatusLabel === "ENDED"
-                    ? "ENDED"
-                    : liveStatusLabel === "UPCOMING"
-                      ? "UPCOMING"
-                      : "OFFLINE"
-              }
-              title={session.title}
-              category={session.tag || "Live Room"}
               onOverview={() => {
                 updateDrawer({ leftPanel: "none", rightTab: "chat", rightOpen: true });
                 setLiveNavOpen(false);
@@ -1373,18 +1383,7 @@ export function HubLivePage({
                 toggleLeft("people");
                 setLiveNavOpen(false);
               }}
-              onClip={() => {
-                openRight("clips");
-                setLiveNavOpen(false);
-              }}
-              onSave={() => {
-                openRight("recording");
-                setLiveNavOpen(false);
-              }}
               onReport={() => showToast("Report submitted")}
-              onFollow={() => showToast("Following host")}
-              onGoLive={() => void createOrJoinLive()}
-              hasSession={hasSession}
             />
             {liveNavOpen && (
               <div className="fixed inset-0 z-50 lg:hidden">
@@ -1411,17 +1410,6 @@ export function HubLivePage({
                       leftPanel={drawer.leftPanel}
                       rightTab={drawer.rightTab}
                       viewerCount={live.viewerCount || analytics?.viewers || 0}
-                      liveStatus={
-                        hasSession
-                          ? "LIVE"
-                          : liveStatusLabel === "ENDED"
-                            ? "ENDED"
-                            : liveStatusLabel === "UPCOMING"
-                              ? "UPCOMING"
-                              : "OFFLINE"
-                      }
-                      title={session.title}
-                      category={session.tag || "Live Room"}
                       onOverview={() => {
                         updateDrawer({ leftPanel: "none", rightTab: "chat", rightOpen: true });
                         setLiveNavOpen(false);
@@ -1441,18 +1429,7 @@ export function HubLivePage({
                         toggleLeft("people");
                         setLiveNavOpen(false);
                       }}
-                      onClip={() => {
-                        openRight("clips");
-                        setLiveNavOpen(false);
-                      }}
-                      onSave={() => {
-                        openRight("recording");
-                        setLiveNavOpen(false);
-                      }}
                       onReport={() => showToast("Report submitted")}
-                      onFollow={() => showToast("Following host")}
-                      onGoLive={() => void createOrJoinLive()}
-                      hasSession={hasSession}
                     />
                   </div>
                 </div>
@@ -1976,8 +1953,7 @@ export function HubLivePage({
                     waitingCount={waitingRoomList.length}
                     onToggleWaitingRoom={(enabled) => live.setWaitingRoom(enabled)}
                     onInviteCohost={async (userId) => {
-                      await live.invite(userId);
-                      await live.promote(userId, "cohost").catch(() => undefined);
+                      await live.invite(userId, "cohost");
                     }}
                   />
                 </div>
@@ -1989,7 +1965,6 @@ export function HubLivePage({
                   channelName={data?.session.title ?? "Live"}
                 />
               )}
-              {drawer.rightTab === "clips" && <ClipsPanel clips={clips} />}
               {drawer.rightTab === "events" && (
                 <EventsPanel
                   upcoming={data?.upcomingSessions ?? []}
@@ -2011,7 +1986,7 @@ export function HubLivePage({
             openRight("polls");
           }
           if (id === "summarize" || id === "announce") openRight("knowledge");
-          if (id === "moments" || id === "clips") openRight("clips");
+          if (id === "moments") openRight("recording");
           if (id === "notes") openRight("notes");
           if (id === "actions") openRight("tasks");
           if (id === "resources") openRight("resources");

@@ -876,7 +876,8 @@ export async function endLiveSession(
 export async function inviteSpeaker(
   sessionId: string,
   actorId: string,
-  targetUserId: string
+  targetUserId: string,
+  role: LiveStageRole = "speaker"
 ): Promise<{ participant: LiveParticipantRow } | { error: string; status: number }> {
   const session = await getSession(sessionId);
   if (!session || session.status !== "live") return { error: "Session not live", status: 400 };
@@ -891,6 +892,11 @@ export async function inviteSpeaker(
     const targetMember = await assertCommunityMember(targetId, session.community_id);
     if (!targetMember) return { error: "Target is not a community member", status: 403 };
   }
+
+  const inviteRole: LiveStageRole =
+    role === "cohost" || role === "moderator" || role === "speaker" || role === "viewer"
+      ? role
+      : "speaker";
 
   const existing = await getParticipant(sessionId, targetId);
   if (
@@ -907,7 +913,7 @@ export async function inviteSpeaker(
       {
         session_id: sessionId,
         user_id: targetId,
-        role: "viewer",
+        role: inviteRole,
         status: "invited",
         updated_at: new Date().toISOString(),
       },
@@ -969,7 +975,10 @@ export async function acceptInvite(
   const { data, error } = await db()
     .from("live_session_participants")
     .update({
-      role: "speaker",
+      role:
+        me.role === "cohost" || me.role === "moderator" || me.role === "speaker"
+          ? me.role
+          : "speaker",
       status: "joined",
       hand_raised: false,
       updated_at: new Date().toISOString(),
@@ -1293,6 +1302,43 @@ export async function admitViewer(
   if (error || !data) return { error: error?.message ?? "Admit failed", status: 400 };
   await syncViewerCount(sessionId);
   return { participant: data as LiveParticipantRow };
+}
+
+/** Admit every waiting-room participant (requested, not hand-raise). */
+export async function admitAllWaiting(
+  sessionId: string,
+  actorId: string
+): Promise<{ admitted: number } | { error: string; status: number }> {
+  const actor = await getParticipant(sessionId, actorId);
+  if (!actor || !canAcceptSpeaker(actor.role)) return { error: "Not allowed", status: 403 };
+
+  const { data: waiting } = await db()
+    .from("live_session_participants")
+    .select("user_id")
+    .eq("session_id", sessionId)
+    .eq("status", "requested")
+    .eq("hand_raised", false);
+
+  const ids = (waiting ?? []).map((r) => r.user_id as string);
+  if (ids.length === 0) return { admitted: 0 };
+
+  const now = new Date().toISOString();
+  const { error } = await db()
+    .from("live_session_participants")
+    .update({
+      role: "viewer",
+      status: "joined",
+      hand_raised: false,
+      joined_at: now,
+      updated_at: now,
+    })
+    .eq("session_id", sessionId)
+    .in("user_id", ids)
+    .eq("status", "requested");
+
+  if (error) return { error: error.message, status: 400 };
+  await syncViewerCount(sessionId);
+  return { admitted: ids.length };
 }
 
 export async function setWaitingRoomEnabled(

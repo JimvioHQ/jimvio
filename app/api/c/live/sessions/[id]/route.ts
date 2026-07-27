@@ -4,6 +4,7 @@ import {
   acceptSpeaker,
   acceptInvite,
   admitViewer,
+  admitAllWaiting,
   averageViewers,
   cancelLiveSession,
   canViewLiveSession,
@@ -161,7 +162,7 @@ export async function POST(
     }
     case "invite": {
       if (!body.targetUserId) return NextResponse.json({ error: "targetUserId required" }, { status: 400 });
-      const result = await inviteSpeaker(id, user.id, body.targetUserId);
+      const result = await inviteSpeaker(id, user.id, body.targetUserId, body.role ?? "speaker");
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }
@@ -246,6 +247,11 @@ export async function POST(
     case "admit": {
       if (!body.targetUserId) return NextResponse.json({ error: "targetUserId required" }, { status: 400 });
       const result = await admitViewer(id, user.id, body.targetUserId);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "admit-all": {
+      const result = await admitAllWaiting(id, user.id);
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }

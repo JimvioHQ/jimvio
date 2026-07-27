@@ -86,8 +86,15 @@ assert.doesNotMatch(hubLive, /Join a community to go live/);
 
 assert.match(hubLayout, /isLiveStudio/);
 assert.match(hubLayout, /!isLiveStudio && !isCommunityWorkspace/);
-assert.match(liveNav, /Live status|LIVE NOW|Quick actions/i);
-assert.match(liveNav, /Go Live|Follow|Back to Live/);
+assert.match(liveNav, /LIVE NOW|Live now|Quick actions/i);
+assert.doesNotMatch(liveNav, /Clip Moment|Save Live|Live status/i);
+assert.match(liveNav, /Share Live/);
+assert.match(liveNav, /Invite People/);
+assert.match(liveNav, /Report Live/);
+assert.match(liveNav, /Participants/);
+assert.doesNotMatch(liveNav, /label: \"Clips\"/);
+assert.match(liveNav, /Back to Live/);
+assert.doesNotMatch(liveNav, /\bFollow\b/);
 
 const creatorMigration = mustExist(
   "supabase/migrations/20260727133149_creator_independent_live.sql"

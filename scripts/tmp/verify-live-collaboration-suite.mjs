@@ -114,6 +114,8 @@ assert.match(hubLive, /LiveCommerceRail/);
 assert.match(hubLive, /LiveReactionsBar/);
 assert.match(hubLive, /syncMedia\(\{ sharing: false \}\)/);
 assert.match(hubLive, /\.admit\(/);
+assert.match(hubLive, /useFollowUser|toggleFollowHost/);
+assert.match(hubLive, /admitAll/);
 assert.match(liveChat, /useRoomMessageIndex/);
 assert.match(liveChat, /liveChatToMsg/);
 assert.match(liveChat, /live_session_messages|\/chat/);

@@ -263,9 +263,13 @@ export function useLiveSession(initialSessionId?: string | null) {
   }, [session, refresh]);
 
   const invite = useCallback(
-    async (targetUserId: string) => {
+    async (targetUserId: string, role?: LiveStageRole) => {
       if (!session) return;
-      await sessionAction(session.id, { action: "invite", targetUserId });
+      await sessionAction(session.id, {
+        action: "invite",
+        targetUserId,
+        ...(role ? { role } : {}),
+      });
       await refresh(session.id);
     },
     [session, refresh]
@@ -294,6 +298,12 @@ export function useLiveSession(initialSessionId?: string | null) {
     },
     [session, refresh]
   );
+
+  const admitAll = useCallback(async () => {
+    if (!session) return;
+    await sessionAction(session.id, { action: "admit-all" });
+    await refresh(session.id);
+  }, [session, refresh]);
 
   const setWaitingRoom = useCallback(
     async (enabled: boolean) => {
@@ -405,6 +415,7 @@ export function useLiveSession(initialSessionId?: string | null) {
     acceptInvite,
     accept,
     admit,
+    admitAll,
     setWaitingRoom,
     reject,
     remove,

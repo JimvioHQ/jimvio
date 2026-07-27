@@ -52,7 +52,6 @@ export const RIGHT_TABS: { id: RightTab; label: string }[] = [
   { id: "recording", label: "Replay" },
   { id: "tools", label: "Tools" },
   { id: "ai", label: "AI" },
-  { id: "clips", label: "Clips" },
   { id: "events", label: "Events" },
   { id: "analytics", label: "Analytics" },
 ];

@@ -53,9 +53,12 @@ export function readDrawerState(): DrawerState {
     const raw = window.localStorage.getItem(DRAWER_KEY);
     if (!raw) return DEFAULT_DRAWER;
     const parsed = JSON.parse(raw) as Partial<DrawerState>;
+    const rightTab =
+      parsed.rightTab === "clips" ? "chat" : (parsed.rightTab ?? DEFAULT_DRAWER.rightTab);
     return {
       ...DEFAULT_DRAWER,
       ...parsed,
+      rightTab,
       panelScrolls: { ...DEFAULT_DRAWER.panelScrolls, ...parsed.panelScrolls },
     };
   } catch {

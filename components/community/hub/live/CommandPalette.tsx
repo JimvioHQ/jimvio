@@ -7,7 +7,6 @@ import {
   MicOff,
   Monitor,
   Radio,
-  Scissors,
   Search,
   Share2,
   Users,
@@ -156,7 +155,6 @@ export function defaultLiveCommands(handlers: {
   invite: () => void;
   muteAll: () => void;
   poll: () => void;
-  clip: () => void;
   share: () => void;
   record: () => void;
   analytics: () => void;
@@ -185,12 +183,6 @@ export function defaultLiveCommands(handlers: {
       hint: "P",
       icon: icon(<ClipboardList className="h-3.5 w-3.5" />),
       run: handlers.poll,
-    },
-    {
-      id: "clip",
-      label: "Clip Moment",
-      icon: icon(<Scissors className="h-3.5 w-3.5" />),
-      run: handlers.clip,
     },
     {
       id: "share",

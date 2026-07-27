@@ -229,8 +229,11 @@ export function PeoplePanel({
   waitingRoom,
   onAdmitWaiting,
   onRejectWaiting,
+  onAdmitAllWaiting,
   inviteValue,
   onInviteValue,
+  inviteRole,
+  onInviteRole,
   onInvite,
   canManage,
   onMute,
@@ -249,8 +252,11 @@ export function PeoplePanel({
   waitingRoom?: Speaker[];
   onAdmitWaiting?: (id: string) => void;
   onRejectWaiting?: (id: string) => void;
+  onAdmitAllWaiting?: () => void;
   inviteValue?: string;
   onInviteValue?: (v: string) => void;
+  inviteRole?: string;
+  onInviteRole?: (v: string) => void;
   onInvite?: () => void;
   canManage?: boolean;
   onMute?: (id: string) => void;
@@ -278,27 +284,45 @@ export function PeoplePanel({
         aria-label="Search participants"
       />
       {canManage && onInvite && onInviteValue && (
-        <div className="flex gap-1.5">
-          <input
-            value={inviteValue ?? ""}
-            onChange={(e) => onInviteValue(e.target.value)}
-            placeholder="Invite by user id…"
-            className={cn(
-              "min-w-0 flex-1 rounded-xl bg-neutral-50 px-3 py-2 text-[12px] outline-none ring-1 ring-black/[0.04]",
-              FOCUS_RING
-            )}
-            aria-label="Invite user id"
-          />
-          <button
-            type="button"
-            onClick={onInvite}
-            className={cn(
-              "rounded-xl bg-neutral-900 px-3 py-2 text-[11px] font-semibold text-white",
-              FOCUS_RING
-            )}
-          >
-            Invite
-          </button>
+        <div className="space-y-1.5">
+          <div className="flex gap-1.5">
+            <input
+              value={inviteValue ?? ""}
+              onChange={(e) => onInviteValue(e.target.value)}
+              placeholder="Invite by user id…"
+              className={cn(
+                "min-w-0 flex-1 rounded-xl bg-neutral-50 px-3 py-2 text-[12px] outline-none ring-1 ring-black/[0.04]",
+                FOCUS_RING
+              )}
+              aria-label="Invite user id"
+            />
+            <button
+              type="button"
+              onClick={onInvite}
+              className={cn(
+                "rounded-xl bg-neutral-900 px-3 py-2 text-[11px] font-semibold text-white",
+                FOCUS_RING
+              )}
+            >
+              Invite
+            </button>
+          </div>
+          {onInviteRole && (
+            <select
+              value={inviteRole ?? "speaker"}
+              onChange={(e) => onInviteRole(e.target.value)}
+              className={cn(
+                "w-full rounded-xl bg-neutral-50 px-3 py-2 text-[12px] outline-none ring-1 ring-black/[0.04]",
+                FOCUS_RING
+              )}
+              aria-label="Invite role"
+            >
+              <option value="speaker">Speaker</option>
+              <option value="cohost">Co-host</option>
+              <option value="moderator">Moderator</option>
+              <option value="viewer">Viewer</option>
+            </select>
+          )}
         </div>
       )}
       <p className="px-1 text-[12px] text-neutral-400">
@@ -306,7 +330,18 @@ export function PeoplePanel({
       </p>
       {filteredWaiting.length > 0 && (
         <div className="space-y-0.5">
-          <p className="px-1 text-[11px] font-medium text-neutral-400">Waiting room</p>
+          <div className="flex items-center justify-between px-1">
+            <p className="text-[11px] font-medium text-neutral-400">Waiting room</p>
+            {onAdmitAllWaiting && (
+              <button
+                type="button"
+                onClick={onAdmitAllWaiting}
+                className="text-[11px] font-semibold text-neutral-700 hover:underline"
+              >
+                Admit all
+              </button>
+            )}
+          </div>
           {filteredWaiting.map((s) => (
             <div
               key={`wait-${s.id}`}
