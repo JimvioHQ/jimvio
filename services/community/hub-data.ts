@@ -1215,6 +1215,11 @@ export async function getHubLiveDashboard(
       liveSvc.listScheduledLivesForCommunity(scopedCommunityId, 4),
       liveSvc.getLatestEndedLiveForCommunity(scopedCommunityId),
     ]);
+  } else {
+    // Hub Live (/communities/live) — resume Creator Live or any joined live.
+    liveSvc = await import("@/services/live/session-service");
+    const forUser = await liveSvc.getActiveLiveForUser(userId);
+    activeLive = forUser[0] ?? null;
   }
 
   const primaryRoom = rooms[0] ?? null;
@@ -1347,7 +1352,7 @@ export async function getHubLiveDashboard(
     activeLive?.title ??
     featuredLive?.title ??
     primaryRoom?.name ??
-    "Community Live Room";
+    (activeLive && !activeLive.community_id ? "Creator Live" : "Community Live Room");
   const sessionHost = featuredLive?.hostName ?? primaryRoom?.community_name ?? "Jimvio";
   const sessionHref = activeLive
     ? `/communities/live/${activeLive.id}`
@@ -1371,9 +1376,13 @@ export async function getHubLiveDashboard(
       title: sessionTitle,
       host: sessionHost,
       href: sessionHref,
-      tag: primaryRoom?.community_name ?? "Live Room",
+      tag:
+        activeLive && !activeLive.community_id
+          ? "Creator Live"
+          : primaryRoom?.community_name ?? "Live Room",
       roomId: activeLive?.room_id ?? primaryRoom?.id ?? null,
       communityId:
+        activeLive?.community_id ??
         scopedCommunityId ??
         (primaryRoom as { community_id?: string | null } | null)?.community_id ??
         null,

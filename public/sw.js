@@ -1,5 +1,5 @@
 /* Jimvio PWA service worker */
-const VERSION = "v1";
+const VERSION = "v2";
 const STATIC_CACHE = `jimvio-static-${VERSION}`;
 const RUNTIME_CACHE = `jimvio-runtime-${VERSION}`;
 const OFFLINE_URL = "/offline";
@@ -17,9 +17,10 @@ self.addEventListener("install", (event) => {
     (async () => {
       const cache = await caches.open(STATIC_CACHE);
       await cache.addAll(PRECACHE_URLS).catch(() => {});
-      await self.skipWaiting();
     })()
   );
+  // Activate immediately so navigations never hit the broken v1 network-error response.
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -58,25 +59,39 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never cache API or auth routes — always go to network
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) {
+  // Never cache API, auth, or Live Studio — always network
+  if (
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/auth/") ||
+    url.pathname.startsWith("/communities/live")
+  ) {
     return;
   }
 
-  // Navigations: network-first with offline fallback
+  // Navigations: network-first with offline fallback.
+  // Never return a TypeError network response — browsers show "This page couldn't load".
   if (request.mode === "navigate") {
     event.respondWith(
       (async () => {
         try {
           const fresh = await fetch(request);
-          const cache = await caches.open(RUNTIME_CACHE);
-          cache.put(request, fresh.clone());
+          if (fresh && fresh.ok) {
+            const cache = await caches.open(RUNTIME_CACHE);
+            cache.put(request, fresh.clone()).catch(() => {});
+          }
           return fresh;
         } catch {
           const cached = await caches.match(request);
           if (cached) return cached;
           const offline = await caches.match(OFFLINE_URL);
-          return offline ?? Response.error();
+          if (offline) return offline;
+          return new Response(
+            "<!doctype html><html><body style=\"font-family:system-ui;padding:2rem\"><h1>You appear offline</h1><p>Reconnect and retry. <a href=\"/\">Go home</a></p></body></html>",
+            {
+              status: 503,
+              headers: { "Content-Type": "text/html; charset=utf-8" },
+            }
+          );
         }
       })()
     );
@@ -97,7 +112,10 @@ self.addEventListener("fetch", (event) => {
           }
           return fresh;
         } catch {
-          return cached ?? Response.error();
+          return (
+            cached ??
+            new Response("", { status: 504, statusText: "Offline" })
+          );
         }
       })()
     );

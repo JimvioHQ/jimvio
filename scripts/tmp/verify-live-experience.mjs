@@ -132,4 +132,14 @@ const hubData = mustExist("services/community/hub-data.ts");
 assert.match(hubData, /getActiveLiveForCommunity/);
 assert.match(hubData, /peak_viewers|total_watch_seconds/);
 
+assert.match(hubLive, /Creator Live|communitySlugProp/);
+assert.match(hubLive, /window\.location\.assign|already have a live/);
+assert.match(sessionSvc, /getExistingCreatorLive|resume the active creator/);
+assert.ok(fs.existsSync(path.join(root, "app/communities/(hubs)/live/error.tsx")));
+assert.ok(fs.existsSync(path.join(root, "public/sw.js")));
+const sw = mustExist("public/sw.js");
+assert.doesNotMatch(sw, /return offline \?\? Response\.error/);
+assert.match(sw, /communities\/live/);
+assert.match(sw, /You appear offline|OFFLINE_URL/);
+
 console.log("verify-live-experience: ok");

@@ -284,6 +284,13 @@ async function assertNoActiveCreatorLive(hostId: string) {
   return data?.id ?? null;
 }
 
+/** Resume an existing live session for this host instead of failing with 409. */
+async function getExistingCreatorLive(hostId: string): Promise<LiveSessionRow | null> {
+  const id = await assertNoActiveCreatorLive(hostId);
+  if (!id) return null;
+  return getSession(id);
+}
+
 async function communitySlug(communityId: string | null | undefined): Promise<string | null> {
   if (!communityId) return null;
   const { data } = await db()
@@ -350,13 +357,18 @@ export async function createLiveSession(input: {
 
   if (!isSchedule) {
     if (isCreatorLive) {
-      const existingCreator = await assertNoActiveCreatorLive(input.userId);
+      const existingCreator = await getExistingCreatorLive(input.userId);
       if (existingCreator) {
-        return { error: "You already have a live session", status: 409 };
+        // Idempotent Go Live — resume the active creator session instead of 409.
+        return { session: existingCreator };
       }
     } else if (spaceId) {
       const existingLive = await assertNoActiveLiveInSpace(spaceId);
       if (existingLive) {
+        const existing = await getSession(existingLive);
+        if (existing && existing.host_id === input.userId) {
+          return { session: existing };
+        }
         return {
           error: "This space already has a live session",
           status: 409,

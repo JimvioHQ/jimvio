@@ -216,7 +216,9 @@ export function HubLivePage({
           if (autoJoinedRef.current === scopedId) return;
           autoJoinedRef.current = scopedId;
           await live.join(scopedId);
-          if (!cancelled) router.replace(`/communities/live/${scopedId}`);
+          if (!cancelled && typeof window !== "undefined") {
+            window.history.replaceState(null, "", `/communities/live/${scopedId}`);
+          }
           return;
         }
         if (communitySlugProp) return;
@@ -228,10 +230,15 @@ export function HubLivePage({
           if (autoJoinedRef.current === first.id) return;
           autoJoinedRef.current = first.id;
           await live.join(first.id);
-          router.replace(`/communities/live/${first.id}`);
+          if (!cancelled && typeof window !== "undefined") {
+            window.location.assign(`/communities/live/${first.id}`);
+          }
         }
-      } catch {
+      } catch (e) {
         autoJoinedRef.current = null;
+        if (!cancelled) {
+          showToast(e instanceof Error ? e.message : "Could not join live session");
+        }
       }
     })();
     return () => {
@@ -554,33 +561,77 @@ export function HubLivePage({
   }, [live, gate, media, recording, egressRecording, showToast, loadDashboard]);
 
   const createOrJoinLive = useCallback(async () => {
-    const communityId =
-      data?.session.communityId ?? data?.rooms[0]?.community_id ?? null;
-    const roomId = data?.session.roomId ?? data?.rooms[0]?.id ?? null;
+    // Hub Live (/communities/live) = Creator Live (no community).
+    // Community Live only when opened via /communities/[slug]/live.
+    const communityId = communitySlugProp
+      ? (data?.session.communityId ?? null)
+      : null;
+    const roomId = communityId
+      ? (data?.session.roomId ?? data?.rooms[0]?.id ?? null)
+      : null;
+
+    if (communitySlugProp && !communityId) {
+      showToast("Community context unavailable — refresh and try again");
+      return;
+    }
+
     try {
       if (live.session?.status === "live") {
+        if (live.session.id && !sessionIdProp) {
+          router.replace(`/communities/live/${live.session.id}`);
+        }
         showToast("Already live");
         return;
       }
-      await live
-        .createLive({
-          communityId,
-          roomId: communityId ? roomId : null,
-          title: data?.session.title || (communityId ? undefined : "Creator Live"),
-          privacy: communityId ? undefined : "public",
-        })
-        .then((session) => {
-          if (session?.id && !sessionIdProp) {
-            router.replace(`/communities/live/${session.id}`);
-          }
-        });
+      const session = await live.createLive({
+        communityId,
+        roomId,
+        title:
+          data?.session.title && communityId
+            ? data.session.title
+            : communityId
+              ? undefined
+              : "Creator Live",
+        privacy: communityId ? undefined : "public",
+      });
+      if (session?.id) {
+        // Prefer hard navigation so PWA/SW cannot abort soft RSC transitions.
+        if (typeof window !== "undefined") {
+          window.location.assign(`/communities/live/${session.id}`);
+        } else {
+          router.replace(`/communities/live/${session.id}`);
+        }
+      }
       setElapsed(0);
       showToast(communityId ? "You are live" : "Creator Live started");
       void loadDashboard();
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "Could not start live");
+      const msg = e instanceof Error ? e.message : "Could not start live";
+      // Recover from race / orphaned live — open the active session.
+      if (/already have a live|already has a live/i.test(msg)) {
+        try {
+          const res = await fetch("/api/c/live/sessions");
+          const json = (await res.json()) as { sessions?: Array<{ id: string }> };
+          const existing = json.sessions?.[0];
+          if (existing?.id) {
+            window.location.assign(`/communities/live/${existing.id}`);
+            return;
+          }
+        } catch {
+          /* fall through */
+        }
+      }
+      showToast(msg);
     }
-  }, [data, live, showToast, router, sessionIdProp, loadDashboard]);
+  }, [
+    data,
+    live,
+    showToast,
+    router,
+    sessionIdProp,
+    loadDashboard,
+    communitySlugProp,
+  ]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -907,8 +958,8 @@ export function HubLivePage({
         immersive ? "bg-neutral-950" : LIVE_PAGE_BG
       )}
     >
-      {/* Status banners — offline / load errors */}
-      {(!online || loadError) && !focusMode && (
+      {/* Status banners — offline / load errors / session errors */}
+      {(!online || loadError || live.error) && !focusMode && (
         <div
           role="alert"
           className="flex shrink-0 items-center justify-between gap-3 bg-neutral-900 px-4 py-2 text-[12px] text-white"
@@ -916,13 +967,20 @@ export function HubLivePage({
           <p className="min-w-0 truncate tracking-[-0.01em]">
             {!online
               ? "You’re offline — reconnect to restore chat and controls."
-              : loadError === "network"
-                ? "Couldn’t reach the live service."
-                : "Live data temporarily unavailable."}
+              : live.error
+                ? live.error
+                : loadError === "network"
+                  ? "Couldn’t reach the live service."
+                  : "Live data temporarily unavailable."}
           </p>
           <button
             type="button"
-            onClick={() => void loadDashboard()}
+            onClick={() => {
+              void loadDashboard();
+              if (sessionIdProp) {
+                void live.join(sessionIdProp).catch(() => undefined);
+              }
+            }}
             className={cn(
               "shrink-0 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium hover:bg-white/15",
               FOCUS_RING_DARK
