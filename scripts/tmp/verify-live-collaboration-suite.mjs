@@ -72,12 +72,26 @@ assert.match(types, /LiveSharedNotes/);
 assert.match(types, /LiveRecordingMeta/);
 assert.match(helpers, /liveChatToMsg/);
 assert.match(helpers, /displaySurfaceConstraint/);
+assert.match(helpers, /EMPTY_LIVE_LIST/);
+assert.match(index, /EMPTY_LIVE_LIST/);
 assert.match(store, /useLiveCollabStore/);
 assert.match(store, /addStroke/);
 assert.match(store, /updateNotes/);
 assert.match(store, /toggleHand/);
 assert.match(index, /export/);
 assert.match(whiteboard, /Export/);
+assert.match(whiteboard, /EMPTY_LIVE_LIST/);
+assert.doesNotMatch(whiteboard, /\?\? \[\]/);
+assert.match(engagement, /EMPTY_LIVE_LIST/);
+assert.doesNotMatch(engagement, /\?\? \[\]/);
+assert.match(recording, /EMPTY_LIVE_LIST/);
+assert.doesNotMatch(recording, /\?\? \[\]/);
+assert.match(reactions, /useMemo/);
+assert.match(reactions, /useLiveCollabStore\(\(s\) => s\.reactions\)/);
+assert.doesNotMatch(
+  reactions,
+  /useLiveCollabStore\(\(s\) =>\s*s\.reactions\.filter/
+);
 assert.match(notes, /History/);
 assert.match(reactions, /Raise hand/);
 assert.match(knowledge, /Session summary/);

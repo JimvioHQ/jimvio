@@ -68,3 +68,12 @@ export function defaultInviteLink(sessionId: string): string {
   if (typeof window === "undefined") return `/communities/live/${sessionId}`;
   return `${window.location.origin}/communities/live/${sessionId}`;
 }
+
+/**
+ * Stable empty array for Zustand selectors.
+ * NEVER use `?? []` inline in useStore selectors — a new [] each call makes
+ * Object.is fail → forceStoreRerender → React #185 (Maximum update depth).
+ */
+// frozen mutable-typed empty list — safe shared fallback for selectors
+export const EMPTY_LIVE_LIST: never[] = Object.freeze([]) as unknown as never[];
+

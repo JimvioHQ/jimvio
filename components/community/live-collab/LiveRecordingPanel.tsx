@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Bookmark, Film, ListTree, ScrollText } from "lucide-react";
-import { useLiveCollabStore } from "@/lib/community/live-collab";
+import { EMPTY_LIVE_LIST, useLiveCollabStore } from "@/lib/community/live-collab";
 import { toast } from "sonner";
 
 export function LiveRecordingPanel({
@@ -13,7 +13,7 @@ export function LiveRecordingPanel({
   canManage?: boolean;
 }) {
   const recordings = useLiveCollabStore(
-    (s) => s.recordingsBySession[sessionId] ?? []
+    (s) => s.recordingsBySession[sessionId] ?? EMPTY_LIVE_LIST
   );
   const upsertRecording = useLiveCollabStore((s) => s.upsertRecording);
   const addBookmark = useLiveCollabStore((s) => s.addBookmark);

@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { HelpCircle, BarChart3 } from "lucide-react";
-import { useLiveCollabStore } from "@/lib/community/live-collab";
+import { EMPTY_LIVE_LIST, useLiveCollabStore } from "@/lib/community/live-collab";
 import { toast } from "sonner";
 
 export function LiveQaCollabPanel({ sessionId }: { sessionId: string }) {
-  const items = useLiveCollabStore((s) => s.qaBySession[sessionId] ?? []);
+  const items = useLiveCollabStore(
+    (s) => s.qaBySession[sessionId] ?? EMPTY_LIVE_LIST
+  );
   const addQa = useLiveCollabStore((s) => s.addQa);
   const upvoteQa = useLiveCollabStore((s) => s.upvoteQa);
   const answerQa = useLiveCollabStore((s) => s.answerQa);
@@ -106,7 +108,9 @@ export function LivePollsCollabPanel({
   sessionId: string;
   canLaunch?: boolean;
 }) {
-  const polls = useLiveCollabStore((s) => s.pollsBySession[sessionId] ?? []);
+  const polls = useLiveCollabStore(
+    (s) => s.pollsBySession[sessionId] ?? EMPTY_LIVE_LIST
+  );
   const addPoll = useLiveCollabStore((s) => s.addPoll);
   const votePoll = useLiveCollabStore((s) => s.votePoll);
 

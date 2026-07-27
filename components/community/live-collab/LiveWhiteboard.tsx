@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   createStroke,
+  EMPTY_LIVE_LIST,
   useLiveCollabStore,
   type WhiteboardTool,
 } from "@/lib/community/live-collab";
@@ -45,7 +46,9 @@ export function LiveWhiteboard({
   const points = useRef<{ x: number; y: number }[]>([]);
   const tool = useLiveCollabStore((s) => s.whiteboardTool);
   const setTool = useLiveCollabStore((s) => s.setWhiteboardTool);
-  const strokes = useLiveCollabStore((s) => s.strokesBySession[sessionId] ?? []);
+  const strokes = useLiveCollabStore(
+    (s) => s.strokesBySession[sessionId] ?? EMPTY_LIVE_LIST
+  );
   const addStroke = useLiveCollabStore((s) => s.addStroke);
   const clearWhiteboard = useLiveCollabStore((s) => s.clearWhiteboard);
   const [color, setColor] = useState("#fd5000");

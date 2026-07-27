@@ -35,8 +35,12 @@ export function LiveReactionsBar({
     userId ? s.handRaisedUserIds.includes(userId) : false
   );
   const raised = typeof handRaised === "boolean" ? handRaised : localHand;
-  const recent = useLiveCollabStore((s) =>
-    s.reactions.filter((r) => r.sessionId === sessionId).slice(-6)
+  // Select stable store array, then derive — never `.filter().slice()` inside
+  // the selector (new array every call → Zustand forceStoreRerender → React #185).
+  const reactions = useLiveCollabStore((s) => s.reactions);
+  const recent = useMemo(
+    () => reactions.filter((r) => r.sessionId === sessionId).slice(-6),
+    [reactions, sessionId]
   );
   const supabase = useMemo(() => createClient(), []);
 

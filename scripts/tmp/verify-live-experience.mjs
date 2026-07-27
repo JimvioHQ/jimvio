@@ -153,5 +153,10 @@ assert.match(hubLive, /window\.location\.assign\(`\/communities\/live\/\$\{/);
 const swRegister = mustExist("components/pwa/service-worker-register.tsx");
 assert.match(swRegister, /unregister|getRegistrations/);
 assert.ok(fs.existsSync(path.join(root, "components/pwa/chunk-reload-guard.tsx")));
+assert.ok(fs.existsSync(path.join(root, "scripts/tmp/prove-zustand-185.mjs")));
+assert.match(
+  mustExist("scripts/tmp/prove-zustand-185.mjs"),
+  /forceStoreRerender|Maximum update depth/
+);
 
 console.log("verify-live-experience: ok");
