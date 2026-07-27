@@ -1,123 +1,35 @@
-/* Jimvio PWA service worker */
-const VERSION = "v2";
-const STATIC_CACHE = `jimvio-static-${VERSION}`;
-const RUNTIME_CACHE = `jimvio-runtime-${VERSION}`;
-const OFFLINE_URL = "/offline";
-
-const PRECACHE_URLS = [
-  OFFLINE_URL,
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/icons/apple-touch-icon.png",
-  "/favicon.ico",
-];
+/* Jimvio PWA service worker — DISABLED (v3)
+ *
+ * Root cause (P0 Live): cache-first interception of Next static chunks and
+ * document navigations caused ChunkLoadError / failed soft navigations.
+ * Next.js then renders DefaultGlobalError: "This page couldn't load".
+ *
+ * This worker clears all caches and unregisters itself. Do not re-enable
+ * fetch caching until a Workbox strategy keyed by build ID is in place.
+ */
+const VERSION = "v3-disabled";
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    (async () => {
-      const cache = await caches.open(STATIC_CACHE);
-      await cache.addAll(PRECACHE_URLS).catch(() => {});
-    })()
-  );
-  // Activate immediately so navigations never hit the broken v1 network-error response.
   self.skipWaiting();
+  event.waitUntil(Promise.resolve());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
-      await Promise.all(
-        keys
-          .filter((k) => k !== STATIC_CACHE && k !== RUNTIME_CACHE)
-          .map((k) => caches.delete(k))
-      );
-      await self.clients.claim();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      await self.registration.unregister();
+      const clients = await self.clients.matchAll({ type: "window" });
+      for (const client of clients) {
+        try {
+          client.postMessage({ type: "SW_DISABLED", version: VERSION });
+        } catch {
+          /* ignore */
+        }
+      }
     })()
   );
 });
 
-self.addEventListener("message", (event) => {
-  if (event.data === "SKIP_WAITING") self.skipWaiting();
-});
-
-function isCacheableAsset(url) {
-  return (
-    url.pathname.startsWith("/_next/static/") ||
-    url.pathname.startsWith("/icons/") ||
-    url.pathname.startsWith("/images/") ||
-    url.pathname.startsWith("/logos/") ||
-    /\.(?:js|css|woff2?|ttf|otf|png|jpe?g|gif|svg|webp|avif|ico)$/.test(url.pathname)
-  );
-}
-
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
-
-  // Only handle GET requests over http(s)
-  if (request.method !== "GET") return;
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
-
-  // Never cache API, auth, or Live Studio — always network
-  if (
-    url.pathname.startsWith("/api/") ||
-    url.pathname.startsWith("/auth/") ||
-    url.pathname.startsWith("/communities/live")
-  ) {
-    return;
-  }
-
-  // Navigations: network-first with offline fallback.
-  // Never return a TypeError network response — browsers show "This page couldn't load".
-  if (request.mode === "navigate") {
-    event.respondWith(
-      (async () => {
-        try {
-          const fresh = await fetch(request);
-          if (fresh && fresh.ok) {
-            const cache = await caches.open(RUNTIME_CACHE);
-            cache.put(request, fresh.clone()).catch(() => {});
-          }
-          return fresh;
-        } catch {
-          const cached = await caches.match(request);
-          if (cached) return cached;
-          const offline = await caches.match(OFFLINE_URL);
-          if (offline) return offline;
-          return new Response(
-            "<!doctype html><html><body style=\"font-family:system-ui;padding:2rem\"><h1>You appear offline</h1><p>Reconnect and retry. <a href=\"/\">Go home</a></p></body></html>",
-            {
-              status: 503,
-              headers: { "Content-Type": "text/html; charset=utf-8" },
-            }
-          );
-        }
-      })()
-    );
-    return;
-  }
-
-  // Static assets: cache-first, then network (and cache it)
-  if (isCacheableAsset(url)) {
-    event.respondWith(
-      (async () => {
-        const cached = await caches.match(request);
-        if (cached) return cached;
-        try {
-          const fresh = await fetch(request);
-          if (fresh && fresh.status === 200) {
-            const cache = await caches.open(STATIC_CACHE);
-            cache.put(request, fresh.clone());
-          }
-          return fresh;
-        } catch {
-          return (
-            cached ??
-            new Response("", { status: 504, statusText: "Offline" })
-          );
-        }
-      })()
-    );
-  }
-});
+// Intentionally no fetch handler — never intercept navigations or chunks.

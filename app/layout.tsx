@@ -13,6 +13,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { ReferralTracker } from "@/components/affiliate/referral-tracker";
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
+import { ChunkReloadGuard } from "@/components/pwa/chunk-reload-guard";
 import { PlatformStatsProvider } from "@/components/platform/platform-stats-provider";
 import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
 import { SoftLaunchProviders } from "@/components/soft-launch/SoftLaunchProviders";
@@ -89,6 +90,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </DialogProvider>
         </ThemeProvider>
         <ServiceWorkerRegister />
+        <ChunkReloadGuard />
         <Analytics />
         <SpeedInsights />
       </body>

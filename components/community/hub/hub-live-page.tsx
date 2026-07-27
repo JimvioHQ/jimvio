@@ -211,13 +211,15 @@ export function HubLivePage({
           await live.join(sessionIdProp);
           return;
         }
+        // Entry route (/communities/live): hard-navigate to the session URL
+        // before joining. Joining here then soft-rendering LiveKit caused
+        // client crashes that bubbled to Next.js DefaultGlobalError.
         const scopedId = data?.session.liveSessionId;
         if (scopedId) {
           if (autoJoinedRef.current === scopedId) return;
           autoJoinedRef.current = scopedId;
-          await live.join(scopedId);
-          if (!cancelled && typeof window !== "undefined") {
-            window.history.replaceState(null, "", `/communities/live/${scopedId}`);
+          if (!cancelled) {
+            window.location.assign(`/communities/live/${scopedId}`);
           }
           return;
         }
@@ -229,8 +231,7 @@ export function HubLivePage({
         if (first?.id) {
           if (autoJoinedRef.current === first.id) return;
           autoJoinedRef.current = first.id;
-          await live.join(first.id);
-          if (!cancelled && typeof window !== "undefined") {
+          if (!cancelled) {
             window.location.assign(`/communities/live/${first.id}`);
           }
         }
@@ -578,7 +579,8 @@ export function HubLivePage({
     try {
       if (live.session?.status === "live") {
         if (live.session.id && !sessionIdProp) {
-          router.replace(`/communities/live/${live.session.id}`);
+          window.location.assign(`/communities/live/${live.session.id}`);
+          return;
         }
         showToast("Already live");
         return;
@@ -596,11 +598,7 @@ export function HubLivePage({
       });
       if (session?.id) {
         // Prefer hard navigation so PWA/SW cannot abort soft RSC transitions.
-        if (typeof window !== "undefined") {
-          window.location.assign(`/communities/live/${session.id}`);
-        } else {
-          router.replace(`/communities/live/${session.id}`);
-        }
+        window.location.assign(`/communities/live/${session.id}`);
       }
       setElapsed(0);
       showToast(communityId ? "You are live" : "Creator Live started");
@@ -701,7 +699,10 @@ export function HubLivePage({
         const remote = livekit.remotes.find((r) => r.identity === p.user_id);
         return {
           id: p.user_id,
-          name: dash?.name ?? remote?.name ?? (p.user_id === live.userId ? "You" : "Speaker"),
+          name:
+            dash?.name ??
+            remote?.name ??
+            (p.user_id === live.userId ? "You" : "Speaker"),
           avatar_url: dash?.avatar_url ?? null,
           role: p.role,
         };
@@ -855,15 +856,19 @@ export function HubLivePage({
   const clips = useMemo(() => {
     const msgs = liveChat.messages.length ? liveChat.messages : data?.chatMessages ?? [];
     return msgs
-      .filter((m) => m.body.length > 15)
+      .filter((m) => typeof m.body === "string" && m.body.length > 15)
       .slice(-5)
       .reverse()
-      .map((m) => ({
-        id: m.id,
-        author: m.sender_name.split(" ")[0],
-        text: m.body.slice(0, 90) + (m.body.length > 90 ? "…" : ""),
-        time: formatTime(m.created_at),
-      }));
+      .map((m) => {
+        const body = m.body ?? "";
+        const sender = m.sender_name || "Member";
+        return {
+          id: m.id,
+          author: sender.split(" ")[0] || "Member",
+          text: body.slice(0, 90) + (body.length > 90 ? "…" : ""),
+          time: formatTime(m.created_at),
+        };
+      });
   }, [data?.chatMessages, liveChat.messages]);
 
   const chatMessages = liveChat.messages.length ? liveChat.messages : data?.chatMessages ?? [];

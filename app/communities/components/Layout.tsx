@@ -259,6 +259,17 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const profileHref = profile?.username ? `/communities/profile/${profile.username}` : "/communities/profile";
     const loginHref = buildHubLoginUrl(pathname);
 
+    // Live Studio is a full-bleed workspace — do not mount hub chrome
+    // (header/sidebars/cart). Errors in that chrome were escaping to
+    // Next.js DefaultGlobalError ("This page couldn't load").
+    if (isLiveStudio) {
+        return (
+            <div className="min-h-screen bg-[#f7f7f8] text-[var(--color-text-primary,#18181b)]">
+                {children}
+            </div>
+        );
+    }
+
     return (
         <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)] text-[var(--color-text-primary,#18181b)]">
 

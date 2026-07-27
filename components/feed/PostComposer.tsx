@@ -695,6 +695,10 @@ export function PostComposer({
               </button>
               <Link
                 href="/communities/live"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.assign("/communities/live");
+                }}
                 className="inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-1.5 text-xs font-medium text-orange-600 hover:bg-orange-100"
               >
                 <Radio className="h-3.5 w-3.5" /> Go Live
@@ -778,6 +782,10 @@ export function PostComposer({
           </button>
           <Link
             href="/communities/live"
+            onClick={(e) => {
+              e.preventDefault();
+              window.location.assign("/communities/live");
+            }}
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[#fd5000]/10 px-3 py-1.5 text-xs font-medium text-[#fd5000] hover:bg-[#fd5000]/15"
           >
             <Radio className="h-3.5 w-3.5 text-[#fd5000]" /> Go Live

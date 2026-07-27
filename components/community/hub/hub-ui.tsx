@@ -91,7 +91,7 @@ export function HubAvatar({
   live?: boolean;
   className?: string;
 }) {
-  const initials = name
+  const initials = (name || "?")
     .split(/\s+/)
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? "")
@@ -168,11 +168,14 @@ export function HubLinkButton({
   children,
   variant = "primary",
   className,
+  hardNavigate = false,
 }: {
   href: string;
   children: React.ReactNode;
   variant?: "primary" | "secondary" | "ghost" | "soft";
   className?: string;
+  /** Force full document navigation (avoids RSC soft-nav ChunkLoadError). */
+  hardNavigate?: boolean;
 }) {
   const styles = {
     primary: "bg-[#fd5000] text-white hover:bg-[#e04800] shadow-sm",
@@ -183,6 +186,14 @@ export function HubLinkButton({
   return (
     <Link
       href={href}
+      onClick={
+        hardNavigate
+          ? (e) => {
+              e.preventDefault();
+              window.location.assign(href);
+            }
+          : undefined
+      }
       className={cn(
         "inline-flex items-center justify-center rounded-md px-3 py-2 text-[12px] font-semibold transition-colors",
         styles[variant],

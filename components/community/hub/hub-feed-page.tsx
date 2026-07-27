@@ -24,7 +24,7 @@ const FEED_TABS = [
 ] as const;
 
 const HUB_QUICK_LINKS = [
-  { icon: Radio, label: "Go Live", href: "/communities/live", color: "#ef4444" },
+  { icon: Radio, label: "Go Live", href: "/communities/live", color: "#ef4444", hard: true },
   { icon: Target, label: "Missions", href: "/communities/missions", color: "#3b82f6" },
   { icon: GraduationCap, label: "Courses", href: "/communities/courses", color: "#8b5cf6" },
   { icon: Calendar, label: "Events", href: "/communities/events", color: "#f59e0b" },
@@ -178,10 +178,21 @@ export function HubFeedPage() {
 
           {/* Mobile / tablet quick links — sidebar features when right rail is hidden */}
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide lg:hidden">
-            {HUB_QUICK_LINKS.map(({ icon: Icon, label, href, color }) => (
+            {HUB_QUICK_LINKS.map((item) => {
+              const { icon: Icon, label, href, color } = item;
+              const hard = "hard" in item && item.hard;
+              return (
               <Link
                 key={label}
                 href={href}
+                onClick={
+                  hard
+                    ? (e) => {
+                        e.preventDefault();
+                        window.location.assign(href);
+                      }
+                    : undefined
+                }
                 className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[11px] font-semibold text-[var(--color-text-primary)] transition hover:border-[#fd5000]/30"
               >
                 <span
@@ -192,7 +203,8 @@ export function HubFeedPage() {
                 </span>
                 {label}
               </Link>
-            ))}
+              );
+            })}
           </div>
 
           {/* Creator challenge */}
@@ -253,7 +265,7 @@ export function HubFeedPage() {
                     className={s.live ? "ring-2 ring-red-500 ring-offset-2" : "ring-2 ring-[#fd5000]/40 ring-offset-2"}
                   />
                   <span className="max-w-[56px] truncate text-[10px] font-semibold text-[var(--color-text-secondary)]">
-                    {s.name.split(" ")[0]}
+                    {(s.name || "Member").split(" ")[0]}
                   </span>
                 </Link>
               ))}
@@ -307,7 +319,7 @@ export function HubFeedPage() {
                       </button>
                     );
                   })}
-                  <HubLinkButton href="/communities/live" className="ml-auto !rounded-md !px-3.5 !py-1.5 !text-[11px]">
+                  <HubLinkButton href="/communities/live" hardNavigate className="ml-auto !rounded-md !px-3.5 !py-1.5 !text-[11px]">
                     <Radio className="mr-1 inline h-3.5 w-3.5" />Go Live
                   </HubLinkButton>
                 </div>
