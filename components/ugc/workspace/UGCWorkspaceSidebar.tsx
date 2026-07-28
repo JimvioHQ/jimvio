@@ -74,17 +74,17 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
   const openAssistant = useAIStore((s) => s.openAssistant);
 
   return (
-    <div className="flex h-full w-[212px] flex-col bg-white xl:w-[228px]">
-      <div className="px-3.5 pb-2 pt-3.5">
+    <div className="flex h-full w-[220px] flex-col bg-white xl:w-[236px]">
+      <div className="px-3.5 pb-2 pt-4">
         <h2 className="text-[12px] font-bold tracking-tight text-[#111827]">UGC &amp; Clipping</h2>
         <Link
           href="/dashboard"
           onClick={onNavigate}
           className={cn(
-            "mt-2 flex items-center gap-1.5 rounded-[10px] border px-2.5 py-1.5 text-[10px] font-bold transition-all duration-150",
+            "mt-2.5 flex items-center gap-1.5 rounded-[10px] border px-2.5 py-[7px] text-[10px] font-bold transition-all duration-150",
             activeId === "mission"
               ? "border-[#FF5A1F] bg-[#FFF0E8] text-[#FF5A1F] shadow-[0_1px_4px_rgba(255,90,31,0.12)]"
-              : "border-[#FFE4D6] bg-[#FFF8F5] text-[#FF5A1F] hover:border-[#FF5A1F]/40 hover:bg-[#FFF0E8]",
+              : "border-[#FFE4D6] bg-[#FFF8F5] text-[#FF5A1F] hover:border-[#FF5A1F]/45 hover:bg-[#FFF0E8]",
           )}
         >
           <LayoutDashboard className="h-3 w-3" strokeWidth={2.25} />
@@ -93,7 +93,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 pb-2">
-        <ul className="space-y-0.5">
+        <ul className="space-y-[2px]">
           {NAV.map((item) => {
             const Icon = item.icon;
             const active = item.id === activeId;
@@ -103,14 +103,20 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
                   href={item.href}
                   onClick={onNavigate}
                   className={cn(
-                    "group flex items-center gap-2.5 rounded-[10px] px-2.5 py-[7px] text-[12px] font-medium transition-all duration-150",
+                    "group relative flex items-center gap-2.5 rounded-[10px] px-2.5 py-[8px] text-[12px] font-medium transition-all duration-150",
                     active
-                      ? "bg-[#FFF0E8] font-semibold text-[#FF5A1F] shadow-[inset_0_0_0_1px_rgba(255,90,31,0.08)]"
+                      ? "bg-[#FFF0E8] font-semibold text-[#FF5A1F]"
                       : "text-[#4B5563] hover:bg-[#F8FAFC] hover:text-[#111827]",
                   )}
                 >
+                  {active ? (
+                    <span
+                      aria-hidden
+                      className="absolute left-0 top-1/2 h-[18px] w-[3px] -translate-y-1/2 rounded-r-full bg-[#FF5A1F]"
+                    />
+                  ) : null}
                   <Icon
-                    strokeWidth={active ? 2.25 : 1.85}
+                    strokeWidth={active ? 2.25 : 1.8}
                     className={cn(
                       "h-[15px] w-[15px] shrink-0 transition-colors",
                       active ? "text-[#FF5A1F]" : "text-[#9CA3AF] group-hover:text-[#6B7280]",
@@ -124,57 +130,58 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
         </ul>
       </nav>
 
-      {/* Jimvio AI — flagship orange card */}
-      <div className="p-2.5 pt-1">
+      {/* Jimvio AI — flagship orange assistant card */}
+      <div className="p-3 pt-1">
         <motion.div
-          whileHover={{ y: -1 }}
-          transition={{ duration: 0.2 }}
-          className="relative overflow-hidden rounded-[16px] p-3.5 shadow-[0_8px_28px_rgba(255,90,31,0.28),0_2px_8px_rgba(255,90,31,0.12)]"
+          whileHover={{ y: -2 }}
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          className="relative overflow-hidden rounded-[18px] px-3.5 pb-2.5 pt-3.5 shadow-[0_10px_32px_rgba(255,90,31,0.32),0_2px_8px_rgba(255,90,31,0.14)]"
           style={{
             background:
-              "linear-gradient(160deg, #FF7A45 0%, #FF5A1F 42%, #E54E18 100%)",
+              "linear-gradient(165deg, #FF8A55 0%, #FF5A1F 38%, #E04712 100%)",
           }}
         >
-          {/* Soft glass highlights */}
           <div
-            className="pointer-events-none absolute inset-0 opacity-60"
+            className="pointer-events-none absolute inset-0"
             style={{
               background:
-                "radial-gradient(120% 80% at 20% 0%, rgba(255,255,255,0.28) 0%, transparent 55%), radial-gradient(90% 70% at 90% 100%, rgba(255,255,255,0.1) 0%, transparent 50%)",
+                "linear-gradient(135deg, rgba(255,255,255,0.22) 0%, transparent 42%), radial-gradient(80% 60% at 100% 0%, rgba(255,255,255,0.18) 0%, transparent 55%)",
             }}
           />
-          <div className="pointer-events-none absolute -right-6 -top-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-4 left-1/2 h-16 w-24 -translate-x-1/2 rounded-full bg-[#FFB088]/35 blur-2xl" />
 
           <div className="relative z-[1]">
-            <div className="mb-1.5 flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={2.25} />
+            <div className="mb-1 flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={2.4} />
               <span className="text-[13px] font-bold tracking-tight text-white">Jimvio AI</span>
             </div>
-            <p className="text-[10.5px] leading-snug text-white/90">
+            <p className="text-[10.5px] leading-[1.35] text-white/92">
               Your intelligent assistant for winning campaigns.
             </p>
 
             <button
               type="button"
               onClick={() => {
-                openAssistant("Help me find the best UGC and clipping campaigns to join right now.");
+                openAssistant(
+                  "Help me find the best UGC and clipping campaigns to join right now.",
+                );
                 onNavigate?.();
               }}
-              className="mt-3 flex h-8 w-full items-center justify-center gap-1 rounded-full bg-white/95 px-3 text-[11px] font-bold text-[#FF5A1F] shadow-[0_2px_10px_rgba(17,24,39,0.12)] backdrop-blur-sm transition-all duration-150 hover:bg-white hover:shadow-[0_4px_14px_rgba(17,24,39,0.16)]"
+              className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-white px-3 text-[11.5px] font-bold text-[#FF5A1F] shadow-[0_4px_14px_rgba(17,24,39,0.14)] transition-all duration-150 hover:bg-[#FFFAF7] hover:shadow-[0_6px_18px_rgba(17,24,39,0.18)]"
             >
               Ask AI Anything
-              <ArrowRight className="h-3 w-3" strokeWidth={2.5} />
+              <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
             </button>
 
-            <div className="mt-2.5 flex justify-center">
+            <div className="mt-2 flex justify-center">
               <div className="relative">
-                <div className="absolute inset-x-2 bottom-0 h-3 rounded-full bg-[#FF8A50]/80 blur-md" />
+                <div className="absolute inset-x-3 bottom-0.5 h-3.5 rounded-full bg-[#FF9A60]/90 blur-[6px]" />
                 <Image
                   src="/hero/jimvio-ai-mascot-cutout.png"
                   alt="Jimvio AI"
-                  width={88}
-                  height={88}
-                  className="relative h-auto w-[72px] object-contain drop-shadow-[0_6px_12px_rgba(0,0,0,0.18)]"
+                  width={96}
+                  height={96}
+                  className="relative h-auto w-[78px] object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.2)]"
                   priority={false}
                 />
               </div>

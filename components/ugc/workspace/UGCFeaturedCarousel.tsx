@@ -32,10 +32,10 @@ function VerifiedBadge({ className }: { className?: string }) {
     >
       <circle cx="8" cy="8" r="8" fill="#1D9BF0" />
       <path
-        d="M4.75 8.15l2.05 2.05 4.45-4.4"
+        d="M4.7 8.2l2.1 2.1 4.5-4.5"
         fill="none"
         stroke="#fff"
-        strokeWidth="1.65"
+        strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -74,7 +74,7 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
   const creators = c.submission_count ?? 0;
 
   return (
-    <section aria-label="Featured campaign" className="relative mb-4">
+    <section aria-label="Featured campaign" className="relative mb-5">
       <AnimatePresence mode="wait">
         <motion.div
           key={c.id}
@@ -82,14 +82,14 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="relative h-[200px] overflow-hidden rounded-[16px] bg-[#111827] shadow-[0_8px_28px_rgba(17,24,39,0.16)] sm:h-[220px] lg:h-[240px]"
+          className="relative h-[216px] overflow-hidden rounded-[16px] bg-[#111827] shadow-[0_10px_32px_rgba(17,24,39,0.18)] sm:h-[236px] lg:h-[260px]"
         >
           {banner ? (
             // eslint-disable-next-line @next/next/no-img-element -- dynamic campaign CDN URLs
             <img
               src={banner}
               alt=""
-              className="absolute inset-0 h-full w-full object-cover object-[center_32%]"
+              className="absolute inset-0 h-full w-full object-cover object-[center_30%]"
             />
           ) : (
             <div
@@ -99,10 +99,16 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
               }}
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0B1220]/96 via-[#0B1220]/78 to-[#0B1220]/28" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0B1220]/97 via-[#0B1220]/80 to-[#0B1220]/25" />
 
-          <div className="relative flex h-full flex-col justify-center px-5 py-4 sm:px-7 lg:px-9">
-            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          {clipBadge ? (
+            <div className="absolute right-4 top-4 z-[2] hidden rounded-full border border-white/15 bg-black/40 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-md sm:block">
+              {clipBadge} Views
+            </div>
+          ) : null}
+
+          <div className="relative flex h-full flex-col justify-center px-5 py-5 sm:px-8 lg:px-10">
+            <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
               <span className="inline-flex items-center gap-1 rounded-full bg-white/12 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
                 <span aria-hidden>🔥</span>
                 Featured Campaign
@@ -144,7 +150,7 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
               <VerifiedBadge className="h-3.5 w-3.5" />
             </div>
 
-            <h2 className="max-w-xl line-clamp-1 text-[18px] font-bold leading-tight tracking-[-0.02em] text-white sm:text-[22px] lg:text-[26px]">
+            <h2 className="max-w-xl line-clamp-1 text-[20px] font-bold leading-[1.15] tracking-[-0.03em] text-white sm:text-[24px] lg:text-[28px]">
               {c.title}
             </h2>
 
@@ -161,16 +167,16 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
               </span>
             </div>
 
-            <div className="mt-3.5 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2.5">
               <Link
                 href={`/ugc/${c.id}/join`}
-                className="inline-flex h-9 items-center justify-center rounded-full bg-[#FF5A1F] px-5 text-[12px] font-bold text-white shadow-[0_4px_14px_rgba(255,90,31,0.35)] transition-all hover:bg-[#E54E18] hover:shadow-[0_6px_18px_rgba(255,90,31,0.4)]"
+                className="inline-flex h-10 items-center justify-center rounded-full bg-[#FF5A1F] px-6 text-[13px] font-bold text-white shadow-[0_4px_16px_rgba(255,90,31,0.38)] transition-all hover:bg-[#E54E18] hover:shadow-[0_6px_20px_rgba(255,90,31,0.45)]"
               >
                 Join Campaign
               </Link>
               <Link
                 href={`/ugc/${c.id}`}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-4 text-[12px] font-semibold text-white backdrop-blur-sm transition-all hover:border-white/45 hover:bg-white/15"
+                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-white/30 bg-white/10 px-5 text-[13px] font-semibold text-white backdrop-blur-sm transition-all hover:border-white/50 hover:bg-white/15"
               >
                 <Play className="h-3 w-3 fill-current" />
                 View Brief
@@ -178,14 +184,8 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
             </div>
           </div>
 
-          {clipBadge ? (
-            <div className="absolute bottom-4 right-4 hidden rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white backdrop-blur-md sm:block">
-              {clipBadge} Views
-            </div>
-          ) : null}
-
           {campaigns.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
+            <div className="absolute bottom-3.5 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
               {campaigns.map((item, i) => (
                 <button
                   key={item.id}
@@ -209,7 +209,7 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
             type="button"
             onClick={prev}
             aria-label="Previous featured campaign"
-            className="absolute left-2.5 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/35 text-white backdrop-blur-sm transition-all hover:bg-black/55"
+            className="absolute left-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/35 text-white backdrop-blur-sm transition-all hover:bg-black/55"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -217,7 +217,7 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
             type="button"
             onClick={next}
             aria-label="Next featured campaign"
-            className="absolute right-2.5 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/35 text-white backdrop-blur-sm transition-all hover:bg-black/55"
+            className="absolute right-3 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/35 text-white backdrop-blur-sm transition-all hover:bg-black/55"
           >
             <ChevronRight className="h-4 w-4" />
           </button>

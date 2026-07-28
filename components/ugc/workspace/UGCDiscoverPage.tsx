@@ -16,24 +16,24 @@ const LIMIT = 24;
 
 function CardSkeleton({ featured = false }: { featured?: boolean }) {
   return (
-    <div className="overflow-hidden rounded-[14px] border border-[#EEF0F2] bg-white shadow-[0_1px_3px_rgba(17,24,39,0.04)]">
+    <div className="overflow-hidden rounded-[12px] border border-[#EEF0F2] bg-white shadow-[0_1px_2px_rgba(17,24,39,0.04)]">
       <div
         className={
           featured
-            ? "aspect-[16/10] animate-pulse bg-[#F3F4F6] sm:h-[132px] sm:aspect-auto"
-            : "aspect-[16/10] animate-pulse bg-[#F3F4F6] sm:h-[112px] sm:aspect-auto"
+            ? "aspect-[5/3] animate-pulse bg-[#F3F4F6] sm:h-[148px] sm:aspect-auto"
+            : "aspect-[5/3] animate-pulse bg-[#F3F4F6] sm:h-[128px] sm:aspect-auto"
         }
       />
-      <div className="space-y-2 px-4 pb-3.5 pt-3.5">
+      <div className="space-y-1.5 px-4 pb-3 pt-3">
         <div className="flex items-center gap-1.5">
-          <div className="h-[18px] w-[18px] animate-pulse rounded-full bg-[#F3F4F6]" />
-          <div className="h-2.5 w-16 animate-pulse rounded bg-[#F3F4F6]" />
+          <div className="h-4 w-4 animate-pulse rounded-full bg-[#F3F4F6]" />
+          <div className="h-2 w-14 animate-pulse rounded bg-[#F3F4F6]" />
         </div>
         <div className="h-3 w-full animate-pulse rounded bg-[#F3F4F6]" />
-        <div className="h-3 w-3/4 animate-pulse rounded bg-[#F3F4F6]" />
-        <div className="flex justify-between pt-1">
+        <div className="h-3 w-2/3 animate-pulse rounded bg-[#F3F4F6]" />
+        <div className="flex justify-between pt-0.5">
           <div className="h-2.5 w-16 animate-pulse rounded bg-[#F3F4F6]" />
-          <div className="h-4 w-12 animate-pulse rounded bg-[#F3F4F6]" />
+          <div className="h-4 w-11 animate-pulse rounded bg-[#F3F4F6]" />
         </div>
       </div>
     </div>

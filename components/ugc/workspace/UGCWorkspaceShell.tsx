@@ -24,7 +24,7 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
 
       <div className="flex flex-1 overflow-hidden">
         <aside className="hidden shrink-0 border-r border-[#EEF0F2] bg-white lg:block">
-          <Suspense fallback={<div className="h-full w-[212px] animate-pulse bg-[#F8FAFC]" />}>
+          <Suspense fallback={<div className="h-full w-[220px] animate-pulse bg-[#F8FAFC]" />}>
             <UGCWorkspaceSidebar />
           </Suspense>
         </aside>

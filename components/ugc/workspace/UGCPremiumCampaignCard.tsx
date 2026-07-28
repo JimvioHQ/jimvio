@@ -37,10 +37,10 @@ function VerifiedBadge({ className }: { className?: string }) {
     >
       <circle cx="8" cy="8" r="8" fill="#1D9BF0" />
       <path
-        d="M4.75 8.15l2.05 2.05 4.45-4.4"
+        d="M4.7 8.2l2.1 2.1 4.5-4.5"
         fill="none"
         stroke="#fff"
-        strokeWidth="1.65"
+        strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -68,11 +68,11 @@ function UGCPremiumCampaignCardInner({
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
-        duration: 0.32,
-        delay: Math.min(index * 0.025, 0.14),
+        duration: 0.28,
+        delay: Math.min(index * 0.02, 0.12),
         ease: [0.22, 1, 0.36, 1],
       }}
       whileHover={{ y: -3 }}
@@ -81,17 +81,19 @@ function UGCPremiumCampaignCardInner({
       <Link
         href={`/ugc/${c.id}`}
         className={cn(
-          "flex h-full flex-col overflow-hidden rounded-[14px] border border-[#EEF0F2] bg-white",
-          "shadow-[0_1px_3px_rgba(17,24,39,0.04),0_4px_14px_rgba(17,24,39,0.03)]",
-          "transition-[box-shadow,transform] duration-200",
-          "hover:shadow-[0_4px_8px_rgba(17,24,39,0.05),0_12px_28px_rgba(17,24,39,0.08)]",
+          "flex h-full flex-col overflow-hidden rounded-[12px] border border-[#EEF0F2] bg-white",
+          "shadow-[0_1px_2px_rgba(17,24,39,0.04),0_3px_10px_rgba(17,24,39,0.03)]",
+          "transition-[box-shadow] duration-200",
+          "hover:shadow-[0_6px_20px_rgba(17,24,39,0.09)]",
         )}
       >
-        {/* Media — keep large */}
+        {/* Media — dominant, keep large */}
         <div
           className={cn(
             "relative shrink-0 overflow-hidden bg-[#F3F4F6]",
-            featured ? "aspect-[16/10] sm:h-[132px] sm:aspect-auto" : "aspect-[16/10] sm:h-[112px] sm:aspect-auto",
+            featured
+              ? "aspect-[5/3] sm:h-[148px] sm:aspect-auto"
+              : "aspect-[5/3] sm:h-[128px] sm:aspect-auto",
           )}
         >
           {banner ? (
@@ -101,20 +103,20 @@ function UGCPremiumCampaignCardInner({
               alt=""
               loading="lazy"
               decoding="async"
-              className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.045]"
+              className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 ease-out will-change-transform group-hover:scale-[1.05]"
             />
           ) : (
             <div
               className="absolute inset-0"
               style={{
-                background: "linear-gradient(135deg, #FFF4EF 0%, #F3F4F6 55%, #EEF2FF 100%)",
+                background: "linear-gradient(145deg, #FFF4EF 0%, #F3F4F6 60%, #FFE8DC 100%)",
               }}
             />
           )}
         </div>
 
-        {/* Content — compact 16–18px padding, tight vertical rhythm */}
-        <div className="flex flex-1 flex-col px-[16px] pb-[14px] pt-[14px] sm:px-[17px] sm:pb-[15px] sm:pt-[15px]">
+        {/* Compact body — 16px pad, no stretch gaps, no category/bookmark */}
+        <div className="flex flex-col px-4 pb-3 pt-3">
           <div className="flex items-center gap-1.5">
             {c.vendor?.business_logo ? (
               // eslint-disable-next-line @next/next/no-img-element -- dynamic vendor logos
@@ -122,23 +124,23 @@ function UGCPremiumCampaignCardInner({
                 src={c.vendor.business_logo}
                 alt=""
                 loading="lazy"
-                className="h-[18px] w-[18px] shrink-0 rounded-full border border-[#E8EAED] object-cover"
+                className="h-4 w-4 shrink-0 rounded-full border border-[#E8EAED] object-cover"
               />
             ) : (
-              <span className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-[8px] font-bold text-white">
+              <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-[7px] font-bold text-white">
                 {c.vendor?.business_name?.[0] ?? "B"}
               </span>
             )}
-            <span className="min-w-0 truncate text-[12px] font-semibold leading-none text-[#111827]">
+            <span className="min-w-0 truncate text-[11px] font-semibold leading-none text-[#111827]">
               {c.vendor?.business_name ?? "Brand"}
             </span>
-            <VerifiedBadge className="h-[13px] w-[13px]" />
-            <div className="ml-auto flex items-center gap-0.5">
+            <VerifiedBadge className="h-3 w-3" />
+            <div className="ml-auto flex items-center gap-0.5 pl-1">
               {platforms.map((p) => {
                 const Icon = PLATFORM_ICONS[p] ?? Share2;
                 return (
-                  <span key={p} className="text-[#9CA3AF]">
-                    <Icon className="h-3 w-3" strokeWidth={1.75} />
+                  <span key={p} className="text-[#A1A1AA]">
+                    <Icon className="h-2.5 w-2.5" strokeWidth={1.75} />
                   </span>
                 );
               })}
@@ -147,20 +149,20 @@ function UGCPremiumCampaignCardInner({
 
           <h3
             className={cn(
-              "mt-1.5 line-clamp-2 font-bold leading-[1.25] tracking-[-0.01em] text-[#111827] transition-colors group-hover:text-[#FF5A1F]",
-              featured ? "text-[13.5px]" : "text-[13px]",
+              "mt-1 line-clamp-2 font-bold leading-[1.3] tracking-[-0.01em] text-[#111827] transition-colors group-hover:text-[#FF5A1F]",
+              featured ? "text-[13px]" : "text-[12.5px]",
             )}
           >
             {c.title}
           </h3>
 
-          <div className="mt-auto flex items-center justify-between gap-2 pt-2.5">
-            <span className="flex min-w-0 items-center gap-1 text-[11px] font-medium text-[#6B7280]">
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="flex min-w-0 items-center gap-1 text-[10.5px] font-medium text-[#6B7280]">
               <Users className="h-3 w-3 shrink-0 text-[#9CA3AF]" strokeWidth={2} />
               <span className="truncate">{formatCreatorCount(creators)} creators</span>
             </span>
             {clipBadge ? (
-              <span className="shrink-0 rounded-md bg-[#ECFDF5] px-1.5 py-0.5 text-[10px] font-bold tabular-nums tracking-tight text-[#059669]">
+              <span className="shrink-0 rounded-[6px] bg-[#ECFDF5] px-1.5 py-[3px] text-[10px] font-bold tabular-nums leading-none tracking-tight text-[#059669]">
                 {clipBadge}
               </span>
             ) : null}

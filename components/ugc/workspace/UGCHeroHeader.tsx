@@ -5,28 +5,17 @@ import {
   Search,
   X,
   SlidersHorizontal,
-  Youtube,
-  Instagram,
-  Play,
-  Share2,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   CONTENT_TYPES,
-  PLATFORM_FILTERS,
+  PLATFORMS,
   SORT_OPTIONS,
   type ContentTypeFilter,
   type PlatformKey,
   type SortKey,
 } from "./ugc-tokens";
-
-const PLATFORM_ICONS: Partial<Record<PlatformKey, typeof Youtube>> = {
-  youtube: Youtube,
-  instagram: Instagram,
-  tiktok: Play,
-  x: Share2,
-};
 
 type UGCHeroHeaderProps = {
   searchRef: React.RefObject<HTMLInputElement | null>;
@@ -69,20 +58,21 @@ export function UGCHeroHeader({
   }, [searchRef]);
 
   return (
-    <header className="mb-3 lg:mb-4">
+    <header className="mb-3.5 lg:mb-4">
       <div className="min-w-0">
-        <h1 className="text-[clamp(1.25rem,2.2vw,1.625rem)] font-bold leading-[1.15] tracking-[-0.02em] text-[#111827]">
+        <h1 className="text-[clamp(1.3rem,2.3vw,1.7rem)] font-bold leading-[1.12] tracking-[-0.025em] text-[#111827]">
           Discover UGC &amp; Clipping Campaigns
         </h1>
-        <p className="mt-1 max-w-2xl text-[13px] leading-snug text-[#6B7280]">
+        <p className="mt-1.5 max-w-2xl text-[13px] leading-snug text-[#6B7280]">
           Find the best brands. Create authentic content. Earn real rewards.
         </p>
       </div>
 
-      <div className="sticky top-0 z-10 -mx-3 mt-3 bg-[#F8FAFC]/95 px-3 pb-2 pt-2 backdrop-blur-md lg:static lg:mx-0 lg:mt-3.5 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
-        <div className="relative">
+      <div className="sticky top-0 z-10 -mx-3 mt-3.5 bg-[#F8FAFC]/95 px-3 pb-2 pt-2 backdrop-blur-md lg:static lg:mx-0 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
+        {/* Search + inline filter glyph — reference rhythm */}
+        <div className="relative max-w-full">
           <Search
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]"
+            className="pointer-events-none absolute left-3.5 top-1/2 h-[15px] w-[15px] -translate-y-1/2 text-[#9CA3AF]"
             strokeWidth={1.85}
           />
           <input
@@ -93,14 +83,14 @@ export function UGCHeroHeader({
             placeholder="Search campaigns, brands or niches…"
             aria-label="Search campaigns"
             className={cn(
-              "h-10 w-full rounded-[12px] border border-[#E8EAED] bg-white pl-10 pr-20 text-[13px] text-[#111827]",
+              "h-10 w-full rounded-[12px] border border-[#E5E7EB] bg-white pl-10 pr-[4.5rem] text-[13px] text-[#111827]",
               "shadow-[0_1px_2px_rgba(17,24,39,0.03)] outline-none transition-all duration-150",
               "placeholder:text-[#9CA3AF]",
               "hover:border-[#D1D5DB]",
-              "focus:border-[#FF5A1F]/45 focus:bg-white focus:shadow-[0_0_0_3px_rgba(255,90,31,0.1)]",
+              "focus:border-[#FF5A1F]/50 focus:shadow-[0_0_0_3px_rgba(255,90,31,0.1)]",
             )}
           />
-          <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
+          <div className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
             {inputVal ? (
               <button
                 type="button"
@@ -110,44 +100,15 @@ export function UGCHeroHeader({
               >
                 <X className="h-3.5 w-3.5" />
               </button>
-            ) : (
-              <kbd className="hidden rounded-md border border-[#E8EAED] bg-[#F8FAFC] px-1.5 py-0.5 text-[10px] font-medium text-[#9CA3AF] md:inline">
-                ⌘K
-              </kbd>
-            )}
+            ) : null}
             <span className="grid h-7 w-7 place-items-center rounded-lg text-[#9CA3AF]">
               <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.85} />
             </span>
           </div>
         </div>
 
-        <div className="mt-2.5 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mt-2.5 flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-wrap items-center gap-1.5">
-            {PLATFORM_FILTERS.map((p) => {
-              const Icon = PLATFORM_ICONS[p.key];
-              const active = platform === p.key;
-              return (
-                <button
-                  key={p.key}
-                  type="button"
-                  title={p.label}
-                  onClick={() => onPlatformChange(active ? "all" : p.key)}
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-[10px] border transition-all duration-150",
-                    active
-                      ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#FF5A1F] shadow-[0_1px_4px_rgba(255,90,31,0.15)]"
-                      : "border-[#E8EAED] bg-white text-[#6B7280] hover:border-[#D1D5DB] hover:bg-[#F8FAFC] hover:text-[#111827]",
-                  )}
-                >
-                  {Icon ? (
-                    <Icon className="h-3.5 w-3.5" strokeWidth={1.85} />
-                  ) : (
-                    <span className="text-[9px] font-bold">{p.label[0]}</span>
-                  )}
-                </button>
-              );
-            })}
-
             <FilterSelect
               label="Status"
               value="active"
@@ -163,13 +124,36 @@ export function UGCHeroHeader({
             />
             <FilterSelect
               label="Content Type"
-              value={contentType === "all" ? "all" : contentType}
+              value={contentType}
               options={[
                 { value: "all", label: "All" },
                 { value: "clipping", label: "Clipping" },
                 { value: "ugc", label: "UGC Video" },
               ]}
               onChange={(v) => onContentTypeChange(v as ContentTypeFilter)}
+            />
+            <FilterSelect
+              label="Platform"
+              value={platform}
+              options={[
+                { value: "all", label: "All" },
+                ...PLATFORMS.slice(0, 5).map((p) => ({ value: p.key, label: p.label })),
+              ]}
+              onChange={(v) => onPlatformChange(v as PlatformKey)}
+            />
+            <FilterSelect
+              label="Country"
+              value="all"
+              options={[{ value: "all", label: "All" }]}
+              onChange={() => {}}
+              disabled
+            />
+            <FilterSelect
+              label="Language"
+              value="all"
+              options={[{ value: "all", label: "All" }]}
+              onChange={() => {}}
+              disabled
             />
             <FilterSelect
               label="Sort by"
@@ -179,23 +163,27 @@ export function UGCHeroHeader({
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-[10px] border border-[#E8EAED] bg-white px-2.5 text-[11px] font-semibold text-[#374151] shadow-[0_1px_2px_rgba(17,24,39,0.03)] transition-all hover:border-[#D1D5DB] hover:bg-[#F8FAFC]"
+              className="inline-flex h-8 items-center gap-1.5 rounded-[10px] border border-[#E5E7EB] bg-white px-2.5 text-[11px] font-semibold text-[#374151] shadow-[0_1px_2px_rgba(17,24,39,0.03)] transition-all hover:border-[#D1D5DB] hover:bg-[#F8FAFC]"
             >
               <SlidersHorizontal className="h-3 w-3" strokeWidth={2} />
               Filters
             </button>
-            {hasFilters && (
-              <button
-                type="button"
-                onClick={onClearAll}
-                className="text-[11px] font-semibold text-[#FF5A1F] transition-colors hover:text-[#E54E18] hover:underline"
-              >
-                Reset
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={onClearAll}
+              disabled={!hasFilters}
+              className={cn(
+                "text-[11px] font-semibold transition-colors",
+                hasFilters
+                  ? "text-[#FF5A1F] hover:text-[#E54E18] hover:underline"
+                  : "cursor-default text-[#D1D5DB]",
+              )}
+            >
+              Reset
+            </button>
           </div>
         </div>
       </div>
@@ -224,13 +212,13 @@ function FilterSelect({
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
         className={cn(
-          "h-8 appearance-none rounded-[10px] border border-[#E8EAED] bg-white pl-2.5 pr-7",
+          "h-8 appearance-none rounded-[10px] border border-[#E5E7EB] bg-white pl-2.5 pr-7",
           "text-[11px] font-semibold text-[#374151] outline-none transition-all duration-150",
           "shadow-[0_1px_2px_rgba(17,24,39,0.03)]",
           "hover:border-[#D1D5DB] hover:bg-[#F8FAFC]",
           "focus:border-[#FF5A1F]/40 focus:shadow-[0_0_0_3px_rgba(255,90,31,0.08)]",
-          "disabled:cursor-default disabled:opacity-70",
-          "min-w-[92px]",
+          "disabled:cursor-default disabled:opacity-75",
+          "min-w-[88px]",
         )}
       >
         {options.map((o) => (
