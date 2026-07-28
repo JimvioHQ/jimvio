@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { LiveDashboard, Speaker } from "@/lib/community/hub-live-types";
+import type { ChatMessage, LiveDashboard, Speaker } from "@/lib/community/hub-live-types";
 import { normalizeHubLiveDashboard } from "@/lib/community/hub-live-demo";
 import { useLiveMediaPlane } from "@/hooks/live/useLiveMediaPlane";
 import { useLiveSession } from "@/hooks/live/useLiveSession";
@@ -40,8 +40,6 @@ import {
 } from "@/lib/live/roles";
 import { uploadLiveRecording } from "@/lib/live/upload-recording";
 import { liveStudioLog } from "@/lib/live/observability";
-
-const EMPTY_SPEAKERS: Speaker[] = Object.freeze([]) as unknown as Speaker[];
 import { AiFab } from "./live/AiFab";
 import { CommandPalette, defaultLiveCommands } from "./live/CommandPalette";
 import { ControlDock, useEphemeralToast } from "./live/ControlDock";
@@ -104,6 +102,10 @@ import {
   LIVE_PAGE_BG,
   MOTION_COLORS,
 } from "./live/studio-ui";
+
+const EMPTY_SPEAKERS: Speaker[] = Object.freeze([]) as unknown as Speaker[];
+const EMPTY_CHAT_MESSAGES: ChatMessage[] =
+  Object.freeze([]) as unknown as ChatMessage[];
 
 type LoadError = "network" | "server" | null;
 
@@ -1054,7 +1056,11 @@ export function HubLivePage({
     livekit.activeSpeakerId,
   ]);
 
-  const chatMessages = liveChat.messages.length ? liveChat.messages : data?.chatMessages ?? [];
+  const chatMessages = liveChat.messages.length
+    ? liveChat.messages
+    : data?.chatMessages?.length
+      ? data.chatMessages
+      : EMPTY_CHAT_MESSAGES;
 
   const visibleRightTabs = useMemo(() => {
     return RIGHT_TABS.filter((t) => {

@@ -44,6 +44,11 @@ export type LiveKitRoomSnapshot = {
 
 type Listener = (snap: LiveKitRoomSnapshot) => void;
 
+/** Stable empty remotes — never allocate a fresh `[]` per snapshot when disconnected. */
+const EMPTY_REMOTES: LiveKitRemoteMedia[] = Object.freeze(
+  []
+) as unknown as LiveKitRemoteMedia[];
+
 function parseRole(metadata: string | undefined): LiveStageRole | "unknown" {
   if (!metadata) return "unknown";
   try {
@@ -375,7 +380,7 @@ export class LiveKitRoomTransport {
   }
 
   private listRemotes(): LiveKitRemoteMedia[] {
-    if (!this.room) return [];
+    if (!this.room) return EMPTY_REMOTES;
     const out: LiveKitRemoteMedia[] = [];
     this.room.remoteParticipants.forEach((p) => {
       out.push(remoteToMedia(p, this.speakingIds, this.remoteStreamCache));

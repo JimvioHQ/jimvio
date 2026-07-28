@@ -6,8 +6,7 @@ import {
   MessageCommerceEmbed,
 } from "@/components/community/commerce";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
-import { useState } from "react";
-import { useShallow } from "zustand/react/shallow";
+import { useMemo, useState } from "react";
 
 /** Live shopping rail — reuses Creator Commerce Engine. */
 export function LiveCommerceRail({
@@ -20,10 +19,17 @@ export function LiveCommerceRail({
   onShareOffer?: (title: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const items = useCreatorCommerceStore(
-    useShallow((s) =>
-      communityId ? s.featuredForCommunity(communityId).slice(0, 6) : []
-    )
+  // Select stable store array, then derive — never `.filter().slice()` / `[]`
+  // inside the selector (Zustand forceStoreRerender → React #185).
+  const communityItems = useCreatorCommerceStore((s) => s.communityItems);
+  const items = useMemo(
+    () =>
+      communityId
+        ? communityItems
+            .filter((i) => i.communityId === communityId && i.featured)
+            .slice(0, 6)
+        : [],
+    [communityId, communityItems]
   );
 
   return (

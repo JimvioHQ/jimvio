@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Bot, Loader2, Sparkles } from "lucide-react";
-import { useShallow } from "zustand/react/shallow";
 import { cn } from "@/lib/utils";
 import { ChannelEmptyState } from "../ChannelEmptyState";
 import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
@@ -14,6 +13,8 @@ import {
 import { useCreatorOSStore } from "@/lib/community/os";
 import { useCreatorCommerceStore } from "@/lib/community/commerce";
 import { RecommendationRail } from "@/components/community/intelligence";
+
+const EMPTY_AI_LIST: never[] = Object.freeze([]) as unknown as never[];
 
 const PROMPTS = [
   {
@@ -101,28 +102,44 @@ export function ChannelAiPanel({
   communityId?: string | null;
   channelName?: string;
 }) {
-  const messages = useRoomMessageIndex(
-    useShallow((s) => (roomId ? (s.byRoom[roomId]?.messages ?? []) : []))
+  // Select stable store slices, then derive — never allocate (`[]` / `.filter()`)
+  // inside Zustand selectors (forceStoreRerender → React #185).
+  const messagesRaw = useRoomMessageIndex((s) =>
+    roomId ? s.byRoom[roomId]?.messages : undefined
   );
-  const cards = useCollaborationStore(
-    useShallow((s) =>
-      roomId ? s.cards.filter((c) => c.roomId === roomId) : []
-    )
+  const allCards = useCollaborationStore((s) => s.cards);
+  const allTasks = useCreatorOSStore((s) => s.tasks);
+  const allEvents = useCreatorOSStore((s) => s.events);
+  const communityItemsRaw = useCreatorCommerceStore((s) => s.communityItems);
+
+  const messages = useMemo(
+    () => messagesRaw ?? EMPTY_AI_LIST,
+    [messagesRaw]
   );
-  const tasks = useCreatorOSStore(
-    useShallow((s) =>
-      communityId ? s.tasks.filter((t) => t.communityId === communityId) : []
-    )
+  const cards = useMemo(
+    () => (roomId ? allCards.filter((c) => c.roomId === roomId) : EMPTY_AI_LIST),
+    [allCards, roomId]
   );
-  const events = useCreatorOSStore(
-    useShallow((s) =>
-      communityId ? s.events.filter((e) => e.communityId === communityId) : []
-    )
+  const tasks = useMemo(
+    () =>
+      communityId
+        ? allTasks.filter((t) => t.communityId === communityId)
+        : EMPTY_AI_LIST,
+    [allTasks, communityId]
   );
-  const commerceItems = useCreatorCommerceStore(
-    useShallow((s) =>
-      communityId ? s.itemsForCommunity(communityId) : []
-    )
+  const events = useMemo(
+    () =>
+      communityId
+        ? allEvents.filter((e) => e.communityId === communityId)
+        : EMPTY_AI_LIST,
+    [allEvents, communityId]
+  );
+  const commerceItems = useMemo(
+    () =>
+      communityId
+        ? communityItemsRaw.filter((i) => i.communityId === communityId)
+        : EMPTY_AI_LIST,
+    [communityId, communityItemsRaw]
   );
   const localRecs = useMemo(() => {
     if (!communityId) return [];

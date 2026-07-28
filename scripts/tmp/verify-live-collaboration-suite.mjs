@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -105,9 +106,18 @@ assert.match(shareMenu, /Change window/);
 assert.match(roomTypes, /LIVE_ROOM_TYPE_LABELS/);
 assert.match(engagement, /LiveQaCollabPanel/);
 assert.match(panels, /LiveWhiteboardLazy/);
+assert.match(panels, /useCreatorOSStore\(\(s\) => s\.tasks\)/);
+assert.doesNotMatch(
+  panels,
+  /useCreatorOSStore\(\(s\) =>\s*s\.tasks\s*\.filter/
+);
+assert.match(commerce, /useCreatorCommerceStore\(\(s\) => s\.communityItems\)/);
+assert.doesNotMatch(commerce, /featuredForCommunity\(communityId\)\.slice/);
 assert.match(studioTypes, /whiteboard/);
 assert.match(studioTypes, /knowledge/);
 assert.match(studioTypes, /commerce/);
+assert.match(hubLive, /EMPTY_CHAT_MESSAGES/);
+assert.doesNotMatch(hubLive, /data\?\.chatMessages \?\? \[\]/);
 assert.match(hubLive, /LiveWhiteboardLazy/);
 assert.match(hubLive, /LiveKnowledgeCapture/);
 assert.match(hubLive, /LiveCommerceRail/);
@@ -117,6 +127,7 @@ assert.match(hubLive, /\.admit\(/);
 assert.match(hubLive, /useFollowUser|toggleFollowHost/);
 assert.match(hubLive, /admitAll/);
 assert.match(liveChat, /useRoomMessageIndex/);
+
 assert.match(liveChat, /liveChatToMsg/);
 assert.match(liveChat, /live_session_messages|\/chat/);
 assert.match(mediaPlane, /displaySurface/);
@@ -129,5 +140,16 @@ assert.doesNotMatch(liveChat, /new WebSocket/i);
 assert.doesNotMatch(whiteboard, /useChatRoom/);
 assert.ok(fs.existsSync(path.join(root, "components/community/chat/ChatRoom.tsx")));
 assert.match(chatRoom, /MessageCard|message-engine/);
+
+/* React DEV proof: LiveTasksPanel bad selector #185 vs fixed select+useMemo */
+const repro = spawnSync(
+  process.execPath,
+  [path.join(root, "scripts/tmp/repro-live-tasks-185.mjs")],
+  { encoding: "utf8", cwd: root }
+);
+assert.equal(repro.status, 0, repro.stderr || repro.stdout);
+assert.match(repro.stdout, /"ok": true/);
+assert.match(repro.stdout, /"badHit": true/);
+assert.match(repro.stdout, /"goodHit": false/);
 
 console.log("Live collaboration suite verification passed.");

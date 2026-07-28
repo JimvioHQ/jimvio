@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useMemo } from "react";
 import { LiveSharedNotes } from "./LiveSharedNotes";
 import { LiveReactionsBar } from "./LiveReactionsBar";
 import { LiveKnowledgeCapture } from "./LiveKnowledgeCapture";
@@ -39,14 +40,19 @@ export function LiveTasksPanel({
   communityId?: string | null;
   roomId?: string | null;
 }) {
-  const tasks = useCreatorOSStore((s) =>
-    s.tasks
-      .filter(
-        (t) =>
-          (communityId && t.communityId === communityId) ||
-          (roomId && t.roomId === roomId)
-      )
-      .slice(0, 12)
+  // Select the stable store array — never `.filter().slice()` inside the
+  // selector (new array every call → Zustand forceStoreRerender → React #185).
+  const allTasks = useCreatorOSStore((s) => s.tasks);
+  const tasks = useMemo(
+    () =>
+      allTasks
+        .filter(
+          (t) =>
+            (communityId && t.communityId === communityId) ||
+            (roomId && t.roomId === roomId)
+        )
+        .slice(0, 12),
+    [allTasks, communityId, roomId]
   );
   return (
     <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-3">
