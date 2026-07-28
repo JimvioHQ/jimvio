@@ -33,15 +33,12 @@ import { cn } from "@/lib/utils";
 
 type AffiliateProductsProps = {
   products: AffiliateSpotlightProduct[];
-  primaryCtaHref: string;
 };
 
 const ProductCard = memo(function ProductCard({
   product,
-  primaryCtaHref,
 }: {
   product: AffiliateSpotlightProduct;
-  primaryCtaHref: string;
 }) {
   const [wishlisted, setWishlisted] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -190,9 +187,7 @@ const ProductCard = memo(function ProductCard({
           )}
         >
           <Link
-            href={primaryCtaHref.includes("register") || primaryCtaHref.includes("activate")
-              ? primaryCtaHref
-              : `/marketplace/${product.slug}`}
+            href={`/affiliates/promote/${product.slug}`}
             className={cn(
               AFFILIATE_BTN_PRIMARY,
               "h-9 w-full px-3 text-[12px] shadow-[0_4px_14px_rgba(255,90,31,0.22)]"
@@ -209,7 +204,6 @@ const ProductCard = memo(function ProductCard({
 
 export function AffiliateProducts({
   products,
-  primaryCtaHref,
 }: AffiliateProductsProps) {
   const display = products.slice(0, 10);
   const reduceMotion = useReducedMotion() ?? false;
@@ -242,7 +236,7 @@ export function AffiliateProducts({
         >
           {display.map((product) => (
             <motion.div key={product.id} variants={fadeUp} className="h-full">
-              <ProductCard product={product} primaryCtaHref={primaryCtaHref} />
+              <ProductCard product={product} />
             </motion.div>
           ))}
         </motion.div>

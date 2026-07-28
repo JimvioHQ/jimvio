@@ -179,12 +179,6 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
         ],
       },
     ],
-    proCard: {
-      title: "Jimvio Pro",
-      description: "Unlock higher commissions & exclusive benefits",
-      cta: "Upgrade Now",
-      href: "/pricing",
-    },
   },
   ugc: {
     id: "ugc",

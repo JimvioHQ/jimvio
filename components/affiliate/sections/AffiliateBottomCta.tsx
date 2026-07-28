@@ -45,17 +45,17 @@ export function AffiliateBottomCta({ primaryCtaHref }: AffiliateBottomCtaProps) 
         <div className="relative z-[1] flex flex-col items-center gap-6 md:flex-row md:items-center md:justify-between md:gap-8">
           <div
             className={cn(
-              "relative h-[110px] w-[110px] shrink-0 sm:h-[130px] sm:w-[130px]",
+              "relative h-[140px] w-[160px] shrink-0 sm:h-[168px] sm:w-[200px]",
               !reduceMotion && "aff-motion-mega"
             )}
           >
             <Image
-              src="/images/affiliate/megaphone.png"
-              alt=""
+              src="/images/affiliate/hero-phone.png"
+              alt="Jimvio Affiliate Program — phone earnings, commission cards, coins and gifts"
               fill
               loading="lazy"
-              className="object-contain drop-shadow-[0_12px_24px_rgba(255,90,31,0.22)]"
-              sizes="130px"
+              className="object-contain object-center drop-shadow-[0_12px_24px_rgba(255,90,31,0.22)]"
+              sizes="(max-width: 640px) 160px, 200px"
             />
           </div>
 

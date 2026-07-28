@@ -49,7 +49,7 @@ export function AffiliatesMarketingPage({
       <AffiliateCategories />
       <AffiliateHowItWorks />
       <AffiliateBoostEarnings />
-      <AffiliateProducts products={topProducts} primaryCtaHref={primaryCtaHref} />
+      <AffiliateProducts products={topProducts} />
       <AffiliateBottomCta primaryCtaHref={primaryCtaHref} />
 
       {/* Sticky mobile promote CTA */}

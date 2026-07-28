@@ -78,10 +78,9 @@ function UGCPremiumCampaignCardInner({
       whileHover={{ y: -3 }}
       className="group h-full"
     >
-      <Link
-        href={`/ugc/${c.id}`}
+      <div
         className={cn(
-          "flex h-full flex-col overflow-hidden rounded-[12px] border border-[#EEF0F2] bg-white",
+          "relative flex h-full flex-col overflow-hidden rounded-[12px] border border-[#EEF0F2] bg-white",
           "shadow-[0_1px_2px_rgba(17,24,39,0.04),0_3px_10px_rgba(17,24,39,0.03)]",
           "transition-[box-shadow] duration-200",
           "hover:shadow-[0_6px_20px_rgba(17,24,39,0.09)]",
@@ -96,27 +95,52 @@ function UGCPremiumCampaignCardInner({
               : "aspect-[5/3] sm:h-[128px] sm:aspect-auto",
           )}
         >
-          {banner ? (
-            // eslint-disable-next-line @next/next/no-img-element -- dynamic campaign CDN URLs
-            <img
-              src={banner}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 ease-out will-change-transform group-hover:scale-[1.05]"
-            />
-          ) : (
-            <div
-              className="absolute inset-0"
-              style={{
-                background: "linear-gradient(145deg, #FFF4EF 0%, #F3F4F6 60%, #FFE8DC 100%)",
-              }}
-            />
-          )}
+          <Link href={`/ugc/${c.id}`} className="absolute inset-0 block" aria-label={c.title}>
+            {banner ? (
+              // eslint-disable-next-line @next/next/no-img-element -- dynamic campaign CDN URLs
+              <img
+                src={banner}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-500 ease-out will-change-transform group-hover:scale-[1.05]"
+              />
+            ) : (
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: "linear-gradient(145deg, #FFF4EF 0%, #F3F4F6 60%, #FFE8DC 100%)",
+                }}
+              />
+            )}
+          </Link>
+
+          {/* Hover Join Campaign CTA */}
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-0 z-[2] flex justify-center px-3 pb-3",
+              "translate-y-2 opacity-0 transition-all duration-200 ease-out",
+              "group-hover:translate-y-0 group-hover:opacity-100",
+              "motion-reduce:translate-y-0 motion-reduce:opacity-100",
+            )}
+          >
+            <Link
+              href={`/ugc/${c.id}/join`}
+              className={cn(
+                "pointer-events-auto inline-flex h-9 items-center justify-center rounded-full",
+                "bg-[#FF5A1F] px-5 text-[12px] font-bold text-white",
+                "shadow-[0_8px_22px_rgba(255,90,31,0.42),0_2px_6px_rgba(17,24,39,0.18)]",
+                "transition-all duration-200 hover:bg-[#E54E18] hover:shadow-[0_10px_26px_rgba(255,90,31,0.5)]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80",
+              )}
+            >
+              Join Campaign
+            </Link>
+          </div>
         </div>
 
-        {/* Compact body — 16px pad, no stretch gaps, no category/bookmark */}
-        <div className="flex flex-col px-4 pb-3 pt-3">
+        {/* Compact body */}
+        <Link href={`/ugc/${c.id}`} className="flex flex-col px-4 pb-3 pt-3">
           <div className="flex items-center gap-1.5">
             {c.vendor?.business_logo ? (
               // eslint-disable-next-line @next/next/no-img-element -- dynamic vendor logos
@@ -167,8 +191,8 @@ function UGCPremiumCampaignCardInner({
               </span>
             ) : null}
           </div>
-        </div>
-      </Link>
+        </Link>
+      </div>
     </motion.article>
   );
 }

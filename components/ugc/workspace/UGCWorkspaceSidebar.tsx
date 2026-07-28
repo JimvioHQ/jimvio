@@ -92,7 +92,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
         </Link>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 pb-2">
+      <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-2">
         <ul className="space-y-[2px]">
           {NAV.map((item) => {
             const Icon = item.icon;
@@ -128,67 +128,76 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
             );
           })}
         </ul>
-      </nav>
 
-      {/* Jimvio AI — flagship orange assistant card */}
-      <div className="p-3 pt-1">
-        <motion.div
-          whileHover={{ y: -2 }}
-          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden rounded-[18px] px-3.5 pb-2.5 pt-3.5 shadow-[0_10px_32px_rgba(255,90,31,0.32),0_2px_8px_rgba(255,90,31,0.14)]"
-          style={{
-            background:
-              "linear-gradient(165deg, #FF8A55 0%, #FF5A1F 38%, #E04712 100%)",
-          }}
-        >
-          <div
-            className="pointer-events-none absolute inset-0"
+        {/* Jimvio AI — directly under Settings, near bottom of nav */}
+        <div className="mt-3 shrink-0 px-0.5 pb-1 pt-1">
+          <motion.div
+            whileHover={{ y: -2 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="relative overflow-hidden rounded-[18px] border border-white/25 p-3.5 shadow-[0_12px_36px_rgba(255,90,31,0.34),0_2px_8px_rgba(17,24,39,0.08)]"
             style={{
               background:
-                "linear-gradient(135deg, rgba(255,255,255,0.22) 0%, transparent 42%), radial-gradient(80% 60% at 100% 0%, rgba(255,255,255,0.18) 0%, transparent 55%)",
+                "linear-gradient(160deg, rgba(255,138,85,0.95) 0%, #FF5A1F 42%, #D94310 100%)",
             }}
-          />
-          <div className="pointer-events-none absolute -bottom-4 left-1/2 h-16 w-24 -translate-x-1/2 rounded-full bg-[#FFB088]/35 blur-2xl" />
-
-          <div className="relative z-[1]">
-            <div className="mb-1 flex items-center gap-1.5">
-              <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={2.4} />
-              <span className="text-[13px] font-bold tracking-tight text-white">Jimvio AI</span>
-            </div>
-            <p className="text-[10.5px] leading-[1.35] text-white/92">
-              Your intelligent assistant for winning campaigns.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => {
-                openAssistant(
-                  "Help me find the best UGC and clipping campaigns to join right now.",
-                );
-                onNavigate?.();
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.28) 0%, transparent 40%), radial-gradient(90% 70% at 100% 0%, rgba(255,255,255,0.22) 0%, transparent 55%)",
               }}
-              className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-white px-3 text-[11.5px] font-bold text-[#FF5A1F] shadow-[0_4px_14px_rgba(17,24,39,0.14)] transition-all duration-150 hover:bg-[#FFFAF7] hover:shadow-[0_6px_18px_rgba(17,24,39,0.18)]"
-            >
-              Ask AI Anything
-              <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
-            </button>
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-[1px] rounded-[17px] border border-white/20"
+            />
+            <div className="pointer-events-none absolute -bottom-6 left-1/2 h-20 w-28 -translate-x-1/2 rounded-full bg-[#FFB088]/40 blur-2xl" />
 
-            <div className="mt-2 flex justify-center">
-              <div className="relative">
-                <div className="absolute inset-x-3 bottom-0.5 h-3.5 rounded-full bg-[#FF9A60]/90 blur-[6px]" />
-                <Image
-                  src="/hero/jimvio-ai-mascot-cutout.png"
-                  alt="Jimvio AI"
-                  width={96}
-                  height={96}
-                  className="relative h-auto w-[78px] object-contain drop-shadow-[0_8px_14px_rgba(0,0,0,0.2)]"
-                  priority={false}
-                />
+            <div className="relative z-[1]">
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <span className="grid h-6 w-6 place-items-center rounded-lg bg-white/20 backdrop-blur-sm">
+                  <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={2.4} />
+                </span>
+                <span className="text-[13px] font-bold tracking-tight text-white">
+                  Jimvio AI
+                </span>
+              </div>
+              <p className="text-[10.5px] leading-[1.4] text-white/92">
+                Your intelligent assistant for winning campaigns.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  openAssistant(
+                    "Help me find the best UGC and clipping campaigns to join right now.",
+                  );
+                  onNavigate?.();
+                }}
+                className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-white/95 px-3 text-[11.5px] font-bold text-[#FF5A1F] shadow-[0_4px_16px_rgba(17,24,39,0.16)] backdrop-blur-sm transition-all duration-150 hover:bg-white hover:shadow-[0_6px_18px_rgba(17,24,39,0.2)]"
+              >
+                Ask AI Anything
+                <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
+              </button>
+
+              <div className="mt-2.5 flex justify-center">
+                <div className="relative">
+                  <div className="absolute inset-x-2 bottom-0 h-3 rounded-full bg-[#FF9A60]/85 blur-[7px]" />
+                  <Image
+                    src="/hero/jimvio-ai-mascot-cutout.png"
+                    alt="Jimvio AI"
+                    width={88}
+                    height={88}
+                    className="relative h-auto w-[72px] object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)]"
+                    priority={false}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        </motion.div>
-      </div>
+          </motion.div>
+        </div>
+      </nav>
     </div>
   );
 }
