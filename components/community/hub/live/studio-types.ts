@@ -30,7 +30,35 @@ export type RightTab =
 
 export const MODE_KEY = "jimvio-live-studio-mode";
 export const DRAWER_KEY = "jimvio-live-drawer-state";
+/** Bump when DrawerState shape changes — invalid/old persisted state resets safely. */
+export const DRAWER_STATE_VERSION = 2;
 export const LAYOUTS = ["Presentation", "Grid", "Screen Share", "Classroom"] as const;
+
+export const VALID_RIGHT_TABS: readonly RightTab[] = [
+  "chat",
+  "qa",
+  "polls",
+  "clips",
+  "events",
+  "analytics",
+  "whiteboard",
+  "notes",
+  "resources",
+  "tasks",
+  "knowledge",
+  "commerce",
+  "recording",
+  "tools",
+  "ai",
+] as const;
+
+export const VALID_LEFT_PANELS: readonly LeftPanel[] = [
+  "none",
+  "people",
+  "rooms",
+  "layout",
+  "settings",
+] as const;
 
 export const LEFT_TOOLS: { id: Exclude<LeftPanel, "none">; label: string; icon: LucideIcon }[] = [
   { id: "people", label: "People", icon: Users },

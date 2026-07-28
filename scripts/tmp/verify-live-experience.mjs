@@ -177,5 +177,18 @@ assert.match(
   mustExist("scripts/tmp/prove-zustand-185.mjs"),
   /forceStoreRerender|Maximum update depth/
 );
+assert.match(
+  mustExist("components/community/hub/live/studio-types.ts"),
+  /DRAWER_STATE_VERSION/
+);
+assert.match(
+  mustExist("components/community/hub/live/studio-utils.ts"),
+  /VALID_RIGHT_TABS|version !== DRAWER_STATE_VERSION|writeDrawerState\(DEFAULT_DRAWER\)/
+);
+assert.ok(fs.existsSync(path.join(root, "scripts/tmp/accept-live-studio-runtime.mjs")));
+assert.match(
+  mustExist("scripts/tmp/accept-live-studio-runtime.mjs"),
+  /Maximum update depth|Live Studio failed to load|jimvio-live-drawer-state/
+);
 
 console.log("verify-live-experience: ok");

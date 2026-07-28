@@ -35,7 +35,10 @@ async function main() {
   fs.mkdirSync(outDir, { recursive: true });
   const outFile = path.join(outDir, "live-host.json");
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    channel: "chrome",
+    headless: true,
+  });
   const context = await browser.newContext();
   const page = await context.newPage();
 

@@ -4,9 +4,22 @@ import {
   DEFAULT_DRAWER,
   MODE_KEY,
   DRAWER_KEY,
+  DRAWER_STATE_VERSION,
+  VALID_LEFT_PANELS,
+  VALID_RIGHT_TABS,
   type DrawerState,
+  type LeftPanel,
+  type RightTab,
   type StudioMode,
 } from "./studio-types";
+
+function isRightTab(v: unknown): v is RightTab {
+  return typeof v === "string" && (VALID_RIGHT_TABS as readonly string[]).includes(v);
+}
+
+function isLeftPanel(v: unknown): v is LeftPanel {
+  return typeof v === "string" && (VALID_LEFT_PANELS as readonly string[]).includes(v);
+}
 
 export function formatElapsed(seconds: number) {
   const h = Math.floor(seconds / 3600);
@@ -52,23 +65,63 @@ export function readDrawerState(): DrawerState {
   try {
     const raw = window.localStorage.getItem(DRAWER_KEY);
     if (!raw) return DEFAULT_DRAWER;
-    const parsed = JSON.parse(raw) as Partial<DrawerState>;
-    const rightTab =
-      parsed.rightTab === "clips" ? "chat" : (parsed.rightTab ?? DEFAULT_DRAWER.rightTab);
+    const parsed = JSON.parse(raw) as Partial<DrawerState> & { version?: number };
+    // Version mismatch or corrupt shape → safe defaults (never mount unknown tabs).
+    if (parsed.version !== DRAWER_STATE_VERSION) {
+      writeDrawerState(DEFAULT_DRAWER);
+      return { ...DEFAULT_DRAWER };
+    }
+    let rightTab: RightTab =
+      parsed.rightTab === "clips"
+        ? "chat"
+        : isRightTab(parsed.rightTab)
+          ? parsed.rightTab
+          : DEFAULT_DRAWER.rightTab;
+    const leftPanel: LeftPanel = isLeftPanel(parsed.leftPanel)
+      ? parsed.leftPanel
+      : DEFAULT_DRAWER.leftPanel;
+    const rightWidth =
+      typeof parsed.rightWidth === "number" &&
+      parsed.rightWidth >= 240 &&
+      parsed.rightWidth <= 560
+        ? parsed.rightWidth
+        : DEFAULT_DRAWER.rightWidth;
+    const rightOpen =
+      typeof parsed.rightOpen === "boolean" ? parsed.rightOpen : DEFAULT_DRAWER.rightOpen;
+    const chatScroll =
+      typeof parsed.chatScroll === "number" && Number.isFinite(parsed.chatScroll)
+        ? Math.max(0, parsed.chatScroll)
+        : DEFAULT_DRAWER.chatScroll;
     return {
       ...DEFAULT_DRAWER,
-      ...parsed,
       rightTab,
-      panelScrolls: { ...DEFAULT_DRAWER.panelScrolls, ...parsed.panelScrolls },
+      rightOpen,
+      rightWidth,
+      leftPanel,
+      chatScroll,
+      panelScrolls: {
+        ...DEFAULT_DRAWER.panelScrolls,
+        ...(parsed.panelScrolls && typeof parsed.panelScrolls === "object"
+          ? parsed.panelScrolls
+          : {}),
+      },
     };
   } catch {
-    return DEFAULT_DRAWER;
+    try {
+      writeDrawerState(DEFAULT_DRAWER);
+    } catch {
+      /* ignore */
+    }
+    return { ...DEFAULT_DRAWER };
   }
 }
 
 export function writeDrawerState(state: DrawerState) {
   try {
-    window.localStorage.setItem(DRAWER_KEY, JSON.stringify(state));
+    window.localStorage.setItem(
+      DRAWER_KEY,
+      JSON.stringify({ ...state, version: DRAWER_STATE_VERSION })
+    );
   } catch {
     /* ignore */
   }
