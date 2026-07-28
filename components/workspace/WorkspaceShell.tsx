@@ -12,6 +12,7 @@ import {
 } from "@/lib/workspace/config";
 import { WorkspaceSidebar } from "@/components/workspace/WorkspaceSidebar";
 import { WorkspaceRightPanel } from "@/components/workspace/WorkspaceRightPanel";
+import { cn } from "@/lib/utils";
 
 type WorkspaceShellProps = {
   workspace: WorkspaceId;
@@ -34,9 +35,15 @@ export function WorkspaceShell({
   const [mobileNav, setMobileNav] = useState(false);
   const def = WORKSPACES[workspace];
   const activeId = resolveWorkspaceNavActive(pathname, workspace);
+  const rightPanelEnabled = showRightPanel && !!def.rightPanel && workspace !== "affiliates";
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[var(--color-bg)]">
+    <div
+      className={cn(
+        "flex min-h-dvh flex-col",
+        workspace === "affiliates" ? "bg-[#F7F8FA]" : "bg-[var(--color-bg)]"
+      )}
+    >
       <AppTopNav
         showUtilityBar
         activeNav={def.label === "UGC & Clipping" ? "UGC & Clipping" : def.label}
@@ -44,7 +51,12 @@ export function WorkspaceShell({
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="hidden w-[240px] shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] lg:block">
+        <aside
+          className={cn(
+            "hidden shrink-0 border-r border-[var(--color-border)] bg-white lg:block",
+            workspace === "affiliates" ? "w-[232px]" : "w-[240px]"
+          )}
+        >
           <WorkspaceSidebar
             workspace={workspace}
             activeId={activeId}
@@ -101,7 +113,7 @@ export function WorkspaceShell({
             {children}
           </main>
 
-          {showRightPanel && def.rightPanel && (
+          {rightPanelEnabled && (
             <aside className="hidden w-[280px] shrink-0 overflow-y-auto border-l border-[var(--color-border)] bg-[var(--color-surface)] xl:block">
               <WorkspaceRightPanel workspace={workspace} />
             </aside>

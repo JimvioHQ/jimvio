@@ -7,8 +7,10 @@ import {
   Compass,
   DollarSign,
   FileVideo,
+  Gift,
   GraduationCap,
   Home,
+  Image as ImageIcon,
   Layers,
   LayoutDashboard,
   Link2,
@@ -19,9 +21,9 @@ import {
   ShoppingBag,
   Store,
   Target,
-  TrendingUp,
   Users,
   Wallet,
+  Wrench,
   Zap,
 } from "lucide-react";
 
@@ -35,6 +37,19 @@ export type WorkspaceNavItem = {
   badge?: string;
 };
 
+export type WorkspaceNavSection = {
+  id: string;
+  label: string;
+  items: WorkspaceNavItem[];
+};
+
+export type WorkspaceProCard = {
+  title: string;
+  description: string;
+  cta: string;
+  href: string;
+};
+
 export type WorkspaceDefinition = {
   id: WorkspaceId;
   label: string;
@@ -44,6 +59,8 @@ export type WorkspaceDefinition = {
   accent: string;
   icon: LucideIcon;
   sidebar: WorkspaceNavItem[];
+  sidebarSections?: WorkspaceNavSection[];
+  proCard?: WorkspaceProCard;
   rightPanel?: {
     title: string;
     items: { label: string; href?: string; value?: string }[];
@@ -104,24 +121,69 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
     href: "/affiliates",
     description: "Promote products and earn commissions.",
     cta: "Open Affiliate Workspace",
-    accent: "#0d9488",
+    accent: "#fd5000",
     icon: DollarSign,
     sidebar: [
-      { id: "overview", label: "Overview", href: "/affiliates", icon: Home },
+      { id: "overview", label: "Overview", href: "/affiliates", icon: LayoutDashboard },
       { id: "products", label: "Products to Promote", href: "/marketplace", icon: Package },
-      { id: "analytics", label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-      { id: "commissions", label: "Commissions", href: "/dashboard/payments", icon: TrendingUp },
-      { id: "wallet", label: "Wallet", href: "/dashboard/wallet", icon: Wallet },
+      { id: "campaigns", label: "Top Campaigns", href: "/affiliates#campaigns", icon: Target },
+      { id: "offers", label: "Exclusive Offers", href: "/affiliates#offers", icon: Gift },
       { id: "links", label: "My Links", href: "/dashboard/activate/affiliate", icon: Link2 },
-      { id: "resources", label: "Resources", href: "/help", icon: GraduationCap },
+      { id: "referrals", label: "Referrals", href: "/dashboard/analytics", icon: Users },
+      { id: "creatives", label: "Creatives", href: "/affiliates#creatives", icon: ImageIcon },
+      { id: "earnings", label: "Earnings", href: "/dashboard/analytics", icon: DollarSign },
+      { id: "payouts", label: "Payouts", href: "/dashboard/wallet", icon: Wallet },
+      { id: "guides", label: "Guides & Tutorials", href: "/help", icon: GraduationCap },
+      { id: "tools", label: "Affiliate Tools", href: "/affiliates#tools", icon: Wrench },
     ],
-    rightPanel: {
-      title: "Performance",
-      items: [
-        { label: "Top Products", href: "/marketplace" },
-        { label: "Recent Sales", href: "/dashboard/analytics" },
-        { label: "Conversion Rate", value: "—" },
-      ],
+    sidebarSections: [
+      {
+        id: "center",
+        label: "Affiliate Center",
+        items: [
+          { id: "overview", label: "Overview", href: "/affiliates", icon: LayoutDashboard },
+        ],
+      },
+      {
+        id: "discover",
+        label: "Discover",
+        items: [
+          { id: "products", label: "Products to Promote", href: "/marketplace", icon: Package },
+          { id: "campaigns", label: "Top Campaigns", href: "/affiliates#campaigns", icon: Target },
+          { id: "offers", label: "Exclusive Offers", href: "/affiliates#offers", icon: Gift },
+        ],
+      },
+      {
+        id: "tracking",
+        label: "Tracking",
+        items: [
+          { id: "links", label: "My Links", href: "/dashboard/activate/affiliate", icon: Link2 },
+          { id: "referrals", label: "Referrals", href: "/dashboard/analytics", icon: Users },
+          { id: "creatives", label: "Creatives", href: "/affiliates#creatives", icon: ImageIcon },
+        ],
+      },
+      {
+        id: "earnings",
+        label: "Earnings",
+        items: [
+          { id: "earnings", label: "Earnings", href: "/dashboard/analytics", icon: DollarSign },
+          { id: "payouts", label: "Payouts", href: "/dashboard/wallet", icon: Wallet },
+        ],
+      },
+      {
+        id: "resources",
+        label: "Resources",
+        items: [
+          { id: "guides", label: "Guides & Tutorials", href: "/help", icon: GraduationCap },
+          { id: "tools", label: "Affiliate Tools", href: "/affiliates#tools", icon: Wrench },
+        ],
+      },
+    ],
+    proCard: {
+      title: "Jimvio Pro",
+      description: "Unlock higher commissions & exclusive benefits",
+      cta: "Upgrade Now",
+      href: "/pricing",
     },
   },
   ugc: {
@@ -176,7 +238,7 @@ export function resolveWorkspaceNavActive(pathname: string, workspace: Workspace
     if (pathname.startsWith("/communities") || pathname === "/communities") return "feed";
   }
   for (const item of def.sidebar) {
-    const base = item.href.split("?")[0];
+    const base = item.href.split("?")[0].split("#")[0];
     if (pathname === base || (base !== "/" && pathname.startsWith(`${base}/`))) {
       return item.id;
     }
