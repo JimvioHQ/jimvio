@@ -1,13 +1,13 @@
-/* Jimvio PWA service worker — DISABLED (v3)
+/* Jimvio PWA service worker — DISABLED (v4)
  *
- * Root cause (P0 Live): cache-first interception of Next static chunks and
+ * Root cause (P0): cache-first interception of Next static chunks and
  * document navigations caused ChunkLoadError / failed soft navigations.
- * Next.js then renders DefaultGlobalError: "This page couldn't load".
+ * Next.js then renders GlobalError: "This page couldn't load".
  *
  * This worker clears all caches and unregisters itself. Do not re-enable
  * fetch caching until a Workbox strategy keyed by build ID is in place.
  */
-const VERSION = "v3-disabled";
+const VERSION = "v4-disabled";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

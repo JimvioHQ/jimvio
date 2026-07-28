@@ -14,7 +14,6 @@ import {
   Layers,
   MessageSquare,
   Radio,
-  Settings,
   Target,
   Wallet,
 } from "lucide-react";
@@ -189,9 +188,6 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
     xpGoal: 6000,
   };
 
-  const xpPct = Math.round((profile.xp / profile.xpGoal) * 100);
-  const xpRemaining = profile.xpGoal - profile.xp;
-
   return (
     <aside className={cn("flex h-full w-[240px] shrink-0 flex-col border-r border-gray-200 bg-white", className)}>
       <div className="flex-1 overflow-y-auto">
@@ -310,38 +306,6 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
           >
             Upgrade Now
           </button>
-        </div>
-      </div>
-
-      <div className="shrink-0 border-t border-gray-200 p-3">
-        <Link
-          href="/communities/settings"
-          className={cn(
-            "mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors",
-            resolvedActive === "settings"
-              ? "bg-orange-50 font-medium text-orange-500"
-              : "text-gray-700 hover:bg-gray-50"
-          )}
-        >
-          <Settings
-            className={cn(
-              "h-4 w-4 shrink-0",
-              resolvedActive === "settings" ? "text-orange-500" : "text-gray-500"
-            )}
-          />
-          <span>Settings</span>
-        </Link>
-        <div className="px-1">
-          <div className="mb-1.5 flex items-center justify-between text-xs">
-            <span className="text-gray-500">XP Progress</span>
-            <span className="font-medium text-gray-900">
-              {profile.xp.toLocaleString()} / {profile.xpGoal.toLocaleString()}
-            </span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
-            <div className="h-full rounded-full bg-orange-500 transition-all" style={{ width: `${xpPct}%` }} />
-          </div>
-          <p className="mt-1.5 text-[11px] text-gray-400">Next reward in {xpRemaining.toLocaleString()} XP</p>
         </div>
       </div>
     </aside>

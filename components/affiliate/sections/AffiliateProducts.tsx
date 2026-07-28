@@ -120,21 +120,21 @@ const ProductCard = memo(function ProductCard({
           />
         </button>
 
-        <Link
-          href={`/marketplace/${product.slug}`}
-          aria-label={`Quick preview ${product.name}`}
-          className={cn(
-            "absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full",
-            "border border-white/70 bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#111827] backdrop-blur-md",
-            "opacity-0 translate-y-2 transition-all duration-200",
-            "group-hover:translate-y-0 group-hover:opacity-100",
-            "focus-visible:translate-y-0 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
-            "motion-reduce:translate-y-0 motion-reduce:opacity-100"
-          )}
-        >
-          <Eye className="h-3 w-3" />
-          Preview
-        </Link>
+          <Link
+            href={`/affiliates/promote/${product.slug}`}
+            aria-label={`Quick preview ${product.name}`}
+            className={cn(
+              "absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full",
+              "border border-white/70 bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#111827] backdrop-blur-md",
+              "opacity-0 translate-y-2 transition-all duration-200",
+              "group-hover:translate-y-0 group-hover:opacity-100",
+              "focus-visible:translate-y-0 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
+              "motion-reduce:translate-y-0 motion-reduce:opacity-100"
+            )}
+          >
+            <Eye className="h-3 w-3" />
+            Preview
+          </Link>
       </div>
 
       <div className="flex flex-1 flex-col p-3 sm:p-3.5">
@@ -151,7 +151,7 @@ const ProductCard = memo(function ProductCard({
         </div>
 
         <Link
-          href={`/marketplace/${product.slug}`}
+          href={`/affiliates/promote/${product.slug}`}
           className="mt-1 line-clamp-2 min-h-[2.4rem] text-[13px] font-semibold leading-snug text-[#111827] transition-colors duration-200 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30 rounded-sm"
         >
           {product.name}

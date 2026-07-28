@@ -115,6 +115,12 @@ function UGCPremiumCampaignCardInner({
             )}
           </Link>
 
+          {featured ? (
+            <span className="absolute left-2.5 top-2.5 z-[1] rounded-full bg-[#FF5A1F] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-[0_2px_8px_rgba(255,90,31,0.35)]">
+              Featured
+            </span>
+          ) : null}
+
           {/* Hover Join Campaign CTA */}
           <div
             className={cn(

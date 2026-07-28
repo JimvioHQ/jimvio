@@ -27,15 +27,37 @@ export default function GlobalError({
         error.message || ""
       );
     if (!chunk || typeof window === "undefined") return;
-    try {
-      const key = "jimvio-chunk-reload";
-      if (!sessionStorage.getItem(key)) {
+
+    const recover = async () => {
+      try {
+        const key = "jimvio-chunk-reload";
+        if (sessionStorage.getItem(key)) return;
         sessionStorage.setItem(key, "1");
-        window.location.reload();
+      } catch {
+        /* continue */
       }
-    } catch {
-      /* ignore */
-    }
+      try {
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.unregister()));
+        }
+      } catch {
+        /* ignore */
+      }
+      try {
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+      } catch {
+        /* ignore */
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.set("_chunkfix", String(Date.now()));
+      window.location.replace(url.toString());
+    };
+
+    void recover();
   }, [error]);
 
   return (

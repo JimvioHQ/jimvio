@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -54,6 +54,7 @@ export function AffiliatePromoteProductClient({
   const [linkCode, setLinkCode] = useState(initialCode);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const images = product.images.length > 0 ? product.images : ["/images/default-profile.png"];
@@ -64,6 +65,31 @@ export function AffiliatePromoteProductClient({
     () => affiliateLink ?? `${origin}/marketplace/${product.slug}`,
     [affiliateLink, origin, product.slug]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!affiliateLink) {
+      setQrDataUrl(null);
+      return;
+    }
+    void import("qrcode")
+      .then((QRCode) =>
+        QRCode.toDataURL(affiliateLink, {
+          width: 180,
+          margin: 1,
+          color: { dark: "#111827", light: "#FFFFFF" },
+        })
+      )
+      .then((url) => {
+        if (!cancelled) setQrDataUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [affiliateLink]);
 
   const ensureLink = useCallback(async () => {
     if (affiliateLink) return affiliateLink;
@@ -292,6 +318,13 @@ export function AffiliatePromoteProductClient({
                     Share
                   </button>
                 </div>
+                {qrDataUrl ? (
+                  <div className="mt-4 flex flex-col items-center gap-2 rounded-xl border border-[#E8EAED] bg-[#F9FAFB] p-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- data URL QR */}
+                    <img src={qrDataUrl} alt="Affiliate link QR code" className="h-[140px] w-[140px] rounded-lg" />
+                    <p className="text-[11px] font-medium text-[#6B7280]">Scan to open your tracked link</p>
+                  </div>
+                ) : null}
                 {!affiliateLink ? (
                   <button
                     type="button"
@@ -314,9 +347,9 @@ export function AffiliatePromoteProductClient({
                 <h3 className="text-[13px] font-bold text-[#111827]">Marketing assets</h3>
               </div>
               <ul className="space-y-1.5 text-[12.5px] text-[#4B5563]">
-                <li>• Product images above — download from product page</li>
+                <li>• Product images above — use in posts and stories</li>
                 <li>• Lead with the {Math.round(product.rate)}% commission angle</li>
-                <li>• Use short captions + your tracked link</li>
+                <li>• Pair short captions with your tracked link / QR</li>
               </ul>
             </div>
             <div className="rounded-2xl border border-[#E8EAED] bg-white p-4">

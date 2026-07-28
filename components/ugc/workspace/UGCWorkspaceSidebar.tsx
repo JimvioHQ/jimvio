@@ -134,10 +134,10 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
           <motion.div
             whileHover={{ y: -2 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="relative overflow-hidden rounded-[18px] border border-white/25 p-3.5 shadow-[0_12px_36px_rgba(255,90,31,0.34),0_2px_8px_rgba(17,24,39,0.08)]"
+            className="relative overflow-hidden rounded-[20px] border border-white/30 p-3.5 shadow-[0_14px_40px_rgba(255,90,31,0.36),0_2px_10px_rgba(17,24,39,0.1)]"
             style={{
               background:
-                "linear-gradient(160deg, rgba(255,138,85,0.95) 0%, #FF5A1F 42%, #D94310 100%)",
+                "linear-gradient(165deg, #FF9A68 0%, #FF5A1F 40%, #C93A0C 100%)",
             }}
           >
             <div
@@ -145,25 +145,25 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
               className="pointer-events-none absolute inset-0"
               style={{
                 background:
-                  "linear-gradient(135deg, rgba(255,255,255,0.28) 0%, transparent 40%), radial-gradient(90% 70% at 100% 0%, rgba(255,255,255,0.22) 0%, transparent 55%)",
+                  "linear-gradient(135deg, rgba(255,255,255,0.32) 0%, transparent 42%), radial-gradient(90% 70% at 100% 0%, rgba(255,255,255,0.24) 0%, transparent 55%)",
               }}
             />
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-[1px] rounded-[17px] border border-white/20"
+              className="pointer-events-none absolute inset-[1px] rounded-[19px] border border-white/25 backdrop-blur-[1px]"
             />
-            <div className="pointer-events-none absolute -bottom-6 left-1/2 h-20 w-28 -translate-x-1/2 rounded-full bg-[#FFB088]/40 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-8 left-1/2 h-24 w-32 -translate-x-1/2 rounded-full bg-[#FFB088]/45 blur-2xl" />
 
             <div className="relative z-[1]">
               <div className="mb-1.5 flex items-center gap-1.5">
-                <span className="grid h-6 w-6 place-items-center rounded-lg bg-white/20 backdrop-blur-sm">
+                <span className="grid h-7 w-7 place-items-center rounded-xl border border-white/25 bg-white/20 shadow-inner backdrop-blur-md">
                   <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={2.4} />
                 </span>
-                <span className="text-[13px] font-bold tracking-tight text-white">
+                <span className="text-[13.5px] font-bold tracking-tight text-white">
                   Jimvio AI
                 </span>
               </div>
-              <p className="text-[10.5px] leading-[1.4] text-white/92">
+              <p className="text-[10.5px] leading-[1.4] text-white/93">
                 Your intelligent assistant for winning campaigns.
               </p>
 
@@ -175,7 +175,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
                   );
                   onNavigate?.();
                 }}
-                className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-white/95 px-3 text-[11.5px] font-bold text-[#FF5A1F] shadow-[0_4px_16px_rgba(17,24,39,0.16)] backdrop-blur-sm transition-all duration-150 hover:bg-white hover:shadow-[0_6px_18px_rgba(17,24,39,0.2)]"
+                className="mt-3.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-white px-3 text-[11.5px] font-bold text-[#FF5A1F] shadow-[0_6px_18px_rgba(17,24,39,0.18)] transition-all duration-150 hover:bg-[#FFFAF7] hover:shadow-[0_8px_22px_rgba(17,24,39,0.22)]"
               >
                 Ask AI Anything
                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
@@ -183,13 +183,13 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
 
               <div className="mt-2.5 flex justify-center">
                 <div className="relative">
-                  <div className="absolute inset-x-2 bottom-0 h-3 rounded-full bg-[#FF9A60]/85 blur-[7px]" />
+                  <div className="absolute inset-x-2 bottom-0 h-3.5 rounded-full bg-[#FF9A60]/9 blur-[8px]" />
                   <Image
                     src="/hero/jimvio-ai-mascot-cutout.png"
                     alt="Jimvio AI"
-                    width={88}
-                    height={88}
-                    className="relative h-auto w-[72px] object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)]"
+                    width={96}
+                    height={96}
+                    className="relative h-auto w-[76px] object-contain drop-shadow-[0_10px_18px_rgba(0,0,0,0.24)]"
                     priority={false}
                   />
                 </div>

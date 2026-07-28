@@ -15,7 +15,6 @@ import {
   formatCreatorCount,
   getCampaignBanner,
   getCampaignRewardLine,
-  getClipRateBadge,
 } from "./ugc-campaign-utils";
 
 function VerifiedBadge({ className }: { className?: string }) {
@@ -66,7 +65,6 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
   const c = campaigns[index];
   const banner = getCampaignBanner(c);
   const rewardLine = getCampaignRewardLine(c, formatMoney);
-  const clipBadge = getClipRateBadge(c, formatMoney);
   const creators = c.submission_count ?? 0;
 
   return (
@@ -106,20 +104,9 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
             className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent"
           />
 
-          {/* Dedicated content zone — bottom-left, never cluttered */}
+          {/* Dedicated content zone — bottom-left, no floating badges */}
           <div className="absolute inset-x-0 bottom-0 z-[2] p-5 sm:p-7 lg:p-8">
             <div className="max-w-xl">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-[#FF5A1F] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white shadow-[0_4px_14px_rgba(255,90,31,0.35)]">
-                  Featured
-                </span>
-                {clipBadge ? (
-                  <span className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-white/90 backdrop-blur-md">
-                    {clipBadge}
-                  </span>
-                ) : null}
-              </div>
-
               <div className="mb-2.5 flex items-center gap-2 text-white/90">
                 {c.vendor?.business_logo ? (
                   // eslint-disable-next-line @next/next/no-img-element -- dynamic vendor logos

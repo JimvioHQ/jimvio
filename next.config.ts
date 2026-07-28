@@ -61,6 +61,26 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Ensure HTML navigations are revalidated so clients never keep
+        // stale references to deleted /_next/static chunks after deploys.
+        source: "/((?!_next/static|_next/image|favicon.ico|icons|images|hero|sw.js).*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+        ],
+      },
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
         source: "/api/payments/binancepay/initiate",
         headers: [
           {

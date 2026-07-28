@@ -783,72 +783,112 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
     const payAmount = isFixed
       ? formatMoney(c.fixed_rate ?? 0, "USD")
       : formatMoney(c.rate_per_1k_views, "USD");
+    const paySuffix = isFixed ? "/ post" : "/ 1K";
     const vendor = c.vendor ?? c.vendors;
     const banner = c.media?.find((m) => m.usage === "banner")?.url;
     const logoUrl = campaignVendorLogo(vendor);
-    const shortTitle =
-      c.title.length > 42 ? `${c.title.slice(0, 40).trim()}…` : c.title;
 
     return (
-      <Link
+      <article
         key={c.id}
-        href={`/ugc/${c.id}`}
         className={cn(
-          "flex h-full min-h-[88px] items-start gap-2.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-transform active:scale-[0.98] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]",
-          "lg:min-h-0 lg:gap-4 lg:p-4 lg:transition-all lg:hover:-translate-y-0.5 lg:hover:shadow-lg lg:active:scale-100",
+          "group relative flex h-full flex-col overflow-hidden rounded-[12px] border border-[#EEF0F2] bg-white",
+          "shadow-[0_1px_2px_rgba(17,24,39,0.04),0_3px_10px_rgba(17,24,39,0.03)]",
+          "transition-all duration-200",
+          "hover:-translate-y-1 hover:shadow-[0_6px_20px_rgba(17,24,39,0.09)]",
         )}
       >
-        <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-surface-secondary)] lg:size-[4.5rem] lg:rounded-2xl">
-          {safeMediaUrl(banner, 320) ? (
-            <img
-              src={safeMediaUrl(banner, 320)}
-              alt=""
-              width={72}
-              height={72}
-              className="size-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : safeMediaUrl(logoUrl, 160) ? (
-            <img
-              src={safeMediaUrl(logoUrl, 160)}
-              alt=""
-              width={72}
-              height={72}
-              className="size-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <Clapperboard className="size-5 text-[var(--color-text-muted)] lg:size-7" />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 text-[11px] font-bold leading-snug text-[var(--color-text-primary)] lg:text-[15px] lg:leading-tight">
-            <span className="lg:hidden">{shortTitle}</span>
-            <span className="hidden lg:line-clamp-2 lg:block">{c.title}</span>
-          </h3>
-          {vendor?.business_name && (
-            <p className="mt-0.5 truncate text-[10px] text-[var(--color-text-muted)] lg:mt-1 lg:text-[12px]">
-              {vendor.business_name}
-            </p>
-          )}
-          <p
-            className="mt-1 text-[12px] font-black leading-none lg:mt-2 lg:text-[17px]"
-            style={{ color: GREEN }}
+        <div className="relative aspect-[5/3] shrink-0 overflow-hidden bg-[#F3F4F6]">
+          <Link href={`/ugc/${c.id}`} className="absolute inset-0 block" aria-label={c.title}>
+            {safeMediaUrl(banner, 640) ? (
+              // eslint-disable-next-line @next/next/no-img-element -- dynamic campaign CDN
+              <img
+                src={safeMediaUrl(banner, 640)!}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : safeMediaUrl(logoUrl, 320) ? (
+              // eslint-disable-next-line @next/next/no-img-element -- dynamic vendor logos
+              <img
+                src={safeMediaUrl(logoUrl, 320)!}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: "linear-gradient(145deg, #FFF4EF 0%, #F3F4F6 60%, #FFE8DC 100%)",
+                }}
+              />
+            )}
+          </Link>
+
+          <span className="absolute left-2.5 top-2.5 z-[1] rounded-full bg-[#FF5A1F] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-[0_2px_8px_rgba(255,90,31,0.35)]">
+            Featured
+          </span>
+
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-0 z-[2] flex justify-center px-3 pb-3",
+              "translate-y-2 opacity-0 transition-all duration-200 ease-out",
+              "group-hover:translate-y-0 group-hover:opacity-100",
+              "motion-reduce:translate-y-0 motion-reduce:opacity-100",
+            )}
           >
-            {payAmount}
-          </p>
-          <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] lg:mt-1 lg:text-[12px]">
-            {joined} creator{joined === 1 ? "" : "s"}
-          </p>
-          {daysLeft !== null && (
-            <span className="mt-1 inline-flex rounded-full bg-[#ede9fe] px-1.5 py-0.5 text-[9px] font-bold text-[#7c3aed] lg:mt-2 lg:px-2 lg:py-1 lg:text-[11px]">
-              {daysLeft === 0 ? "Ends today" : `${daysLeft} days left`}
-            </span>
-          )}
+            <Link
+              href={`/ugc/${c.id}/join`}
+              className="pointer-events-auto inline-flex h-9 items-center justify-center rounded-full bg-[#FF5A1F] px-5 text-[12px] font-bold text-white shadow-[0_8px_22px_rgba(255,90,31,0.42)] transition-all hover:bg-[#E54E18]"
+            >
+              Join Campaign
+            </Link>
+          </div>
         </div>
-      </Link>
+
+        <Link href={`/ugc/${c.id}`} className="flex flex-1 flex-col px-4 pb-3 pt-3">
+          <div className="flex items-center gap-1.5">
+            {safeMediaUrl(logoUrl, 64) ? (
+              // eslint-disable-next-line @next/next/no-img-element -- dynamic vendor logos
+              <img
+                src={safeMediaUrl(logoUrl, 64)!}
+                alt=""
+                className="h-4 w-4 shrink-0 rounded-full border border-[#E8EAED] object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-[7px] font-bold text-white">
+                {vendor?.business_name?.[0] ?? "B"}
+              </span>
+            )}
+            <span className="min-w-0 truncate text-[11px] font-semibold leading-none text-[#111827]">
+              {vendor?.business_name ?? "Brand"}
+            </span>
+          </div>
+
+          <h3 className="mt-1 line-clamp-2 text-[12.5px] font-bold leading-[1.3] tracking-[-0.01em] text-[#111827] transition-colors group-hover:text-[#FF5A1F]">
+            {c.title}
+          </h3>
+
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="truncate text-[10.5px] font-medium text-[#6B7280]">
+              {joined} creator{joined === 1 ? "" : "s"}
+            </span>
+            <span className="shrink-0 rounded-[6px] bg-[#ECFDF5] px-1.5 py-[3px] text-[10px] font-bold tabular-nums leading-none text-[#059669]">
+              {payAmount}
+              {paySuffix}
+            </span>
+          </div>
+          {daysLeft !== null ? (
+            <span className="mt-2 inline-flex w-fit rounded-[6px] bg-[#FFF0E8] px-1.5 py-[3px] text-[9.5px] font-bold text-[#FF5A1F]">
+              {daysLeft === 0 ? "Ends today" : `${daysLeft}d left`}
+            </span>
+          ) : null}
+        </Link>
+      </article>
     );
   });
 
