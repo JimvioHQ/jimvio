@@ -1,29 +1,60 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { AFFILIATE_SHELL } from "./shared";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  AFFILIATE_BTN_PRIMARY,
+  AFFILIATE_SHELL,
+  fadeUp,
+} from "./shared";
+import { cn } from "@/lib/utils";
+import "../affiliate-polish.css";
 
 type AffiliateBottomCtaProps = {
   primaryCtaHref: string;
 };
 
 export function AffiliateBottomCta({ primaryCtaHref }: AffiliateBottomCtaProps) {
+  const reduceMotion = useReducedMotion() ?? false;
+
   return (
-    <section className={`${AFFILIATE_SHELL} py-12 sm:py-14`}>
-      <div
-        className="relative overflow-hidden rounded-[18px] border border-[#FFE4D6] px-5 py-7 sm:px-8 sm:py-8 lg:px-10"
+    <section className={`${AFFILIATE_SHELL} py-12 pb-24 sm:py-14 sm:pb-14`}>
+      <motion.div
+        initial={reduceMotion ? false : "hidden"}
+        whileInView="show"
+        viewport={{ once: true, margin: "-40px" }}
+        variants={fadeUp}
+        className="relative overflow-hidden rounded-[20px] border border-[#FFE4D6] px-5 py-8 sm:px-8 sm:py-9 lg:px-10"
         style={{
           background:
-            "linear-gradient(110deg, #FFF5F0 0%, #FFEDE4 45%, #FFF8F5 100%)",
+            "linear-gradient(110deg, #FFF5F0 0%, #FFEDE4 42%, #FFF8F5 100%)",
+          boxShadow: "0 12px 36px rgba(255,90,31,0.1), 0 2px 8px rgba(17,24,39,0.04)",
         }}
       >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.55)_0%,transparent_48%)]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-[#FF5A1F]/10 blur-3xl"
+        />
+
         <div className="relative z-[1] flex flex-col items-center gap-6 md:flex-row md:items-center md:justify-between md:gap-8">
-          <div className="relative h-[110px] w-[110px] shrink-0 sm:h-[130px] sm:w-[130px]">
+          <div
+            className={cn(
+              "relative h-[110px] w-[110px] shrink-0 sm:h-[130px] sm:w-[130px]",
+              !reduceMotion && "aff-motion-mega"
+            )}
+          >
             <Image
               src="/images/affiliate/megaphone.png"
               alt=""
               fill
-              className="object-contain drop-shadow-[0_12px_24px_rgba(253,80,0,0.2)]"
+              loading="lazy"
+              className="object-contain drop-shadow-[0_12px_24px_rgba(255,90,31,0.22)]"
               sizes="130px"
             />
           </div>
@@ -39,13 +70,16 @@ export function AffiliateBottomCta({ primaryCtaHref }: AffiliateBottomCtaProps) 
 
           <Link
             href={primaryCtaHref}
-            className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-[10px] bg-[#fd5000] px-7 text-[14px] font-bold text-white shadow-[0_10px_24px_rgba(253,80,0,0.3)] transition-colors hover:bg-[#e04700]"
+            className={cn(
+              AFFILIATE_BTN_PRIMARY,
+              "h-12 shrink-0 px-7 text-[14px] shadow-[0_10px_24px_rgba(255,90,31,0.32)]"
+            )}
           >
             Start Promoting Now
             <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
           </Link>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

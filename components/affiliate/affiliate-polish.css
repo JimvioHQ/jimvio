@@ -1,0 +1,119 @@
+@keyframes aff-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes aff-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes aff-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes aff-float-slow {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(3deg);
+  }
+}
+
+@keyframes aff-badge-pop {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes aff-cta-pulse {
+  0%,
+  100% {
+    box-shadow: 0 8px 20px rgba(255, 90, 31, 0.28);
+  }
+  50% {
+    box-shadow: 0 10px 28px rgba(255, 90, 31, 0.42);
+  }
+}
+
+@keyframes aff-float-pro {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes aff-mega-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aff-motion-float,
+  .aff-motion-float-slow,
+  .aff-motion-badge,
+  .aff-motion-cta,
+  .aff-motion-pro,
+  .aff-motion-mega {
+    animation: none !important;
+  }
+}
+
+.aff-motion-float {
+  animation: aff-float 4s ease-in-out infinite;
+}
+
+.aff-motion-float-slow {
+  animation: aff-float-slow 3.2s ease-in-out infinite;
+}
+
+.aff-motion-badge {
+  animation: aff-badge-pop 2.4s ease-in-out infinite;
+}
+
+.aff-motion-cta {
+  animation: aff-cta-pulse 2.4s ease-in-out infinite;
+}
+
+.aff-motion-pro {
+  animation: aff-float-pro 3.6s ease-in-out infinite;
+}
+
+.aff-motion-mega {
+  animation: aff-mega-float 3.2s ease-in-out infinite;
+}
+
+.aff-chart-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: aff-draw 0.9s ease-out forwards;
+}
+
+.aff-chart-fill {
+  animation: aff-fade 0.5s ease-out;
+}

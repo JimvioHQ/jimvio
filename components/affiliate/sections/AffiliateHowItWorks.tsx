@@ -1,5 +1,14 @@
+"use client";
+
 import { Link2, Share2, ShoppingBag, Wallet } from "lucide-react";
-import { AFFILIATE_SHELL, AffiliateSectionHeading } from "./shared";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  AFFILIATE_SHELL,
+  AffiliateSectionHeading,
+  fadeUp,
+  staggerContainer,
+} from "./shared";
+import { cn } from "@/lib/utils";
 
 const STEPS = [
   {
@@ -29,6 +38,8 @@ const STEPS = [
 ] as const;
 
 export function AffiliateHowItWorks() {
+  const reduceMotion = useReducedMotion() ?? false;
+
   return (
     <section className={`${AFFILIATE_SHELL} pt-12 sm:pt-14`} id="tools">
       <AffiliateSectionHeading
@@ -36,38 +47,61 @@ export function AffiliateHowItWorks() {
         subtitle="Start earning in 4 simple steps."
       />
 
-      <div className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4">
+      <motion.div
+        className="relative grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-4"
+        initial={reduceMotion ? false : "hidden"}
+        whileInView="show"
+        viewport={{ once: true, margin: "-60px" }}
+        variants={staggerContainer}
+      >
         {STEPS.map((step, index) => {
           const Icon = step.icon;
           return (
-            <div key={step.title} className="relative">
+            <motion.div key={step.title} variants={fadeUp} className="relative">
               {index < STEPS.length - 1 ? (
-                <div
+                <motion.div
                   aria-hidden
+                  initial={reduceMotion ? false : { opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.35, delay: 0.15 + index * 0.06 }}
                   className="pointer-events-none absolute left-[calc(100%+2px)] top-[18px] z-0 hidden w-[calc(100%-8px)] items-center lg:flex"
                 >
                   <div className="h-px w-full border-t border-dashed border-[#D1D5DB]" />
                   <span className="-ml-1 text-[#D1D5DB]">›</span>
-                </div>
+                </motion.div>
               ) : null}
 
               <div className="relative z-[1] flex gap-3.5 lg:flex-col lg:gap-3">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#fd5000] shadow-[0_6px_16px_rgba(253,80,0,0.28)]">
-                  <Icon className="h-[18px] w-[18px] text-white" strokeWidth={2.2} />
+                <div
+                  className={cn(
+                    "grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#FF5A1F]",
+                    "shadow-[0_6px_16px_rgba(255,90,31,0.28)]",
+                    "transition-transform duration-200 group-hover:scale-105",
+                    !reduceMotion && "hover:scale-110"
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "h-[18px] w-[18px] text-white transition-transform duration-200",
+                      !reduceMotion && "motion-safe:hover:rotate-6"
+                    )}
+                    strokeWidth={2.2}
+                  />
                 </div>
                 <div>
                   <h3 className="text-[15px] font-bold text-[#111827]">
-                    <span className="text-[#fd5000]">{step.n}.</span> {step.title}
+                    <span className="text-[#FF5A1F]">{step.n}.</span> {step.title}
                   </h3>
                   <p className="mt-1.5 max-w-[210px] text-[13px] leading-relaxed text-[#6B7280]">
                     {step.desc}
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </section>
   );
 }

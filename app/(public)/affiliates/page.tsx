@@ -80,6 +80,10 @@ export default async function AffiliatesPage() {
       sale_count?: number | null;
       view_count?: number | null;
       product_categories?: { name?: string | null } | null;
+      vendors?: {
+        business_name?: string | null;
+        verification_status?: string | null;
+      } | null;
     };
     const cat =
       row.product_categories?.name ?? row.product_type ?? "General";
@@ -89,6 +93,7 @@ export default async function AffiliatesPage() {
     );
     const currency = row.currency || "USD";
     const earning = Math.round(Number(row.price) * (rate / 100));
+    const verification = row.vendors?.verification_status?.toLowerCase() ?? "";
     return {
       id: row.id,
       slug: row.slug,
@@ -101,6 +106,11 @@ export default async function AffiliatesPage() {
       currency,
       image: getImage(row.images),
       price: Number(row.price),
+      sellerName: row.vendors?.business_name ?? null,
+      verified:
+        verification === "verified" ||
+        verification === "approved" ||
+        verification === "active",
     };
   });
 
