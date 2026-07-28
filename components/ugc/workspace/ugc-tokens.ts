@@ -1,15 +1,19 @@
-/** Jimvio UGC workspace design tokens — reference spec */
+/** Jimvio UGC workspace design tokens — flagship reference */
 export const UGC = {
   primary: "#FF5A1F",
   primaryHover: "#E54E18",
   ink: "#111827",
   white: "#FFFFFF",
+  bg: "#F8FAFC",
   radius: "22px",
   radiusMd: "16px",
   radiusSm: "12px",
   border: "#E8EAED",
   muted: "#6B7280",
   surface: "#F5F6F8",
+  verified: "#1D9BF0",
+  payout: "#059669",
+  payoutBg: "#ECFDF5",
 } as const;
 
 export type ContentTypeFilter = "all" | "clipping" | "ugc";

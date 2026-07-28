@@ -69,19 +69,22 @@ export function UGCHeroHeader({
   }, [searchRef]);
 
   return (
-    <header className="mb-2 lg:mb-3">
+    <header className="mb-3 lg:mb-4">
       <div className="min-w-0">
-        <h1 className="text-[clamp(1.125rem,2vw,1.375rem)] font-bold leading-tight tracking-tight text-[#111827]">
+        <h1 className="text-[clamp(1.25rem,2.2vw,1.625rem)] font-bold leading-[1.15] tracking-[-0.02em] text-[#111827]">
           Discover UGC &amp; Clipping Campaigns
         </h1>
-        <p className="mt-0.5 text-[12px] leading-snug text-[#6B7280]">
-          Find the best brands. Create authentic content. Earn real money.
+        <p className="mt-1 max-w-2xl text-[13px] leading-snug text-[#6B7280]">
+          Find the best brands. Create authentic content. Earn real rewards.
         </p>
       </div>
 
-      <div className="sticky top-0 z-10 -mx-3 bg-white px-3 pb-1 pt-2 lg:static lg:mx-0 lg:px-0 lg:pb-0 lg:pt-2">
+      <div className="sticky top-0 z-10 -mx-3 mt-3 bg-[#F8FAFC]/95 px-3 pb-2 pt-2 backdrop-blur-md lg:static lg:mx-0 lg:mt-3.5 lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-0 lg:backdrop-blur-none">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#9CA3AF]" />
+          <Search
+            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9CA3AF]"
+            strokeWidth={1.85}
+          />
           <input
             ref={searchRef}
             type="search"
@@ -89,33 +92,37 @@ export function UGCHeroHeader({
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search campaigns, brands or niches…"
             aria-label="Search campaigns"
-            className="h-9 w-full rounded-full border border-[#E8EAED] bg-[#F5F6F8] pl-9 pr-12 text-[12px] text-[#111827] outline-none transition-all placeholder:text-[#9CA3AF] focus:border-[#FF5A1F]/50 focus:bg-white focus:ring-2 focus:ring-[#FF5A1F]/10"
+            className={cn(
+              "h-10 w-full rounded-[12px] border border-[#E8EAED] bg-white pl-10 pr-20 text-[13px] text-[#111827]",
+              "shadow-[0_1px_2px_rgba(17,24,39,0.03)] outline-none transition-all duration-150",
+              "placeholder:text-[#9CA3AF]",
+              "hover:border-[#D1D5DB]",
+              "focus:border-[#FF5A1F]/45 focus:bg-white focus:shadow-[0_0_0_3px_rgba(255,90,31,0.1)]",
+            )}
           />
-          <kbd className="pointer-events-none absolute right-10 top-1/2 hidden -translate-y-1/2 rounded border border-[#E8EAED] bg-white px-1 py-px text-[9px] font-medium text-[#9CA3AF] md:inline">
-            ⌘K
-          </kbd>
-          {inputVal && (
-            <button
-              type="button"
-              onClick={onClearSearch}
-              aria-label="Clear search"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[#9CA3AF] hover:bg-[#E8EAED] hover:text-[#111827]"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
+          <div className="absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-1.5">
+            {inputVal ? (
+              <button
+                type="button"
+                onClick={onClearSearch}
+                aria-label="Clear search"
+                className="rounded-full p-1 text-[#9CA3AF] transition-colors hover:bg-[#F3F4F6] hover:text-[#111827]"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <kbd className="hidden rounded-md border border-[#E8EAED] bg-[#F8FAFC] px-1.5 py-0.5 text-[10px] font-medium text-[#9CA3AF] md:inline">
+                ⌘K
+              </kbd>
+            )}
+            <span className="grid h-7 w-7 place-items-center rounded-lg text-[#9CA3AF]">
+              <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.85} />
+            </span>
+          </div>
         </div>
 
-        <div className="mt-1.5 flex flex-col gap-1.5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap items-center gap-1">
-            <button
-              type="button"
-              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-[#E8EAED] bg-white text-[#6B7280]"
-              aria-label="Filters"
-            >
-              <SlidersHorizontal className="h-3 w-3" />
-            </button>
-
+        <div className="mt-2.5 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap items-center gap-1.5">
             {PLATFORM_FILTERS.map((p) => {
               const Icon = PLATFORM_ICONS[p.key];
               const active = platform === p.key;
@@ -126,13 +133,17 @@ export function UGCHeroHeader({
                   title={p.label}
                   onClick={() => onPlatformChange(active ? "all" : p.key)}
                   className={cn(
-                    "flex h-7 w-7 items-center justify-center rounded-full border transition-all",
+                    "flex h-8 w-8 items-center justify-center rounded-[10px] border transition-all duration-150",
                     active
-                      ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#FF5A1F]"
-                      : "border-[#E8EAED] bg-white text-[#6B7280] hover:border-[#D1D5DB]"
+                      ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#FF5A1F] shadow-[0_1px_4px_rgba(255,90,31,0.15)]"
+                      : "border-[#E8EAED] bg-white text-[#6B7280] hover:border-[#D1D5DB] hover:bg-[#F8FAFC] hover:text-[#111827]",
                   )}
                 >
-                  {Icon ? <Icon className="h-3 w-3" /> : <span className="text-[8px] font-bold">{p.label[0]}</span>}
+                  {Icon ? (
+                    <Icon className="h-3.5 w-3.5" strokeWidth={1.85} />
+                  ) : (
+                    <span className="text-[9px] font-bold">{p.label[0]}</span>
+                  )}
                 </button>
               );
             })}
@@ -160,30 +171,34 @@ export function UGCHeroHeader({
               ]}
               onChange={(v) => onContentTypeChange(v as ContentTypeFilter)}
             />
-          </div>
-
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-[#9CA3AF]">Sort by</span>
             <FilterSelect
-              label=""
+              label="Sort by"
               value={sort}
               options={SORT_OPTIONS.map((s) => ({ value: s.value, label: s.label }))}
               onChange={(v) => onSortChange(v as SortKey)}
-              compact
             />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex h-8 items-center gap-1.5 rounded-[10px] border border-[#E8EAED] bg-white px-2.5 text-[11px] font-semibold text-[#374151] shadow-[0_1px_2px_rgba(17,24,39,0.03)] transition-all hover:border-[#D1D5DB] hover:bg-[#F8FAFC]"
+            >
+              <SlidersHorizontal className="h-3 w-3" strokeWidth={2} />
+              Filters
+            </button>
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={onClearAll}
+                className="text-[11px] font-semibold text-[#FF5A1F] transition-colors hover:text-[#E54E18] hover:underline"
+              >
+                Reset
+              </button>
+            )}
           </div>
         </div>
       </div>
-
-      {hasFilters && (
-        <button
-          type="button"
-          onClick={onClearAll}
-          className="mt-1 text-[10px] font-semibold text-[#FF5A1F] hover:underline"
-        >
-          Clear all filters
-        </button>
-      )}
     </header>
   );
 }
@@ -194,14 +209,12 @@ function FilterSelect({
   options,
   onChange,
   disabled,
-  compact,
 }: {
   label: string;
   value: string;
   options: { value: string; label: string }[];
   onChange: (v: string) => void;
   disabled?: boolean;
-  compact?: boolean;
 }) {
   return (
     <div className="relative">
@@ -209,19 +222,24 @@ function FilterSelect({
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        aria-label={label || "Filter"}
+        aria-label={label}
         className={cn(
-          "h-7 appearance-none rounded-full border border-[#E8EAED] bg-white text-[10px] font-medium text-[#374151] outline-none focus:border-[#FF5A1F]/40",
-          compact ? "pl-2 pr-6" : "min-w-[80px] pl-2 pr-6"
+          "h-8 appearance-none rounded-[10px] border border-[#E8EAED] bg-white pl-2.5 pr-7",
+          "text-[11px] font-semibold text-[#374151] outline-none transition-all duration-150",
+          "shadow-[0_1px_2px_rgba(17,24,39,0.03)]",
+          "hover:border-[#D1D5DB] hover:bg-[#F8FAFC]",
+          "focus:border-[#FF5A1F]/40 focus:shadow-[0_0_0_3px_rgba(255,90,31,0.08)]",
+          "disabled:cursor-default disabled:opacity-70",
+          "min-w-[92px]",
         )}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
-            {label && !compact ? `${label}: ${o.label}` : o.label}
+            {label}: {o.label}
           </option>
         ))}
       </select>
-      <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 h-2.5 w-2.5 -translate-y-1/2 text-[#9CA3AF]" />
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-[#9CA3AF]" />
     </div>
   );
 }

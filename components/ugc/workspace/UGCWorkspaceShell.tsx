@@ -19,12 +19,12 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
   const [mobileNav, setMobileNav] = useState(false);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="flex min-h-dvh flex-col bg-[#F8FAFC]">
       <AppTopNav showUtilityBar activeNav="UGC & Clipping" user={user} />
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="hidden shrink-0 border-r border-[#F0F0F0] lg:block">
-          <Suspense fallback={<div className="h-full w-[200px] animate-pulse bg-[#FAFAFA]" />}>
+        <aside className="hidden shrink-0 border-r border-[#EEF0F2] bg-white lg:block">
+          <Suspense fallback={<div className="h-full w-[212px] animate-pulse bg-[#F8FAFC]" />}>
             <UGCWorkspaceSidebar />
           </Suspense>
         </aside>
@@ -51,12 +51,12 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
           </div>
         )}
 
-        <main className="min-w-0 flex-1 overflow-y-auto bg-white">
-          <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[#F0F0F0] bg-white/95 px-4 py-2.5 backdrop-blur lg:hidden">
+        <main className="min-w-0 flex-1 overflow-y-auto bg-[#F8FAFC]">
+          <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[#EEF0F2] bg-[#F8FAFC]/92 px-4 py-2.5 backdrop-blur-md lg:hidden">
             <button
               type="button"
               onClick={() => setMobileNav(true)}
-              className="grid h-9 w-9 place-items-center rounded-xl border border-[#E8EAED]"
+              className="grid h-9 w-9 place-items-center rounded-xl border border-[#E8EAED] bg-white shadow-[0_1px_2px_rgba(17,24,39,0.04)]"
               aria-label="Open navigation"
             >
               <Menu className="h-4 w-4" />

@@ -130,7 +130,7 @@ export function AppTopNav({
         </nav>
 
         <div className="col-start-3 flex shrink-0 items-center justify-end gap-1 sm:gap-1.5">
-          <div className="hidden h-9 w-[132px] items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-2.5 min-[1060px]:flex xl:w-[152px]">
+          <div className="hidden h-9 w-[148px] items-center gap-1.5 rounded-full border border-gray-200/90 bg-gray-50/90 px-2.5 shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm transition-all hover:border-gray-300 hover:bg-white focus-within:border-orange-300 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(255,90,31,0.1)] min-[1060px]:flex xl:w-[180px]">
             <Search className="h-3.5 w-3.5 shrink-0 text-gray-400" />
             <input
               placeholder="Search..."
@@ -183,10 +183,10 @@ export function AppTopNav({
             <Link
               href="/dashboard"
               className={cn(
-                "inline-flex h-9 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors sm:px-3 sm:text-xs",
+                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border px-2.5 text-[11px] font-semibold shadow-[0_1px_2px_rgba(17,24,39,0.03)] transition-all duration-150 sm:px-3 sm:text-xs",
                 dashboardActive
-                  ? "border-orange-500 bg-orange-50 text-orange-600"
-                  : "border-gray-200 text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600"
+                  ? "border-orange-500 bg-orange-50 text-orange-600 shadow-[0_1px_4px_rgba(255,90,31,0.15)]"
+                  : "border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600",
               )}
             >
               <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />

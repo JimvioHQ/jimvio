@@ -17,9 +17,9 @@ export function UGCCampaignRow({
     <div
       className={cn(
         scrollable
-          ? "flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:gap-3 lg:grid lg:grid-cols-6 lg:snap-none lg:overflow-visible"
-          : "grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:gap-3 lg:grid-cols-6",
-        className
+          ? "flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:gap-3.5 lg:grid lg:grid-cols-6 lg:snap-none lg:overflow-visible"
+          : "grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-3.5 lg:grid-cols-6",
+        className,
       )}
     >
       {children}
@@ -27,9 +27,20 @@ export function UGCCampaignRow({
   );
 }
 
-export function UGCCampaignRowItem({ children }: { children: React.ReactNode }) {
+export function UGCCampaignRowItem({
+  children,
+  featured = false,
+}: {
+  children: React.ReactNode;
+  featured?: boolean;
+}) {
   return (
-    <div className="w-[min(68vw,160px)] shrink-0 snap-start lg:w-auto lg:min-w-0">
+    <div
+      className={cn(
+        "shrink-0 snap-start lg:w-auto lg:min-w-0",
+        featured ? "w-[min(72vw,188px)]" : "w-[min(68vw,172px)]",
+      )}
+    >
       {children}
     </div>
   );
