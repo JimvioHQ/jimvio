@@ -39,6 +39,43 @@ function collectProductImages(images: unknown): string[] {
   return out;
 }
 
+function collectVideoUrl(product: Record<string, unknown>): string | null {
+  const videos = product.product_videos;
+  if (Array.isArray(videos) && videos.length > 0) {
+    const first = videos[0] as { url?: string };
+    if (typeof first?.url === "string" && first.url) return first.url;
+  }
+  const raw = product.videos;
+  if (typeof raw === "string" && raw.startsWith("http")) return raw;
+  if (Array.isArray(raw) && raw.length) {
+    const first = raw[0];
+    if (typeof first === "string" && first.startsWith("http")) return first;
+    if (first && typeof first === "object") {
+      const u = (first as { url?: string }).url;
+      if (typeof u === "string" && u.startsWith("http")) return u;
+    }
+  }
+  return null;
+}
+
+function deriveBenefits(description: string, features: string[]): string[] {
+  if (features.length >= 3) {
+    return features.slice(0, 4).map((f) => `Get more from ${f.toLowerCase()}`);
+  }
+  const sentences = description
+    .split(/[.!?]\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 24)
+    .slice(0, 4);
+  return sentences.length
+    ? sentences
+    : [
+        "Earn tracked commissions on every qualified sale",
+        "Promote with ready-made gallery assets",
+        "Share short links, QR codes, and deep links",
+      ];
+}
+
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
@@ -72,6 +109,15 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
     (product as { currency?: string | null }).currency || "USD";
   const price = Number(product.price ?? 0);
   const images = collectProductImages(product.images);
+  const features = Array.isArray((product as { features?: string[] | null }).features)
+    ? ((product as { features?: string[] }).features ?? []).filter(Boolean)
+    : [];
+  const description = String(
+    (product as { description?: string | null }).description ?? ""
+  ).trim();
+  const shortDescription = String(
+    (product as { short_description?: string | null }).short_description ?? ""
+  ).trim();
 
   const vendor = (product as {
     vendors?: {
@@ -85,15 +131,18 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
     id: product.id,
     slug: product.slug,
     name: product.name,
-    description: String(
-      (product as { description?: string | null }).description ?? ""
-    ).trim(),
+    description,
+    shortDescription,
     images,
+    videoUrl: collectVideoUrl(product as unknown as Record<string, unknown>),
+    features,
+    benefits: deriveBenefits(description || shortDescription, features),
     category:
       (product as { product_categories?: { name?: string | null } | null })
         .product_categories?.name ??
       (product as { product_type?: string | null }).product_type ??
       "General",
+    brand: (product as { brand?: string | null }).brand ?? null,
     price,
     currency,
     rate,

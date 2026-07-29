@@ -33,6 +33,16 @@ const generateSchema = z.discriminatedUnion("type", [
     targetPlatforms: z.array(z.string()),
     budget: z.number(),
   }),
+  z.object({
+    type: z.literal("affiliate_promotion"),
+    productName: z.string(),
+    category: z.string(),
+    price: z.number(),
+    currency: z.string().optional(),
+    commissionRate: z.number(),
+    features: z.array(z.string()).optional(),
+    description: z.string().optional(),
+  }),
 ]);
 
 export async function POST(req: NextRequest) {
@@ -58,6 +68,9 @@ export async function POST(req: NextRequest) {
         break;
       case "campaign_ideas":
         result = await aiService.generateCampaignIdeas(params);
+        break;
+      case "affiliate_promotion":
+        result = await aiService.generateAffiliatePromotion(params);
         break;
       default:
         return NextResponse.json({ error: "Invalid generation type" }, { status: 400 });

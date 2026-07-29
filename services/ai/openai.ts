@@ -186,6 +186,69 @@ Return JSON with:
     return JSON.parse(content);
   }
 
+  async generateAffiliatePromotion(params: {
+    productName: string;
+    category: string;
+    price: number;
+    currency?: string;
+    commissionRate: number;
+    features?: string[];
+    description?: string;
+  }): Promise<{
+    tiktokCaption: string;
+    instagramCaption: string;
+    youtubeTitle: string;
+    facebookPost: string;
+    threadsPost: string;
+    xPost: string;
+    emailCopy: string;
+    blogIntro: string;
+    keywords: string[];
+    seoTitle: string;
+    hashtags: string[];
+    hooks: string[];
+    scripts: string[];
+  }> {
+    const prompt = `You are Jimvio AI — an elite affiliate marketing copywriter for African creator commerce.
+
+Product: ${params.productName}
+Category: ${params.category}
+Price: ${params.currency || "USD"} ${params.price}
+Commission: ${params.commissionRate}%
+Features: ${(params.features ?? []).join(", ") || "n/a"}
+Description: ${(params.description ?? "").slice(0, 400) || "n/a"}
+
+Generate platform-ready affiliate promotion assets. Keep copy punchy, conversion-focused, and culturally aware. Include a clear CTA to shop via the creator's tracked link (do not invent URLs).
+
+Return ONLY JSON with these exact keys:
+{
+  "tiktokCaption": "...",
+  "instagramCaption": "...",
+  "youtubeTitle": "...",
+  "facebookPost": "...",
+  "threadsPost": "...",
+  "xPost": "...",
+  "emailCopy": "...",
+  "blogIntro": "...",
+  "keywords": ["...", "..."],
+  "seoTitle": "...",
+  "hashtags": ["#...", "#..."],
+  "hooks": ["hook 1", "hook 2", "hook 3"],
+  "scripts": ["15s script", "30s script", "60s script"]
+}`;
+
+    const response = await getOpenAI().chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.75,
+      max_tokens: 1400,
+      response_format: { type: "json_object" },
+    });
+
+    const content = response.choices[0].message.content || "{}";
+    return JSON.parse(content);
+  }
+
   async chat(messages: Array<{ role: "user" | "assistant" | "system"; content: string }>) {
     const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",

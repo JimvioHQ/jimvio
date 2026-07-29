@@ -38,7 +38,7 @@ export function AffiliatesMarketingPage({
   hasAffiliateAccount,
 }: AffiliatesMarketingPageProps) {
   const primaryCtaHref = hasAffiliateAccount
-    ? "/dashboard/analytics"
+    ? "/affiliates/dashboard"
     : isLoggedIn
       ? "/dashboard/activate/affiliate"
       : "/register?role=affiliate";

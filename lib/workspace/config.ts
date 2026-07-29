@@ -7,10 +7,8 @@ import {
   Compass,
   DollarSign,
   FileVideo,
-  Gift,
   GraduationCap,
   Home,
-  Image as ImageIcon,
   Layers,
   LayoutDashboard,
   Link2,
@@ -19,11 +17,11 @@ import {
   Radio,
   Search,
   ShoppingBag,
+  Sparkles,
   Store,
   Target,
   Users,
   Wallet,
-  Wrench,
   Zap,
 } from "lucide-react";
 
@@ -125,16 +123,14 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
     icon: DollarSign,
     sidebar: [
       { id: "overview", label: "Overview", href: "/affiliates", icon: LayoutDashboard },
-      { id: "products", label: "Products to Promote", href: "/marketplace", icon: Package },
-      { id: "campaigns", label: "Top Campaigns", href: "/affiliates#campaigns", icon: Target },
-      { id: "offers", label: "Exclusive Offers", href: "/affiliates#offers", icon: Gift },
-      { id: "links", label: "My Links", href: "/dashboard/activate/affiliate", icon: Link2 },
-      { id: "referrals", label: "Referrals", href: "/dashboard/analytics", icon: Users },
-      { id: "creatives", label: "Creatives", href: "/affiliates#creatives", icon: ImageIcon },
-      { id: "earnings", label: "Earnings", href: "/dashboard/analytics", icon: DollarSign },
-      { id: "payouts", label: "Payouts", href: "/dashboard/wallet", icon: Wallet },
+      { id: "dashboard", label: "Dashboard", href: "/affiliates/dashboard", icon: BarChart3 },
+      { id: "products", label: "Products to Promote", href: "/affiliates", icon: Package },
+      { id: "links", label: "My Links", href: "/affiliates/links", icon: Link2 },
+      { id: "ai", label: "AI Promotion", href: "/affiliates/ai", icon: Sparkles },
+      { id: "analytics", label: "Analytics", href: "/affiliates/analytics", icon: BarChart3 },
+      { id: "earnings", label: "Earnings", href: "/affiliates/dashboard", icon: DollarSign },
+      { id: "payouts", label: "Payouts", href: "/affiliates/payouts", icon: Wallet },
       { id: "guides", label: "Guides & Tutorials", href: "/help", icon: GraduationCap },
-      { id: "tools", label: "Affiliate Tools", href: "/affiliates#tools", icon: Wrench },
     ],
     sidebarSections: [
       {
@@ -142,32 +138,31 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
         label: "Affiliate Center",
         items: [
           { id: "overview", label: "Overview", href: "/affiliates", icon: LayoutDashboard },
+          { id: "dashboard", label: "Dashboard", href: "/affiliates/dashboard", icon: BarChart3 },
         ],
       },
       {
         id: "discover",
         label: "Discover",
         items: [
-          { id: "products", label: "Products to Promote", href: "/marketplace", icon: Package },
-          { id: "campaigns", label: "Top Campaigns", href: "/affiliates#campaigns", icon: Target },
-          { id: "offers", label: "Exclusive Offers", href: "/affiliates#offers", icon: Gift },
+          { id: "products", label: "Products to Promote", href: "/affiliates", icon: Package },
+          { id: "ai", label: "AI Promotion", href: "/affiliates/ai", icon: Sparkles },
         ],
       },
       {
         id: "tracking",
         label: "Tracking",
         items: [
-          { id: "links", label: "My Links", href: "/dashboard/activate/affiliate", icon: Link2 },
-          { id: "referrals", label: "Referrals", href: "/dashboard/analytics", icon: Users },
-          { id: "creatives", label: "Creatives", href: "/affiliates#creatives", icon: ImageIcon },
+          { id: "links", label: "My Links", href: "/affiliates/links", icon: Link2 },
+          { id: "analytics", label: "Analytics", href: "/affiliates/analytics", icon: BarChart3 },
         ],
       },
       {
         id: "earnings",
         label: "Earnings",
         items: [
-          { id: "earnings", label: "Earnings", href: "/dashboard/analytics", icon: DollarSign },
-          { id: "payouts", label: "Payouts", href: "/dashboard/wallet", icon: Wallet },
+          { id: "earnings", label: "Earnings", href: "/affiliates/dashboard", icon: DollarSign },
+          { id: "payouts", label: "Payouts", href: "/affiliates/payouts", icon: Wallet },
         ],
       },
       {
@@ -175,7 +170,6 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
         label: "Resources",
         items: [
           { id: "guides", label: "Guides & Tutorials", href: "/help", icon: GraduationCap },
-          { id: "tools", label: "Affiliate Tools", href: "/affiliates#tools", icon: Wrench },
         ],
       },
     ],

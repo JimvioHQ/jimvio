@@ -16,21 +16,51 @@ export async function GET(
   const { code } = await params;
   const supabase = createServiceRoleClient() as any;
 
-  // Resolve LNK- link or AFF- profile code
   let destination = "/marketplace";
   let linkId: string | null = null;
   let affiliateId: string | null = null;
   let campaignId: string | null = null;
   let windowDays = DEFAULT_ATTRIBUTION_WINDOW_DAYS;
 
-  if (code.startsWith("LNK-") || code.startsWith("CMP-")) {
-    if (code.startsWith("LNK-")) {
-      const { data: link } = await supabase
-        .from("affiliate_links")
-        .select("id, affiliate_id, campaign_id, destination_url, is_active")
-        .eq("link_code", code)
-        .maybeSingle();
-      if (!link?.is_active) {
+  if (code.startsWith("LNK-")) {
+    const { data: link } = await supabase
+      .from("affiliate_links")
+      .select("id, affiliate_id, campaign_id, destination_url, is_active, expires_at")
+      .eq("link_code", code)
+      .maybeSingle();
+    if (!link?.is_active) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    linkId = link.id;
+    affiliateId = link.affiliate_id;
+    campaignId = link.campaign_id;
+    destination = link.destination_url || "/marketplace";
+  } else if (code.startsWith("CMP-")) {
+    const { data: campaign } = await supabase
+      .from("affiliate_campaigns")
+      .select("id, status, attribution_window_days, product_id, metadata")
+      .eq("tracking_code", code)
+      .maybeSingle();
+    if (!campaign || campaign.status !== "active") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    campaignId = campaign.id;
+    windowDays = Number(campaign.attribution_window_days) || windowDays;
+    destination = `/marketplace?ref=${encodeURIComponent(code)}`;
+  } else {
+    // Prefer custom short slug on affiliate_links, then profile affiliate_code
+    const { data: link } = await supabase
+      .from("affiliate_links")
+      .select("id, affiliate_id, campaign_id, destination_url, is_active, expires_at")
+      .eq("custom_slug", code.toLowerCase())
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (link) {
+      if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) {
         return NextResponse.redirect(new URL("/", request.url));
       }
       linkId = link.id;
@@ -38,29 +68,17 @@ export async function GET(
       campaignId = link.campaign_id;
       destination = link.destination_url || "/marketplace";
     } else {
-      const { data: campaign } = await supabase
-        .from("affiliate_campaigns")
-        .select("id, status, attribution_window_days, product_id, metadata")
-        .eq("tracking_code", code)
+      const { data: aff } = await supabase
+        .from("affiliates")
+        .select("id, is_active")
+        .eq("affiliate_code", code)
         .maybeSingle();
-      if (!campaign || campaign.status !== "active") {
+      if (!aff?.is_active) {
         return NextResponse.redirect(new URL("/", request.url));
       }
-      campaignId = campaign.id;
-      windowDays = Number(campaign.attribution_window_days) || windowDays;
+      affiliateId = aff.id;
       destination = `/marketplace?ref=${encodeURIComponent(code)}`;
     }
-  } else {
-    const { data: aff } = await supabase
-      .from("affiliates")
-      .select("id, is_active")
-      .eq("affiliate_code", code)
-      .maybeSingle();
-    if (!aff?.is_active) {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
-    affiliateId = aff.id;
-    destination = `/marketplace?ref=${encodeURIComponent(code)}`;
   }
 
   const ip =

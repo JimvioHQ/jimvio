@@ -429,14 +429,14 @@ export function AffiliateCard({
 
     function handleCopyLink(e: React.MouseEvent) {
         e.preventDefault();
-        const url = `${typeof window !== "undefined" ? window.location.origin : ""}/marketplace/${p.slug}?ref=affiliate`;
+        const url = `${typeof window !== "undefined" ? window.location.origin : ""}/affiliates/promote/${p.slug}`;
         if (typeof window !== "undefined") {
             navigator.clipboard.writeText(url);
         }
     }
 
     return (
-        <CardShell href={`/marketplace/${p.slug}`} accent={accent}>
+        <CardShell href={`/affiliates/promote/${p.slug}`} accent={accent}>
             <CardShell.Cover src={p.cover_image} fallbackInitial={initial} height={140}>
                 {rank && rank <= 3 && (
                     <CardShell.Badge slot="top-right" variant="rank">#{rank}</CardShell.Badge>
@@ -508,7 +508,7 @@ export function AffiliateCard({
                         <CardShell.ActionButton onClick={handleCopyLink} icon={<IconLink />} hoverColor="orange">
                             Copy link
                         </CardShell.ActionButton>
-                        <CardShell.ActionButton href={`/marketplace/${p.slug}`} icon={<IconShare />} hoverColor="indigo">
+                        <CardShell.ActionButton href={`/affiliates/promote/${p.slug}`} icon={<IconShare />} hoverColor="indigo">
                             Preview
                         </CardShell.ActionButton>
                     </CardShell.Actions>
