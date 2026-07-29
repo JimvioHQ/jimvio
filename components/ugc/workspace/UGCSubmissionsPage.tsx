@@ -95,7 +95,8 @@ export function UGCSubmissionsPage() {
       {!loading && !error && filtered.length === 0 ? (
         <UGCPageEmpty
           title="No submissions yet"
-          description="Submit your first piece of content from an active project."
+          description="Submit your first piece of content from an active project. Platforms: TikTok, Instagram, YouTube, Facebook, and X."
+          illustration="campaigns"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
               <Link href="/ugc/campaigns">View active projects</Link>

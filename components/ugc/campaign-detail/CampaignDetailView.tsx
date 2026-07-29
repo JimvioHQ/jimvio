@@ -84,6 +84,7 @@ export function CampaignDetailView() {
           joinLabel={joinLabel}
           profile={profile}
           onToggleBookmark={toggleBookmark}
+          onShare={share}
         />
       </div>
 

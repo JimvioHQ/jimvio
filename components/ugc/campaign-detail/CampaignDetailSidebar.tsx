@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bookmark, ShieldCheck } from "lucide-react";
+import { Bookmark, Share2, ShieldCheck, Users } from "lucide-react";
 import type { UGCCampaign } from "@/types/ugc";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,10 @@ import {
   getRewardType,
   type CreatorProfileSnapshot,
 } from "@/lib/ugc/campaign-detail";
-import { getCampaignPayoutLabel, getCampaignRewardLine } from "@/components/ugc/workspace/ugc-campaign-utils";
+import {
+  getCampaignPayoutLabel,
+  getCampaignRewardLine,
+} from "@/components/ugc/workspace/ugc-campaign-utils";
 import { MetricTile, Pill, ProgressBar, SectionCard } from "./campaign-detail-ui";
 
 type CampaignDetailSidebarProps = {
@@ -26,8 +29,16 @@ type CampaignDetailSidebarProps = {
   joinLabel: string;
   profile: CreatorProfileSnapshot | null;
   onToggleBookmark: () => void;
+  onShare?: () => void;
   sticky?: boolean;
 };
+
+function remainingSlots(campaign: UGCCampaign): number | null {
+  const cfg = campaign.join_config as { maxParticipants?: number } | null | undefined;
+  const max = campaign.max_participants ?? cfg?.maxParticipants ?? null;
+  if (max == null || max <= 0) return null;
+  return Math.max(0, max - (campaign.approved_count ?? campaign.submission_count ?? 0));
+}
 
 export function CampaignDetailSidebar({
   campaign,
@@ -40,28 +51,51 @@ export function CampaignDetailSidebar({
   joinLabel,
   profile,
   onToggleBookmark,
+  onShare,
   sticky = true,
 }: CampaignDetailSidebarProps) {
   const { formatMoney } = useCurrency();
   const rewardType = getRewardType(campaign);
   const remaining = getRemainingBudget(campaign);
-  const budgetPct = Math.min(100, ((campaign.spent_budget ?? 0) / (campaign.total_budget || 1)) * 100);
+  const budgetPct = Math.min(
+    100,
+    ((campaign.spent_budget ?? 0) / (campaign.total_budget || 1)) * 100,
+  );
   const eligibility = buildEligibility(campaign, profile);
   const countdown = formatCountdown(campaign.ends_at);
+  const creatorsJoined = campaign.approved_count ?? campaign.submission_count ?? 0;
+  const slotsLeft = remainingSlots(campaign);
 
   const eligibilityTone =
-    eligibility.level === "eligible" ? "success" : eligibility.level === "almost" ? "warning" : "danger";
+    eligibility.level === "eligible"
+      ? "success"
+      : eligibility.level === "almost"
+        ? "warning"
+        : "danger";
 
   return (
     <aside className={cn(sticky && "lg:sticky lg:top-4")}>
-      <SectionCard className="space-y-4 shadow-[0_8px_30px_rgba(17,24,39,0.06)]">
+      <SectionCard className="space-y-4 shadow-[0_10px_36px_rgba(17,24,39,0.07)] ring-1 ring-[#FFE4D6]/50">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#9CA3AF]">Reward</p>
-          <p className="mt-1 text-[22px] font-bold text-[#FF5A1F]">
+          <p className="mt-1 text-[22px] font-bold tracking-tight text-[#FF5A1F]">
             {getCampaignRewardLine(campaign, formatMoney)}
           </p>
-          <p className="text-[12px] text-[#6B7280]">{getCampaignPayoutLabel(campaign, formatMoney)}</p>
-          <Pill tone="brand">{rewardType}</Pill>
+          <p className="text-[12px] text-[#6B7280]">
+            {getCampaignPayoutLabel(campaign, formatMoney)}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <Pill tone="brand">{rewardType}</Pill>
+            <Pill tone={isActive ? "success" : "neutral"}>{campaign.status}</Pill>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <MetricTile label="Creators joined" value={String(creatorsJoined)} />
+          <MetricTile
+            label="Remaining slots"
+            value={slotsLeft == null ? "Open" : String(slotsLeft)}
+          />
         </div>
 
         <div>
@@ -79,7 +113,7 @@ export function CampaignDetailSidebar({
         </div>
 
         {countdown ? (
-          <MetricTile label="Deadline" value={countdown} sub="Submission window" />
+          <MetricTile label="Timeline" value={countdown} sub="Submission window" />
         ) : null}
 
         <div className="rounded-[12px] border border-[#EEF0F2] bg-[#FAFAFA] p-3">
@@ -94,42 +128,53 @@ export function CampaignDetailSidebar({
             </Pill>
           </div>
           <ProgressBar value={eligibility.score} />
-          <p className="mt-1.5 text-[11px] text-[#6B7280]">{eligibility.score}% requirements met</p>
+          <p className="mt-1.5 text-[11px] text-[#6B7280]">
+            {eligibility.score}% requirements met
+          </p>
         </div>
+
+        {isActive && !isPending ? (
+          <Link
+            href={joinHref}
+            className="flex h-11 w-full items-center justify-center rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white shadow-[0_8px_22px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18]"
+          >
+            {joinLabel}
+          </Link>
+        ) : isPending ? (
+          <Link
+            href={joinHref}
+            className="flex h-11 w-full items-center justify-center rounded-full border border-amber-300 bg-amber-50 text-[13px] font-bold text-amber-800"
+          >
+            {joinLabel}
+          </Link>
+        ) : (
+          <span className="flex h-11 w-full items-center justify-center rounded-full bg-[#F3F4F6] text-[13px] font-semibold text-[#9CA3AF]">
+            Campaign closed
+          </span>
+        )}
 
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={onToggleBookmark}
             className={cn(
-              "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border text-[12px] font-semibold",
+              "inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border text-[12px] font-semibold transition",
               isBookmarked
                 ? "border-[#FF5A1F] bg-[#FFF4EF] text-[#FF5A1F]"
-                : "border-[#E5E7EB] text-[#374151]",
+                : "border-[#E5E7EB] text-[#374151] hover:border-[#FF5A1F]/40",
             )}
           >
             <Bookmark className={cn("h-3.5 w-3.5", isBookmarked && "fill-current")} />
-            Save
+            {isBookmarked ? "Saved" : "Save"}
           </button>
-          {isActive && !isPending ? (
-            <Link
-              href={joinHref}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-[#FF5A1F] text-[12px] font-bold text-white hover:bg-[#E54E18]"
-            >
-              {joinLabel}
-            </Link>
-          ) : isPending ? (
-            <Link
-              href={joinHref}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-amber-300 bg-amber-50 text-[12px] font-bold text-amber-800"
-            >
-              {joinLabel}
-            </Link>
-          ) : (
-            <span className="inline-flex h-10 items-center justify-center rounded-xl bg-[#F3F4F6] text-[12px] font-semibold text-[#9CA3AF]">
-              Closed
-            </span>
-          )}
+          <button
+            type="button"
+            onClick={onShare}
+            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-[#E5E7EB] text-[12px] font-semibold text-[#374151] transition hover:border-[#FF5A1F]/40"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Share
+          </button>
         </div>
 
         <div className="flex items-start gap-2 rounded-[12px] border border-emerald-200 bg-emerald-50 p-3">
@@ -138,6 +183,11 @@ export function CampaignDetailSidebar({
             Escrow-protected payouts. Approved creators are paid securely after review.
           </p>
         </div>
+
+        <p className="flex items-center gap-1.5 text-[11px] text-[#9CA3AF]">
+          <Users className="h-3.5 w-3.5" />
+          {(campaign.allowed_platforms ?? []).join(" · ") || "Multi-platform"}
+        </p>
       </SectionCard>
     </aside>
   );
@@ -166,9 +216,16 @@ export function CampaignDetailMobileCta({
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#EEF0F2] bg-white/95 px-4 pt-3 backdrop-blur lg:hidden pb-[max(12px,env(safe-area-inset-bottom))]">
       <div className="flex items-center gap-3">
         <div className="min-w-0 shrink-0">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#9CA3AF]">Earn up to</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#9CA3AF]">
+            Earn up to
+          </p>
           <p className="text-[16px] font-bold text-[#FF5A1F]">
-            {formatMoney(campaign.max_payout_per_sub ?? campaign.fixed_rate ?? campaign.rate_per_1k_views * 10, "USD")}
+            {formatMoney(
+              campaign.max_payout_per_sub ??
+                campaign.fixed_rate ??
+                campaign.rate_per_1k_views * 10,
+              "USD",
+            )}
           </p>
         </div>
         {isActive || isPending ? (

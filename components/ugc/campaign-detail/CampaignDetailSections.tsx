@@ -492,6 +492,78 @@ export function CampaignDetailSections({ campaign, profile, similar }: CampaignD
         ) : null}
       </SectionCard>
 
+      {/* Content examples */}
+      <SectionCard id="examples">
+        <SectionTitle sub="Reference style and brand tone">Content examples</SectionTitle>
+        {resources.filter((r) => r.previewable).length === 0 ? (
+          <p className="text-[13px] text-[#6B7280]">
+            Follow the brief above. Brand example assets will appear here when uploaded.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {resources
+              .filter((r) => r.previewable)
+              .slice(0, 6)
+              .map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setPreviewUrl(r.url)}
+                  className="group relative aspect-[4/5] overflow-hidden rounded-2xl border border-[#EEF0F2] bg-[#F3F4F6]"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={r.url}
+                    alt=""
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]"
+                  />
+                  <span className="absolute inset-0 grid place-items-center bg-black/0 transition group-hover:bg-black/25">
+                    <Play className="h-8 w-8 text-white opacity-0 drop-shadow transition group-hover:opacity-100" />
+                  </span>
+                </button>
+              ))}
+          </div>
+        )}
+      </SectionCard>
+
+      {/* Creator tips */}
+      <SectionCard id="tips">
+        <SectionTitle>Creator tips</SectionTitle>
+        <ul className="space-y-2 text-[13px] text-[#4B5563]">
+          {[
+            "Hook viewers in the first 2 seconds with motion or a clear promise.",
+            "Keep captions on-screen — most views are sound-off.",
+            "Use required hashtags and mentions exactly as listed.",
+            "Submit native platform posts (not reuploads) for better reach tracking.",
+            "Review brand resources before filming to match product framing.",
+          ].map((tip) => (
+            <li
+              key={tip}
+              className="rounded-xl border border-[#EEF0F2] bg-[#FAFAFA] px-3 py-2.5 leading-relaxed"
+            >
+              {tip}
+            </li>
+          ))}
+        </ul>
+      </SectionCard>
+
+      {/* Brand contact */}
+      <SectionCard id="contact">
+        <SectionTitle sub="If enabled by the brand">Brand contact</SectionTitle>
+        <p className="text-[13px] leading-relaxed text-[#6B7280]">
+          After you join, message the brand from your active project for clarifications.
+          Public contact details are only shown when the brand enables them.
+        </p>
+        {campaign.vendor?.business_slug ? (
+          <Link
+            href={`/vendors/${campaign.vendor.business_slug}`}
+            className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-[#FF5A1F]"
+          >
+            Visit brand page <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        ) : null}
+      </SectionCard>
+
       {/* Section 12 — Similar */}
       {similar.length > 0 ? (
         <SectionCard id="similar">

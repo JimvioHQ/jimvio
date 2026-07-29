@@ -640,8 +640,8 @@ export function ActiveProjectSections({
         ) : null}
       </CollapsibleCard>
 
-      {/* Submissions */}
-      <CollapsibleCard title="Your submissions" sub="Track review status and earnings">
+      {/* Submissions history */}
+      <CollapsibleCard title="Submission history" sub="Track review status and earnings">
         {submissions.length === 0 ? (
           <div className="text-center">
             <p className="text-[13px] text-[#6B7280]">No submissions yet.</p>
@@ -650,7 +650,7 @@ export function ActiveProjectSections({
               className="mt-3 inline-flex items-center gap-1 rounded-xl bg-[#FF5A1F] px-4 py-2 text-[12px] font-semibold text-white"
             >
               <Plus className="h-4 w-4" />
-              Submit content
+              Upload content
             </Link>
           </div>
         ) : (
@@ -689,6 +689,70 @@ export function ActiveProjectSections({
             ))}
           </div>
         )}
+      </CollapsibleCard>
+
+      {/* Brand feedback */}
+      <CollapsibleCard title="Brand feedback" sub="Reviews and revision notes">
+        {submissions.filter((s) => s.rejection_reason || (s as { review_notes?: string }).review_notes)
+          .length === 0 ? (
+          <p className="text-[13px] text-[#6B7280]">
+            No brand feedback yet. Notes from reviews and revision requests will appear here.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {submissions
+              .filter((s) => s.rejection_reason || (s as { review_notes?: string }).review_notes)
+              .map((s) => (
+                <div
+                  key={`fb-${s.id}`}
+                  className="rounded-xl border border-[#EEF0F2] bg-[#FAFAFA] px-3 py-2.5"
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <Pill tone={s.status === "rejected" ? "danger" : "info"}>{s.status}</Pill>
+                    <span className="text-[11px] font-semibold uppercase text-[#6B7280]">
+                      {s.platform}
+                    </span>
+                  </div>
+                  <p className="text-[13px] text-[#374151]">
+                    {s.rejection_reason ||
+                      (s as { review_notes?: string }).review_notes ||
+                      "Feedback received."}
+                  </p>
+                </div>
+              ))}
+          </div>
+        )}
+      </CollapsibleCard>
+
+      {/* Payment status */}
+      <CollapsibleCard title="Payment status" sub="Escrow and payout tracking">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="rounded-xl border border-[#EEF0F2] bg-[#FAFAFA] px-3 py-3">
+            <p className="text-[10px] font-bold uppercase text-[#9CA3AF]">Earned</p>
+            <p className="mt-1 text-[16px] font-bold text-[#111827]">
+              {formatMoney(stats.currentEarnings, "USD")}
+            </p>
+          </div>
+          <div className="rounded-xl border border-[#EEF0F2] bg-[#FAFAFA] px-3 py-3">
+            <p className="text-[10px] font-bold uppercase text-[#9CA3AF]">Estimated</p>
+            <p className="mt-1 text-[16px] font-bold text-[#111827]">
+              {formatMoney(stats.estimatedEarnings, "USD")}
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 text-[12px] leading-relaxed text-[#6B7280]">
+          {stage === "paid"
+            ? "Payout has been released for approved content."
+            : stage === "approved"
+              ? "Content approved — payout will settle based on the campaign payment model."
+              : "Funds are held in escrow until content is approved."}
+        </p>
+        <Link
+          href="/ugc/earnings"
+          className="mt-2 inline-block text-[12px] font-semibold text-[#FF5A1F]"
+        >
+          View earnings →
+        </Link>
       </CollapsibleCard>
 
       {/* AI Assistant */}

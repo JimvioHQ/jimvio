@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Sparkles, FolderOpen, Lock, UserRound, Megaphone, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function UGCPageShell({
@@ -56,20 +56,76 @@ export function UGCPageError({ message, onRetry }: { message: string; onRetry?: 
   );
 }
 
+type EmptyIllustration = "default" | "campaigns" | "profile" | "lock" | "bell" | "analytics";
+
+const ILLUSTRATIONS: Record<
+  EmptyIllustration,
+  { icon: typeof Sparkles; ring: string; iconClass: string }
+> = {
+  default: {
+    icon: Sparkles,
+    ring: "from-[#FFF4EF] to-[#FFE4D6]",
+    iconClass: "text-[#FF5A1F]",
+  },
+  campaigns: {
+    icon: Megaphone,
+    ring: "from-[#FFF4EF] to-[#FFE4D6]",
+    iconClass: "text-[#FF5A1F]",
+  },
+  profile: {
+    icon: UserRound,
+    ring: "from-[#EFF6FF] to-[#DBEAFE]",
+    iconClass: "text-sky-600",
+  },
+  lock: {
+    icon: Lock,
+    ring: "from-[#F3F4F6] to-[#E5E7EB]",
+    iconClass: "text-[#6B7280]",
+  },
+  bell: {
+    icon: Bell,
+    ring: "from-[#FFF7ED] to-[#FFEDD5]",
+    iconClass: "text-amber-600",
+  },
+  analytics: {
+    icon: FolderOpen,
+    ring: "from-[#ECFDF5] to-[#D1FAE5]",
+    iconClass: "text-emerald-600",
+  },
+};
+
 export function UGCPageEmpty({
   title,
   description,
   action,
+  illustration = "default",
 }: {
   title: string;
   description: string;
   action?: React.ReactNode;
+  illustration?: EmptyIllustration;
 }) {
+  const art = ILLUSTRATIONS[illustration];
+  const Icon = art.icon;
   return (
-    <div className="rounded-[16px] border border-dashed border-[#E5E7EB] bg-[#FAFAFA] p-10 text-center">
-      <p className="text-base font-bold text-[#111827]">{title}</p>
-      <p className="mx-auto mt-2 max-w-sm text-sm text-[#6B7280]">{description}</p>
-      {action ? <div className="mt-4">{action}</div> : null}
+    <div className="relative overflow-hidden rounded-[20px] border border-dashed border-[#E5E7EB] bg-gradient-to-b from-white to-[#FAFAFA] px-6 py-12 text-center shadow-[0_8px_30px_rgba(17,24,39,0.04)]">
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#FFF4EF]/80 blur-2xl"
+        aria-hidden
+      />
+      <div
+        className={cn(
+          "relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br shadow-inner",
+          art.ring,
+        )}
+      >
+        <Icon className={cn("h-7 w-7", art.iconClass)} />
+      </div>
+      <p className="relative mt-5 text-base font-bold text-[#111827]">{title}</p>
+      <p className="relative mx-auto mt-2 max-w-sm text-sm leading-relaxed text-[#6B7280]">
+        {description}
+      </p>
+      {action ? <div className="relative mt-5">{action}</div> : null}
     </div>
   );
 }
@@ -103,13 +159,15 @@ export function UGCStatusPill({
   status: string;
 }) {
   const tone =
-    status === "accepted" || status === "approved"
+    status === "accepted" || status === "approved" || status === "completed"
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-      : status === "pending" || status === "waitlisted"
+      : status === "pending" || status === "waitlisted" || status === "submitted"
         ? "bg-amber-50 text-amber-700 border-amber-200"
         : status === "rejected"
           ? "bg-rose-50 text-rose-700 border-rose-200"
-          : "bg-[#F3F4F6] text-[#374151] border-[#E5E7EB]";
+          : status === "in_progress" || status === "in progress"
+            ? "bg-sky-50 text-sky-700 border-sky-200"
+            : "bg-[#F3F4F6] text-[#374151] border-[#E5E7EB]";
   return (
     <span
       className={cn(

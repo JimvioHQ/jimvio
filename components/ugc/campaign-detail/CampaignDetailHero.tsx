@@ -63,7 +63,7 @@ export function CampaignDetailHero({
 
   return (
     <div className="relative overflow-hidden border-b border-[#EEF0F2] bg-white">
-      <div className="relative h-[180px] sm:h-[220px] lg:h-[260px]">
+      <div className="relative h-[200px] sm:h-[240px] lg:h-[280px]">
         {banner ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
