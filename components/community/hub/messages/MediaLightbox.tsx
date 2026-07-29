@@ -1,6 +1,7 @@
 "use client";
 
 import { Download, X } from "lucide-react";
+import { toPlayableCommunityVideoUrl } from "@/lib/community-chat-upload";
 
 export function MediaLightbox({
   url,
@@ -11,6 +12,8 @@ export function MediaLightbox({
   kind: "image" | "video";
   onClose: () => void;
 }) {
+  const videoSrc = kind === "video" ? toPlayableCommunityVideoUrl(url) : url;
+
   return (
     <div
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
@@ -44,8 +47,12 @@ export function MediaLightbox({
         </div>
         {kind === "video" ? (
           <video
-            src={url}
+            src={videoSrc}
             controls
+            playsInline
+            preload="metadata"
+            // muted + autoPlay satisfies mobile autoplay policies; user can unmute
+            muted
             autoPlay
             className="max-h-[85vh] max-w-full rounded-2xl"
           />

@@ -824,7 +824,9 @@ export function FeedSection({
         const attachments = buildAttachmentsPayload(cleanPoll);
         const imageUrls = readyMedia.filter((m) => m.kind === "image").map((m) => m.url);
         const videoUrls = readyMedia.filter((m) => m.kind === "video").map((m) => m.url);
-        const video_url = videoUrls.length === 1 ? videoUrls[0] : undefined;
+        // Always persist the first video so the feed player has a URL even when
+        // additional clips are stored only in attachments.
+        const video_url = videoUrls[0] ?? undefined;
 
         setSaving(true);
         try {
@@ -838,7 +840,7 @@ export function FeedSection({
                         images: imageUrls,
                         attachments,
                         audience,
-                        video_url: video_url ?? (videoUrls.length ? null : undefined),
+                        video_url: video_url ?? (videoUrls.length ? videoUrls[0] : undefined),
                         is_published: true,
                     }),
                 });

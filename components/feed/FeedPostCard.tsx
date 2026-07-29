@@ -9,15 +9,15 @@ import {
   Loader2,
   MessageCircle,
   MoreHorizontal,
-  Pause,
   Pin,
-  Play,
   Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { FEED_POSTS } from "@/lib/feed/mock-data";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
+import { toPlayableCommunityVideoUrl } from "@/lib/community-chat-upload";
 
 type ApiPost = {
   id: string;
@@ -53,7 +53,13 @@ type DisplayPost = {
   pinned: boolean;
   body: string;
   media:
-    | { type: "video"; duration: string; thumbnail: string; overlay?: { title: string; subtitle: string } }
+    | {
+        type: "video";
+        duration: string;
+        thumbnail: string;
+        src: string;
+        overlay?: { title: string; subtitle: string };
+      }
     | { type: "image"; thumbnail: string }
     | null;
   engagement: {
@@ -80,7 +86,8 @@ function mapApiPost(post: ApiPost): DisplayPost {
     media = {
       type: "video",
       duration: "",
-      thumbnail: images[0] || video,
+      thumbnail: images[0] || "",
+      src: toPlayableCommunityVideoUrl(video),
     };
   } else if (images[0]) {
     media = { type: "image", thumbnail: images[0] };
@@ -114,48 +121,18 @@ function mapApiPost(post: ApiPost): DisplayPost {
 }
 
 function FeedVideoPlayer({
-  thumbnail,
-  duration,
-  overlay,
+  src,
+  poster,
 }: {
-  thumbnail: string;
-  duration: string;
-  overlay?: { title: string; subtitle: string };
+  src: string;
+  poster?: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gray-900">
-      <img src={thumbnail} alt="" className="aspect-video w-full object-cover" />
-
-      {overlay && (
-        <div className="absolute left-4 top-4 max-w-[70%]">
-          <p className="text-lg font-bold uppercase leading-tight tracking-wide text-white sm:text-xl">
-            {overlay.title}
-          </p>
-          <span className="mt-1.5 inline-block rounded-md bg-black/50 px-2 py-0.5 text-xs font-medium text-white">
-            {overlay.subtitle}
-          </span>
-        </div>
-      )}
-
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-500/95 transition-transform hover:scale-105">
-          <Play className="ml-0.5 h-5 w-5 text-white" fill="white" />
-        </span>
-      </div>
-
-      <div className="absolute inset-x-0 bottom-0">
-        <div className="px-3 pt-6">
-          <div className="relative h-1 rounded-full bg-white/30">
-            <div className="absolute left-0 top-0 h-full w-[45%] rounded-full bg-orange-500" />
-            <span className="absolute left-[45%] top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-orange-500" />
-          </div>
-        </div>
-        <div className="mt-1 flex h-8 items-center justify-between bg-black/45 px-3">
-          <Pause className="h-3.5 w-3.5 text-white" fill="white" />
-          <span className="text-[11px] font-medium tabular-nums text-white">{duration}</span>
-        </div>
-      </div>
-    </div>
+    <CommunityVideoPlayer
+      src={src}
+      poster={poster || null}
+      className="rounded-2xl border-0"
+    />
   );
 }
 
@@ -166,15 +143,24 @@ function formatEngagement(value: number | string): string {
 }
 
 function mockFallbackPosts(): DisplayPost[] {
-  return FEED_POSTS.map((post) => ({
-    id: post.id,
-    author: post.author,
-    timestamp: post.timestamp,
-    pinned: post.pinned,
-    body: post.body,
-    media: post.media ?? null,
-    engagement: post.engagement,
-  }));
+  return FEED_POSTS.map((post) => {
+    let media: DisplayPost["media"] = null;
+    if (post.media?.type === "video") {
+      // Mock posts have thumbnails only — show as image to avoid broken <video>
+      media = { type: "image", thumbnail: post.media.thumbnail };
+    } else if (post.media?.type === "image") {
+      media = { type: "image", thumbnail: post.media.thumbnail };
+    }
+    return {
+      id: post.id,
+      author: post.author,
+      timestamp: post.timestamp,
+      pinned: post.pinned,
+      body: post.body,
+      media,
+      engagement: post.engagement,
+    };
+  });
 }
 
 export function FeedPostCard() {
@@ -368,9 +354,8 @@ export function FeedPostCard() {
             {post.media?.type === "video" && (
               <div className="mb-3">
                 <FeedVideoPlayer
-                  thumbnail={post.media.thumbnail}
-                  duration={post.media.duration}
-                  overlay={post.media.overlay}
+                  src={post.media.src}
+                  poster={post.media.thumbnail || undefined}
                 />
               </div>
             )}
