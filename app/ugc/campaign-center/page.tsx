@@ -1,10 +1,5 @@
-import { CampaignCenterBoard } from "@/components/ugc/campaign-center/CampaignCenterBoard";
+import BrandDashboardClient from "@/components/ugc/brand/BrandDashboardClient";
 
 export default function CampaignCenterPage() {
-  return (
-    <CampaignCenterBoard
-      title="My Campaigns"
-      subtitle="All campaigns you own — draft, active, paused, and completed."
-    />
-  );
+  return <BrandDashboardClient />;
 }

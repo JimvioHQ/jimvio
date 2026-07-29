@@ -1,4 +1,5 @@
 import { CampaignCreateWizard } from "@/components/ugc/campaign-center/CampaignCreateWizard";
+import CampaignManagementClient from "@/components/ugc/campaign-center/CampaignManagementClient";
 
 export default async function EditCampaignPage({
   params,
@@ -6,5 +7,10 @@ export default async function EditCampaignPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <CampaignCreateWizard editId={id} />;
+  return (
+    <div className="space-y-6 pb-10">
+      <CampaignManagementClient campaignId={id} />
+      <CampaignCreateWizard editId={id} />
+    </div>
+  );
 }
