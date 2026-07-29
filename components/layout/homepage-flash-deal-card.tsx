@@ -20,11 +20,6 @@ import { ProductCardVideoMedia } from "@/components/marketplace/product-card-vid
 import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 
-function fmtSold(n: number | null | undefined) {
-  if (n == null || n <= 0) return null;
-  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, "")}k sold`;
-  return `${n} sold`;
-}
 
 export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) {
   const { formatMoney } = useCurrency();
@@ -53,7 +48,6 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
   const currency = p.currency || "USD";
   const price = Number(p.price) || 0;
   const rating = typeof p.rating === "number" && p.rating > 0 ? p.rating : null;
-  const sold = fmtSold(p.sale_count);
   const isFlash = p.is_flash_deal === true || Boolean(discount);
   const vendorId = p.vendor_id ?? null;
 
@@ -260,7 +254,6 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
               {rating.toFixed(1)}
             </span>
           ) : null}
-          {sold ? <span>{sold}</span> : null}
         </div>
 
         <div className="mt-auto flex flex-col gap-1 pt-0.5">

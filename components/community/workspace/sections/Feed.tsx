@@ -45,6 +45,7 @@ import {
     MessageSquareOff,
 } from "lucide-react";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
+import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { RealtimeChannel } from "@supabase/supabase-js";
@@ -1573,7 +1574,7 @@ export function FeedSection({
                                 ) : (
                                     <>
                                         {media.kind === "video" ? (
-                                            <video src={media.url} className="object-cover w-full h-full" muted />
+                                            <CommunityVideoPlayer src={media.url} compact />
                                         ) : (
                                             // eslint-disable-next-line @next/next/no-img-element
                                             <img src={media.url} alt="" className="object-cover w-full h-full" />
@@ -2235,13 +2236,8 @@ function PostCard({
             )}
 
             {post.video_url && (
-                <div className="mb-3 overflow-hidden rounded-lg border border-border">
-                    <video
-                        src={post.video_url}
-                        controls
-                        preload="none"
-                        className="w-full max-h-72 bg-black"
-                    />
+                <div className="mb-3">
+                    <CommunityVideoPlayer src={post.video_url} />
                 </div>
             )}
 

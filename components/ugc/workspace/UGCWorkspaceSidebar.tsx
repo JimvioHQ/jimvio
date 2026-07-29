@@ -8,22 +8,25 @@ import {
   BarChart3,
   Clapperboard,
   Compass,
+  Copy,
   DollarSign,
+  FileStack,
   FileVideo,
+  FolderOpen,
   Handshake,
   LayoutDashboard,
-  LayoutTemplate,
-  Scissors,
-  Settings,
+  Megaphone,
+  PlusCircle,
   Sparkles,
-  User,
+  Users,
   Wallet,
   ArrowRight,
+  ImageIcon,
 } from "lucide-react";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 
-const NAV: {
+const PRIMARY_NAV: {
   id: string;
   label: string;
   href: string;
@@ -34,34 +37,89 @@ const NAV: {
   { id: "applications", label: "My Applications", href: "/ugc/applications", icon: FileVideo },
   { id: "projects", label: "Active Projects", href: "/ugc/campaigns", icon: Clapperboard },
   { id: "submissions", label: "Submissions", href: "/ugc/submissions", icon: FileVideo },
-  { id: "clipping", label: "Clipping Hub", href: "/ugc/clipping", icon: Scissors },
-  { id: "templates", label: "Templates", href: "/ugc/templates", icon: LayoutTemplate },
   { id: "analytics", label: "Analytics", href: "/ugc/analytics", icon: BarChart3 },
   { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign },
   { id: "payouts", label: "Payouts", href: "/ugc/payouts", icon: Wallet },
   { id: "deals", label: "Brand Deals", href: "/ugc/brand-deals", icon: Handshake },
-  { id: "profile", label: "My Profile", href: "/communities/profile", icon: User },
-  { id: "settings", label: "Settings", href: "/communities/settings", icon: Settings },
+];
+
+const CAMPAIGN_CENTER_NAV: {
+  id: string;
+  label: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+}[] = [
+  { id: "cc-create", label: "Create Campaign", href: "/ugc/campaign-center/create", icon: PlusCircle },
+  { id: "cc-mine", label: "My Campaigns", href: "/ugc/campaign-center", icon: Megaphone },
+  { id: "cc-drafts", label: "Drafts", href: "/ugc/campaign-center/drafts", icon: FileStack },
+  { id: "cc-active", label: "Active Campaigns", href: "/ugc/campaign-center/active", icon: FolderOpen },
+  { id: "cc-completed", label: "Completed Campaigns", href: "/ugc/campaign-center/completed", icon: Copy },
+  { id: "cc-analytics", label: "Analytics", href: "/ugc/campaign-center/analytics", icon: BarChart3 },
+  { id: "cc-recruit", label: "Creator Recruitment", href: "/ugc/campaign-center/recruitment", icon: Users },
+  { id: "cc-assets", label: "Campaign Assets", href: "/ugc/campaign-center/assets", icon: ImageIcon },
 ];
 
 function resolveActive(pathname: string): string {
+  if (pathname.startsWith("/ugc/campaign-center/create")) return "cc-create";
+  if (pathname.startsWith("/ugc/campaign-center/drafts")) return "cc-drafts";
+  if (pathname.startsWith("/ugc/campaign-center/active")) return "cc-active";
+  if (pathname.startsWith("/ugc/campaign-center/completed")) return "cc-completed";
+  if (pathname.startsWith("/ugc/campaign-center/analytics")) return "cc-analytics";
+  if (pathname.startsWith("/ugc/campaign-center/recruitment")) return "cc-recruit";
+  if (pathname.startsWith("/ugc/campaign-center/assets")) return "cc-assets";
+  if (pathname.startsWith("/ugc/campaign-center")) return "cc-mine";
   if (pathname === "/ugc/dashboard" || pathname === "/ugc/dashboard/") return "dashboard";
   if (/^\/ugc\/[^/]+\/dashboard\/?$/.test(pathname)) return "projects";
   if (pathname.startsWith("/ugc/applications")) return "applications";
   if (pathname.startsWith("/ugc/campaigns")) return "projects";
   if (pathname.startsWith("/ugc/submissions")) return "submissions";
-  if (pathname.startsWith("/ugc/clipping")) return "clipping";
-  if (pathname.startsWith("/ugc/templates")) return "templates";
   if (pathname.startsWith("/ugc/analytics")) return "analytics";
   if (pathname.startsWith("/ugc/earnings")) return "earnings";
   if (pathname.startsWith("/ugc/payouts")) return "payouts";
   if (pathname.startsWith("/ugc/brand-deals")) return "deals";
-  if (pathname.startsWith("/communities/profile")) return "profile";
-  if (pathname.startsWith("/communities/settings")) return "settings";
   if (pathname === "/ugc" || pathname === "/ugc/") return "discover";
   if (pathname.startsWith("/ugc/")) return "discover";
   if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return "mission";
   return "discover";
+}
+
+function NavLink({
+  item,
+  active,
+  onNavigate,
+}: {
+  item: { id: string; label: string; href: string; icon: typeof LayoutDashboard };
+  active: boolean;
+  onNavigate?: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      className={cn(
+        "group relative flex items-center gap-2.5 rounded-[10px] px-2.5 py-[8px] text-[12px] font-medium transition-all duration-150",
+        active
+          ? "bg-[#FFF0E8] font-semibold text-[#FF5A1F]"
+          : "text-[#4B5563] hover:bg-[#F8FAFC] hover:text-[#111827]",
+      )}
+    >
+      {active ? (
+        <span
+          aria-hidden
+          className="absolute left-0 top-1/2 h-[18px] w-[3px] -translate-y-1/2 rounded-r-full bg-[#FF5A1F]"
+        />
+      ) : null}
+      <Icon
+        strokeWidth={active ? 2.25 : 1.8}
+        className={cn(
+          "h-[15px] w-[15px] shrink-0 transition-colors",
+          active ? "text-[#FF5A1F]" : "text-[#9CA3AF] group-hover:text-[#6B7280]",
+        )}
+      />
+      <span className="truncate">{item.label}</span>
+    </Link>
+  );
 }
 
 type UGCWorkspaceSidebarProps = {
@@ -94,50 +152,33 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
 
       <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-2">
         <ul className="space-y-[2px]">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            const active = item.id === activeId;
-            return (
-              <li key={item.id}>
-                <Link
-                  href={item.href}
-                  onClick={onNavigate}
-                  className={cn(
-                    "group relative flex items-center gap-2.5 rounded-[10px] px-2.5 py-[8px] text-[12px] font-medium transition-all duration-150",
-                    active
-                      ? "bg-[#FFF0E8] font-semibold text-[#FF5A1F]"
-                      : "text-[#4B5563] hover:bg-[#F8FAFC] hover:text-[#111827]",
-                  )}
-                >
-                  {active ? (
-                    <span
-                      aria-hidden
-                      className="absolute left-0 top-1/2 h-[18px] w-[3px] -translate-y-1/2 rounded-r-full bg-[#FF5A1F]"
-                    />
-                  ) : null}
-                  <Icon
-                    strokeWidth={active ? 2.25 : 1.8}
-                    className={cn(
-                      "h-[15px] w-[15px] shrink-0 transition-colors",
-                      active ? "text-[#FF5A1F]" : "text-[#9CA3AF] group-hover:text-[#6B7280]",
-                    )}
-                  />
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              </li>
-            );
-          })}
+          {PRIMARY_NAV.map((item) => (
+            <li key={item.id}>
+              <NavLink item={item} active={item.id === activeId} onNavigate={onNavigate} />
+            </li>
+          ))}
         </ul>
 
-        {/* Jimvio AI — directly under Settings, near bottom of nav */}
+        <div className="mt-4 px-2.5 pb-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#9CA3AF]">
+            Campaign Center
+          </p>
+        </div>
+        <ul className="space-y-[2px]">
+          {CAMPAIGN_CENTER_NAV.map((item) => (
+            <li key={item.id}>
+              <NavLink item={item} active={item.id === activeId} onNavigate={onNavigate} />
+            </li>
+          ))}
+        </ul>
+
         <div className="mt-3 shrink-0 px-0.5 pb-1 pt-1">
           <motion.div
             whileHover={{ y: -2 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="relative overflow-hidden rounded-[20px] border border-white/30 p-3.5 shadow-[0_14px_40px_rgba(255,90,31,0.36),0_2px_10px_rgba(17,24,39,0.1)]"
             style={{
-              background:
-                "linear-gradient(165deg, #FF9A68 0%, #FF5A1F 40%, #C93A0C 100%)",
+              background: "linear-gradient(165deg, #FF9A68 0%, #FF5A1F 40%, #C93A0C 100%)",
             }}
           >
             <div
@@ -159,9 +200,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
                 <span className="grid h-7 w-7 place-items-center rounded-xl border border-white/25 bg-white/20 shadow-inner backdrop-blur-md">
                   <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={2.4} />
                 </span>
-                <span className="text-[13.5px] font-bold tracking-tight text-white">
-                  Jimvio AI
-                </span>
+                <span className="text-[13.5px] font-bold tracking-tight text-white">Jimvio AI</span>
               </div>
               <p className="text-[10.5px] leading-[1.4] text-white/93">
                 Your intelligent assistant for winning campaigns.

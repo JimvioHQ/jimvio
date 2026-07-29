@@ -11,7 +11,6 @@ import {
     ShoppingCart,
     Sparkles,
     Menu,
-    Globe,
     Radio,
     Layers,
     MessageSquare,
@@ -24,7 +23,6 @@ import { CommunitySidebar } from "@/components/shell/CommunitySidebar";
 import { CreateMenuDropdown } from "@/components/feed/CreateQuickLaunch";
 import JimvioLogo from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { CurrencySelector } from "@/context/CurrencyContext";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
@@ -272,24 +270,6 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
     return (
         <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)] text-[var(--color-text-primary,#18181b)]">
-
-            {/* ── Top utility strip (desktop) ── */}
-            <div className="hidden border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] lg:block">
-                <div className="mx-auto flex h-7 max-w-[1600px] items-center justify-between px-6">
-                    <div className="flex items-center gap-5">
-                        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-tight text-[var(--color-text-muted,#71717a)]">
-                            <Globe className="h-3 w-3 text-[#fd5000]" />
-                            Global Sourcing Network
-                        </span>
-                        <CurrencySelector className="h-5 border-0 bg-transparent px-1 text-[10px] font-bold text-[var(--color-text-muted,#71717a)] ring-0 transition-colors hover:text-[var(--color-text-primary)] focus:ring-0" />
-                    </div>
-                    <div className="flex items-center gap-5">
-                        <Link href="/help" className="text-[10px] font-bold uppercase text-[var(--color-text-muted,#71717a)] transition-colors hover:text-[#fd5000]">Support</Link>
-                        <span className="h-3 w-px bg-[var(--color-border,#e4e4e7)]" />
-                        <Link href="/vendors" className="text-[10px] font-bold uppercase text-[var(--color-text-muted,#71717a)] transition-colors hover:text-[var(--color-text-primary)]">Sell on Jimvio</Link>
-                    </div>
-                </div>
-            </div>
 
             {/* ── Main header (full width, above sidebar) ── */}
             <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-3 sm:gap-x-3 sm:px-6">

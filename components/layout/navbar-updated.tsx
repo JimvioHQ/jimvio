@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     User, ShoppingCart, MessageCircle, Menu, X, Globe, CircleHelp,
     LayoutDashboard, Settings, LogOut, TrendingUp, Video, Factory,
@@ -26,7 +26,6 @@ import { useAIStore } from "@/lib/store/use-ai-store";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { MarketingSettings, NavLinkConfig } from "@/lib/platform-settings-shared";
 import { NavbarSearch } from "@/components/layout/navbar-search";
-import { CurrencySelector } from "@/context/CurrencyContext";
 import { CurrencyConverterWidget } from "@/components/shared/currency-converter-widget";
 import JimvioLogo from "../ui/logo";
 
@@ -547,7 +546,6 @@ interface NavbarProps {
    MAIN NAVBAR
 ═══════════════════════════════════════════════════════ */
 export function Navbar({ user, marketing }: NavbarProps) {
-    const { scrollY } = useScroll();
     const [scrolled, setScrolled] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
@@ -561,9 +559,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
     const pathname = usePathname();
     const router = useRouter();
     const navHidden = useScrollDirection();
-
-    const topBarOpacity = useTransform(scrollY, [0, 35], [1, 0]);
-    const topBarH = useTransform(scrollY, [0, 35], [32, 0]);
 
     /* effects */
     useEffect(() => {
@@ -608,35 +603,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
             )}>
                 {/* Top gradient line */}
                 <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#fd5000]/30 to-transparent pointer-events-none" />
-
-                {/* ── TOP STRIP ── */}
-                <motion.div
-                    style={{ height: topBarH, opacity: topBarOpacity }}
-                    className="hidden md:block overflow-hidden"
-                >
-                    <div className="h-8 flex items-center justify-between px-8 max-w-[1400px] mx-auto"
-                        style={{ borderBottom: "1px solid var(--color-border, #e5e5e5)" }}>
-                        <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-1.5">
-                                <Globe className="h-3 w-3 text-[#fd5000]" />
-                                <span className="text-[10px] font-bold text-stone-500 dark:text-stone-500 uppercase tracking-widest">
-                                    Global Sourcing Network
-                                </span>
-                            </div>
-                            <div className="h-3 w-px bg-stone-200 dark:bg-stone-800" />
-                            <CurrencySelector className="h-5 bg-transparent border-0 focus:ring-0 px-0 ring-0 text-[10px] font-bold text-stone-500 hover:text-stone-800 transition-colors" />
-                        </div>
-                        <div className="flex items-center gap-5">
-                            <Link href="/help" className="text-[10px] font-bold text-stone-500 hover:text-[#fd5000] transition-colors uppercase tracking-wide">
-                                Support
-                            </Link>
-                            <div className="h-3 w-px bg-stone-200 dark:bg-stone-800" />
-                            <Link href="/vendors" className="text-[10px] font-bold text-stone-500 hover:text-stone-900 dark:hover:text-white transition-colors uppercase tracking-wide">
-                                Sell on Jimvio
-                            </Link>
-                        </div>
-                    </div>
-                </motion.div>
 
                 {/* ── MAIN BAR ── */}
                 <div className="max-w-[1400px] mx-auto px-3 sm:px-5 md:px-8 h-[58px] flex items-center gap-2 md:gap-3">

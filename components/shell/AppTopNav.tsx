@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   ChevronDown,
-  Globe,
   LayoutDashboard,
   Plus,
   Search,
@@ -13,7 +12,6 @@ import {
 } from "lucide-react";
 import JimvioLogo from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { CurrencySelector } from "@/context/CurrencyContext";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import {
   isDashboardActive,
@@ -24,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/utils";
 
 type AppTopNavProps = {
+  /** @deprecated Utility bar removed — prop kept for call-site compatibility */
   showUtilityBar?: boolean;
   activeNav?: string;
   user?: {
@@ -63,40 +62,18 @@ function UserAvatar({
 }
 
 export function AppTopNav({
-  showUtilityBar = false,
+  showUtilityBar: _showUtilityBar = false,
   activeNav,
   user,
   notificationCount = 3,
 }: AppTopNavProps) {
+  void _showUtilityBar;
   const pathname = usePathname();
   const { cartCount } = useCartStore();
   const dashboardActive = isDashboardActive(pathname);
 
   return (
     <>
-      {showUtilityBar && (
-        <div className="hidden border-b border-gray-200 bg-white lg:block">
-          <div className="mx-auto flex h-7 max-w-[1600px] items-center justify-between px-6">
-            <div className="flex items-center gap-5">
-              <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                <Globe className="h-3 w-3 text-orange-500" />
-                Global Sourcing Network
-              </span>
-              <CurrencySelector className="h-5 border-0 bg-transparent px-1 text-[10px] font-semibold text-gray-400 ring-0 hover:text-gray-900 focus:ring-0" />
-            </div>
-            <div className="flex items-center gap-5">
-              <Link href="/help" className="text-[10px] font-semibold uppercase text-gray-400 hover:text-orange-500">
-                Support
-              </Link>
-              <span className="h-3 w-px bg-gray-200" />
-              <Link href="/vendors" className="text-[10px] font-semibold uppercase text-gray-400 hover:text-gray-900">
-                Sell on Jimvio
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
       <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-gray-200 bg-white px-3 sm:gap-x-3 sm:px-5 lg:px-6">
         <Link href="/" className="shrink-0" aria-label="Jimvio home">
           <JimvioLogo href={undefined} size="md" />

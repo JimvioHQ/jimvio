@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { HubAvatar } from "../hub-ui";
 import { WaAudioPlayer } from "@/components/community/chat/WaAudioPlayer";
+import { toPlayableCommunityVideoUrl } from "@/lib/community-chat-upload";
 import type { HubChatMessage } from "./types";
 import {
   formatFileSize,
@@ -122,9 +123,10 @@ export function MessageBubble({
           >
             {isVideoAttachment(primary) ? (
               <video
-                src={primary.url}
+                src={toPlayableCommunityVideoUrl(primary.url)}
                 className="max-h-64 max-w-full object-cover"
                 muted
+                playsInline
                 preload="metadata"
               />
             ) : (

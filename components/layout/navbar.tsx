@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
   ShoppingCart,
@@ -281,7 +281,6 @@ interface NavbarProps {
 }
 
 export function Navbar({ user, marketing }: NavbarProps) {
-  const { scrollY } = useScroll();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -319,9 +318,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
   }, []);
-
-  const topBarOpacity = useTransform(scrollY, [0, 40], [1, 0]);
-  const topBarH = useTransform(scrollY, [0, 40], [30, 0]);
 
   const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
 
@@ -364,29 +360,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
       >
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent dark:via-white/10 pointer-events-none" />
         <div className="min-w-0 w-full overflow-x-hidden">
-          {/* top strip */}
-          <motion.div
-            style={{ height: topBarH, opacity: topBarOpacity }}
-            className="hidden md:block dark:bg-black/20 border-b border-border"
-          >
-            <div className="max-w-8xl mx-auto md:flex items-center justify-between px-8 shrink-0 ">
-              <div className="flex items-center justify-between gap-6 ">
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-stone-500 uppercase tracking-tight">
-                  <Globe className="h-3 w-3 text-orange-500" />
-                  <span>Global Sourcing Network</span>
-                </div>
-                <div>
-                  <CurrencySelector className="h-5 bg-transparent border-0 focus:ring-0 px-1 ring-0 text-[10px] font-bold text-stone-500 hover:text-stone-800 transition-colors" />
-                </div>
-              </div>
-              <div className="flex items-center gap-6">
-                <Link href="/help" className="text-[10px] font-bold text-stone-500 hover:text-orange-600 transition-colors uppercase">Support</Link>
-                <div className="h-3 w-px bg-border" />
-                <Link href="/vendors" className="text-[10px] font-bold text-stone-500 hover:text-stone-800 transition-colors uppercase">Sell on Jimvio</Link>
-              </div>
-            </div>
-          </motion.div>
-
           {/* main bar — 3-column grid prevents nav/search overlap */}
           <div className="grid w-full min-w-0 max-w-8xl mx-auto h-14 md:h-[62px] px-4 sm:px-8 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 sm:gap-x-3">
             {/* Logo */}

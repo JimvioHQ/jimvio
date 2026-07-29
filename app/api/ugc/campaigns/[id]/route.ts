@@ -131,7 +131,16 @@ export async function DELETE(
     .eq('is_active', true)
     .maybeSingle();
 
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden — admin only' }, { status: 403 });
+  const { data: campaign } = await db
+    .from('ugc_campaigns')
+    .select('brand_id, vendors!brand_id(user_id)')
+    .eq('id', id)
+    .single();
+
+  const vendor = campaign?.vendors as unknown as { user_id: string } | null;
+  if (!isAdmin && vendor?.user_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const { error } = await db.from('ugc_campaigns').delete().eq('id', id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
