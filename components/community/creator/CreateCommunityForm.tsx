@@ -261,6 +261,7 @@ export function CreateCommunityForm() {
   const [tagInput, setTagInput] = useState("");
   const [tagError, setTagError] = useState<string | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [visibility, setVisibility] = useState<"public" | "private" | "invite_only">("public");
 
   // Step 2 — Pricing
   const [isFree, setIsFree] = useState(true);
@@ -365,7 +366,8 @@ export function CreateCommunityForm() {
         tags: tags.length ? tags : undefined,
         avatar_url: avatarUrl.trim() || undefined,
         cover_image: coverUrl.trim() || undefined,
-        is_private: isPrivate,
+        is_private: visibility !== "public",
+        visibility,
         is_free: isFree,
         currency,
         trial_days: parseInt(trialDays, 10) || 0,
@@ -589,19 +591,23 @@ export function CreateCommunityForm() {
         {step === 1 && (
           <div className="space-y-6">
             {/* Visibility */}
-            <Field label="Visibility" required hint="You can change this later in settings.">
-              <div className="grid grid-cols-2 gap-2">
+            <Field label="Visibility" required hint="Public, private, or invite-only. You can change this later.">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {[
-                  { value: false, label: "Public", icon: Globe, desc: "Anyone can find and join" },
-                  { value: true, label: "Private", icon: Lock, desc: "Invite only, hidden from search" },
+                  { value: "public" as const, label: "Public", icon: Globe, desc: "Anyone can find and join" },
+                  { value: "private" as const, label: "Private", icon: Lock, desc: "Members only after approval" },
+                  { value: "invite_only" as const, label: "Invite only", icon: Lock, desc: "Hidden until invited" },
                 ].map((opt) => {
                   const Icon = opt.icon;
-                  const selected = isPrivate === opt.value;
+                  const selected = visibility === opt.value;
                   return (
                     <button
-                      key={String(opt.value)}
+                      key={opt.value}
                       type="button"
-                      onClick={() => setIsPrivate(opt.value)}
+                      onClick={() => {
+                        setVisibility(opt.value);
+                        setIsPrivate(opt.value !== "public");
+                      }}
                       className={cn(
                         "flex flex-col items-start gap-1 rounded-md border p-3 text-left transition-colors",
                         selected
@@ -914,7 +920,7 @@ export function CreateCommunityForm() {
             <dl className="divide-y divide-[var(--color-border)] rounded-md border border-[var(--color-border)] text-[13px]">
               <SummaryRow label="URL" value={<span className="font-mono text-[12px]">jimvio.com/communities/{slug}</span>} editable onEdit={() => goToStep(0)} />
               <SummaryRow label="Category" value={category} editable onEdit={() => goToStep(0)} />
-              <SummaryRow label="Visibility" value={isPrivate ? "Private" : "Public"} editable onEdit={() => goToStep(1)} />
+              <SummaryRow label="Visibility" value={visibility === "public" ? "Public" : visibility === "private" ? "Private" : "Invite only"} editable onEdit={() => goToStep(1)} />
               <SummaryRow label="Tags" value={tags.length ? tags.map((t) => `#${t}`).join(" ") : "None"} editable onEdit={() => goToStep(1)} />
               <SummaryRow
                 label="Membership"
@@ -933,7 +939,7 @@ export function CreateCommunityForm() {
               <ul className="mt-1.5 space-y-1 text-[12px] text-[var(--color-text-muted)]">
                 <li>• Starts empty — create Spaces when you are ready</li>
                 <li>• You become the owner with admin access</li>
-                <li>• Community {isPrivate ? "stays hidden until you invite people" : "appears in search after 24 hours"}</li>
+                <li>• Community {visibility === "public" ? "appears in search after 24 hours" : visibility === "private" ? "requires membership approval" : "stays hidden until you invite people"}</li>
               </ul>
             </div>
           </div>

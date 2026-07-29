@@ -56,15 +56,18 @@ export default function HubSpacesPage() {
           <div>
             <h1 className="flex items-center gap-2 text-xl font-black tracking-tight">
               <Layers className="h-5 w-5 text-[#fd5000]" />
-              Spaces
+              Spaces & Groups
             </h1>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Spaces across communities you joined
+              Public, private, and invite-only communities — feed, files, events, and members
             </p>
           </div>
-          <HubLinkButton href="/communities" variant="secondary">
-            Discover more
-          </HubLinkButton>
+          <div className="flex flex-wrap gap-2">
+            <HubLinkButton href="/communities/create">Create community</HubLinkButton>
+            <HubLinkButton href="/communities/explore" variant="secondary">
+              Discover more
+            </HubLinkButton>
+          </div>
         </div>
 
         <div className="relative">

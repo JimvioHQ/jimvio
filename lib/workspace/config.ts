@@ -92,7 +92,7 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
     href: "/communities",
     description: "Connect, learn and grow communities.",
     cta: "Open Communities",
-    accent: "#7c3aed",
+    accent: "#fd5000",
     icon: Users,
     sidebar: [
       { id: "feed", label: "Feed", href: "/communities", icon: Home },
@@ -103,6 +103,7 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
       { id: "missions", label: "Missions", href: "/communities/missions", icon: Target },
       { id: "courses", label: "Courses", href: "/communities/courses", icon: GraduationCap },
       { id: "events", label: "Events", href: "/communities/events", icon: Calendar },
+      { id: "leaderboard", label: "Leaderboard", href: "/communities/leaderboard", icon: BarChart3 },
     ],
     rightPanel: {
       title: "Trending",
@@ -110,6 +111,7 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
         { label: "Upcoming Events", href: "/communities/events" },
         { label: "Featured Communities", href: "/communities/explore" },
         { label: "Live Now", href: "/communities/live", value: "3" },
+        { label: "Leaderboard", href: "/communities/leaderboard" },
       ],
     },
   },

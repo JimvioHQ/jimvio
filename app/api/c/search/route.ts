@@ -7,7 +7,15 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const VALID_TYPES = new Set<CommunitySearchType>(["posts", "members", "spaces", "rooms"]);
+const VALID_TYPES = new Set<CommunitySearchType>([
+  "posts",
+  "members",
+  "spaces",
+  "rooms",
+  "courses",
+  "events",
+  "communities",
+]);
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();

@@ -1,0 +1,193 @@
+/**
+ * Community events + RSVP helpers for Creator OS calendar.
+ */
+
+import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+
+export type CommunityEventKind =
+  | "workshop"
+  | "webinar"
+  | "ama"
+  | "meetup"
+  | "launch"
+  | "other";
+
+export type CommunityEventRow = {
+  id: string;
+  community_id: string;
+  created_by: string;
+  title: string;
+  description: string | null;
+  kind: CommunityEventKind;
+  location: string | null;
+  is_online: boolean;
+  meeting_url: string | null;
+  image_url: string | null;
+  starts_at: string;
+  ends_at: string | null;
+  capacity: number | null;
+  rsvp_count: number;
+  is_published: boolean;
+  communities?: { name: string; slug: string } | null;
+};
+
+function db() {
+  return createServiceRoleClient() as any;
+}
+
+export async function listHubCommunityEvents(userId: string) {
+  const supabase = await createClient();
+  const { data: memberships } = await supabase
+    .from("community_memberships")
+    .select("community_id")
+    .eq("user_id", userId)
+    .eq("status", "active");
+  const communityIds = (memberships ?? []).map((m) => m.community_id);
+  if (communityIds.length === 0) return [];
+
+  const { data: events } = await db()
+    .from("community_events")
+    .select(
+      "id, community_id, created_by, title, description, kind, location, is_online, meeting_url, image_url, starts_at, ends_at, capacity, rsvp_count, is_published, communities(name, slug)"
+    )
+    .in("community_id", communityIds)
+    .eq("is_published", true)
+    .order("starts_at", { ascending: true })
+    .limit(80);
+
+  const eventIds = (events ?? []).map((e: CommunityEventRow) => e.id);
+  let rsvpMap = new Map<string, string>();
+  if (eventIds.length) {
+    const { data: rsvps } = await db()
+      .from("community_event_rsvps")
+      .select("event_id, status")
+      .eq("user_id", userId)
+      .in("event_id", eventIds);
+    for (const r of rsvps ?? []) {
+      rsvpMap.set(r.event_id, r.status);
+    }
+  }
+
+  return (events ?? []).map((e: CommunityEventRow) => {
+    const community = e.communities;
+    const status = rsvpMap.get(e.id);
+    return {
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      start_date: e.starts_at,
+      end_date: e.ends_at,
+      location: e.location ?? (e.is_online ? "Online" : null),
+      image_url: e.image_url,
+      attendee_count: Number(e.rsvp_count ?? 0),
+      is_going: status === "going",
+      is_interested: status === "interested",
+      kind: e.kind,
+      href: community?.slug
+        ? `/communities/${community.slug}/events?event=${e.id}`
+        : `/communities/events?event=${e.id}`,
+      community_name: community?.name ?? null,
+      community_slug: community?.slug ?? null,
+      meeting_url: e.meeting_url,
+      capacity: e.capacity,
+      source: "event" as const,
+    };
+  });
+}
+
+export async function createCommunityEvent(input: {
+  userId: string;
+  communityId: string;
+  title: string;
+  description?: string | null;
+  kind?: CommunityEventKind;
+  location?: string | null;
+  isOnline?: boolean;
+  meetingUrl?: string | null;
+  imageUrl?: string | null;
+  startsAt: string;
+  endsAt?: string | null;
+  capacity?: number | null;
+}) {
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from("community_memberships")
+    .select("role")
+    .eq("community_id", input.communityId)
+    .eq("user_id", input.userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  const { data: community } = await supabase
+    .from("communities")
+    .select("owner_id")
+    .eq("id", input.communityId)
+    .maybeSingle();
+
+  const canCreate =
+    community?.owner_id === input.userId ||
+    ["owner", "admin", "moderator"].includes(String(membership?.role ?? ""));
+  if (!canCreate) throw new Error("Only owners and moderators can create events");
+
+  const { data, error } = await db()
+    .from("community_events")
+    .insert({
+      community_id: input.communityId,
+      created_by: input.userId,
+      title: input.title.trim(),
+      description: input.description?.trim() || null,
+      kind: input.kind ?? "meetup",
+      location: input.location?.trim() || null,
+      is_online: input.isOnline ?? true,
+      meeting_url: input.meetingUrl?.trim() || null,
+      image_url: input.imageUrl?.trim() || null,
+      starts_at: input.startsAt,
+      ends_at: input.endsAt ?? null,
+      capacity: input.capacity ?? null,
+      is_published: true,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function setEventRsvp(input: {
+  userId: string;
+  eventId: string;
+  status: "going" | "interested" | "declined";
+}) {
+  const { data: event } = await db()
+    .from("community_events")
+    .select("id, community_id, is_published")
+    .eq("id", input.eventId)
+    .maybeSingle();
+  if (!event?.is_published) throw new Error("Event not found");
+
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from("community_memberships")
+    .select("id")
+    .eq("community_id", event.community_id)
+    .eq("user_id", input.userId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (!membership) throw new Error("Join the community to RSVP");
+
+  const { data, error } = await db()
+    .from("community_event_rsvps")
+    .upsert(
+      {
+        event_id: input.eventId,
+        user_id: input.userId,
+        status: input.status,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "event_id,user_id" }
+    )
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}

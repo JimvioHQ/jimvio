@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Compass,
   Crown,
+  Bell,
   GraduationCap,
   Home,
   Layers,
@@ -30,6 +31,9 @@ export type SidebarItem =
   | "missions"
   | "courses"
   | "events"
+  | "leaderboard"
+  | "notifications"
+  | "profile"
   | "wallet"
   | "settings";
 
@@ -45,11 +49,13 @@ const NAV_ITEMS: NavItem[] = [
   { id: "feed", label: "Feed", href: "/communities", icon: Home },
   { id: "explore", label: "Explore", href: "/communities/explore", icon: Compass },
   { id: "live", label: "Live", href: "/communities/live", icon: Radio, badge: { type: "live" } },
-  { id: "messages", label: "Messages", href: "/communities/messages", icon: MessageSquare, badge: { type: "count", value: 4 } },
+  { id: "messages", label: "Messages", href: "/communities/messages", icon: MessageSquare },
   { id: "groups", label: "Spaces", href: "/communities/spaces", icon: Layers },
-  { id: "missions", label: "Missions", href: "/communities/missions", icon: Target, badge: { type: "new" } },
+  { id: "missions", label: "Missions", href: "/communities/missions", icon: Target },
   { id: "courses", label: "Courses", href: "/communities/courses", icon: GraduationCap },
   { id: "events", label: "Events", href: "/communities/events", icon: Calendar },
+  { id: "leaderboard", label: "Leaderboard", href: "/communities/leaderboard", icon: Crown },
+  { id: "notifications", label: "Notifications", href: "/communities/notifications", icon: Bell },
   { id: "wallet", label: "Wallet", href: "/communities/wallet", icon: Wallet },
 ];
 
@@ -85,6 +91,9 @@ export function resolveSidebarActiveItem(pathname: string): SidebarItem {
   if (pathname.startsWith("/communities/missions")) return "missions";
   if (pathname.startsWith("/communities/courses")) return "courses";
   if (pathname.startsWith("/communities/events")) return "events";
+  if (pathname.startsWith("/communities/leaderboard")) return "leaderboard";
+  if (pathname.startsWith("/communities/notifications")) return "notifications";
+  if (pathname.startsWith("/communities/profile")) return "profile";
   if (pathname.startsWith("/communities/wallet")) return "wallet";
   if (pathname.startsWith("/communities/settings")) return "settings";
   return "feed";

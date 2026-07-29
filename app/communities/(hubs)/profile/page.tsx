@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import {
   formatProfileLocation,
@@ -302,6 +303,30 @@ export default function MyProfilePage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Creator OS snapshot */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link href="/communities/leaderboard" className="rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm transition hover:border-[#fd5000]/30">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Achievements</p>
+            <p className="mt-1 text-[14px] font-bold text-[#111827]">Leaderboard & skills</p>
+            <p className="mt-1 text-[12px] text-[#6B7280]">See monthly rankings across creators, affiliates, and brands.</p>
+          </Link>
+          <Link href="/ugc" className="rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm transition hover:border-[#fd5000]/30">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Campaign history</p>
+            <p className="mt-1 text-[14px] font-bold text-[#111827]">UGC portfolio</p>
+            <p className="mt-1 text-[12px] text-[#6B7280]">Track applications, submissions, and brand work.</p>
+          </Link>
+          <Link href="/affiliates/dashboard" className="rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm transition hover:border-[#fd5000]/30">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Affiliate earnings</p>
+            <p className="mt-1 text-[14px] font-bold text-[#111827]">Commerce performance</p>
+            <p className="mt-1 text-[12px] text-[#6B7280]">Clicks, conversions, and payouts in one place.</p>
+          </Link>
+          <Link href="/communities/explore" className="rounded-2xl border border-[#E8EAED] bg-white p-4 shadow-sm transition hover:border-[#fd5000]/30">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#9CA3AF]">Verification</p>
+            <p className="mt-1 text-[14px] font-bold text-[#111827]">Social & trust</p>
+            <p className="mt-1 text-[12px] text-[#6B7280]">Build a verified creator presence across Jimvio.</p>
+          </Link>
         </div>
 
         {/* User ID Info */}

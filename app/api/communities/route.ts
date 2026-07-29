@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   const slug = (body.slug as string) || slugify(name);
   if (!slug) return NextResponse.json({ error: "Invalid slug" }, { status: 400 });
 
-  const insert = {
+  const insert: Record<string, unknown> = {
     name,
     slug,
     owner_id: user.id,
@@ -77,8 +77,16 @@ export async function POST(req: NextRequest) {
     trial_days: body.trial_days as number | undefined,
     platform_commission_rate: body.platform_commission_rate as number | undefined,
   };
+  if (
+    body.visibility === "public" ||
+    body.visibility === "private" ||
+    body.visibility === "invite_only"
+  ) {
+    insert.visibility = body.visibility;
+    insert.is_private = body.visibility !== "public";
+  }
 
-  const { data, error } = await supabase.from("communities").insert(insert).select().single();
+  const { data, error } = await supabase.from("communities").insert(insert as any).select().single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 

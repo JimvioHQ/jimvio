@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 
-export type CommunitySearchType = "posts" | "members" | "spaces" | "rooms";
+export type CommunitySearchType =
+  | "posts"
+  | "members"
+  | "spaces"
+  | "rooms"
+  | "courses"
+  | "events"
+  | "communities";
 
 export type CommunitySearchResult = {
   id: string;
@@ -22,7 +29,15 @@ export type CommunitySearchOptions = {
   limit?: number;
 };
 
-const ALL_TYPES: CommunitySearchType[] = ["posts", "members", "spaces", "rooms"];
+const ALL_TYPES: CommunitySearchType[] = [
+  "posts",
+  "members",
+  "spaces",
+  "rooms",
+  "courses",
+  "events",
+  "communities",
+];
 
 async function getMembershipCommunityIds(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -257,13 +272,98 @@ export async function searchCommunities(
     );
   }
 
+  if (types.includes("courses")) {
+    tasks.push(
+      (async () => {
+        const { data } = await supabase
+          .from("community_courses")
+          .select("id, title, description, community_id")
+          .in("community_id", communityIds)
+          .or([orIlike("title", pattern), orIlike("description", pattern)].join(","))
+          .limit(perType);
+        for (const course of data ?? []) {
+          const community = communityMap.get(course.community_id);
+          results.push({
+            id: course.id,
+            type: "courses",
+            title: course.title,
+            subtitle: community?.name ?? "Course",
+            href: community
+              ? `/communities/${community.slug}/courses`
+              : "/communities/courses",
+            communityName: community?.name ?? null,
+            communitySlug: community?.slug ?? null,
+          });
+        }
+      })()
+    );
+  }
+
+  if (types.includes("events")) {
+    tasks.push(
+      (async () => {
+        const { data } = await (supabase as any)
+          .from("community_events")
+          .select("id, title, description, community_id, starts_at")
+          .in("community_id", communityIds)
+          .eq("is_published", true)
+          .or([orIlike("title", pattern), orIlike("description", pattern)].join(","))
+          .order("starts_at", { ascending: true })
+          .limit(perType);
+        for (const event of data ?? []) {
+          const community = communityMap.get(event.community_id);
+          results.push({
+            id: event.id,
+            type: "events",
+            title: event.title,
+            subtitle: community?.name ?? "Event",
+            href: community
+              ? `/communities/${community.slug}/events?event=${event.id}`
+              : `/communities/events?event=${event.id}`,
+            communityName: community?.name ?? null,
+            communitySlug: community?.slug ?? null,
+          });
+        }
+      })()
+    );
+  }
+
+  if (types.includes("communities")) {
+    tasks.push(
+      (async () => {
+        const { data } = await supabase
+          .from("communities")
+          .select("id, name, slug, tagline, avatar_url")
+          .eq("is_active", true)
+          .or([orIlike("name", pattern), orIlike("tagline", pattern), orIlike("description", pattern)].join(","))
+          .order("member_count", { ascending: false })
+          .limit(perType);
+        for (const c of data ?? []) {
+          results.push({
+            id: c.id,
+            type: "communities",
+            title: c.name,
+            subtitle: c.tagline,
+            href: `/communities/${c.slug}`,
+            avatarUrl: c.avatar_url,
+            communityName: c.name,
+            communitySlug: c.slug,
+          });
+        }
+      })()
+    );
+  }
+
   await Promise.all(tasks);
 
   const typeRank: Record<CommunitySearchType, number> = {
-    posts: 0,
-    members: 1,
-    spaces: 2,
-    rooms: 3,
+    communities: 0,
+    posts: 1,
+    members: 2,
+    spaces: 3,
+    rooms: 4,
+    courses: 5,
+    events: 6,
   };
 
   return results

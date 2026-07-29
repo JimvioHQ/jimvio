@@ -10,7 +10,7 @@ import { rateLimit } from "@/lib/ops/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-type AiMode = "ask" | "summarize" | "suggest" | "draft" | "faq";
+type AiMode = "ask" | "summarize" | "suggest" | "draft" | "faq" | "translate" | "moderate" | "event";
 
 const MODE_HINTS: Record<AiMode, string> = {
   ask: "Answer using only the Community Brain context. If the answer is not in context, say it is unavailable.",
@@ -21,6 +21,12 @@ const MODE_HINTS: Record<AiMode, string> = {
   draft:
     "Draft an announcement or discussion starter using only facts from the Community Brain context. Label it as a draft. Do not invent events or resources.",
   faq: "Write short FAQ Q&A pairs answered only from the Community Brain context. If unknown, say unavailable.",
+  translate:
+    "Translate the user prompt into clear English (or the language they request). Keep meaning intact. Do not invent community facts.",
+  moderate:
+    "Review the user text for community guidelines. Flag spam, harassment, scams, or unsafe content. Suggest a safer rewrite if needed. Be concise.",
+  event:
+    "Generate a polished community event description with title ideas, agenda bullets, and a short RSVP CTA. Keep it professional and warm.",
 };
 
 function softFallback(mode: AiMode, communityName?: string): string {
@@ -28,8 +34,11 @@ function softFallback(mode: AiMode, communityName?: string): string {
   if (mode === "summarize") {
     return `Community AI is temporarily offline${place}. I can't summarize live community content until the provider is back — please retry shortly.`;
   }
-  if (mode === "suggest" || mode === "draft" || mode === "faq") {
+  if (mode === "suggest" || mode === "draft" || mode === "faq" || mode === "event") {
     return `Community AI is temporarily offline${place}. Retry in a moment to generate drafts or suggestions from your community knowledge.`;
+  }
+  if (mode === "translate" || mode === "moderate") {
+    return `Community AI is temporarily offline${place}. Retry shortly for translation or moderation help.`;
   }
   return `Community AI is temporarily offline${place}. Retry shortly — I only answer from community knowledge when the provider is available.`;
 }
@@ -40,7 +49,10 @@ function parseMode(raw: unknown): AiMode {
     raw === "suggest" ||
     raw === "ask" ||
     raw === "draft" ||
-    raw === "faq"
+    raw === "faq" ||
+    raw === "translate" ||
+    raw === "moderate" ||
+    raw === "event"
   ) {
     return raw;
   }

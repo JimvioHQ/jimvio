@@ -13,7 +13,6 @@ import {
   Share2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { FEED_POSTS } from "@/lib/feed/mock-data";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
@@ -142,27 +141,6 @@ function formatEngagement(value: number | string): string {
   return String(value);
 }
 
-function mockFallbackPosts(): DisplayPost[] {
-  return FEED_POSTS.map((post) => {
-    let media: DisplayPost["media"] = null;
-    if (post.media?.type === "video") {
-      // Mock posts have thumbnails only — show as image to avoid broken <video>
-      media = { type: "image", thumbnail: post.media.thumbnail };
-    } else if (post.media?.type === "image") {
-      media = { type: "image", thumbnail: post.media.thumbnail };
-    }
-    return {
-      id: post.id,
-      author: post.author,
-      timestamp: post.timestamp,
-      pinned: post.pinned,
-      body: post.body,
-      media,
-      engagement: post.engagement,
-    };
-  });
-}
-
 export function FeedPostCard() {
   const [posts, setPosts] = useState<DisplayPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -182,8 +160,8 @@ export function FeedPostCard() {
       const res = await fetch(`/api/posts/feed?${params}`);
       if (res.status === 401) {
         if (!isMore) {
-          setPosts(mockFallbackPosts());
-          setUsingMock(true);
+          setPosts([]);
+          setUsingMock(false);
           setHasMore(false);
           setCursor(null);
         }
@@ -192,8 +170,8 @@ export function FeedPostCard() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (!isMore) {
-          setPosts(mockFallbackPosts());
-          setUsingMock(true);
+          setPosts([]);
+          setUsingMock(false);
         }
         toast.error(data.error || "Failed to load feed");
         return;
@@ -209,8 +187,8 @@ export function FeedPostCard() {
       setCursor(data.next_cursor ?? null);
     } catch {
       if (!isMore) {
-        setPosts(mockFallbackPosts());
-        setUsingMock(true);
+        setPosts([]);
+        setUsingMock(false);
       }
     } finally {
       setLoading(false);
@@ -290,6 +268,32 @@ export function FeedPostCard() {
     return (
       <div className="flex items-center justify-center py-16 text-gray-400">
         <Loader2 className="h-5 w-5 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!loading && posts.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center">
+        <Flame className="mx-auto h-6 w-6 text-[#fd5000]" />
+        <p className="mt-3 text-[15px] font-bold text-[#111827]">Your feed is ready</p>
+        <p className="mx-auto mt-1 max-w-sm text-[13px] text-[#6B7280]">
+          Follow creators, join communities, and publish your first post to fill this stream.
+        </p>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <Link
+            href="/communities/explore"
+            className="inline-flex h-10 items-center rounded-xl bg-[#fd5000] px-4 text-[13px] font-bold text-white"
+          >
+            Explore communities
+          </Link>
+          <Link
+            href="/login?next=/communities"
+            className="inline-flex h-10 items-center rounded-xl border border-[#E5E7EB] bg-white px-4 text-[13px] font-semibold text-[#111827]"
+          >
+            Sign in
+          </Link>
+        </div>
       </div>
     );
   }

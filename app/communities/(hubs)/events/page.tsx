@@ -18,8 +18,11 @@ type HubEvent = {
   image_url: string | null;
   attendee_count: number;
   is_going: boolean;
-  kind: "task" | "campaign";
+  is_interested?: boolean;
+  kind: string;
   href: string | null;
+  source?: string;
+  community_name?: string | null;
 };
 
 const TAB_REDIRECTS: Record<string, string> = {
@@ -101,10 +104,11 @@ function EventsPage() {
               Events
             </h1>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Upcoming missions, campaigns, and community happenings
+              Workshops, webinars, AMAs, meetups, launches — plus missions on your calendar
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <HubLinkButton href="/communities/create" variant="secondary">Create community</HubLinkButton>
             <HubLinkButton href="/communities/missions" variant="secondary">Missions</HubLinkButton>
             <HubLinkButton href="/communities/courses" variant="secondary">Courses</HubLinkButton>
           </div>
@@ -168,6 +172,27 @@ function EventsPage() {
 function EventCard({ event }: { event: HubEvent }) {
   const eventDate = new Date(event.start_date);
   const isUpcoming = eventDate >= new Date();
+  const [busy, setBusy] = useState(false);
+  const [going, setGoing] = useState(event.is_going);
+
+  const rsvp = async () => {
+    if (event.source !== "event") return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/c/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "rsvp",
+          eventId: event.id,
+          status: going ? "declined" : "going",
+        }),
+      });
+      if (res.ok) setGoing(!going);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const content = (
     <HubCard className="group transition hover:border-[#fd5000]/30 hover:shadow-md">
@@ -178,7 +203,12 @@ function EventCard({ event }: { event: HubEvent }) {
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <HubBadge variant="orange">{event.kind}</HubBadge>
-            {event.is_going && <HubBadge variant="live">Completed</HubBadge>}
+            {going && <HubBadge variant="live">Going</HubBadge>}
+            {event.community_name ? (
+              <span className="text-[11px] font-medium text-[var(--color-text-muted)]">
+                {event.community_name}
+              </span>
+            ) : null}
           </div>
           <h2 className="text-[15px] font-bold group-hover:text-[#fd5000]">{event.title}</h2>
           {event.description && (
@@ -198,14 +228,34 @@ function EventCard({ event }: { event: HubEvent }) {
             )}
             <div className="flex items-center gap-2">
               <Users className="h-3.5 w-3.5" />
-              {event.attendee_count} {event.kind === "task" ? "completions" : "submissions"}
+              {event.attendee_count}{" "}
+              {event.source === "event"
+                ? "RSVPs"
+                : event.kind === "task"
+                  ? "completions"
+                  : "submissions"}
             </div>
           </div>
-          {isUpcoming && (
-            <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-[#fd5000]">
-              View details <ChevronRight className="h-3.5 w-3.5" />
-            </span>
-          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {event.source === "event" && isUpcoming ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  void rsvp();
+                }}
+                disabled={busy}
+                className="inline-flex h-8 items-center rounded-lg bg-[#fd5000] px-3 text-[11px] font-bold text-white disabled:opacity-60"
+              >
+                {going ? "Cancel RSVP" : "RSVP"}
+              </button>
+            ) : null}
+            {isUpcoming && event.href ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#fd5000]">
+                View details <ChevronRight className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
     </HubCard>
