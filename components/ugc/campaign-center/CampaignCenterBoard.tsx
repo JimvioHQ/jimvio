@@ -214,18 +214,15 @@ export function CampaignCenterBoard({
 
                 {menuId === c.id ? (
                   <div className="absolute right-4 top-14 z-10 w-48 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white py-1 shadow-lg">
-                    {c.status === "draft" || c.status === "paused" ? (
-                      <MenuItem
-                        icon={Upload}
-                        label="Publish"
-                        disabled={busy}
-                        onClick={() =>
-                          void runAction(c.id, async () => {
-                            await patchCampaign(c.id, { status: "active" });
-                            toast.success("Campaign published");
-                          })
-                        }
-                      />
+                    {c.status === "draft" ? (
+                      <Link
+                        href={`/ugc/campaign-center/${c.id}/fund`}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] font-medium text-[#374151] hover:bg-[#F9FAFB]"
+                        onClick={() => setMenuId(null)}
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        Fund & Activate
+                      </Link>
                     ) : null}
                     {c.status === "active" ? (
                       <MenuItem
@@ -307,8 +304,9 @@ export function CampaignCenterBoard({
 }
 
 function StatusBadge({ status }: { status: UGCCampaignStatus }) {
+  const label = status === "draft" ? "Pending Funding" : status;
   const styles: Record<UGCCampaignStatus, string> = {
-    draft: "bg-[#F3F4F6] text-[#4B5563]",
+    draft: "bg-[#FFF0E8] text-[#C2410C]",
     active: "bg-[#ECFDF5] text-[#059669]",
     paused: "bg-[#FFF7ED] text-[#C2410C]",
     completed: "bg-[#EEF2FF] text-[#4338CA]",
@@ -321,7 +319,7 @@ function StatusBadge({ status }: { status: UGCCampaignStatus }) {
         styles[status] ?? styles.draft,
       )}
     >
-      {status}
+      {label}
     </span>
   );
 }

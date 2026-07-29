@@ -1,0 +1,429 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowLeft,
+  Check,
+  CreditCard,
+  Loader2,
+  Lock,
+  ShieldCheck,
+  Sparkles,
+  Wallet,
+  Bitcoin,
+} from "lucide-react";
+import { toast } from "sonner";
+import type { UGCCampaign } from "@/types/ugc";
+import { useCurrency } from "@/context/CurrencyContext";
+import { cn } from "@/lib/utils";
+
+const MIN_FUNDING_RWF = 1000;
+
+type PayMethod = "flutterwave" | "wallet" | "crypto";
+
+const METHODS: {
+  id: PayMethod;
+  label: string;
+  desc: string;
+  icon: typeof Wallet;
+}[] = [
+  {
+    id: "flutterwave",
+    label: "Flutterwave",
+    desc: "Cards & mobile money",
+    icon: CreditCard,
+  },
+  {
+    id: "wallet",
+    label: "Jimvio Wallet",
+    desc: "Instant escrow from balance",
+    icon: Wallet,
+  },
+  {
+    id: "crypto",
+    label: "Crypto",
+    desc: "USDC / stablecoin (when available)",
+    icon: Bitcoin,
+  },
+];
+
+export function CampaignFundClient() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { formatMoney } = useCurrency();
+  const [campaign, setCampaign] = useState<UGCCampaign | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [method, setMethod] = useState<PayMethod>("flutterwave");
+  const [phone, setPhone] = useState("");
+  const [walletBalance] = useState(0);
+  const [funding, setFunding] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/ugc/campaigns/${id}`);
+        const json = await res.json();
+        if (!cancelled) setCampaign(json.campaign ?? null);
+      } catch {
+        if (!cancelled) setCampaign(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const amountToFund = useMemo(() => {
+    const budget = Number(campaign?.total_budget) || MIN_FUNDING_RWF;
+    return Math.max(MIN_FUNDING_RWF, budget);
+  }, [campaign]);
+
+  const estimatedReach = useMemo(() => {
+    const rate = Number(campaign?.rate_per_1k_views) || 1;
+    const views = Math.floor((amountToFund / rate) * 1000);
+    return Math.max(views, 1000);
+  }, [amountToFund, campaign]);
+
+  const fund = async () => {
+    if (!campaign) return;
+    if (amountToFund < MIN_FUNDING_RWF) {
+      setError(`Minimum funding is RWF ${MIN_FUNDING_RWF.toLocaleString()}`);
+      return;
+    }
+    setFunding(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/ugc/campaigns/${campaign.id}/deposit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: amountToFund,
+          payment_method: method,
+          phone: method === "flutterwave" ? phone || "250700000000" : undefined,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Funding failed");
+
+      setSuccess(true);
+      toast.success("Campaign funded and activated");
+      window.setTimeout(() => {
+        router.push("/ugc/campaign-center/active");
+      }, 1800);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Funding failed");
+    } finally {
+      setFunding(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#FF5A1F]" />
+      </div>
+    );
+  }
+
+  if (!campaign) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <p className="text-[15px] font-semibold text-[#111827]">Campaign not found</p>
+        <Link
+          href="/ugc/campaign-center"
+          className="mt-4 inline-flex text-[13px] font-semibold text-[#FF5A1F]"
+        >
+          Back to Campaign Center
+        </Link>
+      </div>
+    );
+  }
+
+  if (campaign.status === "active") {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#ECFDF5]">
+          <Check className="h-7 w-7 text-[#059669]" />
+        </div>
+        <h1 className="mt-4 text-[22px] font-bold text-[#111827]">Already active</h1>
+        <p className="mt-2 text-[13px] text-[#6B7280]">
+          “{campaign.title}” is funded and live.
+        </p>
+        <Link
+          href="/ugc/campaign-center/active"
+          className="mt-6 inline-flex h-10 items-center rounded-full bg-[#FF5A1F] px-5 text-[13px] font-bold text-white"
+        >
+          View active campaigns
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[920px] px-4 py-6 sm:px-6">
+      <Link
+        href="/ugc/campaign-center"
+        className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#6B7280] hover:text-[#FF5A1F]"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to Campaign Center
+      </Link>
+
+      <div className="mt-4">
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#FF5A1F]">
+          Campaign Center
+        </p>
+        <h1 className="mt-1 text-[24px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
+          Fund Campaign
+        </h1>
+        <p className="mt-1 max-w-xl text-[13px] text-[#6B7280]">
+          Your campaign must be funded before it becomes active.
+        </p>
+      </div>
+
+      {/* Status stepper */}
+      <ol className="mt-5 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide">
+        {[
+          { label: "Draft", done: true },
+          { label: "Pending Funding", done: true, current: true },
+          { label: "Active", done: success },
+        ].map((s, i) => (
+          <li key={s.label} className="flex items-center gap-2">
+            {i > 0 ? <span className="text-[#D1D5DB]">→</span> : null}
+            <span
+              className={cn(
+                "rounded-full px-2.5 py-1",
+                s.done && !s.current && "bg-[#ECFDF5] text-[#059669]",
+                s.current && !success && "bg-[#FFF0E8] text-[#FF5A1F]",
+                success && s.label === "Active" && "bg-[#ECFDF5] text-[#059669]",
+                !s.done && !s.current && "bg-[#F3F4F6] text-[#9CA3AF]",
+              )}
+            >
+              {s.label}
+            </span>
+          </li>
+        ))}
+      </ol>
+
+      <AnimatePresence mode="wait">
+        {success ? (
+          <motion.div
+            key="ok"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mt-8 rounded-3xl border border-[#BBF7D0] bg-gradient-to-br from-[#ECFDF5] to-white p-10 text-center shadow-lg"
+          >
+            <motion.div
+              initial={{ scale: 0.6 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 320, damping: 18 }}
+              className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#059669] text-white shadow-[0_10px_30px_rgba(5,150,105,0.35)]"
+            >
+              <Check className="h-8 w-8" strokeWidth={2.5} />
+            </motion.div>
+            <h2 className="mt-5 text-[22px] font-bold text-[#111827]">Campaign activated</h2>
+            <p className="mt-2 text-[13px] text-[#6B7280]">
+              Escrow locked · Creators can now discover and join “{campaign.title}”.
+            </p>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="form"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]"
+          >
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-[#EEF0F2] bg-white p-5 shadow-sm">
+                <h2 className="text-[14px] font-bold text-[#111827]">Campaign summary</h2>
+                <p className="mt-2 text-[16px] font-bold text-[#111827]">{campaign.title}</p>
+                <p className="mt-1 line-clamp-3 text-[12.5px] text-[#6B7280]">
+                  {campaign.description || "No description"}
+                </p>
+                <div className="mt-4 grid grid-cols-2 gap-3 text-[12px]">
+                  <div className="rounded-xl bg-[#F9FAFB] px-3 py-2.5">
+                    <p className="text-[#9CA3AF]">Type</p>
+                    <p className="mt-0.5 font-semibold capitalize text-[#111827]">
+                      {campaign.campaign_type.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                  <div className="rounded-xl bg-[#F9FAFB] px-3 py-2.5">
+                    <p className="text-[#9CA3AF]">Budget</p>
+                    <p className="mt-0.5 font-semibold text-[#111827]">
+                      {formatMoney(campaign.total_budget ?? 0, "USD")}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 rounded-xl border border-[#FFE4D6] bg-[#FFF8F5] px-3 py-3">
+                  <div className="flex items-center gap-2 text-[12px] font-semibold text-[#9A3412]">
+                    <Sparkles className="h-3.5 w-3.5 text-[#FF5A1F]" />
+                    Estimated creator reach
+                  </div>
+                  <p className="mt-1 text-[18px] font-bold tabular-nums text-[#FF5A1F]">
+                    ~{estimatedReach.toLocaleString()} views
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#EEF0F2] bg-white p-5 shadow-sm">
+                <h2 className="text-[14px] font-bold text-[#111827]">Funding progress</h2>
+                <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#F3F4F6]">
+                  <div
+                    className="h-full rounded-full bg-[#FF5A1F] transition-all"
+                    style={{ width: success ? "100%" : "18%" }}
+                  />
+                </div>
+                <p className="mt-2 text-[12px] text-[#6B7280]">
+                  Escrow empty · Fund to unlock activation
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#FFE4D6] bg-white p-5 shadow-[0_8px_28px_rgba(255,90,31,0.08)]">
+              <div className="flex items-start gap-2">
+                <Lock className="mt-0.5 h-4 w-4 text-[#FF5A1F]" />
+                <div>
+                  <h2 className="text-[14px] font-bold text-[#111827]">Secure funding</h2>
+                  <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B7280]">
+                    Funds are locked in escrow until submissions are approved. Minimum funding:{" "}
+                    <strong className="text-[#111827]">
+                      RWF {MIN_FUNDING_RWF.toLocaleString()}
+                    </strong>
+                    .
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-2.5">
+                <Row label="Current balance" value={`RWF ${walletBalance.toLocaleString()}`} />
+                <Row
+                  label="Minimum required"
+                  value={`RWF ${MIN_FUNDING_RWF.toLocaleString()}`}
+                />
+                <Row
+                  label="Amount to fund"
+                  value={`RWF ${amountToFund.toLocaleString()}`}
+                  strong
+                />
+              </div>
+
+              <p className="mt-5 text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
+                Payment method
+              </p>
+              <div className="mt-2 space-y-2">
+                {METHODS.map((m) => {
+                  const Icon = m.icon;
+                  const on = method === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setMethod(m.id)}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition",
+                        on
+                          ? "border-[#FF5A1F] bg-[#FFF8F5] shadow-[0_0_0_3px_rgba(255,90,31,0.1)]"
+                          : "border-[#E5E7EB] hover:border-[#FF5A1F]/40",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "grid h-9 w-9 place-items-center rounded-lg",
+                          on ? "bg-[#FF5A1F] text-white" : "bg-[#F3F4F6] text-[#6B7280]",
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span>
+                        <span className="block text-[13px] font-bold text-[#111827]">
+                          {m.label}
+                        </span>
+                        <span className="text-[11.5px] text-[#6B7280]">{m.desc}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {method === "flutterwave" ? (
+                <div className="mt-3">
+                  <label className="mb-1 block text-[11px] font-semibold text-[#6B7280]">
+                    Phone (mobile money)
+                  </label>
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="2507…"
+                    className="w-full rounded-xl border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15"
+                  />
+                </div>
+              ) : null}
+
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] font-medium text-[#6B7280]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#F0FDF4] px-2 py-1 text-[#15803D]">
+                  <ShieldCheck className="h-3 w-3" /> Escrow protected
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2 py-1 text-[#4338CA]">
+                  <Lock className="h-3 w-3" /> PCI-ready checkout
+                </span>
+              </div>
+
+              {error ? (
+                <p className="mt-3 text-[12.5px] font-medium text-red-600">{error}</p>
+              ) : null}
+
+              <button
+                type="button"
+                disabled={funding}
+                onClick={() => void fund()}
+                className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white shadow-[0_8px_24px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18] disabled:opacity-60"
+              >
+                {funding ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+                {funding ? "Processing…" : `Fund & Activate · RWF ${amountToFund.toLocaleString()}`}
+              </button>
+              <p className="mt-2 text-center text-[11px] text-[#9CA3AF]">
+                Activation is blocked until escrow clears. No charge without confirmation.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function Row({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-[#F9FAFB] px-3 py-2.5">
+      <span className="text-[12px] text-[#6B7280]">{label}</span>
+      <span
+        className={cn(
+          "text-[13px] tabular-nums",
+          strong ? "font-bold text-[#FF5A1F]" : "font-semibold text-[#111827]",
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}

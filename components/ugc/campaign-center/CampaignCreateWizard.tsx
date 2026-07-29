@@ -54,8 +54,6 @@ type FormState = {
   required_mentions: string[];
   required_keywords: string[];
   requires_face: boolean;
-  starts_at: string;
-  ends_at: string;
   music_track_url: string;
   music_artist_name: string;
   promotion_target: string;
@@ -82,8 +80,6 @@ const DEFAULT_FORM: FormState = {
   required_mentions: [],
   required_keywords: [],
   requires_face: false,
-  starts_at: "",
-  ends_at: "",
   music_track_url: "",
   music_artist_name: "",
   promotion_target: "",
@@ -142,8 +138,6 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             required_mentions: Array.isArray(c.required_mentions) ? c.required_mentions : [],
             required_keywords: Array.isArray(c.required_keywords) ? c.required_keywords : [],
             requires_face: Boolean(c.requires_face),
-            starts_at: c.starts_at ? String(c.starts_at).slice(0, 16) : "",
-            ends_at: c.ends_at ? String(c.ends_at).slice(0, 16) : "",
             music_track_url: c.music_track_url ?? "",
             music_artist_name: c.music_artist_name ?? "",
             promotion_target: c.promotion_target ?? "",
@@ -294,8 +288,6 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       required_mentions: form.required_mentions,
       required_keywords: form.required_keywords,
       requires_face: form.requires_face,
-      starts_at: form.starts_at || null,
-      ends_at: form.ends_at || null,
       music_track_url: form.music_track_url || undefined,
       music_artist_name: form.music_artist_name || undefined,
       promotion_target: form.promotion_target || undefined,
@@ -331,8 +323,6 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             required_mentions: payload.required_mentions,
             required_keywords: payload.required_keywords,
             requires_face: payload.requires_face,
-            starts_at: payload.starts_at,
-            ends_at: payload.ends_at,
             status: "draft",
           }),
         });
@@ -360,7 +350,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     }
   };
 
-  const publish = async () => {
+  const continueToFunding = async () => {
     for (let s = 0; s < STEPS.length - 1; s++) {
       const err = validateStep(s);
       if (err) {
@@ -400,30 +390,17 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             required_mentions: payload.required_mentions,
             required_keywords: payload.required_keywords,
             requires_face: payload.requires_face,
-            starts_at: payload.starts_at,
-            ends_at: payload.ends_at,
+            status: "draft",
           }),
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.error || "Update failed");
       }
 
-      const pub = await fetch(`/api/ugc/campaigns/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "active" }),
-      });
-      const pubJson = await pub.json().catch(() => ({}));
-      if (!pub.ok) {
-        // Escrow gate — still created as draft
-        toast.message(pubJson.error || "Saved as draft — deposit escrow to publish");
-        router.push(`/dashboard/vendor/campaigns/${id}`);
-        return;
-      }
-      toast.success("Campaign published");
-      router.push("/ugc/campaign-center/active");
+      toast.success("Campaign ready — fund to activate");
+      router.push(`/ugc/campaign-center/${id}/fund`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Publish failed");
+      setError(e instanceof Error ? e.message : "Could not continue");
     } finally {
       setLoading(false);
     }
@@ -668,30 +645,12 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 />
               </Field>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Deadline">
-                <input
-                  type="datetime-local"
-                  value={form.ends_at}
-                  onChange={(e) => set("ends_at", e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-              <Field label="Creator limit">
-                <input
-                  type="number"
-                  min={1}
-                  value={form.creator_limit}
-                  onChange={(e) => set("creator_limit", Number(e.target.value))}
-                  className={inputCls}
-                />
-              </Field>
-            </div>
-            <Field label="Starts at">
+            <Field label="Creator limit">
               <input
-                type="datetime-local"
-                value={form.starts_at}
-                onChange={(e) => set("starts_at", e.target.value)}
+                type="number"
+                min={1}
+                value={form.creator_limit}
+                onChange={(e) => set("creator_limit", Number(e.target.value))}
                 className={inputCls}
               />
             </Field>
@@ -857,11 +816,12 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               }
             />
             <ReviewRow label="Platforms" value={form.allowed_platforms.join(", ") || "—"} />
-            <ReviewRow label="Deadline" value={form.ends_at || "Not set"} />
+            <ReviewRow label="Creator limit" value={String(form.creator_limit)} />
             <ReviewRow label="Assets" value={`${form.media.length} file(s)`} />
             <p className="rounded-xl bg-[#FFF8F5] px-3 py-3 text-[12.5px] text-[#9A3412]">
-              Publishing may require escrow deposit. If blocked, your campaign is saved as a draft
-              and you can fund it from vendor campaigns.
+              Next step: fund your campaign (minimum RWF 1,000). It stays in{" "}
+              <strong>Pending Funding</strong> until escrow is deposited, then activates
+              automatically.
             </p>
           </div>
         )}
@@ -900,12 +860,12 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             ) : (
               <button
                 type="button"
-                onClick={() => void publish()}
+                onClick={() => void continueToFunding()}
                 disabled={loading}
                 className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white disabled:opacity-50"
               >
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                Publish
+                Continue to Funding
               </button>
             )}
           </div>

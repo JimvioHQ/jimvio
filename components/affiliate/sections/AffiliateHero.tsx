@@ -84,22 +84,43 @@ export function AffiliateHero({ heroRate, primaryCtaHref }: AffiliateHeroProps) 
         className="relative overflow-hidden rounded-[22px] border border-[#FFE4D6]/90 px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12"
         style={{
           background:
-            "radial-gradient(120% 90% at 100% 0%, #FFE8DE 0%, #FFF7F3 34%, #FFFFFF 72%)",
+            "radial-gradient(90% 70% at 88% 12%, rgba(255,138,85,0.32) 0%, transparent 55%), radial-gradient(70% 55% at 8% 90%, rgba(255,176,136,0.28) 0%, transparent 50%), linear-gradient(145deg, #FFF4EE 0%, #FFE8DE 28%, #FFF9F6 58%, #FFFFFF 100%)",
           boxShadow:
-            "0 1px 2px rgba(17,24,39,0.04), 0 12px 40px rgba(255,90,31,0.08)",
+            "0 1px 2px rgba(17,24,39,0.04), 0 16px 48px rgba(255,90,31,0.1), inset 0 1px 0 rgba(255,255,255,0.75)",
         }}
       >
+        {/* Soft mesh + glass depth — keep phone illustration unchanged */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.55)_0%,transparent_42%)]"
+          className="pointer-events-none absolute inset-0 opacity-[0.55]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.7) 0%, transparent 40%), radial-gradient(circle at 80% 30%, rgba(255,90,31,0.08) 0%, transparent 35%), linear-gradient(125deg, rgba(255,255,255,0.35) 0%, transparent 45%)",
+          }}
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-16 top-0 h-56 w-56 rounded-full bg-[#FF5A1F]/12 blur-3xl"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.5)_0%,transparent_42%)]"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-[#FFB088]/20 blur-3xl"
+          className="pointer-events-none absolute -right-16 top-0 h-64 w-64 rounded-full bg-[#FF5A1F]/18 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute right-[18%] top-[36%] h-40 w-40 rounded-full bg-[#FFB088]/35 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-10 bottom-0 h-48 w-48 rounded-full bg-[#FFC9A8]/40 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-[42%] top-[8%] h-24 w-24 rounded-full bg-white/50 blur-2xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-[1px] rounded-[21px] border border-white/50"
         />
 
         <div className="relative grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-6 xl:gap-10">

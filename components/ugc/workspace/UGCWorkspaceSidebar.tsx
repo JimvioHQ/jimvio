@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
   Clapperboard,
+  ChevronDown,
   Compass,
   Copy,
   DollarSign,
@@ -43,13 +45,12 @@ const PRIMARY_NAV: {
   { id: "deals", label: "Brand Deals", href: "/ugc/brand-deals", icon: Handshake },
 ];
 
-const CAMPAIGN_CENTER_NAV: {
+const CAMPAIGN_CENTER_MORE: {
   id: string;
   label: string;
   href: string;
   icon: typeof LayoutDashboard;
 }[] = [
-  { id: "cc-create", label: "Create Campaign", href: "/ugc/campaign-center/create", icon: PlusCircle },
   { id: "cc-mine", label: "My Campaigns", href: "/ugc/campaign-center", icon: Megaphone },
   { id: "cc-drafts", label: "Drafts", href: "/ugc/campaign-center/drafts", icon: FileStack },
   { id: "cc-active", label: "Active Campaigns", href: "/ugc/campaign-center/active", icon: FolderOpen },
@@ -59,6 +60,8 @@ const CAMPAIGN_CENTER_NAV: {
   { id: "cc-assets", label: "Campaign Assets", href: "/ugc/campaign-center/assets", icon: ImageIcon },
 ];
 
+const CC_MORE_STORAGE_KEY = "jimvio-ugc-cc-more-expanded";
+
 function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/campaign-center/create")) return "cc-create";
   if (pathname.startsWith("/ugc/campaign-center/drafts")) return "cc-drafts";
@@ -67,6 +70,7 @@ function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/campaign-center/analytics")) return "cc-analytics";
   if (pathname.startsWith("/ugc/campaign-center/recruitment")) return "cc-recruit";
   if (pathname.startsWith("/ugc/campaign-center/assets")) return "cc-assets";
+  if (pathname.match(/^\/ugc\/campaign-center\/[^/]+\/fund/)) return "cc-mine";
   if (pathname.startsWith("/ugc/campaign-center")) return "cc-mine";
   if (pathname === "/ugc/dashboard" || pathname === "/ugc/dashboard/") return "dashboard";
   if (/^\/ugc\/[^/]+\/dashboard\/?$/.test(pathname)) return "projects";
@@ -130,6 +134,39 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
   const pathname = usePathname();
   const activeId = resolveActive(pathname);
   const openAssistant = useAIStore((s) => s.openAssistant);
+  const moreItemActive = CAMPAIGN_CENTER_MORE.some((i) => i.id === activeId);
+
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(CC_MORE_STORAGE_KEY);
+      if (saved === "1") setMoreOpen(true);
+      else if (saved === "0") setMoreOpen(false);
+      else if (moreItemActive) setMoreOpen(true);
+    } catch {
+      if (moreItemActive) setMoreOpen(true);
+    }
+    setHydrated(true);
+  }, [moreItemActive]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (moreItemActive && !moreOpen) setMoreOpen(true);
+  }, [moreItemActive, hydrated, moreOpen]);
+
+  const toggleMore = () => {
+    setMoreOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(CC_MORE_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="flex h-full w-[220px] flex-col bg-white xl:w-[236px]">
@@ -165,11 +202,64 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
           </p>
         </div>
         <ul className="space-y-[2px]">
-          {CAMPAIGN_CENTER_NAV.map((item) => (
-            <li key={item.id}>
-              <NavLink item={item} active={item.id === activeId} onNavigate={onNavigate} />
-            </li>
-          ))}
+          <li>
+            <NavLink
+              item={{
+                id: "cc-create",
+                label: "Create Campaign",
+                href: "/ugc/campaign-center/create",
+                icon: PlusCircle,
+              }}
+              active={activeId === "cc-create"}
+              onNavigate={onNavigate}
+            />
+          </li>
+          <li>
+            <button
+              type="button"
+              onClick={toggleMore}
+              aria-expanded={moreOpen}
+              className={cn(
+                "group flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-[8px] text-[12px] font-medium transition-all duration-150",
+                moreOpen || moreItemActive
+                  ? "text-[#FF5A1F]"
+                  : "text-[#6B7280] hover:bg-[#F8FAFC] hover:text-[#111827]",
+              )}
+            >
+              <ChevronDown
+                className={cn(
+                  "h-[15px] w-[15px] shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  moreOpen ? "rotate-0 text-[#FF5A1F]" : "-rotate-90 text-[#9CA3AF]",
+                )}
+                strokeWidth={2.2}
+              />
+              <span className="truncate font-semibold">More</span>
+            </button>
+            <AnimatePresence initial={false}>
+              {moreOpen ? (
+                <motion.ul
+                  key="cc-more"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-[2px] pb-1 pt-0.5">
+                    {CAMPAIGN_CENTER_MORE.map((item) => (
+                      <li key={item.id}>
+                        <NavLink
+                          item={item}
+                          active={item.id === activeId}
+                          onNavigate={onNavigate}
+                        />
+                      </li>
+                    ))}
+                  </div>
+                </motion.ul>
+              ) : null}
+            </AnimatePresence>
+          </li>
         </ul>
 
         <div className="mt-3 shrink-0 px-0.5 pb-1 pt-1">
