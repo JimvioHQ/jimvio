@@ -17,6 +17,8 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
 import { toPlayableCommunityVideoUrl } from "@/lib/community-chat-upload";
+import type { FeedTab } from "@/lib/feed/mock-data";
+import { FEED_TAB_FILTERS } from "@/lib/feed/tab-filters";
 
 type ApiPost = {
   id: string;
@@ -141,7 +143,7 @@ function formatEngagement(value: number | string): string {
   return String(value);
 }
 
-export function FeedPostCard() {
+export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
   const [posts, setPosts] = useState<DisplayPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -150,12 +152,13 @@ export function FeedPostCard() {
   const [usingMock, setUsingMock] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
+  const filter = FEED_TAB_FILTERS[tab];
   const load = useCallback(async (nextCursor?: string | null) => {
     const isMore = Boolean(nextCursor);
     if (isMore) setLoadingMore(true);
     else setLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "20", filter: "for-you" });
+      const params = new URLSearchParams({ limit: "20", filter });
       if (nextCursor) params.set("cursor", nextCursor);
       const res = await fetch(`/api/posts/feed?${params}`);
       if (res.status === 401) {
@@ -194,7 +197,7 @@ export function FeedPostCard() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [filter]);
 
   useEffect(() => {
     void load();

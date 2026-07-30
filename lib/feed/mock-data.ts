@@ -17,9 +17,10 @@ export const FEED_TABS = [
   "For You",
   "Following",
   "Trending",
-  "Spaces",
-  "Missions",
-  "AI Picks",
+  "Hot",
+  "Rising",
+  "Newest",
+  "Recommended",
 ] as const;
 
 export type FeedTab = (typeof FEED_TABS)[number];

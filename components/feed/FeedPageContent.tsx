@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AIAssistantPanel } from "@/components/feed/AIAssistantPanel";
 import { ActivityFeedCard } from "@/components/feed/ActivityFeedCard";
 import { FeedDiscoverRail } from "@/components/feed/FeedDiscoverRail";
@@ -12,6 +13,7 @@ import { PostComposer } from "@/components/feed/PostComposer";
 import { StoriesRail } from "@/components/feed/StoriesRail";
 import { TopMissionsList } from "@/components/feed/TopMissionsList";
 import { UpcomingLiveSessions } from "@/components/feed/UpcomingLiveSessions";
+import type { FeedTab } from "@/lib/feed/mock-data";
 
 function FeedRightRailTop() {
   return (
@@ -30,6 +32,8 @@ function FeedRightRailTop() {
 }
 
 export function FeedPageContent() {
+  const [feedTab, setFeedTab] = useState<FeedTab>("For You");
+
   return (
     <>
       <div className="mx-auto w-full max-w-[1600px] bg-gradient-to-b from-[#FFF8F5]/80 via-gray-50/80 to-gray-50/80 p-4 lg:p-6">
@@ -48,8 +52,8 @@ export function FeedPageContent() {
             <PostComposer />
             <FeedDiscoverRail />
             <div className="space-y-0">
-              <FeedTabs />
-              <FeedPostCard />
+              <FeedTabs value={feedTab} onChange={setFeedTab} />
+              <FeedPostCard tab={feedTab} />
             </div>
           </div>
           <aside className="scrollbar-hide hidden lg:col-span-4 lg:block lg:sticky lg:top-4 lg:z-10 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain xl:col-span-3 2xl:col-span-5">

@@ -126,6 +126,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
   const resolvedActive = activeItem ?? resolveSidebarActiveItem(pathname);
   const [communitiesOpen, setCommunitiesOpen] = useState(true);
   const [communities, setCommunities] = useState<CommunityRow[]>([]);
+  const [pinned, setPinned] = useState<CommunityRow[]>([]);
   const [user, setUser] = useState(userProp);
 
   useEffect(() => {
@@ -183,6 +184,28 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
         }
       }
       setCommunities(mapped);
+
+      try {
+        const pinRes = await fetch("/api/c/pins", { cache: "no-store" });
+        if (pinRes.ok && !cancelled) {
+          const pinJson = await pinRes.json();
+          const pinsMapped: CommunityRow[] = [];
+          for (const pin of pinJson.pins ?? []) {
+            const c = pin.community;
+            if (c?.id && c?.slug && c?.name) {
+              pinsMapped.push({
+                id: c.id,
+                name: c.name,
+                slug: c.slug,
+                avatar_url: c.avatar_url ?? null,
+              });
+            }
+          }
+          setPinned(pinsMapped);
+        }
+      } catch {
+        /* optional */
+      }
     }
     load();
     return () => { cancelled = true; };
@@ -257,6 +280,34 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
           </button>
           {communitiesOpen && (
             <div className="space-y-0.5">
+              {pinned.length > 0 ? (
+                <>
+                  <p className="px-3 pb-1 pt-1 text-[10px] font-semibold uppercase tracking-wide text-orange-400">
+                    Pinned
+                  </p>
+                  {pinned.map((c) => (
+                    <Link
+                      key={`pin-${c.id}`}
+                      href={`/communities/${c.slug}`}
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                    >
+                      {c.avatar_url ? (
+                        <img
+                          src={c.avatar_url}
+                          alt=""
+                          className="h-7 w-7 shrink-0 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-[10px] font-semibold text-orange-600">
+                          {c.name.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                      <span className="truncate">{c.name}</span>
+                    </Link>
+                  ))}
+                  <div className="mx-3 my-1.5 border-t border-gray-100" />
+                </>
+              ) : null}
               {communities.length === 0 ? (
                 <p className="px-3 py-2 text-[12px] text-gray-400">
                   No communities joined yet

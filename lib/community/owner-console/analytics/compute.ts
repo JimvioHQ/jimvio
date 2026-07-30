@@ -73,6 +73,7 @@ export async function computeOwnerAnalytics(
     { data: community },
     postsCount,
     liveSessions,
+    { data: memberVisits },
   ] = await Promise.all([
     admin
       .from("community_memberships")
@@ -154,6 +155,12 @@ export async function computeOwnerAnalytics(
         .eq("community_id", communityId)
         .gte("created_at", startIso)
     ),
+    (admin as any)
+      .from("community_member_visits")
+      .select("user_id, last_visited_at")
+      .eq("community_id", communityId)
+      .gte("last_visited_at", new Date(Date.now() - 30 * 86_400_000).toISOString())
+      .limit(5000),
   ]);
 
   let filteredMemberships = memberships ?? [];
@@ -178,6 +185,33 @@ export async function computeOwnerAnalytics(
       m.subscribed_at &&
       new Date(m.subscribed_at).getTime() < weekAgo
   ).length;
+  const activeSince = (windowMs: number) => {
+    const cutoff = Date.now() - windowMs;
+    const users = new Set<string>();
+    for (const member of activeMembers) {
+      if (
+        member.last_active_at &&
+        new Date(member.last_active_at).getTime() >= cutoff
+      ) {
+        users.add(member.user_id);
+      }
+    }
+    for (const visit of (memberVisits ?? []) as {
+      user_id: string;
+      last_visited_at: string | null;
+    }[]) {
+      if (
+        visit.last_visited_at &&
+        new Date(visit.last_visited_at).getTime() >= cutoff
+      ) {
+        users.add(visit.user_id);
+      }
+    }
+    return users.size;
+  };
+  const dau = activeSince(86_400_000);
+  const wau = activeSince(7 * 86_400_000);
+  const mau = activeSince(30 * 86_400_000);
 
   const dayMap = emptyDays(start, end);
   for (const m of filteredMemberships) {
@@ -421,6 +455,9 @@ export async function computeOwnerAnalytics(
         membersN ? (returningMembers / membersN) * 100 : 0
       ),
       onlineMembers,
+      dau,
+      wau,
+      mau,
       topContributors,
       topCreators,
       roleDistribution: Array.from(roleDist.entries()).map(([id, count]) => ({

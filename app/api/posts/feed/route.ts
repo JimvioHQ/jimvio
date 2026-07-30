@@ -10,6 +10,21 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 20;
 const AUDIENCES = new Set(["public", "followers", "community", "private"]);
+const FEED_FILTERS = new Set([
+  "for-you",
+  "trending",
+  "hot",
+  "rising",
+  "newest",
+  "recommended",
+  "following",
+  "friends",
+  "verified",
+  // Legacy filters remain supported for existing clients.
+  "ai-picks",
+  "spaces",
+  "missions",
+]);
 
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
@@ -21,7 +36,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const limit = Math.min(Number(searchParams.get("limit") ?? PAGE_SIZE), 50);
   const cursor = searchParams.get("cursor");
-  const filter = searchParams.get("filter") ?? "for-you";
+  const requestedFilter = searchParams.get("filter") ?? "for-you";
+  const filter = FEED_FILTERS.has(requestedFilter) ? requestedFilter : "for-you";
   const communityId = searchParams.get("community_id");
   const draftsOnly = searchParams.get("drafts") === "1";
 
@@ -44,6 +60,30 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No access" }, { status: 403 });
   }
 
+  const db = supabase as any;
+  const [{ data: followRows }, { data: sharedMembershipRows }] = await Promise.all([
+    db
+      .from("user_follows")
+      .select("following_id")
+      .eq("follower_id", user.id)
+      .limit(500),
+    filter === "friends"
+      ? supabase
+          .from("community_memberships")
+          .select("user_id")
+          .in("community_id", communityIds)
+          .eq("status", "active")
+          .neq("user_id", user.id)
+          .limit(2000)
+      : Promise.resolve({ data: [] as { user_id: string }[] }),
+  ]);
+  const followedAuthorIds = new Set<string>(
+    ((followRows ?? []) as { following_id: string }[]).map((row) => row.following_id)
+  );
+  const friendAuthorIds = new Set<string>(
+    ((sharedMembershipRows ?? []) as { user_id: string }[]).map((row) => row.user_id)
+  );
+
   let query = supabase
     .from("community_posts")
     .select(
@@ -64,18 +104,36 @@ export async function GET(req: NextRequest) {
   switch (filter) {
     case "trending":
     case "ai-picks":
-      // Keep created_at keyset pagination correct (no like_count cursor skew).
       query = query
         .gte("created_at", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
-        .or("like_count.gte.1,comment_count.gte.1")
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false });
+        .or("like_count.gte.1,comment_count.gte.1");
       break;
-    case "following":
+    case "hot":
       query = query
-        .neq("author_id", user.id)
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false });
+        .gte("created_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+        .or("like_count.gte.1,comment_count.gte.1");
+      break;
+    case "rising":
+      query = query.gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      break;
+    case "verified": {
+      const { data: featuredCommunities } = await supabase
+        .from("communities")
+        .select("id")
+        .in("id", communityId ? [communityId] : communityIds)
+        .or("is_featured.eq.true,member_count.gte.100");
+      const featuredIds = (featuredCommunities ?? []).map((community) => community.id);
+      if (!featuredIds.length) return NextResponse.json({ posts: [], next_cursor: null });
+      query = query.in("community_id", featuredIds);
+      break;
+    }
+    case "following":
+      if (!followedAuthorIds.size) return NextResponse.json({ posts: [], next_cursor: null });
+      query = query.in("author_id", [...followedAuthorIds]);
+      break;
+    case "friends":
+      if (!friendAuthorIds.size) return NextResponse.json({ posts: [], next_cursor: null });
+      query = query.in("author_id", [...friendAuthorIds]);
       break;
     case "spaces":
       query = query
@@ -89,13 +147,13 @@ export async function GET(req: NextRequest) {
         .order("created_at", { ascending: false });
       break;
     default:
-      query = query
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false });
       break;
   }
 
-  const { data, error } = await query.limit(limit + 1);
+  query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
+  const shouldRank = ["for-you", "trending", "ai-picks", "hot", "rising", "recommended"].includes(filter);
+  const candidateLimit = shouldRank ? Math.min(200, limit * 4 + 1) : limit + 1;
+  const { data, error } = await query.limit(candidateLimit);
 
   if (error) {
     console.error("Error fetching feed posts:", error);
@@ -103,11 +161,7 @@ export async function GET(req: NextRequest) {
   }
 
   const rows = data ?? [];
-  const hasMore = rows.length > limit;
-  const posts = hasMore ? rows.slice(0, limit) : rows;
-  const postIds = posts.map((post) => post.id);
-
-  const db = supabase as any;
+  const postIds = rows.map((post) => post.id);
 
   const [{ data: likedRows }, { data: reactionRows }, { data: savedRows }] =
     postIds.length > 0
@@ -144,7 +198,7 @@ export async function GET(req: NextRequest) {
   const savedSet = new Set((savedRows ?? []).map((row) => row.post_id));
 
   // Enrich quote posts (best-effort; quote_of_post_id may be missing pre-migration)
-  const quoteIds = posts
+  const quoteIds = rows
     .map((p) => (p as { quote_of_post_id?: string | null }).quote_of_post_id)
     .filter((id): id is string => Boolean(id));
   let quotedById = new Map<string, { id: string; body: string; profiles?: unknown }>();
@@ -156,7 +210,7 @@ export async function GET(req: NextRequest) {
     quotedById = new Map((quoted ?? []).map((q) => [q.id, q]));
   }
 
-  let enriched = posts.map((post) => {
+  let enriched = rows.map((post) => {
     const quoteId = (post as { quote_of_post_id?: string | null }).quote_of_post_id;
     const userReaction = reactionByPost.get(post.id) ?? null;
     return {
@@ -168,9 +222,20 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  if ((filter === "trending" || filter === "ai-picks" || filter === "for-you") && !draftsOnly) {
-    enriched = rankFeedItems(enriched, { viewerId: user.id });
+  if (shouldRank && !draftsOnly) {
+    enriched = rankFeedItems(enriched, { viewerId: user.id, followedAuthorIds });
+    if (filter === "rising") {
+      enriched.sort((a, b) => {
+        const age = (post: { created_at?: string | null }) =>
+          Math.max(1, (Date.now() - new Date(post.created_at ?? Date.now()).getTime()) / 3_600_000);
+        const engagement = (post: { like_count?: number | null; comment_count?: number | null; view_count?: number | null }) =>
+          Number(post.like_count ?? 0) + Number(post.comment_count ?? 0) * 2 + Number(post.view_count ?? 0) * 0.1;
+        return engagement(b) / age(b) - engagement(a) / age(a);
+      });
+    }
   }
+  const hasMore = enriched.length > limit;
+  const posts = enriched.slice(0, limit);
 
   const next_cursor =
     hasMore && posts.length > 0 ? posts[posts.length - 1].created_at : null;

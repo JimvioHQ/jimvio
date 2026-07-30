@@ -4,8 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { FEED_TABS, type FeedTab } from "@/lib/feed/mock-data";
 
-export function FeedTabs() {
-  const [activeTab, setActiveTab] = useState<FeedTab>("For You");
+export function FeedTabs({
+  value,
+  onChange,
+}: {
+  value?: FeedTab;
+  onChange?: (tab: FeedTab) => void;
+}) {
+  const [uncontrolledTab, setUncontrolledTab] = useState<FeedTab>("For You");
+  const activeTab = value ?? uncontrolledTab;
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
 
@@ -31,7 +38,10 @@ export function FeedTabs() {
                   tabRefs.current[i] = el;
                 }}
                 type="button"
-                onClick={() => setActiveTab(tab)}
+                onClick={() => {
+                  if (value === undefined) setUncontrolledTab(tab);
+                  onChange?.(tab);
+                }}
                 className={`shrink-0 px-3 py-3 text-[13px] transition-colors sm:px-3.5 ${
                   activeTab === tab
                     ? "font-semibold text-gray-900"

@@ -10,18 +10,11 @@ import {
   CreateCommunityTile,
   CommunityRow,
 } from "./community-card-shared";
+import { COMMUNITY_CATEGORIES } from "@/lib/community/categories";
 
 const SHELL = "mx-auto w-full max-w-8xl px-4 sm:px-6";
 
-const CATEGORIES = [
-  "All",
-  "Business",
-  "Tech",
-  "Marketing",
-  "Finance",
-  "Fitness",
-  "Other",
-] as const;
+const CATEGORIES = ["All", ...COMMUNITY_CATEGORIES] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const SORTS = [
@@ -33,26 +26,14 @@ type SortKey = (typeof SORTS)[number]["value"];
 
 type PriceFilter = "all" | "free" | "paid";
 
+function sortFreeFirst(list: CommunityRow[]): CommunityRow[] {
+  return list.slice().sort((a, b) => (a.is_free ? 0 : 1) - (b.is_free ? 0 : 1));
+}
+
 function featuredEyebrow(priceFilter: PriceFilter): string {
   if (priceFilter === "free") return "Top free community";
   if (priceFilter === "paid") return "Top paid community";
   return "Most active right now";
-}
-
-function sortCommunities(list: CommunityRow[], sort: SortKey): CommunityRow[] {
-  const copy = list.slice();
-  if (sort === "popular") {
-    copy.sort((a, b) => (b.member_count ?? 0) - (a.member_count ?? 0));
-  } else if (sort === "newest") {
-    copy.sort(
-      (a, b) =>
-        (b.created_at ? new Date(b.created_at).getTime() : 0) -
-        (a.created_at ? new Date(a.created_at).getTime() : 0)
-    );
-  } else {
-    copy.sort((a, b) => (a.is_free ? 0 : 1) - (b.is_free ? 0 : 1));
-  }
-  return copy;
 }
 
 function filterByPrice(list: CommunityRow[], price: PriceFilter): CommunityRow[] {
@@ -324,9 +305,6 @@ export function CommunitiesDiscovery({
   const [items, setItems] = useState<CommunityRow[]>(initialCommunities);
   const [loading, setLoading] = useState(initialCommunities.length === 0);
   const [loadingMore, setLoadingMore] = useState(false);
-  const sortRef = useRef(sort);
-  sortRef.current = sort;
-
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim()), 300);
     return () => clearTimeout(t);
@@ -338,6 +316,7 @@ export function CommunitiesDiscovery({
       params.set("page", String(p));
       if (debounced) params.set("search", debounced);
       if (category !== "All") params.set("category", category);
+      if (sort !== "free") params.set("sort", sort);
       const res = await fetch(`/api/communities?${params.toString()}`);
       const json = (await res.json()) as {
         communities?: CommunityRow[];
@@ -346,18 +325,22 @@ export function CommunitiesDiscovery({
       };
       if (!res.ok) throw new Error(json.error || "Failed to load");
       const raw = json.communities ?? [];
-      const sk = sortRef.current;
-      setItems((prev) =>
-        sortCommunities(append ? [...prev, ...raw] : raw, sk)
-      );
+      setItems((prev) => (append ? [...prev, ...raw] : raw));
       setTotal(json.total ?? 0);
     },
-    [debounced, category]
+    [debounced, category, sort]
   );
 
   useEffect(() => {
     if (!debounced && category === "All" && initialCommunities.length > 0) {
-      setItems(sortCommunities(initialCommunities, sortRef.current));
+      if (sort !== "popular" && sort !== "free") {
+        setLoading(true);
+        fetchPage(1, false)
+          .catch(() => setItems([]))
+          .finally(() => setLoading(false));
+        return;
+      }
+      setItems(initialCommunities);
       setTotal(initialTotal);
       setLoading(false);
       return;
@@ -367,11 +350,7 @@ export function CommunitiesDiscovery({
     fetchPage(1, false)
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, [debounced, category, fetchPage, initialCommunities, initialTotal]);
-
-  useEffect(() => {
-    setItems((prev) => sortCommunities(prev, sort));
-  }, [sort]);
+  }, [debounced, category, sort, fetchPage, initialCommunities, initialTotal]);
 
   const loadMore = async () => {
     const next = page + 1;
@@ -385,7 +364,10 @@ export function CommunitiesDiscovery({
   };
 
   const visibleItems = useMemo(
-    () => sortCommunities(filterByPrice(items, priceFilter), sort),
+    () => {
+      const filtered = filterByPrice(items, priceFilter);
+      return sort === "free" ? sortFreeFirst(filtered) : filtered;
+    },
     [items, priceFilter, sort]
   );
 

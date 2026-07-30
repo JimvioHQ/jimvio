@@ -6,6 +6,7 @@ import type {
   CommunitySettingsConfig,
   SettingsSectionId,
 } from "./types";
+import { COMMUNITY_CATEGORIES as SHARED_COMMUNITY_CATEGORIES } from "@/lib/community/categories";
 
 export const SETTINGS_SECTION_LABELS: Record<SettingsSectionId, string> = {
   general: "General",
@@ -43,16 +44,7 @@ export const SETTINGS_SECTION_DESCRIPTIONS: Record<SettingsSectionId, string> = 
   danger: "Archive or permanently delete this community.",
 };
 
-export const COMMUNITY_CATEGORIES = [
-  "Business",
-  "Tech",
-  "Marketing",
-  "Finance",
-  "Fitness",
-  "Education",
-  "Creator",
-  "Other",
-] as const;
+export { SHARED_COMMUNITY_CATEGORIES as COMMUNITY_CATEGORIES };
 
 export const LANGUAGE_OPTIONS = [
   { value: "en", label: "English" },

@@ -50,6 +50,9 @@ export function AnalyticsSectionBody({
             { label: "Returning", value: m.returningMembers },
             { label: "Retention", value: `${m.retentionRate}%` },
             { label: "Online", value: m.onlineMembers },
+            { label: "DAU", value: m.dau },
+            { label: "WAU", value: m.wau },
+            { label: "MAU", value: m.mau },
             { label: "Invites", value: m.invites },
             { label: "Join requests", value: m.joinRequests },
           ]}

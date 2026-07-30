@@ -74,6 +74,9 @@ export type OwnerAnalyticsMembers = {
   returningMembers: number;
   retentionRate: number;
   onlineMembers: number;
+  dau: number;
+  wau: number;
+  mau: number;
   topContributors: NamedCount[];
   topCreators: NamedCount[];
   roleDistribution: NamedCount[];

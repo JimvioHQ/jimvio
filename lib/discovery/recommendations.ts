@@ -2,6 +2,7 @@
  * Lightweight recommendation shelves — ranking heuristics, not expensive models.
  */
 
+import { getRecommendedCommunitiesForYou } from "@/lib/discovery/community-affinity";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { createClient } from "@/lib/supabase/server";
 import { discoveryCacheGet, discoveryCacheKey, discoveryCacheSet } from "@/lib/discovery/cache";
@@ -61,7 +62,14 @@ async function recommendCourses(limit: number): Promise<DiscoveryHit[]> {
   }));
 }
 
-async function recommendCommunities(limit: number): Promise<DiscoveryHit[]> {
+async function recommendCommunities(
+  limit: number,
+  userId?: string | null
+): Promise<DiscoveryHit[]> {
+  if (userId) {
+    return getRecommendedCommunitiesForYou(userId, limit);
+  }
+
   const { data } = await admin()
     .from("communities")
     .select("id, name, slug, tagline, avatar_url, member_count, is_featured")
@@ -121,7 +129,7 @@ async function recommendCreators(limit: number): Promise<DiscoveryHit[]> {
 
 const ENTITY_FN: Record<
   "product" | "course" | "community" | "live" | "creator",
-  (limit: number) => Promise<DiscoveryHit[]>
+  (limit: number, userId?: string | null) => Promise<DiscoveryHit[]>
 > = {
   product: recommendProducts,
   course: recommendCourses,
@@ -129,6 +137,15 @@ const ENTITY_FN: Record<
   live: recommendLive,
   creator: recommendCreators,
 };
+
+function recommendationShelfLabel(
+  entity: "product" | "course" | "community" | "live" | "creator",
+  userId?: string | null
+): string {
+  if (entity === "community" && userId) return "Recommended for You";
+  if (entity === "live") return "Recommended lives";
+  return `Recommended ${entity}s`;
+}
 
 export async function getRecommendations(input: {
   entity?: DiscoveryEntityType | "all";
@@ -145,20 +162,24 @@ export async function getRecommendations(input: {
   const cached = discoveryCacheGet<RecommendationShelf[]>(cacheKey);
   if (cached) return cached;
 
-  const wanted =
-    !input.entity || input.entity === "all" ?
-      (["product", "course", "community", "live", "creator"] as const)
-    : ([input.entity] as const);
+  const RECO_ENTITIES = ["product", "course", "community", "live", "creator"] as const;
+  type RecoEntity = (typeof RECO_ENTITIES)[number];
+  const wanted: RecoEntity[] =
+    !input.entity || input.entity === "all"
+      ? [...RECO_ENTITIES]
+      : RECO_ENTITIES.includes(input.entity as RecoEntity)
+        ? [input.entity as RecoEntity]
+        : [];
 
   const shelves: RecommendationShelf[] = [];
   for (const entity of wanted) {
-    const fn = ENTITY_FN[entity as keyof typeof ENTITY_FN];
+    const fn = ENTITY_FN[entity];
     if (!fn) continue;
     try {
-      const items = await fn(limit);
+      const items = await fn(limit, input.userId ?? null);
       shelves.push({
         id: `recommended-${entity}`,
-        label: `Recommended ${entity === "live" ? "lives" : `${entity}s`}`,
+        label: recommendationShelfLabel(entity, input.userId ?? null),
         entityType: entity,
         items,
       });
