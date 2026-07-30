@@ -35,6 +35,10 @@ jobs:
       - name: Workflow / Dependabot structure
         run: node scripts/release/verify-workflows.mjs
 
+      - name: GitHub secrets checklist
+        run: node scripts/release/verify-github-secrets.mjs
+        continue-on-error: true
+
       - name: Dependency audit (critical)
         run: npm audit --audit-level=critical
 

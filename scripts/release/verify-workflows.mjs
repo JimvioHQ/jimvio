@@ -8,7 +8,7 @@ import { join } from "node:path";
 
 const root = process.cwd();
 const workflowsDir = join(root, ".github", "workflows");
-const required = ["ci.yml", "preview.yml", "release.yml", "codeql.yml"];
+const required = ["ci.yml", "preview.yml", "release.yml", "codeql.yml", "supabase.yml"];
 let errors = 0;
 
 function fail(msg) {
