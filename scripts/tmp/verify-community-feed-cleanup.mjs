@@ -39,7 +39,7 @@ assert.match(dbMig, /member_points/);
 assert.match(dbMig, /SECURITY DEFINER/);
 
 const sbMig = mustExist(
-  "supabase/migrations/20260730023147_community_trending_score.sql"
+  "supabase/migrations/20260730023626_community_trending_score.sql"
 );
 assert.match(sbMig, /get_trending_communities/);
 assert.match(sbMig, /community_trending_score/);

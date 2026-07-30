@@ -107,7 +107,9 @@ jobs:
             echo "### CI observability"
             echo "- ref: \`${{ github.sha }}\`"
             echo "- event: \`${{ github.event_name }}\`"
+            echo "- node: $(node -v 2>/dev/null || echo n/a)"
             echo "- prepush: \`${{ steps.prepush.outcome }}\`"
+            echo "- note: private JimvioHQ repos need a working Actions billing plan; spending-limit annotations mean runners never start"
             if [ -f .next/performance-report.json ]; then
               echo "- performance report: present"
               echo '```json'

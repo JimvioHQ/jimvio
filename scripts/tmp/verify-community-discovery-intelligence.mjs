@@ -19,7 +19,7 @@ const migration = mustExist(
   "database/migrations/119_community_discovery_intelligence_v2.sql"
 );
 mustExist(
-  "supabase/migrations/20260730030903_community_discovery_intelligence_v2.sql"
+  "supabase/migrations/20260730031723_community_discovery_intelligence_v2.sql"
 );
 
 assert.match(migration, /user_community_pins/);

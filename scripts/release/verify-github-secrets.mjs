@@ -1,25 +1,27 @@
 #!/usr/bin/env node
 /**
  * Documents CI secret names without reading or printing their values.
- * Succeeds so contributors see setup guidance before secrets are provisioned.
  *
- * IMPORTANT: GitHub Actions jobs currently fail to *start* when the org
- * billing payment method / spending limit blocks runners. That is not a
- * workflow YAML bug — restore Billing & plans for JimvioHQ before expecting
- * green checks.
+ * CRITICAL BLOCKER (observed on JimvioHQ/jimvio):
+ * GitHub Actions jobs do not start when org billing payments fail or the
+ * spending limit blocks hosted runners. Annotation text:
+ *   "The job was not started because recent account payments have failed
+ *    or your spending limit needs to be increased."
+ * Fix: https://github.com/organizations/JimvioHQ/settings/billing
+ * Private repos on Free plan require a working Actions billing setup.
  */
 const required = [
   {
     name: "SUPABASE_ACCESS_TOKEN",
-    purpose: "Allows the Supabase workflow to link to the remote project.",
+    purpose: "Supabase CLI auth for migration list / link.",
   },
   {
     name: "SUPABASE_PROJECT_REF",
-    purpose: "Selects the remote Supabase project for migration checks.",
+    purpose: "Remote Supabase project ref (e.g. vsfhwfimudpdipdkxbww).",
   },
   {
     name: "SUPABASE_DB_PASSWORD",
-    purpose: "Optional DB password for linked CLI operations that need it.",
+    purpose: "Optional — DB password for linked CLI operations that need it.",
   },
   {
     name: "VERCEL_TOKEN",
@@ -35,7 +37,7 @@ const required = [
   },
   {
     name: "NEXT_PUBLIC_APP_URL",
-    purpose: "Public production URL for post-deploy health (release job).",
+    purpose: "Public production URL for post-deploy health (release).",
   },
 ];
 
@@ -44,8 +46,8 @@ for (const secret of required) {
   console.log(`- [ ] ${secret.name}: ${secret.purpose}`);
 }
 console.log(
-  "No secret values are read or emitted. Workflows skip/deploy-skip clearly when secrets are unavailable."
+  "No secret values are read or emitted. Workflows fail with named missing-secret errors when required secrets are absent."
 );
 console.log(
-  "If Actions annotations say payments failed / spending limit, fix org Billing & plans — workflows cannot run until then."
+  "If Actions annotations mention payments/spending limit, fix JimvioHQ Billing & plans before any workflow can run."
 );

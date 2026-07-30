@@ -39,8 +39,8 @@ jobs:
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
 
-      # Keep local analysis strict while avoiding SARIF upload on repositories
-      # where GitHub Advanced Security is not enabled.
+      # Private repos without GitHub Advanced Security cannot upload SARIF.
+      # Analyze still runs; upload is disabled so the job succeeds on analysis.
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
