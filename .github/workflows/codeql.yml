@@ -1,12 +1,11 @@
 name: CodeQL
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
   schedule:
     - cron: "0 6 * * 1"
+  push:
+    branches: [main]
 
 concurrency:
   group: codeql-${{ github.ref }}
@@ -20,7 +19,12 @@ permissions:
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
+    # Heavy job: skip automatic main pushes unless explicitly enabled.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'push' && vars.ENABLE_CODEQL_ON_PUSH == 'true')
+    runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted", "linux", "x64"]') }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -40,7 +44,6 @@ jobs:
         uses: github/codeql-action/autobuild@v3
 
       # Private repos without GitHub Advanced Security cannot upload SARIF.
-      # Analyze still runs; upload is disabled so the job succeeds on analysis.
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:

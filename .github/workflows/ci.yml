@@ -1,3 +1,6 @@
+# Shared expression note:
+# runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted","linux","x64"]') }}
+
 name: CI
 
 on:
@@ -5,6 +8,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -17,7 +21,7 @@ permissions:
 jobs:
   ci:
     name: Build · Lint · Typecheck · Verify
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted", "linux", "x64"]') }}
     timeout-minutes: 45
     steps:
       - name: Checkout
@@ -109,7 +113,8 @@ jobs:
             echo "- event: \`${{ github.event_name }}\`"
             echo "- node: $(node -v 2>/dev/null || echo n/a)"
             echo "- prepush: \`${{ steps.prepush.outcome }}\`"
-            echo "- note: private JimvioHQ repos need a working Actions billing plan; spending-limit annotations mean runners never start"
+            echo "- runner: self-hosted by default (set USE_GITHUB_HOSTED_RUNNERS=true for ubuntu-latest)"
+            echo "- local equivalent: \`npm run ci:verify\` — see docs/CI_SELF_HOSTED.md"
             if [ -f .next/performance-report.json ]; then
               echo "- performance report: present"
               echo '```json'

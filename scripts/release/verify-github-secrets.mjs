@@ -49,5 +49,6 @@ console.log(
   "No secret values are read or emitted. Workflows fail with named missing-secret errors when required secrets are absent."
 );
 console.log(
-  "If Actions annotations mention payments/spending limit, fix JimvioHQ Billing & plans before any workflow can run."
+  "Default runner: self-hosted (linux/x64). Set USE_GITHUB_HOSTED_RUNNERS=true only if hosted minutes are available."
 );
+console.log("Local validation without GitHub runners: npm run ci:verify — see docs/CI_SELF_HOSTED.md");

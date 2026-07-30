@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "type-check": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" tsc --noEmit",
     "ci:prepush": "node scripts/pre-push-ci.mjs",
+    "ci:verify": "node scripts/ci/verify-local.mjs",
     "test": "node scripts/run-verifies.mjs",
     "smoke:critical": "node scripts/smoke/critical-flows.mjs",
     "release:verify-migrations": "node scripts/release/verify-migrations.mjs",

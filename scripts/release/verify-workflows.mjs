@@ -28,6 +28,16 @@ for (const name of required) {
   if (!/^name:\s+/m.test(body)) fail(`${name}: missing top-level name`);
   if (!/^on:/m.test(body)) fail(`${name}: missing on:`);
   if (!/^jobs:/m.test(body)) fail(`${name}: missing jobs:`);
+  // Prefer self-hosted (free-friendly); allow explicit ubuntu-latest via vars.
+  if (!/self-hosted/.test(body) && !/ubuntu-latest/.test(body)) {
+    fail(`${name}: missing runs-on (expected self-hosted or ubuntu-latest)`);
+  }
+  if (!/USE_GITHUB_HOSTED_RUNNERS/.test(body) && name !== "dependabot.yml") {
+    // Soft preference — warn via console only for docs; require self-hosted string
+    if (!/self-hosted/.test(body)) {
+      fail(`${name}: expected self-hosted runner labels (or USE_GITHUB_HOSTED_RUNNERS toggle)`);
+    }
+  }
   // Unbalanced quotes heuristic
   const doubles = (body.match(/"/g) || []).length;
   if (doubles % 2 !== 0) fail(`${name}: unbalanced double quotes`);

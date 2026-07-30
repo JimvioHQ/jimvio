@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -12,7 +13,7 @@ permissions:
 jobs:
   migrations:
     name: Verify remote migration history
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted", "linux", "x64"]') }}
     timeout-minutes: 15
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -43,7 +44,7 @@ jobs:
               echo "- Status: **failed — missing secrets**"
               echo "- Required: \`SUPABASE_ACCESS_TOKEN\`, \`SUPABASE_PROJECT_REF\`"
               echo "- Optional: \`SUPABASE_DB_PASSWORD\`"
-              echo "- Also required: JimvioHQ org Actions billing must allow hosted runners"
+              echo "- Local equivalent: \`npm run ci:verify\` (see docs/CI_SELF_HOSTED.md)"
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
@@ -52,7 +53,6 @@ jobs:
           supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
           echo "Listing local vs remote migrations…"
-          # Capture full CLI output (JSON or table). Prefer JSON when available.
           if LIST_OUT=$(supabase migration list --linked --output-format json 2>&1); then
             echo "$LIST_OUT"
             printf '%s' "$LIST_OUT" > /tmp/migration-list.out
@@ -67,8 +67,6 @@ jobs:
           raw = pathlib.Path("/tmp/migration-list.out").read_text()
           start = raw.find("{")
           if start < 0:
-              # Older CLIs may print a table only; if the command succeeded and
-              # the table has no empty Local/Remote columns, accept it.
               lines = [ln for ln in raw.splitlines() if ln.strip()]
               print("Non-JSON migration list output; command succeeded.")
               print("\n".join(lines[-20:]))

@@ -37,7 +37,7 @@ permissions:
 jobs:
   gate:
     name: Release gates
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted", "linux", "x64"]') }}
     timeout-minutes: 45
     outputs:
       should_deploy: ${{ steps.decide.outputs.should_deploy }}
@@ -100,7 +100,7 @@ jobs:
     name: Deploy production
     needs: gate
     if: needs.gate.outputs.should_deploy == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted", "linux", "x64"]') }}
     timeout-minutes: 40
     environment:
       name: production

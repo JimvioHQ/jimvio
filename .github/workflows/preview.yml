@@ -1,12 +1,18 @@
 name: Preview
 
 on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Optional PR number for smoke context"
+        required: false
+        type: string
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
 
 concurrency:
-  group: preview-${{ github.event.pull_request.number }}
+  group: preview-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -18,7 +24,12 @@ permissions:
 jobs:
   preview:
     name: Deploy Preview · Smoke
-    runs-on: ubuntu-latest
+    # Expensive: only on dispatch, PR label "preview", or ENABLE_PREVIEW_CI=true
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      vars.ENABLE_PREVIEW_CI == 'true' ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'preview'))
+    runs-on: ${{ vars.USE_GITHUB_HOSTED_RUNNERS == 'true' && fromJSON('["ubuntu-latest"]') || fromJSON('["self-hosted", "linux", "x64"]') }}
     timeout-minutes: 45
     environment: preview
     steps:
@@ -67,13 +78,12 @@ jobs:
 
       - name: Resolve preview URL (Vercel Git integration)
         id: resolve
-        if: steps.deploy.outputs.url == ''
+        if: steps.deploy.outputs.url == '' && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Waiting for preview deployment URL (up to ~10 minutes)…"
           for i in $(seq 1 60); do
-            # Check commit statuses for a vercel.app target
             URL=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.pull_request.head.sha }}/statuses" \
               --jq '[.[] | select(.target_url != null and (.target_url | test("vercel\\.app|jimvio"))) | .target_url] | first // empty' 2>/dev/null || true)
             if [ -z "$URL" ]; then
@@ -95,6 +105,10 @@ jobs:
         run: |
           URL="${{ steps.deploy.outputs.url }}"
           if [ -z "$URL" ]; then URL="${{ steps.resolve.outputs.url }}"; fi
+          if [ -z "$URL" ]; then
+            echo "::error::No preview URL available. Configure Vercel secrets or run on a labeled PR."
+            exit 1
+          fi
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Using BASE_URL=$URL"
 
@@ -123,7 +137,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: preview-smoke-${{ github.event.pull_request.number }}
+          name: preview-smoke-${{ github.event.pull_request.number || github.run_id }}
           path: /tmp/health.json
           if-no-files-found: ignore
           retention-days: 14
@@ -133,7 +147,7 @@ jobs:
         run: |
           {
             echo "### Preview observability"
-            echo "- PR: #${{ github.event.pull_request.number }}"
-            echo "- sha: \`${{ github.event.pull_request.head.sha }}\`"
+            echo "- event: \`${{ github.event_name }}\`"
+            echo "- sha: \`${{ github.sha }}\`"
             echo "- url: ${{ steps.base.outputs.url }}"
           } >> "$GITHUB_STEP_SUMMARY"
