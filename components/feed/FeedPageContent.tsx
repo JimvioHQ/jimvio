@@ -38,7 +38,7 @@ export function FeedPageContent() {
             Creator OS Feed
           </h1>
           <p className="mt-1 text-[13px] text-[#6B7280]">
-            Posts, launches, campaigns, trending creators, and live energy — personalized for you.
+            Posts, launches, trending communities, and live energy — personalized for you.
           </p>
         </div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
