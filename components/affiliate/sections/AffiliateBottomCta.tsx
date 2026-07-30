@@ -54,7 +54,7 @@ export function AffiliateBottomCta({ primaryCtaHref }: AffiliateBottomCtaProps) 
               alt="Jimvio Affiliate Program — phone earnings, commission cards, coins and gifts"
               fill
               loading="lazy"
-              className="object-contain object-center drop-shadow-[0_12px_24px_rgba(255,90,31,0.22)]"
+              className="object-contain object-center mix-blend-multiply drop-shadow-[0_12px_24px_rgba(255,90,31,0.22)]"
               sizes="(max-width: 640px) 160px, 200px"
             />
           </div>

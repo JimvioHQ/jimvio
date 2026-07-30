@@ -233,7 +233,7 @@ export function AffiliateHero({ heroRate, primaryCtaHref }: AffiliateHeroProps) 
                 alt="Affiliate earnings on Jimvio — up to top commission rates"
                 fill
                 priority
-                className="object-contain object-center drop-shadow-[0_24px_48px_rgba(255,90,31,0.16)]"
+                className="object-contain object-center mix-blend-multiply drop-shadow-[0_24px_48px_rgba(255,90,31,0.16)]"
                 sizes="(max-width: 1024px) 90vw, 460px"
               />
             </div>
