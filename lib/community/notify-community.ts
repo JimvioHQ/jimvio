@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { notifyUser } from "@/lib/notifications/notify-user";
 import { notifyMention, notifyReply, notifyReaction } from "@/lib/notifications/publishers";
+import {
+  isCommunityMuted,
+  parseNotificationMutes,
+} from "@/lib/community/notification-mutes";
 
 /** Matches @username mentions (letters, numbers, ._- , 2-32 chars). */
 const MENTION_RE = /@([a-zA-Z0-9_.]{2,32})/g;
@@ -11,6 +15,26 @@ export function extractMentionedUsernames(body: string): string[] {
     seen.add(match[1].toLowerCase());
   }
   return Array.from(seen);
+}
+
+async function filterCommunityMutedRecipients(
+  db: SupabaseClient,
+  communityId: string,
+  userIds: string[]
+): Promise<string[]> {
+  if (!userIds.length) return [];
+  const { data } = await db
+    .from("community_memberships")
+    .select("user_id, notification_mutes")
+    .eq("community_id", communityId)
+    .in("user_id", userIds);
+  const muted = new Set<string>();
+  for (const row of data ?? []) {
+    if (isCommunityMuted(parseNotificationMutes((row as any).notification_mutes))) {
+      muted.add(row.user_id as string);
+    }
+  }
+  return userIds.filter((id) => !muted.has(id));
 }
 
 type PostEvent = "like" | "comment";
@@ -24,11 +48,19 @@ export async function notifyPostAuthor(
     actorName: string;
     postId: string;
     communitySlug: string;
+    communityId?: string;
     postTitle?: string | null;
     event: PostEvent;
   }
 ): Promise<void> {
   if (params.actorId === params.postAuthorId) return;
+
+  if (params.communityId) {
+    const allowed = await filterCommunityMutedRecipients(db, params.communityId, [
+      params.postAuthorId,
+    ]);
+    if (!allowed.length) return;
+  }
 
   const preview = params.postTitle?.trim() || "your post";
   const isLike = params.event === "like";
@@ -82,8 +114,15 @@ export async function notifyCommunityStaff(
   staffIds.delete(params.actorId);
   if (staffIds.size === 0) return;
 
+  const recipients = await filterCommunityMutedRecipients(
+    db,
+    params.communityId,
+    Array.from(staffIds)
+  );
+  if (!recipients.length) return;
+
   await Promise.all(
-    Array.from(staffIds).map((userId) =>
+    recipients.map((userId) =>
       notifyUser(db, {
         userId,
         type: "community",
@@ -134,8 +173,15 @@ export async function notifyMentionedUsers(
   const mentionedIds = new Set((members ?? []).map((m) => m.user_id as string));
   if (mentionedIds.size === 0) return;
 
+  const recipients = await filterCommunityMutedRecipients(
+    db,
+    params.communityId,
+    Array.from(mentionedIds)
+  );
+  if (!recipients.length) return;
+
   await Promise.all(
-    Array.from(mentionedIds).map((userId) =>
+    recipients.map((userId) =>
       notifyMention({
         userId,
         actorId: params.actorId,
@@ -160,6 +206,11 @@ export async function notifyCommunityOwnerOnJoin(
   }
 ): Promise<void> {
   if (params.ownerId === params.memberId) return;
+
+  const allowed = await filterCommunityMutedRecipients(db, params.communityId, [
+    params.ownerId,
+  ]);
+  if (!allowed.length) return;
 
   await notifyUser(db, {
     userId: params.ownerId,

@@ -169,10 +169,25 @@ export function GroupWorkspace({
         verified={Boolean(space.is_featured)}
         compact
         onToggleNotifications={() => {
-          setNotificationsOn((v) => !v);
-          toast.success(
-            notificationsOn ? "Space notifications muted" : "Notifications on"
-          );
+          const next = !notificationsOn;
+          const previous = notificationsOn;
+          setNotificationsOn(next);
+          void fetch(`/api/c/${communityId}/mute`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ muted: !next, spaceId: space.id }),
+          })
+            .then(async (res) => {
+              if (!res.ok) {
+                const payload = await res.json().catch(() => null);
+                throw new Error(payload?.error || "Mute failed");
+              }
+              toast.success(next ? "Notifications on" : "Space notifications muted");
+            })
+            .catch((err: unknown) => {
+              setNotificationsOn(previous);
+              toast.error(err instanceof Error ? err.message : "Mute failed");
+            });
         }}
         onInvite={copyInvite}
         onAbout={() => setAboutOpen(true)}

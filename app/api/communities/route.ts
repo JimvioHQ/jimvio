@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/services/base";
+import { ensureDefaultCommunityWorkspace } from "@/lib/community/ensure-default-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +46,24 @@ export async function GET(req: NextRequest) {
       count: "exact",
     })
     .eq("is_active", true);
+
+  // Discover/list must not leak private / invite-only communities unless the viewer is a member.
+  let memberCommunityIds: string[] = [];
+  if (user) {
+    const { data: memberships } = await admin
+      .from("community_memberships")
+      .select("community_id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .limit(2000);
+    memberCommunityIds = (memberships ?? []).map((row) => row.community_id).filter(Boolean);
+  }
+
+  if (memberCommunityIds.length) {
+    query = query.or(`is_private.eq.false,id.in.(${memberCommunityIds.join(",")})`);
+  } else {
+    query = query.eq("is_private", false);
+  }
 
   if (requestedCategories.length) {
     const values = requestedCategories.map((value) => `"${value.replace(/"/g, "")}"`).join(",");
@@ -147,8 +166,8 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * Create a community with zero Spaces.
- * Owners add Spaces intentionally through the UI.
+ * Create a community and seed a default General group + Discussion room
+ * so feed posting and chat work immediately.
  */
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -190,6 +209,7 @@ export async function POST(req: NextRequest) {
     body.visibility === "invite_only"
   ) {
     insert.visibility = body.visibility;
+    insert.visibility_mode = body.visibility;
     insert.is_private = body.visibility !== "public";
   }
 
@@ -204,6 +224,10 @@ export async function POST(req: NextRequest) {
     plan_type: "lifetime",
     status: "active",
   });
+
+  // Seed default workspace with service role so RLS cannot block first group/room.
+  const admin = getAdminDB();
+  await ensureDefaultCommunityWorkspace(admin as any, data.id);
 
   return NextResponse.json({ community: data });
 }

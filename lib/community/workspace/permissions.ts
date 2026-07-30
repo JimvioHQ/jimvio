@@ -339,9 +339,13 @@ export type ResolveRoleInput = {
 export function resolveWorkspaceRole(input: ResolveRoleInput): WorkspaceRole {
   const { userId, ownerId, membership, isCreator, isVerified } = input;
   if (!userId) return "guest";
+  // Community owner retains owner role even if membership row is missing/stale.
   if (ownerId && userId === ownerId) return "owner";
 
-  const role = membership?.role?.toLowerCase();
+  // Cancelled / banned / expired memberships must not keep staff capabilities.
+  if (!membership || membership.status !== "active") return "guest";
+
+  const role = membership.role?.toLowerCase();
   if (role === "owner") return "owner";
   if (role === "admin") return "admin";
   if (role === "moderator") return "moderator";
@@ -350,7 +354,6 @@ export function resolveWorkspaceRole(input: ResolveRoleInput): WorkspaceRole {
   if (role === "creator") return "creator";
   if (role === "verified") return "verified";
 
-  if (!membership || membership.status !== "active") return "guest";
   if (isCreator) return "creator";
   if (isVerified) return "verified";
   return "member";

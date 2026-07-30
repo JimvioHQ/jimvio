@@ -240,7 +240,7 @@ export async function GET(req: NextRequest) {
   const next_cursor =
     hasMore && posts.length > 0 ? posts[posts.length - 1].created_at : null;
 
-  return NextResponse.json({ posts: enriched, next_cursor });
+  return NextResponse.json({ posts, next_cursor });
 }
 
 export async function POST(req: NextRequest) {

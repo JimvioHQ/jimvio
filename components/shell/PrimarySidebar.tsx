@@ -143,7 +143,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
       if (!userProp) {
         const [profRes, pointsRes] = await Promise.all([
           supabase.from("profiles").select("full_name, username, avatar_url").eq("id", authUser.id).maybeSingle(),
-          supabase.from("member_points").select("total_points, level").eq("user_id", authUser.id).maybeSingle(),
+          supabase.from("member_points").select("total_points, level").eq("user_id", authUser.id).order("total_points", { ascending: false }).limit(1).maybeSingle(),
         ]);
         if (!cancelled && profRes.data) {
           const level = pointsRes.data?.level ?? 1;

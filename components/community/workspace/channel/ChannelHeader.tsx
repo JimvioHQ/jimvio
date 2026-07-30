@@ -176,10 +176,29 @@ export function ChannelHeader({
             ...buildWorkspaceActions({
               muted: !notificationsOn,
               onMute: () => {
-                setNotificationsOn((v) => !v);
-                toast.success(
-                  notificationsOn ? "Channel muted" : "Notifications enabled"
-                );
+                if (!communityId) {
+                  toast.error("Unable to update mute preferences");
+                  return;
+                }
+                const next = !notificationsOn;
+                const previous = notificationsOn;
+                setNotificationsOn(next);
+                void fetch(`/api/c/${communityId}/mute`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ muted: !next, roomId: channel.id }),
+                })
+                  .then(async (res) => {
+                    if (!res.ok) {
+                      const payload = await res.json().catch(() => null);
+                      throw new Error(payload?.error || "Mute failed");
+                    }
+                    toast.success(next ? "Notifications enabled" : "Channel muted");
+                  })
+                  .catch((err: unknown) => {
+                    setNotificationsOn(previous);
+                    toast.error(err instanceof Error ? err.message : "Mute failed");
+                  });
               },
               onInvite: () => {
                 void navigator.clipboard?.writeText(window.location.href);

@@ -215,7 +215,11 @@ export async function PATCH(req: NextRequest) {
         .eq("community_id", communityId)
     );
 
-  await Promise.all(updates);
+  const results = await Promise.all(updates);
+  const failed = results.find((result: { error?: { message?: string } | null }) => result?.error);
+  if (failed?.error) {
+    return NextResponse.json({ error: failed.error.message }, { status: 500 });
+  }
 
   const { data, error } = await (supabase as any)
     .from("user_community_pins")

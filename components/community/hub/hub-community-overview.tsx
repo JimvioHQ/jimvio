@@ -410,13 +410,32 @@ export function HubCommunityOverview() {
                         type="button"
                         className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-gray-700 hover:bg-gray-50"
                         onClick={() => {
-                          setMuted((v) => !v);
+                          const next = !muted;
+                          const previous = muted;
+                          setMuted(next);
                           setJoinedMenuOpen(false);
-                          toast.success(
-                            muted
-                              ? "Notifications unmuted"
-                              : "Community notifications muted"
-                          );
+                          void fetch(`/api/c/${communityId}/mute`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ muted: next }),
+                          })
+                            .then(async (res) => {
+                              if (!res.ok) {
+                                const payload = await res.json().catch(() => null);
+                                throw new Error(payload?.error || "Mute failed");
+                              }
+                              toast.success(
+                                next
+                                  ? "Community notifications muted"
+                                  : "Notifications unmuted"
+                              );
+                            })
+                            .catch((err: unknown) => {
+                              setMuted(previous);
+                              toast.error(
+                                err instanceof Error ? err.message : "Mute failed"
+                              );
+                            });
                         }}
                       >
                         {muted ? (
