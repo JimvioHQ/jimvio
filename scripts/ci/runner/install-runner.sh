@@ -53,13 +53,34 @@ command -v node >/dev/null || fail "node required — run install-deps.sh first"
 mkdir -p "$RUNNER_DIR"
 cd "$RUNNER_DIR"
 
-# Resolve latest linux-x64 runner release asset from GitHub API
+# Resolve latest linux-x64 runner release asset from GitHub API (node preferred; jq fallback)
 log "Resolving latest actions/runner release"
 API_JSON=$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest)
-TAG=$(echo "$API_JSON" | jq -r '.tag_name')
-VERSION="${TAG#v}"
-ASSET="actions-runner-linux-x64-${VERSION}.tar.gz"
-DOWNLOAD_URL=$(echo "$API_JSON" | jq -r --arg a "$ASSET" '.assets[] | select(.name==$a) | .browser_download_url')
+parse_release() {
+  if command -v node >/dev/null 2>&1; then
+    node -e '
+const j=JSON.parse(require("fs").readFileSync(0,"utf8"));
+const tag=j.tag_name||"";
+const ver=tag.replace(/^v/,"");
+const asset=`actions-runner-linux-x64-${ver}.tar.gz`;
+const url=(j.assets||[]).find(a=>a.name===asset)?.browser_download_url||"";
+process.stdout.write([tag,ver,asset,url].join("\n"));
+' <<<"$API_JSON"
+  elif command -v jq >/dev/null 2>&1; then
+    TAG=$(echo "$API_JSON" | jq -r '.tag_name')
+    VERSION="${TAG#v}"
+    ASSET="actions-runner-linux-x64-${VERSION}.tar.gz"
+    URL=$(echo "$API_JSON" | jq -r --arg a "$ASSET" '.assets[] | select(.name==$a) | .browser_download_url')
+    printf '%s\n%s\n%s\n%s\n' "$TAG" "$VERSION" "$ASSET" "$URL"
+  else
+    fail "node or jq required to parse GitHub release JSON"
+  fi
+}
+REL_OUT=$(parse_release)
+TAG=$(printf '%s\n' "$REL_OUT" | sed -n '1p')
+VERSION=$(printf '%s\n' "$REL_OUT" | sed -n '2p')
+ASSET=$(printf '%s\n' "$REL_OUT" | sed -n '3p')
+DOWNLOAD_URL=$(printf '%s\n' "$REL_OUT" | sed -n '4p')
 [[ -n "$DOWNLOAD_URL" && "$DOWNLOAD_URL" != "null" ]] || fail "Could not find asset $ASSET"
 
 if [[ ! -f "./config.sh" ]]; then
