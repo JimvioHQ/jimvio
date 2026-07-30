@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { BadgeCheck, Flame, Hash, Pin, Radio, Sparkles, Users } from "lucide-react";
+import { BadgeCheck, Flame, Hash, Pin, Radio } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 import { CommunityLetterAvatar } from "@/components/community/community-letter-avatar";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
@@ -22,6 +22,7 @@ type TrendingCommunity = {
   name: string;
   slug: string;
   category: string | null;
+  tagline: string | null;
   cover_image: string | null;
   avatar_url: string | null;
   member_count: number;
@@ -30,15 +31,6 @@ type TrendingCommunity = {
   verified: boolean;
   href: string;
   join_href: string;
-};
-
-type RecommendedHit = {
-  id: string;
-  title: string;
-  subtitle?: string | null;
-  href: string;
-  imageUrl?: string | null;
-  score?: number;
 };
 
 type TrendingTopic = {
@@ -57,6 +49,8 @@ type PinnedRow = {
     name: string;
     slug: string;
     avatar_url?: string | null;
+    cover_image?: string | null;
+    tagline?: string | null;
     member_count?: number | null;
     category?: string | null;
   } | null;
@@ -67,38 +61,48 @@ type DiscoverPayload = {
   live?: LiveItem[];
 };
 
+function communityTagline(input: {
+  tagline?: string | null;
+  category?: string | null;
+  name?: string | null;
+}): string {
+  const tagline = input.tagline?.trim();
+  if (tagline) return tagline;
+  const category = input.category?.trim();
+  if (category) return `${category} community`;
+  return "Community on Jimvio";
+}
+
 function CommunityMiniCard({
   href,
-  joinHref,
   name,
+  tagline,
   category,
   cover,
   logo,
-  memberCount,
-  onlineMembers,
   verified,
 }: {
   href: string;
-  joinHref?: string;
   name: string;
+  tagline?: string | null;
   category?: string | null;
   cover?: string | null;
   logo?: string | null;
-  memberCount?: number;
-  onlineMembers?: number;
   verified?: boolean;
 }) {
   const coverSrc = safeMediaUrl(cover, 320);
   const logoSrc = safeMediaUrl(logo, 96);
+  const description = communityTagline({ tagline, category, name });
+
   return (
     <article
       className={cn(
-        "group flex w-[168px] shrink-0 flex-col overflow-hidden rounded-xl border border-[#F3F4F6] bg-[#F9FAFB]",
-        "transition hover:-translate-y-0.5 hover:border-[#fd5000]/35 hover:shadow-md"
+        "group flex w-[168px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[#F3F4F6] bg-white",
+        "shadow-[0_1px_2px_rgba(17,24,39,0.04)] transition hover:-translate-y-0.5 hover:border-[#fd5000]/35 hover:shadow-md"
       )}
     >
-      <Link href={href} className="relative block">
-        <div className="relative h-[72px] w-full bg-[#EEE]">
+      <Link href={href} className="relative flex flex-col">
+        <div className="relative h-[84px] w-full bg-[#F3F4F6]">
           {coverSrc ? (
             <Image
               src={coverSrc}
@@ -116,34 +120,31 @@ function CommunityMiniCard({
               textClassName="text-3xl font-black text-[#fd5000]/80"
             />
           )}
-          {category ? (
-            <span className="absolute left-1.5 top-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
-              {category}
-            </span>
-          ) : null}
         </div>
-        <div className="relative px-2.5">
-          <div className="absolute -top-4 left-2.5 h-8 w-8 overflow-hidden rounded-lg border-2 border-[#F9FAFB] bg-white shadow-sm">
+
+        <div className="relative px-3">
+          <div className="absolute -top-5 left-3 h-10 w-10 overflow-hidden rounded-xl border-[2.5px] border-white bg-white shadow-sm ring-1 ring-black/5">
             {logoSrc ? (
               <Image
                 src={logoSrc}
                 alt=""
-                width={32}
-                height={32}
+                width={40}
+                height={40}
                 className="h-full w-full object-cover"
                 loading="lazy"
                 unoptimized
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-[#FFF1EB] text-[11px] font-bold text-[#fd5000]">
+              <div className="flex h-full w-full items-center justify-center bg-[#FFF1EB] text-[12px] font-bold text-[#fd5000]">
                 {name.slice(0, 1).toUpperCase()}
               </div>
             )}
           </div>
         </div>
-        <div className="px-2.5 pb-2 pt-5">
+
+        <div className="px-3 pb-3.5 pt-7">
           <div className="flex items-start gap-1">
-            <p className="line-clamp-2 min-w-0 flex-1 text-[12px] font-semibold leading-snug text-[#111827]">
+            <p className="line-clamp-2 min-w-0 flex-1 text-[13px] font-semibold leading-snug tracking-tight text-[#111827]">
               {name}
             </p>
             {verified ? (
@@ -155,44 +156,17 @@ function CommunityMiniCard({
               />
             ) : null}
           </div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-[#6B7280]">
-            {typeof memberCount === "number" ? (
-              <span className="inline-flex items-center gap-0.5">
-                <Users className="h-3 w-3" />
-                {formatNumber(memberCount)}
-              </span>
-            ) : null}
-            {onlineMembers && onlineMembers > 0 ? (
-              <>
-                <span aria-hidden className="text-[#D1D5DB]">
-                  ·
-                </span>
-                <span className="inline-flex items-center gap-1 text-emerald-600">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  {formatNumber(onlineMembers)} online
-                </span>
-              </>
-            ) : null}
-          </div>
+          <p className="mt-1 truncate text-[11px] leading-snug text-[#6B7280]">
+            {description}
+          </p>
         </div>
       </Link>
-      {joinHref ? (
-        <div className="mt-auto border-t border-[#F3F4F6] px-2.5 py-2">
-          <Link
-            href={joinHref}
-            className="block h-7 rounded-lg bg-[#fd5000] text-center text-[11px] font-semibold leading-7 text-white transition hover:bg-[#e44800]"
-          >
-            Join
-          </Link>
-        </div>
-      ) : null}
     </article>
   );
 }
 
 export function FeedDiscoverRail() {
   const [data, setData] = useState<DiscoverPayload | null>(null);
-  const [recommended, setRecommended] = useState<RecommendedHit[]>([]);
   const [topics, setTopics] = useState<TrendingTopic[]>([]);
   const [pins, setPins] = useState<PinnedRow[]>([]);
 
@@ -202,9 +176,6 @@ export function FeedDiscoverRail() {
       fetch("/api/c/hub/discover", { cache: "no-store" }).then((r) =>
         r.ok ? r.json() : null
       ),
-      fetch("/api/discover/recommendations?entity=community&limit=8", {
-        cache: "no-store",
-      }).then((r) => (r.ok ? r.json() : null)),
       fetch("/api/c/hub/topics?limit=12", { cache: "no-store" }).then((r) =>
         r.ok ? r.json() : null
       ),
@@ -212,13 +183,9 @@ export function FeedDiscoverRail() {
         r.status === 401 ? null : r.ok ? r.json() : null
       ),
     ])
-      .then(([discover, reco, topicPayload, pinPayload]) => {
+      .then(([discover, topicPayload, pinPayload]) => {
         if (cancelled) return;
         if (discover) setData(discover);
-        const shelf = reco?.shelves?.find?.(
-          (s: { entityType?: string }) => s.entityType === "community"
-        );
-        setRecommended(shelf?.items ?? []);
         setTopics(topicPayload?.topics ?? []);
         setPins(pinPayload?.pins ?? []);
       })
@@ -232,7 +199,6 @@ export function FeedDiscoverRail() {
   const live = data?.live ?? [];
   const hasAny =
     pins.length > 0 ||
-    recommended.length > 0 ||
     communities.length > 0 ||
     topics.length > 0 ||
     live.length > 0;
@@ -246,7 +212,7 @@ export function FeedDiscoverRail() {
             <Pin className="h-4 w-4 text-[#fd5000]" />
             <h2 className="text-[13px] font-bold text-[#111827]">Pinned</h2>
           </div>
-          <div className="flex gap-2 overflow-x-auto px-3 py-3 scrollbar-hide">
+          <div className="flex gap-2.5 overflow-x-auto px-3 py-3 scrollbar-hide">
             {pins.map((pin) => {
               const c = pin.community;
               if (!c) return null;
@@ -255,34 +221,13 @@ export function FeedDiscoverRail() {
                   key={pin.community_id}
                   href={`/communities/${c.slug}`}
                   name={c.name}
+                  tagline={c.tagline}
                   category={c.category}
+                  cover={c.cover_image}
                   logo={c.avatar_url}
-                  memberCount={c.member_count ?? undefined}
                 />
               );
             })}
-          </div>
-        </section>
-      ) : null}
-
-      {recommended.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl border border-[#E8EAED] bg-white/90 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur">
-          <div className="flex items-center gap-2 border-b border-[#F3F4F6] px-4 py-2.5">
-            <Sparkles className="h-4 w-4 text-[#fd5000]" />
-            <h2 className="text-[13px] font-bold text-[#111827]">
-              Recommended for You
-            </h2>
-          </div>
-          <div className="flex gap-2 overflow-x-auto px-3 py-3 scrollbar-hide">
-            {recommended.slice(0, 8).map((item) => (
-              <CommunityMiniCard
-                key={item.id}
-                href={item.href}
-                joinHref={`${item.href}/subscribe`}
-                name={item.title}
-                logo={item.imageUrl}
-              />
-            ))}
           </div>
         </section>
       ) : null}
@@ -300,13 +245,11 @@ export function FeedDiscoverRail() {
               <CommunityMiniCard
                 key={community.id}
                 href={community.href}
-                joinHref={community.join_href}
                 name={community.name}
+                tagline={community.tagline}
                 category={community.category}
                 cover={community.cover_image}
                 logo={community.avatar_url}
-                memberCount={community.member_count}
-                onlineMembers={community.online_members}
                 verified={community.verified}
               />
             ))}

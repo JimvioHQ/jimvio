@@ -12,6 +12,8 @@ type TrendingCommunityRow = {
   name: string;
   slug: string;
   category: string | null;
+  tagline?: string | null;
+  description?: string | null;
   cover_image: string | null;
   avatar_url: string | null;
   member_count: number | null;
@@ -28,12 +30,17 @@ function mapCommunity(row: TrendingCommunityRow) {
     is_featured: row.is_featured,
     member_count: memberCount,
   });
+  const tagline =
+    (typeof row.tagline === "string" && row.tagline.trim()) ||
+    (typeof row.description === "string" && row.description.trim()) ||
+    null;
 
   return {
     id: row.id,
     name: row.name,
     slug: row.slug,
     category: row.category,
+    tagline,
     cover_image: row.cover_image,
     avatar_url: row.avatar_url,
     member_count: memberCount,
@@ -56,7 +63,7 @@ async function fetchTrendingViaFallback(
       supabase
         .from("communities")
         .select(
-          "id, name, slug, category, cover_image, avatar_url, member_count, post_count, is_featured"
+          "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured"
         )
         .eq("is_active", true)
         .order("member_count", { ascending: false })
@@ -151,6 +158,32 @@ export async function GET() {
     } catch {
       trendingRows = [];
     }
+  }
+
+  // Enrich display copy (tagline/description) without changing ranking.
+  if (trendingRows.length) {
+    const ids = trendingRows.map((row) => row.id);
+    const { data: copyRows } = await supabase
+      .from("communities")
+      .select("id, tagline, description")
+      .in("id", ids);
+    const copyById = new Map(
+      ((copyRows ?? []) as Array<{
+        id: string;
+        tagline: string | null;
+        description: string | null;
+      }>).map((row) => [row.id, row])
+    );
+    trendingRows = trendingRows.map((row) => {
+      const copy = copyById.get(row.id);
+      return copy
+        ? {
+            ...row,
+            tagline: row.tagline ?? copy.tagline,
+            description: row.description ?? copy.description,
+          }
+        : row;
+    });
   }
 
   void user;
