@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Download + configure a GitHub Actions self-hosted runner for Jimvio.
+# Does NOT run as root for config (GitHub recommends dedicated user).
+set -euo pipefail
+
+REPO_URL="${JIMVIO_REPO_URL:-https://github.com/JimvioHQ/jimvio}"
+RUNNER_DIR="${JIMVIO_RUNNER_DIR:-$HOME/actions-runner}"
+RUNNER_NAME="${JIMVIO_RUNNER_NAME:-jimvio-ci-$(hostname -s 2>/dev/null || echo host)}"
+LABELS="${JIMVIO_RUNNER_LABELS:-self-hosted,linux,x64}"
+TOKEN=""
+
+log() { echo "==> $*"; }
+fail() { echo "❌ $*" >&2; exit 1; }
+
+usage() {
+  cat <<EOF
+Usage: $0 --token <REGISTRATION_TOKEN> [options]
+
+Options:
+  --token TOKEN       One-time runner registration token (required)
+  --dir PATH          Install directory (default: \$HOME/actions-runner)
+  --name NAME         Runner name (default: jimvio-ci-<hostname>)
+  --labels LIST       Comma-separated labels (default: self-hosted,linux,x64)
+  --repo URL          GitHub repo URL (default: https://github.com/JimvioHQ/jimvio)
+  -h, --help          Show help
+
+Env overrides: JIMVIO_REPO_URL, JIMVIO_RUNNER_DIR, JIMVIO_RUNNER_NAME, JIMVIO_RUNNER_LABELS
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --token) TOKEN="${2:-}"; shift 2 ;;
+    --dir) RUNNER_DIR="${2:-}"; shift 2 ;;
+    --name) RUNNER_NAME="${2:-}"; shift 2 ;;
+    --labels) LABELS="${2:-}"; shift 2 ;;
+    --repo) REPO_URL="${2:-}"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "Unknown arg: $1" ;;
+  esac
+done
+
+[[ -n "$TOKEN" ]] || fail "--token is required (from GitHub → Settings → Actions → Runners)"
+
+if [[ "$(id -u)" -eq 0 ]]; then
+  fail "Do not configure the runner as root. Run as the dedicated runner user."
+fi
+
+command -v curl >/dev/null || fail "curl required"
+command -v tar >/dev/null || fail "tar required"
+command -v node >/dev/null || fail "node required — run install-deps.sh first"
+
+mkdir -p "$RUNNER_DIR"
+cd "$RUNNER_DIR"
+
+# Resolve latest linux-x64 runner release asset from GitHub API
+log "Resolving latest actions/runner release"
+API_JSON=$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest)
+TAG=$(echo "$API_JSON" | jq -r '.tag_name')
+VERSION="${TAG#v}"
+ASSET="actions-runner-linux-x64-${VERSION}.tar.gz"
+DOWNLOAD_URL=$(echo "$API_JSON" | jq -r --arg a "$ASSET" '.assets[] | select(.name==$a) | .browser_download_url')
+[[ -n "$DOWNLOAD_URL" && "$DOWNLOAD_URL" != "null" ]] || fail "Could not find asset $ASSET"
+
+if [[ ! -f "./config.sh" ]]; then
+  log "Downloading $ASSET"
+  curl -fsSL -o "$ASSET" "$DOWNLOAD_URL"
+  tar xzf "$ASSET"
+  rm -f "$ASSET"
+else
+  log "Runner binaries already present in $RUNNER_DIR"
+fi
+
+if [[ -f .runner ]]; then
+  log "Runner already configured (.runner present). Skipping config.sh"
+  log "To reconfigure: remove .runner and re-run this script"
+else
+  log "Configuring runner name=$RUNNER_NAME labels=$LABELS"
+  ./config.sh --unattended \
+    --url "$REPO_URL" \
+    --token "$TOKEN" \
+    --name "$RUNNER_NAME" \
+    --labels "$LABELS" \
+    --work "_work" \
+    --replace
+fi
+
+log "✅ Runner configured at $RUNNER_DIR"
+echo "Next: sudo bash scripts/ci/runner/install-service.sh --runner-dir $RUNNER_DIR --user $(id -un)"

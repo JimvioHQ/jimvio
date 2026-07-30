@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Documents CI secret names without reading or printing their values.
+ * Checklist of CI secret names (documentation only — no values printed).
+ * For automated validation, use: npm run ci:secrets
  *
  * CRITICAL BLOCKER (observed on JimvioHQ/jimvio):
  * GitHub Actions jobs do not start when org billing payments fail or the
@@ -8,47 +9,39 @@
  *   "The job was not started because recent account payments have failed
  *    or your spending limit needs to be increased."
  * Fix: https://github.com/organizations/JimvioHQ/settings/billing
- * Private repos on Free plan require a working Actions billing setup.
+ * Prefer self-hosted runners (default) — see docs/CI_SELF_HOSTED.md
  */
+import { spawnSync } from "node:child_process";
+
 const required = [
-  {
-    name: "SUPABASE_ACCESS_TOKEN",
-    purpose: "Supabase CLI auth for migration list / link.",
-  },
-  {
-    name: "SUPABASE_PROJECT_REF",
-    purpose: "Remote Supabase project ref (e.g. vsfhwfimudpdipdkxbww).",
-  },
-  {
-    name: "SUPABASE_DB_PASSWORD",
-    purpose: "Optional — DB password for linked CLI operations that need it.",
-  },
-  {
-    name: "VERCEL_TOKEN",
-    purpose: "Preview/release Vercel CLI deploys.",
-  },
-  {
-    name: "VERCEL_ORG_ID",
-    purpose: "Vercel team/org for CLI deploys.",
-  },
-  {
-    name: "VERCEL_PROJECT_ID",
-    purpose: "Vercel project for CLI deploys.",
-  },
-  {
-    name: "NEXT_PUBLIC_APP_URL",
-    purpose: "Public production URL for post-deploy health (release).",
-  },
+  "SUPABASE_ACCESS_TOKEN",
+  "SUPABASE_PROJECT_REF",
+  "VERCEL_TOKEN",
+  "VERCEL_ORG_ID",
+  "VERCEL_PROJECT_ID",
+];
+
+const optional = [
+  "SUPABASE_DB_PASSWORD",
+  "NEXT_PUBLIC_APP_URL",
+  "LIVEKIT_API_KEY",
+  "LIVEKIT_API_SECRET",
+  "RESEND_API_KEY",
 ];
 
 console.log("GitHub Actions secret checklist:");
-for (const secret of required) {
-  console.log(`- [ ] ${secret.name}: ${secret.purpose}`);
-}
+for (const name of required) console.log(`- [ ] ${name} (required)`);
+for (const name of optional) console.log(`- [ ] ${name} (optional)`);
 console.log(
-  "No secret values are read or emitted. Workflows fail with named missing-secret errors when required secrets are absent."
+  "\nAutomated check (never prints values): npm run ci:secrets [--github] [--strict]"
 );
 console.log(
   "Default runner: self-hosted (linux/x64). Set USE_GITHUB_HOSTED_RUNNERS=true only if hosted minutes are available."
 );
 console.log("Local validation without GitHub runners: npm run ci:verify — see docs/CI_SELF_HOSTED.md");
+
+const r = spawnSync(process.execPath, ["scripts/ci/verify-secrets.mjs"], {
+  stdio: "inherit",
+  cwd: process.cwd(),
+});
+process.exit(r.status === 0 ? 0 : r.status ?? 1);
