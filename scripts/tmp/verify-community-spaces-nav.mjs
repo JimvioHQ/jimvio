@@ -35,9 +35,14 @@ assert.match(sidebar, /No spaces available yet\.|Create First Space/);
 
 const overview = mustExist("components/community/hub/hub-community-overview.tsx");
 assert.match(overview, /href: `\$\{base\}\/spaces`/);
-assert.match(overview, /Description/);
-assert.match(overview, /Mission/);
-assert.match(overview, /Vision/);
+assert.match(overview, /CommunityOverviewHome/);
+
+const overviewHome = mustExist(
+  "components/community/hub/community-overview-home.tsx"
+);
+assert.match(overviewHome, /Description/);
+assert.match(overviewHome, /Mission/);
+assert.match(overviewHome, /Vision/);
 
 const spacesSection = mustExist(
   "components/community/workspace/sections/SpacesSection.tsx"

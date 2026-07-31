@@ -10,20 +10,16 @@ import {
   BellOff,
   Check,
   ChevronDown,
-  Eye,
-  FileText,
   GraduationCap,
   Home,
   Layers,
   Loader2,
   LogOut,
-  Megaphone,
   MoreHorizontal,
   Newspaper,
   Radio,
   Share2,
   ShoppingBag,
-  Target,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -39,6 +35,7 @@ import {
   OverviewSpacesPanel,
   OverviewStorePanel,
 } from "@/components/community/hub/overview-section-panels";
+import { CommunityOverviewHome } from "@/components/community/hub/community-overview-home";
 
 type OverviewTabId =
   | "overview"
@@ -67,43 +64,8 @@ function formatCreatedLabel(iso: string | null | undefined) {
   return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
-function relativeTime(iso: string | null | undefined) {
-  if (!iso) return "";
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return "";
-  const diff = Date.now() - t;
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins} min ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months} month${months === 1 ? "" : "s"} ago`;
-  const years = Math.floor(months / 12);
-  return `${years} year${years === 1 ? "" : "s"} ago`;
-}
-
-function padBullets(source: string[], fallbacks: string[], limit = 4) {
-  const cleaned = source.map((s) => s.trim()).filter(Boolean);
-  const out = [...cleaned];
-  for (const f of fallbacks) {
-    if (out.length >= limit) break;
-    if (!out.includes(f)) out.push(f);
-  }
-  return out.slice(0, limit);
-}
-
-const ANNOUNCEMENT_COLORS = [
-  "bg-rose-500",
-  "bg-violet-500",
-  "bg-emerald-500",
-] as const;
-
 /**
- * Community Home (Overview) — matches approved design reference.
- * Full-width Description → Mission → Vision → Announcements rows.
+ * Community Home (Overview) — premium dashboard experience.
  */
 export function HubCommunityOverview() {
   const router = useRouter();
@@ -140,9 +102,6 @@ export function HubCommunityOverview() {
   const logo = overview?.avatarUrl ?? avatarUrl;
   const serverMembers = overview?.memberCount ?? memberCount ?? 0;
   const members = localMemberCount ?? serverMembers;
-  const desc =
-    overview?.description?.trim() ||
-    `A place for people who care about ${communityName} — learning, sharing, and building together.`;
   const communityTagline =
     overview?.tagline?.trim() ||
     tagline?.trim() ||
@@ -159,50 +118,12 @@ export function HubCommunityOverview() {
     members === 1 ? "Member" : "Members"
   }`;
 
-  const mission =
-    overview?.missionVision?.mission?.trim() ||
-    communityTagline ||
-    `Help members of ${communityName} learn faster and collaborate with clarity.`;
-  const vision =
-    overview?.missionVision?.vision?.trim() ||
-    (overview?.category
-      ? `Become the go-to home for ${overview.category.toLowerCase()} creators who want to learn, contribute, and grow together.`
-      : `Build a trusted ecosystem where members of ${communityName} turn knowledge into impact.`);
-
-  const tags = overview?.tags ?? [];
-  const descriptionBullets = padBullets(tags, [
-    "Global creator & affiliate network",
-    "Exclusive resources & opportunities",
-    "Live sessions with industry experts",
-    "Cross-border collaboration",
-  ]);
-  const missionBullets = padBullets(
-    (overview?.trustedBadges ?? [])
-      .filter((b) => b.tone === "active" || b.tone === "learning")
-      .map((b) => b.label),
-    ["Empower creators", "Build connections", "Unlock opportunities", "Grow together"]
-  );
-  const visionBullets = padBullets(
-    (overview?.trustedBadges ?? [])
-      .filter((b) => b.tone === "featured" || b.tone === "verified" || b.tone === "secure")
-      .map((b) => b.label),
-    [
-      "A borderless creator economy",
-      "Trusted by brands worldwide",
-      "Innovation-first platform",
-      "Inclusive by design",
-    ]
-  );
-
-  const announcements = (overview?.featuredPosts ?? []).slice(0, 3);
   const publishedCourses =
     overview?.courses?.length
       ? overview.courses
       : overview?.featuredCourse
         ? [overview.featuredCourse]
         : [];
-  const upcomingEvents = overview?.upcomingEvents ?? [];
-  void upcomingEvents;
   const liveCount = overview?.liveNow ?? 0;
 
   const hasSpaces = spacesWithRooms.length > 0;
@@ -686,106 +607,15 @@ export function HubCommunityOverview() {
               </section>
             ) : null}
 
-            {/* Overview content — premium cards */}
-            <div className="mt-8 space-y-5 sm:mt-10 sm:space-y-6">
-              <OverviewRow
-                icon={FileText}
-                iconClass="bg-orange-50 text-[#fd5000]"
-                bulletClass="text-[#fd5000]"
-                BulletIcon={Check}
-                title="Description"
-                body={desc}
-                bullets={descriptionBullets}
-              />
-
-              <OverviewRow
-                icon={Target}
-                iconClass="bg-emerald-50 text-emerald-600"
-                bulletClass="text-emerald-600"
-                BulletIcon={Check}
-                title="Mission"
-                body={mission}
-                bullets={missionBullets}
-              />
-
-              <OverviewRow
-                icon={Eye}
-                iconClass="bg-sky-50 text-sky-600"
-                bulletClass="text-sky-600"
-                BulletIcon={Check}
-                title="Vision"
-                body={vision}
-                bullets={visionBullets}
-              />
-
-              <section className="rounded-[1.35rem] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100 sm:p-6">
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
-                      <Megaphone className="h-5 w-5" aria-hidden />
-                    </span>
-                    <h2 className="text-[1.15rem] font-semibold tracking-tight text-gray-900">
-                      Announcements
-                    </h2>
-                  </div>
-                  <Link
-                    href={`${base}/feed`}
-                    className="text-[13px] font-semibold text-[#fd5000] hover:underline"
-                  >
-                    View all announcements →
-                  </Link>
-                </div>
-
-                {announcements.length === 0 ? (
-                  <div className="rounded-2xl bg-gray-50 px-5 py-8 text-center text-[14px] text-gray-500 ring-1 ring-gray-100">
-                    No announcements yet.
-                  </div>
-                ) : (
-                  <ul className="grid grid-cols-12 gap-4">
-                    {announcements.map((post, index) => (
-                      <li
-                        key={post.id}
-                        className="col-span-12 sm:col-span-6 lg:col-span-4"
-                      >
-                        <Link
-                          href={post.href}
-                          className="flex h-full gap-3.5 rounded-2xl bg-gray-50/70 p-4 ring-1 ring-gray-100 transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-md"
-                        >
-                          <span
-                            className={cn(
-                              "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white",
-                              ANNOUNCEMENT_COLORS[index % ANNOUNCEMENT_COLORS.length]
-                            )}
-                          >
-                            <Megaphone className="h-5 w-5" aria-hidden />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="flex items-start justify-between gap-2">
-                              <span className="line-clamp-2 text-[14px] font-semibold text-gray-900">
-                                {post.title?.trim() || post.body.slice(0, 72)}
-                              </span>
-                              {index === 1 && liveCount > 0 ? (
-                                <span className="shrink-0 rounded-md bg-red-500 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                                  Live
-                                </span>
-                              ) : null}
-                            </span>
-                            <span className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-gray-500">
-                              {post.body}
-                            </span>
-                            <span className="mt-2 block text-[11px] text-gray-400">
-                              {post.author.name}
-                              <span className="mx-1">·</span>
-                              {relativeTime(post.created_at)}
-                            </span>
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </div>
+            <CommunityOverviewHome
+              slug={slug}
+              communityName={communityName}
+              base={base}
+              overview={overview}
+              spacesWithRooms={spacesWithRooms}
+              canManage={canManage}
+              onCreateSpace={() => setCreateSpaceOpen(true)}
+            />
           </>
         ) : (
           <div className="mt-8 animate-in fade-in duration-300">
@@ -820,74 +650,5 @@ export function HubCommunityOverview() {
         )}
       </div>
     </div>
-  );
-}
-
-function OverviewRow({
-  icon: Icon,
-  iconClass,
-  bulletClass,
-  BulletIcon,
-  title,
-  body,
-  bullets,
-}: {
-  icon: typeof FileText;
-  iconClass: string;
-  bulletClass: string;
-  BulletIcon: typeof Check;
-  title: string;
-  body: string;
-  bullets: string[];
-}) {
-  return (
-    <section className="rounded-[1.35rem] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100 transition duration-200 hover:shadow-[0_12px_36px_rgba(15,23,42,0.06)] sm:p-6">
-      <div className="flex gap-4 sm:gap-5">
-        <span
-          className={cn(
-            "mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
-            iconClass
-          )}
-        >
-          <Icon className="h-5 w-5" aria-hidden />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[1.15rem] font-semibold tracking-tight text-gray-900">
-            {title}
-          </h2>
-          <p className="mt-2.5 max-w-3xl text-[14px] leading-relaxed text-gray-600 sm:text-[15px]">
-            {body}
-          </p>
-          {bullets.length > 0 ? (
-            <ul className="mt-4 flex flex-wrap gap-2">
-              {bullets.map((item) => (
-                <li
-                  key={item}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-1.5 text-[12px] font-medium text-gray-700 ring-1 ring-gray-100"
-                >
-                  <span
-                    className={cn(
-                      "flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full",
-                      bulletClass.includes("emerald")
-                        ? "bg-emerald-100"
-                        : bulletClass.includes("sky")
-                          ? "bg-sky-100"
-                          : "bg-orange-100"
-                    )}
-                  >
-                    <BulletIcon
-                      className={cn("h-3 w-3", bulletClass)}
-                      strokeWidth={2.5}
-                      aria-hidden
-                    />
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      </div>
-    </section>
   );
 }

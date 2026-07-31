@@ -75,7 +75,7 @@ assert.doesNotMatch(overview, /CreatorOSDashboard/);
 assert.doesNotMatch(overview, /CommunityHealthScoreCard/);
 assert.doesNotMatch(overview, /CreatorCommandCenterShell/);
 assert.doesNotMatch(overview, /UnifiedCreatorCommerceShell/);
-assert.match(overview, /Description|Mission|Vision|Announcements/);
+assert.match(overview, /Description|Mission|Vision|Announcements|CommunityOverviewHome/);
 assert.match(overview, /grid-cols-12/);
 assert.doesNotMatch(overview, /Join General/);
 assert.doesNotMatch(overview, /CreatorOSDashboard/);

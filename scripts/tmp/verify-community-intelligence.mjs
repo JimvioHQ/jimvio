@@ -48,7 +48,7 @@ assert.match(bookmarkBtn, /BookmarkButton/);
 assert.match(visit, /setContinueLearning|trackVisit/);
 assert.match(home, /Continue Learning/);
 assert.doesNotMatch(overview, /workspace-room-view|workspace-room-overlay/);
-assert.match(overview, /Description|Mission|Vision|Announcements/);
+assert.match(overview, /Description|Mission|Vision|Announcements|CommunityOverviewHome/);
 assert.match(groupPage, /VisitTracker/);
 assert.match(channelPage, /VisitTracker|continueLearning/);
 assert.match(notifUtils, /sortNotificationsByPriority|classifyCommunityNotificationPriority/);

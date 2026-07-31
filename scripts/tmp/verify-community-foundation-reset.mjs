@@ -58,16 +58,21 @@ assert.match(createSpace, /Create Space|entityLabel/);
 
 assert.match(overview, /Welcome to your new Community|This community is being prepared|No spaces available yet\./);
 assert.match(overview, /Create First Space|Create your first Space/);
+assert.match(overview, /CommunityOverviewHome|activeTab|OverviewSpacesPanel|OverviewCoursesPanel/);
 assert.match(overview, /Join Community|Joined/);
 assert.match(overview, /Invite/);
-assert.match(overview, /activeTab|OverviewSpacesPanel|OverviewCoursesPanel/);
 assert.match(overview, /memberLabel|Member/);
 assert.match(overview, /max-w-\[1400px\]/);
 assert.match(overview, /grid-cols-12/);
-assert.match(overview, /Description/);
-assert.match(overview, /Mission/);
-assert.match(overview, /Vision/);
-assert.match(overview, /Announcements/);
 assert.doesNotMatch(overview, /EmptyCover|aspect-\[3\.2\/1\]/);
+
+const overviewHome = mustExist(
+  "components/community/hub/community-overview-home.tsx"
+);
+assert.match(overviewHome, /Description/);
+assert.match(overviewHome, /Mission/);
+assert.match(overviewHome, /Vision/);
+assert.match(overviewHome, /Announcements|Highlights|Community Activity/);
+assert.match(overviewHome, /Featured Spaces|Member Spotlight/);
 
 console.log("Community foundation reset verification passed.");

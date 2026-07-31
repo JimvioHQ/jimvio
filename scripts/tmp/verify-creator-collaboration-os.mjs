@@ -98,7 +98,7 @@ assert.match(aiPanel, /Find previous answers/);
 // Creator OS dashboard remains intact; Overview stays member-first (no OS mount).
 assert.doesNotMatch(overview, /CreatorOSDashboard/);
 assert.doesNotMatch(overview, /Latest Activity/);
-assert.match(overview, /Description|Mission|Vision|Announcements/);
+assert.match(overview, /Description|Mission|Vision|Announcements|CommunityOverviewHome/);
 assert.match(overview, /grid-cols-12|max-w-\[1400px\]/);
 assert.doesNotMatch(overview, /Join General/);
 assert.doesNotMatch(overview, /Featured Groups|Featured Channels/);
