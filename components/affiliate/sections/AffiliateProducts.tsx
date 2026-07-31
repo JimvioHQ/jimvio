@@ -14,7 +14,6 @@ import {
   BadgeCheck,
   Eye,
   Heart,
-  Store,
 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { toggleWishlist } from "@/lib/actions/marketplace";
@@ -42,6 +41,12 @@ const ProductCard = memo(function ProductCard({
 }) {
   const [wishlisted, setWishlisted] = useState(false);
   const [pending, startTransition] = useTransition();
+  const commissionPct =
+    typeof product.rate === "number" && Number.isFinite(product.rate) && product.rate > 0
+      ? Math.round(product.rate)
+      : product.price > 0 && product.avgEarning > 0
+        ? Math.round((product.avgEarning / product.price) * 100)
+        : null;
 
   const onWishlist = useCallback(
     (e: MouseEvent) => {
@@ -94,10 +99,6 @@ const ProductCard = memo(function ProductCard({
           className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent opacity-60"
         />
 
-        <span className="absolute left-2.5 top-2.5 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-bold text-white backdrop-blur-[2px] transition-transform duration-200 group-hover:scale-105 motion-reduce:group-hover:scale-100">
-          {Math.round(product.rate)}%
-        </span>
-
         <button
           type="button"
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
@@ -120,68 +121,55 @@ const ProductCard = memo(function ProductCard({
           />
         </button>
 
-          <Link
-            href={`/affiliates/promote/${product.slug}`}
-            aria-label={`Quick preview ${product.name}`}
-            className={cn(
-              "absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full",
-              "border border-white/70 bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#111827] backdrop-blur-md",
-              "opacity-0 translate-y-2 transition-all duration-200",
-              "group-hover:translate-y-0 group-hover:opacity-100",
-              "focus-visible:translate-y-0 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
-              "motion-reduce:translate-y-0 motion-reduce:opacity-100"
-            )}
-          >
-            <Eye className="h-3 w-3" />
-            Preview
-          </Link>
+        <Link
+          href={`/affiliates/promote/${product.slug}`}
+          aria-label={`Quick preview ${product.name}`}
+          className={cn(
+            "absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 rounded-full",
+            "border border-white/70 bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-[#111827] backdrop-blur-md",
+            "opacity-0 translate-y-2 transition-all duration-200",
+            "group-hover:translate-y-0 group-hover:opacity-100",
+            "focus-visible:translate-y-0 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
+            "motion-reduce:translate-y-0 motion-reduce:opacity-100"
+          )}
+        >
+          <Eye className="h-3 w-3" />
+          Preview
+        </Link>
       </div>
 
       <div className="flex flex-1 flex-col p-3 sm:p-3.5">
-        <div className="flex items-center gap-1.5">
-          <p className="truncate text-[9.5px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
-            {product.category}
-          </p>
-          {product.verified ? (
-            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
-              <BadgeCheck className="h-3 w-3" strokeWidth={2.4} />
-              Verified
-            </span>
-          ) : null}
-        </div>
-
         <Link
           href={`/affiliates/promote/${product.slug}`}
-          className="mt-1 line-clamp-2 min-h-[2.4rem] text-[13px] font-semibold leading-snug text-[#111827] transition-colors duration-200 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30 rounded-sm"
+          className="line-clamp-2 min-h-[2.4rem] text-[13px] font-semibold leading-snug text-[#111827] transition-colors duration-200 hover:text-[#FF5A1F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/30 rounded-sm"
         >
           {product.name}
         </Link>
 
-        {product.sellerName ? (
-          <p className="mt-1.5 flex items-center gap-1 truncate text-[11px] text-[#6B7280]">
-            <Store className="h-3 w-3 shrink-0 text-[#9CA3AF]" />
-            <span className="truncate">{product.sellerName}</span>
-          </p>
+        {product.verified ? (
+          <span className="mt-1.5 inline-flex w-fit items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
+            <BadgeCheck className="h-3 w-3" strokeWidth={2.4} />
+            Verified
+          </span>
         ) : null}
 
-        <div className="mt-2.5 space-y-1 border-t border-[#F3F4F6] pt-2.5 text-[11.5px]">
-          <div className="flex items-center justify-between">
-            <span className="text-[#9CA3AF]">Price</span>
-            <span className="font-semibold tabular-nums text-[#111827]">
-              {formatAffiliateMoney(product.price, product.currency)}
+        <div className="mt-2.5 border-t border-[#F3F4F6] pt-2.5">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9CA3AF]">
+            Per Sale
+          </p>
+          <p className="mt-0.5 text-[15px] font-bold tabular-nums leading-none text-[#FF5A1F]">
+            {formatAffiliateMoney(product.avgEarning, product.currency)}
+          </p>
+          {commissionPct != null ? (
+            <span className="mt-2 inline-flex rounded-full bg-[#FF5A1F]/10 px-2 py-0.5 text-[10px] font-semibold text-[#FF5A1F] ring-1 ring-[#FF5A1F]/20">
+              {commissionPct}% Commission
             </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[#9CA3AF]">Per sale</span>
-            <span className="font-bold tabular-nums text-[#FF5A1F]">
-              {formatAffiliateMoney(product.avgEarning, product.currency)}
-            </span>
-          </div>
+          ) : null}
         </div>
 
         <div
           className={cn(
-            "mt-3 translate-y-1 opacity-95 transition-all duration-200",
+            "mt-auto pt-3 translate-y-1 opacity-95 transition-all duration-200",
             "group-hover:translate-y-0 group-hover:opacity-100",
             "motion-reduce:translate-y-0"
           )}

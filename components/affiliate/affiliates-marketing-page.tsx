@@ -5,7 +5,6 @@ import { ArrowRight } from "lucide-react";
 import { AffiliateHero } from "./sections/AffiliateHero";
 import { AffiliateCategories } from "./sections/AffiliateCategories";
 import { AffiliateHowItWorks } from "./sections/AffiliateHowItWorks";
-import { AffiliateBoostEarnings } from "./sections/AffiliateBoostEarnings";
 import { AffiliateProducts } from "./sections/AffiliateProducts";
 import { AffiliateBottomCta } from "./sections/AffiliateBottomCta";
 import { AFFILIATE_BTN_PRIMARY } from "./sections/shared";
@@ -48,7 +47,6 @@ export function AffiliatesMarketingPage({
       <AffiliateHero heroRate={heroRate} primaryCtaHref={primaryCtaHref} />
       <AffiliateCategories />
       <AffiliateHowItWorks />
-      <AffiliateBoostEarnings />
       <AffiliateProducts products={topProducts} />
       <AffiliateBottomCta primaryCtaHref={primaryCtaHref} />
 

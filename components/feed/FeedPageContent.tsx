@@ -39,10 +39,10 @@ export function FeedPageContent() {
       <div className="mx-auto w-full max-w-[1600px] bg-gradient-to-b from-[#FFF8F5]/80 via-gray-50/80 to-gray-50/80 p-4 lg:p-6">
         <div className="mb-4">
           <h1 className="text-[22px] font-black tracking-tight text-[#111827] sm:text-[26px]">
-            Creator OS Feed
+            For You
           </h1>
-          <p className="mt-1 text-[13px] text-[#6B7280]">
-            Posts, launches, trending communities, and live energy — personalized for you.
+          <p className="mt-1 max-w-3xl text-[13px] leading-snug text-[#6B7280] sm:line-clamp-2">
+            Explore everything worth discovering—creators, communities, posts, launches, live experiences, trending content, and new opportunities—all curated for you in one place.
           </p>
         </div>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
