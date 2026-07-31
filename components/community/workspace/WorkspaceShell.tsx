@@ -22,6 +22,8 @@ import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 import {
   communityChannelHref,
   communityGroupHref,
+  hasCapability,
+  resolveWorkspaceRole,
   roomTypeIcon as sharedRoomTypeIcon,
 } from "@/lib/community/workspace";
 
@@ -236,6 +238,7 @@ export function WorkspaceLayout({
               <aside className="hidden lg:flex flex-col flex-shrink-0">
                 <Sidebar
                   community={community}
+                  currentUserId={currentUserId}
                   basePath={basePath}
                   pathname={pathname}
                   view={view}
@@ -276,11 +279,12 @@ export function WorkspaceLayout({
    ══════════════════════════════════════════════════════════════════ */
 
 function Sidebar({
-  community, basePath, pathname, view, isAdmin, onViewToggle,
+  community, currentUserId, basePath, pathname, view, isAdmin, onViewToggle,
   profile, points, overview, membership, spacesWithRooms, expandedSpaces, onToggleSpace, onNavigateRoom,
   onOpenGroup,
 }: {
   community: WorkspaceCommunity;
+  currentUserId: string;
   basePath: string;
   pathname: string;
   view: WorkspaceView;
@@ -303,6 +307,14 @@ function Sidebar({
     membership?.plan_type === "yearly" ||
     membership?.plan_type === "lifetime" ||
     (membership?.plan_type != null && membership.plan_type !== "free");
+  const canCreateSpace = hasCapability(
+    resolveWorkspaceRole({
+      userId: currentUserId,
+      ownerId: community.owner_id,
+      membership: membership ?? null,
+    }),
+    "group.create"
+  );
 
   const isActive = (item: NavItem) => {
     const fullPath = item.external ? item.href : `${basePath}${item.href}`;
@@ -447,10 +459,11 @@ function Sidebar({
       <div className="flex-shrink-0 py-3">
         <div className="flex items-center justify-between px-3 mb-2">
           <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Spaces</p>
-          {isAdmin && view === "admin" && (
+          {canCreateSpace && view === "admin" && (
             <button
               type="button"
               aria-label="Create space"
+              onClick={() => setCreateSpaceOpen(true)}
               className="w-5 h-5 flex items-center justify-center rounded-md hover:bg-surface-secondary text-text-muted hover:text-[#fd5000] transition-colors"
             >
               <Plus className="w-3 h-3" />
@@ -518,7 +531,7 @@ function Sidebar({
           </div>
         )}
 
-        {isAdmin && view === "admin" && (
+        {canCreateSpace && view === "admin" && (
           <button
             type="button"
             onClick={() => setCreateSpaceOpen(true)}

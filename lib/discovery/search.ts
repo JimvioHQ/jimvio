@@ -20,6 +20,7 @@ import {
   type DiscoverySearchInput,
   type DiscoverySearchResult,
 } from "@/lib/discovery/types";
+import { communitySpaceHref } from "@/lib/community/workspace/navigation";
 
 function admin() {
   return createServiceRoleClient() as any;
@@ -335,43 +336,47 @@ async function searchSpaces(
     // Public / featured spaces only
     const { data } = await admin()
       .from("spaces")
-      .select("id, name, description, community_id, slug, is_featured, created_at")
+      .select("id, name, description, community_id, slug, is_featured, created_at, communities(slug)")
       .eq("is_featured", true)
       .ilike("name", pattern)
       .limit(limit);
-    return (data ?? []).map((row: any) => ({
-      id: row.id,
-      entityType: "space" as const,
-      title: row.name,
-      subtitle: row.description,
-      href: `/communities/spaces/${row.id}`,
-      score: combineScore({
-        relevance: textRelevanceScore(query, row.name, row.description),
-        engagement: engagementBoost({ featured: true }),
-        freshness: freshnessBoost(row.created_at),
-      }),
-    }));
+    return (data ?? [])
+      .filter((row: any) => row.communities?.slug && row.slug)
+      .map((row: any) => ({
+        id: row.id,
+        entityType: "space" as const,
+        title: row.name,
+        subtitle: row.description,
+        href: communitySpaceHref(row.communities.slug, row.slug),
+        score: combineScore({
+          relevance: textRelevanceScore(query, row.name, row.description),
+          engagement: engagementBoost({ featured: true }),
+          freshness: freshnessBoost(row.created_at),
+        }),
+      }));
   }
 
   const { data } = await admin()
     .from("spaces")
-    .select("id, name, description, community_id, slug, is_featured, created_at")
+    .select("id, name, description, community_id, slug, is_featured, created_at, communities(slug)")
     .in("community_id", memberCommunityIds)
     .ilike("name", pattern)
     .limit(limit);
 
-  return (data ?? []).map((row: any) => ({
-    id: row.id,
-    entityType: "space" as const,
-    title: row.name,
-    subtitle: row.description,
-    href: `/communities/spaces/${row.id}`,
-    score: combineScore({
-      relevance: textRelevanceScore(query, row.name, row.description),
-      engagement: engagementBoost({ featured: row.is_featured }),
-      freshness: freshnessBoost(row.created_at),
-    }),
-  }));
+  return (data ?? [])
+    .filter((row: any) => row.communities?.slug && row.slug)
+    .map((row: any) => ({
+      id: row.id,
+      entityType: "space" as const,
+      title: row.name,
+      subtitle: row.description,
+      href: communitySpaceHref(row.communities.slug, row.slug),
+      score: combineScore({
+        relevance: textRelevanceScore(query, row.name, row.description),
+        engagement: engagementBoost({ featured: row.is_featured }),
+        freshness: freshnessBoost(row.created_at),
+      }),
+    }));
 }
 
 async function searchPosts(

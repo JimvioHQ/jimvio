@@ -27,6 +27,10 @@ import { toast } from "sonner";
 import { useWorkspace } from "@/components/community/workspace-context";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 import { isMembershipActive } from "@/lib/community-workspace-access";
+import {
+  hasCapability,
+  resolveWorkspaceRole,
+} from "@/lib/community/workspace";
 import { cn } from "@/lib/utils";
 import {
   OverviewCoursesPanel,
@@ -84,6 +88,7 @@ export function HubCommunityOverview() {
     spacesWithRooms,
     membership,
     userId,
+    ownerId,
     ownerName,
   } = useWorkspace();
 
@@ -128,6 +133,10 @@ export function HubCommunityOverview() {
 
   const hasSpaces = spacesWithRooms.length > 0;
   const canManage = Boolean(isOwner || isAdmin);
+  const canCreateSpace = hasCapability(
+    resolveWorkspaceRole({ userId, ownerId, membership }),
+    "group.create"
+  );
   const onSpacesRoute =
     pathname === `${base}/spaces` || pathname.startsWith(`${base}/spaces/`);
 
@@ -257,7 +266,7 @@ export function HubCommunityOverview() {
 
   return (
     <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#f8fafc_0%,#f3f4f6_42%,#f9fafb_100%)]">
-      {canManage && communityId ? (
+      {canCreateSpace && communityId ? (
         <CreateSpaceDialog
           open={createSpaceOpen}
           onOpenChange={setCreateSpaceOpen}
@@ -562,7 +571,7 @@ export function HubCommunityOverview() {
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fd5000]/10 text-[#fd5000]">
                       <Layers className="h-6 w-6" aria-hidden />
                     </span>
-                    {canManage ? (
+                    {canCreateSpace ? (
                       <>
                         <div>
                           <h2 className="text-[1.35rem] font-semibold tracking-tight text-gray-900">
@@ -613,7 +622,7 @@ export function HubCommunityOverview() {
               base={base}
               overview={overview}
               spacesWithRooms={spacesWithRooms}
-              canManage={canManage}
+              canManage={canCreateSpace}
               onCreateSpace={() => setCreateSpaceOpen(true)}
             />
           </>
@@ -623,7 +632,7 @@ export function HubCommunityOverview() {
               <OverviewSpacesPanel
                 slug={slug}
                 spaces={spacesWithRooms}
-                canManage={canManage}
+                canManage={canCreateSpace}
                 onCreateSpace={() => setCreateSpaceOpen(true)}
               />
             ) : null}

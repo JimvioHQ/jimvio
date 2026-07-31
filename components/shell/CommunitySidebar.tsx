@@ -12,7 +12,11 @@ import {
   type WorkspaceSpaceRow,
 } from "@/components/community/workspace-context";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
-import { communitySpaceHref } from "@/lib/community/workspace";
+import {
+  communitySpaceHref,
+  hasCapability,
+  resolveWorkspaceRole,
+} from "@/lib/community/workspace";
 
 type CommunityNavItem = "overview" | "spaces";
 
@@ -328,7 +332,16 @@ export function CommunitySidebar({
     return buildSpaces(slug, spacesWithRooms);
   }, [spacesProp, spacesWithRooms, slug]);
 
-  const canManage = Boolean(workspace?.isOwner || workspace?.isAdmin);
+  const canCreateSpace = workspace
+    ? hasCapability(
+        resolveWorkspaceRole({
+          userId: workspace.userId,
+          ownerId: workspace.ownerId,
+          membership: workspace.membership,
+        }),
+        "group.create"
+      )
+    : false;
   const communityId = workspace?.communityId ?? null;
 
   const bodyProps = {
@@ -336,7 +349,7 @@ export function CommunitySidebar({
     activeNav,
     activeSpaceId,
     spaces,
-    canManage,
+    canManage: canCreateSpace,
     communityId,
   };
 

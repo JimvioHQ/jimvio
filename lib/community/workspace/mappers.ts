@@ -93,6 +93,7 @@ export function mapRoomToChannel(
     permission_config: room.permission_config,
     behavior_config: room.behavior_config,
     channelStaff: staffRole ? { staffRole } : null,
+    room,
   });
   const permissions = buildPermissions(role);
   return {

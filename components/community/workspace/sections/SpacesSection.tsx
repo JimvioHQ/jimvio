@@ -12,15 +12,15 @@ import { ChannelEmptyState } from "@/components/community/workspace/channel/Chan
 import { useWorkspaceFavorites } from "@/components/community/workspace/shared/useWorkspaceFavorites";
 import {
   communitySpaceHref,
+  hasCapability,
   mapSpaceToGroup,
+  resolveWorkspaceRole,
 } from "@/lib/community/workspace";
 import { useSpacesRealtime } from "@/lib/community/workspace/use-spaces-realtime";
 
 interface Props {
   community: WorkspaceCommunity;
   spacesWithRooms: WorkspaceSpaceRow[];
-  isAdmin?: boolean;
-  isOwner?: boolean;
 }
 
 /**
@@ -30,8 +30,6 @@ interface Props {
 export function SpacesSection({
   community,
   spacesWithRooms,
-  isAdmin = false,
-  isOwner = false,
 }: Props) {
   const router = useRouter();
   const {
@@ -39,11 +37,15 @@ export function SpacesSection({
     userId,
     membership,
     overview,
+    isOwner,
   } = useWorkspace();
   const { isFavorite, toggleFavorite } = useWorkspaceFavorites();
   const [createOpen, setCreateOpen] = useState(false);
 
-  const canCreate = isOwner || isAdmin;
+  const canCreate = hasCapability(
+    resolveWorkspaceRole({ userId, ownerId, membership }),
+    "group.create"
+  );
 
   const refreshSpaces = useCallback(() => {
     router.refresh();

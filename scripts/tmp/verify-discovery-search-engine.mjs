@@ -30,6 +30,8 @@ assert.match(search, /globalSearch/);
 assert.match(search, /searchProducts|searchCommunities|searchCreators/);
 assert.match(search, /searchCourses|searchLive|searchCampaigns/);
 assert.match(search, /searchSpaces|searchPosts|searchMessages/);
+assert.match(search, /communitySpaceHref/);
+assert.doesNotMatch(search, /\/communities\/spaces\/\$\{/);
 assert.match(search, /encodeCursor|decodeCursor/);
 
 const ranking = mustExist("lib/discovery/ranking.ts");

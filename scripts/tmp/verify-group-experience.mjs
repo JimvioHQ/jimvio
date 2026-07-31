@@ -69,8 +69,11 @@ assert.match(aboutPanel, /DsDrawer/);
 assert.match(groupPage, /GroupWorkspace/);
 assert.match(resolveDiscussion, /resolveGroupDiscussionRoom/);
 
-assert.match(assertPublish, /DISCUSSION_PERMISSION_CONFIG/);
-assert.match(assertPublish, /isGroupDiscussionRoom|channel_kind === "discussion"/);
+const channelPosting = mustExist("lib/community/workspace/channel-posting.ts");
+assert.match(channelPosting, /DISCUSSION_PERMISSION_CONFIG/);
+assert.match(channelPosting, /isGroupDiscussionRoom|channel_kind === "discussion"/);
+assert.match(assertPublish, /resolveChannelPostingAccess/);
+assert.match(assertPublish, /room,/);
 assert.match(roomsApi, /ensure_discussion/);
 assert.match(roomsApi, /DISCUSSION_PERMISSION_CONFIG/);
 assert.match(roomsApi, /channel_kind: "discussion"/);

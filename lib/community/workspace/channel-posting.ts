@@ -8,6 +8,7 @@ import type {
   ChannelPermissionConfig,
 } from "@/lib/community/owner-console/channels/types";
 import {
+  DISCUSSION_PERMISSION_CONFIG,
   normalizeBehaviorConfig,
   normalizePermissionConfig,
 } from "@/lib/community/owner-console/channels/constants";
@@ -18,6 +19,18 @@ import {
   type ResolveRoleInput,
 } from "./permissions";
 import type { WorkspaceRole } from "./types";
+
+/** Group Discussion rooms stay open for members (matches server assert-can-publish). */
+export function isGroupDiscussionRoom(room: {
+  channel_kind?: string | null;
+  slug?: string | null;
+  room_type?: string | null;
+}): boolean {
+  if (room.channel_kind === "discussion") return true;
+  const slug = (room.slug ?? "").trim().toLowerCase();
+  const type = (room.room_type ?? "").toLowerCase();
+  return type === "chat" && /^(discussion|general|chat|lounge)$/.test(slug);
+}
 
 export type ChannelStaffLite = {
   staffRole: "moderator" | "admin" | "publisher";
@@ -105,6 +118,12 @@ export function resolveChannelPostingAccess(args: {
   permission_config?: unknown;
   behavior_config?: unknown;
   channelStaff?: ChannelStaffLite | null;
+  /** When set, discussion rooms force the open DISCUSSION_PERMISSION_CONFIG. */
+  room?: {
+    channel_kind?: string | null;
+    slug?: string | null;
+    room_type?: string | null;
+  } | null;
 }): {
   permissionConfig: ChannelPermissionConfig;
   behaviorConfig: ChannelBehaviorConfig;
@@ -112,8 +131,12 @@ export function resolveChannelPostingAccess(args: {
   canPublish: boolean;
   canComment: boolean;
 } {
+  const rawPermission =
+    args.room && isGroupDiscussionRoom(args.room)
+      ? { ...DISCUSSION_PERMISSION_CONFIG, publisherIds: [] }
+      : args.permission_config;
   const { permissionConfig, behaviorConfig } = normalizeChannelPostingConfig({
-    permission_config: args.permission_config,
+    permission_config: rawPermission,
     behavior_config: args.behavior_config,
   });
   const role = resolveWorkspaceRole(args.roleInput);

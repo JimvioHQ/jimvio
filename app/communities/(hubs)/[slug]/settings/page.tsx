@@ -1,10 +1,15 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { sectionPath } from "@/lib/community/owner-console";
+import {
+  hasCapability,
+  resolveWorkspaceRole,
+} from "@/lib/community/workspace/permissions";
 
 /**
  * Workspace settings gear historically pointed at /[slug]/settings.
- * Staff land in Owner Console; members go to hub settings.
+ * Staff with settings capability land in Owner Console settings;
+ * other staff (e.g. moderators) land in moderation; members go to hub settings.
  */
 export default async function CommunitySettingsRedirect({
   params,
@@ -31,23 +36,44 @@ export default async function CommunitySettingsRedirect({
   if (!community) redirect("/communities/settings");
 
   const isOwner = community.owner_id === user.id;
-  if (isOwner) {
-    redirect(sectionPath("settings", slug));
-  }
 
   const { data: membership } = await supabase
     .from("community_memberships")
-    .select("role, status")
+    .select("role, status, plan_type, space_access")
     .eq("community_id", community.id)
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const staff =
-    membership?.status === "active" &&
-    (membership.role === "admin" || membership.role === "moderator" || membership.role === "owner");
+  const role = resolveWorkspaceRole({
+    userId: user.id,
+    ownerId: community.owner_id,
+    membership: isOwner
+      ? {
+          role: "owner",
+          status: "active",
+          plan_type: membership?.plan_type ?? null,
+          space_access: membership?.space_access ?? null,
+        }
+      : membership?.status
+        ? {
+            role: membership.role ?? undefined,
+            status: membership.status,
+            plan_type: membership.plan_type ?? null,
+            space_access: membership.space_access ?? null,
+          }
+        : null,
+  });
 
-  if (staff) {
+  if (hasCapability(role, "settings.view") || hasCapability(role, "settings.manage")) {
     redirect(sectionPath("settings", slug));
+  }
+
+  if (
+    membership?.status === "active" &&
+    (hasCapability(role, "moderation.view") ||
+      hasCapability(role, "moderation.manage"))
+  ) {
+    redirect(sectionPath("moderation", slug));
   }
 
   redirect("/communities/settings");

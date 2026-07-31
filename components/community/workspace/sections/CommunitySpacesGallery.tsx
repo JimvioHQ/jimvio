@@ -16,8 +16,6 @@ export function CommunitySpacesGallery() {
     memberCount,
     ownerId,
     spacesWithRooms,
-    isAdmin,
-    isOwner,
   } = useWorkspace();
 
   return (
@@ -33,8 +31,6 @@ export function CommunitySpacesGallery() {
           owner_id: ownerId,
         }}
         spacesWithRooms={spacesWithRooms}
-        isAdmin={isAdmin}
-        isOwner={isOwner}
       />
     </div>
   );
