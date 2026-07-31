@@ -115,6 +115,8 @@ export function ProductCardDigital({
           incrementCartCount(1);
           onAddToCart?.();
           toast.success(`Added · ${p.name}`);
+        } else if (result.error === "Authentication required") {
+          window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
         } else {
           toast.error(result.error || "Couldn't add");
         }

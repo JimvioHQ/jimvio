@@ -84,7 +84,7 @@ export function ViralStoryRow({ clips, initialActiveIndex = null, onClose, force
     } else {
       if (res.error === "Authentication required") {
         toast.error("Please sign in to follow stores.");
-        router.push("/login?returnUrl=" + encodeURIComponent(window.location.pathname));
+        router.push("/login?next=" + encodeURIComponent(window.location.pathname));
       } else {
         toast.error(res.error || "Failed to follow");
       }

@@ -149,6 +149,8 @@ export function ProductCardClient({
         onAddToCart?.();
         setVariantPickerOpen(false);
         toast.success(`"${p.name}" added to cart!`);
+      } else if (result.error === "Authentication required") {
+        window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
       } else {
         toast.error(result.error || "Failed to add to cart");
       }

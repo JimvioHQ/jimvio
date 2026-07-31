@@ -115,12 +115,14 @@ export default async function CheckoutPage(props: {
   searchParams: Promise<{
     order_id?: string;
     order?: string;
+    orderId?: string;
     method?: string;
     direct?: string;
   }>;
 }) {
   const searchParams = await props.searchParams;
-  const orderId = searchParams.order_id ?? searchParams.order ?? null;
+  const orderId =
+    searchParams.orderId ?? searchParams.order_id ?? searchParams.order ?? null;
   const preferredMethod = searchParams.method ?? null;
   const isDirectCheckout = searchParams.direct === "1";
 

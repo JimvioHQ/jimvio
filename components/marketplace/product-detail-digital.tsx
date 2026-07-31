@@ -500,6 +500,7 @@ import { ImageGallery } from "@/components/marketplace/image-gallery";
 import { ProductDescriptionView } from "@/components/marketplace/product-description-view";
 import { resolveProductVideoUrls } from "@/lib/product-videos";
 import { useCurrency } from "@/context/CurrencyContext";
+import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
 import {
   ProductBreadcrumb,
   SaveShareBar,
@@ -712,7 +713,9 @@ function DigitalBadgePills({
           }}
         >
           <TrendingUp className="h-3 w-3" />
-          {product.affiliate_commission_rate ?? 10}% affiliate
+          {product.affiliate_commission_rate ??
+            PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent}
+          % affiliate
         </span>
       )}
     </div>
@@ -721,79 +724,43 @@ function DigitalBadgePills({
 
 // ─── Social-proof activity feed ───────────────────────────────────────────────
 
-const ACTIVITY_AVATARS = [
-  { name: "Alex K.", initial: "A", city: "Berlin", color: "#FF6B35" },
-  { name: "Priya R.", initial: "P", city: "Mumbai", color: "#4ECDC4" },
-  { name: "Sam T.", initial: "S", city: "Toronto", color: "#45B7D1" },
-];
-
 function SocialProofActivityFeed({
   liveViewers,
   saleCount,
 }: { liveViewers: number; saleCount: number }) {
-  const items = useMemo(
-    () =>
-      ACTIVITY_AVATARS.map((a, i) => ({
-        ...a,
-        action: i === 0 ? "downloaded this asset" : i === 1 ? "favorited this" : "purchased this",
-        time: `${(i + 1) * 2} mins ago`,
-      })),
-    [],
-  );
+  if (liveViewers <= 0 && saleCount <= 0) return null;
 
   return (
     <div className="space-y-3">
-      <div
-        className="flex items-center gap-2 text-[12px] px-3 py-2 rounded-lg"
-        style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-      >
-        <Eye className="h-4 w-4 text-emerald-500 shrink-0" />
-        <span className="text-[var(--color-text-muted)]">
-          <strong className="text-[var(--color-text-primary)]">{liveViewers} people</strong> are
-          viewing this right now
-        </span>
-      </div>
-      <div
-        className="rounded-lg overflow-hidden"
-        style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-      >
-        <div className="divide-y divide-[var(--color-border)]">
-          {items.map((item, i) => (
-            <div key={i} className="flex items-center gap-2.5 px-3 py-2.5">
-              <div
-                className="h-8 w-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0 shadow-sm"
-                style={{ background: item.color }}
-              >
-                {item.initial}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] leading-tight">
-                  <strong className="text-[var(--color-text-primary)]">{item.name}</strong>{" "}
-                  <span className="text-[var(--color-text-muted)]">from {item.city}</span>
-                </p>
-                <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{item.action}</p>
-              </div>
-              <span className="text-[11px] text-[var(--color-text-muted)] shrink-0 tabular-nums">
-                {item.time}
-              </span>
-            </div>
-          ))}
+      {liveViewers > 0 ? (
+        <div
+          className="flex items-center gap-2 text-[12px] px-3 py-2 rounded-lg"
+          style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)" }}
+        >
+          <Eye className="h-4 w-4 text-emerald-500 shrink-0" />
+          <span className="text-[var(--color-text-muted)]">
+            <strong className="text-[var(--color-text-primary)]">{liveViewers} people</strong> are
+            viewing this right now
+          </span>
         </div>
-        {saleCount > 0 && (
-          <div
-            className="flex items-center gap-2 px-3 py-2 border-t border-[var(--color-border)] text-[12px]"
-            style={{ background: "rgba(253,80,0,0.04)" }}
-          >
-            <TrendingUp className="h-4 w-4 text-orange-500 shrink-0" />
-            <span className="text-[var(--color-text-muted)]">
-              <strong className="text-[var(--color-text-primary)]">
-                {saleCount >= 100 ? `${Math.round(saleCount / 10) * 10}` : saleCount}
-              </strong>{" "}
-              downloads in the last 24 hours
-            </span>
-          </div>
-        )}
-      </div>
+      ) : null}
+      {saleCount > 0 ? (
+        <div
+          className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px]"
+          style={{
+            background: "rgba(253,80,0,0.04)",
+            border: "1px solid var(--color-border)",
+          }}
+        >
+          <TrendingUp className="h-4 w-4 text-orange-500 shrink-0" />
+          <span className="text-[var(--color-text-muted)]">
+            <strong className="text-[var(--color-text-primary)]">
+              {saleCount >= 100 ? `${Math.round(saleCount / 10) * 10}` : saleCount}
+            </strong>{" "}
+            downloads recorded for this product
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1047,7 +1014,7 @@ function LicenseInfoCard() {
         ))}
       </ul>
       <Link
-        href="#"
+        href="/help"
         className="px-4 pb-4 inline-flex items-center gap-1 text-[12px] font-semibold text-sky-600 hover:text-sky-700"
       >
         Read full license <ArrowRight className="h-3 w-3" />
@@ -1086,7 +1053,7 @@ function CompactBuyerProtectionCard() {
         ))}
       </ul>
       <Link
-        href="#"
+        href="/help"
         className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-sky-600 hover:text-sky-700"
       >
         Learn more <ArrowRight className="h-3 w-3" />
@@ -1135,60 +1102,26 @@ function WhyChooseSection({ brandName = "Jimvio" }: { brandName?: string }) {
 
 // ─── Live activity feed sidebar ───────────────────────────────────────────────
 
-const SIDEBAR_PRODUCTS = [
-  { name: "Notion Dashboard Template", location: "Berlin, DE" },
-  { name: "Figma UI Kit Pro", location: "Tokyo, JP" },
-  { name: "Lightroom Preset Pack", location: "Paris, FR" },
-  { name: "Marketing Strategy eBook", location: "Toronto, CA" },
-];
-const SIDEBAR_TIME_LABELS = ["just now", "1 min ago", "2 mins ago", "4 mins ago"];
-
 function LiveActivityFeedSidebar({ liveViewers }: { liveViewers: number }) {
+  if (liveViewers <= 0) return null;
+
   return (
     <div
       className="rounded-md overflow-hidden"
       style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
     >
-      <div className="px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
-        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Live Downloads</p>
-        <Link href="#" className="text-[11px] font-semibold text-sky-600 hover:text-sky-700">
-          See All
-        </Link>
-      </div>
-      <div className="divide-y divide-[var(--color-border)]">
-        {SIDEBAR_PRODUCTS.map((item, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3">
-            <div className="h-9 w-9 rounded-lg bg-[var(--color-surface-secondary)] border border-[var(--color-border)] flex items-center justify-center shrink-0">
-              <Download className="h-4 w-4 text-[var(--color-text-muted)]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-[var(--color-text-primary)] truncate leading-none">
-                {item.name}
-              </p>
-              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
-                Downloaded in {item.location}
-              </p>
-            </div>
-            <span className="text-[9px] text-[var(--color-text-muted)] shrink-0 tabular-nums">
-              {SIDEBAR_TIME_LABELS[i]}
-            </span>
-          </div>
-        ))}
+      <div className="px-5 py-3.5 border-b border-[var(--color-border)]">
+        <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Live activity</p>
       </div>
       <div
-        className="px-4 py-3 border-t border-[var(--color-border)]"
-        style={{ background: "var(--color-surface-secondary)" }}
+        className="px-4 py-3 flex items-center gap-2 text-[12px]"
+        style={{ background: "rgba(16,185,129,0.04)" }}
       >
-        <div className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)]">
-          <span className="relative flex h-2 w-2 shrink-0">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          <span>
-            <strong className="text-[var(--color-text-primary)]">{liveViewers}</strong> people
-            viewing assets right now
-          </span>
-        </div>
+        <Eye className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+        <span className="text-[var(--color-text-muted)]">
+          <strong className="text-[var(--color-text-primary)]">{liveViewers}</strong> people
+          viewing now
+        </span>
       </div>
     </div>
   );
@@ -1912,7 +1845,7 @@ export function DigitalProductDetail({
                     </div>
 
                     <Link
-                      href="#"
+                      href="/help"
                       className="inline-flex items-center gap-1 text-[12px] font-semibold text-sky-600 hover:text-sky-700"
                     >
                       Read the full license terms <ArrowRight className="h-3 w-3" />

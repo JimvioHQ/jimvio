@@ -1556,7 +1556,7 @@ export default function PublicOrderDetailPage() {
                 </Link>
               )}
               <Link
-                href={`/help/orders?order=${order.id}`}
+                href={`/help?order=${order.id}`}
                 className="ml-auto inline-flex h-9 items-center gap-1.5 px-3 text-[12px] font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-accent)]"
               >
                 <HelpCircle className="h-3.5 w-3.5" /> Need help?

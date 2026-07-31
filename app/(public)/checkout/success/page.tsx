@@ -312,17 +312,28 @@ export default async function CheckoutSuccessPage({
     redirect(buildErrorRedirect("Payment was cancelled.", orderId));
   }
 
-  // If Flutterwave returned no real transaction_id, the payment was never
-  // completed — redirect to error regardless of the status param.
-  if (hasNullTransactionId && status !== "successful" && status !== "completed") {
-    redirect(buildErrorRedirect(
-      "We couldn't confirm your payment. Please try again or contact support.",
-      orderId,
-    ));
-  }
+  // Flutterwave-specific: when those query params are present, reject incomplete
+  // returns. Other providers (PayPal, Binance, AfriPay, etc.) redirect with
+  // orderId only and rely on DB / webhooks — do not require transaction_id.
+  const hasFlutterwaveParams =
+    Boolean(pickParam(sp.transaction_id)) ||
+    status === "successful" ||
+    status === "completed" ||
+    (status != null && FAILED_STATUSES.has(status));
 
-  if (!status) {
-    redirect(buildErrorRedirect("We couldn't confirm your payment status. Please try again."));
+  if (hasFlutterwaveParams) {
+    if (
+      hasNullTransactionId &&
+      status !== "successful" &&
+      status !== "completed"
+    ) {
+      redirect(
+        buildErrorRedirect(
+          "We couldn't confirm your payment. Please try again or contact support.",
+          orderId,
+        ),
+      );
+    }
   }
 
   if (!orderId) {

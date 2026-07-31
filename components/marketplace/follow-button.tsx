@@ -57,7 +57,7 @@ export function FollowButton({ vendorId, className, variant = "outline", followL
     } else {
       if (res.error === "Authentication required") {
         toast.error("Please sign in to follow stores.");
-        router.push("/login?returnUrl=" + encodeURIComponent(window.location.pathname));
+        router.push("/login?next=" + encodeURIComponent(window.location.pathname));
       } else {
         toast.error(res.error || "Failed to follow.");
       }

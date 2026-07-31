@@ -8,12 +8,12 @@ export const metadata = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ next?: string; redirect?: string }>;
+  searchParams: Promise<{ next?: string; redirect?: string; returnUrl?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const next = params.next ?? params.redirect ?? null;
+  const next = params.next ?? params.redirect ?? params.returnUrl ?? null;
   await redirectIfAuthenticated(next);
 
   const maintenanceMode = await getMaintenanceModeEnabled();

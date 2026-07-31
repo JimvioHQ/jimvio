@@ -15,6 +15,10 @@ import { toast } from "sonner";
 import { Product, Vendor } from "@/types/db";
 import { CurrencyCode } from "@/lib/currency/config";
 import { useCurrency } from "@/context/CurrencyContext";
+import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
+
+const DEFAULT_AFFILIATE_RATE =
+  PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent;
 
 
 
@@ -257,7 +261,7 @@ export function SocialProofBar({
 export function AffiliateBanner({ product }: { product: Product }) {
     if (!product.affiliate_enabled) return null;
 
-    const rate = product.affiliate_commission_rate ?? 10;
+    const rate = product.affiliate_commission_rate ?? DEFAULT_AFFILIATE_RATE;
     const earnPerSale = ((product.price * rate) / 100).toFixed(2);
     const currencySymbol = product.currency === "USD" ? "$" : product.currency;
 
@@ -354,7 +358,7 @@ export function AffiliateBanner({ product }: { product: Product }) {
                 {/* CTAs */}
                 <div className="flex flex-col sm:flex-row gap-2 pt-1">
                     <Link
-                        href={`/affiliate?product=${product.slug}`}
+                        href={`/affiliates/promote/${encodeURIComponent(product.slug)}`}
                         className="flex-1 inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl text-[13px] font-bold text-white transition-opacity hover:opacity-90"
                         style={{ background: "var(--color-accent)" }}
                     >
@@ -363,7 +367,7 @@ export function AffiliateBanner({ product }: { product: Product }) {
                     </Link>
 
                     <Link
-                        href="/affiliate"
+                        href="/affiliates"
                         className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl text-[12px] font-medium border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-strong)] transition-colors"
                     >
                         <Users className="h-3.5 w-3.5" />
@@ -428,7 +432,7 @@ export function FaqSection() {
             ))}
             <p className="mt-5 text-[12px] text-[var(--color-text-muted)]">
                 Still have questions?{" "}
-                <a href="/support" className="text-[var(--color-accent)] font-semibold hover:underline">
+                <a href="/help" className="text-[var(--color-accent)] font-semibold hover:underline">
                     Contact support →
                 </a>
             </p>
@@ -626,7 +630,7 @@ export function RelatedProducts({
                                     className="mt-1.5 inline-block rounded-md px-1.5 py-0.5 text-[9px] font-bold"
                                     style={{ background: "rgba(253,80,0,0.08)", color: "var(--color-accent)" }}
                                 >
-                                    {rp.affiliate_commission_rate ?? 10}% affiliate
+                                    {(rp.affiliate_commission_rate ?? DEFAULT_AFFILIATE_RATE)}% affiliate
                                 </span>
                             )}
                         </div>

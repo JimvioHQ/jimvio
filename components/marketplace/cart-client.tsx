@@ -1181,7 +1181,7 @@ export function CartClient({ initialItems }: CartClientProps) {
           <div className="space-y-1.5 px-1 text-xs text-[var(--color-text-muted)]">
             <p>
               <Link
-                href="/help/returns"
+                href="/help"
                 className="transition-colors hover:text-[var(--color-accent)] hover:underline"
               >
                 Return policy
@@ -1189,7 +1189,7 @@ export function CartClient({ initialItems }: CartClientProps) {
             </p>
             <p>
               <Link
-                href="/help/shipping"
+                href="/help"
                 className="transition-colors hover:text-[var(--color-accent)] hover:underline"
               >
                 Shipping information
@@ -1197,7 +1197,7 @@ export function CartClient({ initialItems }: CartClientProps) {
             </p>
             <p>
               <Link
-                href="/support"
+                href="/help"
                 className="transition-colors hover:text-[var(--color-accent)] hover:underline"
               >
                 Contact support

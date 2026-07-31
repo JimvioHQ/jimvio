@@ -27,7 +27,11 @@ function formatLoginError(raw: string): string {
 export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boolean }) {
   const searchParams = useSearchParams();
 
-  const next = searchParams.get("next") ?? searchParams.get("redirect") ?? "";
+  const next =
+    searchParams.get("next") ??
+    searchParams.get("redirect") ??
+    searchParams.get("returnUrl") ??
+    "";
   const urlError = searchParams.get("error");
 
   const [showPw, setShowPw] = useState(false);

@@ -208,7 +208,7 @@ export function ShortClipsReel({ videos, className }: ShortClipsReelProps) {
                     </div>
                   </div>
                   <Link 
-                    href={`/groups/community/${video.community.slug}`}
+                    href={`/communities/${video.community.slug}`}
                     className="flex items-center justify-center gap-1.5 w-full h-9 mt-auto rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold transition-all transform active:scale-95 shadow-sm"
                   >
                     Join Now

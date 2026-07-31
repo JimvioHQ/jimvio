@@ -302,7 +302,8 @@ function EmailOptIn({ orderId }: { orderId: string }) {
 
 function CancelContent() {
   const params = useSearchParams();
-  const orderId = params.get("order");
+  const orderId =
+    params.get("orderId") ?? params.get("order_id") ?? params.get("order");
   const rawReason = params.get("reason") ?? "default";
   const reason: ReasonKey = (rawReason in REASONS ? rawReason : "default") as ReasonKey;
   const info = REASONS[reason];
@@ -311,7 +312,7 @@ function CancelContent() {
 
   const primaryHref =
     info.primaryCta === "retry" && orderId
-      ? `/checkout?order=${orderId}&retry=true`
+      ? `/checkout?orderId=${encodeURIComponent(orderId)}&retry=true`
       : "/cart";
 
   const primaryLabel = info.primaryCta === "retry" && orderId ? "Try again" : "Back to cart";
@@ -440,7 +441,7 @@ function CancelContent() {
           <p className="flex items-center gap-1.5">
             <MessageCircle className="h-3 w-3" />
             <Link
-              href={orderId ? `/support?ref=${orderId}` : "/support"}
+              href={orderId ? `/help?ref=${encodeURIComponent(orderId)}` : "/help"}
               className="hover:underline hover:text-[var(--color-text-primary)] transition-colors"
             >
               Contact support
@@ -454,13 +455,13 @@ function CancelContent() {
               My orders
             </Link>
             <Link
-              href="/help/payments"
+              href="/help"
               className="hover:underline hover:text-[var(--color-text-primary)] transition-colors"
             >
               Payment FAQ
             </Link>
             <Link
-              href="/help/refunds"
+              href="/help"
               className="hover:underline hover:text-[var(--color-text-primary)] transition-colors"
             >
               Refund policy

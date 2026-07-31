@@ -250,7 +250,7 @@
 //         {/* Already owned — show access link */}
 //         {isFreeDigital && ownershipChecked && alreadyOwned ? (
 //           <Link
-//             href={`/dashboard/digital-assets?highlight=${product.id}`}
+//             href={`/dashboard/library?highlight=${product.id}`}
 //             className={cn(
 //               "flex-1 inline-flex items-center justify-center gap-2",
 //               "font-semibold text-[13px] rounded-xl h-11 transition-colors",
@@ -630,7 +630,7 @@ export function ProductActionModule({
       {isFreeDigital && ownershipChecked && alreadyOwned ? (
         <>
           <Link
-            href={`/dashboard/digital-assets?highlight=${product.id}`}
+            href={`/dashboard/library?highlight=${product.id}`}
             className={cn(
               "w-full inline-flex items-center justify-center gap-2",
               "font-medium text-[13px] rounded-xl h-11 transition-colors",

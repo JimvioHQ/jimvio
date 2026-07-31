@@ -403,7 +403,7 @@ function CompactBuyerProtectionCard() {
           </li>
         ))}
       </ul>
-      <Link href="#" className="mt-3.5 inline-flex items-center gap-1 text-[12px] font-semibold text-sky-600 transition-opacity hover:opacity-80">
+      <Link href="/help" className="mt-3.5 inline-flex items-center gap-1 text-[12px] font-semibold text-sky-600 transition-opacity hover:opacity-80">
         Learn more <ArrowRight className="h-3 w-3" />
       </Link>
     </div>
@@ -692,7 +692,7 @@ function OrderTrackingCard() {
       </div>
       <div className="px-4 pt-3 flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Recent Order</p>
-        <Link href="#" className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-0.5">
+        <Link href="/help" className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-0.5">
           View All <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
@@ -752,7 +752,7 @@ function OrderTrackingCard() {
             <span className="font-mono font-medium text-[var(--color-text-primary)] text-[10px]">DH123456789DE</span>
           </div>
         </div>
-        <Link href="#" className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 hover:text-sky-700 transition-colors">
+        <Link href="/help" className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-600 hover:text-sky-700 transition-colors">
           View details <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
@@ -813,9 +813,6 @@ function LiveActivityFeedSidebar({ liveViewers, recentActivity }: { liveViewers:
     <div className="rounded-md overflow-hidden" style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}>
       <div className="px-5 py-3.5 border-b border-[var(--color-border)] flex items-center justify-between">
         <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Live Activity Feed</p>
-        <Link href="#" className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 transition-colors">
-          See All
-        </Link>
       </div>
       <div className="divide-y divide-[var(--color-border)]">
         {items.length > 0 ? (
