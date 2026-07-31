@@ -38,7 +38,6 @@ export function SpacesSection({
     ownerId,
     userId,
     membership,
-    memberCount,
     overview,
   } = useWorkspace();
   const { isFavorite, toggleFavorite } = useWorkspaceFavorites();
@@ -61,12 +60,14 @@ export function SpacesSection({
     const online = overview?.membersOnline ?? 0;
     return spacesWithRooms.map((space, index) => {
       const mapped = mapSpaceToGroup(space, roleInput, {
-        memberCount: memberCount ?? 0,
+        description: space.description ?? null,
+        memberCount: space.member_count ?? 0,
+        createdAt: space.created_at ?? null,
         onlineCount:
           online > 0
             ? Math.max(1, Math.round(online / Math.max(spacesWithRooms.length, 1)))
             : 0,
-        featured: index === 0,
+        featured: Boolean(space.is_featured) || index === 0,
         tags: space.access_type === "paid" ? ["Premium"] : ["Open"],
       });
       return { space, group: mapped };
@@ -76,7 +77,6 @@ export function SpacesSection({
     userId,
     ownerId,
     membership,
-    memberCount,
     overview?.membersOnline,
   ]);
 
@@ -117,23 +117,30 @@ export function SpacesSection({
       {spaceCards.length === 0 ? (
         <ChannelEmptyState
           icon={Layers}
-          title="No Spaces yet"
+          title="No spaces available yet."
           description={
             canCreate
-              ? "Create your first Space to organize collaboration."
+              ? "Create your first Space to organize discussion, resources, and live sessions."
               : "This community has not published Spaces yet. Check back soon."
           }
-          actionLabel={canCreate ? "Create your first Space" : undefined}
+          actionLabel={canCreate ? "Create First Space" : undefined}
           onAction={canCreate ? () => setCreateOpen(true) : undefined}
         />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {spaceCards.map(({ space, group }, index) => {
             const href = communitySpaceHref(community.slug, space.slug);
-            const latest =
-              group.channels[0]?.name
-                ? `Latest · ${group.channels[0].name}`
-                : `${group.channels.length} rooms ready`;
+            const latestFromRoom = group.channels[0]?.name
+              ? `Latest · ${group.channels[0].name}`
+              : null;
+            const latestFromCreated = space.created_at
+              ? `Created ${new Date(space.created_at).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}`
+              : null;
+            const latest = latestFromRoom ?? latestFromCreated;
             return (
               <GroupCard
                 key={space.id}

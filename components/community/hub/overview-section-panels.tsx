@@ -80,20 +80,45 @@ function EmptyPanel({
   );
 }
 
+function spaceVisibilityLabel(accessType: string) {
+  const t = accessType.toLowerCase();
+  if (t === "private" || t === "paid" || t === "premium") return "Private";
+  return "Public";
+}
+
 export function OverviewSpacesPanel({
   slug,
   spaces,
+  canManage = false,
+  onCreateSpace,
 }: {
   slug: string;
   spaces: WorkspaceSpaceRow[];
+  canManage?: boolean;
+  onCreateSpace?: () => void;
 }) {
   if (spaces.length === 0) {
     return (
-      <EmptyPanel
-        icon={Layers}
-        title="No Spaces yet"
-        description="Spaces for this community will appear here once they are published."
-      />
+      <div className="flex flex-col items-center justify-center rounded-2xl bg-white px-6 py-14 text-center shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 animate-in fade-in duration-300">
+        <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#fd5000]">
+          <Layers className="h-6 w-6" aria-hidden />
+        </span>
+        <h3 className="text-[15px] font-semibold text-gray-900">
+          No spaces available yet.
+        </h3>
+        <p className="mt-1.5 max-w-sm text-[13px] leading-relaxed text-gray-500">
+          Spaces for this community will appear here once they are published.
+        </p>
+        {canManage && onCreateSpace ? (
+          <button
+            type="button"
+            onClick={onCreateSpace}
+            className="mt-5 inline-flex min-h-10 items-center justify-center rounded-xl bg-[#fd5000] px-5 text-[13px] font-semibold text-white transition hover:bg-[#e04700]"
+          >
+            Create First Space
+          </button>
+        ) : null}
+      </div>
     );
   }
 
@@ -106,17 +131,19 @@ export function OverviewSpacesPanel({
         const typeLabel = isSpaceType(space.space_type)
           ? SPACE_TYPE_LABELS[space.space_type]
           : "Discussion";
-        const members = space.member_count ?? 0;
-        const desc =
-          space.description?.trim() ||
-          `${typeLabel} space for ${space.name} members.`;
+        const members = space.member_count;
+        const visibility = spaceVisibilityLabel(space.access_type);
+        const desc = space.description?.trim() || null;
         return (
           <li key={space.id}>
-            <article className="flex h-full flex-col rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md">
+            <Link
+              href={href}
+              className="group flex h-full flex-col rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 transition duration-200 hover:-translate-y-0.5 hover:shadow-md hover:ring-[#fd5000]/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+            >
               <div className="flex items-start gap-3">
                 <span
                   className={cn(
-                    "relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full text-[13px] font-bold text-white",
+                    "relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-[13px] font-bold text-white shadow-sm transition duration-200 group-hover:scale-[1.03]",
                     color
                   )}
                 >
@@ -138,26 +165,43 @@ export function OverviewSpacesPanel({
                   <h3 className="truncate text-[15px] font-semibold text-gray-900">
                     {space.name}
                   </h3>
-                  <p className="mt-0.5 text-[12px] text-gray-500">
-                    {typeLabel} · {formatCompact(members)} members
-                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                        visibility === "Private"
+                          ? "bg-violet-50 text-violet-700"
+                          : "bg-emerald-50 text-emerald-700"
+                      )}
+                    >
+                      {visibility}
+                    </span>
+                    <span className="rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+                      {typeLabel}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <p className="mt-3 line-clamp-2 flex-1 text-[13px] leading-relaxed text-gray-600">
-                {desc}
-              </p>
-              <div className="mt-3 flex items-center justify-between gap-2">
-                <span className="text-[11px] text-gray-400">
-                  {relativeActivity(space.created_at)}
+              {desc ? (
+                <p className="mt-3 line-clamp-2 flex-1 text-[13px] leading-relaxed text-gray-600">
+                  {desc}
+                </p>
+              ) : (
+                <div className="flex-1" />
+              )}
+              <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-50 pt-3">
+                <span className="text-[11px] text-gray-500">
+                  {typeof members === "number"
+                    ? `${formatCompact(members)} members`
+                    : typeLabel}
                 </span>
-                <Link
-                  href={href}
-                  className="inline-flex min-h-9 items-center rounded-xl bg-[#fd5000] px-3.5 text-[12px] font-semibold text-white transition hover:bg-[#e04700]"
-                >
-                  Open
-                </Link>
+                {space.created_at ? (
+                  <span className="text-[11px] text-gray-400">
+                    {relativeActivity(space.created_at)}
+                  </span>
+                ) : null}
               </div>
-            </article>
+            </Link>
           </li>
         );
       })}

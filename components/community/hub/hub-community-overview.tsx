@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   BadgeCheck,
   Bell,
@@ -24,13 +25,13 @@ import {
   ShoppingBag,
   Target,
   UserPlus,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useWorkspace } from "@/components/community/workspace-context";
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 import { isMembershipActive } from "@/lib/community-workspace-access";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
 import {
   OverviewCoursesPanel,
   OverviewLivePanel,
@@ -106,6 +107,7 @@ const ANNOUNCEMENT_COLORS = [
  */
 export function HubCommunityOverview() {
   const router = useRouter();
+  const pathname = usePathname();
   const {
     communityId,
     communityName,
@@ -205,6 +207,8 @@ export function HubCommunityOverview() {
 
   const hasSpaces = spacesWithRooms.length > 0;
   const canManage = Boolean(isOwner || isAdmin);
+  const onSpacesRoute =
+    pathname === `${base}/spaces` || pathname.startsWith(`${base}/spaces/`);
 
   const secondNav = useMemo(
     () => [
@@ -213,39 +217,46 @@ export function HubCommunityOverview() {
         label: "Overview",
         count: null as number | null,
         icon: Home,
+        href: base,
       },
       {
         id: "spaces" as const,
         label: "Spaces",
         count: spacesWithRooms.length,
         icon: Layers,
+        href: `${base}/spaces`,
       },
       {
         id: "courses" as const,
         label: "Courses",
         count: overview?.courseCount ?? publishedCourses.length,
         icon: GraduationCap,
+        href: null as string | null,
       },
       {
         id: "posts" as const,
         label: "Posts",
         count: overview?.postCount ?? null,
         icon: Newspaper,
+        href: null as string | null,
       },
       {
         id: "live" as const,
         label: "Live",
         count: liveCount,
         icon: Radio,
+        href: null as string | null,
       },
       {
         id: "store" as const,
         label: "Store",
         count: null as number | null,
         icon: ShoppingBag,
+        href: null as string | null,
       },
     ],
     [
+      base,
       spacesWithRooms.length,
       overview?.courseCount,
       publishedCourses.length,
@@ -324,7 +335,7 @@ export function HubCommunityOverview() {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[#f9fafb]">
+    <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#f8fafc_0%,#f3f4f6_42%,#f9fafb_100%)]">
       {canManage && communityId ? (
         <CreateSpaceDialog
           open={createSpaceOpen}
@@ -335,245 +346,285 @@ export function HubCommunityOverview() {
       ) : null}
 
       <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-5 sm:px-6 lg:px-8">
-        {/* Community header — no cover */}
-        <section className="overflow-hidden rounded-2xl bg-white shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100">
-          <div className="flex flex-col gap-5 px-5 py-6 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-7 sm:py-7 lg:px-8">
-            <div className="flex min-w-0 items-center gap-4 sm:gap-5">
-              <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-full bg-[#fd5000] shadow-sm sm:h-20 sm:w-20">
-                {logo ? (
-                  <Image
-                    src={logo}
-                    alt=""
-                    fill
-                    priority
-                    className="object-cover"
-                    unoptimized
-                  />
-                ) : (
-                  <span className="flex h-full w-full items-center justify-center text-3xl font-bold text-white">
-                    {communityName.slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-[1.4rem] font-semibold tracking-tight text-gray-900 sm:text-[1.65rem]">
-                    {communityName}
-                  </h1>
-                  {verified ? (
-                    <BadgeCheck
-                      className="h-5 w-5 shrink-0 text-[#3b82f6]"
-                      fill="currentColor"
-                      strokeWidth={0}
-                      aria-label="Verified community"
+        {/* Premium community hero */}
+        <section className="overflow-hidden rounded-[1.5rem] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100/90">
+          <div className="relative overflow-hidden border-b border-gray-100/80 bg-[radial-gradient(120%_80%_at_0%_0%,rgba(253,80,0,0.08),transparent_55%),linear-gradient(180deg,#ffffff_0%,#fffaf7_100%)]">
+            <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fd5000]/[0.06] blur-3xl" />
+            <div className="relative flex flex-col gap-6 px-5 py-7 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-8 sm:py-8 lg:px-9">
+              <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+                <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden rounded-[1.35rem] bg-[#fd5000] shadow-[0_12px_28px_rgba(253,80,0,0.22)] ring-[3px] ring-white sm:h-[96px] sm:w-[96px]">
+                  {logo ? (
+                    <Image
+                      src={logo}
+                      alt=""
+                      fill
+                      priority
+                      className="object-cover"
+                      unoptimized
                     />
-                  ) : null}
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-4xl font-bold text-white">
+                      {communityName.slice(0, 1).toUpperCase()}
+                    </span>
+                  )}
                 </div>
-                <p className="mt-1 text-[13px] text-gray-500">
-                  {visibilityLabel} Community
-                  {createdLabel ? (
-                    <>
-                      <span className="mx-1.5 text-gray-300">·</span>
-                      Created {createdLabel}
-                    </>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="truncate text-[1.55rem] font-semibold tracking-tight text-gray-900 sm:text-[1.85rem]">
+                      {communityName}
+                    </h1>
+                    {verified ? (
+                      <BadgeCheck
+                        className="h-5 w-5 shrink-0 text-[#3b82f6]"
+                        fill="currentColor"
+                        strokeWidth={0}
+                        aria-label="Verified community"
+                      />
+                    ) : null}
+                  </div>
+                  {communityTagline ? (
+                    <p className="mt-1.5 line-clamp-2 max-w-xl text-[13px] leading-relaxed text-gray-500 sm:text-[14px]">
+                      {communityTagline}
+                    </p>
                   ) : null}
-                  <span className="mx-1.5 text-gray-300">·</span>
-                  <span className="font-medium text-[#3b82f6]">{memberLabel}</span>
-                </p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-600 ring-1 ring-gray-200/80">
+                      {visibilityLabel}
+                    </span>
+                    {createdLabel ? (
+                      <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-500 ring-1 ring-gray-200/80">
+                        Created {createdLabel}
+                      </span>
+                    ) : null}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700 ring-1 ring-sky-100">
+                      <Users className="h-3 w-3" aria-hidden />
+                      {memberLabel}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              {isJoined ? (
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setJoinedMenuOpen((v) => !v);
-                      setMoreOpen(false);
-                    }}
-                    disabled={leaving}
-                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-4 text-[13px] font-semibold text-emerald-700 ring-1 ring-emerald-200/80 transition-all duration-150 hover:bg-emerald-100"
-                    aria-expanded={joinedMenuOpen}
-                  >
-                    {leaving ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="h-4 w-4" strokeWidth={2.5} />
-                    )}
-                    Joined
-                    <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                  </button>
-                  {joinedMenuOpen ? (
-                    <div className="absolute right-0 z-20 mt-1.5 min-w-[200px] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-gray-700 hover:bg-gray-50"
-                        onClick={() => {
-                          const next = !muted;
-                          const previous = muted;
-                          setMuted(next);
-                          setJoinedMenuOpen(false);
-                          void fetch(`/api/c/${communityId}/mute`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ muted: next }),
-                          })
-                            .then(async (res) => {
-                              if (!res.ok) {
-                                const payload = await res.json().catch(() => null);
-                                throw new Error(payload?.error || "Mute failed");
-                              }
-                              toast.success(
-                                next
-                                  ? "Community notifications muted"
-                                  : "Notifications unmuted"
-                              );
-                            })
-                            .catch((err: unknown) => {
-                              setMuted(previous);
-                              toast.error(
-                                err instanceof Error ? err.message : "Mute failed"
-                              );
-                            });
-                        }}
-                      >
-                        {muted ? (
-                          <Bell className="h-4 w-4" />
-                        ) : (
-                          <BellOff className="h-4 w-4" />
-                        )}
-                        {muted ? "Unmute" : "Mute"}
-                      </button>
-                      <Link
-                        href={`${base}/settings`}
-                        className="flex items-center gap-2 px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
-                        onClick={() => setJoinedMenuOpen(false)}
-                      >
-                        <Bell className="h-4 w-4" />
-                        Notification Settings
-                      </Link>
-                      {!isOwner ? (
+              <div className="flex flex-wrap items-center gap-2.5">
+                {isJoined ? (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setJoinedMenuOpen((v) => !v);
+                        setMoreOpen(false);
+                      }}
+                      disabled={leaving}
+                      className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-4 text-[13px] font-semibold text-emerald-700 ring-1 ring-emerald-200/80 transition-all duration-150 hover:bg-emerald-100"
+                      aria-expanded={joinedMenuOpen}
+                    >
+                      {leaving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" strokeWidth={2.5} />
+                      )}
+                      Joined
+                      <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                    </button>
+                    {joinedMenuOpen ? (
+                      <div className="absolute right-0 z-20 mt-1.5 min-w-[200px] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
                         <button
                           type="button"
-                          className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-red-600 hover:bg-red-50"
-                          onClick={() => void handleLeave()}
+                          className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                          onClick={() => {
+                            const next = !muted;
+                            const previous = muted;
+                            setMuted(next);
+                            setJoinedMenuOpen(false);
+                            void fetch(`/api/c/${communityId}/mute`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ muted: next }),
+                            })
+                              .then(async (res) => {
+                                if (!res.ok) {
+                                  const payload = await res.json().catch(() => null);
+                                  throw new Error(payload?.error || "Mute failed");
+                                }
+                                toast.success(
+                                  next
+                                    ? "Community notifications muted"
+                                    : "Notifications unmuted"
+                                );
+                              })
+                              .catch((err: unknown) => {
+                                setMuted(previous);
+                                toast.error(
+                                  err instanceof Error ? err.message : "Mute failed"
+                                );
+                              });
+                          }}
                         >
-                          <LogOut className="h-4 w-4" />
-                          Leave Community
+                          {muted ? (
+                            <Bell className="h-4 w-4" />
+                          ) : (
+                            <BellOff className="h-4 w-4" />
+                          )}
+                          {muted ? "Unmute" : "Mute"}
                         </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
+                        <Link
+                          href={`${base}/settings`}
+                          className="flex items-center gap-2 px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                          onClick={() => setJoinedMenuOpen(false)}
+                        >
+                          <Bell className="h-4 w-4" />
+                          Notification Settings
+                        </Link>
+                        {!isOwner ? (
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-red-600 hover:bg-red-50"
+                            onClick={() => void handleLeave()}
+                          >
+                            <LogOut className="h-4 w-4" />
+                            Leave Community
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void handleJoin()}
+                    disabled={joining}
+                    className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-[#fd5000] px-5 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(253,80,0,0.25)] transition-all duration-150 hover:bg-[#e04700] disabled:opacity-70"
+                  >
+                    {joining ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : null}
+                    Join Community
+                  </button>
+                )}
+                <Link
+                  href={`${base}/members`}
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition-all duration-150 hover:border-gray-300 hover:bg-gray-50"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Invite
+                </Link>
                 <button
                   type="button"
-                  onClick={() => void handleJoin()}
-                  disabled={joining}
-                  className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-[#fd5000] px-4 text-[13px] font-semibold text-white transition-all duration-150 hover:bg-[#e04700] hover:shadow-sm disabled:opacity-70"
+                  onClick={handleShare}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-all duration-150 hover:border-gray-300 hover:bg-gray-50"
+                  aria-label={shareLabel}
+                  title={shareLabel}
                 >
-                  {joining ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : null}
-                  Join Community
+                  <Share2 className="h-4 w-4" />
                 </button>
-              )}
-              <Link
-                href={`${base}/members`}
-                className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition-all duration-150 hover:bg-gray-50 hover:border-gray-300"
-              >
-                <UserPlus className="h-4 w-4" />
-                Invite
-              </Link>
-              <button
-                type="button"
-                onClick={handleShare}
-                className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-all duration-150 hover:bg-gray-50 hover:border-gray-300"
-                aria-label={shareLabel}
-                title={shareLabel}
-              >
-                <Share2 className="h-4 w-4" />
-              </button>
-              <div className="relative">
+                <div className="relative">
                   <button
                     type="button"
                     onClick={() => {
                       setMoreOpen((v) => !v);
                       setJoinedMenuOpen(false);
                     }}
-                    className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-all duration-150 hover:bg-gray-50 hover:border-gray-300"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-all duration-150 hover:border-gray-300 hover:bg-gray-50"
                     aria-label="More"
                     aria-expanded={moreOpen}
                   >
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
-                {moreOpen ? (
-                  <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
-                    {canManage ? (
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                  {moreOpen ? (
+                    <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                      {canManage ? (
+                        <Link
+                          href={`/dashboard/communities/${encodeURIComponent(slug)}`}
+                          className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                          onClick={() => setMoreOpen(false)}
+                        >
+                          Owner Console
+                        </Link>
+                      ) : null}
                       <Link
-                        href={`/dashboard/communities/${encodeURIComponent(slug)}`}
+                        href={`${base}/about`}
                         className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
                         onClick={() => setMoreOpen(false)}
                       >
-                        Owner Console
+                        About
                       </Link>
-                    ) : null}
-                    <Link
-                      href={`${base}/about`}
-                      className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
-                      onClick={() => setMoreOpen(false)}
-                    >
-                      About
-                    </Link>
-                    <Link
-                      href={`${base}/members`}
-                      className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
-                      onClick={() => setMoreOpen(false)}
-                    >
-                      Members
-                    </Link>
-                  </div>
-                ) : null}
+                      <Link
+                        href={`${base}/members`}
+                        className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                        onClick={() => setMoreOpen(false)}
+                      >
+                        Members
+                      </Link>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Second navigation — in-page tabs */}
+          {/* Second navigation — Spaces routes to community spaces index */}
           <nav
             aria-label="Community sections"
-            className="flex gap-1 overflow-x-auto border-t border-gray-100 px-2 sm:px-4"
+            className="flex gap-1 overflow-x-auto px-2 sm:px-4"
           >
             {secondNav.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveTab(item.id)}
-                  className={cn(
-                    "relative flex shrink-0 items-center gap-1.5 px-3.5 py-3.5 text-[13px] transition-colors duration-150",
-                    isActive
-                      ? "font-semibold text-[#fd5000]"
-                      : "font-medium text-gray-500 hover:text-gray-800"
-                  )}
-                >
+              const isActive =
+                item.id === "spaces"
+                  ? onSpacesRoute
+                  : item.id === "overview"
+                    ? !onSpacesRoute && activeTab === "overview"
+                    : !onSpacesRoute && activeTab === item.id;
+              const className = cn(
+                "relative flex shrink-0 items-center gap-1.5 px-3.5 py-3.5 text-[13px] transition-colors duration-150",
+                isActive
+                  ? "font-semibold text-[#fd5000]"
+                  : "font-medium text-gray-500 hover:text-gray-800"
+              );
+              const content = (
+                <>
                   <Icon className="h-4 w-4" />
                   {item.label}
                   {item.count != null && item.count > 0 ? (
                     <span
                       className={cn(
-                        "text-[12px]",
-                        isActive ? "text-[#fd5000]/80" : "text-gray-400"
+                        "rounded-md px-1.5 py-0.5 text-[11px] tabular-nums",
+                        isActive
+                          ? "bg-[#fd5000]/10 text-[#fd5000]"
+                          : "bg-gray-100 text-gray-500"
                       )}
                     >
-                      ({item.count})
+                      {item.count}
                     </span>
                   ) : null}
                   {isActive ? (
                     <span className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-[#fd5000]" />
                   ) : null}
+                </>
+              );
+
+              if (item.href) {
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={className}
+                    onClick={() => {
+                      if (item.id === "overview") setActiveTab("overview");
+                    }}
+                  >
+                    {content}
+                  </Link>
+                );
+              }
+
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveTab(item.id)}
+                  className={className}
+                >
+                  {content}
                 </button>
               );
             })}
@@ -584,7 +635,7 @@ export function HubCommunityOverview() {
           <>
             {/* Empty foundation state */}
             {!hasSpaces ? (
-              <section className="mt-8 overflow-hidden rounded-2xl bg-white p-8 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 sm:p-10">
+              <section className="mt-8 overflow-hidden rounded-[1.35rem] bg-white p-8 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100 sm:p-10 animate-in fade-in duration-300">
                 <div className="grid grid-cols-12 gap-6">
                   <div className="col-span-12 flex flex-col gap-4 lg:col-span-8">
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fd5000]/10 text-[#fd5000]">
@@ -607,7 +658,7 @@ export function HubCommunityOverview() {
                             onClick={() => setCreateSpaceOpen(true)}
                             className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#fd5000] px-5 text-[13px] font-semibold text-white hover:bg-[#e04700]"
                           >
-                            Create your first Space
+                            Create First Space
                           </button>
                           <Link
                             href={`/dashboard/communities/${encodeURIComponent(slug)}`}
@@ -621,7 +672,7 @@ export function HubCommunityOverview() {
                       <>
                         <div>
                           <h2 className="text-[1.35rem] font-semibold tracking-tight text-gray-900">
-                            This community is being prepared
+                            No spaces available yet.
                           </h2>
                           <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-gray-500">
                             No Spaces have been published yet. Check back soon — your host
@@ -635,8 +686,8 @@ export function HubCommunityOverview() {
               </section>
             ) : null}
 
-            {/* Overview content — full-width rows */}
-            <div className="mt-10 space-y-10 sm:mt-12 sm:space-y-12">
+            {/* Overview content — premium cards */}
+            <div className="mt-8 space-y-5 sm:mt-10 sm:space-y-6">
               <OverviewRow
                 icon={FileText}
                 iconClass="bg-orange-50 text-[#fd5000]"
@@ -667,10 +718,10 @@ export function HubCommunityOverview() {
                 bullets={visionBullets}
               />
 
-              <section>
+              <section className="rounded-[1.35rem] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100 sm:p-6">
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
                       <Megaphone className="h-5 w-5" aria-hidden />
                     </span>
                     <h2 className="text-[1.15rem] font-semibold tracking-tight text-gray-900">
@@ -686,7 +737,7 @@ export function HubCommunityOverview() {
                 </div>
 
                 {announcements.length === 0 ? (
-                  <div className="rounded-2xl bg-white px-5 py-8 text-center text-[14px] text-gray-500 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100">
+                  <div className="rounded-2xl bg-gray-50 px-5 py-8 text-center text-[14px] text-gray-500 ring-1 ring-gray-100">
                     No announcements yet.
                   </div>
                 ) : (
@@ -698,7 +749,7 @@ export function HubCommunityOverview() {
                       >
                         <Link
                           href={post.href}
-                          className="flex h-full gap-3.5 rounded-2xl bg-white p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
+                          className="flex h-full gap-3.5 rounded-2xl bg-gray-50/70 p-4 ring-1 ring-gray-100 transition duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-md"
                         >
                           <span
                             className={cn(
@@ -737,9 +788,14 @@ export function HubCommunityOverview() {
             </div>
           </>
         ) : (
-          <div className="mt-8">
+          <div className="mt-8 animate-in fade-in duration-300">
             {activeTab === "spaces" ? (
-              <OverviewSpacesPanel slug={slug} spaces={spacesWithRooms} />
+              <OverviewSpacesPanel
+                slug={slug}
+                spaces={spacesWithRooms}
+                canManage={canManage}
+                onCreateSpace={() => setCreateSpaceOpen(true)}
+              />
             ) : null}
             {activeTab === "courses" ? (
               <OverviewCoursesPanel
@@ -785,50 +841,52 @@ function OverviewRow({
   bullets: string[];
 }) {
   return (
-    <section className="flex gap-4 sm:gap-5">
-      <span
-        className={cn(
-          "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-          iconClass
-        )}
-      >
-        <Icon className="h-5 w-5" aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
-        <h2 className="text-[1.15rem] font-semibold tracking-tight text-gray-900">
-          {title}
-        </h2>
-        <p className="mt-2.5 max-w-3xl text-[14px] leading-relaxed text-gray-600 sm:text-[15px]">
-          {body}
-        </p>
-        {bullets.length > 0 ? (
-          <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2.5">
-            {bullets.map((item) => (
-              <li
-                key={item}
-                className="inline-flex items-center gap-2 text-[13px] text-gray-700"
-              >
-                <span
-                  className={cn(
-                    "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full",
-                    bulletClass.includes("emerald")
-                      ? "bg-emerald-100"
-                      : bulletClass.includes("sky")
-                        ? "bg-sky-100"
-                        : "bg-orange-100"
-                  )}
+    <section className="rounded-[1.35rem] bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100 transition duration-200 hover:shadow-[0_12px_36px_rgba(15,23,42,0.06)] sm:p-6">
+      <div className="flex gap-4 sm:gap-5">
+        <span
+          className={cn(
+            "mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
+            iconClass
+          )}
+        >
+          <Icon className="h-5 w-5" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[1.15rem] font-semibold tracking-tight text-gray-900">
+            {title}
+          </h2>
+          <p className="mt-2.5 max-w-3xl text-[14px] leading-relaxed text-gray-600 sm:text-[15px]">
+            {body}
+          </p>
+          {bullets.length > 0 ? (
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {bullets.map((item) => (
+                <li
+                  key={item}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 px-2.5 py-1.5 text-[12px] font-medium text-gray-700 ring-1 ring-gray-100"
                 >
-                  <BulletIcon
-                    className={cn("h-3 w-3", bulletClass)}
-                    strokeWidth={2.5}
-                    aria-hidden
-                  />
-                </span>
-                {item}
-              </li>
-            ))}
-          </ul>
-        ) : null}
+                  <span
+                    className={cn(
+                      "flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-full",
+                      bulletClass.includes("emerald")
+                        ? "bg-emerald-100"
+                        : bulletClass.includes("sky")
+                          ? "bg-sky-100"
+                          : "bg-orange-100"
+                    )}
+                  >
+                    <BulletIcon
+                      className={cn("h-3 w-3", bulletClass)}
+                      strokeWidth={2.5}
+                      aria-hidden
+                    />
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       </div>
     </section>
   );

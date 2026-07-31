@@ -81,7 +81,9 @@ assert.match(player, /muted/);
 assert.match(player, /Tap for sound|Play video/);
 
 const feedPage = mustExist("components/feed/FeedPageContent.tsx");
-assert.match(feedPage, /trending communities/i);
+assert.match(feedPage, /For You/);
+assert.match(feedPage, /Explore everything worth discovering/i);
+assert.doesNotMatch(feedPage, /Creator OS Feed/);
 assert.doesNotMatch(feedPage, /trending creators/i);
 
 const hot = communityTrendingScore({

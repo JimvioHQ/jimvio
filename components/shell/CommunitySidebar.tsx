@@ -107,6 +107,7 @@ function SidebarBody({
   const onSpacesRoute =
     pathname.includes("/spaces/") ||
     pathname.includes("/groups/") ||
+    pathname === `${base}/spaces` ||
     pathname.endsWith("/spaces");
   const onHome =
     pathname === base ||
@@ -128,9 +129,11 @@ function SidebarBody({
     );
   }
 
+  const onSpacesIndex = pathname === `${base}/spaces` || pathname === `${base}/spaces/`;
+
   return (
     <>
-      <div className="border-b border-gray-100 px-4 pb-3 pt-3">
+      <div className="border-b border-gray-100/90 px-4 pb-3.5 pt-3.5">
         <Link
           href="/communities"
           onClick={onNavigate}
@@ -141,15 +144,15 @@ function SidebarBody({
         </Link>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 py-3 scrollbar-hide">
-        <nav className="mb-5 space-y-0.5">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 py-3.5 scrollbar-hide">
+        <nav className="mb-6 space-y-1">
           <Link
             href={base}
             onClick={onNavigate}
             className={cn(
               "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-150",
               onHome && !onSpacesRoute
-                ? "bg-orange-50 font-semibold text-[#fd5000]"
+                ? "bg-orange-50 font-semibold text-[#fd5000] shadow-[inset_3px_0_0_0_#fd5000]"
                 : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
             )}
           >
@@ -162,9 +165,10 @@ function SidebarBody({
             className={cn(
               "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-150",
               onSpacesRoute
-                ? "bg-orange-50 font-semibold text-[#fd5000]"
+                ? "bg-orange-50 font-semibold text-[#fd5000] shadow-[inset_3px_0_0_0_#fd5000]"
                 : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
             )}
+            aria-current={onSpacesIndex ? "page" : undefined}
           >
             <Layers className="h-4 w-4 shrink-0" />
             <span className="flex-1">Spaces</span>
@@ -183,7 +187,7 @@ function SidebarBody({
           </Link>
         </nav>
 
-        <div className="mb-1.5 flex items-center justify-between px-3">
+        <div className="mb-2 flex items-center justify-between px-3">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
             Spaces
           </p>
@@ -192,24 +196,28 @@ function SidebarBody({
               type="button"
               aria-label="Create space"
               onClick={() => setCreateSpaceOpen(true)}
-              className="rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-50 hover:text-[#fd5000]"
+              className="rounded-md p-1 text-gray-400 transition-colors hover:bg-orange-50 hover:text-[#fd5000]"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
           ) : null}
         </div>
-        <nav className="mb-5 space-y-0.5">
+        <nav className="mb-5 space-y-1">
           {spaces.length === 0 ? (
             canManage && communityId ? (
               <button
                 type="button"
                 onClick={() => setCreateSpaceOpen(true)}
-                className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 transition-colors hover:bg-gray-50 hover:text-[#fd5000]"
+                className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-[#fd5000]"
               >
                 <Plus className="h-4 w-4 shrink-0" />
-                Create Space
+                Create First Space
               </button>
-            ) : null
+            ) : (
+              <p className="px-3 py-2 text-[12px] leading-relaxed text-gray-400">
+                No spaces available yet.
+              </p>
+            )
           ) : (
             spaces.map((space, index) => {
               const active = spaceActive(space);
@@ -225,7 +233,9 @@ function SidebarBody({
                   onClick={onNavigate}
                   className={cn(
                     "flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all duration-150",
-                    active ? "bg-orange-50" : "hover:bg-gray-50"
+                    active
+                      ? "bg-orange-50 shadow-[inset_3px_0_0_0_#fd5000]"
+                      : "hover:bg-gray-50"
                   )}
                 >
                   <span
@@ -268,7 +278,7 @@ function SidebarBody({
         </nav>
 
         <div className="mt-auto px-1 pb-2">
-          <div className="rounded-2xl border border-orange-100/80 bg-gradient-to-br from-[#fff7ed] to-white px-3.5 py-3.5">
+          <div className="rounded-2xl border border-orange-100/80 bg-gradient-to-br from-[#fff7ed] to-white px-3.5 py-4 shadow-[0_4px_16px_rgba(253,80,0,0.04)]">
             <p className="text-[13px] font-bold text-gray-900">Go Premium</p>
             <p className="mt-0.5 text-[11px] leading-relaxed text-gray-500">
               Unlock exclusive Spaces and live sessions.
@@ -276,7 +286,7 @@ function SidebarBody({
             <Link
               href={`${base}/subscribe`}
               onClick={onNavigate}
-              className="mt-2 inline-flex text-[12px] font-semibold text-[#fd5000] transition-colors hover:text-[#e04700]"
+              className="mt-2.5 inline-flex text-[12px] font-semibold text-[#fd5000] transition-colors hover:text-[#e04700]"
             >
               Upgrade now →
             </Link>

@@ -42,9 +42,9 @@ assert.doesNotMatch(migration, /DELETE FROM public\.community_memberships/i);
 assert.doesNotMatch(migration, /DELETE FROM public\.community_courses/i);
 
 assert.match(groupDefaults, /defaultChannels: \[\]/);
-assert.match(overview, /Welcome to your new Community|This community is being prepared/);
-assert.match(overview, /Create your first Space/);
-assert.match(overview, /This community is being prepared/);
+assert.match(overview, /Welcome to your new Community|This community is being prepared|No spaces available yet\./);
+assert.match(overview, /Create First Space|Create your first Space/);
+assert.match(overview, /This community is being prepared|No spaces available yet\./);
 assert.doesNotMatch(communitiesApi, /bootstrapDefaultSpaces/);
 assert.match(spacesApi, /spaceType|space_type/);
 assert.match(spacesApi, /SPACE_TYPE_TO_ROOM_TYPE|channel_kind/);
