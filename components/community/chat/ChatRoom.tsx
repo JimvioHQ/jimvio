@@ -596,29 +596,40 @@ export function ChatRoom({
             !hook.searchQuery.trim() &&
             hook.chatFilter === "all" ? (
             <div
-              className="flex flex-1 flex-col items-center justify-center px-4 py-14 text-center animate-in fade-in duration-200"
+              className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center animate-in fade-in duration-300"
               role="status"
             >
-              <p className="text-[15px] font-bold text-[var(--color-text-primary)]">
+              <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[var(--color-accent)] shadow-[0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-gray-100">
+                <span className="text-[20px] font-bold">
+                  {(roomName?.trim()?.[0] || "S").toUpperCase()}
+                </span>
+              </span>
+              <p className="text-[17px] font-semibold tracking-tight text-[var(--color-text-primary)]">
                 {emptyTitle ?? "Start the conversation"}
               </p>
-              <p className="mt-2 max-w-sm whitespace-pre-line text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+              <p className="mt-2 max-w-sm whitespace-pre-line text-[13.5px] leading-relaxed text-[var(--color-text-muted)]">
                 {emptyDescription ??
                   "Share an idea, drop a file, or ask a question — this channel becomes knowledge as you collaborate."}
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  document
-                    .querySelector<HTMLTextAreaElement>(
-                      '[aria-label="Message composer"]'
-                    )
-                    ?.focus();
-                }}
-                className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-4 text-[13px] font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
-              >
-                {emptyActionLabel ?? "Write a message"}
-              </button>
+              {canPost ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    document
+                      .querySelector<HTMLTextAreaElement>(
+                        '[aria-label="Message composer"]'
+                      )
+                      ?.focus();
+                  }}
+                  className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-[var(--color-accent)] px-5 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(253,80,0,0.22)] transition hover:bg-[var(--color-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2"
+                >
+                  {emptyActionLabel ?? "Start Discussion"}
+                </button>
+              ) : (
+                <span className="mt-6 inline-flex min-h-10 items-center rounded-full bg-white px-4 text-[12px] font-semibold text-gray-500 ring-1 ring-gray-200">
+                  Read Only
+                </span>
+              )}
             </div>
           ) : scopedMessages.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center px-4 py-12 text-center">
@@ -718,16 +729,28 @@ export function ChatRoom({
           />
         ) : (
           <div
-            className="border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-4 text-center"
+            className={cn(
+              "px-4 py-4 text-center",
+              discussionLayout
+                ? "discussion-chat-canvas border-t-0"
+                : "border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
+            )}
             role="status"
           >
-            <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
-              {readOnlyTitle ?? "Posting is restricted"}
-            </p>
-            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              {readOnlyDescription ??
-                "Only authorized publishers can post in this channel."}
-            </p>
+            <div
+              className={cn(
+                discussionLayout &&
+                  "mx-auto max-w-xl rounded-2xl bg-white/90 px-4 py-3 shadow-sm ring-1 ring-gray-100"
+              )}
+            >
+              <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">
+                {readOnlyTitle ?? "Posting is restricted"}
+              </p>
+              <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+                {readOnlyDescription ??
+                  "Only authorized publishers can post in this channel."}
+              </p>
+            </div>
           </div>
         )}
       </div>

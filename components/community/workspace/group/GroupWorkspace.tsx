@@ -153,10 +153,23 @@ export function GroupWorkspace({
     setTab(next);
   }, []);
 
+  const lastActivityLabel = useMemo(() => {
+    const iso = space.created_at;
+    if (!iso) return null;
+    const t = new Date(iso).getTime();
+    if (Number.isNaN(t)) return null;
+    return `Created ${new Date(iso).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })}`;
+  }, [space.created_at]);
+
   return (
     <div
       className={cn(
-        "flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-white",
+        "flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden",
+        "bg-[linear-gradient(180deg,#fafafa_0%,#f5f5f7_100%)]",
         "animate-in fade-in duration-300"
       )}
     >
@@ -167,6 +180,7 @@ export function GroupWorkspace({
         notificationsOn={notificationsOn}
         spaceType={space.space_type}
         verified={Boolean(space.is_featured)}
+        lastActivityLabel={lastActivityLabel}
         compact
         onToggleNotifications={() => {
           const next = !notificationsOn;
@@ -212,7 +226,7 @@ export function GroupWorkspace({
         onChange={handleTabChange}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {tab === "discussion" ? (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {discussionRoom ? (
@@ -226,19 +240,26 @@ export function GroupWorkspace({
                 discussionLayout
                 canPost={canPost}
                 emptyTitle={`Welcome to ${group.name}`}
-                emptyDescription="Start the conversation — messages, replies, reactions, and files live here."
-                emptyActionLabel="Write a message"
+                emptyDescription="Start the first conversation."
+                emptyActionLabel={canPost ? "Start Discussion" : "Read Only"}
               />
             ) : ensuring ? (
               <WorkspaceSkeleton rows={8} className="min-h-[320px]" />
             ) : (
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center">
-                <p className="text-[16px] font-semibold text-gray-900">
-                  Welcome to {group.name}
-                </p>
-                <p className="max-w-sm text-[13px] leading-relaxed text-gray-500">
-                  Start the first conversation.
-                </p>
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center animate-in fade-in duration-300">
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-accent)]/10 text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/15">
+                  <span className="text-[22px] font-bold">
+                    {(group.name.trim()[0] || "S").toUpperCase()}
+                  </span>
+                </span>
+                <div>
+                  <p className="text-[17px] font-semibold tracking-tight text-gray-900">
+                    Welcome to {group.name}
+                  </p>
+                  <p className="mt-2 max-w-sm text-[13.5px] leading-relaxed text-gray-500">
+                    Start the first conversation.
+                  </p>
+                </div>
                 {ensureError ? (
                   <p className="text-[12px] text-red-600">{ensureError}</p>
                 ) : null}
@@ -249,7 +270,7 @@ export function GroupWorkspace({
                     setEnsureError(null);
                     setEnsureAttempt((n) => n + 1);
                   }}
-                  className="inline-flex min-h-10 items-center rounded-lg bg-[#fd5000] px-4 text-[13px] font-semibold text-white"
+                  className="inline-flex min-h-11 items-center rounded-xl bg-[var(--color-accent)] px-5 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(253,80,0,0.22)] transition hover:bg-[var(--color-accent-hover)]"
                 >
                   Retry Discussion
                 </button>
@@ -259,24 +280,30 @@ export function GroupWorkspace({
         ) : null}
 
         {tab === "members" ? (
-          <div className="min-h-0 flex-1 overflow-y-auto bg-white p-4 sm:p-6">
-            <MembersPanel members={members} />
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-white p-1 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100">
+              <MembersPanel members={members} />
+            </div>
           </div>
         ) : null}
 
         {tab === "files" ? (
-          <div className="min-h-0 flex-1 overflow-y-auto bg-white p-4 sm:p-6">
-            <FilesPanel
-              roomId={discussionRoom?.id}
-              canManage={Boolean(isStaff)}
-              onOpenDiscussion={() => setTab("discussion")}
-            />
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-white p-1 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100">
+              <FilesPanel
+                roomId={discussionRoom?.id}
+                canManage={Boolean(isStaff)}
+                onOpenDiscussion={() => setTab("discussion")}
+              />
+            </div>
           </div>
         ) : null}
 
         {tab === "posts" ? (
-          <div className="min-h-0 flex-1 overflow-y-auto bg-white p-4 sm:p-6">
-            <FeedSection communityId={communityId} filter="for-you" />
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100 sm:p-5">
+              <FeedSection communityId={communityId} filter="for-you" />
+            </div>
           </div>
         ) : null}
       </div>

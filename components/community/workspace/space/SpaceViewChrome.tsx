@@ -30,14 +30,12 @@ export function SpaceViewTabs({
   memberCount: number;
   onChange: (tab: SpaceViewTab) => void;
 }) {
-  const tabs: { id: SpaceViewTab; label: string }[] = [
+  const tabs: { id: SpaceViewTab; label: string; count?: number | null }[] = [
     { id: "discussion", label: "Discussion" },
     {
       id: "members",
-      label:
-        memberCount > 0
-          ? `Members ${formatCompact(memberCount)}`
-          : "Members",
+      label: "Members",
+      count: memberCount > 0 ? memberCount : null,
     },
     { id: "files", label: "Files" },
     { id: "posts", label: "Posts" },
@@ -45,9 +43,9 @@ export function SpaceViewTabs({
   ];
 
   return (
-    <div className="shrink-0 border-b border-gray-100 bg-white px-4 sm:px-5">
+    <div className="shrink-0 border-b border-gray-100/90 bg-white/95 px-3 backdrop-blur-sm sm:px-5">
       <nav
-        className="-mb-px flex gap-5 overflow-x-auto"
+        className="-mb-px flex gap-1 overflow-x-auto scrollbar-hide"
         aria-label="Space sections"
       >
         {tabs.map((tab) => {
@@ -58,16 +56,33 @@ export function SpaceViewTabs({
               type="button"
               onClick={() => onChange(tab.id)}
               className={cn(
-                "relative shrink-0 whitespace-nowrap py-2.5 text-[13px] font-semibold transition-colors",
+                "relative flex shrink-0 items-center gap-1.5 rounded-t-lg px-3.5 py-3 text-[13px] transition-all duration-200",
                 isActive
-                  ? "text-[#fd5000]"
-                  : "text-gray-500 hover:text-gray-800"
+                  ? "font-semibold text-[var(--color-accent)]"
+                  : "font-medium text-gray-500 hover:bg-gray-50/80 hover:text-gray-800"
               )}
             >
               {tab.label}
-              {isActive ? (
-                <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-[#fd5000]" />
+              {tab.count != null ? (
+                <span
+                  className={cn(
+                    "rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                    isActive
+                      ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                      : "bg-gray-100 text-gray-500"
+                  )}
+                >
+                  {formatCompact(tab.count)}
+                </span>
               ) : null}
+              <span
+                className={cn(
+                  "absolute inset-x-2 bottom-0 h-0.5 rounded-full transition-all duration-200",
+                  isActive
+                    ? "bg-[var(--color-accent)] opacity-100"
+                    : "bg-transparent opacity-0"
+                )}
+              />
             </button>
           );
         })}

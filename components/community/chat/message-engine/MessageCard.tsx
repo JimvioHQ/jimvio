@@ -201,7 +201,7 @@ export function MessageCard({
             className={cn(
               "shrink-0 overflow-hidden rounded-full",
               discussion
-                ? "mt-1 h-10 w-10 border border-gray-100 bg-gray-50 shadow-sm"
+                ? "mt-1 h-10 w-10 border border-white bg-gray-50 shadow-[0_4px_12px_rgba(15,23,42,0.08)] ring-2 ring-white"
                 : "mt-1 h-8 w-8 border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
             )}
           >
@@ -228,8 +228,8 @@ export function MessageCard({
             className={cn(
               "relative transition-shadow duration-200",
               discussion
-                ? "rounded-2xl bg-white px-4 pb-3.5 pt-3 shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100/80 group-hover:shadow-[0_4px_14px_rgba(16,24,40,0.08)]"
-                : cn(
+            ? "rounded-[1.25rem] bg-white px-4 pb-4 pt-3.5 shadow-[0_8px_28px_rgba(15,23,42,0.05)] ring-1 ring-gray-100/90 transition duration-200 group-hover:-translate-y-px group-hover:shadow-[0_12px_32px_rgba(15,23,42,0.08)]"
+            : cn(
                     "px-3 pb-2.5 pt-2 shadow-sm group-hover:shadow-md",
                     isOwn
                       ? "rounded-br-sm rounded-bl-lg rounded-t-lg bg-[var(--color-accent-light)]"
@@ -347,8 +347,10 @@ export function MessageCard({
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
-                  "mt-1.5 block overflow-hidden rounded-sm border",
-                  "border-[var(--color-border)] bg-[var(--color-surface)]"
+                  "mt-2 block overflow-hidden rounded-xl border",
+                  discussion
+                    ? "border-gray-100 bg-gray-50/80 shadow-sm"
+                    : "border-[var(--color-border)] bg-[var(--color-surface)]"
                 )}
               >
                 {linkPreview.image && (
@@ -412,10 +414,10 @@ export function MessageCard({
                         type="button"
                         onClick={() => onToggleReaction(m.id, emoji)}
                         className={cn(
-                          "rounded-full border px-2.5 py-1 text-[12px] transition-colors",
+                          "rounded-full px-2.5 py-1 text-[12px] transition-colors ring-1",
                           userReacted(emoji)
-                            ? "border-[#fd5000]/30 bg-orange-50 text-gray-800"
-                            : "border-transparent bg-gray-100 text-gray-700 hover:bg-gray-200/80"
+                            ? "bg-[var(--color-accent)]/10 text-gray-800 ring-[var(--color-accent)]/25"
+                            : "bg-gray-50 text-gray-700 ring-gray-100 hover:bg-gray-100"
                         )}
                       >
                         {emoji} {ids.length}

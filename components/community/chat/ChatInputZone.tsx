@@ -285,7 +285,7 @@ export function ChatInputZone({
             className={cn(
               "flex min-h-[62px] items-end gap-1",
               discussion
-                ? "mx-auto w-full max-w-none items-center gap-2 rounded-[1.75rem] border border-white/80 bg-white px-3 py-2 shadow-[0_8px_30px_-12px_rgba(67,51,96,0.25)] ring-1 ring-violet-100/60 max-lg:mb-[3.25rem]"
+                ? "mx-auto w-full max-w-none items-center gap-2 rounded-[1.5rem] border border-gray-100/80 bg-white px-3 py-2.5 shadow-[0_10px_36px_-14px_rgba(15,23,42,0.18)] ring-1 ring-gray-100/70 max-lg:mb-[3.25rem]"
                 : "px-3 py-[9px] pb-[max(9px,env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(3.5rem+max(9px,env(safe-area-inset-bottom,0px)))]"
             )}
           >
@@ -398,13 +398,22 @@ export function ChatInputZone({
 
             <div className="flex min-w-0 flex-1 flex-col">
               {pendingMain.length > 0 && (
-                <div className="mb-1 flex flex-wrap gap-1.5 rounded-sm bg-[var(--color-border)] px-1 py-1.5">
+                <div
+                  className={cn(
+                    "mb-1.5 flex flex-wrap gap-1.5 px-1 py-1.5",
+                    discussion
+                      ? "rounded-xl bg-gray-50"
+                      : "rounded-sm bg-[var(--color-border)]"
+                  )}
+                >
                   {pendingMain.map((a, i) => (
                     <div
                       key={a.url}
                       className={cn(
-                        "flex items-center gap-1.5 rounded-sm border border-[var(--color-border)] px-2 py-1 text-[11px] font-medium",
-                        "bg-[var(--color-surface)] text-[var(--color-text-primary)]"
+                        "flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium",
+                        discussion
+                          ? "rounded-lg border border-gray-100 bg-white text-gray-800"
+                          : "rounded-sm border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)]"
                       )}
                     >
                       <FileIcon size={11} className="text-[var(--color-accent)]" />
@@ -439,13 +448,13 @@ export function ChatInputZone({
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   onPaste={onPaste}
-                  placeholder={discussion ? "Type a message..." : "Write a message..."}
+                  placeholder={discussion ? "Write a message…" : "Write a message..."}
                   rows={1}
                   disabled={sending || uploading}
                   aria-label="Message composer"
                   className={cn(
                     "max-h-32 min-h-[24px] w-full resize-none border-0 bg-transparent p-0 outline-none",
-                    discussion ? "text-[14px]" : "text-sm",
+                    discussion ? "text-[14.5px] leading-relaxed" : "text-sm",
                     "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
                     "disabled:cursor-not-allowed disabled:opacity-60"
                   )}
@@ -477,8 +486,9 @@ export function ChatInputZone({
                   onClick={() => void onStartVoice()}
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full",
-                    "bg-violet-500 text-white shadow-sm",
-                    "transition-all hover:bg-violet-600 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+                    "bg-gray-100 text-gray-600",
+                    "transition-all duration-150 hover:bg-gray-200 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                   )}
                 >
                   <Mic className="h-5 w-5" />
@@ -490,14 +500,15 @@ export function ChatInputZone({
                   onClick={onSend}
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full",
-                    "bg-violet-500 text-white shadow-sm",
-                    "transition-all hover:bg-violet-600 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
+                    "bg-[var(--color-accent)] text-white shadow-[0_6px_16px_rgba(253,80,0,0.28)]",
+                    "transition-all duration-150 hover:bg-[var(--color-accent-hover)] hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-50",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                   )}
                 >
                   {sending ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                    <Send className="h-4 w-4" />
+                    <Send className="h-4 w-4" strokeWidth={2.4} />
                   )}
                 </button>
               </div>
