@@ -93,7 +93,9 @@ export function resolveSidebarActiveItem(pathname: string): SidebarItem {
   if (pathname.startsWith("/communities/events")) return "events";
   if (pathname.startsWith("/communities/leaderboard")) return "leaderboard";
   if (pathname.startsWith("/communities/notifications")) return "notifications";
-  if (pathname.startsWith("/communities/profile")) return "profile";
+  if (pathname.startsWith("/communities/profile") || pathname.startsWith("/identity") || pathname.startsWith("/u/")) {
+    return "profile";
+  }
   if (pathname.startsWith("/communities/wallet")) return "wallet";
   if (pathname.startsWith("/communities/settings")) return "settings";
   return "feed";
@@ -224,7 +226,11 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
     <aside className={cn("flex h-full w-[240px] shrink-0 flex-col border-r border-gray-200 bg-white", className)}>
       <div className="flex-1 overflow-y-auto">
         <div className="border-b border-gray-200 p-4">
-          <div className="flex items-center gap-3">
+          <Link
+            href="/identity"
+            className="flex items-center gap-3 rounded-lg transition hover:bg-gray-50"
+            aria-label="Open Jimvio Identity"
+          >
             {profile.avatarUrl ? (
               <img src={profile.avatarUrl} alt={profile.name} className="h-10 w-10 rounded-full object-cover" />
             ) : (
@@ -245,7 +251,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
                 Level {profile.level} {profile.role}
               </p>
             </div>
-          </div>
+          </Link>
         </div>
 
         <nav className="space-y-0.5 p-3">

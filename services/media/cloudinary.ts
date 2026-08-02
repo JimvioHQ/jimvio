@@ -13,7 +13,8 @@ export type CloudinaryFolder =
   | "jimvio/community-covers"
   | "jimvio/vendor-logos"
   | "jimvio/banners"
-  | "jimvio/ugc";
+  | "jimvio/ugc"
+  | "jimvio/identity";
 
 export const ALL_CLOUDINARY_FOLDERS: CloudinaryFolder[] = [
   "jimvio/products",
@@ -30,6 +31,7 @@ export const ALL_CLOUDINARY_FOLDERS: CloudinaryFolder[] = [
   "jimvio/vendor-logos",
   "jimvio/banners",
   "jimvio/ugc",
+  "jimvio/identity",
 ];
 
 // ─── Upload result type ───────────────────────────────────────────────────────

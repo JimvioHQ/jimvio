@@ -9,6 +9,8 @@ type UGCWorkspaceLayoutClientProps = {
     name: string;
     avatarUrl?: string | null;
     isPremium?: boolean;
+    username?: string | null;
+    identityHref?: string;
   };
 };
 

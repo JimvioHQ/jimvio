@@ -15,7 +15,7 @@ type UGCSubmission = {
     post_url: string;
     platform: "tiktok" | "instagram" | "youtube" | "x";
     caption?: string | null;
-    status: "pending" | "approved" | "rejected" | "removed";
+    status: "pending" | "approved" | "rejected" | "removed" | "revision_requested";
     rejection_reason?: string | null;
     total_views_earned?: bigint | number | null;
     total_earnings?: any;

@@ -1,11 +1,12 @@
 import { cache } from "react";
 import { createClient, getCachedUser } from "@/lib/supabase/server";
 
+/** Reads display fields from the canonical `profiles` identity (JIP source of truth). */
 export const getCachedProfile = cache(async (userId: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url")
+    .select("full_name, avatar_url, username")
     .eq("id", userId)
     .maybeSingle();
   return data;
@@ -26,6 +27,8 @@ export async function getUGCWorkspaceUser() {
         authUser.email?.split("@")[0] ??
         "Creator",
       avatarUrl: profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null,
+      username: profile?.username ?? null,
+      identityHref: profile?.username ? `/u/${profile.username}` : "/identity",
     };
   } catch {
     return undefined;

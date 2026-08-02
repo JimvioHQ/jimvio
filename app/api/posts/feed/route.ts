@@ -223,7 +223,11 @@ export async function GET(req: NextRequest) {
   });
 
   if (shouldRank && !draftsOnly) {
-    enriched = rankFeedItems(enriched, { viewerId: user.id, followedAuthorIds });
+    // Cast through unknown: PostgREST Json reaction_counts is wider than RankableFeedItem.
+    enriched = rankFeedItems(enriched as unknown as Parameters<typeof rankFeedItems>[0], {
+      viewerId: user.id,
+      followedAuthorIds,
+    }) as typeof enriched;
     if (filter === "rising") {
       enriched.sort((a, b) => {
         const age = (post: { created_at?: string | null }) =>

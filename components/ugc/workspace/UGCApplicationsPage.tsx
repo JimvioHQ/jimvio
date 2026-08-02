@@ -280,7 +280,7 @@ export function UGCApplicationsPage() {
           illustration="profile"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/communities/profile">Set up profile</Link>
+              <Link href="/identity/edit">Set up profile</Link>
             </Button>
           }
         />
