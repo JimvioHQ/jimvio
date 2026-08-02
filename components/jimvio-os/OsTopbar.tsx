@@ -91,7 +91,7 @@ export function OsTopbar({ user, unreadNotifications = 0, unreadMessages = 0, on
       </button>
 
       <OsPill tone="accent" className="hidden shrink-0 sm:inline-flex">
-        {currentMode.label} workspace
+        <span aria-hidden>{currentMode.emoji}</span> {currentMode.label}
       </OsPill>
 
       <button

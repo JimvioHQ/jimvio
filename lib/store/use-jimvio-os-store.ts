@@ -7,6 +7,7 @@ import {
   saveOsFavorites,
   saveOsMode,
 } from "@/lib/jimvio-os/config";
+import { normalizeWorkspaceMode } from "@/lib/jimvio-os/workspaces";
 import type { OsNotification, OsWorkspaceMode } from "@/lib/jimvio-os/types";
 
 export type OsPanel = "none" | "notifications" | "activity";
@@ -131,8 +132,9 @@ export const useJimvioOsStore = create<JimvioOsStore>((set, get) => ({
   toggleQuickCreate: () => set((s) => ({ quickCreateOpen: !s.quickCreateOpen })),
 
   setWorkspaceMode: (mode) => {
-    saveOsMode(mode);
-    set({ workspaceMode: mode });
+    const normalized = normalizeWorkspaceMode(mode);
+    saveOsMode(normalized);
+    set({ workspaceMode: normalized });
   },
 
   toggleFavorite: (navId) => {

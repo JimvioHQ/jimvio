@@ -17,6 +17,8 @@ export { CreatorOsFrame } from "./CreatorOsFrame";
 export { OsTopbar, type OsTopbarUser } from "./OsTopbar";
 export { OsIntelligentSidebar } from "./OsIntelligentSidebar";
 export { OsMorningBrief } from "./OsMorningBrief";
+export { OsMissionControl } from "./OsMissionControl";
+export { OsPinnedProjects } from "./OsPinnedProjects";
 export { OsActivityCenter, type OsActivityFilter } from "./OsActivityCenter";
 export {
   OsCard,

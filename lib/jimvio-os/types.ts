@@ -23,6 +23,10 @@ export type OsWorkspaceMode =
   | "creator"
   | "affiliate"
   | "community"
+  | "brand"
+  | "live"
+  | "ai"
+  /** @deprecated Use `brand` — kept for stored localStorage values */
   | "admin";
 
 export type OsNotificationCategory =
@@ -55,7 +59,9 @@ export type OsQuickCreateId =
   | "coupon"
   | "affiliate-link"
   | "ugc-request"
-  | "message";
+  | "message"
+  | "withdraw"
+  | "deposit";
 
 export type OsActivityKind =
   | "order"

@@ -35,10 +35,20 @@ export {
 export { loadOsRecents, pushOsRecent } from "./recents";
 export {
   CREATOR_OS_WORKSPACES,
-  LIVE_COMMERCE_WORKSPACE,
-  AI_WORKSPACE,
+  OS_GLOBAL_RAIL,
   getWorkspaceDefinition,
   getWorkspaceNav,
+  normalizeWorkspaceMode,
   type WorkspaceDefinition,
   type WorkspaceNavItem,
 } from "./workspaces";
+export {
+  loadPinnedProjects,
+  savePinnedProjects,
+  isProjectPinned,
+  togglePinnedProject,
+  loadPreferredLayout,
+  savePreferredLayout,
+  type OsPinnedProject,
+  type OsPreferredLayout,
+} from "./layout-memory";

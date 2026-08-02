@@ -10,7 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
-import { OsActivityCenter } from "@/components/jimvio-os";
+import { OsActivityCenter, OsPill } from "@/components/jimvio-os";
 import { cn } from "@/lib/utils";
 import {
     dismissNotification,
@@ -32,6 +32,13 @@ import { subscribeUserNotifications } from "@/lib/notifications/realtime";
 const VALID_CATEGORIES = new Set<NotificationUiCategory>([
     "order", "shipping", "message", "payment", "community", "system",
 ]);
+
+const INBOX_QUICK_LINKS = [
+    { label: "Messages", href: "/dashboard/messages" },
+    { label: "Orders", href: "/dashboard/orders" },
+    { label: "Wallet", href: "/wallet" },
+    { label: "UGC applications", href: "/ugc/applications" },
+];
 
 function initialFilterFromSearch(raw: string | null): NotificationUiCategory | "all" {
     if (raw && VALID_CATEGORIES.has(raw as NotificationUiCategory)) {
@@ -338,8 +345,8 @@ export default function NotificationsPage() {
         <DashboardPage className="max-w-2xl mx-auto pb-24">
             <PageHeader
                 eyebrow="Inbox"
-                title="Notifications"
-                subtitle="Orders, messages, and platform updates"
+                title="Universal Inbox"
+                subtitle="Messages · Notifications · Mentions · Approvals"
                 actions={
                     unreadCount > 0 ? (
                         <button
@@ -358,6 +365,14 @@ export default function NotificationsPage() {
                     ) : undefined
                 }
             />
+
+            <div className="mb-4 flex flex-wrap items-center gap-1.5">
+                {INBOX_QUICK_LINKS.map((link) => (
+                    <OsPill key={link.href} href={link.href}>
+                        {link.label}
+                    </OsPill>
+                ))}
+            </div>
 
             <OsActivityCenter title="Activity Center" subtitle="Search, filter, and manage every alert in one place.">
                 <div className="mb-3">

@@ -8,7 +8,7 @@ import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
 import { useCurrency } from "@/context/CurrencyContext";
 import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
-import { OsMorningBrief } from "@/components/jimvio-os";
+import { OsMissionControl } from "@/components/jimvio-os";
 import { Settings, BarChart3 } from "lucide-react";
 import type { EarningsDataset } from "@/types/dashboard";
 import { QuickActionsStrip } from "@/components/dashboard/QuickActionsStrip";
@@ -569,9 +569,9 @@ export default function DashboardHomePage() {
   return (
     <div className="min-h-screen bg-bg font-[family-name:var(--font-dm-sans)]">
       <DashboardPage className="px-2 sm:px-0">
-        <OsMorningBrief name={loading ? undefined : displayName} />
+        <OsMissionControl name={loading ? undefined : displayName} />
         <PageHeader
-          eyebrow="Mission Control"
+          eyebrow="Classic dashboard"
           title={loading ? "Loading…" : `Welcome back, ${displayName}`}
           subtitle="Your unified command center across all Jimvio workspaces."
           actions={

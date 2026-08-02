@@ -26,13 +26,16 @@ export const OS_WORKSPACE_MODES: Array<{
   id: OsWorkspaceMode;
   label: string;
   description: string;
+  emoji: string;
 }> = [
-  { id: "buyer", label: "Buyer", description: "Shop and discover" },
-  { id: "seller", label: "Seller", description: "Manage your store" },
-  { id: "creator", label: "Creator", description: "Content and audience" },
-  { id: "affiliate", label: "Affiliate", description: "Promote and earn" },
-  { id: "community", label: "Community", description: "Hubs and members" },
-  { id: "admin", label: "Brand", description: "Campaigns & creators" },
+  { id: "buyer", label: "Buyer", description: "Shop and discover", emoji: "🛒" },
+  { id: "seller", label: "Seller", description: "Manage your store", emoji: "🏪" },
+  { id: "creator", label: "Creator", description: "Content and deals", emoji: "🎥" },
+  { id: "brand", label: "Brand", description: "Campaigns & creators", emoji: "💼" },
+  { id: "affiliate", label: "Affiliate", description: "Promote and earn", emoji: "🤝" },
+  { id: "community", label: "Community", description: "Hubs and members", emoji: "👥" },
+  { id: "live", label: "Live Commerce", description: "Go live and sell", emoji: "📺" },
+  { id: "ai", label: "AI Workspace", description: "Copilot & automation", emoji: "🤖" },
 ];
 
 export const OS_SEARCH_CATEGORIES = [
@@ -68,8 +71,10 @@ export const OS_QUICK_CREATE_ITEMS: OsQuickCreateItem[] = [
   { id: "course", label: "Course", description: "Digital learning", href: "/dashboard/products/new", icon: "graduation", accent: "#7c3aed" },
   { id: "live-event", label: "Live Event", description: "Schedule a live room", href: "/communities/live", icon: "live", accent: "#dc2626" },
   { id: "coupon", label: "Coupon", description: "Discount code", href: "/dashboard/products", icon: "ticket", accent: "#ca8a04" },
-  { id: "affiliate-link", label: "Affiliate Link", description: "Create a referral link", href: "/affiliates/links", icon: "link", accent: "#0d9488" },
+  { id: "affiliate-link", label: "Affiliate Link", description: "Create a referral link", href: "/affiliates", icon: "link", accent: "#0d9488" },
   { id: "message", label: "Message", description: "Start conversation", href: "/dashboard/messages", icon: "message", accent: "#4f46e5" },
+  { id: "deposit", label: "Deposit", description: "Add funds to wallet", href: "/wallet/deposits", icon: "wallet", accent: "#16a34a" },
+  { id: "withdraw", label: "Withdraw", description: "Cash out your balance", href: "/wallet/withdrawals", icon: "wallet", accent: "#0ea5e9" },
 ];
 
 export const OS_AI_ENTRIES: OsAiEntry[] = [
@@ -129,7 +134,20 @@ export function loadOsMode(): OsWorkspaceMode {
   if (typeof window === "undefined") return "seller";
   try {
     const raw = localStorage.getItem(OS_MODE_STORAGE_KEY);
-    return (raw as OsWorkspaceMode) || "seller";
+    // Lazy import avoided — inline legacy admin → brand mapping
+    if (raw === "admin") return "brand";
+    const allowed: OsWorkspaceMode[] = [
+      "buyer",
+      "seller",
+      "creator",
+      "affiliate",
+      "community",
+      "brand",
+      "live",
+      "ai",
+    ];
+    if (raw && allowed.includes(raw as OsWorkspaceMode)) return raw as OsWorkspaceMode;
+    return "seller";
   } catch {
     return "seller";
   }
