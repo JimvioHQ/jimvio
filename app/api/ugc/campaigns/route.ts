@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import type { CreateCampaignPayload } from '@/types/ugc';
+import { recordUgcActivity } from '@/lib/ugc/platform/activity';
 
 // ─── GET /api/ugc/campaigns ─────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -162,6 +163,14 @@ export async function POST(req: NextRequest) {
     const { error: mErr } = await db.from('ugc_campaign_media').insert(mediaToInsert);
     if (mErr) console.error('Failed to insert campaign media:', mErr);
   }
+
+  await recordUgcActivity(db, {
+    campaignId: campaign.id,
+    eventType: 'campaign_created',
+    title: 'Campaign created',
+    description: campaign.title,
+    actorUserId: user.id,
+  });
 
   return NextResponse.json({ campaign }, { status: 201 });
 }

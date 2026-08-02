@@ -65,6 +65,42 @@ export default function PublicUGCSubmitPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [previewReady, setPreviewReady] = useState(false);
+  const [aiReviewing, setAiReviewing] = useState(false);
+  const [aiReview, setAiReview] = useState<{
+    overallScore?: number;
+    riskLevel?: string;
+    readyToSubmit?: boolean;
+    suggestions?: string[];
+    dimensions?: Array<{ label: string; score: number; status: string; notes: string }>;
+  } | null>(null);
+
+  async function runAiReview() {
+    if (!platform || !postUrl.trim()) {
+      setError('Select a platform and enter a post URL before AI review.');
+      return;
+    }
+    setAiReviewing(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/ugc/ai/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaign_id: id,
+          postUrl: postUrl.trim(),
+          caption,
+          platform,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || 'AI review failed');
+      setAiReview(json.result ?? json.data ?? json);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'AI review failed');
+    } finally {
+      setAiReviewing(false);
+    }
+  }
 
   const validationError = useMemo(() => {
     if (!platform || !postUrl.trim()) return null;
@@ -274,6 +310,57 @@ export default function PublicUGCSubmitPage() {
               )}
             </div>
           ) : null}
+
+          <div className="rounded-2xl border border-[#FFE4D6] bg-[#FFF8F5] p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="text-[12px] font-bold text-[#111827]">AI Review</p>
+                <p className="text-[12px] text-[#6B7280]">
+                  Check hashtags, hook strength, and brand fit before you submit.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl border-[#FF5A1F] text-[#FF5A1F]"
+                disabled={aiReviewing || !canPreview}
+                onClick={() => void runAiReview()}
+              >
+                {aiReviewing ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Reviewing…
+                  </span>
+                ) : (
+                  'Run AI Review'
+                )}
+              </Button>
+            </div>
+            {aiReview ? (
+              <div className="mt-3 space-y-2 rounded-xl border border-[#EEF0F2] bg-white p-3">
+                <div className="flex flex-wrap gap-3 text-[13px]">
+                  <span className="font-bold text-[#FF5A1F]">
+                    Score {Math.round(aiReview.overallScore ?? 0)}
+                  </span>
+                  <span className="text-[#6B7280]">Risk: {aiReview.riskLevel ?? '—'}</span>
+                  <span
+                    className={
+                      aiReview.readyToSubmit ? 'font-semibold text-emerald-600' : 'font-semibold text-amber-600'
+                    }
+                  >
+                    {aiReview.readyToSubmit ? 'Ready to submit' : 'Needs improvement'}
+                  </span>
+                </div>
+                {(aiReview.suggestions?.length ?? 0) > 0 ? (
+                  <ul className="list-disc space-y-1 pl-4 text-[12px] text-[#374151]">
+                    {aiReview.suggestions!.map((s) => (
+                      <li key={s}>{s}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
 
           {loading || progress > 0 ? (
             <div>

@@ -33,6 +33,24 @@ export function useCampaignDetail(campaignId: string) {
     setState((prev) => {
       if (prev.status !== "ready") return prev;
       const saved = toggleBookmarkStorage(prev.campaign.id);
+      const campaignId = prev.campaign.id;
+      void (async () => {
+        try {
+          if (saved) {
+            await fetch("/api/ugc/saves", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ campaign_id: campaignId }),
+            });
+          } else {
+            await fetch(`/api/ugc/saves?campaign_id=${encodeURIComponent(campaignId)}`, {
+              method: "DELETE",
+            });
+          }
+        } catch {
+          /* localStorage remains cache */
+        }
+      })();
       return { ...prev, isBookmarked: saved };
     });
   }, []);

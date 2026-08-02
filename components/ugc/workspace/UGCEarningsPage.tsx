@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +10,7 @@ import {
   UGCPageError,
   UGCPageLoading,
   UGCPageShell,
+  UGCStatusPill,
 } from "./UGCPageShell";
 
 type StatsResponse = {
@@ -28,6 +30,15 @@ type StatsResponse = {
   }[];
 };
 
+type PayoutHistoryRow = {
+  id: string;
+  amount?: number;
+  status?: string;
+  created_at: string;
+  paid_at?: string | null;
+  campaign?: { id?: string; title?: string } | null;
+};
+
 function BalanceCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-4">
@@ -40,6 +51,7 @@ function BalanceCard({ label, value }: { label: string; value: string }) {
 export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "payouts" }) {
   const { formatMoney } = useCurrency();
   const [data, setData] = useState<StatsResponse | null>(null);
+  const [history, setHistory] = useState<PayoutHistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,15 +59,26 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/creator/stats", { cache: "no-store" });
-      if (!res.ok) throw new Error("load failed");
-      setData(await res.json());
+      const statsPromise = fetch("/api/ugc/creator/stats", { cache: "no-store" });
+      const historyPromise =
+        mode === "payouts"
+          ? fetch("/api/ugc/payouts/history", { cache: "no-store" })
+          : Promise.resolve(null);
+      const [statsRes, histRes] = await Promise.all([statsPromise, historyPromise]);
+      if (!statsRes.ok) throw new Error("load failed");
+      setData(await statsRes.json());
+      if (histRes?.ok) {
+        const hJson = await histRes.json();
+        setHistory(hJson.data ?? hJson.payouts ?? []);
+      } else if (mode === "payouts") {
+        setHistory([]);
+      }
     } catch {
       setError("Could not load earnings data.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     void load();
@@ -114,9 +137,48 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
                 <Button asChild variant="outline" className="rounded-xl">
                   <Link href="/dashboard/payments">Payment methods</Link>
                 </Button>
+                <Button asChild variant="outline" className="rounded-xl">
+                  <a href="/api/ugc/payouts/history?format=csv">
+                    <Download className="mr-2 h-4 w-4" />
+                    Export CSV
+                  </a>
+                </Button>
               </div>
             ) : null}
           </div>
+
+          {mode === "payouts" ? (
+            <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-4">
+              <h2 className="text-[14px] font-bold text-[#111827]">Payout timeline</h2>
+              <div className="mt-3 space-y-2">
+                {history.length === 0 ? (
+                  <p className="text-[12px] text-[#6B7280]">No payout history yet.</p>
+                ) : (
+                  history.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center justify-between rounded-lg bg-[#FAFAFA] px-3 py-2"
+                    >
+                      <div>
+                        <p className="text-[13px] font-medium">
+                          {p.campaign?.title ?? "Campaign payout"}
+                        </p>
+                        <p className="text-[11px] text-[#6B7280]">
+                          {new Date(p.paid_at || p.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {p.status ? <UGCStatusPill status={p.status} /> : null}
+                        <p className="text-[13px] font-bold text-emerald-600">
+                          {formatMoney(Number(p.amount) || 0, "USD")}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ) : null}
 
           <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-4">
             <h2 className="text-[14px] font-bold text-[#111827]">Recent transactions</h2>

@@ -17,7 +17,7 @@ type SubmissionRow = {
   post_url: string;
   platform: string;
   caption?: string | null;
-  status: "pending" | "approved" | "rejected" | "removed";
+  status: "pending" | "approved" | "rejected" | "removed" | "revision_requested";
   rejection_reason?: string | null;
   reviewed_at?: string | null;
   created_at?: string;
@@ -44,7 +44,7 @@ const modalTitle: Record<ModalMode, string> = {
 function statusTone(status: SubmissionRow["status"]) {
   if (status === "approved") return "success";
   if (status === "rejected") return "danger";
-  if (status === "pending") return "warning";
+  if (status === "pending" || status === "revision_requested") return "warning";
   return "neutral";
 }
 
@@ -153,17 +153,30 @@ export default function CampaignSubmissionsPage() {
     if (!modalSubmissionId) return;
     setBusy(modalSubmissionId);
     try {
-      const reason =
-        modalMode === "revision" ? (modalReason.trim() ? `Revision requested: ${modalReason.trim()}` : "Revision requested") : (modalReason.trim() ? modalReason.trim() : "Does not meet campaign requirements");
-
-      const res = await fetch(`/api/ugc/submissions/${modalSubmissionId}/reject`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error ?? "Rejection failed");
-      toast.success(modalMode === "revision" ? "Revision requested" : "Submission rejected");
+      if (modalMode === "revision") {
+        const res = await fetch(`/api/ugc/submissions/${modalSubmissionId}/revision`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            notes: modalReason.trim() || "Please revise this submission.",
+          }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error ?? "Revision request failed");
+        toast.success("Revision requested");
+      } else {
+        const reason = modalReason.trim()
+          ? modalReason.trim()
+          : "Does not meet campaign requirements";
+        const res = await fetch(`/api/ugc/submissions/${modalSubmissionId}/reject`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.error ?? "Rejection failed");
+        toast.success("Submission rejected");
+      }
       setModalOpen(false);
       setModalSubmissionId(null);
       await load();
@@ -362,7 +375,13 @@ export default function CampaignSubmissionsPage() {
                           placeholder="Draft a message to the creator (stored locally for now)…"
                         />
                         <p className="mt-2 text-[12px] text-[#6B7280]">
-                          This phase stores creator chat notes locally (no messaging backend yet).
+                          Draft notes stay local.{" "}
+                          <Link
+                            href={`/ugc/${campaignId}/chat`}
+                            className="font-semibold text-[#FF5A1F] hover:underline"
+                          >
+                            Open campaign chat
+                          </Link>
                         </p>
                       </div>
                     </div>

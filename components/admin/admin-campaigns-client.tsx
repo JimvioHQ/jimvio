@@ -31,8 +31,17 @@ import {
 import { adminBtnPrimary, adminTableShell } from "@/lib/admin/ui";
 import { relativeTime } from "@/lib/utils";
 
+type AdminOverview = {
+  campaigns?: Record<string, number>;
+  pendingSubmissions?: number;
+  reportsCount?: number;
+  escrow?: { held?: number; total?: number };
+  suspiciousSubmissions?: unknown[] | number;
+};
+
 export function AdminCampaignsClient() {
   const [campaigns, setCampaigns] = useState<UGCCampaign[]>([]);
+  const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<"all" | UGCCampaignStatus>("all");
   const [search, setSearch] = useState("");
@@ -40,10 +49,14 @@ export function AdminCampaignsClient() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/ugc/campaigns?status=all&limit=200")
-      .then((r) => r.json())
-      .then((j) => {
-        if (!cancelled) setCampaigns(j.data ?? []);
+    Promise.all([
+      fetch("/api/ugc/campaigns?status=all&limit=200").then((r) => r.json()),
+      fetch("/api/ugc/admin/overview").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ])
+      .then(([j, ov]) => {
+        if (cancelled) return;
+        setCampaigns(j.data ?? []);
+        setOverview(ov?.data ?? ov ?? null);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -98,27 +111,40 @@ export function AdminCampaignsClient() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile
           label="Live campaigns"
-          value={totals.active.toLocaleString()}
-          sublabel={`${counts.all ?? 0} total on platform`}
+          value={(overview?.campaigns?.active ?? totals.active).toLocaleString()}
+          sublabel={`${overview?.campaigns?.total ?? counts.all ?? 0} total on platform`}
           icon={Megaphone}
           tone="success"
         />
         <Tile
           label="Budget pool"
           value={formatCampaignUsd(totals.budget)}
-          sublabel={`${formatCampaignUsd(totals.spent)} paid out`}
+          sublabel={
+            overview?.escrow?.held != null
+              ? `${formatCampaignUsd(overview.escrow.held)} in escrow`
+              : `${formatCampaignUsd(totals.spent)} paid out`
+          }
           icon={DollarSign}
+        />
+        <Tile
+          label="Pending reviews"
+          value={(overview?.pendingSubmissions ?? totals.submissions).toLocaleString()}
+          sublabel={
+            Array.isArray(overview?.suspiciousSubmissions)
+              ? `${overview.suspiciousSubmissions.length} flagged`
+              : "Queue + tracked volume"
+          }
+          icon={FileVideo}
         />
         <Tile
           label="Tracked views"
           value={compactCampaignViews(totals.views)}
+          sublabel={
+            overview?.reportsCount != null
+              ? `${overview.reportsCount} open reports`
+              : "All campaigns"
+          }
           icon={Eye}
-        />
-        <Tile
-          label="Submissions"
-          value={totals.submissions.toLocaleString()}
-          sublabel="All campaigns"
-          icon={FileVideo}
         />
       </div>
 

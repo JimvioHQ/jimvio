@@ -5,7 +5,7 @@
 export type UGCCampaignType   = 'clipping' | 'ugc' | 'music_clipping' | 'promotion';
 export type UGCPaymentModel   = 'per_views' | 'fixed_per_content';
 export type UGCCampaignStatus = 'draft' | 'active' | 'paused' | 'completed' | 'cancelled';
-export type UGCSubmissionStatus = 'pending' | 'approved' | 'rejected' | 'removed';
+export type UGCSubmissionStatus = 'pending' | 'approved' | 'rejected' | 'removed' | 'revision_requested';
 export type UGCPlatform          = 'tiktok' | 'instagram' | 'youtube' | 'x';
 export type UGCMediaType         = 'image' | 'video' | 'file';
 export type UGCMediaUsage        = 'banner' | 'example' | 'ad_creative';
@@ -13,6 +13,11 @@ export type UGCParticipationStatus = 'invited' | 'accepted' | 'rejected' | 'bann
 export type UGCJoinMode = 'instant' | 'application' | 'invite_only' | 'hybrid';
 export type UGCPayoutStatus      = 'pending' | 'approved' | 'paid';
 export type UGCPlatformFormat    = 'reels' | 'tiktok_video' | 'youtube_short' | 'post' | 'story';
+export type UGCInvitationStatus = 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled';
+export type UGCLibraryStatus = 'uploaded' | 'draft' | 'approved' | 'rejected' | 'archived';
+export type UGCLibraryMediaType = 'video' | 'image' | 'file' | 'audio';
+export type UGCRevisionStatus = 'requested' | 'submitted' | 'accepted' | 'rejected';
+export type UGCChatMessageType = 'text' | 'attachment' | 'voice' | 'system';
 
 export interface UGCCampaignMedia {
   id: string;
@@ -237,4 +242,142 @@ export interface PaginatedResponse<T> {
   total: number;
   page: number;
   limit: number;
+}
+
+// ── Platform completion shapes (lightweight) ─────────────────
+
+export interface UGCCampaignTemplate {
+  id: string;
+  brand_id: string;
+  created_by: string | null;
+  name: string;
+  description: string | null;
+  payload: Record<string, unknown>;
+  is_favorite: boolean;
+  source_campaign_id: string | null;
+  use_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UGCCreatorInvitation {
+  id: string;
+  campaign_id: string;
+  brand_id: string;
+  invited_by: string | null;
+  influencer_id: string | null;
+  invitee_user_id: string | null;
+  invitee_email: string | null;
+  invitee_username: string | null;
+  status: UGCInvitationStatus;
+  message: string | null;
+  metadata: Record<string, unknown>;
+  responded_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UGCFavoriteCreator {
+  id: string;
+  brand_id: string;
+  influencer_id: string;
+  notes: string | null;
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UGCSavedCollection {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UGCSavedCampaign {
+  id: string;
+  user_id: string;
+  campaign_id: string;
+  collection_id: string | null;
+  created_at: string;
+}
+
+export interface UGCContentLibraryItem {
+  id: string;
+  user_id: string;
+  influencer_id: string | null;
+  campaign_id: string | null;
+  submission_id: string | null;
+  title: string | null;
+  file_url: string;
+  thumbnail_url: string | null;
+  media_type: UGCLibraryMediaType;
+  status: UGCLibraryStatus;
+  mime_type: string | null;
+  file_size: number | null;
+  duration_seconds: number | null;
+  tags: string[];
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UGCChatThread {
+  id: string;
+  campaign_id: string;
+  brand_id: string;
+  influencer_id: string;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  created_at: string;
+}
+
+export interface UGCChatMessage {
+  id: string;
+  thread_id: string;
+  campaign_id: string;
+  sender_user_id: string;
+  body: string | null;
+  message_type: UGCChatMessageType;
+  attachment_url: string | null;
+  attachment_name: string | null;
+  attachment_mime: string | null;
+  is_pinned: boolean;
+  created_at: string;
+}
+
+export interface UGCCampaignActivity {
+  id: string;
+  campaign_id: string;
+  actor_user_id: string | null;
+  influencer_id: string | null;
+  submission_id: string | null;
+  event_type: string;
+  title: string;
+  description: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface UGCSubmissionRevision {
+  id: string;
+  submission_id: string;
+  campaign_id: string;
+  round_number: number;
+  requested_by: string | null;
+  request_notes: string | null;
+  creator_response: string | null;
+  media_urls: unknown[];
+  status: UGCRevisionStatus;
+  created_at: string;
+  resolved_at: string | null;
+}
+
+export interface CreateInvitationPayload {
+  campaign_id: string;
+  username?: string;
+  email?: string;
+  influencer_id?: string;
+  message?: string;
 }

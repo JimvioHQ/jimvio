@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Archive,
   Copy,
@@ -45,6 +46,7 @@ export function CampaignCenterBoard({
   initialStatus = "all",
   showCreateCta = true,
 }: CampaignCenterBoardProps) {
+  const router = useRouter();
   const { formatMoney } = useCurrency();
   const [campaigns, setCampaigns] = useState<UGCCampaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,32 +90,13 @@ export function CampaignCenterBoard({
 
   const duplicate = async (c: UGCCampaign) => {
     await runAction(c.id, async () => {
-      const res = await fetch("/api/ugc/campaigns", {
+      const res = await fetch(`/api/ugc/campaigns/${c.id}/duplicate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: `${c.title} (Copy)`,
-          description: c.description,
-          campaign_type: c.campaign_type,
-          payment_model: c.payment_model ?? "per_views",
-          rate_per_1k_views: c.rate_per_1k_views || 1,
-          fixed_rate: c.fixed_rate ?? 0,
-          total_budget: c.total_budget || 100,
-          max_payout_per_sub: c.max_payout_per_sub ?? 400,
-          allowed_platforms: c.allowed_platforms ?? ["tiktok", "instagram"],
-          min_duration: c.min_duration,
-          max_duration: c.max_duration,
-          required_hashtags: c.required_hashtags ?? [],
-          required_mentions: c.required_mentions ?? [],
-          required_keywords: c.required_keywords ?? [],
-          requires_face: c.requires_face ?? false,
-          starts_at: c.starts_at,
-          ends_at: c.ends_at,
-        }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Duplicate failed");
       toast.success("Campaign duplicated as draft");
+      router.push(json.redirectTo || `/ugc/campaign-center/create?duplicate=${json.campaign?.id}`);
     });
   };
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -98,6 +98,10 @@ type CampaignCreateWizardProps = {
 
 export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const duplicateId = searchParams.get("duplicate");
+  const templateId = searchParams.get("template");
+  const sourceId = editId || duplicateId || templateId || undefined;
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
@@ -105,51 +109,57 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
   const [error, setError] = useState("");
   const [autoSavedAt, setAutoSavedAt] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState({ hashtag: "", mention: "", keyword: "" });
+  const [activeCampaignId, setActiveCampaignId] = useState<string | undefined>(editId);
   const hydrated = useRef(false);
 
   const set = useCallback(<K extends keyof FormState>(key: K, val: FormState[K]) => {
     setForm((p) => ({ ...p, [key]: val }));
   }, []);
 
-  // Load local autosave or edit target
+  const applyCampaign = useCallback((c: Record<string, unknown>) => {
+    setForm({
+      ...DEFAULT_FORM,
+      title: String(c.title ?? ""),
+      description: String(c.description ?? ""),
+      campaign_type: (c.campaign_type as FormState["campaign_type"]) ?? "ugc",
+      payment_model: (c.payment_model as FormState["payment_model"]) ?? "per_views",
+      rate_per_1k_views: Number(c.rate_per_1k_views) || 3,
+      fixed_rate: Number(c.fixed_rate) || 50,
+      total_budget: Number(c.total_budget) || 500,
+      max_payout_per_sub: Number(c.max_payout_per_sub) || 400,
+      allowed_platforms: (c.allowed_platforms as UGCPlatform[]) ?? ["tiktok", "instagram"],
+      min_duration: Number(c.min_duration) || 15,
+      max_duration: Number(c.max_duration) || 60,
+      required_hashtags: Array.isArray(c.required_hashtags) ? (c.required_hashtags as string[]) : [],
+      required_mentions: Array.isArray(c.required_mentions) ? (c.required_mentions as string[]) : [],
+      required_keywords: Array.isArray(c.required_keywords) ? (c.required_keywords as string[]) : [],
+      requires_face: Boolean(c.requires_face),
+      music_track_url: String(c.music_track_url ?? ""),
+      music_artist_name: String(c.music_artist_name ?? ""),
+      promotion_target: String(c.promotion_target ?? ""),
+      promotion_target_url: String(c.promotion_target_url ?? ""),
+      media: Array.isArray(c.media)
+        ? (c.media as { type?: string; url: string; usage?: string }[]).map((m) => ({
+            type: m.type || "image",
+            url: m.url,
+            usage: m.usage || "example",
+          }))
+        : [],
+    });
+  }, []);
+
+  // Load local autosave, edit target, duplicate, or template campaign
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (editId) {
+      if (sourceId) {
         try {
-          const res = await fetch(`/api/ugc/campaigns/${editId}`);
+          const res = await fetch(`/api/ugc/campaigns/${sourceId}`);
           const json = await res.json();
           const c = json.campaign;
           if (!c || cancelled) return;
-          setForm({
-            ...DEFAULT_FORM,
-            title: c.title ?? "",
-            description: c.description ?? "",
-            campaign_type: c.campaign_type ?? "ugc",
-            payment_model: c.payment_model ?? "per_views",
-            rate_per_1k_views: Number(c.rate_per_1k_views) || 3,
-            fixed_rate: Number(c.fixed_rate) || 50,
-            total_budget: Number(c.total_budget) || 500,
-            max_payout_per_sub: Number(c.max_payout_per_sub) || 400,
-            allowed_platforms: c.allowed_platforms ?? ["tiktok", "instagram"],
-            min_duration: Number(c.min_duration) || 15,
-            max_duration: Number(c.max_duration) || 60,
-            required_hashtags: Array.isArray(c.required_hashtags) ? c.required_hashtags : [],
-            required_mentions: Array.isArray(c.required_mentions) ? c.required_mentions : [],
-            required_keywords: Array.isArray(c.required_keywords) ? c.required_keywords : [],
-            requires_face: Boolean(c.requires_face),
-            music_track_url: c.music_track_url ?? "",
-            music_artist_name: c.music_artist_name ?? "",
-            promotion_target: c.promotion_target ?? "",
-            promotion_target_url: c.promotion_target_url ?? "",
-            media: Array.isArray(c.media)
-              ? c.media.map((m: { type?: string; url: string; usage?: string }) => ({
-                  type: m.type || "image",
-                  url: m.url,
-                  usage: m.usage || "example",
-                }))
-              : [],
-          });
+          applyCampaign(c);
+          setActiveCampaignId(String(c.id ?? sourceId));
         } catch {
           toast.error("Could not load campaign");
         }
@@ -171,11 +181,11 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     return () => {
       cancelled = true;
     };
-  }, [editId]);
+  }, [sourceId, applyCampaign]);
 
   // Autosave to localStorage
   useEffect(() => {
-    if (!hydrated.current || editId) return;
+    if (!hydrated.current || activeCampaignId) return;
     const t = window.setTimeout(() => {
       try {
         localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
@@ -185,7 +195,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       }
     }, 800);
     return () => window.clearTimeout(t);
-  }, [form, editId]);
+  }, [form, activeCampaignId]);
 
   const progress = ((step + 1) / STEPS.length) * 100;
 
@@ -306,8 +316,8 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     setLoading(true);
     setError("");
     try {
-      if (editId) {
-        const res = await fetch(`/api/ugc/campaigns/${editId}`, {
+      if (activeCampaignId) {
+        const res = await fetch(`/api/ugc/campaigns/${activeCampaignId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -362,7 +372,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     setLoading(true);
     setError("");
     try {
-      let id = editId;
+      let id = activeCampaignId;
       if (!id) {
         const res = await fetch("/api/ugc/campaigns", {
           method: "POST",
@@ -428,13 +438,15 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             Campaign Center
           </p>
           <h1 className="mt-1 text-[24px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
-            {editId ? "Edit Campaign" : "Create Campaign"}
+            {activeCampaignId && !duplicateId && !templateId
+              ? "Edit Campaign"
+              : "Create Campaign"}
           </h1>
           <p className="mt-1 text-[13px] text-[#6B7280]">
             Professional multi-step setup with autosave and validation.
           </p>
         </div>
-        {autoSavedAt && !editId ? (
+        {autoSavedAt && !activeCampaignId ? (
           <p className="text-[11px] font-medium text-[#9CA3AF]">Autosaved {autoSavedAt}</p>
         ) : null}
       </div>

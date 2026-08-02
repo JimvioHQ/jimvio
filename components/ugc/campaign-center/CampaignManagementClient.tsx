@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Archive, Copy, Eye, Loader2, Pause, Play, Plus, Upload, Users, Wallet } from "lucide-react";
+import { Archive, Copy, Eye, FileStack, Loader2, Pause, Play, Plus, Upload, Users, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill, SectionCard } from "@/components/ugc/campaign-detail/campaign-detail-ui";
@@ -74,39 +74,45 @@ export default function CampaignManagementClient({ campaignId }: Props) {
     if (!campaign) return;
     setBusy("duplicate");
     try {
-      const res = await fetch("/api/ugc/campaigns", {
+      const res = await fetch(`/api/ugc/campaigns/${campaignId}/duplicate`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: `${campaign.title} (Copy)`,
-          description: campaign.description,
-          campaign_type: campaign.campaign_type,
-          payment_model: campaign.payment_model ?? "per_views",
-          rate_per_1k_views: campaign.rate_per_1k_views || 1,
-          fixed_rate: campaign.fixed_rate ?? 0,
-          total_budget: campaign.total_budget || 100,
-          max_payout_per_sub: campaign.max_payout_per_sub ?? 400,
-          allowed_platforms: campaign.allowed_platforms ?? ["tiktok", "instagram"],
-          min_duration: campaign.min_duration,
-          max_duration: campaign.max_duration,
-          required_hashtags: campaign.required_hashtags ?? [],
-          required_mentions: campaign.required_mentions ?? [],
-          required_keywords: campaign.required_keywords ?? [],
-          requires_face: campaign.requires_face ?? false,
-          starts_at: campaign.starts_at,
-          ends_at: campaign.ends_at,
-        }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Duplicate failed");
       toast.success("Campaign duplicated as draft");
-      router.push("/ugc/campaign-center/drafts");
+      router.push(json.redirectTo || `/ugc/campaign-center/create?duplicate=${json.campaign?.id}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Duplicate failed");
     } finally {
       setBusy(null);
     }
-  }, [campaign, router]);
+  }, [campaign, campaignId, router]);
+
+  const saveAsTemplate = useCallback(async () => {
+    if (!campaign) return;
+    const name = window.prompt("Template name", `${campaign.title} template`);
+    if (!name?.trim()) return;
+    setBusy("template");
+    try {
+      const res = await fetch("/api/ugc/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          campaign_id: campaignId,
+          description: campaign.description,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error ?? "Could not save template");
+      toast.success("Saved as template");
+      router.push("/ugc/campaign-center/templates");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not save template");
+    } finally {
+      setBusy(null);
+    }
+  }, [campaign, campaignId, router]);
 
   const archive = useCallback(() => {
     void patch({ status: "cancelled" });
@@ -197,6 +203,15 @@ export default function CampaignManagementClient({ campaignId }: Props) {
         <Button disabled={managementDisabled} variant="outline" className="rounded-xl" onClick={() => void duplicate()}>
           <Copy className="mr-2 h-4 w-4" />
           Duplicate
+        </Button>
+        <Button
+          disabled={managementDisabled}
+          variant="outline"
+          className="rounded-xl"
+          onClick={() => void saveAsTemplate()}
+        >
+          <FileStack className="mr-2 h-4 w-4" />
+          Save as template
         </Button>
         <Button
           disabled={managementDisabled}

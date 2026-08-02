@@ -24,6 +24,44 @@ export default function SubmitPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]   = useState('');
   const [success, setSuccess] = useState(false);
+  const [aiReviewing, setAiReviewing] = useState(false);
+  const [aiReview, setAiReview] = useState<{
+    overallScore?: number;
+    riskLevel?: string;
+    readyToSubmit?: boolean;
+    suggestions?: string[];
+  } | null>(null);
+
+  async function runAiReview() {
+    if (!postUrl.trim()) {
+      setError('Enter a post URL before AI review.');
+      return;
+    }
+    setAiReviewing(true);
+    setError('');
+    try {
+      const res = await fetch('/api/ugc/ai/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaign_id: campaignId,
+          postUrl: postUrl.trim(),
+          caption,
+          platform,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? 'AI review failed');
+        return;
+      }
+      setAiReview(json.result ?? json.data ?? json);
+    } catch {
+      setError('AI review failed. Please try again.');
+    } finally {
+      setAiReviewing(false);
+    }
+  }
 
   useEffect(() => {
     fetch(`/api/ugc/campaigns/${campaignId}`)
@@ -185,6 +223,31 @@ export default function SubmitPage() {
                 placeholder="Briefly describe your content..."
                 className="w-full bg-[var(--color-surface-secondary)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] opacity-60 focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)]/30 transition-all resize-none"
               />
+            </div>
+
+            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-[var(--color-text-primary)]">AI Review</p>
+                <button
+                  type="button"
+                  onClick={() => void runAiReview()}
+                  disabled={aiReviewing || !postUrl.trim()}
+                  className="rounded-xl border border-[var(--color-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--color-accent)] disabled:opacity-50"
+                >
+                  {aiReviewing ? 'Reviewing…' : 'Run AI Review'}
+                </button>
+              </div>
+              {aiReview ? (
+                <div className="text-xs text-[var(--color-text-muted)] space-y-1">
+                  <p>
+                    Score {Math.round(aiReview.overallScore ?? 0)} · Risk {aiReview.riskLevel ?? '—'} ·{' '}
+                    {aiReview.readyToSubmit ? 'Ready' : 'Needs work'}
+                  </p>
+                  {(aiReview.suggestions ?? []).slice(0, 3).map((s) => (
+                    <p key={s}>• {s}</p>
+                  ))}
+                </div>
+              ) : null}
             </div>
 
             {error && (

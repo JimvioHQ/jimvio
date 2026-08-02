@@ -7,6 +7,8 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
+  Bookmark,
+  Calendar,
   Clapperboard,
   ChevronDown,
   Compass,
@@ -19,11 +21,15 @@ import {
   LayoutDashboard,
   Megaphone,
   PlusCircle,
+  Search,
   Sparkles,
+  Star,
+  Trophy,
   Users,
   Wallet,
   ArrowRight,
   ImageIcon,
+  Mail,
 } from "lucide-react";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
@@ -39,6 +45,11 @@ const PRIMARY_NAV: {
   { id: "applications", label: "My Applications", href: "/ugc/applications", icon: FileVideo },
   { id: "projects", label: "Active Projects", href: "/ugc/campaigns", icon: Clapperboard },
   { id: "submissions", label: "Submissions", href: "/ugc/submissions", icon: FileVideo },
+  { id: "library", label: "Library", href: "/ugc/library", icon: FolderOpen },
+  { id: "saved", label: "Saved", href: "/ugc/saved", icon: Bookmark },
+  { id: "calendar", label: "Calendar", href: "/ugc/calendar", icon: Calendar },
+  { id: "matches", label: "Matches", href: "/ugc/matches", icon: Sparkles },
+  { id: "achievements", label: "Achievements", href: "/ugc/achievements", icon: Trophy },
   { id: "analytics", label: "Analytics", href: "/ugc/analytics", icon: BarChart3 },
   { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign },
   { id: "payouts", label: "Payouts", href: "/ugc/payouts", icon: Wallet },
@@ -55,6 +66,10 @@ const CAMPAIGN_CENTER_MORE: {
   { id: "cc-drafts", label: "Drafts", href: "/ugc/campaign-center/drafts", icon: FileStack },
   { id: "cc-active", label: "Active Campaigns", href: "/ugc/campaign-center/active", icon: FolderOpen },
   { id: "cc-completed", label: "Completed Campaigns", href: "/ugc/campaign-center/completed", icon: Copy },
+  { id: "cc-templates", label: "Templates", href: "/ugc/campaign-center/templates", icon: FileStack },
+  { id: "cc-favorites", label: "Favorites", href: "/ugc/campaign-center/favorites", icon: Star },
+  { id: "cc-invitations", label: "Invitations", href: "/ugc/campaign-center/invitations", icon: Mail },
+  { id: "cc-search", label: "Search", href: "/ugc/search", icon: Search },
   { id: "cc-analytics", label: "Analytics", href: "/ugc/campaign-center/analytics", icon: BarChart3 },
   { id: "cc-recruit", label: "Creator Recruitment", href: "/ugc/campaign-center/recruitment", icon: Users },
   { id: "cc-assets", label: "Campaign Assets", href: "/ugc/campaign-center/assets", icon: ImageIcon },
@@ -67,6 +82,9 @@ function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/campaign-center/drafts")) return "cc-drafts";
   if (pathname.startsWith("/ugc/campaign-center/active")) return "cc-active";
   if (pathname.startsWith("/ugc/campaign-center/completed")) return "cc-completed";
+  if (pathname.startsWith("/ugc/campaign-center/templates")) return "cc-templates";
+  if (pathname.startsWith("/ugc/campaign-center/favorites")) return "cc-favorites";
+  if (pathname.startsWith("/ugc/campaign-center/invitations")) return "cc-invitations";
   if (pathname.startsWith("/ugc/campaign-center/analytics")) return "cc-analytics";
   if (pathname.startsWith("/ugc/campaign-center/recruitment")) return "cc-recruit";
   if (pathname.startsWith("/ugc/campaign-center/assets")) return "cc-assets";
@@ -77,6 +95,12 @@ function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/applications")) return "applications";
   if (pathname.startsWith("/ugc/campaigns")) return "projects";
   if (pathname.startsWith("/ugc/submissions")) return "submissions";
+  if (pathname.startsWith("/ugc/library")) return "library";
+  if (pathname.startsWith("/ugc/saved")) return "saved";
+  if (pathname.startsWith("/ugc/calendar")) return "calendar";
+  if (pathname.startsWith("/ugc/matches")) return "matches";
+  if (pathname.startsWith("/ugc/achievements")) return "achievements";
+  if (pathname.startsWith("/ugc/search")) return "cc-search";
   if (pathname.startsWith("/ugc/analytics")) return "analytics";
   if (pathname.startsWith("/ugc/earnings")) return "earnings";
   if (pathname.startsWith("/ugc/payouts")) return "payouts";

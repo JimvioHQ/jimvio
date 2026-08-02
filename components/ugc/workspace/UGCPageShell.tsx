@@ -165,6 +165,8 @@ export function UGCStatusPill({
         ? "bg-amber-50 text-amber-700 border-amber-200"
         : status === "rejected"
           ? "bg-rose-50 text-rose-700 border-rose-200"
+          : status === "revision_requested"
+            ? "bg-amber-50 text-amber-700 border-amber-200"
           : status === "in_progress" || status === "in progress"
             ? "bg-sky-50 text-sky-700 border-sky-200"
             : "bg-[#F3F4F6] text-[#374151] border-[#E5E7EB]";
