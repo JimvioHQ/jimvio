@@ -3,16 +3,34 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  BookOpen,
+  Calendar,
+  Clapperboard,
   FileText,
   Layers,
   Loader2,
   MessageSquare,
+  Radio,
   Search,
+  Target,
   Users,
+  UserRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type SearchType = "posts" | "members" | "spaces" | "rooms";
+type SearchType =
+  | "posts"
+  | "members"
+  | "spaces"
+  | "rooms"
+  | "courses"
+  | "events"
+  | "communities"
+  | "creators"
+  | "lives"
+  | "missions"
+  | "clips"
+  | "stories";
 
 type SearchResult = {
   id: string;
@@ -23,11 +41,50 @@ type SearchResult = {
 };
 
 const TYPE_META: Record<SearchType, { label: string; icon: typeof Search }> = {
-  posts: { label: "Messages", icon: FileText },
-  members: { label: "Members", icon: Users },
-  spaces: { label: "Spaces", icon: Layers },
-  rooms: { label: "Rooms", icon: MessageSquare },
+  communities: { label: "Community", icon: Users },
+  posts: { label: "Post", icon: FileText },
+  stories: { label: "Story", icon: Clapperboard },
+  spaces: { label: "Space", icon: Layers },
+  courses: { label: "Course", icon: BookOpen },
+  events: { label: "Event", icon: Calendar },
+  missions: { label: "Mission", icon: Target },
+  clips: { label: "Clip", icon: Clapperboard },
+  lives: { label: "Live", icon: Radio },
+  members: { label: "Member", icon: UserRound },
+  creators: { label: "Creator", icon: UserRound },
+  rooms: { label: "Room", icon: MessageSquare },
 };
+
+const DISCOVER_TYPE_MAP: Record<string, SearchType> = {
+  community: "communities",
+  space: "spaces",
+  post: "posts",
+  course: "courses",
+  creator: "creators",
+  live: "lives",
+  campaign: "missions",
+  digital: "courses",
+  lesson: "courses",
+  message: "posts",
+};
+
+function mapDiscoverHit(item: {
+  id: string;
+  entityType: string;
+  title: string;
+  subtitle?: string | null;
+  href: string;
+}): SearchResult | null {
+  const type = DISCOVER_TYPE_MAP[item.entityType];
+  if (!type) return null;
+  return {
+    id: item.id,
+    type,
+    title: item.title,
+    subtitle: item.subtitle ?? null,
+    href: item.href,
+  };
+}
 
 export function HubSearchDialog({
   open,
@@ -65,17 +122,75 @@ export function HubSearchDialog({
       setLoading(true);
       setError(null);
       try {
-        const params = new URLSearchParams({ q, limit: "24" });
-        if (communityId) params.set("communityId", communityId);
-        const res = await fetch(`/api/c/search?${params}`, { signal: ac.signal });
-        if (!res.ok) {
-          const json = (await res.json().catch(() => ({}))) as { error?: string };
+        const communityParams = new URLSearchParams({ q, limit: "24" });
+        if (communityId) communityParams.set("communityId", communityId);
+
+        const discoverParams = new URLSearchParams({
+          q,
+          limit: "24",
+          types: "community,space,post,course,creator,live,campaign,digital,lesson",
+        });
+        if (communityId) discoverParams.set("communityId", communityId);
+
+        const [communityRes, discoverRes] = await Promise.all([
+          fetch(`/api/c/search?${communityParams}`, { signal: ac.signal }),
+          fetch(`/api/discover/search?${discoverParams}`, { signal: ac.signal }),
+        ]);
+
+        if (!communityRes.ok && !discoverRes.ok) {
+          const json = (await communityRes.json().catch(() => ({}))) as { error?: string };
           setError(json.error ?? "Search failed");
           setResults([]);
           return;
         }
-        const json = (await res.json()) as { results: SearchResult[] };
-        setResults(json.results ?? []);
+
+        const communityJson = communityRes.ok
+          ? ((await communityRes.json()) as { results: SearchResult[] })
+          : { results: [] };
+        const discoverJson = discoverRes.ok
+          ? ((await discoverRes.json()) as {
+              items?: Array<{
+                id: string;
+                entityType: string;
+                title: string;
+                subtitle?: string | null;
+                href: string;
+              }>;
+            })
+          : { items: [] };
+
+        const merged: SearchResult[] = [];
+        const seen = new Set<string>();
+
+        for (const item of communityJson.results ?? []) {
+          const key = `${item.type}:${item.id}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          merged.push(item);
+        }
+
+        for (const hit of discoverJson.items ?? []) {
+          const mapped = mapDiscoverHit(hit);
+          if (!mapped) continue;
+          const key = `${mapped.type}:${mapped.id}`;
+          if (seen.has(key)) continue;
+          // Prefer community-search membership results for overlapping entities
+          const overlapKey =
+            mapped.type === "communities"
+              ? `communities:${mapped.id}`
+              : mapped.type === "spaces"
+                ? `spaces:${mapped.id}`
+                : mapped.type === "posts"
+                  ? `posts:${mapped.id}`
+                  : mapped.type === "courses"
+                    ? `courses:${mapped.id}`
+                    : null;
+          if (overlapKey && seen.has(overlapKey)) continue;
+          seen.add(key);
+          merged.push(mapped);
+        }
+
+        setResults(merged.slice(0, 32));
         setActive(0);
       } catch (e) {
         if ((e as Error).name === "AbortError") return;
@@ -163,7 +278,7 @@ export function HubSearchDialog({
                 setError(null);
               }
             }}
-            placeholder="Search groups, channels, messages, members…"
+            placeholder="Search communities, posts, spaces, courses, lives, creators…"
             className="h-12 w-full bg-transparent text-[14px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
           />
           {loading ? (
@@ -181,7 +296,7 @@ export function HubSearchDialog({
           )}
           {!error && query.trim().length === 0 && (
             <li className="px-3 py-8 text-center text-[12px] text-[var(--color-text-muted)]">
-              Type to search across your communities
+              Search communities, posts, stories, spaces, courses, events, missions, clips, lives, members & creators
             </li>
           )}
           {!error && query.trim().length > 0 && !loading && visibleResults.length === 0 && (
@@ -190,7 +305,7 @@ export function HubSearchDialog({
             </li>
           )}
           {visibleResults.map((item, i) => {
-            const meta = TYPE_META[item.type];
+            const meta = TYPE_META[item.type] ?? { label: item.type, icon: Search };
             const Icon = meta.icon;
             return (
               <li key={`${item.type}-${item.id}`}>

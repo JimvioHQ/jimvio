@@ -36,6 +36,7 @@ import {
 } from "@/lib/navigation/primary-nav";
 import { CommunityAiPanel } from "@/components/community/hub/CommunityAiPanel";
 import { HubSearchDialog } from "@/components/community/hub/HubSearchDialog";
+import { OPEN_HUB_SEARCH_EVENT } from "@/lib/community/hub-search-event";
 
 type Profile = Pick<DbProfile, "id" | "username" | "full_name" | "avatar_url">;
 
@@ -170,7 +171,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     // Close mobile nav on route change
     useEffect(() => { setMobileNavOpen(false); }, [pathname]);
 
-    // ⌘K / Ctrl+K opens hub search
+    // ⌘K / Ctrl+K opens hub search; Feed Search action uses the same dialog
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -178,8 +179,13 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 setSearchOpen(true);
             }
         };
+        const onOpenSearch = () => setSearchOpen(true);
         window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
+        window.addEventListener(OPEN_HUB_SEARCH_EVENT, onOpenSearch);
+        return () => {
+            window.removeEventListener("keydown", onKey);
+            window.removeEventListener(OPEN_HUB_SEARCH_EVENT, onOpenSearch);
+        };
     }, []);
 
     // Close mobile nav when returning to desktop width

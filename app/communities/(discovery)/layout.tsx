@@ -39,7 +39,7 @@ export default async function CommunitiesLayout({
   }
 
   return (
-    <WorkspaceLayoutClient workspace="communities" user={user}>
+    <WorkspaceLayoutClient workspace="communities" user={user} showRightPanel={false}>
       <div className="p-4 sm:p-6 lg:p-8">{children}</div>
     </WorkspaceLayoutClient>
   );

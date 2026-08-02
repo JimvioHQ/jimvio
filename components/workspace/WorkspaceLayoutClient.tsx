@@ -12,6 +12,7 @@ type WorkspaceLayoutClientProps = {
     avatarUrl?: string | null;
     isPremium?: boolean;
   };
+  showRightPanel?: boolean;
 };
 
 function ShellFallback() {
@@ -26,10 +27,11 @@ export function WorkspaceLayoutClient({
   workspace,
   children,
   user,
+  showRightPanel = true,
 }: WorkspaceLayoutClientProps) {
   return (
     <Suspense fallback={<ShellFallback />}>
-      <WorkspaceShell workspace={workspace} user={user}>
+      <WorkspaceShell workspace={workspace} user={user} showRightPanel={showRightPanel}>
         {children}
       </WorkspaceShell>
     </Suspense>

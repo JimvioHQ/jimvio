@@ -37,9 +37,9 @@ export function ThreadPreview({
       onClick={onOpen}
       aria-label={`Open thread with ${count} ${count === 1 ? "reply" : "replies"}`}
       className={cn(
-        "mt-1 flex w-full max-w-sm items-center gap-2 rounded-md border border-[var(--color-border)]",
-        "bg-[var(--color-surface)] px-2.5 py-2 text-left transition-colors",
-        "hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-accent-subtle)]/40"
+        "mt-1 flex w-full max-w-sm items-center gap-2 rounded-lg border border-black/[0.06]",
+        "bg-white/80 px-2.5 py-1.5 text-left shadow-sm transition-colors",
+        "hover:border-[var(--color-accent)]/35 hover:bg-[var(--color-accent-subtle)]/30"
       )}
     >
       <div className="flex -space-x-1.5">

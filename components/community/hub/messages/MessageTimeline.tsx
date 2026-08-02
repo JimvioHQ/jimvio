@@ -61,23 +61,23 @@ export function MessageTimeline({
     <div
       ref={scrollRef}
       onScroll={onScroll}
-      className="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6"
+      className="flex-1 space-y-2.5 overflow-y-auto scroll-smooth bg-gradient-to-b from-[#F7F8FA] to-[#F3F4F6]/80 px-3 py-3 sm:px-5 sm:py-4"
       style={{ scrollbarWidth: "thin" }}
     >
       {loadingOlder && (
-        <div className="flex justify-center py-2">
+        <div className="flex justify-center py-1.5">
           <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
         </div>
       )}
 
       {messages.length === 0 ? (
-        <p className="py-16 text-center text-[12px] text-[var(--color-text-muted)]">
+        <p className="py-12 text-center text-[12px] text-[var(--color-text-muted)]">
           Say hello to start the conversation.
         </p>
       ) : (
         groups.map((group) => (
-          <div key={group.label + group.day.toISOString()} className="space-y-3">
-            <div className="flex justify-center py-2">
+          <div key={group.label + group.day.toISOString()} className="space-y-1.5">
+            <div className="flex justify-center py-1.5">
               <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1 text-[11px] font-semibold text-[var(--color-text-muted)] shadow-sm">
                 {group.label}
               </span>

@@ -154,7 +154,7 @@ export function ChatInputZone({
       className={cn(
         "relative flex shrink-0 flex-col",
         discussion
-          ? "discussion-chat-canvas border-t-0 px-3 pb-[max(12px,env(safe-area-inset-bottom,0px))] pt-1 sm:px-6 lg:px-8"
+          ? "discussion-chat-canvas border-t border-black/[0.04] px-3 pb-[max(10px,env(safe-area-inset-bottom,0px))] pt-2 sm:px-6 lg:px-8"
           : "border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
       )}
       onDragEnter={(e) => {
@@ -285,7 +285,7 @@ export function ChatInputZone({
             className={cn(
               "flex min-h-[62px] items-end gap-1",
               discussion
-                ? "mx-auto w-full max-w-none items-center gap-2 rounded-[1.5rem] border border-gray-100/80 bg-white px-3 py-2.5 shadow-[0_10px_36px_-14px_rgba(15,23,42,0.18)] ring-1 ring-gray-100/70 max-lg:mb-[3.25rem]"
+                ? "mx-auto w-full max-w-[720px] items-center gap-1.5 rounded-2xl border border-black/[0.06] bg-white/95 px-2.5 py-1.5 shadow-[0_2px_12px_rgba(15,23,42,0.06)] backdrop-blur-md max-lg:mb-[3.25rem]"
                 : "px-3 py-[9px] pb-[max(9px,env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(3.5rem+max(9px,env(safe-area-inset-bottom,0px)))]"
             )}
           >
@@ -454,7 +454,7 @@ export function ChatInputZone({
                   aria-label="Message composer"
                   className={cn(
                     "max-h-32 min-h-[24px] w-full resize-none border-0 bg-transparent p-0 outline-none",
-                    discussion ? "text-[14.5px] leading-relaxed" : "text-sm",
+                    discussion ? "text-[13.5px] leading-snug" : "text-sm",
                     "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
                     "disabled:cursor-not-allowed disabled:opacity-60"
                   )}
@@ -477,7 +477,7 @@ export function ChatInputZone({
             </div>
 
             {discussion ? (
-              <div className="flex shrink-0 items-center gap-1.5">
+              <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   disabled={sending || uploading}
@@ -485,13 +485,13 @@ export function ChatInputZone({
                   title="Voice message"
                   onClick={() => void onStartVoice()}
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full",
+                    "flex h-9 w-9 items-center justify-center rounded-full",
                     "bg-gray-100 text-gray-600",
                     "transition-all duration-150 hover:bg-gray-200 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                   )}
                 >
-                  <Mic className="h-5 w-5" />
+                  <Mic className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
@@ -499,16 +499,16 @@ export function ChatInputZone({
                   aria-label="Send message"
                   onClick={onSend}
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full",
-                    "bg-[var(--color-accent)] text-white shadow-[0_6px_16px_rgba(253,80,0,0.28)]",
+                    "flex h-9 w-9 items-center justify-center rounded-full",
+                    "bg-[var(--color-accent)] text-white shadow-[0_4px_12px_rgba(253,80,0,0.28)]",
                     "transition-all duration-150 hover:bg-[var(--color-accent-hover)] hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-50",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                   )}
                 >
                   {sending ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Send className="h-4 w-4" strokeWidth={2.4} />
+                    <Send className="h-3.5 w-3.5" strokeWidth={2.4} />
                   )}
                 </button>
               </div>

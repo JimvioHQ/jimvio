@@ -584,7 +584,7 @@ export function ChatRoom({
           className={cn(
             "flex min-h-0 flex-1 flex-col overflow-y-auto",
             discussionLayout
-              ? "discussion-chat-canvas px-3 py-4 pb-6 sm:px-6 lg:px-8"
+              ? "discussion-chat-canvas px-3 py-3 pb-4 sm:px-6 lg:px-8"
               : "bg-[var(--color-bg)] px-3 py-3 pb-5 sm:px-[5%]",
             "scrollbar-thin scrollbar-thumb-[var(--color-border-strong)]",
             hook.loading && "overflow-hidden"

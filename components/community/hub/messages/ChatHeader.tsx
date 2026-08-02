@@ -27,7 +27,7 @@ function IconBtn({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="rounded-xl p-2 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+      className="rounded-lg p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[#F3F4F6] hover:text-[var(--color-text-primary)]"
     >
       <Icon className="h-4 w-4" />
     </button>
@@ -62,13 +62,13 @@ export function ChatHeader({
   const showCreator = thread.kind === "direct" || peer?.isCreator;
 
   return (
-    <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-3 sm:px-4">
-      <div className="flex min-w-0 items-center gap-3">
+    <header className="flex shrink-0 items-center justify-between gap-3 border-b border-black/[0.06] bg-white/90 px-3 py-2 backdrop-blur-md sm:px-4">
+      <div className="flex min-w-0 items-center gap-2.5">
         {onBack && (
           <button
             type="button"
             onClick={onBack}
-            className="rounded-xl p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] lg:hidden"
+            className="rounded-lg p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[#F3F4F6] lg:hidden"
             aria-label="Back to conversations"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -77,17 +77,17 @@ export function ChatHeader({
         <button
           type="button"
           onClick={onToggleDetails}
-          className="flex min-w-0 items-center gap-3 text-left"
+          className="flex min-w-0 items-center gap-2.5 text-left"
         >
           <HubAvatar
             name={thread.name}
             src={thread.avatarUrl}
-            size={40}
+            size={36}
             live={online}
           />
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-[14px] font-black text-[var(--color-text-primary)]">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <p className="truncate text-[13.5px] font-semibold text-[var(--color-text-primary)]">
                 {thread.name}
               </p>
               {showCreator && <HubBadge variant="orange">Creator</HubBadge>}

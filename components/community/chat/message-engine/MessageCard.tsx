@@ -182,16 +182,16 @@ export function MessageCard({
       aria-label={`Message from ${name}`}
       className={cn(
         "group flex w-full scroll-mt-24 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
-        discussion ? "mb-3 justify-center sm:mb-4" : "mb-0.5",
+        discussion ? "mb-2 justify-center sm:mb-2.5" : "mb-0.5",
         !discussion && (isOwn ? "justify-end" : "justify-start"),
         compact && !discussion && "pl-3"
       )}
     >
       <div
         className={cn(
-          "flex gap-3",
+          "flex gap-2.5",
           discussion
-            ? "w-[92%] max-w-none sm:w-[90%]"
+            ? "w-full max-w-[720px]"
             : cn("max-w-[min(100%,28rem)] gap-2", isOwn && "flex-row-reverse")
         )}
       >
@@ -201,7 +201,7 @@ export function MessageCard({
             className={cn(
               "shrink-0 overflow-hidden rounded-full",
               discussion
-                ? "mt-1 h-10 w-10 border border-white bg-gray-50 shadow-[0_4px_12px_rgba(15,23,42,0.08)] ring-2 ring-white"
+                ? "mt-0.5 h-8 w-8 border border-white bg-gray-50 shadow-sm ring-1 ring-black/[0.04]"
                 : "mt-1 h-8 w-8 border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
             )}
           >
@@ -209,8 +209,8 @@ export function MessageCard({
               <Image
                 src={p.avatar_url}
                 alt={name}
-                width={discussion ? 40 : 32}
-                height={discussion ? 40 : 32}
+                width={discussion ? 32 : 32}
+                height={discussion ? 32 : 32}
                 className="h-full w-full object-cover"
                 unoptimized
               />
@@ -228,7 +228,7 @@ export function MessageCard({
             className={cn(
               "relative transition-shadow duration-200",
               discussion
-            ? "rounded-[1.25rem] bg-white px-4 pb-4 pt-3.5 shadow-[0_8px_28px_rgba(15,23,42,0.05)] ring-1 ring-gray-100/90 transition duration-200 group-hover:-translate-y-px group-hover:shadow-[0_12px_32px_rgba(15,23,42,0.08)]"
+            ? "rounded-xl bg-white px-3 pb-2.5 pt-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.05] transition duration-150 group-hover:shadow-[0_4px_14px_rgba(15,23,42,0.06)]"
             : cn(
                     "px-3 pb-2.5 pt-2 shadow-sm group-hover:shadow-md",
                     isOwn
@@ -239,12 +239,12 @@ export function MessageCard({
           >
             {/* Header */}
             {(discussion || (!isOwn && !isDM)) && (
-              <header className={cn("flex flex-wrap items-center gap-1.5", discussion ? "mb-1.5" : "mb-0.5")}>
+              <header className={cn("flex flex-wrap items-center gap-1.5", discussion ? "mb-1" : "mb-0.5")}>
                 <span
                   className={cn(
                     "font-semibold",
                     discussion
-                      ? "text-[14px] text-gray-900"
+                      ? "text-[13px] text-gray-900"
                       : "text-[11px] text-[var(--color-accent)]"
                   )}
                 >
@@ -253,7 +253,7 @@ export function MessageCard({
                 {p?.is_verified && (
                   <BadgeCheck
                     className={cn(
-                      discussion ? "h-4 w-4 text-[#3b82f6]" : "h-3.5 w-3.5 text-[var(--color-accent)]"
+                      discussion ? "h-3.5 w-3.5 text-[#3b82f6]" : "h-3.5 w-3.5 text-[var(--color-accent)]"
                     )}
                     fill={discussion ? "currentColor" : undefined}
                     strokeWidth={discussion ? 0 : undefined}
@@ -265,7 +265,7 @@ export function MessageCard({
                     className={cn(
                       "font-semibold uppercase tracking-wide",
                       discussion
-                        ? "rounded-md bg-violet-100 px-1.5 py-0.5 text-[10px] text-violet-600"
+                        ? "rounded px-1.5 py-px text-[9px] bg-violet-100 text-violet-600"
                         : "rounded-sm bg-[var(--color-surface-secondary)] px-1.5 py-px text-[9px] text-[var(--color-text-muted)]"
                     )}
                   >
@@ -276,7 +276,7 @@ export function MessageCard({
                   dateTime={m.created_at}
                   className={cn(
                     discussion
-                      ? "text-[12px] text-gray-400"
+                      ? "text-[11px] text-gray-400"
                       : "text-[10px] text-[var(--color-text-muted)]"
                   )}
                 >
@@ -310,7 +310,7 @@ export function MessageCard({
                   body={m.body}
                   className={
                     discussion
-                      ? "text-[15px] leading-relaxed text-gray-800"
+                      ? "text-[13.5px] leading-snug text-gray-800"
                       : undefined
                   }
                 />
@@ -406,7 +406,7 @@ export function MessageCard({
             {/* Reactions inside discussion card */}
             {discussion &&
               Object.values(reactions).some((ids) => ids.length > 0) && (
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <div className="mt-2 flex flex-wrap items-center gap-1">
                   {Object.entries(reactions).map(([emoji, ids]) =>
                     ids.length ? (
                       <button
@@ -414,7 +414,7 @@ export function MessageCard({
                         type="button"
                         onClick={() => onToggleReaction(m.id, emoji)}
                         className={cn(
-                          "rounded-full px-2.5 py-1 text-[12px] transition-colors ring-1",
+                          "rounded-full px-2 py-0.5 text-[11px] transition-colors ring-1",
                           userReacted(emoji)
                             ? "bg-[var(--color-accent)]/10 text-gray-800 ring-[var(--color-accent)]/25"
                             : "bg-gray-50 text-gray-700 ring-gray-100 hover:bg-gray-100"
@@ -466,7 +466,7 @@ export function MessageCard({
           {/* Footer actions */}
           <footer
             className={cn(
-              "mt-1.5 flex flex-wrap items-center gap-0.5",
+              "mt-1 flex flex-wrap items-center gap-0.5",
               "opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100",
               !discussion && isOwn && "justify-end"
             )}
@@ -477,7 +477,9 @@ export function MessageCard({
                 type="button"
                 aria-label={`React with ${emoji}`}
                 className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-lg text-base leading-none sm:h-8 sm:w-8",
+                  discussion
+                    ? "flex h-7 w-7 items-center justify-center rounded-md text-sm leading-none"
+                    : "flex h-9 w-9 items-center justify-center rounded-lg text-base leading-none sm:h-8 sm:w-8",
                   "transition-colors hover:bg-[var(--color-border)]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                 )}
@@ -507,7 +509,9 @@ export function MessageCard({
                   type="button"
                   aria-label="More message actions"
                   className={cn(
-                    "inline-flex h-9 w-9 items-center justify-center rounded-lg sm:h-8 sm:w-8",
+                    discussion
+                      ? "inline-flex h-7 w-7 items-center justify-center rounded-md"
+                      : "inline-flex h-9 w-9 items-center justify-center rounded-lg sm:h-8 sm:w-8",
                     "text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-border)]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                   )}

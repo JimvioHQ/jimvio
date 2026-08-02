@@ -77,26 +77,26 @@ export function MessageBubble({
 
   return (
     <div
-      className={cn("group flex gap-2", mine ? "justify-end" : "justify-start")}
+      className={cn("group flex gap-1.5", mine ? "justify-end" : "justify-start")}
       onMouseLeave={() => setShowReact(false)}
     >
       {!mine && showAvatar ? (
-        <HubAvatar name={peerName} src={peerAvatar} size={28} className="mt-1 shrink-0" />
+        <HubAvatar name={peerName} src={peerAvatar} size={28} className="mt-0.5 shrink-0 ring-2 ring-white/80" />
       ) : !mine ? (
         <div className="w-7 shrink-0" />
       ) : null}
 
-      <div className={cn("relative max-w-[min(72%,420px)]", mine ? "items-end" : "items-start")}>
+      <div className={cn("relative max-w-[min(74%,440px)]", mine ? "items-end" : "items-start")}>
         {msg.reply_to_body && (
           <div
             className={cn(
-              "mb-1 rounded-xl border-l-2 px-2.5 py-1.5 text-[11px]",
+              "mb-0.5 rounded-lg border-l-2 px-2 py-1 text-[11px]",
               mine
                 ? "border-emerald-500 bg-emerald-50/80 text-emerald-900"
-                : "border-[var(--color-accent,#fd5000)] bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"
+                : "border-[var(--color-accent,#fd5000)] bg-white/70 text-[var(--color-text-secondary)] backdrop-blur-sm"
             )}
           >
-            <p className="font-bold">{msg.reply_to_sender ?? "Reply"}</p>
+            <p className="font-semibold">{msg.reply_to_sender ?? "Reply"}</p>
             <p className="line-clamp-2 opacity-80">{msg.reply_to_body}</p>
           </div>
         )}
@@ -104,8 +104,8 @@ export function MessageBubble({
         {audioUrl ? (
           <div
             className={cn(
-              "rounded-2xl px-3 py-2 shadow-sm",
-              mine ? "bg-emerald-100" : "border border-[var(--color-border)] bg-white dark:bg-[var(--color-surface-secondary)]"
+              "rounded-2xl px-3 py-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.06)]",
+              mine ? "bg-emerald-100" : "border border-black/[0.06] bg-white/90 backdrop-blur-sm dark:bg-[var(--color-surface-secondary)]"
             )}
           >
             <WaAudioPlayer src={audioUrl} isOwn={mine} />
@@ -119,7 +119,7 @@ export function MessageBubble({
                 isVideoAttachment(primary) ? "video" : "image"
               )
             }
-            className="block overflow-hidden rounded-2xl shadow-sm"
+            className="block overflow-hidden rounded-[18px] shadow-[0_1px_3px_rgba(15,23,42,0.08)] transition-transform hover:scale-[1.01]"
           >
             {isVideoAttachment(primary) ? (
               <video
@@ -142,10 +142,10 @@ export function MessageBubble({
         ) : primary && (msg.message_type === "file" || primary.name) ? (
           <div
             className={cn(
-              "flex items-center gap-3 rounded-2xl border px-3 py-2.5 shadow-sm",
+              "flex items-center gap-3 rounded-[18px] border px-3 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.06)]",
               mine
-                ? "border-emerald-200 bg-emerald-50"
-                : "border-[var(--color-border)] bg-white dark:bg-[var(--color-surface-secondary)]"
+                ? "border-emerald-200/80 bg-emerald-50"
+                : "border-black/[0.06] bg-white/90 backdrop-blur-sm dark:bg-[var(--color-surface-secondary)]"
             )}
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 text-red-500">
@@ -173,10 +173,10 @@ export function MessageBubble({
         ) : (
           <div
             className={cn(
-              "rounded-2xl px-3.5 py-2.5 text-[13.5px] leading-relaxed shadow-sm",
+              "px-3 py-1.5 text-[13.5px] leading-snug shadow-[0_1px_2px_rgba(15,23,42,0.06)] transition-shadow group-hover:shadow-[0_2px_8px_rgba(15,23,42,0.08)]",
               mine
-                ? "rounded-br-md bg-emerald-100 text-zinc-900"
-                : "rounded-bl-md border border-[var(--color-border)]/70 bg-white text-[var(--color-text-primary)] dark:bg-[var(--color-surface-secondary)]",
+                ? "rounded-[18px] rounded-br-md bg-[#DCF8C6] text-zinc-900"
+                : "rounded-[18px] rounded-bl-md border border-black/[0.05] bg-white/95 text-[var(--color-text-primary)] backdrop-blur-sm dark:bg-[var(--color-surface-secondary)]",
               msg.deliveryStatus === "failed" && "opacity-70 ring-1 ring-red-300"
             )}
           >
@@ -191,18 +191,18 @@ export function MessageBubble({
 
         <div
           className={cn(
-            "mt-1 flex flex-wrap items-center gap-1.5",
+            "mt-0.5 flex flex-wrap items-center gap-1",
             mine ? "justify-end" : "justify-start"
           )}
         >
           {reactionEntries.length > 0 && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5">
               {reactionEntries.map(([emoji, count]) => (
                 <button
                   key={emoji}
                   type="button"
                   onClick={() => onReact?.(msg, emoji)}
-                  className="inline-flex items-center gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[11px] shadow-sm transition-transform hover:scale-105"
+                  className="inline-flex items-center gap-0.5 rounded-full border border-black/[0.06] bg-white/90 px-1.5 py-px text-[11px] shadow-sm backdrop-blur-sm transition-transform hover:scale-105"
                 >
                   <span>{emoji}</span>
                   {count > 1 && <span className="text-[10px] text-[var(--color-text-muted)]">{count}</span>}
@@ -210,7 +210,7 @@ export function MessageBubble({
               ))}
             </div>
           )}
-          <span className="text-[10px] tabular-nums text-[var(--color-text-muted)]">{time}</span>
+          <span className="text-[10px] tabular-nums tracking-tight text-[var(--color-text-muted)]/80">{time}</span>
           {mine && (
             <span className="inline-flex text-[var(--color-text-muted)]">
               {msg.deliveryStatus === "failed" ? (
@@ -233,13 +233,13 @@ export function MessageBubble({
 
         <div
           className={cn(
-            "absolute -top-3 flex items-center gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 opacity-0 shadow-md transition-opacity group-hover:opacity-100",
+            "absolute -top-2.5 flex items-center gap-px rounded-full border border-black/[0.06] bg-white/95 p-0.5 opacity-0 shadow-[0_2px_10px_rgba(15,23,42,0.1)] backdrop-blur-md transition-all duration-150 group-hover:opacity-100",
             mine ? "left-0" : "right-0"
           )}
         >
           <button
             type="button"
-            className="rounded-full p-1.5 hover:bg-[var(--color-surface-secondary)]"
+            className="rounded-full p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[#F3F4F6] hover:text-[var(--color-text-primary)]"
             aria-label="Reply"
             onClick={() => onReply?.(msg)}
           >
@@ -247,7 +247,7 @@ export function MessageBubble({
           </button>
           <button
             type="button"
-            className="rounded-full p-1.5 hover:bg-[var(--color-surface-secondary)]"
+            className="rounded-full p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[#F3F4F6] hover:text-[var(--color-text-primary)]"
             aria-label="React"
             onClick={() => setShowReact((v) => !v)}
           >
@@ -256,7 +256,7 @@ export function MessageBubble({
           {(msg.reply_count ?? 0) > 0 || onOpenThread ? (
             <button
               type="button"
-              className="rounded-full p-1.5 hover:bg-[var(--color-surface-secondary)]"
+              className="rounded-full p-1.5 text-[var(--color-text-muted)] transition-colors hover:bg-[#F3F4F6] hover:text-[var(--color-text-primary)]"
               aria-label="Open thread"
               onClick={() => onOpenThread?.(msg)}
             >

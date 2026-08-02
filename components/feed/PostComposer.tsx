@@ -8,6 +8,7 @@ import {
   Loader2,
   MapPin,
   Radio,
+  Search,
   Send,
   Sparkles,
   SquareArrowUpRight,
@@ -16,6 +17,7 @@ import {
   Video,
   X,
 } from "lucide-react";
+import { OPEN_HUB_SEARCH_EVENT } from "@/lib/community/hub-search-event";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
 import { buildHubLoginUrl } from "@/lib/community/hub-auth";
 import { cn, getInitials } from "@/lib/utils";
@@ -796,6 +798,15 @@ export function PostComposer({
           >
             <SquareArrowUpRight className="h-3.5 w-3.5 text-gray-500" /> Mission
           </Link>
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent(OPEN_HUB_SEARCH_EVENT));
+            }}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+          >
+            <Search className="h-3.5 w-3.5 text-gray-500" /> Search
+          </button>
           <button
             type="button"
             onClick={() => openComposer()}

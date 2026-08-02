@@ -42,7 +42,7 @@ function QuickAction({
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col items-center gap-1.5 rounded-2xl border border-[var(--color-border)] px-2 py-2.5 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+      className="flex flex-col items-center gap-1 rounded-xl border border-black/[0.06] px-1.5 py-2 text-[var(--color-text-muted)] transition-colors hover:bg-[#F7F8FA] hover:text-[var(--color-text-primary)]"
     >
       <Icon className="h-4 w-4" />
       <span className="text-[9px] font-bold uppercase tracking-wide">{label}</span>
@@ -126,37 +126,37 @@ export function ChatDetailsAside({
   return (
     <aside
       className={cn(
-        "flex h-full min-h-0 w-full flex-col overflow-y-auto border-l border-[var(--color-border)] bg-[var(--color-surface)] xl:w-[300px] xl:shrink-0",
+        "flex h-full min-h-0 w-full flex-col overflow-y-auto border-l border-black/[0.06] bg-[#FAFBFC] xl:w-[280px] xl:shrink-0",
         className
       )}
       style={{ scrollbarWidth: "thin" }}
     >
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
-        <h2 className="text-[13px] font-black">About this chat</h2>
+      <div className="flex items-center justify-between border-b border-black/[0.06] px-3 py-2.5">
+        <h2 className="text-[12.5px] font-semibold tracking-tight">About this chat</h2>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl p-1.5 hover:bg-[var(--color-surface-secondary)]"
+          className="rounded-lg p-1.5 transition-colors hover:bg-white hover:shadow-sm"
           aria-label="Close details"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="px-4 py-5 text-center">
+      <div className="px-3 py-4 text-center">
         <HubAvatar
           name={thread.name}
           src={thread.avatarUrl}
-          size={80}
+          size={72}
           live={online}
-          className="mx-auto"
+          className="mx-auto ring-2 ring-white shadow-sm"
         />
-        <p className="mt-3 text-[16px] font-black">{thread.name}</p>
-        <div className="mt-1.5 flex items-center justify-center gap-2">
+        <p className="mt-2.5 text-[15px] font-semibold tracking-tight">{thread.name}</p>
+        <div className="mt-1 flex items-center justify-center gap-2">
           <HubBadge variant="orange">Creator</HubBadge>
           <span
             className={cn(
-              "text-[11px] font-semibold",
+              "text-[11px] font-medium",
               online ? "text-emerald-600" : "text-[var(--color-text-muted)]"
             )}
           >
@@ -164,13 +164,13 @@ export function ChatDetailsAside({
           </span>
         </div>
         {peer?.bio && (
-          <p className="mt-2 text-[12px] leading-relaxed text-[var(--color-text-secondary)]">
+          <p className="mt-1.5 text-[12px] leading-snug text-[var(--color-text-secondary)]">
             {peer.bio}
           </p>
         )}
       </div>
 
-      <div className="mx-4 grid grid-cols-3 gap-2 rounded-2xl bg-[var(--color-surface-secondary)] p-3 text-center">
+      <div className="mx-3 grid grid-cols-3 gap-2 rounded-xl border border-black/[0.04] bg-white p-2.5 text-center shadow-sm">
         <div>
           <p className="text-[13px] font-black">Level {level}</p>
           <p className="text-[9px] text-[var(--color-text-muted)]">Level</p>

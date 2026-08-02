@@ -824,7 +824,7 @@ export function HubMessagesPage() {
 
       <div
         className={cn(
-          "flex min-h-0 min-w-0 flex-1 flex-col bg-[var(--color-surface)]",
+          "flex min-h-0 min-w-0 flex-1 flex-col bg-[#F7F8FA]",
           !mobileShowChat && "hidden lg:flex"
         )}
       >
