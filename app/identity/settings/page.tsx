@@ -1,67 +1,114 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  BarChart3,
   Bell,
   ChevronRight,
+  FileText,
   Fingerprint,
   Lock,
+  MessageSquareQuote,
   Paintbrush,
   Settings2,
   ShieldCheck,
   UserCircle,
+  Wallet,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { getIdentityByUserId } from "@/lib/identity/resolve";
 import { IdentityCard } from "@/components/identity/identity-ui";
 
 export const metadata: Metadata = { title: "Settings" };
+export const dynamic = "force-dynamic";
 
 type SettingsLink = {
   href: string;
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  external?: boolean;
 };
 
-const LINKS: SettingsLink[] = [
-  {
-    href: "/identity/edit",
-    title: "Identity profile",
-    description: "Photo, cover, bio, skills, availability and social links.",
-    icon: UserCircle,
-  },
-  {
-    href: "/identity/edit#privacy",
-    title: "Privacy & visibility",
-    description: "Control who can see your Jimvio identity profile.",
-    icon: Lock,
-  },
-  {
-    href: "/dashboard/settings",
-    title: "Account settings",
-    description: "General account preferences and workspace defaults.",
-    icon: Settings2,
-  },
-  {
-    href: "/settings/notifications",
-    title: "Notifications",
-    description: "Manage email and in-app notification preferences.",
-    icon: Bell,
-  },
-  {
-    href: "/dashboard/security",
-    title: "Security",
-    description: "Password, two-factor authentication and active sessions.",
-    icon: ShieldCheck,
-  },
-  {
-    href: "/identity/bookings",
-    title: "Booking inbox",
-    description: "Review and respond to brand booking requests.",
-    icon: Fingerprint,
-  },
-];
+async function getOwnUsername(): Promise<string | null> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+    const identity = await getIdentityByUserId(user.id, user.id);
+    return identity?.profile.username ?? null;
+  } catch {
+    return null;
+  }
+}
 
-export default function IdentitySettingsPage() {
+export default async function IdentitySettingsPage() {
+  const username = await getOwnUsername();
+  const profileHref = username ? `/u/${username}` : "/identity/edit";
+
+  const links: SettingsLink[] = [
+    {
+      href: "/identity/edit",
+      title: "Identity profile",
+      description: "Photo, cover, bio, skills, availability and social links.",
+      icon: UserCircle,
+    },
+    {
+      href: "/identity/edit#privacy",
+      title: "Privacy & visibility",
+      description: "Control who can see your Jimvio identity profile.",
+      icon: Lock,
+    },
+    {
+      href: "/identity/wallet",
+      title: "Wallet",
+      description: "Unified view of your marketplace, affiliate, UGC and community earnings.",
+      icon: Wallet,
+    },
+    {
+      href: "/identity/analytics",
+      title: "Analytics",
+      description: "Cross-surface performance — campaigns, conversions, revenue and reach.",
+      icon: BarChart3,
+    },
+    {
+      href: `${profileHref}?tab=media-kit`,
+      title: "Media kit",
+      description: "Download a branded, shareable PDF summary of your profile.",
+      icon: FileText,
+    },
+    {
+      href: `${profileHref}?tab=reviews`,
+      title: "Reviews",
+      description: "See verified feedback from the brands and creators you've worked with.",
+      icon: MessageSquareQuote,
+    },
+    {
+      href: "/dashboard/settings",
+      title: "Account settings",
+      description: "General account preferences and workspace defaults.",
+      icon: Settings2,
+    },
+    {
+      href: "/settings/notifications",
+      title: "Notifications",
+      description: "Manage email and in-app notification preferences.",
+      icon: Bell,
+    },
+    {
+      href: "/dashboard/security",
+      title: "Security",
+      description: "Password, two-factor authentication and active sessions.",
+      icon: ShieldCheck,
+    },
+    {
+      href: "/identity/bookings",
+      title: "Booking inbox",
+      description: "Review and respond to brand booking requests.",
+      icon: Fingerprint,
+    },
+  ];
+
   return (
     <div className="mx-auto max-w-4xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
       <div className="mb-8">
@@ -70,12 +117,12 @@ export default function IdentitySettingsPage() {
           Settings
         </h1>
         <p className="mt-1 text-[13.5px] text-[#8B8579]">
-          Everything about your identity, privacy and account in one place.
+          Everything about your identity, earnings and account in one place.
         </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        {LINKS.map((link) => {
+        {links.map((link) => {
           const Icon = link.icon;
           return (
             <Link key={link.href} href={link.href}>

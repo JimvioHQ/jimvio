@@ -60,6 +60,13 @@ export async function PATCH(req: NextRequest) {
   if (Array.isArray(body.industries)) identityUpdates.industries = body.industries;
   if (typeof body.availabilityNote === "string") identityUpdates.availability_note = body.availabilityNote;
   if (typeof body.mediaKitUrl === "string") identityUpdates.media_kit_url = body.mediaKitUrl;
+  if (body.responseTimeHours !== undefined) {
+    const hours = Number(body.responseTimeHours);
+    if (!Number.isFinite(hours) || hours < 0) {
+      return NextResponse.json({ error: "Invalid responseTimeHours value" }, { status: 400 });
+    }
+    identityUpdates.response_time_hours = hours;
+  }
   if (body.contactPreferences && typeof body.contactPreferences === "object") {
     identityUpdates.contact_preferences = body.contactPreferences;
   }

@@ -111,6 +111,29 @@ export interface JipIdentityRow {
   documents_verified: boolean;
   social_verified: boolean;
   admin_notes: string | null;
+  response_time_hours: number | null;
+  avg_rating: number;
+  review_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ReviewDirection = "brand_to_creator" | "creator_to_brand";
+
+/** Row shape of `jip_reviews` — verified bidirectional brand <-> creator reviews. */
+export interface JipReviewRow {
+  id: string;
+  subject_user_id: string;
+  reviewer_user_id: string;
+  direction: ReviewDirection;
+  rating: number;
+  title: string | null;
+  body: string;
+  is_verified: boolean;
+  verification_source: string | null;
+  booking_id: string | null;
+  campaign_id: string | null;
+  is_public: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -343,6 +366,7 @@ export interface IdentityUpdateInput {
       | "privacy_visibility"
       | "privacy_custom"
       | "media_kit_url"
+      | "response_time_hours"
     >
   >;
 }
@@ -436,6 +460,70 @@ export interface IdentityAiInsights {
   growthRoadmap: string[];
 }
 
+export type IdentityReviewDirection = ReviewDirection;
+
+export interface IdentityReview {
+  id: string;
+  direction: IdentityReviewDirection;
+  rating: number;
+  title: string | null;
+  body: string;
+  isVerified: boolean;
+  verificationSource: string | null;
+  createdAt: string;
+  reviewer: {
+    userId: string;
+    fullName: string | null;
+    username: string | null;
+    avatarUrl: string | null;
+  } | null;
+}
+
+/** camelCase mirror of `CreatorStats` — flattened for direct UI consumption. */
+export interface IdentityCreatorStatsSnapshot {
+  ugc: {
+    campaignsJoined: number;
+    campaignsCompleted: number;
+    submissionsTotal: number;
+    submissionsApproved: number;
+    submissionsRejected: number;
+    approvalRate: number;
+    totalViews: number;
+    earningsPaid: number;
+    earningsPending: number;
+  };
+  affiliate: {
+    isAffiliate: boolean;
+    totalClicks: number;
+    totalConversions: number;
+    conversionRate: number;
+    totalEarnings: number;
+    pendingEarnings: number;
+    availableBalance: number;
+  };
+  marketplace: {
+    isVendor: boolean;
+    totalRevenue: number;
+    totalSales: number;
+    productsCount: number;
+    rating: number;
+  };
+  social: {
+    accountsCount: number;
+    totalFollowers: number;
+    avgViews: number;
+    avgEngagementRate: number;
+    verifiedAccounts: number;
+  };
+  community: {
+    communitiesJoined: number;
+    totalPoints: number;
+    level: number;
+    streakDays: number;
+  };
+  computedAt: string;
+}
+
 export interface IdentityLevelProgress {
   level: IdentityCreatorLevel;
   levelLabel: string;
@@ -517,6 +605,9 @@ export interface IdentityProfileCore {
   identityVerified: boolean;
   documentsVerified: boolean;
   socialVerified: boolean;
+  responseTimeHours: number | null;
+  avgRating: number;
+  reviewCount: number;
 }
 
 /** Unified, privacy-aware payload consumed directly by the Identity UI. */
@@ -530,6 +621,9 @@ export interface IdentityProfilePayload {
   milestones: IdentityMilestone[];
   aiInsights: IdentityAiInsights | null;
   levelProgress: IdentityLevelProgress;
+  stats: IdentityCreatorStatsSnapshot | null;
+  reviews: IdentityReview[];
+  jimvioFollowers?: number;
   isOwner: boolean;
   canBook: boolean;
   restricted: boolean;

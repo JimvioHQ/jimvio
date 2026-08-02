@@ -8,10 +8,13 @@ export function IdentityBookingForm({
   creatorId,
   creatorName,
   onClose,
+  inline = false,
 }: {
   creatorId: string;
   creatorName: string;
   onClose: () => void;
+  /** Render as plain content (no fixed overlay/modal chrome) — for embedding in a tab panel. */
+  inline?: boolean;
 }) {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
@@ -51,27 +54,25 @@ export function IdentityBookingForm({
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
-      <IdentityCard
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-b-none rounded-t-[24px] p-6 sm:rounded-[24px]"
-      >
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9A9388]">Book a slot</p>
-            <h3 className="font-[var(--font-identity-serif)] text-[19px] font-medium text-[#161512]">
-              Request time with {creatorName}
-            </h3>
+  const content = (
+    <>
+        {!inline && (
+          <div className="mb-4 flex items-start justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9A9388]">Book a slot</p>
+              <h3 className="font-[var(--font-identity-serif)] text-[19px] font-medium text-[#161512]">
+                Request time with {creatorName}
+              </h3>
+            </div>
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#9A9388] hover:bg-black/[0.04] hover:text-[#1C1B19]"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#9A9388] hover:bg-black/[0.04] hover:text-[#1C1B19]"
-            aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        )}
 
         {done ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
@@ -161,6 +162,18 @@ export function IdentityBookingForm({
             padding: 10px 12px;
           }
         `}</style>
+    </>
+  );
+
+  if (inline) return content;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
+      <IdentityCard
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-b-none rounded-t-[24px] p-6 sm:rounded-[24px]"
+      >
+        {content}
       </IdentityCard>
     </div>
   );

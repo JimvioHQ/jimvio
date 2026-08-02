@@ -1,0 +1,116 @@
+import { NextResponse } from "next/server";
+import { requireUser } from "@/lib/ugc/platform/auth";
+import { getUserWalletData } from "@/lib/actions/wallet";
+
+export const dynamic = "force-dynamic";
+
+type WalletSurface = "marketplace" | "affiliate" | "community" | "ugc" | "other";
+
+function surfaceForTransactionType(type: string): WalletSurface {
+  if (type === "vendor_earning") return "marketplace";
+  if (type === "affiliate_commission" || type === "affiliate_earning") return "affiliate";
+  if (type === "community_earning") return "community";
+  if (type === "ugc_earnings" || type === "ugc_earning") return "ugc";
+  return "other";
+}
+
+/**
+ * GET /api/identity/wallet
+ * Wraps `getUserWalletData` for the authenticated user, ensuring a `wallets`
+ * row exists first (inserted with zero balances if missing), then reshapes
+ * the result into the flat, camelCase contract consumed by
+ * `IdentityWalletClient` — adding a `ugc` earnings bucket sourced from
+ * `ugc_payouts` (UGC payouts never land in `transactions`).
+ */
+export async function GET() {
+  const { user, db: rawDb, error } = await requireUser();
+  if (!user) return NextResponse.json({ error }, { status: 401 });
+  const db = rawDb as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  const { data: existingWallet } = await db
+    .from("wallets")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!existingWallet) {
+    await db.from("wallets").upsert(
+      {
+        user_id: user.id,
+        available_balance: 0,
+        pending_balance: 0,
+        total_earned: 0,
+        total_paid: 0,
+      },
+      { onConflict: "user_id" }
+    );
+  }
+
+  const result = await getUserWalletData();
+  if (!result.success) {
+    return NextResponse.json({ error: result.error ?? "Failed to load wallet" }, { status: 400 });
+  }
+
+  const wallet = (result.wallet ?? {}) as {
+    available_balance?: number;
+    pending_balance?: number;
+    total_earned?: number;
+    currency?: string;
+  };
+  const transactions = (result.transactions ?? []) as Array<{
+    id: string;
+    type: string;
+    amount: number | string;
+    currency: string | null;
+    status: string;
+    reference: string | null;
+    created_at: string;
+  }>;
+  const baseAggregation = (result.aggregation ?? { vendor: 0, affiliate: 0, creator: 0, other: 0 }) as {
+    vendor: number;
+    affiliate: number;
+    creator: number;
+    other: number;
+  };
+
+  // UGC earnings are recorded via `ugc_payouts`, not `transactions` — add them separately.
+  let ugcEarnings = 0;
+  try {
+    const { data: influencer } = await db.from("influencers").select("id").eq("user_id", user.id).maybeSingle();
+    if (influencer?.id) {
+      const { data: payouts } = await db
+        .from("ugc_payouts")
+        .select("amount")
+        .eq("influencer_id", influencer.id)
+        .eq("status", "paid");
+      ugcEarnings = (payouts ?? []).reduce((sum: number, p: { amount: number | string }) => sum + Number(p.amount ?? 0), 0);
+    }
+  } catch (err) {
+    console.error("GET /api/identity/wallet: ugc_payouts lookup failed", err);
+  }
+
+  return NextResponse.json({
+    balance: Number(wallet.available_balance ?? 0),
+    pending: Number(wallet.pending_balance ?? 0),
+    totalEarned: Number(wallet.total_earned ?? 0),
+    currency: wallet.currency ?? "RWF",
+    aggregation: {
+      marketplace: Number(baseAggregation.vendor ?? 0),
+      affiliate: Number(baseAggregation.affiliate ?? 0),
+      community: Number(baseAggregation.creator ?? 0),
+      ugc: Math.round(ugcEarnings * 100) / 100,
+      other: Number(baseAggregation.other ?? 0),
+    },
+    transactions: transactions.map((tx) => ({
+      id: tx.id,
+      type: tx.type,
+      surface: surfaceForTransactionType(tx.type),
+      amount: Number(tx.amount ?? 0),
+      currency: tx.currency ?? wallet.currency ?? "RWF",
+      status: tx.status,
+      reference: tx.reference,
+      createdAt: tx.created_at,
+    })),
+    withdrawalUrl: "/dashboard/wallet",
+  });
+}

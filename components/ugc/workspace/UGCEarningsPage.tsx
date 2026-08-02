@@ -120,14 +120,24 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
               <h2 className="text-[14px] font-bold text-[#111827]">
                 {mode === "payouts" ? "Withdraw funds" : "UGC campaign earnings"}
               </h2>
-              <Button asChild size="sm" variant="outline" className="rounded-xl">
-                <Link href="/dashboard/wallet">Open wallet</Link>
-              </Button>
+              <div className="flex gap-2">
+                <Button asChild size="sm" variant="outline" className="rounded-xl">
+                  <Link href="/dashboard/wallet">Open wallet</Link>
+                </Button>
+                <Button asChild size="sm" variant="outline" className="rounded-xl">
+                  <Link href="/identity/wallet">Unified wallet</Link>
+                </Button>
+              </div>
             </div>
             <p className="mt-2 text-[13px] text-[#6B7280]">
               {mode === "payouts"
                 ? "Manage withdrawals, payout methods, and verification from your Jimvio wallet."
                 : `Total from UGC submissions: ${formatMoney(s.ugcEarnings, "USD")}`}
+              {" "}See earnings combined with marketplace, affiliate and community income in your{" "}
+              <Link href="/identity/wallet" className="font-medium text-[#FF5A1F] underline underline-offset-2">
+                unified Identity wallet
+              </Link>
+              .
             </p>
             {mode === "payouts" ? (
               <div className="mt-4 flex flex-wrap gap-2">

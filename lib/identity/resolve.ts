@@ -12,21 +12,26 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { levelProgress as computeLevelProgress } from "./levels";
 import { canViewFullDetails, canViewIdentity } from "./privacy";
+import { computeCreatorStats } from "./stats";
 import type {
   AIInsights,
   Badge,
   Booking,
+  CreatorStats,
   IdentityAiInsights,
   IdentityBadge,
+  IdentityCreatorStatsSnapshot,
   IdentityLevelProgress,
   IdentityMilestone,
   IdentityPortfolioItem,
   IdentityProfileCore,
   IdentityProfilePayload,
   IdentityResumeEntry,
+  IdentityReview,
   IdentitySocialAccount,
   IdentityTestimonial,
   JipIdentityRow,
+  JipReviewRow,
   Milestone,
   PortfolioItem,
   ProfileCore,
@@ -62,6 +67,9 @@ const DEFAULT_JIP_IDENTITY: Omit<JipIdentityRow, "user_id" | "created_at" | "upd
   documents_verified: false,
   social_verified: false,
   admin_notes: null,
+  response_time_hours: null,
+  avg_rating: 0,
+  review_count: 0,
 };
 
 /** Idempotently ensure a `jip_identity` row exists for a user. Safe to call anytime. */
@@ -143,7 +151,7 @@ function titleCase(value: string): string {
   return value.length ? value[0].toUpperCase() + value.slice(1) : value;
 }
 
-function toLevelProgress(xp: number): IdentityLevelProgress {
+export function toLevelProgress(xp: number): IdentityLevelProgress {
   const p = computeLevelProgress(xp);
   return {
     level: p.level,
@@ -214,6 +222,87 @@ function toBadge(badge: Badge): IdentityBadge {
 
 function toMilestone(row: Milestone): IdentityMilestone {
   return { id: row.id, title: row.title, description: row.description, achievedAt: row.achieved_at };
+}
+
+/** camelCase mirror of `CreatorStats` for direct UI consumption. */
+export function toStatsSnapshot(stats: CreatorStats): IdentityCreatorStatsSnapshot {
+  return {
+    ugc: { ...stats.ugc },
+    affiliate: { ...stats.affiliate },
+    marketplace: { ...stats.marketplace },
+    social: { ...stats.social },
+    community: { ...stats.community },
+    computedAt: stats.computedAt,
+  };
+}
+
+interface ReviewerProfileRow {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+}
+
+function toIdentityReview(row: JipReviewRow, reviewer: ReviewerProfileRow | null): IdentityReview {
+  return {
+    id: row.id,
+    direction: row.direction,
+    rating: Number(row.rating ?? 0),
+    title: row.title,
+    body: row.body,
+    isVerified: Boolean(row.is_verified),
+    verificationSource: row.verification_source,
+    createdAt: row.created_at,
+    reviewer: reviewer
+      ? {
+          userId: reviewer.id,
+          fullName: reviewer.full_name,
+          username: reviewer.username,
+          avatarUrl: reviewer.avatar_url,
+        }
+      : null,
+  };
+}
+
+async function loadPublicReviews(db: ServiceClient, subjectUserId: string): Promise<IdentityReview[]> {
+  try {
+    const { data: reviews } = await db
+      .from("jip_reviews")
+      .select("*")
+      .eq("subject_user_id", subjectUserId)
+      .eq("is_public", true)
+      .eq("is_verified", true)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    const rows = (reviews ?? []) as JipReviewRow[];
+    if (!rows.length) return [];
+
+    const reviewerIds = Array.from(new Set(rows.map((r) => r.reviewer_user_id)));
+    const { data: reviewers } = await db
+      .from("profiles")
+      .select("id, full_name, username, avatar_url")
+      .in("id", reviewerIds);
+
+    const byId = new Map((reviewers ?? []).map((p: ReviewerProfileRow) => [p.id, p]));
+    return rows.map((row) => toIdentityReview(row, byId.get(row.reviewer_user_id) ?? null));
+  } catch (err) {
+    console.error("resolve: loadPublicReviews failed", err);
+    return [];
+  }
+}
+
+async function countJimvioFollowers(db: ServiceClient, userId: string): Promise<number> {
+  try {
+    const { count } = await db
+      .from("user_follows")
+      .select("id", { count: "exact", head: true })
+      .eq("following_id", userId);
+    return count ?? 0;
+  } catch (err) {
+    console.error("resolve: countJimvioFollowers failed", err);
+    return 0;
+  }
 }
 
 function toAiInsights(row: AIInsights | null): IdentityAiInsights | null {
@@ -288,7 +377,12 @@ async function buildProfilePayload(
     identityVerified: Boolean(identity.identity_verified),
     documentsVerified: Boolean(identity.documents_verified),
     socialVerified: Boolean(identity.social_verified),
+    responseTimeHours: identity.response_time_hours != null ? Number(identity.response_time_hours) : null,
+    avgRating: Number(identity.avg_rating ?? 0),
+    reviewCount: Number(identity.review_count ?? 0),
   };
+
+  const jimvioFollowers = await countJimvioFollowers(db, profile.id);
 
   const canBook =
     !isSelf && Boolean(viewerId) && identity.availability !== "unavailable" && contactPreferences.booking;
@@ -305,6 +399,9 @@ async function buildProfilePayload(
       milestones: [],
       aiInsights: null,
       levelProgress: toLevelProgress(Number(identity.xp ?? 0)),
+      stats: null,
+      reviews: [],
+      jimvioFollowers,
       isOwner: isSelf,
       canBook: false,
       restricted: true,
@@ -333,6 +430,8 @@ async function buildProfilePayload(
     { data: userBadges },
     { data: milestones },
     { data: aiInsightsRow },
+    creatorStats,
+    reviews,
   ] = await Promise.all([
     db.from("jip_social_accounts").select("*").eq("user_id", profile.id).order("followers", { ascending: false }),
     portfolioQuery,
@@ -343,6 +442,8 @@ async function buildProfilePayload(
     canFull
       ? db.from("jip_ai_insights").select("*").eq("user_id", profile.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    computeCreatorStats(profile.id),
+    loadPublicReviews(db, profile.id),
   ]);
 
   const badges = ((userBadges ?? []) as unknown as UserBadge[])
@@ -359,6 +460,9 @@ async function buildProfilePayload(
     milestones: ((milestones ?? []) as Milestone[]).map(toMilestone),
     aiInsights: toAiInsights((aiInsightsRow ?? null) as AIInsights | null),
     levelProgress: toLevelProgress(Number(identity.xp ?? 0)),
+    stats: toStatsSnapshot(creatorStats),
+    reviews,
+    jimvioFollowers,
     isOwner: isSelf,
     canBook,
     restricted: false,

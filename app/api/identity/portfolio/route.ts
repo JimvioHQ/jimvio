@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { toPortfolioItem } from "@/lib/identity/resolve";
+import { onPortfolioPublished } from "@/lib/identity/xp";
 import type { PortfolioItem } from "@/lib/identity/types";
 
 export const dynamic = "force-dynamic";
@@ -75,6 +76,12 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 400 });
+
+  // Best-effort achievements — never fails the request.
+  onPortfolioPublished(user.id, data.id).catch((err) => {
+    console.error("POST /api/identity/portfolio: onPortfolioPublished failed", err);
+  });
+
   return NextResponse.json({ item: toPortfolioItem(data as PortfolioItem) }, { status: 201 });
 }
 
