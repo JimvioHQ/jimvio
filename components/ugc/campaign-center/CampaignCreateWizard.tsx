@@ -446,9 +446,17 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             Professional multi-step setup with autosave and validation.
           </p>
         </div>
-        {autoSavedAt && !activeCampaignId ? (
-          <p className="text-[11px] font-medium text-[#9CA3AF]">Autosaved {autoSavedAt}</p>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/ugc/campaign-center/copilot"
+            className="inline-flex items-center rounded-xl border border-[#FFE4D6] bg-[#FFF8F5] px-3 py-1.5 text-[12px] font-semibold text-[#FF5A1F] hover:bg-[#FFF0E8]"
+          >
+            AI Copilot
+          </Link>
+          {autoSavedAt && !activeCampaignId ? (
+            <p className="text-[11px] font-medium text-[#9CA3AF]">Autosaved {autoSavedAt}</p>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-[#F3F4F6]">

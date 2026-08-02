@@ -141,9 +141,17 @@ export default function SubmitPage() {
   return (
     <div className="">
       <div className="max-w-2xl mx-auto px-4 py-12">
-        <Link href={`/ugc/${campaignId}`} className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] mb-8 transition-colors">
-          ← Back to Campaign
-        </Link>
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+          <Link href={`/ugc/${campaignId}`} className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
+            ← Back to Campaign
+          </Link>
+          <Link
+            href="/ugc/creator-copilot"
+            className="inline-flex items-center rounded-xl border border-[#FFE4D6] bg-[#FFF8F5] px-3 py-1.5 text-[12px] font-semibold text-[#FF5A1F]"
+          >
+            Creator Copilot
+          </Link>
+        </div>
 
         {/* Campaign summary */}
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] backdrop-blur-sm p-5 mb-6">

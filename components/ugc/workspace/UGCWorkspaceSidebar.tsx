@@ -8,25 +8,34 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   BarChart3,
   Bookmark,
+  Bot,
   Calendar,
   Clapperboard,
   ChevronDown,
   Compass,
   Copy,
   DollarSign,
+  FileSignature,
   FileStack,
   FileVideo,
   FolderOpen,
+  Gift,
   Handshake,
   LayoutDashboard,
+  LineChart,
   Megaphone,
   PlusCircle,
+  Scale,
   Search,
+  Shield,
   Sparkles,
   Star,
   Trophy,
   Users,
   Wallet,
+  Webhook,
+  Workflow,
+  Zap,
   ArrowRight,
   ImageIcon,
   Mail,
@@ -49,10 +58,13 @@ const PRIMARY_NAV: {
   { id: "saved", label: "Saved", href: "/ugc/saved", icon: Bookmark },
   { id: "calendar", label: "Calendar", href: "/ugc/calendar", icon: Calendar },
   { id: "matches", label: "Matches", href: "/ugc/matches", icon: Sparkles },
+  { id: "creator-copilot", label: "Creator Copilot", href: "/ugc/creator-copilot", icon: Bot },
   { id: "achievements", label: "Achievements", href: "/ugc/achievements", icon: Trophy },
   { id: "analytics", label: "Analytics", href: "/ugc/analytics", icon: BarChart3 },
+  { id: "insights", label: "Insights", href: "/ugc/insights", icon: LineChart },
   { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign },
   { id: "payouts", label: "Payouts", href: "/ugc/payouts", icon: Wallet },
+  { id: "referrals", label: "Referrals", href: "/ugc/referrals", icon: Gift },
   { id: "deals", label: "Brand Deals", href: "/ugc/brand-deals", icon: Handshake },
 ];
 
@@ -73,12 +85,22 @@ const CAMPAIGN_CENTER_MORE: {
   { id: "cc-analytics", label: "Analytics", href: "/ugc/campaign-center/analytics", icon: BarChart3 },
   { id: "cc-recruit", label: "Creator Recruitment", href: "/ugc/campaign-center/recruitment", icon: Users },
   { id: "cc-assets", label: "Campaign Assets", href: "/ugc/campaign-center/assets", icon: ImageIcon },
+  { id: "cc-copilot", label: "Copilot", href: "/ugc/campaign-center/copilot", icon: Bot },
+  { id: "cc-team", label: "Team", href: "/ugc/campaign-center/team", icon: Users },
+  { id: "cc-crm", label: "CRM", href: "/ugc/campaign-center/crm", icon: Handshake },
+  { id: "cc-contracts", label: "Contracts", href: "/ugc/campaign-center/contracts", icon: FileSignature },
+  { id: "cc-escrow", label: "Escrow", href: "/ugc/campaign-center/escrow", icon: Shield },
+  { id: "cc-disputes", label: "Disputes", href: "/ugc/campaign-center/disputes", icon: Scale },
+  { id: "cc-automations", label: "Automations", href: "/ugc/campaign-center/automations", icon: Zap },
+  { id: "cc-workflows", label: "Workflows", href: "/ugc/campaign-center/workflows", icon: Workflow },
+  { id: "cc-webhooks", label: "Webhooks", href: "/ugc/campaign-center/webhooks", icon: Webhook },
 ];
 
 const CC_MORE_STORAGE_KEY = "jimvio-ugc-cc-more-expanded";
 
 function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/campaign-center/create")) return "cc-create";
+  if (pathname.startsWith("/ugc/campaign-center/copilot")) return "cc-copilot";
   if (pathname.startsWith("/ugc/campaign-center/drafts")) return "cc-drafts";
   if (pathname.startsWith("/ugc/campaign-center/active")) return "cc-active";
   if (pathname.startsWith("/ugc/campaign-center/completed")) return "cc-completed";
@@ -88,6 +110,15 @@ function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/campaign-center/analytics")) return "cc-analytics";
   if (pathname.startsWith("/ugc/campaign-center/recruitment")) return "cc-recruit";
   if (pathname.startsWith("/ugc/campaign-center/assets")) return "cc-assets";
+  if (pathname.startsWith("/ugc/campaign-center/team")) return "cc-team";
+  if (pathname.startsWith("/ugc/campaign-center/crm")) return "cc-crm";
+  if (pathname.startsWith("/ugc/campaign-center/contracts")) return "cc-contracts";
+  if (pathname.startsWith("/ugc/campaign-center/escrow")) return "cc-escrow";
+  if (pathname.startsWith("/ugc/campaign-center/disputes")) return "cc-disputes";
+  if (pathname.startsWith("/ugc/campaign-center/automations")) return "cc-automations";
+  if (pathname.startsWith("/ugc/campaign-center/workflows")) return "cc-workflows";
+  if (pathname.startsWith("/ugc/campaign-center/webhooks")) return "cc-webhooks";
+  if (pathname.match(/^\/ugc\/campaign-center\/[^/]+\/live/)) return "cc-mine";
   if (pathname.match(/^\/ugc\/campaign-center\/[^/]+\/fund/)) return "cc-mine";
   if (pathname.startsWith("/ugc/campaign-center")) return "cc-mine";
   if (pathname === "/ugc/dashboard" || pathname === "/ugc/dashboard/") return "dashboard";
@@ -99,11 +130,14 @@ function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/saved")) return "saved";
   if (pathname.startsWith("/ugc/calendar")) return "calendar";
   if (pathname.startsWith("/ugc/matches")) return "matches";
+  if (pathname.startsWith("/ugc/creator-copilot")) return "creator-copilot";
   if (pathname.startsWith("/ugc/achievements")) return "achievements";
   if (pathname.startsWith("/ugc/search")) return "cc-search";
+  if (pathname.startsWith("/ugc/insights")) return "insights";
   if (pathname.startsWith("/ugc/analytics")) return "analytics";
   if (pathname.startsWith("/ugc/earnings")) return "earnings";
   if (pathname.startsWith("/ugc/payouts")) return "payouts";
+  if (pathname.startsWith("/ugc/referrals")) return "referrals";
   if (pathname.startsWith("/ugc/brand-deals")) return "deals";
   if (pathname === "/ugc" || pathname === "/ugc/") return "discover";
   if (pathname.startsWith("/ugc/")) return "discover";

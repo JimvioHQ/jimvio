@@ -64,6 +64,11 @@ export function UGCActiveProjectsPage() {
     <UGCPageShell
       title="Active Projects"
       subtitle="Your approved campaign workspaces — create, submit, and track progress."
+      actions={
+        <Button asChild variant="outline" className="rounded-xl">
+          <Link href="/ugc/creator-copilot">Creator Copilot</Link>
+        </Button>
+      }
     >
       <UGCFilterBar search={search} onSearchChange={setSearch} />
 
@@ -98,12 +103,15 @@ export function UGCActiveProjectsPage() {
                   Joined {new Date(row.joined_at).toLocaleDateString()}
                   {days !== null && days > 0 ? ` · ${days}d left` : ""}
                 </p>
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
                     <Link href={`/ugc/${row.campaign?.id}/dashboard`}>Open workspace</Link>
                   </Button>
                   <Button asChild size="sm" variant="outline" className="rounded-xl">
                     <Link href={`/ugc/${row.campaign?.id}/submit`}>Submit</Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="rounded-xl">
+                    <Link href="/ugc/creator-copilot">Creator Copilot</Link>
                   </Button>
                 </div>
               </div>

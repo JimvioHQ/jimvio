@@ -176,13 +176,21 @@ export default function PublicUGCSubmitPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-4 pb-20 pt-8">
-      <Link
-        href={`/ugc/${id}/dashboard`}
-        className="inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] hover:text-[#111827]"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to project
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href={`/ugc/${id}/dashboard`}
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] hover:text-[#111827]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to project
+        </Link>
+        <Link
+          href="/ugc/creator-copilot"
+          className="inline-flex items-center rounded-xl border border-[#FFE4D6] bg-[#FFF8F5] px-3 py-1.5 text-[12px] font-semibold text-[#FF5A1F] hover:bg-[#FFF0E8]"
+        >
+          Creator Copilot
+        </Link>
+      </div>
 
       <div className="overflow-hidden rounded-[24px] border border-[#EEF0F2] bg-white shadow-[0_12px_40px_rgba(17,24,39,0.06)]">
         <div className="border-b border-[#F3F4F6] bg-gradient-to-r from-[#FFF8F5] to-white px-6 py-5 sm:px-8">

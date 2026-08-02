@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import type { CreateCampaignPayload } from '@/types/ugc';
 import { recordUgcActivity } from '@/lib/ugc/platform/activity';
+import { computeCampaignQuality } from '@/lib/ugc/enterprise/quality-engine';
+import { emitUgcWebhook } from '@/lib/ugc/enterprise/webhooks';
 
 // ─── GET /api/ugc/campaigns ─────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -171,6 +173,19 @@ export async function POST(req: NextRequest) {
     description: campaign.title,
     actorUserId: user.id,
   });
+
+  // Additive V2 hooks — never fail campaign creation
+  try {
+    await computeCampaignQuality(db, campaign.id);
+    await emitUgcWebhook(db, vendorId, 'campaign.created', {
+      campaign_id: campaign.id,
+      title: campaign.title,
+      status: campaign.status,
+      brand_id: vendorId,
+    });
+  } catch (hookErr) {
+    console.error('UGC V2 campaign.created hooks failed:', hookErr);
+  }
 
   return NextResponse.json({ campaign }, { status: 201 });
 }

@@ -22,9 +22,18 @@ function statusTone(status: UGCCampaign["status"]) {
   return "neutral";
 }
 
+type QualityScores = {
+  quality_score?: number;
+  trust_score?: number;
+  spam_risk?: number;
+  completion_prediction?: number;
+  funding_reliability?: number;
+};
+
 export default function CampaignManagementClient({ campaignId }: Props) {
   const router = useRouter();
   const [campaign, setCampaign] = useState<UGCCampaign | null>(null);
+  const [quality, setQuality] = useState<QualityScores | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [increaseOpen, setIncreaseOpen] = useState(false);
@@ -37,6 +46,14 @@ export default function CampaignManagementClient({ campaignId }: Props) {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Failed to load campaign");
       setCampaign(json.campaign ?? null);
+
+      const qRes = await fetch(`/api/ugc/campaigns/${campaignId}/quality`, { cache: "no-store" });
+      if (qRes.ok) {
+        const qJson = await qRes.json().catch(() => ({}));
+        setQuality((qJson.quality ?? null) as QualityScores | null);
+      } else {
+        setQuality(null);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load campaign");
     } finally {
@@ -161,6 +178,11 @@ export default function CampaignManagementClient({ campaignId }: Props) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild size="sm" variant="outline" className="rounded-xl">
+            <Link href={`/ugc/campaign-center/${campaignId}/live`}>
+              Live Dashboard
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="rounded-xl">
             <Link href={`/ugc/${campaignId}`}>
               <Eye className="mr-2 h-4 w-4" />
               View public page
@@ -176,6 +198,12 @@ export default function CampaignManagementClient({ campaignId }: Props) {
               {p.label}
             </Pill>
           ))}
+          {quality?.quality_score != null ? (
+            <Pill tone="brand">Quality {Math.round(Number(quality.quality_score))}</Pill>
+          ) : null}
+          {quality?.trust_score != null ? (
+            <Pill tone="info">Trust {Math.round(Number(quality.trust_score))}</Pill>
+          ) : null}
         </div>
       ) : null}
 

@@ -289,6 +289,7 @@ export function ActiveProjectSections({
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {[
             { label: "Submit content", href: `/ugc/${campaignId}/submit`, primary: true },
+            { label: "Creator Copilot", href: "/ugc/creator-copilot" },
             { label: "Download assets", onClick: handleDownloadAssets },
             { label: "Open brief", href: `/ugc/${campaignId}`, onClick: handleOpenBrief },
             { label: "Message brand", onClick: () => scrollTo("messages") },
