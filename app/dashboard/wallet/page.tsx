@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import {
    Wallet, ArrowLeft, Loader2, Store, Users, Sparkles,
    History, ShieldCheck, TrendingUp, CheckCircle, Clock,
-   ArrowUpRight,
+   ArrowUpRight, ArrowRight,
    NotepadText,
 } from "lucide-react";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -128,6 +128,30 @@ export default function WalletDashboardPage() {
                </DashboardActionLink>
             }
          />
+
+         <Link
+            href="/wallet"
+            className="group flex items-center justify-between gap-4 rounded-xl px-4 py-3.5 transition-colors"
+            style={{ background: "linear-gradient(90deg, rgba(255,90,31,0.12), rgba(255,90,31,0.03))", border: "1px solid rgba(255,90,31,0.25)" }}
+         >
+            <div className="flex items-center gap-3">
+               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-white">
+                  <Wallet className="h-4 w-4" />
+               </span>
+               <div>
+                  <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                     Try the new Wallet OS
+                  </p>
+                  <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                     Balances, escrow, analytics, rewards, AI assistant and more — in one place.
+                  </p>
+               </div>
+            </div>
+            <span className="flex shrink-0 items-center gap-1 text-sm font-semibold text-[#FF5A1F] transition-transform group-hover:translate-x-0.5">
+               Open Wallet OS
+               <ArrowRight className="h-4 w-4" />
+            </span>
+         </Link>
 
          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Tile

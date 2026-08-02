@@ -121,6 +121,9 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
                 {mode === "payouts" ? "Withdraw funds" : "UGC campaign earnings"}
               </h2>
               <div className="flex gap-2">
+                <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F] hover:bg-[#F04E15]">
+                  <Link href="/wallet">Open Wallet OS</Link>
+                </Button>
                 <Button asChild size="sm" variant="outline" className="rounded-xl">
                   <Link href="/dashboard/wallet">Open wallet</Link>
                 </Button>
@@ -133,7 +136,11 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
               {mode === "payouts"
                 ? "Manage withdrawals, payout methods, and verification from your Jimvio wallet."
                 : `Total from UGC submissions: ${formatMoney(s.ugcEarnings, "USD")}`}
-              {" "}See earnings combined with marketplace, affiliate and community income in your{" "}
+              {" "}See earnings combined with marketplace, affiliate and community income in{" "}
+              <Link href="/wallet" className="font-medium text-[#FF5A1F] underline underline-offset-2">
+                Wallet OS
+              </Link>
+              , or the{" "}
               <Link href="/identity/wallet" className="font-medium text-[#FF5A1F] underline underline-offset-2">
                 unified Identity wallet
               </Link>

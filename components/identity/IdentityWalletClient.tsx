@@ -119,11 +119,18 @@ export function IdentityWalletClient() {
             Every dollar you&apos;ve earned across Jimvio, in one place.
           </p>
         </div>
-        <Link href={data.withdrawalUrl}>
-          <IdentityButton>
-            <ArrowUpRight className="h-4 w-4" /> Withdraw funds
-          </IdentityButton>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link href={data.withdrawalUrl}>
+            <IdentityButton variant="outline">
+              <ArrowUpRight className="h-4 w-4" /> Withdraw funds
+            </IdentityButton>
+          </Link>
+          <Link href="/wallet">
+            <IdentityButton>
+              <WalletIcon className="h-4 w-4" /> Open Wallet OS
+            </IdentityButton>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -162,9 +169,14 @@ export function IdentityWalletClient() {
         <div className="min-w-0 flex-1">
           <p className="text-[12.5px] font-semibold text-[#1C8A44]">Withdrawals happen from your main wallet</p>
           <p className="mt-0.5 text-[12px] leading-relaxed text-[#3E3A34]">
-            This is a unified view of your Identity earnings. To transfer funds out, use your{" "}
+            This is a unified view of your Identity earnings. For the full experience — analytics, escrow, rewards,
+            invoices and more — open{" "}
+            <Link href="/wallet" className="font-semibold underline underline-offset-2">
+              Wallet OS
+            </Link>
+            , or manage withdrawals directly in your{" "}
             <Link href={data.withdrawalUrl} className="font-semibold underline underline-offset-2">
-              Jimvio wallet & payout settings
+              wallet & payout settings
             </Link>
             .
           </p>

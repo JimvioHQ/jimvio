@@ -56,6 +56,9 @@ export async function GET() {
     pending_balance?: number;
     total_earned?: number;
     currency?: string;
+    locked_balance?: number;
+    escrow_balance?: number;
+    rewards_balance?: number;
   };
   const transactions = (result.transactions ?? []) as Array<{
     id: string;
@@ -93,6 +96,10 @@ export async function GET() {
     balance: Number(wallet.available_balance ?? 0),
     pending: Number(wallet.pending_balance ?? 0),
     totalEarned: Number(wallet.total_earned ?? 0),
+    // Wallet OS additions (migration 124) — additive, does not replace the fields above.
+    locked: Number(wallet.locked_balance ?? 0),
+    escrow: Number(wallet.escrow_balance ?? 0),
+    rewardsBalance: Number(wallet.rewards_balance ?? 0),
     currency: wallet.currency ?? "RWF",
     aggregation: {
       marketplace: Number(baseAggregation.vendor ?? 0),
@@ -111,6 +118,9 @@ export async function GET() {
       reference: tx.reference,
       createdAt: tx.created_at,
     })),
+    // Kept unchanged for `IdentityWalletClient` backward compat (existing "Withdraw funds" link).
     withdrawalUrl: "/dashboard/wallet",
+    // New Wallet OS surface — forward-looking consumers can link here instead.
+    walletOsUrl: "/wallet",
   });
 }

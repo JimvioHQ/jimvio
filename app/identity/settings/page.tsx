@@ -60,9 +60,9 @@ export default async function IdentitySettingsPage() {
       icon: Lock,
     },
     {
-      href: "/identity/wallet",
+      href: "/wallet",
       title: "Wallet",
-      description: "Unified view of your marketplace, affiliate, UGC and community earnings.",
+      description: "Balances, escrow, analytics, rewards and AI — the full Jimvio Wallet OS.",
       icon: Wallet,
     },
     {
