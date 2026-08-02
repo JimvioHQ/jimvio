@@ -32,7 +32,7 @@ export const OS_WORKSPACE_MODES: Array<{
   { id: "creator", label: "Creator", description: "Content and audience" },
   { id: "affiliate", label: "Affiliate", description: "Promote and earn" },
   { id: "community", label: "Community", description: "Hubs and members" },
-  { id: "admin", label: "Admin", description: "Platform operations" },
+  { id: "admin", label: "Brand", description: "Campaigns & creators" },
 ];
 
 export const OS_SEARCH_CATEGORIES = [
@@ -64,8 +64,11 @@ export const OS_QUICK_CREATE_ITEMS: OsQuickCreateItem[] = [
   { id: "product", label: "Product", description: "New listing", href: "/dashboard/products/new", icon: "package", accent: "#fd5000" },
   { id: "community", label: "Community", description: "Launch a hub", href: "/dashboard/communities", icon: "users", accent: "#16a34a" },
   { id: "campaign", label: "Campaign", description: "Seller campaign", href: "/dashboard/vendor/campaigns/new", icon: "megaphone", accent: "#ea580c" },
+  { id: "ugc-request", label: "UGC Campaign", description: "Launch a creator campaign", href: "/ugc/campaign-center/create", icon: "megaphone", accent: "#fd5000" },
   { id: "course", label: "Course", description: "Digital learning", href: "/dashboard/products/new", icon: "graduation", accent: "#7c3aed" },
+  { id: "live-event", label: "Live Event", description: "Schedule a live room", href: "/communities/live", icon: "live", accent: "#dc2626" },
   { id: "coupon", label: "Coupon", description: "Discount code", href: "/dashboard/products", icon: "ticket", accent: "#ca8a04" },
+  { id: "affiliate-link", label: "Affiliate Link", description: "Create a referral link", href: "/affiliates/links", icon: "link", accent: "#0d9488" },
   { id: "message", label: "Message", description: "Start conversation", href: "/dashboard/messages", icon: "message", accent: "#4f46e5" },
 ];
 

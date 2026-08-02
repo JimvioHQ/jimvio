@@ -2,7 +2,10 @@
 
 import {
   BarChart3,
+  CheckCircle2,
+  Clock,
   GraduationCap,
+  Heart,
   Home,
   LayoutGrid,
   Link2,
@@ -13,6 +16,7 @@ import {
   Settings,
   ShoppingBag,
   Sparkles,
+  Star,
   Store,
   Ticket,
   Users,
@@ -33,6 +37,7 @@ const MAP: Record<string, LucideIcon> = {
   graduation: GraduationCap,
   megaphone: Megaphone,
   radio: Radio,
+  live: Radio,
   message: MessageSquare,
   wallet: Wallet,
   chart: BarChart3,
@@ -40,6 +45,10 @@ const MAP: Record<string, LucideIcon> = {
   sparkles: Sparkles,
   settings: Settings,
   ticket: Ticket,
+  heart: Heart,
+  star: Star,
+  clock: Clock,
+  check: CheckCircle2,
 };
 
 export function OsIcon({ name, className }: { name: string; className?: string }) {

@@ -13,6 +13,9 @@ import {
 import JimvioLogo from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useCartStore } from "@/lib/store/use-cart-store";
+import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
+import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
+import { OS_WORKSPACE_MODES } from "@/lib/jimvio-os/config";
 import {
   isDashboardActive,
   isPrimaryNavActive,
@@ -71,13 +74,23 @@ export function AppTopNav({
   const pathname = usePathname();
   const { cartCount } = useCartStore();
   const dashboardActive = isDashboardActive(pathname);
+  const openCommandCenter = useCommandCenterStore((s) => s.openCommandCenter);
+  const workspaceMode = useJimvioOsStore((s) => s.workspaceMode);
+  const currentWorkspace = OS_WORKSPACE_MODES.find((m) => m.id === workspaceMode) ?? OS_WORKSPACE_MODES[1];
 
   return (
     <>
       <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-gray-200 bg-white px-3 sm:gap-x-3 sm:px-5 lg:px-6">
-        <Link href="/" className="shrink-0" aria-label="Jimvio home">
-          <JimvioLogo href={undefined} size="md" />
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link href="/" aria-label="Jimvio home">
+            <JimvioLogo href={undefined} size="md" />
+          </Link>
+          {user && (
+            <span className="hidden rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-[10px] font-semibold text-orange-600 xl:inline-block">
+              {currentWorkspace.label}
+            </span>
+          )}
+        </div>
 
         <nav
           aria-label="Primary"
@@ -107,17 +120,18 @@ export function AppTopNav({
         </nav>
 
         <div className="col-start-3 flex shrink-0 items-center justify-end gap-1 sm:gap-1.5">
-          <Link
-            href="/identity/search"
-            className="hidden h-9 w-[148px] items-center gap-1.5 rounded-full border border-gray-200/90 bg-gray-50/90 px-2.5 shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm transition-all hover:border-gray-300 hover:bg-white min-[1060px]:flex xl:w-[180px]"
-            aria-label="Open unified search"
+          <button
+            type="button"
+            onClick={() => openCommandCenter()}
+            className="hidden h-9 w-[148px] items-center gap-1.5 rounded-full border border-gray-200/90 bg-gray-50/90 px-2.5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm transition-all hover:border-gray-300 hover:bg-white min-[1060px]:flex xl:w-[180px]"
+            aria-label="Open command center search"
           >
             <Search className="h-3.5 w-3.5 shrink-0 text-gray-400" />
             <span className="min-w-0 flex-1 truncate text-[12px] text-gray-400">Search...</span>
             <kbd className="hidden shrink-0 rounded border border-gray-200 bg-white px-1 py-px text-[9px] font-medium text-gray-400 2xl:inline">
               ⌘K
             </kbd>
-          </Link>
+          </button>
 
           <button
             type="button"

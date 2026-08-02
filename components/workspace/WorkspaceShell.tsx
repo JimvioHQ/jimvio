@@ -40,8 +40,7 @@ export function WorkspaceShell({
   return (
     <div
       className={cn(
-        "flex min-h-dvh flex-col",
-        workspace === "affiliates" ? "bg-[#F7F8FA]" : "bg-[var(--color-bg)]"
+        "flex min-h-dvh flex-col bg-[var(--color-bg)]",
       )}
     >
       <AppTopNav
@@ -53,7 +52,7 @@ export function WorkspaceShell({
       <div className="flex flex-1 overflow-hidden">
         <aside
           className={cn(
-            "hidden shrink-0 border-r border-[var(--color-border)] bg-white lg:block",
+            "hidden shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] lg:block",
             workspace === "affiliates" ? "w-[232px]" : "w-[240px]"
           )}
         >

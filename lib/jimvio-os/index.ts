@@ -33,3 +33,12 @@ export {
   saveOsMode,
 } from "./config";
 export { loadOsRecents, pushOsRecent } from "./recents";
+export {
+  CREATOR_OS_WORKSPACES,
+  LIVE_COMMERCE_WORKSPACE,
+  AI_WORKSPACE,
+  getWorkspaceDefinition,
+  getWorkspaceNav,
+  type WorkspaceDefinition,
+  type WorkspaceNavItem,
+} from "./workspaces";

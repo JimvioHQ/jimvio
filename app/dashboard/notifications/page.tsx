@@ -10,6 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
+import { OsActivityCenter } from "@/components/jimvio-os";
 import { cn } from "@/lib/utils";
 import {
     dismissNotification,
@@ -358,6 +359,7 @@ export default function NotificationsPage() {
                 }
             />
 
+            <OsActivityCenter title="Activity Center" subtitle="Search, filter, and manage every alert in one place.">
                 <div className="mb-3">
                     <input
                         type="search"
@@ -468,6 +470,7 @@ export default function NotificationsPage() {
                         </Link>
                     </div>
                 )}
+            </OsActivityCenter>
         </DashboardPage>
     );
 }

@@ -6,11 +6,13 @@ import { OS_QUICK_CREATE_ITEMS } from "@/lib/jimvio-os";
 import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { OsIcon } from "./OsIcon";
-import { useState } from "react";
 
+/** Global Quick Create menu — open state lives in the shared store so OsTopbar and the FAB stay in sync. */
 export function OsQuickCreate() {
-  const [open, setOpen] = useState(false);
   const isOsOpen = useJimvioOsStore((s) => s.isOpen);
+  const open = useJimvioOsStore((s) => s.quickCreateOpen);
+  const toggleOpen = useJimvioOsStore((s) => s.toggleQuickCreate);
+  const closeOpen = useJimvioOsStore((s) => s.closeQuickCreate);
   const openAssistant = useAIStore((s) => s.openAssistant);
 
   if (isOsOpen) return null;
@@ -21,7 +23,7 @@ export function OsQuickCreate() {
         <div
           className="fixed inset-0 z-[9996] bg-black/20 backdrop-blur-[1px]"
           aria-hidden
-          onClick={() => setOpen(false)}
+          onClick={closeOpen}
         />
       )}
 
@@ -45,7 +47,7 @@ export function OsQuickCreate() {
                       role="menuitem"
                       onClick={() => {
                         openAssistant();
-                        setOpen(false);
+                        closeOpen();
                       }}
                       className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-[transform,background-color] hover:scale-[1.01] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                       style={{ willChange: "transform" }}
@@ -62,7 +64,7 @@ export function OsQuickCreate() {
                     <Link
                       href={item.href ?? "#"}
                       role="menuitem"
-                      onClick={() => setOpen(false)}
+                      onClick={closeOpen}
                       className="flex items-center gap-3 rounded-xl px-2.5 py-2 transition-[transform,background-color] hover:scale-[1.01] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                       style={{ willChange: "transform" }}
                     >
@@ -85,7 +87,7 @@ export function OsQuickCreate() {
           type="button"
           aria-label={open ? "Close quick create" : "Quick create"}
           aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
+          onClick={toggleOpen}
           className="grid size-14 place-items-center rounded-full bg-[var(--color-accent)] text-white shadow-lg transition-[transform,opacity] duration-300 hover:scale-[1.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50"
           style={{ boxShadow: "0 12px 40px rgba(253,80,0,0.35)", willChange: "transform" }}
         >

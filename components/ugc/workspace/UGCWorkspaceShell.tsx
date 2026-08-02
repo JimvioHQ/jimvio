@@ -65,7 +65,7 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
             </button>
             <span className="text-sm font-semibold text-[#111827]">UGC &amp; Clipping</span>
             <Link href="/dashboard" className="ml-auto text-xs font-semibold text-[#FF5A1F]">
-              Mission Control
+              Open Creator OS
             </Link>
           </div>
           {children}
