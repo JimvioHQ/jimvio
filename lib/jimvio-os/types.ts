@@ -61,7 +61,16 @@ export type OsQuickCreateId =
   | "ugc-request"
   | "message"
   | "withdraw"
-  | "deposit";
+  | "deposit"
+  | "space"
+  | "event"
+  | "creator-invite"
+  | "brand-invite"
+  | "automation"
+  | "workflow"
+  | "folder";
+
+export type OsQuickCreateGroup = "commerce" | "creator" | "community" | "money" | "ai";
 
 export type OsActivityKind =
   | "order"
@@ -118,6 +127,8 @@ export type OsQuickCreateItem = {
   actionId?: "open-ai";
   icon: string;
   accent: string;
+  /** Visual grouping section within Quick Create — Commerce / Creator / Community / Money / AI. */
+  group?: OsQuickCreateGroup;
 };
 
 export type OsAiEntry = {

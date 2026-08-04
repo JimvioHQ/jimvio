@@ -1,16 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { OS_WORKSPACE_MODES } from "@/lib/jimvio-os/config";
-import { getWorkspaceDefinition } from "@/lib/jimvio-os/workspaces";
 import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
 import type { OsWorkspaceMode } from "@/lib/jimvio-os/types";
 import { cn } from "./os-ui";
 
-/** Premium workspace switcher — Apple/Linear-style dropdown for the Creator OS sidebar. */
+/**
+ * Premium workspace switcher — Apple/Linear-style.
+ * Never redirects to module pages. On /dashboard the home transforms in place.
+ * From elsewhere, soft-lands on /dashboard Mission Control for the selected workspace.
+ */
 export function OsWorkspaceSwitcher() {
+  const pathname = usePathname() ?? "/dashboard";
   const router = useRouter();
   const mode = useJimvioOsStore((s) => s.workspaceMode);
   const setMode = useJimvioOsStore((s) => s.setWorkspaceMode);
@@ -37,8 +41,10 @@ export function OsWorkspaceSwitcher() {
   function handleSelect(next: OsWorkspaceMode) {
     setMode(next);
     setOpen(false);
-    const homeHref = getWorkspaceDefinition(next).homeHref;
-    if (homeHref) router.push(homeHref);
+    // Stay in Mission Control — never jump to marketplace/UGC/etc. on switch.
+    if (pathname !== "/dashboard") {
+      router.push("/dashboard");
+    }
   }
 
   return (

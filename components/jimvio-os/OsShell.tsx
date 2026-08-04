@@ -8,6 +8,7 @@ import { OsWorkspaceSwitcher } from "./OsWorkspaceSwitcher";
 import { OsNotificationPanel } from "./OsNotificationPanel";
 import { OsActivityFeed } from "./OsActivityFeed";
 import { OsAiEntry } from "./OsAiEntry";
+import { WorkspaceHome } from "./WorkspaceHome";
 import { cn } from "@/lib/utils";
 
 export function OsShell() {
@@ -81,15 +82,8 @@ export function OsShell() {
           <main className="min-h-0 flex-1 overflow-y-auto p-4">
             {activePanel === "none" && (
               <div className="space-y-4">
+                <WorkspaceHome />
                 <OsAiEntry />
-                <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-[13px] text-[var(--color-text-secondary)]">
-                  Your unified operating system for creator commerce. Use the sidebar to navigate,{" "}
-                  <kbd className="rounded border border-[var(--color-border)] px-1 text-[11px]">⌘K</kbd> to search, and{" "}
-                  <kbd className="rounded border border-[var(--color-border)] px-1 text-[11px]">⌘.</kbd> to toggle this shell.
-                </p>
-                <p className="text-[11px] text-[var(--color-text-muted)]">
-                  Homepage personalization (drag, resize, pin widgets) is available in the Jimvio Workspace on your dashboard.
-                </p>
               </div>
             )}
             {activePanel === "notifications" && <OsNotificationPanel />}

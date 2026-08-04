@@ -7,6 +7,7 @@ import {
   saveOsFavorites,
   saveOsMode,
 } from "@/lib/jimvio-os/config";
+import { loadMemory, saveMemory } from "@/lib/jimvio-os/workspace-memory";
 import { normalizeWorkspaceMode } from "@/lib/jimvio-os/workspaces";
 import type { OsNotification, OsWorkspaceMode } from "@/lib/jimvio-os/types";
 
@@ -134,6 +135,8 @@ export const useJimvioOsStore = create<JimvioOsStore>((set, get) => ({
   setWorkspaceMode: (mode) => {
     const normalized = normalizeWorkspaceMode(mode);
     saveOsMode(normalized);
+    const memory = loadMemory();
+    saveMemory({ ...memory, favoriteWorkspace: normalized });
     set({ workspaceMode: normalized });
   },
 

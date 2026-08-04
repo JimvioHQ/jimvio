@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   BookOpen,
   Bot,
@@ -19,6 +20,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  Star,
   Store,
   Ticket,
   Upload,
@@ -26,9 +28,11 @@ import {
   Users,
   Video,
   Wallet,
+  Link2,
   type LucideIcon,
 } from "lucide-react";
 import { cn, getImage } from "@/lib/utils";
+import { isPinnedCommand, togglePinnedCommand } from "@/lib/command-center/pins";
 import type { CommandResult, CommandResultKind } from "@/lib/command-center/types";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -59,6 +63,7 @@ const ICONS: Record<string, LucideIcon> = {
   calendar: Calendar,
   book: BookOpen,
   layers: Layers,
+  link: Link2,
 };
 
 const KIND_COLORS: Partial<Record<CommandResultKind, string>> = {
@@ -81,6 +86,7 @@ type CommandCenterResultItemProps = {
   active: boolean;
   onSelect: () => void;
   onHover: () => void;
+  onPinToggle?: (pinned: boolean) => void;
 };
 
 export function CommandCenterResultItem({
@@ -88,21 +94,22 @@ export function CommandCenterResultItem({
   active,
   onSelect,
   onHover,
+  onPinToggle,
 }: CommandCenterResultItemProps) {
   const Icon = ICONS[item.icon ?? "command"] ?? Command;
   const accent = KIND_COLORS[item.kind] ?? "var(--color-accent)";
   const image = item.image ? getImage(item.image) : null;
+  const [pinned, setPinned] = useState(() => isPinnedCommand(item.id));
 
   return (
-    <button
-      type="button"
+    <div
+      id={`command-center-option-${item.id}`}
       role="option"
       aria-selected={active}
       onMouseEnter={onHover}
       onClick={onSelect}
       className={cn(
-        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-[transform,background-color,border-color] duration-150",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
+        "group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-[transform,background-color,border-color] duration-150",
         active
           ? "scale-[1.01] border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/8"
           : "border border-transparent hover:bg-[var(--color-surface-secondary)]",
@@ -138,9 +145,31 @@ export function CommandCenterResultItem({
           </span>
         )}
       </span>
-      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+      <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)] sm:inline">
         {item.kind.replace("-", " ")}
       </span>
-    </button>
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={pinned ? `Unpin ${item.title}` : `Pin ${item.title}`}
+        aria-pressed={pinned}
+        onClick={(e) => {
+          e.stopPropagation();
+          togglePinnedCommand(item);
+          const next = !pinned;
+          setPinned(next);
+          onPinToggle?.(next);
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+        className={cn(
+          "grid size-7 shrink-0 place-items-center rounded-lg transition-colors",
+          pinned
+            ? "text-[var(--color-accent)]"
+            : "text-[var(--color-text-muted)] opacity-0 hover:bg-[var(--color-surface-secondary)] group-hover:opacity-100 focus-visible:opacity-100",
+        )}
+      >
+        <Star className={cn("size-3.5", pinned && "fill-current")} />
+      </button>
+    </div>
   );
 }

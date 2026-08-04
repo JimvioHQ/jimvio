@@ -4,13 +4,13 @@ import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
-    Bell, BellOff, Package, Truck, MessageSquare,
+    Bell, Package, Truck, MessageSquare,
     DollarSign, ShieldCheck, Users, ArrowUpRight, Check, X, Loader2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
-import { OsActivityCenter, OsPill } from "@/components/jimvio-os";
+import { OsActivityCenter, OsEmptyState, OsPill } from "@/components/jimvio-os";
 import { cn } from "@/lib/utils";
 import {
     dismissNotification,
@@ -33,11 +33,15 @@ const VALID_CATEGORIES = new Set<NotificationUiCategory>([
     "order", "shipping", "message", "payment", "community", "system",
 ]);
 
+// Quick link pills for hubs that don't map to an existing NotificationUiCategory
+// (Approvals, Wallet, Campaigns, Affiliate) — presentation-only, no new API categories.
 const INBOX_QUICK_LINKS = [
     { label: "Messages", href: "/dashboard/messages" },
     { label: "Orders", href: "/dashboard/orders" },
     { label: "Wallet", href: "/wallet" },
-    { label: "UGC applications", href: "/ugc/applications" },
+    { label: "Campaigns", href: "/dashboard/vendor/campaigns" },
+    { label: "Affiliate", href: "/affiliates" },
+    { label: "Approvals", href: "/ugc/applications" },
 ];
 
 function initialFilterFromSearch(raw: string | null): NotificationUiCategory | "all" {
@@ -346,7 +350,7 @@ export default function NotificationsPage() {
             <PageHeader
                 eyebrow="Inbox"
                 title="Universal Inbox"
-                subtitle="Messages · Notifications · Mentions · Approvals"
+                subtitle="Messages · Orders · Wallet · Campaigns · Community · Approvals"
                 actions={
                     unreadCount > 0 ? (
                         <button
@@ -422,18 +426,22 @@ export default function NotificationsPage() {
                 {loading ? (
                     <Skeleton />
                 ) : filtered.length === 0 ? (
-                    <div className="py-20 flex flex-col items-center text-center space-y-4">
-                        <div className="h-14 w-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                            <BellOff className="h-6 w-6 text-zinc-400" />
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                                {filter === "all" ? "You're all caught up" : `No ${filter} notifications`}
-                            </p>
-                            <p className="text-xs text-zinc-400">
-                                We&apos;ll let you know when something needs your attention.
-                            </p>
-                        </div>
+                    <div className="mt-4">
+                        <OsEmptyState
+                            title={filter === "all" ? "You're all caught up" : `No ${filter} notifications`}
+                            message="We'll let you know when something needs your attention — orders, wallet activity, campaigns, and community updates all land here."
+                        />
+                        {filter !== "all" && (
+                            <div className="mt-3 flex justify-center">
+                                <button
+                                    type="button"
+                                    onClick={() => setFilter("all")}
+                                    className="text-[12px] font-semibold text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                                >
+                                    Show all notifications
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="space-y-6">

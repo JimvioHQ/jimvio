@@ -8,7 +8,9 @@ export type CommandCenterFilter =
   | "commands"
   | "ai"
   | "members"
-  | "content";
+  | "content"
+  | "orders"
+  | "messages";
 
 interface CommandCenterStore {
   isOpen: boolean;

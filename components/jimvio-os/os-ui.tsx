@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export { cn };
@@ -19,6 +20,7 @@ type OsCardProps = {
   href?: string;
   padding?: "none" | "sm" | "md" | "lg";
   as?: "div" | "section";
+  style?: CSSProperties;
 };
 
 const CARD_PADDING: Record<NonNullable<OsCardProps["padding"]>, string> = {
@@ -29,7 +31,7 @@ const CARD_PADDING: Record<NonNullable<OsCardProps["padding"]>, string> = {
 };
 
 /** Calm, premium surface container — 16px radius, soft border, no heavy shadows. */
-export function OsCard({ children, className, href, padding = "md", as = "div" }: OsCardProps) {
+export function OsCard({ children, className, href, padding = "md", as = "div", style }: OsCardProps) {
   const classes = cn(
     "rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]",
     "shadow-[0_1px_2px_rgba(16,24,40,0.03)]",
@@ -41,6 +43,7 @@ export function OsCard({ children, className, href, padding = "md", as = "div" }
     return (
       <Link
         href={href}
+        style={style}
         className={cn(
           classes,
           "block transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-[1px] hover:border-[var(--color-border-strong)] hover:shadow-[0_4px_16px_rgba(16,24,40,0.06)]",
@@ -52,7 +55,11 @@ export function OsCard({ children, className, href, padding = "md", as = "div" }
   }
 
   const Comp = as;
-  return <Comp className={classes}>{children}</Comp>;
+  return (
+    <Comp className={classes} style={style}>
+      {children}
+    </Comp>
+  );
 }
 
 // ─── OsPill ───────────────────────────────────────────────────────────────────
@@ -159,6 +166,71 @@ export function OsSkeleton({ className }: { className?: string }) {
 /** Hairline row separator for quiet, composition-style sections. */
 export function OsDivider({ className }: { className?: string }) {
   return <div className={cn("h-px w-full bg-[var(--color-border)]", className)} />;
+}
+
+// ─── OsEmptyState ─────────────────────────────────────────────────────────────
+
+type OsEmptyStateProps = {
+  title: string;
+  message: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  accent?: string;
+  className?: string;
+};
+
+/**
+ * Premium "nothing here yet" state — soft gradient blobs + an AI-styled suggestion
+ * and a single CTA. Used anywhere a section would otherwise render blank/null.
+ */
+export function OsEmptyState({
+  title,
+  message,
+  ctaLabel,
+  ctaHref,
+  accent = OS_ACCENT,
+  className,
+}: OsEmptyStateProps) {
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-9 text-center",
+        className,
+      )}
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -left-10 -top-12 size-40 rounded-full blur-3xl"
+        style={{ background: `color-mix(in srgb, ${accent} 18%, transparent)` }}
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -bottom-14 -right-8 size-36 rounded-full blur-3xl"
+        style={{ background: `color-mix(in srgb, ${accent} 12%, transparent)` }}
+      />
+      <div className="relative mx-auto flex max-w-sm flex-col items-center gap-2">
+        <span
+          className="mb-1 inline-flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-[0.14em]"
+          style={{ color: accent }}
+        >
+          <Sparkles className="size-3.5" />
+          AI suggestion
+        </span>
+        <p className="text-[13.5px] font-semibold text-[var(--color-text-primary)]">{title}</p>
+        <p className="text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">{message}</p>
+        {ctaLabel && ctaHref && (
+          <Link
+            href={ctaHref}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-semibold text-white transition-transform duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            style={{ background: accent }}
+          >
+            {ctaLabel}
+            <ArrowRight className="size-3.5" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ─── OsIconBadge ──────────────────────────────────────────────────────────────

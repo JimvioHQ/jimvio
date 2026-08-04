@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Star, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import JimvioLogo from "@/components/ui/logo";
 import {
   getWorkspaceDefinition,
-  OS_GLOBAL_RAIL,
+  OS_CORE_RAIL,
+  OS_PROFILE_RAIL,
   type WorkspaceNavItem,
 } from "@/lib/jimvio-os/workspaces";
-import { loadOsRecents } from "@/lib/jimvio-os/recents";
 import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { OsIcon } from "./OsIcon";
@@ -23,16 +22,12 @@ function OsNavLink({
   collapsed,
   onAi,
   onNavigate,
-  isFavorite,
-  onToggleFavorite,
 }: {
   item: WorkspaceNavItem;
   active: boolean;
   collapsed: boolean;
   onAi: () => void;
   onNavigate?: () => void;
-  isFavorite?: boolean;
-  onToggleFavorite?: () => void;
 }) {
   const baseClasses = cn(
     "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-[12.5px] font-medium transition-[background-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
@@ -68,35 +63,56 @@ function OsNavLink({
   }
 
   return (
-    <li className="group relative list-none">
+    <li className="list-none">
       <Link
         href={item.href}
         title={collapsed ? item.label : undefined}
         aria-current={active ? "page" : undefined}
         onClick={onNavigate}
-        className={cn(baseClasses, !collapsed && onToggleFavorite && "pr-7")}
+        className={baseClasses}
       >
         {inner}
       </Link>
-      {!collapsed && onToggleFavorite && (
-        <button
-          type="button"
-          aria-label={isFavorite ? "Unpin from sidebar" : "Pin to sidebar"}
-          onClick={(e) => {
-            e.preventDefault();
-            onToggleFavorite();
-          }}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
-        >
-          <Star
-            className={cn(
-              "size-3.5",
-              isFavorite ? "fill-[var(--color-accent)] text-[var(--color-accent)]" : "text-[var(--color-text-muted)]",
-            )}
-          />
-        </button>
-      )}
     </li>
+  );
+}
+
+function NavSection({
+  title,
+  items,
+  collapsed,
+  isActive,
+  onAi,
+  onNavigate,
+}: {
+  title: string;
+  items: WorkspaceNavItem[];
+  collapsed: boolean;
+  isActive: (item: WorkspaceNavItem) => boolean;
+  onAi: () => void;
+  onNavigate?: () => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <section className="mb-5" aria-label={title}>
+      {!collapsed && (
+        <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
+          {title}
+        </p>
+      )}
+      <ul className="space-y-0.5" role="list">
+        {items.map((item) => (
+          <OsNavLink
+            key={item.id}
+            item={item}
+            active={isActive(item)}
+            collapsed={collapsed}
+            onAi={onAi}
+            onNavigate={onNavigate}
+          />
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -113,28 +129,9 @@ function SidebarContent({
 }) {
   const pathname = usePathname() ?? "/dashboard";
   const workspaceMode = useJimvioOsStore((s) => s.workspaceMode);
-  const favorites = useJimvioOsStore((s) => s.favorites);
-  const toggleFavorite = useJimvioOsStore((s) => s.toggleFavorite);
   const openAssistant = useAIStore((s) => s.openAssistant);
-  const [recents, setRecents] = useState<ReturnType<typeof loadOsRecents>>([]);
-
-  useEffect(() => {
-    setRecents(loadOsRecents());
-  }, [pathname]);
 
   const workspace = getWorkspaceDefinition(workspaceMode);
-  const tools = workspace.tools;
-
-  // Pool of every pinnable item — used to resolve favorite ids to a label/href/icon.
-  const pinnablePool = useMemo(() => {
-    const byId = new Map<string, WorkspaceNavItem>();
-    for (const item of [...OS_GLOBAL_RAIL, ...tools]) byId.set(item.id, item);
-    return byId;
-  }, [tools]);
-
-  const pinnedItems = favorites
-    .map((id) => pinnablePool.get(id))
-    .filter((item): item is WorkspaceNavItem => Boolean(item));
 
   function isActive(item: WorkspaceNavItem) {
     if (item.href === "#open-ai") return false;
@@ -180,94 +177,37 @@ function SidebarContent({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-2.5 py-3">
-        {!collapsed && pinnedItems.length > 0 && (
-          <section className="mb-4" aria-label="Pinned">
-            <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
-              Pinned
-            </p>
-            <ul className="space-y-0.5">
-              {pinnedItems.map((item) => (
-                <OsNavLink
-                  key={`pinned-${item.id}`}
-                  item={item}
-                  active={isActive(item)}
-                  collapsed={collapsed}
-                  onAi={openAssistant}
-                  onNavigate={onNavigate}
-                  isFavorite
-                  onToggleFavorite={() => toggleFavorite(item.id)}
-                />
-              ))}
-            </ul>
-          </section>
-        )}
+      <div className="flex-1 overflow-y-auto px-2.5 py-4">
+        <NavSection
+          title={workspace.label}
+          items={workspace.tools}
+          collapsed={collapsed}
+          isActive={isActive}
+          onAi={openAssistant}
+          onNavigate={onNavigate}
+        />
 
-        {!collapsed && recents.length > 0 && (
-          <section className="mb-4" aria-label="Recent pages">
-            <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
-              Recent
-            </p>
-            <ul className="space-y-0.5">
-              {recents.slice(0, 5).map((page) => (
-                <li key={page.id} className="list-none">
-                  <Link
-                    href={page.href}
-                    onClick={onNavigate}
-                    className="block truncate rounded-xl px-2.5 py-2 text-[12px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
-                  >
-                    {page.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {!collapsed && <div className="mx-2 mb-5 h-px bg-[var(--color-border)]" aria-hidden />}
 
-        {!collapsed && (pinnedItems.length > 0 || recents.length > 0) && (
-          <div className="mx-2 mb-4 h-px bg-[var(--color-border)]" aria-hidden />
-        )}
+        <NavSection
+          title="Core navigation"
+          items={OS_CORE_RAIL}
+          collapsed={collapsed}
+          isActive={isActive}
+          onAi={openAssistant}
+          onNavigate={onNavigate}
+        />
 
-        <section className="mb-4" aria-label="Jimvio OS">
-          <ul className="space-y-0.5" role="list">
-            {OS_GLOBAL_RAIL.map((item) => (
-              <OsNavLink
-                key={item.id}
-                item={item}
-                active={isActive(item)}
-                collapsed={collapsed}
-                onAi={openAssistant}
-                onNavigate={onNavigate}
-                isFavorite={favorites.includes(item.id)}
-                onToggleFavorite={() => toggleFavorite(item.id)}
-              />
-            ))}
-          </ul>
-        </section>
+        {!collapsed && <div className="mx-2 mb-5 h-px bg-[var(--color-border)]" aria-hidden />}
 
-        {tools.length > 0 && (
-          <section className="mb-4" aria-label="Workspace tools">
-            {!collapsed && (
-              <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-muted)]">
-                Workspace tools
-              </p>
-            )}
-            <ul className="space-y-0.5" role="list">
-              {tools.map((item) => (
-                <OsNavLink
-                  key={item.id}
-                  item={item}
-                  active={isActive(item)}
-                  collapsed={collapsed}
-                  onAi={openAssistant}
-                  onNavigate={onNavigate}
-                  isFavorite={favorites.includes(item.id)}
-                  onToggleFavorite={() => toggleFavorite(item.id)}
-                />
-              ))}
-            </ul>
-          </section>
-        )}
+        <NavSection
+          title="Profile"
+          items={OS_PROFILE_RAIL}
+          collapsed={collapsed}
+          isActive={isActive}
+          onAi={openAssistant}
+          onNavigate={onNavigate}
+        />
       </div>
     </div>
   );

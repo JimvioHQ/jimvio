@@ -8,8 +8,8 @@ import { format, subDays, eachDayOfInterval, startOfDay } from "date-fns";
 import { useCurrency } from "@/context/CurrencyContext";
 import { PageHeader } from "@/components/ui/admin";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
-import { OsMissionControl } from "@/components/jimvio-os";
-import { Settings, BarChart3 } from "lucide-react";
+import { WorkspaceHome } from "@/components/jimvio-os";
+import { ChevronDown, Settings, BarChart3 } from "lucide-react";
 import type { EarningsDataset } from "@/types/dashboard";
 import { QuickActionsStrip } from "@/components/dashboard/QuickActionsStrip";
 import { WorkspaceHeroCards, type WorkspaceCardStats } from "@/components/workspace/WorkspaceHeroCards";
@@ -569,7 +569,14 @@ export default function DashboardHomePage() {
   return (
     <div className="min-h-screen bg-bg font-[family-name:var(--font-dm-sans)]">
       <DashboardPage className="px-2 sm:px-0">
-        <OsMissionControl name={loading ? undefined : displayName} />
+        <WorkspaceHome name={loading ? undefined : displayName} />
+
+        <details className="group mt-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-[12.5px] font-semibold text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text-primary)] [&::-webkit-details-marker]:hidden">
+            <span>Classic overview</span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)] transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="border-t border-[var(--color-border)] px-2 pb-2 pt-4 sm:px-3">
         <PageHeader
           eyebrow="Classic dashboard"
           title={loading ? "Loading…" : `Welcome back, ${displayName}`}
@@ -839,6 +846,8 @@ export default function DashboardHomePage() {
             <JimvioAIPanel />
           </section>
         </div>
+          </div>
+        </details>
       </DashboardPage>
     </div>
   );

@@ -54,6 +54,8 @@ export type CommandGroup = {
 export type CommandSearchInput = {
   query: string;
   limit?: number;
+  /** Optional abort signal — cancels in-flight network requests on new keystrokes. */
+  signal?: AbortSignal;
 };
 
 export type CommandSearchOutput = {
@@ -79,4 +81,11 @@ export type RecentItem = {
 export type PinnedCommand = {
   id: string;
   pinnedAt: number;
+  /** Snapshot of the pinned result, used when it isn't a known static command. */
+  kind?: CommandResultKind;
+  title?: string;
+  subtitle?: string;
+  href?: string;
+  icon?: string;
+  actionId?: string;
 };

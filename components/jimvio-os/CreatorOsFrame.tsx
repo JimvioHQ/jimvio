@@ -7,6 +7,8 @@ import { Clapperboard, Home, Plus, ShoppingBag, Users } from "lucide-react";
 import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
 import { OsIntelligentSidebar } from "./OsIntelligentSidebar";
 import { OsTopbar, type OsTopbarUser } from "./OsTopbar";
+import { OsStatusBar } from "./OsStatusBar";
+import { OsAiDock } from "./OsAiDock";
 import { cn } from "./os-ui";
 
 type CreatorOsFrameProps = {
@@ -87,8 +89,10 @@ export function CreatorOsFrame({ children, user, unreadNotifications, unreadMess
           onMobileMenuOpen={() => setMobileNavOpen(true)}
         />
         <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
+        <OsStatusBar notificationsCount={unreadNotifications} />
         <CreatorOsMobileNav />
       </div>
+      <OsAiDock />
     </div>
   );
 }

@@ -24,6 +24,7 @@ export {
 export {
   readPinnedCommands,
   togglePinnedCommand,
+  isPinnedCommand,
   resolvePinnedCommands,
   getDefaultPinnedIds,
 } from "./pins";
@@ -37,4 +38,11 @@ export {
   getCommandSearchContext,
   type CommandSearchContext,
 } from "./search-context";
-export { CREATOR_OS_SEARCH_PROVIDERS } from "./providers";
+export { CREATOR_OS_SEARCH_PROVIDERS, actionEngineProvider } from "./providers";
+export { resolveActionEngine } from "./action-engine";
+export {
+  SUGGESTION_CHIPS,
+  NL_SUGGESTION_CHIPS,
+  ACTION_SUGGESTION_CHIPS,
+  type SuggestionChip,
+} from "./suggestion-chips";

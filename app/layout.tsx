@@ -17,6 +17,7 @@ import { ChunkReloadGuard } from "@/components/pwa/chunk-reload-guard";
 import { PlatformStatsProvider } from "@/components/platform/platform-stats-provider";
 import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
 import { SoftLaunchProviders } from "@/components/soft-launch/SoftLaunchProviders";
+import { CommandCenterLoader } from "@/components/command-center/CommandCenterLoader";
 
 export const metadata: Metadata = constructMetadata();
 
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <CurrencyProvider>{children}</CurrencyProvider>
           </PlatformStatsProvider>
           <JimvioCopilotLoader />
+          <CommandCenterLoader />
           <SoftLaunchProviders />
           <Toaster
             richColors

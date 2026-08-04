@@ -49,19 +49,19 @@ function groupByKind(items: CommandResult[]): CommandGroup[] {
     creator: "Creators",
     community: "Communities",
     course: "Courses",
-    "affiliate-campaign": "Affiliate Campaigns",
-    "ugc-campaign": "UGC Campaigns",
-    store: "Stores",
+    "affiliate-campaign": "Affiliate",
+    "ugc-campaign": "Campaigns",
+    store: "Brands",
     order: "Orders",
     message: "Messages",
     setting: "Settings",
     help: "Help",
-    ai: "AI",
+    ai: "AI Commands",
     "ai-answer": "AI Answers",
-    member: "Members",
-    post: "Posts",
+    member: "Creators",
+    post: "Recent Files",
     channel: "Spaces",
-    event: "Events",
+    event: "Live Sessions",
     knowledge: "Knowledge",
   };
 
@@ -107,10 +107,13 @@ function mapSuggestionVendors(
   }));
 }
 
-async function fetchLegacySuggestions(query: string): Promise<CommandResult[]> {
+async function fetchLegacySuggestions(
+  query: string,
+  signal?: AbortSignal,
+): Promise<CommandResult[]> {
   if (query.trim().length < 2) return [];
   try {
-    const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
+    const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`, { signal });
     if (!res.ok) return [];
     const data = (await res.json()) as {
       products?: Array<{ id: string; name: string; slug: string }>;
@@ -163,7 +166,7 @@ export const localCommandSearchProvider: CommandSearchProvider = {
     }
 
     const staticMatches = filterStatic(query, limit);
-    const remote = await fetchLegacySuggestions(query);
+    const remote = await fetchLegacySuggestions(query, input.signal);
     const providerResults = await Promise.all(
       CREATOR_OS_SEARCH_PROVIDERS.map((p) => p.search(input))
     );

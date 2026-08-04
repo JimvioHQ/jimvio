@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Command, Loader2, Search, Sparkles, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { pushCommandRecent } from "@/lib/command-center/recents";
+import { pushCommandRecent, clearCommandRecents } from "@/lib/command-center/recents";
+import { pushRecentAction } from "@/lib/jimvio-os/workspace-memory";
+import { getStaticCommandById } from "@/lib/command-center/commands";
+import { NL_SUGGESTION_CHIPS, ACTION_SUGGESTION_CHIPS } from "@/lib/command-center/suggestion-chips";
 import type { CommandResult } from "@/lib/command-center/types";
 import {
   useCommandCenterStore,
@@ -18,12 +21,14 @@ import { useCommandCenterSearch } from "./use-command-center-search";
 
 const FILTERS: Array<{ id: CommandCenterFilter; label: string }> = [
   { id: "all", label: "All" },
-  { id: "products", label: "Products" },
-  { id: "communities", label: "Communities" },
-  { id: "members", label: "Members" },
-  { id: "content", label: "Content" },
-  { id: "campaigns", label: "Campaigns" },
   { id: "commands", label: "Commands" },
+  { id: "products", label: "Products" },
+  { id: "campaigns", label: "Campaigns" },
+  { id: "communities", label: "Communities" },
+  { id: "members", label: "Creators" },
+  { id: "orders", label: "Orders" },
+  { id: "messages", label: "Messages" },
+  { id: "content", label: "Spaces & Live" },
   { id: "ai", label: "AI" },
 ];
 
@@ -35,7 +40,9 @@ function isMacPlatform() {
 export function CommandCenter() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const isOpen = useCommandCenterStore((s) => s.isOpen);
   const query = useCommandCenterStore((s) => s.query);
@@ -47,7 +54,11 @@ export function CommandCenter() {
   const closeCommandCenter = useCommandCenterStore((s) => s.closeCommandCenter);
   const openAssistant = useAIStore((s) => s.openAssistant);
 
-  const { groups, flat, loading } = useCommandCenterSearch(query, filter);
+  const { groups, flat, loading } = useCommandCenterSearch(query, filter, refreshKey);
+
+  const hasQuery = query.trim().length > 0;
+  const recentGroup = groups.find((g) => g.id === "recent");
+  const hasRecents = (recentGroup?.items.length ?? 0) > 0;
 
   const execute = useCallback(
     (item: CommandResult) => {
@@ -58,6 +69,7 @@ export function CommandCenter() {
         subtitle: item.subtitle,
         href: item.href,
       });
+      pushRecentAction({ id: item.id, label: item.title, href: item.href });
 
       if (
         item.actionId === "open-ai" ||
@@ -108,6 +120,35 @@ export function CommandCenter() {
   }, [activeIndex, flat]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    // Tab / Shift+Tab always cycles the filter pills — this also acts as
+    // the dialog's focus trap since focus never leaves the search input.
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const idx = FILTERS.findIndex((f) => f.id === filter);
+      const next = e.shiftKey
+        ? FILTERS[(idx - 1 + FILTERS.length) % FILTERS.length]
+        : FILTERS[(idx + 1) % FILTERS.length];
+      setFilter(next.id);
+      return;
+    }
+
+    // Optional digit shortcuts (1-9) for filters — only when the user isn't
+    // actively typing in the search field, so plain typing is never hijacked.
+    if (
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.altKey &&
+      document.activeElement !== inputRef.current &&
+      /^Digit[1-9]$/.test(e.code)
+    ) {
+      const target = FILTERS[Number(e.code.slice(5)) - 1];
+      if (target) {
+        e.preventDefault();
+        setFilter(target.id);
+        return;
+      }
+    }
+
     if (!flat.length) return;
 
     if (e.key === "ArrowDown") {
@@ -116,23 +157,24 @@ export function CommandCenter() {
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex(Math.max(activeIndex - 1, 0));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setActiveIndex(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setActiveIndex(flat.length - 1);
     } else if (e.key === "Enter") {
       e.preventDefault();
       const item = flat[activeIndex];
       if (item) execute(item);
-    } else if (e.key === "Tab") {
-      e.preventDefault();
-      const idx = FILTERS.findIndex((f) => f.id === filter);
-      const next = e.shiftKey
-        ? FILTERS[(idx - 1 + FILTERS.length) % FILTERS.length]
-        : FILTERS[(idx + 1) % FILTERS.length];
-      setFilter(next.id);
     }
   };
 
   if (!isOpen || typeof document === "undefined") return null;
 
   const modKey = isMacPlatform() ? "⌘" : "Ctrl";
+  const activeOptionId = flat[activeIndex] ? `command-center-option-${flat[activeIndex].id}` : undefined;
+  const showZeroResults = !loading && hasQuery && flat.length === 0;
 
   return createPortal(
     <div
@@ -143,17 +185,21 @@ export function CommandCenter() {
       }}
     >
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/50 backdrop-blur-xl"
         style={{ willChange: "opacity" }}
         aria-hidden
       />
 
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Jimvio Command Center"
+        aria-label="Jimvio Universal Command Palette"
         onKeyDown={onKeyDown}
-        className="relative z-10 flex w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-2xl"
+        className={cn(
+          "relative z-10 flex w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-white/20",
+          "bg-white/85 shadow-2xl backdrop-blur-2xl dark:bg-[var(--color-surface)]/90",
+        )}
         style={{
           maxHeight: "min(72vh, 640px)",
           animation: "jimvio-command-center-enter 220ms ease-out",
@@ -166,8 +212,13 @@ export function CommandCenter() {
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Try “create a product”, “start a live”, or search…"
-            aria-label="Search command center"
+            placeholder="Search everything or run a command — Create Campaign, Go Live, Withdraw…"
+            aria-label="Universal search and commands"
+            role="combobox"
+            aria-expanded={flat.length > 0}
+            aria-controls="command-center-listbox"
+            aria-autocomplete="list"
+            aria-activedescendant={activeOptionId}
             className="min-w-0 flex-1 bg-transparent text-[15px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
           />
           {loading && <Loader2 className="size-4 shrink-0 animate-spin text-[var(--color-text-muted)]" />}
@@ -204,32 +255,15 @@ export function CommandCenter() {
 
         <div
           ref={listRef}
+          id="command-center-listbox"
           role="listbox"
           aria-label="Command center results"
           className="min-h-0 flex-1 overflow-y-auto px-2 py-2 sm:px-3"
         >
-          {!loading && flat.length === 0 && (
-            <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
-              <Command className="mb-3 size-8 text-[var(--color-text-muted)]" />
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">No results</p>
-              <p className="mt-1 text-xs text-[var(--color-text-muted)]">
-                Try another keyword or browse quick actions below.
-              </p>
-            </div>
-          )}
-
-          {query.trim()
-            ? flat.map((item, index) => (
-                <CommandCenterResultItem
-                  key={item.id}
-                  item={item}
-                  active={index === activeIndex}
-                  onHover={() => setActiveIndex(index)}
-                  onSelect={() => execute(item)}
-                />
-              ))
-            : groups.map((group) => (
-                <div key={group.id} className="mb-3 last:mb-0">
+          {groups.length > 0 && (
+            <div className="space-y-3">
+              {groups.map((group) => (
+                <div key={group.id}>
                   <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
                     {group.label}
                   </p>
@@ -243,12 +277,51 @@ export function CommandCenter() {
                           active={index === activeIndex}
                           onHover={() => setActiveIndex(index)}
                           onSelect={() => execute(item)}
+                          onPinToggle={() => setRefreshKey((k) => k + 1)}
                         />
                       );
                     })}
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {showZeroResults && (
+            <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+              <Command className="mb-3 size-8 text-[var(--color-text-muted)]" />
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">No results</p>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                Try another keyword, or jump straight to a quick action.
+              </p>
+              <SuggestionChipRail
+                className="mt-4"
+                onSetQuery={setQuery}
+                onExecute={execute}
+              />
+            </div>
+          )}
+
+          {!loading && !hasQuery && (
+            <div className="mt-1 px-2">
+              <p className="mb-1.5 px-0 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+                Try asking
+              </p>
+              <div className="flex flex-wrap gap-1.5 pb-1">
+                {NL_SUGGESTION_CHIPS.map((chip) => (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => chip.type === "query" && setQuery(chip.query)}
+                    className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1 text-[11px] font-medium text-[var(--color-text-secondary)] transition-[transform,background-color] duration-150 hover:scale-[1.02] hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)]"
+                  >
+                    <Sparkles className="mr-1 inline size-3 -translate-y-px" />
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-2 border-t border-[var(--color-border)] px-3 py-2 text-[10px] text-[var(--color-text-muted)] sm:px-4">
@@ -266,6 +339,18 @@ export function CommandCenter() {
               <kbd className="rounded border border-[var(--color-border)] px-1">Tab</kbd>
               filter
             </span>
+            {hasRecents && (
+              <button
+                type="button"
+                onClick={() => {
+                  clearCommandRecents();
+                  setRefreshKey((k) => k + 1);
+                }}
+                className="rounded-full px-2 py-0.5 font-semibold text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+              >
+                Clear recents
+              </button>
+            )}
           </div>
           <button
             type="button"
@@ -282,5 +367,44 @@ export function CommandCenter() {
       </div>
     </div>,
     document.body,
+  );
+}
+
+function SuggestionChipRail({
+  className,
+  onSetQuery,
+  onExecute,
+}: {
+  className?: string;
+  onSetQuery: (query: string) => void;
+  onExecute: (item: CommandResult) => void;
+}) {
+  return (
+    <div className={cn("flex flex-wrap items-center justify-center gap-1.5", className)}>
+      {ACTION_SUGGESTION_CHIPS.map((chip) => {
+        const command = chip.type === "command" ? getStaticCommandById(chip.commandId) : undefined;
+        if (!command) return null;
+        return (
+          <button
+            key={chip.id}
+            type="button"
+            onClick={() => onExecute(command)}
+            className="rounded-full border border-[var(--color-accent)]/30 bg-[var(--color-accent)]/8 px-3 py-1 text-[11px] font-semibold text-[var(--color-accent)] transition-[transform,background-color] duration-150 hover:scale-[1.02] hover:bg-[var(--color-accent)]/15"
+          >
+            {chip.label}
+          </button>
+        );
+      })}
+      {NL_SUGGESTION_CHIPS.map((chip) => (
+        <button
+          key={chip.id}
+          type="button"
+          onClick={() => chip.type === "query" && onSetQuery(chip.query)}
+          className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-1 text-[11px] font-medium text-[var(--color-text-secondary)] transition-[transform,background-color] duration-150 hover:scale-[1.02] hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)]"
+        >
+          {chip.label}
+        </button>
+      ))}
+    </div>
   );
 }

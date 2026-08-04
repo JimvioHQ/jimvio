@@ -64,18 +64,40 @@ export const OS_NOTIFICATION_FILTERS = [
 ];
 
 export const OS_QUICK_CREATE_ITEMS: OsQuickCreateItem[] = [
-  { id: "product", label: "Product", description: "New listing", href: "/dashboard/products/new", icon: "package", accent: "#fd5000" },
-  { id: "community", label: "Community", description: "Launch a hub", href: "/dashboard/communities", icon: "users", accent: "#16a34a" },
-  { id: "campaign", label: "Campaign", description: "Seller campaign", href: "/dashboard/vendor/campaigns/new", icon: "megaphone", accent: "#ea580c" },
-  { id: "ugc-request", label: "UGC Campaign", description: "Launch a creator campaign", href: "/ugc/campaign-center/create", icon: "megaphone", accent: "#fd5000" },
-  { id: "course", label: "Course", description: "Digital learning", href: "/dashboard/products/new", icon: "graduation", accent: "#7c3aed" },
-  { id: "live-event", label: "Live Event", description: "Schedule a live room", href: "/communities/live", icon: "live", accent: "#dc2626" },
-  { id: "coupon", label: "Coupon", description: "Discount code", href: "/dashboard/products", icon: "ticket", accent: "#ca8a04" },
-  { id: "affiliate-link", label: "Affiliate Link", description: "Create a referral link", href: "/affiliates", icon: "link", accent: "#0d9488" },
-  { id: "message", label: "Message", description: "Start conversation", href: "/dashboard/messages", icon: "message", accent: "#4f46e5" },
-  { id: "deposit", label: "Deposit", description: "Add funds to wallet", href: "/wallet/deposits", icon: "wallet", accent: "#16a34a" },
-  { id: "withdraw", label: "Withdraw", description: "Cash out your balance", href: "/wallet/withdrawals", icon: "wallet", accent: "#0ea5e9" },
+  // Commerce
+  { id: "product", label: "Product", description: "New listing", href: "/dashboard/products/new", icon: "package", accent: "#fd5000", group: "commerce" },
+  { id: "course", label: "Course", description: "Digital learning", href: "/dashboard/products/new", icon: "graduation", accent: "#7c3aed", group: "commerce" },
+  { id: "coupon", label: "Coupon", description: "Discount code", href: "/dashboard/products", icon: "ticket", accent: "#ca8a04", group: "commerce" },
+  { id: "folder", label: "Folder", description: "Organize your content library", href: "/ugc/library", icon: "folder", accent: "#64748b", group: "commerce" },
+
+  // Creator
+  { id: "ugc-request", label: "UGC Campaign", description: "Launch a creator campaign", href: "/ugc/campaign-center/create", icon: "megaphone", accent: "#fd5000", group: "creator" },
+  { id: "campaign", label: "Seller Campaign", description: "Vendor promo campaign", href: "/dashboard/vendor/campaigns/new", icon: "megaphone", accent: "#ea580c", group: "creator" },
+  { id: "creator-invite", label: "Creator Invite", description: "Recruit creators", href: "/ugc/campaign-center/recruitment", icon: "user-plus", accent: "#0ea5e9", group: "creator" },
+  { id: "brand-invite", label: "Brand Invite", description: "Invite a brand partner", href: "/ugc/campaign-center/invitations", icon: "handshake", accent: "#7c3aed", group: "creator" },
+  { id: "automation", label: "Automation", description: "Automate campaign steps", href: "/ugc/campaign-center/automations", icon: "workflow", accent: "#0d9488", group: "creator" },
+  { id: "workflow", label: "Workflow", description: "Multi-step campaign workflow", href: "/ugc/campaign-center/workflows", icon: "git-branch", accent: "#0d9488", group: "creator" },
+
+  // Community
+  { id: "community", label: "Community", description: "Launch a hub", href: "/dashboard/communities", icon: "users", accent: "#16a34a", group: "community" },
+  { id: "space", label: "Space", description: "Open a new collaboration space", href: "/communities/spaces", icon: "layers", accent: "#16a34a", group: "community" },
+  { id: "event", label: "Event", description: "Schedule a community event", href: "/communities/events", icon: "calendar", accent: "#16a34a", group: "community" },
+  { id: "live-event", label: "Live Event", description: "Schedule a live room", href: "/communities/live", icon: "live", accent: "#dc2626", group: "community" },
+  { id: "message", label: "Message", description: "Start conversation", href: "/dashboard/messages", icon: "message", accent: "#4f46e5", group: "community" },
+
+  // Money
+  { id: "affiliate-link", label: "Affiliate Link", description: "Create a referral link", href: "/affiliates", icon: "link", accent: "#0d9488", group: "money" },
+  { id: "deposit", label: "Deposit", description: "Add funds to wallet", href: "/wallet/deposits", icon: "wallet", accent: "#16a34a", group: "money" },
+  { id: "withdraw", label: "Withdraw", description: "Cash out your balance", href: "/wallet/withdrawals", icon: "wallet", accent: "#0ea5e9", group: "money" },
 ];
+
+export const OS_QUICK_CREATE_GROUP_LABELS: Record<string, string> = {
+  commerce: "Commerce",
+  creator: "Creator",
+  community: "Community",
+  money: "Money",
+  ai: "AI",
+};
 
 export const OS_AI_ENTRIES: OsAiEntry[] = [
   { context: "marketplace", label: "Marketplace", placeholder: "Find profitable products." },

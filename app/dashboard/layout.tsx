@@ -3,15 +3,15 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 
 import { ProductChatWidgetLoader } from "@/components/marketplace/product-chat-widget-loader";
 import { JimvioOSLoader } from "@/components/jimvio-os";
-import { CommandCenterLoader } from "@/components/command-center/CommandCenterLoader";
 
+// CommandCenterLoader (⌘K) is mounted once in the root layout so it works
+// platform-wide — do not remount it here to avoid duplicate portals/listeners.
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <DashboardShell>
       {children}
       <ProductChatWidgetLoader />
       <JimvioOSLoader />
-      <CommandCenterLoader />
     </DashboardShell>
   );
 }
