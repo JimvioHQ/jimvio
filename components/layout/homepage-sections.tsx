@@ -146,7 +146,7 @@ function HomepageShowcaseLayout({
 /* ═══ 1. What do you want to do today ═══ */
 const ACTIONS = [
   { icon: ShoppingBag, title: "Buy Products", desc: "Browse what's selling and order when you find a fit.", cta: "Go to marketplace", href: "/marketplace", color: ORANGE },
-  { icon: Store, title: "Sell Products", desc: "List inventory and manage orders from your dashboard.", cta: "Open dashboard", href: "/dashboard", color: BLUE },
+  { icon: Store, title: "Sell Products", desc: "List inventory and manage orders from your seller tools.", cta: "Open Home", href: "/dashboard", color: BLUE },
   { icon: DollarSign, title: "Earn Commissions", desc: "Share links and get a cut when someone checks out.", cta: "See affiliate program", href: "/affiliates", color: GREEN },
   { icon: Megaphone, title: "Create Campaigns", desc: "Post a brief and pay creators for content.", cta: "New campaign", href: "/dashboard/vendor/campaigns/new", color: PURPLE },
   { icon: Target, title: "Join Campaigns", desc: "Apply to brand briefs and get paid per post or view.", cta: "Browse campaigns", href: "/ugc", color: BLUE },

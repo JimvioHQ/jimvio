@@ -105,7 +105,7 @@ const SmartCalendar = memo(function SmartCalendar({
           accent={accent}
           title="Nothing scheduled"
           message="AI will suggest deadlines and events here as your workspace fills up."
-          ctaLabel="Open dashboard"
+          ctaLabel="Open Home"
           ctaHref="/dashboard"
         />
       ) : (

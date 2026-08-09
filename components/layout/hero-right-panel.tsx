@@ -218,7 +218,7 @@ function LoggedInView({ profile }: { profile: NonNullable<Profile> }) {
           <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity" />
           <span className="relative flex items-center gap-2">
             <LayoutDashboard className="h-3 w-3" />
-            Open Dashboard
+            Open Home
             <ChevronRight className="h-3 w-3 opacity-70 group-hover:translate-x-1 transition-transform" />
           </span>
         </Link>

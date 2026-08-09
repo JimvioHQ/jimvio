@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clapperboard, Home, Plus, ShoppingBag, Users } from "lucide-react";
+import { Home, Package, Plus, ShoppingBag, Wallet } from "lucide-react";
 import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
 import { OsIntelligentSidebar } from "./OsIntelligentSidebar";
 import { OsTopbar, type OsTopbarUser } from "./OsTopbar";
@@ -18,11 +18,12 @@ type CreatorOsFrameProps = {
   unreadMessages?: number;
 };
 
+/** Essentials only — Communities / UGC / Messages via sidebar or ⌘K. */
 const MOBILE_NAV_ITEMS = [
   { href: "/dashboard", label: "Home", icon: Home },
   { href: "/marketplace", label: "Market", icon: ShoppingBag },
-  { href: "/communities", label: "Hubs", icon: Users },
-  { href: "/ugc", label: "UGC", icon: Clapperboard },
+  { href: "/dashboard/orders", label: "Orders", icon: Package },
+  { href: "/wallet", label: "Wallet", icon: Wallet },
 ] as const;
 
 function CreatorOsMobileNav() {

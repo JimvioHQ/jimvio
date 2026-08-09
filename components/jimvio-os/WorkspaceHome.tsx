@@ -23,6 +23,7 @@ import { OsEmptyState, OsSkeleton, cn, OS_BRAND_ACCENT } from "./os-ui";
 import { OsIcon } from "./OsIcon";
 import { SmartPins } from "./SmartPins";
 import { QuickPreview } from "./QuickPreview";
+import { OsSearchBridge } from "./OsSearchBridge";
 
 const IntelligenceCore = lazy(() =>
   import("./IntelligenceCore").then((m) => ({ default: m.IntelligenceCore })),
@@ -171,7 +172,7 @@ const WorkspaceHeader = memo(function WorkspaceHeader({
             </span>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                {workspace.home.eyebrow} · Mission Control
+                {workspace.home.eyebrow} workspace
               </p>
               <h1 className="mt-1 text-[24px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[28px]">
                 {greeting}
@@ -508,7 +509,7 @@ const WidgetCustomizer = memo(function WidgetCustomizer({
   return (
     <details className="group/customize relative ml-auto w-fit">
       <summary
-        aria-label="Customize Mission Control layout"
+        aria-label="Customize Home layout"
         className="inline-flex cursor-pointer select-none list-none items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 text-[12px] font-semibold text-[var(--color-text-secondary)] transition-colors duration-200 hover:border-[var(--color-border-strong)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 [&::-webkit-details-marker]:hidden"
       >
         <SlidersHorizontal className="size-3.5" aria-hidden />
@@ -580,8 +581,8 @@ const WidgetCustomizer = memo(function WidgetCustomizer({
 });
 
 /**
- * Mission Control — the Jimvio Creator Commerce OS home.
- * Content adapts per workspace; structure stays calm and operating-system-like.
+ * Authenticated Home — calm workspace entry for the Jimvio Creator Commerce OS.
+ * Content adapts per workspace; Command + K is the universal navigator.
  */
 export const WorkspaceHome = memo(function WorkspaceHome({ name, className }: WorkspaceHomeProps) {
   const workspaceMode = useJimvioOsStore((s) => s.workspaceMode);
@@ -704,10 +705,11 @@ export const WorkspaceHome = memo(function WorkspaceHome({ name, className }: Wo
   return (
     <div
       key={workspace.id}
-      className={cn("flex flex-col gap-8", className)}
+      className={cn("mx-auto flex w-full max-w-5xl flex-col gap-6", className)}
       style={{ animation: "jimvio-os-enter 260ms ease-out" }}
     >
       <WorkspaceHeader workspace={workspace} name={name} />
+      <OsSearchBridge />
       <WidgetCustomizer
         layout={layout}
         onToggleHidden={handleToggleHidden}

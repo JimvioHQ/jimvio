@@ -33,6 +33,7 @@ import {
   isDashboardActive,
   isPrimaryNavActive,
   PRIMARY_NAV_ITEMS,
+  resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
 import { CommunityAiPanel } from "@/components/community/hub/CommunityAiPanel";
 import { HubSearchDialog } from "@/components/community/hub/HubSearchDialog";
@@ -296,14 +297,15 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 {/* Primary nav (desktop) */}
                 <nav className="hidden min-w-0 items-center justify-center gap-0.5 overflow-hidden min-[1060px]:flex min-[1060px]:flex-nowrap">
                     {PRIMARY_NAV_ITEMS.map((item) => {
-                        const { label, href, icon: Icon, dropdown } = item;
+                        const { label, icon: Icon, dropdown } = item;
+                        const href = resolvePrimaryNavHref(item, isAuthenticated === true);
                         const active =
                             item.label === "Communities"
                                 ? isCommunitiesNavActive(pathname)
-                                : isPrimaryNavActive(pathname, item);
+                                : isPrimaryNavActive(pathname, item, undefined, isAuthenticated === true);
                         return (
                     <Link
-                                key={href}
+                                key={`${label}-${href}`}
                                 href={href}
                                 className={cn(
                                     "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-1.5 text-[12px] font-semibold tracking-tight transition-colors xl:px-2.5 xl:text-[13px]",
@@ -392,7 +394,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                             )}
                         >
                             <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
-                            <span className="whitespace-nowrap">Dashboard</span>
+                            <span className="whitespace-nowrap">Home</span>
                         </Link>
                     )}
 

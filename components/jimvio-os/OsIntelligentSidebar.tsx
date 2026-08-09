@@ -190,7 +190,7 @@ function SidebarContent({
         {!collapsed && <div className="mx-2 mb-5 h-px bg-[var(--color-border)]" aria-hidden />}
 
         <NavSection
-          title="Core navigation"
+          title="Navigate"
           items={OS_CORE_RAIL}
           collapsed={collapsed}
           isActive={isActive}

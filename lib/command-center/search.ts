@@ -137,29 +137,57 @@ export const localCommandSearchProvider: CommandSearchProvider = {
     if (!query) {
       const pinned = resolvePinnedCommands();
       const recents = readCommandRecents().map(recentToSearchResult);
-      const trending = ALL_STATIC_COMMANDS.filter((c) => c.trending).map((c) => ({
-        ...c,
-        section: "trending" as const,
-      }));
-      const frequent = ALL_STATIC_COMMANDS.filter((c) => c.frequent).map((c) => ({
-        ...c,
-        section: "frequent" as const,
-      }));
-      const recommended = ALL_STATIC_COMMANDS.slice(0, 6).map((c) => ({
-        ...c,
-        section: "recommended" as const,
-      }));
 
-      const flat = [...pinned, ...recents, ...trending, ...frequent, ...recommended].slice(
-        0,
-        limit,
-      );
+      const byId = (ids: string[]) =>
+        ids
+          .map((id) => ALL_STATIC_COMMANDS.find((c) => c.id === id))
+          .filter((c): c is (typeof ALL_STATIC_COMMANDS)[number] => Boolean(c))
+          .map((c) => ({ ...c, section: "recommended" as const }));
+
+      const work = byId([
+        "nav-home",
+        "jump-orders",
+        "open-wallet-os",
+        "open-messages",
+        "open-analytics",
+        "nav-communities",
+      ]);
+      const create = byId([
+        "upload-product",
+        "create-ugc-campaign",
+        "create-community",
+        "start-live",
+        "create-affiliate-link",
+        "create-course",
+      ]);
+      const createFallback = ALL_STATIC_COMMANDS.filter(
+        (c) =>
+          c.frequent &&
+          /create|go live|upload|import|invite/i.test(`${c.title} ${(c.keywords ?? []).join(" ")}`),
+      )
+        .slice(0, 6)
+        .map((c) => ({ ...c, section: "recommended" as const }));
+      const createItems = create.length >= 3 ? create : createFallback;
+
+      const discover = byId([
+        "search-marketplace",
+        "trending-products",
+        "flash-deals",
+        "search-communities",
+        "open-ai",
+      ]);
+      const discoverFallback = ALL_STATIC_COMMANDS.filter((c) => c.trending)
+        .slice(0, 5)
+        .map((c) => ({ ...c, section: "trending" as const }));
+      const discoverItems = discover.length >= 2 ? discover : discoverFallback;
+
+      const suggested = [...pinned, ...recents].slice(0, 6);
+      const flat = [...suggested, ...work, ...createItems, ...discoverItems].slice(0, limit);
       const groups: CommandGroup[] = [
-        { id: "pinned", label: "Pinned", items: pinned },
-        { id: "recent", label: "Recent", items: recents },
-        { id: "trending", label: "Trending actions", items: trending },
-        { id: "frequent", label: "Frequently used", items: frequent },
-        { id: "recommended", label: "Recommended", items: recommended },
+        { id: "suggested", label: "Recent / Suggested", items: suggested },
+        { id: "work", label: "Work", items: work },
+        { id: "create", label: "Create", items: createItems },
+        { id: "discover", label: "Discover", items: discoverItems },
       ].filter((g) => g.items.length > 0);
 
       return { groups, flat };

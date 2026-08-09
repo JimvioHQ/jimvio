@@ -102,7 +102,7 @@ export function OsTopbar({ user, unreadNotifications = 0, unreadMessages = 0, on
       >
         <Search className="size-3.5 shrink-0 text-[var(--color-text-muted)]" />
         <span className="min-w-0 flex-1 truncate text-[12.5px] text-[var(--color-text-muted)]">
-          Search products, orders, creators…
+          Search or jump anywhere…
         </span>
         <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-text-muted)] sm:inline-block">
           ⌘K

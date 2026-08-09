@@ -69,7 +69,7 @@ export function OsSidebar() {
         />
         {!collapsed && <div className="mx-2 my-3 h-px bg-[var(--color-border)]" aria-hidden />}
         <NavSection
-          title="Core"
+          title="Navigate"
           items={OS_CORE_RAIL}
           collapsed={collapsed}
           isActive={isActive}

@@ -24,7 +24,9 @@ export function OsSearchBridge() {
         style={{ willChange: "transform" }}
       >
         <Search className="size-4 text-[var(--color-text-muted)]" />
-        <span className="flex-1 text-[13px] text-[var(--color-text-muted)]">Search everything…</span>
+        <span className="flex-1 text-[13px] text-[var(--color-text-muted)]">
+          Search or jump — products, orders, communities, AI…
+        </span>
         <kbd className="hidden items-center gap-0.5 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-text-muted)] sm:inline-flex">
           <Command className="size-3" />K
         </kbd>

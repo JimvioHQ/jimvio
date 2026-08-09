@@ -28,14 +28,14 @@ export type WidgetLayout = {
   hidden: WidgetId[];
 };
 
-const STORAGE_KEY = "jimvio-os-mc-widgets-v1";
+/** Bumped so Home defaults reset to a calm, non-dashboard layout. */
+const STORAGE_KEY = "jimvio-os-home-widgets-v2";
 
-/** Widgets hidden by default — kept available in the customizer, just not shown out of the box. */
-const DEFAULT_HIDDEN_WIDGETS: WidgetId[] = ["activity"];
-
-/** Canonical default order — matches the natural Mission Control reading order. */
-export const DEFAULT_WIDGET_ORDER: WidgetId[] = [
-  "brief",
+/**
+ * Heavy OS widgets stay available in the customizer but are hidden by default.
+ * Home should feel calm — not a dense dashboard.
+ */
+const DEFAULT_HIDDEN_WIDGETS: WidgetId[] = [
   "smartPins",
   "executive",
   "health",
@@ -45,9 +45,27 @@ export const DEFAULT_WIDGET_ORDER: WidgetId[] = [
   "dna",
   "collaboration",
   "intelligence",
+  "insights",
+  "calendar",
+  "timeline",
+  "activity",
+];
+
+/** Calm Home reading order — priorities, continue, actions. */
+export const DEFAULT_WIDGET_ORDER: WidgetId[] = [
+  "brief",
   "focus",
   "continue",
   "quickActions",
+  "smartPins",
+  "executive",
+  "intelligence",
+  "health",
+  "opportunities",
+  "risks",
+  "growth",
+  "dna",
+  "collaboration",
   "insights",
   "calendar",
   "timeline",

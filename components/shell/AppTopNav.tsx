@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   ChevronDown,
-  LayoutDashboard,
+  Home,
   Plus,
   Search,
   ShoppingCart,
@@ -17,9 +17,10 @@ import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
 import { OS_WORKSPACE_MODES } from "@/lib/jimvio-os/config";
 import {
-  isDashboardActive,
+  isHomeActive,
   isPrimaryNavActive,
   PRIMARY_NAV_ITEMS,
+  resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
 import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/utils";
@@ -73,16 +74,17 @@ export function AppTopNav({
   void _showUtilityBar;
   const pathname = usePathname();
   const { cartCount } = useCartStore();
-  const dashboardActive = isDashboardActive(pathname);
+  const homeActive = isHomeActive(pathname);
   const openCommandCenter = useCommandCenterStore((s) => s.openCommandCenter);
   const workspaceMode = useJimvioOsStore((s) => s.workspaceMode);
   const currentWorkspace = OS_WORKSPACE_MODES.find((m) => m.id === workspaceMode) ?? OS_WORKSPACE_MODES[1];
+  const isAuthenticated = Boolean(user);
 
   return (
     <>
       <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-gray-200 bg-white px-3 sm:gap-x-3 sm:px-5 lg:px-6">
         <div className="flex shrink-0 items-center gap-2">
-          <Link href="/" aria-label="Jimvio home">
+          <Link href={isAuthenticated ? "/dashboard" : "/"} aria-label="Jimvio home">
             <JimvioLogo href={undefined} size="md" />
           </Link>
           {user && (
@@ -99,11 +101,12 @@ export function AppTopNav({
           {PRIMARY_NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const dropdown = item.dropdown ?? false;
-            const active = isPrimaryNavActive(pathname, item, activeNav);
+            const href = resolvePrimaryNavHref(item, isAuthenticated);
+            const active = isPrimaryNavActive(pathname, item, activeNav, isAuthenticated);
             return (
               <Link
-                key={item.href}
-                href={item.href}
+                key={`${item.label}-${href}`}
+                href={href}
                 className={cn(
                   "relative inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors xl:px-2.5 xl:text-[13px]",
                   active
@@ -112,7 +115,7 @@ export function AppTopNav({
                 )}
               >
                 <Icon className="h-3.5 w-3.5 shrink-0" />
-                <span className="whitespace-nowrap">{item.label}</span>
+                <span className="whitespace-nowrap">{item.mobileLabel ?? item.label}</span>
                 {dropdown && <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />}
               </Link>
             );
@@ -174,14 +177,14 @@ export function AppTopNav({
             <Link
               href="/dashboard"
               className={cn(
-                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border px-2.5 text-[11px] font-semibold shadow-[0_1px_2px_rgba(17,24,39,0.03)] transition-all duration-150 sm:px-3 sm:text-xs",
-                dashboardActive
+                "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border px-2.5 text-[11px] font-semibold shadow-[0_1px_2px_rgba(17,24,39,0.03)] transition-all duration-150 sm:px-3 sm:text-xs min-[1060px]:hidden",
+                homeActive
                   ? "border-orange-500 bg-orange-50 text-orange-600 shadow-[0_1px_4px_rgba(255,90,31,0.15)]"
                   : "border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600",
               )}
             >
-              <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
-              <span className="whitespace-nowrap">Dashboard</span>
+              <Home className="h-3.5 w-3.5 shrink-0" />
+              <span className="whitespace-nowrap">Home</span>
             </Link>
           )}
 

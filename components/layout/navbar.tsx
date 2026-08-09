@@ -68,7 +68,11 @@ import { CurrencySelector } from "@/context/CurrencyContext";
 import { Input } from "@/components/ui/input";
 import JimvioLogo from "../ui/logo";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { MOBILE_BOTTOM_NAV_ITEMS, isDashboardActive } from "@/lib/navigation/primary-nav";
+import {
+  MOBILE_BOTTOM_NAV_ITEMS,
+  isDashboardActive,
+  resolvePrimaryNavHref,
+} from "@/lib/navigation/primary-nav";
 
 
 const TRENDING_SEARCHES: {
@@ -510,8 +514,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   active={isDashboardActive(pathname)}
                   className="hidden h-9 shrink-0 gap-1 px-2.5 py-0 text-[11px] font-semibold sm:inline-flex sm:px-3 sm:text-xs"
                 >
-                  <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">Dashboard</span>
+                  <Home className="h-3.5 w-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">Home</span>
                 </ConsoleButton>
               )}
 
@@ -546,7 +550,9 @@ export function Navbar({ user, marketing }: NavbarProps) {
                       </div>
 
                       {[
-                        { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+                        { href: "/dashboard", icon: Home, label: "Home" },
+                        { href: "/dashboard/orders", icon: Package, label: "Orders" },
+                        { href: "/wallet", icon: DollarSign, label: "Wallet" },
                         { href: "/dashboard/library", icon: Video, label: "Digital Library" },
                         { href: "/dashboard/settings", icon: Settings, label: "My Account" },
                       ].map((item) => (
@@ -792,12 +798,19 @@ export function Navbar({ user, marketing }: NavbarProps) {
               className="pointer-events-auto relative grid h-[60px] grid-cols-5 items-stretch border-t border-stone-100 bg-white/95 shadow-[0_-8px_24px_rgba(0,0,0,0.04)] backdrop-blur-md dark:border-white/5 dark:bg-stone-950/95"
             >
               {mobileBottomLinks.map((link) => {
-                const active = isActive(pathname, link.href);
-                const ariaLabel = "ariaLabel" in link ? link.ariaLabel : link.label;
+                const href = resolvePrimaryNavHref(link, Boolean(user));
+                const active =
+                  href === "/dashboard"
+                    ? pathname === "/dashboard"
+                    : isActive(pathname, href);
+                const ariaLabel =
+                  "ariaLabel" in link && typeof link.ariaLabel === "string"
+                    ? link.ariaLabel
+                    : link.label;
                 return (
                   <Link
-                    key={link.href}
-                    href={link.href}
+                    key={`${link.label}-${href}`}
+                    href={href}
                     aria-label={ariaLabel}
                     aria-current={active ? "page" : undefined}
                     className={cn(
@@ -869,7 +882,9 @@ function MobileDrawer({
   const toggle = (s: string) => setExpanded((p) => (p === s ? null : s));
 
   const accountLinks = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard", icon: Home, label: "Home" },
+    { href: "/dashboard/orders", icon: Package, label: "Orders" },
+    { href: "/wallet", icon: DollarSign, label: "Wallet" },
     { href: "/dashboard/messages", icon: MessageSquare, label: "Messages" },
     { href: "/dashboard/library", icon: Video, label: "Digital Library" },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },

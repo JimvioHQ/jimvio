@@ -96,15 +96,20 @@ export type WorkspaceDefinition = {
   home: WorkspaceHomeConfig;
 };
 
-/** Short core rail — always available below workspace nav. */
+/**
+ * Product navigation — always available below workspace tools.
+ * No "Dashboard" label; Home uses /dashboard URL for deep-link compatibility.
+ * Analytics / Agents / AI remain reachable via ⌘K, Create, and topbar.
+ */
 export const OS_CORE_RAIL: WorkspaceNavItem[] = [
   { id: "home", label: "Home", href: "/dashboard", icon: "home", section: "core" },
   { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: "store", section: "core" },
+  { id: "orders", label: "Orders", href: "/dashboard/orders", icon: "shopping-bag", section: "core" },
   { id: "wallet", label: "Wallet", href: "/wallet", icon: "wallet", section: "core" },
-  { id: "analytics", label: "Analytics", href: "/dashboard/analytics", icon: "chart", section: "core" },
-  { id: "agents", label: "Agents", href: "/dashboard/agents", icon: "sparkles", section: "core" },
-  { id: "ai", label: "AI", href: "#open-ai", icon: "sparkles", section: "core" },
-  { id: "inbox", label: "Inbox", href: "/dashboard/notifications", icon: "message", section: "core" },
+  { id: "communities", label: "Communities", href: "/communities", icon: "users-round", section: "core" },
+  { id: "affiliates", label: "Affiliates", href: "/affiliates", icon: "link", section: "core" },
+  { id: "ugc", label: "UGC & Clipping", href: "/ugc", icon: "megaphone", section: "core" },
+  { id: "messages", label: "Messages", href: "/dashboard/messages", icon: "message", section: "core" },
 ];
 
 export const OS_PROFILE_RAIL: WorkspaceNavItem[] = [

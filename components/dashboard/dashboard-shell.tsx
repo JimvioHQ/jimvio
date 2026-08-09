@@ -230,7 +230,7 @@ export function DashboardLoadingSkeleton() {
 
           <div className="text-center space-y-2">
             <p className="text-[11px] font-black text-zinc-900 dark:text-zinc-100 uppercase tracking-[0.3em]">
-              Loading Console
+              Loading Home
             </p>
             <div className="flex items-center justify-center gap-2">
               <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-[0.2em]">

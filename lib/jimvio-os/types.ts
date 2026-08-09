@@ -12,6 +12,7 @@ export type OsNavId =
   | "live"
   | "messages"
   | "payments"
+  | "wallet"
   | "analytics"
   | "workspace"
   | "ai"

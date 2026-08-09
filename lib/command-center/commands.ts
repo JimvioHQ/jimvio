@@ -401,12 +401,14 @@ export const COMMAND_CENTER_NAV_COMMANDS: StaticCommand[] = [
     keywords: ["help", "support", "faq"],
   },
   {
-    id: "nav-dashboard",
+    id: "nav-home",
     kind: "page",
-    title: "Dashboard",
+    title: "Home",
+    subtitle: "Your Jimvio workspace home",
     href: "/dashboard",
     icon: "layout",
-    keywords: ["dashboard", "home"],
+    keywords: ["home", "dashboard", "mission control", "start"],
+    frequent: true,
   },
 ];
 
