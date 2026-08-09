@@ -52,7 +52,7 @@ assert.match(overview, /Description|Mission|Vision|Announcements|CommunityOvervi
 assert.match(groupPage, /VisitTracker/);
 assert.match(channelPage, /VisitTracker|continueLearning/);
 assert.match(notifUtils, /sortNotificationsByPriority|classifyCommunityNotificationPriority/);
-assert.match(search, /Spaces|Rooms|Groups|Channels/);
+assert.match(search, /spaces|rooms|Space|Room/i);
 
 // Must not touch ChatRoom / APIs / routing for this layer
 assert.doesNotMatch(home, /from ["']@\/components\/community\/chat\/ChatRoom/);

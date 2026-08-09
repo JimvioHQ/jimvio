@@ -367,9 +367,10 @@ export function ChatRoom({
   }
 
   const renderMessage = useCallback(
-    (m: Msg) => (
+    (m: Msg, meta: { compact: boolean }) => (
       <MessageRow
         m={m}
+        compact={meta.compact}
         variant={discussionLayout ? "discussion" : "default"}
         isOwn={!!hook.userId && m.sender_id === hook.userId}
         userId={hook.userId}
@@ -584,7 +585,7 @@ export function ChatRoom({
           className={cn(
             "flex min-h-0 flex-1 flex-col overflow-y-auto",
             discussionLayout
-              ? "discussion-chat-canvas px-3 py-3 pb-4 sm:px-6 lg:px-8"
+              ? "discussion-chat-canvas px-3 py-2.5 pb-3 sm:px-5 lg:px-6"
               : "bg-[var(--color-bg)] px-3 py-3 pb-5 sm:px-[5%]",
             "scrollbar-thin scrollbar-thumb-[var(--color-border-strong)]",
             hook.loading && "overflow-hidden"

@@ -272,7 +272,7 @@ export function HubFeedPage() {
             </div>
           </HubCard>
 
-          {/* Quick post composer — matches mockup top card */}
+          {/* Quick post entry → existing Create Post page (same as Create → Post) */}
           <HubCard>
             <div className="flex gap-3">
               <HubAvatar
@@ -281,42 +281,35 @@ export function HubFeedPage() {
                 size={40}
               />
               <div className="min-w-0 flex-1">
-                <div className="rounded-md border-2 border-[#fd5000]/20 bg-[var(--color-surface-secondary,#fafafa)] px-3 py-2.5 transition focus-within:border-[#fd5000]/45">
-                  <input
-                    type="text"
-                    readOnly
-                    placeholder="What's on your mind?"
-                    className="w-full bg-transparent text-[13px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none"
-                    onFocus={(e) => {
-                      const composer = document.getElementById("hub-community-composer");
-                      composer?.scrollIntoView({ behavior: "smooth", block: "center" });
-                      composer?.focus();
-                      e.currentTarget.blur();
-                    }}
-                  />
-                </div>
+                <Link
+                  href="/create/post"
+                  aria-label={
+                    data?.user?.fullName
+                      ? `Create a post — What's on your mind, ${data.user.fullName.split(" ")[0]}?`
+                      : "Create a post — What's on your mind?"
+                  }
+                  className="block rounded-md border-2 border-[#fd5000]/20 bg-[var(--color-surface-secondary,#fafafa)] px-3 py-2.5 transition hover:border-[#fd5000]/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+                >
+                  <span className="block w-full text-[13px] text-[var(--color-text-muted)]">
+                    {data?.user?.fullName
+                      ? `What's on your mind, ${data.user.fullName.split(" ")[0]}?`
+                      : "What's on your mind?"}
+                  </span>
+                </Link>
                 <div className="mt-2.5 flex flex-wrap items-center gap-0.5">
                   {[
-                    { icon: ImageIcon, label: "Photo" },
-                    { icon: Video, label: "Video" },
-                    { icon: Scissors, label: "Clip" },
-                    { icon: BarChart3, label: "Poll" },
+                    { icon: ImageIcon, label: "Photo", href: "/create/post" },
+                    { icon: Video, label: "Video", href: "/create/post" },
+                    { icon: Scissors, label: "Clip", href: "/create/post" },
+                    { icon: BarChart3, label: "Poll", href: "/create/post" },
                     { icon: Target, label: "Mission", href: "/communities/missions" },
-                    { icon: Sparkles, label: "AI Assist" },
-                  ].map(({ icon: Icon, label, ...rest }) => {
-                    const href = "href" in rest ? rest.href : undefined;
+                    { icon: Sparkles, label: "AI Assist", href: "/create/post" },
+                  ].map(({ icon: Icon, label, href }) => {
                     const cls = "inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]";
-                    if (href) {
-                      return (
-                        <Link key={label} href={href} className={cls}>
-                          <Icon className="h-3.5 w-3.5" />{label}
-                        </Link>
-                      );
-                    }
                     return (
-                      <button key={label} type="button" className={cls}>
+                      <Link key={label} href={href} className={cls}>
                         <Icon className="h-3.5 w-3.5" />{label}
-                      </button>
+                      </Link>
                     );
                   })}
                   <HubLinkButton href="/communities/live" hardNavigate className="ml-auto !rounded-md !px-3.5 !py-1.5 !text-[11px]">

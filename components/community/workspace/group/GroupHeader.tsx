@@ -49,14 +49,14 @@ function SpaceAvatar({
   const isUrl = Boolean(icon && /^https?:\/\//.test(icon));
   return (
     <span
-      className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--color-accent)] text-[17px] font-bold text-white shadow-[0_10px_24px_rgba(253,80,0,0.22)] ring-[3px] ring-white sm:h-14 sm:w-14 sm:text-[19px]"
+      className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--color-accent)] text-[15px] font-bold text-white shadow-[0_6px_16px_rgba(253,80,0,0.2)] ring-2 ring-white sm:h-11 sm:w-11 sm:text-[16px]"
       aria-hidden
     >
       {isUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={icon!} alt="" className="h-full w-full object-cover" />
       ) : icon ? (
-        <span className="text-[22px] leading-none sm:text-[24px]">{icon}</span>
+        <span className="text-[18px] leading-none sm:text-[20px]">{icon}</span>
       ) : (
         letter
       )}
@@ -79,7 +79,7 @@ function GhostIconButton({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "inline-flex h-10 w-10 items-center justify-center rounded-xl",
+        "inline-flex h-9 w-9 items-center justify-center rounded-lg",
         "border border-gray-200/80 bg-white/90 text-gray-500 shadow-sm",
         "transition-all duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35"
@@ -91,7 +91,7 @@ function GhostIconButton({
 }
 
 /**
- * Premium Space header — icon, name, description, visibility, members, activity.
+ * Premium Space header — compact icon, name, visibility, members, actions.
  */
 export function GroupHeader({
   group,
@@ -138,21 +138,21 @@ export function GroupHeader({
     <header
       className={cn(
         "relative shrink-0 border-b border-gray-100/90 bg-white/95 backdrop-blur-sm",
-        "px-4 py-4 sm:px-6 sm:py-5",
+        "px-4 py-2.5 sm:px-5 sm:py-3",
         className
       )}
     >
-      <div className="flex items-start gap-3.5 sm:items-center sm:gap-4">
+      <div className="flex items-center gap-3 sm:gap-3.5">
         <SpaceAvatar name={group.name} icon={group.icon} />
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-[17px] font-semibold tracking-tight text-gray-900 sm:text-[19px]">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <h1 className="truncate text-[16px] font-semibold tracking-tight text-gray-900 sm:text-[18px]">
               {group.name}
             </h1>
             <span
               className={cn(
-                "rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
                 visibility === "Public"
                   ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
                   : visibility === "Premium"
@@ -162,30 +162,26 @@ export function GroupHeader({
             >
               {visibility}
             </span>
-            <span className="hidden rounded-full bg-gray-50 px-2.5 py-0.5 text-[10px] font-medium text-gray-500 ring-1 ring-gray-100 sm:inline-flex">
+            <span className="hidden rounded-full bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500 ring-1 ring-gray-100 sm:inline-flex">
               {typeLabel}
             </span>
           </div>
 
           {description ? (
-            <p className="mt-1.5 line-clamp-2 max-w-2xl text-[13px] leading-relaxed text-gray-500 sm:text-[13.5px]">
+            <p className="mt-0.5 line-clamp-1 max-w-2xl text-[12px] leading-snug text-gray-500 sm:text-[12.5px]">
               {description}
             </p>
-          ) : (
-            <p className="mt-1 text-[12.5px] text-gray-400">
-              {typeLabel} space
-            </p>
-          )}
+          ) : null}
 
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700 ring-1 ring-sky-100">
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700 ring-1 ring-sky-100">
               <Users className="h-3 w-3" aria-hidden />
               {group.memberCount > 0
                 ? `${formatCompactMembers(group.memberCount)} members`
                 : "Members"}
             </span>
             {lastActivityLabel ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-500 ring-1 ring-gray-100">
+              <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-500 ring-1 ring-gray-100">
                 <Clock3 className="h-3 w-3" aria-hidden />
                 {lastActivityLabel}
               </span>
@@ -193,7 +189,7 @@ export function GroupHeader({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5 pt-0.5 sm:pt-0">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
           {onSearch ? (
             <GhostIconButton label="Search" onClick={onSearch}>
               <Search className="h-4 w-4" />
@@ -213,7 +209,7 @@ export function GroupHeader({
           <WorkspaceActionMenu
             label={`${group.name} actions`}
             buttonClassName={cn(
-              "h-10 w-10 rounded-xl border border-gray-200/80 bg-white/90 text-gray-500 shadow-sm",
+              "h-9 w-9 rounded-lg border border-gray-200/80 bg-white/90 text-gray-500 shadow-sm",
               "hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800"
             )}
             items={buildWorkspaceActions({

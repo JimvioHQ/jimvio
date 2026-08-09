@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { format } from "date-fns";
 import {
   BadgeCheck,
@@ -40,6 +41,7 @@ import {
   DropdownMenuTrigger,
 } from "@radix-ui/react-dropdown-menu";
 import { cn } from "@/lib/utils";
+import { communityProfileHref } from "@/lib/community/profile-href";
 import { LinkPreview, Msg, QUICK_REACTIONS } from "@/types";
 import {
   displayName,
@@ -119,7 +121,10 @@ export function MessageCard({
   const discussion = variant === "discussion";
   const p = m.profiles;
   const name = displayName(m);
+  const profileHref = communityProfileHref(p?.username);
   const role = communityRole || m.sender_role || null;
+  const showDiscussionMeta = discussion && !compact;
+  const showDiscussionAvatar = discussion && !compact;
   const attachments = messageAttachments(m);
   const reactions = (
     m.reactions && typeof m.reactions === "object" ? m.reactions : {}
@@ -182,54 +187,113 @@ export function MessageCard({
       aria-label={`Message from ${name}`}
       className={cn(
         "group flex w-full scroll-mt-24 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
-        discussion ? "mb-2 justify-center sm:mb-2.5" : "mb-0.5",
+        discussion
+          ? cn(compact ? "mb-0.5" : "mb-2 sm:mb-2.5", isOwn ? "justify-end" : "justify-start")
+          : "mb-0.5",
         !discussion && (isOwn ? "justify-end" : "justify-start"),
         compact && !discussion && "pl-3"
       )}
     >
       <div
         className={cn(
-          "flex gap-2.5",
+          "flex gap-2",
           discussion
-            ? "w-full max-w-[720px]"
+            ? cn(
+                "max-w-[min(100%,34rem)]",
+                isOwn ? "flex-row-reverse" : "flex-row"
+              )
             : cn("max-w-[min(100%,28rem)] gap-2", isOwn && "flex-row-reverse")
         )}
       >
         {/* Avatar */}
-        {(discussion || (!isOwn && !compact)) && (
-          <div
-            className={cn(
-              "shrink-0 overflow-hidden rounded-full",
-              discussion
-                ? "mt-0.5 h-8 w-8 border border-white bg-gray-50 shadow-sm ring-1 ring-black/[0.04]"
-                : "mt-1 h-8 w-8 border border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
-            )}
-          >
-            {p?.avatar_url ? (
-              <Image
-                src={p.avatar_url}
-                alt={name}
-                width={discussion ? 32 : 32}
-                height={discussion ? 32 : 32}
-                className="h-full w-full object-cover"
-                unoptimized
-              />
+        {discussion ? (
+          showDiscussionAvatar ? (
+            profileHref ? (
+              <Link
+                href={profileHref}
+                aria-label={`View ${name}'s profile`}
+                className={cn(
+                  "mt-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white bg-gray-50 shadow-sm ring-1 ring-black/[0.04]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/45"
+                )}
+              >
+                {p?.avatar_url ? (
+                  <Image
+                    src={p.avatar_url}
+                    alt=""
+                    width={32}
+                    height={32}
+                    className="h-full w-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[var(--color-accent)] text-[10px] font-bold text-white">
+                    {(name.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2) || "?").toUpperCase()}
+                  </div>
+                )}
+              </Link>
             ) : (
-              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600 text-[10px] font-bold text-white">
-                {(name.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2) || "?").toUpperCase()}
+              <div className="mt-0.5 h-8 w-8 shrink-0 overflow-hidden rounded-full border border-white bg-gray-50 shadow-sm ring-1 ring-black/[0.04]">
+                {p?.avatar_url ? (
+                  <Image
+                    src={p.avatar_url}
+                    alt={name}
+                    width={32}
+                    height={32}
+                    className="h-full w-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-[var(--color-accent)] text-[10px] font-bold text-white">
+                    {(name.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2) || "?").toUpperCase()}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            )
+          ) : (
+            <div className="w-8 shrink-0" aria-hidden />
+          )
+        ) : (
+          !isOwn &&
+          !compact && (
+            <div className="mt-1 h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)]">
+              {p?.avatar_url ? (
+                <Image
+                  src={p.avatar_url}
+                  alt={name}
+                  width={32}
+                  height={32}
+                  className="h-full w-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600 text-[10px] font-bold text-white">
+                  {(name.trim().split(/\s+/).map((w) => w[0]).join("").slice(0, 2) || "?").toUpperCase()}
+                </div>
+              )}
+            </div>
+          )
         )}
 
-        <div className={cn("min-w-0 flex-1", !discussion && isOwn && "flex flex-col items-end")}>
+        <div
+          className={cn(
+            "min-w-0",
+            discussion ? "max-w-full" : "flex-1",
+            isOwn && "flex flex-col items-end"
+          )}
+        >
           {/* Bubble / Card */}
           <div
             className={cn(
               "relative transition-shadow duration-200",
               discussion
-            ? "rounded-xl bg-white px-3 pb-2.5 pt-2.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-black/[0.05] transition duration-150 group-hover:shadow-[0_4px_14px_rgba(15,23,42,0.06)]"
-            : cn(
+                ? cn(
+                    "px-3 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)]",
+                    isOwn
+                      ? "rounded-[18px] rounded-br-md bg-[var(--color-accent-light)] ring-1 ring-[var(--color-accent)]/12"
+                      : "rounded-[18px] rounded-bl-md bg-white/95 ring-1 ring-black/[0.05]"
+                  )
+                : cn(
                     "px-3 pb-2.5 pt-2 shadow-sm group-hover:shadow-md",
                     isOwn
                       ? "rounded-br-sm rounded-bl-lg rounded-t-lg bg-[var(--color-accent-light)]"
@@ -238,18 +302,27 @@ export function MessageCard({
             )}
           >
             {/* Header */}
-            {(discussion || (!isOwn && !isDM)) && (
-              <header className={cn("flex flex-wrap items-center gap-1.5", discussion ? "mb-1" : "mb-0.5")}>
-                <span
-                  className={cn(
-                    "font-semibold",
-                    discussion
-                      ? "text-[13px] text-gray-900"
-                      : "text-[11px] text-[var(--color-accent)]"
-                  )}
-                >
-                  {name}
-                </span>
+            {(showDiscussionMeta || (!discussion && !isOwn && !isDM)) && (
+              <header className={cn("flex flex-wrap items-center gap-1.5", discussion ? "mb-0.5" : "mb-0.5")}>
+                {discussion && profileHref ? (
+                  <Link
+                    href={profileHref}
+                    className="text-[13px] font-semibold text-gray-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 rounded-sm"
+                  >
+                    {name}
+                  </Link>
+                ) : (
+                  <span
+                    className={cn(
+                      "font-semibold",
+                      discussion
+                        ? "text-[13px] text-gray-900"
+                        : "text-[11px] text-[var(--color-accent)]"
+                    )}
+                  >
+                    {name}
+                  </span>
+                )}
                 {p?.is_verified && (
                   <BadgeCheck
                     className={cn(
@@ -289,6 +362,15 @@ export function MessageCard({
                 )}
               </header>
             )}
+            {discussion && compact && (
+              <time
+                dateTime={m.created_at}
+                className="mb-0.5 block text-[10px] text-gray-400 opacity-0 transition-opacity group-hover:opacity-100"
+              >
+                {format(new Date(m.created_at), "h:mm a")}
+                {m.is_edited ? " · edited" : ""}
+              </time>
+            )}
 
             {answerPick && (
               <div className="mb-1.5">
@@ -300,7 +382,7 @@ export function MessageCard({
               <ReplyQuote
                 body={m.reply_to_body!}
                 sender={m.reply_to_sender || "Member"}
-                isOwn={!discussion && isOwn}
+                isOwn={Boolean(isOwn)}
               />
             )}
 
@@ -318,7 +400,7 @@ export function MessageCard({
             )}
 
             {commerceEmbed && (
-              <div className={cn("mt-1.5", !discussion && isOwn && "flex justify-end")}>
+              <div className={cn("mt-1.5", isOwn && "flex justify-end")}>
                 <MessageCommerceEmbed embed={commerceEmbed} compact />
               </div>
             )}
@@ -327,14 +409,14 @@ export function MessageCard({
               <div
                 className={cn(
                   "mt-1.5 flex flex-col gap-2",
-                  !discussion && isOwn && "items-end"
+                  isOwn && "items-end"
                 )}
               >
                 {attachments.map((a) => (
                   <FileAttachmentCard
                     key={a.url}
                     attachment={a}
-                    isOwn={!discussion && isOwn}
+                    isOwn={Boolean(isOwn)}
                     compact={compact}
                   />
                 ))}
@@ -383,7 +465,7 @@ export function MessageCard({
               </a>
             )}
 
-            {/* Timestamp corner (own / DM) — default only */}
+            {/* Timestamp corner (own / DM) — default layout */}
             {!discussion && (
               <div className="pointer-events-none absolute bottom-1 right-1.5 flex items-center gap-1">
                 {m.is_pinned && (
@@ -403,10 +485,20 @@ export function MessageCard({
               </div>
             )}
 
-            {/* Reactions inside discussion card */}
+            {/* Own-message receipt — discussion layout */}
+            {discussion && isOwn && (
+              <div className="mt-1 flex items-center justify-end gap-1">
+                {m.is_pinned && (
+                  <Pin className="h-3 w-3 text-[var(--color-accent)]" aria-label="Pinned" />
+                )}
+                <CheckCheck className="h-3.5 w-3.5 text-teal-500" />
+              </div>
+            )}
+
+            {/* Reactions inside discussion bubble */}
             {discussion &&
               Object.values(reactions).some((ids) => ids.length > 0) && (
-                <div className="mt-2 flex flex-wrap items-center gap-1">
+                <div className="mt-1.5 flex flex-wrap items-center gap-1">
                   {Object.entries(reactions).map(([emoji, ids]) =>
                     ids.length ? (
                       <button
@@ -414,10 +506,10 @@ export function MessageCard({
                         type="button"
                         onClick={() => onToggleReaction(m.id, emoji)}
                         className={cn(
-                          "rounded-full px-2 py-0.5 text-[11px] transition-colors ring-1",
+                          "rounded-full px-1.5 py-px text-[11px] transition-colors ring-1",
                           userReacted(emoji)
                             ? "bg-[var(--color-accent)]/10 text-gray-800 ring-[var(--color-accent)]/25"
-                            : "bg-gray-50 text-gray-700 ring-gray-100 hover:bg-gray-100"
+                            : "bg-white/80 text-gray-700 ring-black/[0.06] hover:bg-gray-50"
                         )}
                       >
                         {emoji} {ids.length}
@@ -466,9 +558,9 @@ export function MessageCard({
           {/* Footer actions */}
           <footer
             className={cn(
-              "mt-1 flex flex-wrap items-center gap-0.5",
+              "mt-0.5 flex flex-wrap items-center gap-0.5",
               "opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100",
-              !discussion && isOwn && "justify-end"
+              isOwn && "justify-end"
             )}
           >
             {QUICK_REACTIONS.map((emoji) => (
@@ -478,7 +570,7 @@ export function MessageCard({
                 aria-label={`React with ${emoji}`}
                 className={cn(
                   discussion
-                    ? "flex h-7 w-7 items-center justify-center rounded-md text-sm leading-none"
+                    ? "flex h-6 w-6 items-center justify-center rounded-md text-[13px] leading-none"
                     : "flex h-9 w-9 items-center justify-center rounded-lg text-base leading-none sm:h-8 sm:w-8",
                   "transition-colors hover:bg-[var(--color-border)]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
@@ -489,18 +581,25 @@ export function MessageCard({
               </button>
             ))}
 
-            <ActionChip icon={Reply} label="Reply" onClick={() => onReply(m)} />
+            <ActionChip
+              icon={Reply}
+              label="Reply"
+              onClick={() => onReply(m)}
+              compact={discussion}
+            />
             {isRoot && !isDM && (
               <ActionChip
                 label={replyCount > 0 ? `${replyCount} in thread` : "Thread"}
                 onClick={onOpenThread}
+                compact={discussion}
               />
             )}
             <ActionChip
-              icon={Bookmark}
+              icon={bookmarked ? BookMarked : Bookmark}
               label={bookmarked ? "Saved" : "Bookmark"}
               onClick={onBookmark}
               active={bookmarked}
+              compact={discussion}
             />
 
             <DropdownMenu>
@@ -510,13 +609,13 @@ export function MessageCard({
                   aria-label="More message actions"
                   className={cn(
                     discussion
-                      ? "inline-flex h-7 w-7 items-center justify-center rounded-md"
+                      ? "inline-flex h-6 w-6 items-center justify-center rounded-md"
                       : "inline-flex h-9 w-9 items-center justify-center rounded-lg sm:h-8 sm:w-8",
                     "text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-border)]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]"
                   )}
                 >
-                  <MoreHorizontal className="h-4 w-4" />
+                  <MoreHorizontal className="h-3.5 w-3.5" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -647,25 +746,30 @@ function ActionChip({
   label,
   onClick,
   active,
+  compact,
 }: {
   icon?: typeof Reply;
   label: string;
   onClick: () => void;
   active?: boolean;
+  compact?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium transition-colors",
+        "inline-flex items-center gap-1 font-medium transition-colors",
+        compact
+          ? "rounded-md px-1.5 py-0.5 text-[11px]"
+          : "rounded-sm px-2 py-1 text-xs",
         "hover:bg-[var(--color-border)]",
         active
           ? "text-[var(--color-accent)]"
           : "text-[var(--color-text-muted)]"
       )}
     >
-      {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+      {Icon ? <Icon className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} /> : null}
       {label}
     </button>
   );

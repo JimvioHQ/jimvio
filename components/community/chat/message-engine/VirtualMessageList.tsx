@@ -16,22 +16,27 @@ import type { Msg } from "@/types";
 
 type DayItem = { kind: "day"; id: string; day: Date };
 type SystemItem = { kind: "system"; id: string; msg: Msg };
-type MessageItem = { kind: "message"; id: string; msg: Msg };
+type MessageItem = { kind: "message"; id: string; msg: Msg; compact: boolean };
 export type VirtualListItem = DayItem | SystemItem | MessageItem;
 
 export function buildMessageListItems(messages: Msg[]): VirtualListItem[] {
   const items: VirtualListItem[] = [];
   let lastDay: Date | null = null;
+  let lastSender: string | null = null;
   for (const m of messages) {
     const d = new Date(m.created_at);
     if (!lastDay || !isSameDay(lastDay, d)) {
       items.push({ kind: "day", id: `day-${d.toISOString()}`, day: d });
       lastDay = d;
+      lastSender = null;
     }
     if (m.message_type === "system") {
       items.push({ kind: "system", id: m.id, msg: m });
+      lastSender = null;
     } else {
-      items.push({ kind: "message", id: m.id, msg: m });
+      const compact = lastSender === m.sender_id;
+      items.push({ kind: "message", id: m.id, msg: m, compact });
+      lastSender = m.sender_id;
     }
   }
   return items;
@@ -49,7 +54,7 @@ export function VirtualMessageList({
 }: {
   messages: Msg[];
   scrollRef: RefObject<HTMLDivElement | null>;
-  renderMessage: (msg: Msg) => ReactNode;
+  renderMessage: (msg: Msg, meta: { compact: boolean }) => ReactNode;
   footer?: ReactNode;
   className?: string;
   hasMore?: boolean;
@@ -191,7 +196,8 @@ export function VirtualMessageList({
                   {item.msg.body}
                 </p>
               )}
-              {item.kind === "message" && renderMessage(item.msg)}
+              {item.kind === "message" &&
+                renderMessage(item.msg, { compact: item.compact })}
             </div>
           );
         })}

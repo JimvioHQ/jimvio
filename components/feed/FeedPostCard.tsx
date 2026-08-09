@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { communityProfileHref } from "@/lib/community/profile-href";
 import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
 import { toPlayableCommunityVideoUrl } from "@/lib/community-chat-upload";
 import type { FeedTab } from "@/lib/feed/mock-data";
@@ -46,6 +47,8 @@ type DisplayPost = {
   author: {
     name: string;
     handle: string;
+    username: string | null;
+    profileHref: string | null;
     level: number;
     verified: boolean;
     avatar: string | null;
@@ -99,6 +102,8 @@ function mapApiPost(post: ApiPost): DisplayPost {
     author: {
       name,
       handle: username ? `@${username}` : "@member",
+      username: username ?? null,
+      profileHref: communityProfileHref(username),
       level: 1,
       verified: false,
       avatar: post.profiles?.avatar_url ?? null,
@@ -310,25 +315,66 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
         >
           <div className="mb-3 flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
-              <img
-                src={
-                  post.author.avatar ??
-                  `https://picsum.photos/seed/${post.author.handle.replace("@", "")}/80/80`
-                }
-                alt={post.author.name}
-                className="mt-0.5 h-10 w-10 shrink-0 rounded-full object-cover"
-              />
+              {post.author.profileHref ? (
+                <Link
+                  href={post.author.profileHref}
+                  aria-label={`View ${post.author.name}'s profile`}
+                  className="mt-0.5 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={
+                      post.author.avatar ??
+                      `https://picsum.photos/seed/${post.author.handle.replace("@", "")}/80/80`
+                    }
+                    alt=""
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                </Link>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={
+                    post.author.avatar ??
+                    `https://picsum.photos/seed/${post.author.handle.replace("@", "")}/80/80`
+                  }
+                  alt={post.author.name}
+                  className="mt-0.5 h-10 w-10 shrink-0 rounded-full object-cover"
+                />
+              )}
               <div className="min-w-0 pt-0.5">
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                  <span className="text-[14px] font-semibold leading-none text-gray-900">
-                    {post.author.name}
-                  </span>
+                  {post.author.profileHref ? (
+                    <Link
+                      href={post.author.profileHref}
+                      aria-label={`View ${post.author.name}'s profile`}
+                      className="text-[14px] font-semibold leading-none text-gray-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {post.author.name}
+                    </Link>
+                  ) : (
+                    <span className="text-[14px] font-semibold leading-none text-gray-900">
+                      {post.author.name}
+                    </span>
+                  )}
                   {post.author.verified && (
                     <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gray-900">
                       <Check className="h-2 w-2 text-white" strokeWidth={3} />
                     </span>
                   )}
-                  <span className="text-[12px] text-gray-400">{post.author.handle}</span>
+                  {post.author.profileHref ? (
+                    <Link
+                      href={post.author.profileHref}
+                      className="text-[12px] text-gray-400 hover:underline"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {post.author.handle}
+                    </Link>
+                  ) : (
+                    <span className="text-[12px] text-gray-400">{post.author.handle}</span>
+                  )}
                   <span className="text-[12px] text-gray-300">·</span>
                   <span className="text-[12px] text-gray-400">{post.timestamp}</span>
                 </div>

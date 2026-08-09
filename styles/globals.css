@@ -38,12 +38,20 @@
     background-color: rgb(var(--color-surface) / 0.95);
   }
 
-  /** Space Discussion canvas — soft warm ambient (Jimvio premium). */
+  /**
+   * Space Discussion canvas — premium Jimvio editorial collaboration surface.
+   * Light ambient shapes + soft waves + faint grid; never dark, never flat white.
+   */
   .discussion-chat-canvas {
-    background:
-      radial-gradient(ellipse 90% 55% at 6% 0%, rgba(253, 80, 0, 0.045), transparent 52%),
-      radial-gradient(ellipse 70% 50% at 100% 100%, rgba(253, 80, 0, 0.03), transparent 48%),
-      linear-gradient(180deg, #f8f9fb 0%, #f4f5f7 50%, #f1f2f4 100%);
+    background-color: #f7f8fa;
+    background-image:
+      radial-gradient(ellipse 42% 36% at 12% 18%, rgba(253, 80, 0, 0.055), transparent 70%),
+      radial-gradient(ellipse 38% 32% at 88% 78%, rgba(59, 130, 246, 0.04), transparent 68%),
+      radial-gradient(ellipse 28% 24% at 72% 12%, rgba(253, 80, 0, 0.028), transparent 70%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='120' viewBox='0 0 160 120'%3E%3Cg fill='none' stroke='%23fd5000' stroke-opacity='0.045' stroke-width='1'%3E%3Cpath d='M-10 40c30-18 50 18 80 0s50-18 80 0 50 18 80 0'/%3E%3Cpath d='M-10 70c30-14 50 14 80 0s50-14 80 0 50 14 80 0'/%3E%3Cpath d='M-10 100c30-12 50 12 80 0s50-12 80 0 50 12 80 0'/%3E%3C/g%3E%3C/svg%3E"),
+      radial-gradient(rgba(17, 24, 39, 0.035) 0.6px, transparent 0.7px);
+    background-size: auto, auto, auto, 160px 120px, 18px 18px;
+    background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat;
   }
 }
 

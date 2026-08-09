@@ -48,6 +48,7 @@ import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { communityProfileHref } from "@/lib/community/profile-href";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
     POST_REACTIONS,
@@ -1877,6 +1878,7 @@ function PostCard({
 }) {
     const profile = post.profiles ?? post.author ?? null;
     const name = profile?.full_name ?? profile?.username ?? "Creator";
+    const authorProfileHref = communityProfileHref(profile?.username);
     const imgs = Array.isArray(post.images)
         ? (post.images as string[]).filter(Boolean)
         : [];
@@ -1978,7 +1980,33 @@ function PostCard({
             )}
 
             <header className="flex items-start gap-3 mb-3">
-                {profile?.avatar_url ? (
+                {authorProfileHref ? (
+                    <Link
+                        href={authorProfileHref}
+                        aria-label={`View ${name}'s profile`}
+                        className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/50"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {profile?.avatar_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                                src={profile.avatar_url}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                className="w-10 h-10 rounded-full object-cover ring-1 ring-border"
+                            />
+                        ) : (
+                            <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                                style={{ background: "#fd5000" }}
+                                aria-hidden
+                            >
+                                {name[0]?.toUpperCase()}
+                            </div>
+                        )}
+                    </Link>
+                ) : profile?.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                         src={profile.avatar_url}
@@ -1996,10 +2024,33 @@ function PostCard({
                     </div>
                 )}
                 <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-text-primary truncate">{name}</p>
+                    {authorProfileHref ? (
+                        <Link
+                            href={authorProfileHref}
+                            aria-label={`View ${name}'s profile`}
+                            className="block text-[13px] font-semibold text-text-primary truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {name}
+                        </Link>
+                    ) : (
+                        <p className="text-[13px] font-semibold text-text-primary truncate">{name}</p>
+                    )}
                     {profile?.username && (
                         <p className="text-[11px] text-text-muted truncate">
-                            @{profile.username} · {timeAgo(post.created_at)}
+                            {authorProfileHref ? (
+                                <Link
+                                    href={authorProfileHref}
+                                    className="hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    @{profile.username}
+                                </Link>
+                            ) : (
+                                <>@{profile.username}</>
+                            )}
+                            {" · "}
+                            {timeAgo(post.created_at)}
                             {post.post_type === "poll" ? " · Poll" : ""}
                             {locationLabel ? ` · ${locationLabel}` : ""}
                         </p>

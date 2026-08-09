@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import {
   Heart,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { communityProfileHref } from "@/lib/community/profile-href";
 import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 import { toast } from "sonner";
 
@@ -141,6 +143,9 @@ function PostCard({
     : [];
   const [showReactions, setShowReactions] = useState(false);
   const [pickedReaction, setPickedReaction] = useState<string | null>(null);
+  const authorName =
+    post.profiles?.full_name || post.profiles?.username || "Member";
+  const authorHref = communityProfileHref(post.profiles?.username);
 
   return (
     <article
@@ -161,14 +166,36 @@ function PostCard({
       )}
 
       <div className="flex gap-3">
-        <Avatar profile={post.profiles} size={36} />
+        {authorHref ? (
+          <Link
+            href={authorHref}
+            aria-label={`View ${authorName}'s profile`}
+            className="shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Avatar profile={post.profiles} size={36} />
+          </Link>
+        ) : (
+          <Avatar profile={post.profiles} size={36} />
+        )}
 
         <div className="min-w-0 flex-1">
           {/* Header row */}
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="text-sm font-bold text-[var(--color-text-primary)]">
-              {post.profiles?.full_name || post.profiles?.username || "Member"}
-            </span>
+            {authorHref ? (
+              <Link
+                href={authorHref}
+                aria-label={`View ${authorName}'s profile`}
+                className="text-sm font-bold text-[var(--color-text-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 rounded-sm"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {authorName}
+              </Link>
+            ) : (
+              <span className="text-sm font-bold text-[var(--color-text-primary)]">
+                {authorName}
+              </span>
+            )}
             <span
               className={cn(
                 "text-[10px] font-black uppercase px-2 py-0.5 rounded-sm border",
@@ -887,15 +914,44 @@ function PostDetailPanel({
           <div className="flex-1 overflow-y-auto bg-[var(--color-surface-secondary)]/5">
             <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
               <div className="flex gap-3 mb-3">
-                <Avatar profile={post.profiles} size={32} />
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">
-                    {post.profiles?.full_name || post.profiles?.username || "Member"}
-                  </p>
-                  <p className="text-[10px] text-[var(--color-text-muted)] font-bold">
-                    {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                  </p>
-                </div>
+                {(() => {
+                  const detailName =
+                    post.profiles?.full_name || post.profiles?.username || "Member";
+                  const detailHref = communityProfileHref(post.profiles?.username);
+                  return (
+                    <>
+                      {detailHref ? (
+                        <Link
+                          href={detailHref}
+                          aria-label={`View ${detailName}'s profile`}
+                          className="shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50"
+                        >
+                          <Avatar profile={post.profiles} size={32} />
+                        </Link>
+                      ) : (
+                        <Avatar profile={post.profiles} size={32} />
+                      )}
+                      <div className="min-w-0">
+                        {detailHref ? (
+                          <Link
+                            href={detailHref}
+                            aria-label={`View ${detailName}'s profile`}
+                            className="block text-sm font-bold text-[var(--color-text-primary)] truncate hover:underline"
+                          >
+                            {detailName}
+                          </Link>
+                        ) : (
+                          <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">
+                            {detailName}
+                          </p>
+                        )}
+                        <p className="text-[10px] text-[var(--color-text-muted)] font-bold">
+                          {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {post.title && <h3 className="font-black text-lg text-[var(--color-text-primary)] mb-2 leading-snug">{post.title}</h3>}
