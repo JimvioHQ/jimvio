@@ -78,8 +78,14 @@ function isWidgetId(value: unknown): value is WidgetId {
   return typeof value === "string" && (DEFAULT_WIDGET_ORDER as string[]).includes(value);
 }
 
+/** Stable default — required for useSyncExternalStore (Object.is snapshot identity). */
+const DEFAULT_LAYOUT: WidgetLayout = {
+  order: DEFAULT_WIDGET_ORDER,
+  hidden: DEFAULT_HIDDEN_WIDGETS,
+};
+
 function defaultLayout(): WidgetLayout {
-  return { order: [...DEFAULT_WIDGET_ORDER], hidden: [...DEFAULT_HIDDEN_WIDGETS] };
+  return DEFAULT_LAYOUT;
 }
 
 /** Merges any previously-unknown widget ids to the end, guarding against stale/partial storage. */
@@ -90,24 +96,44 @@ function sanitizeLayout(raw: unknown): WidgetLayout {
   const missing = DEFAULT_WIDGET_ORDER.filter((id) => !rawOrder.includes(id));
   const order = [...rawOrder, ...missing];
   const hidden = Array.isArray(parsed.hidden) ? parsed.hidden.filter(isWidgetId) : [];
+  // Return the shared default when storage matches defaults — keeps snapshot identity stable.
+  if (
+    order.length === DEFAULT_WIDGET_ORDER.length &&
+    order.every((id, i) => id === DEFAULT_WIDGET_ORDER[i]) &&
+    hidden.length === DEFAULT_HIDDEN_WIDGETS.length &&
+    hidden.every((id, i) => id === DEFAULT_HIDDEN_WIDGETS[i])
+  ) {
+    return DEFAULT_LAYOUT;
+  }
   return { order, hidden };
 }
 
+/** Cache so getSnapshot returns a referentially stable object until storage changes. */
+let cachedRaw: string | null | undefined;
+let cachedLayout: WidgetLayout = DEFAULT_LAYOUT;
+
 export function loadWidgetLayout(): WidgetLayout {
-  if (typeof window === "undefined") return defaultLayout();
+  if (typeof window === "undefined") return DEFAULT_LAYOUT;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultLayout();
-    return sanitizeLayout(JSON.parse(raw));
+    if (raw === cachedRaw) return cachedLayout;
+    cachedRaw = raw;
+    cachedLayout = raw ? sanitizeLayout(JSON.parse(raw)) : DEFAULT_LAYOUT;
+    return cachedLayout;
   } catch {
-    return defaultLayout();
+    cachedRaw = null;
+    cachedLayout = DEFAULT_LAYOUT;
+    return DEFAULT_LAYOUT;
   }
 }
 
 export function saveWidgetLayout(layout: WidgetLayout): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+    const raw = JSON.stringify(layout);
+    localStorage.setItem(STORAGE_KEY, raw);
+    cachedRaw = raw;
+    cachedLayout = layout;
     window.dispatchEvent(new Event("jimvio-os-widget-layout"));
   } catch {
     /* silent */

@@ -43,7 +43,6 @@ import {
 import Link from "next/link";
 import { PersonalizedMarketplaceFeed } from "./personalized/PersonalizedMarketplaceFeed";
 import { CollectionsSection } from "./CollectionsSection";
-import { PopularStoresSection, type StoreVendor } from "@/components/marketplace/popular-stores-section";
 import type { MarketplaceCollection } from "@/lib/marketplace/collections";
 
 type ProductType = MarketplaceProductType;
@@ -109,7 +108,6 @@ type Props = {
   heroPhysical: HeroProduct[] | null;
   heroDigital: HeroProduct[] | null;
   initialCollections?: MarketplaceCollection[];
-  initialVerifiedSellers?: StoreVendor[];
 };
 
 // ─── CategoryCard ─────────────────────────────────────────────────────────────
@@ -228,7 +226,6 @@ export function MarketplacePageClient({
   heroPhysical,
   heroDigital,
   initialCollections = [],
-  initialVerifiedSellers = [],
 }: Props) {
   const supabase = createClient();
   const startingBundle = initialBundles[initialType];
@@ -1136,11 +1133,6 @@ export function MarketplacePageClient({
         {/* ── Collections ── */}
         {initialCollections.length > 0 && (
           <CollectionsSection collections={initialCollections} />
-        )}
-
-        {/* ── Verified Sellers ── */}
-        {initialVerifiedSellers.length > 0 && (
-          <PopularStoresSection stores={initialVerifiedSellers} />
         )}
 
         {/* ── Trending Products — skeleton only this section while loading ── */}

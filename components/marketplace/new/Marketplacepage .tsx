@@ -8,7 +8,6 @@ import {
   type MarketplaceProductType,
 } from "@/lib/marketplace/fetch-page-data";
 import { fetchFeaturedCollections } from "@/lib/marketplace/collections";
-import { fetchVerifiedSellers } from "@/lib/marketplace/verified-sellers";
 import { slimListingImages } from "@/lib/media/optimize-url";
 import { unstable_cache } from "next/cache";
 
@@ -68,10 +67,9 @@ const getCachedMarketplaceStats = unstable_cache(
 const getCachedMarketplaceChrome = unstable_cache(
   async () => {
     const supabase = createAdminClient();
-    const [hero, collections, verifiedSellers] = await Promise.all([
+    const [hero, collections] = await Promise.all([
       fetchHeroProducts(supabase),
-      fetchFeaturedCollections(supabase, 4),
-      fetchVerifiedSellers(supabase, 8),
+      fetchFeaturedCollections(supabase, 8),
     ]);
     const slimHero = (list: typeof hero.physical) =>
       list.map((p) => ({
@@ -88,10 +86,9 @@ const getCachedMarketplaceChrome = unstable_cache(
         digital: slimHero(hero.digital ?? []),
       },
       collections,
-      verifiedSellers,
     };
   },
-  ["marketplace-chrome-v2"],
+  ["marketplace-chrome-v3"],
   { revalidate: 60 },
 );
 
@@ -134,7 +131,6 @@ export async function MarketplacePage({
               heroPhysical={chrome.hero.physical ?? []}
               heroDigital={chrome.hero.digital ?? []}
               initialCollections={chrome.collections}
-              initialVerifiedSellers={chrome.verifiedSellers}
             />
           </div>
         </div>

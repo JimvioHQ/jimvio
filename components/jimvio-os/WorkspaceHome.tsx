@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useSyncExternalStore, lazy, Suspense } from "react";
+import { memo, useCallback, useEffect, useMemo, useState, useSyncExternalStore, lazy, Suspense } from "react";
 import Link from "next/link";
 import { ArrowRight, ChevronDown, ChevronUp, Eye, EyeOff, Sparkles, SlidersHorizontal } from "lucide-react";
 import {
@@ -10,7 +10,6 @@ import {
   moveWidget,
   resetWidgetLayout,
   toggleWidgetHidden,
-  DEFAULT_WIDGET_ORDER,
   WIDGET_LABELS,
   type WidgetId,
   type WidgetLayout,
@@ -20,7 +19,7 @@ import {
 } from "@/lib/jimvio-os";
 import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
-import { OsEmptyState, OsSkeleton, cn } from "./os-ui";
+import { OsEmptyState, OsSkeleton, cn, OS_BRAND_ACCENT } from "./os-ui";
 import { OsIcon } from "./OsIcon";
 import { SmartPins } from "./SmartPins";
 import { QuickPreview } from "./QuickPreview";
@@ -84,12 +83,15 @@ function greetingForHour(hour: number): string {
   return "Good evening";
 }
 
+/** Mount-time clock only — never return a fresh Date from useSyncExternalStore getSnapshot. */
 function useClientNow(): Date | null {
-  return useSyncExternalStore(
-    () => () => {},
-    () => new Date(),
-    () => null,
-  );
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    // Intentional mount latch (SSR + first paint stay null).
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- client greeting hour
+    setNow(new Date());
+  }, []);
+  return now;
 }
 
 function useOsRecents() {
@@ -98,14 +100,16 @@ function useOsRecents() {
       if (typeof window === "undefined") return () => {};
       const handler = () => onStoreChange();
       window.addEventListener("storage", handler);
+      window.addEventListener("jimvio-os-recents", handler);
       window.addEventListener("focus", handler);
       return () => {
         window.removeEventListener("storage", handler);
+        window.removeEventListener("jimvio-os-recents", handler);
         window.removeEventListener("focus", handler);
       };
     },
-    () => loadOsRecents(),
-    () => [],
+    loadOsRecents,
+    loadOsRecents,
   );
 }
 
@@ -140,26 +144,28 @@ const WorkspaceHeader = memo(function WorkspaceHeader({
   const now = useClientNow();
   const greeting = now ? greetingForHour(now.getHours()) : "Welcome back";
   const firstName = name?.trim()?.split(" ")[0] ?? "";
-  const accent = workspace.home.accent;
+  // Workspace tint stays secondary; Jimvio brand orange anchors identity.
+  const workspaceTint = workspace.home.accent;
+  const brand = OS_BRAND_ACCENT;
 
   return (
     <header
-      className="relative overflow-hidden rounded-3xl border border-[var(--color-border)] px-5 py-6 sm:px-8 sm:py-8"
+      className="relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-6 sm:px-8 sm:py-8"
       style={{
-        background: `linear-gradient(135deg, ${tint(accent, 12)} 0%, var(--color-surface) 48%, ${tint(accent, 6)} 100%)`,
+        background: `linear-gradient(135deg, ${tint(brand, 10)} 0%, var(--color-surface) 42%, ${tint(workspaceTint, 5)} 100%)`,
       }}
     >
       <div
         className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full blur-3xl"
-        style={{ background: tint(accent, 18) }}
+        style={{ background: tint(brand, 14) }}
         aria-hidden
       />
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <span
-              className="grid size-11 shrink-0 place-items-center rounded-2xl text-[20px] shadow-[0_8px_24px_rgba(16,24,40,0.06)] backdrop-blur-md"
-              style={{ background: tint(accent, 16), color: accent }}
+              className="grid size-11 shrink-0 place-items-center rounded-2xl text-[20px] shadow-[0_8px_24px_rgba(16,24,40,0.06)]"
+              style={{ background: tint(brand, 14), color: brand }}
             >
               {workspace.emoji}
             </span>
@@ -178,14 +184,10 @@ const WorkspaceHeader = memo(function WorkspaceHeader({
           </p>
         </div>
         <div
-          className="max-w-sm rounded-2xl border px-4 py-3 text-[12.5px] leading-relaxed backdrop-blur-md"
-          style={{
-            borderColor: tint(accent, 22),
-            background: "color-mix(in srgb, var(--color-surface) 72%, transparent)",
-            color: "var(--color-text-secondary)",
-          }}
+          className="max-w-sm rounded-2xl border border-[var(--color-border)] px-4 py-3 text-[12.5px] leading-relaxed bg-[var(--color-surface)]/80"
+          style={{ color: "var(--color-text-secondary)" }}
         >
-          <span className="mb-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: accent }}>
+          <span className="mb-1 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: brand }}>
             <Sparkles className="size-3.5" />
             AI insight
           </span>
@@ -598,7 +600,7 @@ export const WorkspaceHome = memo(function WorkspaceHome({ name, className }: Wo
       };
     },
     loadWidgetLayout,
-    () => ({ order: [...DEFAULT_WIDGET_ORDER], hidden: [] as WidgetId[] }),
+    loadWidgetLayout,
   );
 
   useEffect(() => {

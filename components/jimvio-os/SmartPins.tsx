@@ -61,14 +61,16 @@ function useOsRecentsSnapshot(): OsRecentPage[] {
       if (typeof window === "undefined") return () => {};
       const handler = () => onStoreChange();
       window.addEventListener("storage", handler);
+      window.addEventListener("jimvio-os-recents", handler);
       window.addEventListener("focus", handler);
       return () => {
         window.removeEventListener("storage", handler);
+        window.removeEventListener("jimvio-os-recents", handler);
         window.removeEventListener("focus", handler);
       };
     },
-    () => loadOsRecents(),
-    () => [],
+    loadOsRecents,
+    loadOsRecents,
   );
 }
 
