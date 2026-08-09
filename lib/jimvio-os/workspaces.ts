@@ -147,7 +147,6 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     description: "Shop and discover",
     homeHref: "/dashboard",
     tools: [
-      { id: "browse", label: "Shopping", href: "/marketplace", icon: "store" },
       { id: "flash", label: "Flash Deals", href: "/marketplace/flash-deals", icon: "ticket" },
       { id: "orders", label: "Orders", href: "/dashboard/orders", icon: "shopping-bag" },
       { id: "wishlist", label: "Wishlist", href: "/dashboard/wishlist", icon: "heart" },
@@ -214,10 +213,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       { id: "products", label: "Products", href: "/dashboard/products", icon: "package" },
       { id: "orders", label: "Orders", href: "/dashboard/orders", icon: "shopping-bag" },
       { id: "customers", label: "Customers", href: "/dashboard/vendor/orders", icon: "users" },
-      { id: "inventory", label: "Inventory", href: "/dashboard/products", icon: "package" },
       { id: "store", label: "Store", href: "/dashboard/vendor/store", icon: "store" },
-      { id: "shipping", label: "Shipping", href: "/dashboard/orders", icon: "shopping-bag" },
-      { id: "seller-analytics", label: "Analytics", href: "/dashboard/analytics", icon: "chart" },
     ],
     quickActions: [
       { label: "Add Product", href: "/dashboard/products/new", icon: "plus" },
@@ -281,7 +277,6 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       { id: "content", label: "My Content", href: "/ugc/library", icon: "graduation" },
       { id: "campaigns", label: "Campaigns", href: "/ugc", icon: "megaphone" },
       { id: "applications", label: "Applications", href: "/ugc/applications", icon: "layout" },
-      { id: "portfolio", label: "Portfolio", href: "/identity", icon: "users" },
       { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: "wallet" },
       { id: "calendar", label: "Calendar", href: "/ugc/calendar", icon: "clock" },
       { id: "creator-analytics", label: "Analytics", href: "/ugc/analytics", icon: "chart" },
@@ -414,9 +409,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     tools: [
       { id: "links", label: "Links", href: "/affiliates/links", icon: "link" },
       { id: "programs", label: "Programs", href: "/affiliates", icon: "megaphone" },
-      { id: "clicks", label: "Clicks", href: "/affiliates/analytics", icon: "chart" },
       { id: "conversions", label: "Conversions", href: "/affiliates/dashboard", icon: "chart" },
-      { id: "aff-wallet", label: "Wallet", href: "/wallet", icon: "wallet" },
       { id: "leaderboard", label: "Leaderboard", href: "/ugc/referrals", icon: "users" },
     ],
     quickActions: [
@@ -483,7 +476,6 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       { id: "spaces", label: "Spaces", href: "/communities/spaces", icon: "layout" },
       { id: "courses", label: "Courses", href: "/communities/courses", icon: "graduation" },
       { id: "events", label: "Events", href: "/communities/events", icon: "megaphone" },
-      { id: "growth", label: "Growth", href: "/dashboard/communities", icon: "chart" },
     ],
     quickActions: [
       { label: "Create Space", href: "/communities/spaces", icon: "layout" },
@@ -548,7 +540,6 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       { id: "upcoming", label: "Upcoming Lives", href: "/communities/events", icon: "megaphone" },
       { id: "products", label: "Products", href: "/dashboard/products", icon: "package" },
       { id: "audience", label: "Audience", href: "/communities", icon: "users" },
-      { id: "revenue", label: "Revenue", href: "/dashboard/analytics", icon: "chart" },
     ],
     quickActions: [
       { label: "Go Live", href: "/communities/live", icon: "live" },
@@ -609,11 +600,9 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     description: "Copilot and automation",
     homeHref: "/dashboard",
     tools: [
-      { id: "copilot", label: "AI Copilot", href: "#open-ai", icon: "sparkles" },
       { id: "campaign-ai", label: "Campaign Builder", href: "/ugc/campaign-center/copilot", icon: "megaphone" },
       { id: "creator-ai", label: "Creator Coach", href: "/ugc/creator-copilot", icon: "users" },
       { id: "automations", label: "Automations", href: "/ugc/campaign-center/automations", icon: "zap" },
-      { id: "insights", label: "Insights", href: "/dashboard/analytics", icon: "chart" },
       { id: "wallet-ai", label: "Financial AI", href: "/wallet/ai", icon: "wallet" },
     ],
     quickActions: [

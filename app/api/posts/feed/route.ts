@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Json } from "@/types/supabase";
 import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
 import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
@@ -26,12 +27,156 @@ const FEED_FILTERS = new Set([
   "missions",
 ]);
 
+/**
+ * Logged-out discovery: published posts from non-private communities only.
+ * Never returns private/members-only content. Drafts / following / friends require auth.
+ */
+async function getPublicDiscoveryFeed(req: NextRequest) {
+  const { searchParams } = req.nextUrl;
+  const limit = Math.min(Number(searchParams.get("limit") ?? PAGE_SIZE), 50);
+  const cursor = searchParams.get("cursor");
+  const requestedFilter = searchParams.get("filter") ?? "for-you";
+  const filter = FEED_FILTERS.has(requestedFilter) ? requestedFilter : "for-you";
+  const communityId = searchParams.get("community_id");
+  const draftsOnly = searchParams.get("drafts") === "1";
+
+  if (draftsOnly) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Personalized filters need an account — surface public discovery instead.
+  const publicFilter =
+    filter === "following" || filter === "friends" ? "for-you" : filter;
+
+  const admin = createAdminClient();
+
+  let publicCommunityIds: string[] = [];
+  if (communityId) {
+    const { data: community } = await admin
+      .from("communities")
+      .select("id, is_private, is_active")
+      .eq("id", communityId)
+      .maybeSingle();
+    if (!community || community.is_active === false || community.is_private === true) {
+      return NextResponse.json({ error: "No access" }, { status: 403 });
+    }
+    publicCommunityIds = [community.id];
+  } else {
+    const { data: communities } = await admin
+      .from("communities")
+      .select("id")
+      .eq("is_active", true)
+      .eq("is_private", false)
+      .order("member_count", { ascending: false })
+      .limit(80);
+    publicCommunityIds = (communities ?? []).map((c) => c.id);
+  }
+
+  if (!publicCommunityIds.length) {
+    return NextResponse.json({ posts: [], next_cursor: null });
+  }
+
+  let query = admin
+    .from("community_posts")
+    .select(
+      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug, name, is_private)",
+    )
+    .in("community_id", publicCommunityIds)
+    .eq("is_published", true)
+    .is("archived_at", null);
+
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
+
+  switch (publicFilter) {
+    case "trending":
+    case "ai-picks":
+      query = query
+        .gte("created_at", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
+        .or("like_count.gte.1,comment_count.gte.1");
+      break;
+    case "hot":
+      query = query
+        .gte("created_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
+        .or("like_count.gte.1,comment_count.gte.1");
+      break;
+    case "rising":
+      query = query.gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+      break;
+    case "verified": {
+      const { data: featuredCommunities } = await admin
+        .from("communities")
+        .select("id")
+        .in("id", publicCommunityIds)
+        .or("is_featured.eq.true,member_count.gte.100");
+      const featuredIds = (featuredCommunities ?? []).map((community) => community.id);
+      if (!featuredIds.length) return NextResponse.json({ posts: [], next_cursor: null });
+      query = query.in("community_id", featuredIds);
+      break;
+    }
+    case "spaces":
+      query = query.neq("space_id", "00000000-0000-0000-0000-000000000000");
+      break;
+    case "missions":
+      query = query.in("post_type", ["mission", "task", "challenge"]);
+      break;
+    default:
+      break;
+  }
+
+  query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
+  // Over-fetch slightly so audience/privacy filtering still yields a full page.
+  const { data, error } = await query.limit(Math.min(limit * 2 + 4, 80));
+
+  if (error) {
+    console.error("Error fetching public discovery feed:", error);
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  const rows = data ?? [];
+
+  // Defense in depth: public communities + public audience only.
+  const safeRows = rows.filter((post) => {
+    const community = (post as { communities?: { is_private?: boolean | null } | null }).communities;
+    if (community?.is_private === true) return false;
+    const audience = (post as { audience?: string | null }).audience;
+    return !audience || audience === "public";
+  });
+
+  const hasMore = safeRows.length > limit;
+  const pageRows = safeRows.slice(0, limit);
+
+  let enriched = pageRows.map((post) => ({
+    ...post,
+    user_has_liked: false,
+    user_reaction: null,
+    user_has_saved: false,
+    quoted_post: null,
+  }));
+
+  const shouldRank = ["for-you", "trending", "ai-picks", "hot", "rising", "recommended"].includes(
+    publicFilter,
+  );
+  if (shouldRank) {
+    enriched = rankFeedItems(enriched as unknown as Parameters<typeof rankFeedItems>[0], {
+      viewerId: "",
+      followedAuthorIds: new Set(),
+    }) as typeof enriched;
+  }
+
+  const next_cursor =
+    hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.created_at : null;
+
+  return NextResponse.json({ posts: enriched, next_cursor });
+}
+
 export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!user) return getPublicDiscoveryFeed(req);
 
   const { searchParams } = req.nextUrl;
   const limit = Math.min(Number(searchParams.get("limit") ?? PAGE_SIZE), 50);

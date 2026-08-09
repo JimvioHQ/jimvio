@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Check,
   Flame,
@@ -20,6 +21,7 @@ import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlaye
 import { toPlayableCommunityVideoUrl } from "@/lib/community-chat-upload";
 import type { FeedTab } from "@/lib/feed/mock-data";
 import { FEED_TAB_FILTERS } from "@/lib/feed/tab-filters";
+import { useFeedUser } from "@/lib/feed/use-feed-user";
 
 type ApiPost = {
   id: string;
@@ -149,6 +151,8 @@ function formatEngagement(value: number | string): string {
 }
 
 export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
+  const router = useRouter();
+  const { isAuthenticated } = useFeedUser();
   const [posts, setPosts] = useState<DisplayPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -167,6 +171,7 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
       if (nextCursor) params.set("cursor", nextCursor);
       const res = await fetch(`/api/posts/feed?${params}`);
       if (res.status === 401) {
+        // Drafts / protected feed modes still require auth.
         if (!isMore) {
           setPosts([]);
           setUsingMock(false);
@@ -224,8 +229,8 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
   }, [hasMore, cursor, loadingMore, usingMock, load]);
 
   async function toggleLike(postId: string) {
-    if (usingMock) {
-      toast.message("Sign in to like posts");
+    if (usingMock || !isAuthenticated) {
+      router.push(`/login?next=${encodeURIComponent("/communities")}`);
       return;
     }
     setPosts((prev) =>
@@ -245,6 +250,10 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
     );
     try {
       const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
+      if (res.status === 401) {
+        router.push(`/login?next=${encodeURIComponent("/communities")}`);
+        return;
+      }
       if (!res.ok) throw new Error("like failed");
     } catch {
       toast.error("Could not update like");
@@ -284,9 +293,9 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
     return (
       <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center">
         <Flame className="mx-auto h-6 w-6 text-[#fd5000]" />
-        <p className="mt-3 text-[15px] font-bold text-[#111827]">Your feed is ready</p>
+        <p className="mt-3 text-[15px] font-bold text-[#111827]">Discover public communities</p>
         <p className="mx-auto mt-1 max-w-sm text-[13px] text-[#6B7280]">
-          Follow creators, join communities, and publish your first post to fill this stream.
+          Explore public hubs and posts now. Sign in when you&apos;re ready to join, post, or chat.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link
@@ -299,7 +308,7 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
             href="/login?next=/communities"
             className="inline-flex h-10 items-center rounded-xl border border-[#E5E7EB] bg-white px-4 text-[13px] font-semibold text-[#111827]"
           >
-            Sign in
+            Sign in to participate
           </Link>
         </div>
       </div>

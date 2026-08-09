@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { unstable_cache } from "next/cache";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PHYSICAL_CATEGORY_CATALOG } from "@/lib/marketplace/category-catalog";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 import { getImage, isRenderableUrl } from "@/lib/utils";
@@ -483,4 +485,28 @@ export async function fetchCollectionBySlug(
   } catch {
     return null;
   }
+}
+
+/** Cached featured list — shared by marketplace index (admin, cookie-free). */
+export function getCachedFeaturedCollections(limit = HOME_COLLECTION_LIMIT) {
+  return unstable_cache(
+    async () => {
+      const supabase = createAdminClient();
+      return fetchFeaturedCollections(supabase, limit);
+    },
+    ["marketplace-featured-collections-v1", String(limit)],
+    { revalidate: 60 },
+  )();
+}
+
+/** Cached collection detail — speeds up card → page navigation. */
+export function getCachedCollectionBySlug(slug: string) {
+  return unstable_cache(
+    async () => {
+      const supabase = createAdminClient();
+      return fetchCollectionBySlug(supabase, slug);
+    },
+    ["marketplace-collection-by-slug-v1", slug],
+    { revalidate: 60 },
+  )();
 }

@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { fetchCollectionBySlug } from "@/lib/marketplace/collections";
+import { cache } from "react";
+import { getCachedCollectionBySlug } from "@/lib/marketplace/collections";
 import { ChevronLeft } from "lucide-react";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { notFound } from "next/navigation";
+
+export const revalidate = 60;
+
+const loadCollection = cache((slug: string) => getCachedCollectionBySlug(slug));
 
 export async function generateMetadata({
   params,
@@ -12,8 +16,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createClient();
-  const collection = await fetchCollectionBySlug(supabase, slug);
+  const collection = await loadCollection(slug);
   return {
     title: collection ? `${collection.title} | Jimvio` : "Collection | Jimvio",
     description: collection?.description ?? "Curated marketplace collection",
@@ -26,22 +29,21 @@ export default async function MarketplaceCollectionDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const supabase = await createClient();
-  const collection = await fetchCollectionBySlug(supabase, slug);
+  const collection = await loadCollection(slug);
   if (!collection) notFound();
 
   return (
     <div className="mx-auto w-full max-w-8xl px-4 py-6 sm:px-6">
       <Link
         href="/marketplace/collections"
-        className="mb-4 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-text-muted)] hover:text-[#fd5000]"
+        className="mb-4 inline-flex items-center gap-1 text-[12px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-accent)]"
       >
         <ChevronLeft className="h-3.5 w-3.5" /> All collections
       </Link>
 
       <header className="mb-6">
         {collection.badge && (
-          <span className="inline-flex rounded-full bg-[#fd5000]/12 px-2.5 py-1 text-[10px] font-bold text-[#fd5000]">
+          <span className="inline-flex rounded-full bg-[var(--color-accent)]/12 px-2.5 py-1 text-[10px] font-bold text-[var(--color-accent)]">
             {collection.badge}
           </span>
         )}
@@ -62,7 +64,7 @@ export default async function MarketplaceCollectionDetailPage({
           </p>
           <Link
             href="/marketplace"
-            className="mt-4 inline-flex rounded-xl bg-[#fd5000] px-4 py-2 text-sm font-bold text-white"
+            className="mt-4 inline-flex rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-bold text-white"
           >
             Browse marketplace
           </Link>
@@ -75,7 +77,8 @@ export default async function MarketplaceCollectionDetailPage({
               <Link
                 key={p.id}
                 href={`/marketplace/${p.slug}`}
-                className="group overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] transition-all hover:border-[#fd5000]/40 hover:shadow-md"
+                prefetch
+                className="group overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] transition-all hover:border-[var(--color-accent)]/40 hover:shadow-md"
               >
                 <div className="aspect-square overflow-hidden bg-[var(--color-surface-secondary)]">
                   {img ? (
@@ -91,7 +94,7 @@ export default async function MarketplaceCollectionDetailPage({
                   <p className="line-clamp-2 text-[13px] font-semibold text-[var(--color-text-primary)]">
                     {p.name}
                   </p>
-                  <p className="mt-1 text-[13px] font-bold text-[#fd5000]">
+                  <p className="mt-1 text-[13px] font-bold text-[var(--color-accent)]">
                     <LocalizedPrice amount={p.price} currency={p.currency ?? "USD"} />
                   </p>
                 </div>

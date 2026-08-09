@@ -118,6 +118,7 @@ async function fetchPublicCommunitiesUncached(limit: number) {
     .from("communities")
     .select(COMMUNITY_CARD_COLUMNS)
     .eq("is_active", true)
+    .eq("is_private", false)
     .order("member_count", { ascending: false })
     .limit(limit);
 
@@ -131,7 +132,7 @@ async function fetchPublicCommunitiesUncached(limit: number) {
 export async function getPublicCommunities(limit = 12) {
   return unstable_cache(
     () => fetchPublicCommunitiesUncached(limit),
-    [`public-communities-v3-${limit}`],
+    [`public-communities-v4-${limit}`],
     { revalidate: 120 },
   )();
 }
@@ -142,6 +143,7 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
     .from("communities")
     .select("id, name, slug, tagline, member_count, avatar_url, cover_image, category")
     .eq("is_active", true)
+    .eq("is_private", false)
     .order("member_count", { ascending: false })
     .limit(limit);
 
@@ -156,7 +158,7 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
 export async function getHomepageCommunities(limit = 8) {
   return unstable_cache(
     () => fetchHomepageCommunitiesUncached(limit),
-    [`homepage-communities-v2-${limit}`],
+    [`homepage-communities-v3-${limit}`],
     { revalidate: 120 },
   )();
 }
