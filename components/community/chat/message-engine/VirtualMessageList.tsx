@@ -73,9 +73,9 @@ export function VirtualMessageList({
     estimateSize: (index) => {
       const item = items[index];
       if (!item) return 72;
-      if (item.kind === "day") return 44;
-      if (item.kind === "system") return 28;
-      return 128;
+      if (item.kind === "day") return 28;
+      if (item.kind === "system") return 24;
+      return item.compact ? 56 : 88;
     },
     overscan: 8,
     getItemKey: (index) => items[index]?.id ?? index,
@@ -180,10 +180,10 @@ export function VirtualMessageList({
               }}
             >
               {item.kind === "day" && (
-                <div className="my-3 mb-5 flex justify-center" role="separator">
+                <div className="my-1.5 mb-2 flex justify-center" role="separator">
                   <span
                     className={cn(
-                      "rounded-full border border-white/70 px-3.5 py-1 text-[12px] font-medium shadow-sm",
+                      "rounded-full border border-white/70 px-2.5 py-0.5 text-[11px] font-medium shadow-sm",
                       "bg-white/90 text-gray-500 backdrop-blur-sm"
                     )}
                   >

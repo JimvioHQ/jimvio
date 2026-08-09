@@ -19,13 +19,14 @@ assert.match(hub, /CommunityOverviewHome/);
 assert.match(hub, /Joined|Join Community/);
 
 const home = mustExist("components/community/hub/community-overview-home.tsx");
-assert.match(home, /Highlights/);
-assert.match(home, /Community Activity/);
-assert.match(home, /Member Spotlight/);
-assert.match(home, /Featured Spaces/);
-assert.match(home, /recentActivity/);
-assert.match(home, /founder|moderators|memberAvatars/);
-assert.match(home, /communitySpaceHref/);
+assert.match(home, /Description/);
+assert.match(home, /Mission/);
+assert.match(home, /Vision/);
+assert.match(home, /Announcements/);
+assert.doesNotMatch(home, /Community Activity/);
+assert.doesNotMatch(home, /Member Spotlight/);
+assert.doesNotMatch(home, /Featured Spaces/);
+assert.doesNotMatch(home, />\s*Highlights\s*</);
 assert.doesNotMatch(home, /Global creator & affiliate network/);
 
 console.log("verify-community-experience-v2: ok");

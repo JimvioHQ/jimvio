@@ -151,9 +151,9 @@ export async function GET(req: NextRequest) {
   }
 
   query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
-  const shouldRank = ["for-you", "trending", "ai-picks", "hot", "rising", "recommended"].includes(filter);
-  const candidateLimit = shouldRank ? Math.min(200, limit * 4 + 1) : limit + 1;
-  const { data, error } = await query.limit(candidateLimit);
+  // Paginate chronologically so cursor pages never skip/duplicate posts.
+  // Ranking may reorder *within* a page for display, but must not drive the cursor.
+  const { data, error } = await query.limit(limit + 1);
 
   if (error) {
     console.error("Error fetching feed posts:", error);
@@ -161,7 +161,9 @@ export async function GET(req: NextRequest) {
   }
 
   const rows = data ?? [];
-  const postIds = rows.map((post) => post.id);
+  const hasMore = rows.length > limit;
+  const pageRows = rows.slice(0, limit);
+  const postIds = pageRows.map((post) => post.id);
 
   const [{ data: likedRows }, { data: reactionRows }, { data: savedRows }] =
     postIds.length > 0
@@ -198,7 +200,7 @@ export async function GET(req: NextRequest) {
   const savedSet = new Set((savedRows ?? []).map((row) => row.post_id));
 
   // Enrich quote posts (best-effort; quote_of_post_id may be missing pre-migration)
-  const quoteIds = rows
+  const quoteIds = pageRows
     .map((p) => (p as { quote_of_post_id?: string | null }).quote_of_post_id)
     .filter((id): id is string => Boolean(id));
   let quotedById = new Map<string, { id: string; body: string; profiles?: unknown }>();
@@ -210,7 +212,7 @@ export async function GET(req: NextRequest) {
     quotedById = new Map((quoted ?? []).map((q) => [q.id, q]));
   }
 
-  let enriched = rows.map((post) => {
+  let enriched = pageRows.map((post) => {
     const quoteId = (post as { quote_of_post_id?: string | null }).quote_of_post_id;
     const userReaction = reactionByPost.get(post.id) ?? null;
     return {
@@ -222,8 +224,9 @@ export async function GET(req: NextRequest) {
     };
   });
 
+  const shouldRank = ["for-you", "trending", "ai-picks", "hot", "rising", "recommended"].includes(filter);
   if (shouldRank && !draftsOnly) {
-    // Cast through unknown: PostgREST Json reaction_counts is wider than RankableFeedItem.
+    // Soft-rank within the chronological page only — preserves pagination completeness.
     enriched = rankFeedItems(enriched as unknown as Parameters<typeof rankFeedItems>[0], {
       viewerId: user.id,
       followedAuthorIds,
@@ -238,11 +241,11 @@ export async function GET(req: NextRequest) {
       });
     }
   }
-  const hasMore = enriched.length > limit;
-  const posts = enriched.slice(0, limit);
 
+  // Cursor must follow chronological page order (last row from DB page), not ranked order.
+  const posts = enriched;
   const next_cursor =
-    hasMore && posts.length > 0 ? posts[posts.length - 1].created_at : null;
+    hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.created_at : null;
 
   return NextResponse.json({ posts, next_cursor });
 }

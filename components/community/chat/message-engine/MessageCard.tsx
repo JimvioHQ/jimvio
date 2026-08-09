@@ -188,7 +188,7 @@ export function MessageCard({
       className={cn(
         "group flex w-full scroll-mt-24 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
         discussion
-          ? cn(compact ? "mb-0.5" : "mb-2 sm:mb-2.5", isOwn ? "justify-end" : "justify-start")
+          ? cn(compact ? "mb-0.5" : "mb-1 sm:mb-1.5", isOwn ? "justify-end" : "justify-start")
           : "mb-0.5",
         !discussion && (isOwn ? "justify-end" : "justify-start"),
         compact && !discussion && "pl-3"
@@ -199,7 +199,7 @@ export function MessageCard({
           "flex gap-2",
           discussion
             ? cn(
-                "max-w-[min(100%,34rem)]",
+                "max-w-[min(100%,28rem)]",
                 isOwn ? "flex-row-reverse" : "flex-row"
               )
             : cn("max-w-[min(100%,28rem)] gap-2", isOwn && "flex-row-reverse")
@@ -288,10 +288,10 @@ export function MessageCard({
               "relative transition-shadow duration-200",
               discussion
                 ? cn(
-                    "px-3 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)]",
+                    "px-2.5 py-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
                     isOwn
-                      ? "rounded-[18px] rounded-br-md bg-[var(--color-accent-light)] ring-1 ring-[var(--color-accent)]/12"
-                      : "rounded-[18px] rounded-bl-md bg-white/95 ring-1 ring-black/[0.05]"
+                      ? "rounded-[16px] rounded-br-md bg-[var(--color-accent-light)] ring-1 ring-[var(--color-accent)]/10"
+                      : "rounded-[16px] rounded-bl-md bg-white/95 ring-1 ring-black/[0.04]"
                   )
                 : cn(
                     "px-3 pb-2.5 pt-2 shadow-sm group-hover:shadow-md",
@@ -392,7 +392,7 @@ export function MessageCard({
                   body={m.body}
                   className={
                     discussion
-                      ? "text-[13.5px] leading-snug text-gray-800"
+                      ? "text-[13px] leading-snug text-gray-800"
                       : undefined
                   }
                 />

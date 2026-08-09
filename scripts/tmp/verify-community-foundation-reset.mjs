@@ -72,7 +72,9 @@ const overviewHome = mustExist(
 assert.match(overviewHome, /Description/);
 assert.match(overviewHome, /Mission/);
 assert.match(overviewHome, /Vision/);
-assert.match(overviewHome, /Announcements|Highlights|Community Activity/);
-assert.match(overviewHome, /Featured Spaces|Member Spotlight/);
+assert.match(overviewHome, /Announcements/);
+assert.doesNotMatch(overviewHome, /Community Activity/);
+assert.doesNotMatch(overviewHome, /Member Spotlight/);
+assert.doesNotMatch(overviewHome, /Featured Spaces/);
 
 console.log("Community foundation reset verification passed.");

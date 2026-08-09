@@ -20,8 +20,10 @@ const header = mustExist(
 );
 assert.match(header, /lastActivityLabel/);
 assert.match(header, /privacyLabel|Public|Private/);
-assert.match(header, /group\.description/);
-assert.match(header, /members/);
+assert.match(header, /memberCountLabel|member/);
+assert.match(header, /group\.name/);
+assert.doesNotMatch(header, /Created \$\{/);
+assert.doesNotMatch(header, /typeLabel/);
 
 const chrome = mustExist(
   "components/community/workspace/space/SpaceViewChrome.tsx"

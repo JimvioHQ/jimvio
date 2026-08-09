@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image as ImageIcon,
@@ -67,6 +68,7 @@ export function PostComposer({
   variant?: "inline" | "page";
   onPublished?: (postId?: string) => void;
 } = {}) {
+  const router = useRouter();
   const { user, isLoading, isAuthenticated } = useFeedUser();
   const displayName = user?.displayName ?? "there";
   const avatarLabel = user?.fullName ?? user?.username ?? "You";
@@ -321,6 +323,19 @@ export function PostComposer({
 
   function openComposer(nextMode?: "discussion" | "poll") {
     if (!isAuthenticated) return;
+    // Feed entry must open the dedicated Create Post page (same as Create → Post).
+    if (!isPage) {
+      const params = new URLSearchParams();
+      const slug =
+        selectedCommunity?.slug ||
+        communities.find((c) => c.id === communityId)?.slug ||
+        initialCommunitySlug;
+      if (slug) params.set("community", slug);
+      if (nextMode === "poll") params.set("mode", "poll");
+      const qs = params.toString();
+      router.push(qs ? `/create/post?${qs}` : "/create/post");
+      return;
+    }
     if (nextMode) setMode(nextMode);
     setExpanded(true);
     requestAnimationFrame(() => textRef.current?.focus());
@@ -341,10 +356,13 @@ export function PostComposer({
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        if (isAuthenticated) {
-          setExpanded(true);
-          handleFiles(e.dataTransfer.files);
+        if (!isAuthenticated) return;
+        if (!isPage) {
+          openComposer();
+          return;
         }
+        setExpanded(true);
+        handleFiles(e.dataTransfer.files);
       }}
     >
       {isPage && (

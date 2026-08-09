@@ -274,6 +274,7 @@ export function FeedSection({
     const communityPickerRef = useRef<HTMLDivElement>(null);
     const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
     const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const loadingMoreRef = useRef(false);
 
     // ── Bootstrap current user + memberships ──────────────────────────────────
     useEffect(() => {
@@ -473,18 +474,21 @@ export function FeedSection({
         if (!el || !hasMore) return;
         const obs = new IntersectionObserver(
             (entries) => {
-                if (entries[0]?.isIntersecting) void loadMore();
+                if (entries[0]?.isIntersecting && !loadingMoreRef.current) {
+                    void loadMore();
+                }
             },
             { rootMargin: "240px" }
         );
         obs.observe(el);
         return () => obs.disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hasMore, cursor, loadingMore]);
+    }, [hasMore, cursor]);
 
     // ── Load more (pagination) ────────────────────────────────────────────────
     async function loadMore() {
-        if (!cursor || loadingMore) return;
+        if (!cursor || loadingMoreRef.current) return;
+        loadingMoreRef.current = true;
         setLoadingMore(true);
         try {
             const params = new URLSearchParams({
@@ -514,6 +518,7 @@ export function FeedSection({
             );
             setLikedIds((prev) => new Set([...prev, ...liked]));
         } finally {
+            loadingMoreRef.current = false;
             setLoadingMore(false);
         }
     }

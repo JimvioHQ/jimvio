@@ -155,7 +155,7 @@ export function ChatInputZone({
       className={cn(
         "relative flex shrink-0 flex-col",
         discussion
-          ? "discussion-chat-canvas border-t border-black/[0.04] px-3 pb-[max(8px,env(safe-area-inset-bottom,0px))] pt-1.5 sm:px-5 lg:px-6"
+          ? "discussion-chat-canvas border-t border-black/[0.04] px-2.5 pb-[max(6px,env(safe-area-inset-bottom,0px))] pt-1 sm:px-4 lg:px-5"
           : "border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
       )}
       onDragEnter={(e) => {
@@ -284,27 +284,27 @@ export function ChatInputZone({
 
           <div
             className={cn(
-              "flex min-h-[52px] items-end gap-1",
+              "flex min-h-[44px] items-end gap-1",
               discussion
-                ? "mx-auto w-full max-w-[720px] flex-col gap-1 max-lg:mb-[3.25rem]"
+                ? "mx-auto w-full max-w-[720px] flex-col gap-0.5 max-lg:mb-[3.25rem]"
                 : "px-3 py-[9px] pb-[max(9px,env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(3.5rem+max(9px,env(safe-area-inset-bottom,0px)))]"
             )}
           >
             {discussion ? (
               <div
                 className={cn(
-                  "flex w-full items-center gap-1 rounded-full border border-black/[0.06] bg-white/95 px-1.5 py-1",
-                  "shadow-[0_2px_14px_rgba(15,23,42,0.07)] backdrop-blur-md",
-                  "focus-within:border-[var(--color-accent)]/30 focus-within:ring-2 focus-within:ring-[var(--color-accent)]/15"
+                  "flex w-full items-center gap-0.5 rounded-full border border-black/[0.06] bg-white/95 px-1 py-0.5",
+                  "shadow-[0_2px_10px_rgba(15,23,42,0.06)] backdrop-blur-md",
+                  "focus-within:border-[var(--color-accent)]/30 focus-within:ring-2 focus-within:ring-[var(--color-accent)]/12"
                 )}
               >
                 <button
                   type="button"
                   aria-label="Attach file"
                   onClick={() => fileRef.current?.click()}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
                 >
-                  <span className="text-lg font-medium leading-none">+</span>
+                  <span className="text-base font-medium leading-none">+</span>
                 </button>
                 <input
                   ref={fileRef}
@@ -363,8 +363,8 @@ export function ChatInputZone({
                     disabled={sending || uploading}
                     aria-label="Message composer"
                     className={cn(
-                      "max-h-28 min-h-[28px] w-full resize-none border-0 bg-transparent px-1 py-1.5 outline-none",
-                      "text-[13.5px] leading-snug text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
+                      "max-h-24 min-h-[26px] w-full resize-none border-0 bg-transparent px-1 py-1 outline-none",
+                      "text-[13px] leading-snug text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
                       "disabled:cursor-not-allowed disabled:opacity-60"
                     )}
                     onKeyDown={(e) => {
@@ -384,14 +384,14 @@ export function ChatInputZone({
                   />
                 </div>
 
-                <div className="flex shrink-0 items-center gap-0.5">
+                <div className="flex shrink-0 items-center gap-0">
                   <button
                     type="button"
                     aria-label="Emoji picker"
                     onClick={onOpenEmojiPicker}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
                   >
-                    <Smile className="h-4 w-4" />
+                    <Smile className="h-3.5 w-3.5" />
                   </button>
                   <button
                     type="button"
@@ -400,14 +400,14 @@ export function ChatInputZone({
                       setText(`${text}@`);
                       taRef.current?.focus();
                     }}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
                   >
-                    <AtSign className="h-4 w-4" />
+                    <AtSign className="h-3.5 w-3.5" />
                   </button>
                   <label
                     htmlFor={imgInputId}
                     className={cn(
-                      "flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors",
+                      "flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-colors",
                       uploading
                         ? "pointer-events-none opacity-50"
                         : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
@@ -415,9 +415,9 @@ export function ChatInputZone({
                     aria-label="Attach image"
                   >
                     {uploading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <Paperclip className="h-4 w-4" />
+                      <Paperclip className="h-3.5 w-3.5" />
                     )}
                   </label>
                   <button
@@ -427,12 +427,12 @@ export function ChatInputZone({
                     title="Voice message"
                     onClick={() => void onStartVoice()}
                     className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full text-gray-400",
+                      "flex h-7 w-7 items-center justify-center rounded-full text-gray-400",
                       "transition hover:bg-gray-50 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                     )}
                   >
-                    <Mic className="h-4 w-4" />
+                    <Mic className="h-3.5 w-3.5" />
                   </button>
                   <button
                     type="button"
@@ -440,16 +440,16 @@ export function ChatInputZone({
                     aria-label="Send message"
                     onClick={onSend}
                     className={cn(
-                      "ml-0.5 flex h-9 w-9 items-center justify-center rounded-full",
-                      "bg-[var(--color-accent)] text-white shadow-[0_4px_12px_rgba(253,80,0,0.28)]",
+                      "ml-0.5 flex h-8 w-8 items-center justify-center rounded-full",
+                      "bg-[var(--color-accent)] text-white shadow-[0_3px_10px_rgba(253,80,0,0.24)]",
                       "transition-all duration-150 hover:bg-[var(--color-accent-hover)] hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-45",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                     )}
                   >
                     {sending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
-                      <Send className="h-3.5 w-3.5" strokeWidth={2.4} />
+                      <Send className="h-3 w-3" strokeWidth={2.4} />
                     )}
                   </button>
                 </div>
