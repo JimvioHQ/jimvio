@@ -145,7 +145,6 @@ export const localCommandSearchProvider: CommandSearchProvider = {
           .map((c) => ({ ...c, section: "recommended" as const }));
 
       const work = byId([
-        "nav-home",
         "jump-orders",
         "open-wallet-os",
         "open-messages",

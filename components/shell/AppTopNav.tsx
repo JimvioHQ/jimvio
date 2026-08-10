@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   ChevronDown,
-  Home,
   Plus,
   Search,
   ShoppingCart,
+  Wallet,
 } from "lucide-react";
 import JimvioLogo from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -17,8 +17,8 @@ import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
 import { OS_WORKSPACE_MODES } from "@/lib/jimvio-os/config";
 import {
-  isHomeActive,
   isPrimaryNavActive,
+  isWalletActive,
   PRIMARY_NAV_ITEMS,
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
@@ -74,7 +74,7 @@ export function AppTopNav({
   void _showUtilityBar;
   const pathname = usePathname();
   const { cartCount } = useCartStore();
-  const homeActive = isHomeActive(pathname);
+  const walletActive = isWalletActive(pathname);
   const openCommandCenter = useCommandCenterStore((s) => s.openCommandCenter);
   const workspaceMode = useJimvioOsStore((s) => s.workspaceMode);
   const currentWorkspace = OS_WORKSPACE_MODES.find((m) => m.id === workspaceMode) ?? OS_WORKSPACE_MODES[1];
@@ -175,16 +175,16 @@ export function AppTopNav({
 
           {user && (
             <Link
-              href="/dashboard"
+              href="/wallet"
               className={cn(
                 "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border px-2.5 text-[11px] font-semibold shadow-[0_1px_2px_rgba(17,24,39,0.03)] transition-all duration-150 sm:px-3 sm:text-xs min-[1060px]:hidden",
-                homeActive
+                walletActive
                   ? "border-orange-500 bg-orange-50 text-orange-600 shadow-[0_1px_4px_rgba(255,90,31,0.15)]"
                   : "border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600",
               )}
             >
-              <Home className="h-3.5 w-3.5 shrink-0" />
-              <span className="whitespace-nowrap">Home</span>
+              <Wallet className="h-3.5 w-3.5 shrink-0" />
+              <span className="whitespace-nowrap">Wallet</span>
             </Link>
           )}
 

@@ -14,7 +14,6 @@ import {
   X,
   Globe,
   CircleHelp,
-  LayoutDashboard,
   Settings,
   LogOut,
   TrendingUp,
@@ -48,6 +47,7 @@ import {
   FileText,
   BanknoteIcon,
   DollarSign,
+  Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -70,7 +70,7 @@ import JimvioLogo from "../ui/logo";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
   MOBILE_BOTTOM_NAV_ITEMS,
-  isDashboardActive,
+  isWalletActive,
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
 
@@ -235,17 +235,19 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
   if (!out.some((l) => norm(l.href) === "/communities"))
     out.push({ label: "Communities", href: "/communities" });
 
-  if (!out.some((l) => norm(l.href) === "/"))
-    out.unshift({ label: "Home", href: "/" });
+  // Primary nav: Wallet replaces Home (Home page remains at `/` via logo / account).
+  out = out.filter((l) => norm(l.href) !== "/");
 
-  // Move Home to index 0
-  const hi = out.findIndex((l) => norm(l.href) === "/");
-  if (hi > 0) {
-    const [home] = out.splice(hi, 1);
-    out.unshift(home);
+  if (!out.some((l) => norm(l.href) === "/wallet"))
+    out.unshift({ label: "Wallet", href: "/wallet" });
+
+  const wi = out.findIndex((l) => norm(l.href) === "/wallet");
+  if (wi > 0) {
+    const [wallet] = out.splice(wi, 1);
+    out.unshift(wallet);
   }
 
-  // Move Marketplace to index 1 (right after Home)
+  // Marketplace immediately after Wallet
   const mi = out.findIndex((l) => norm(l.href) === "/marketplace");
   if (mi > 1) {
     const [marketplace] = out.splice(mi, 1);
@@ -258,6 +260,7 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
 
 function iconForHref(href: string): LucideIcon {
   const h = href.replace(/\/$/, "") || "/";
+  if (h === "/wallet" || h.startsWith("/wallet/")) return Wallet;
   if (h === "/") return Home;
   if (h.startsWith("/communities")) return Users;
   if (h.startsWith("/ugc")) return Clapperboard;
@@ -510,12 +513,12 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
               {user && (
                 <ConsoleButton
-                  href="/dashboard"
-                  active={isDashboardActive(pathname)}
-                  className="hidden h-9 shrink-0 gap-1 px-2.5 py-0 text-[11px] font-semibold sm:inline-flex sm:px-3 sm:text-xs"
+                  href="/wallet"
+                  active={isWalletActive(pathname)}
+                  className="hidden h-9 shrink-0 gap-1 px-2.5 py-0 text-[11px] font-semibold sm:inline-flex sm:px-3 sm:text-xs min-[1240px]:hidden"
                 >
-                  <Home className="h-3.5 w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">Home</span>
+                  <Wallet className="h-3.5 w-3.5 shrink-0" />
+                  <span className="whitespace-nowrap">Wallet</span>
                 </ConsoleButton>
               )}
 
@@ -799,10 +802,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
             >
               {mobileBottomLinks.map((link) => {
                 const href = resolvePrimaryNavHref(link, Boolean(user));
-                const active =
-                  href === "/dashboard"
-                    ? pathname === "/dashboard"
-                    : isActive(pathname, href);
+                const active = isActive(pathname, href);
                 const ariaLabel =
                   "ariaLabel" in link && typeof link.ariaLabel === "string"
                     ? link.ariaLabel

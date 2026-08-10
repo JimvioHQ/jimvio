@@ -2,7 +2,6 @@ import type { LucideIcon } from "lucide-react";
 import {
   Clapperboard,
   DollarSign,
-  Home,
   MessageSquare,
   Package,
   ShoppingBag,
@@ -17,38 +16,35 @@ export type PrimaryNavItem = {
   href: string;
   icon: LucideIcon;
   dropdown?: boolean;
-  /** When true, logged-in users should prefer the authenticated home URL */
-  authHome?: boolean;
 };
 
 /**
- * Product-based primary navigation — no "Dashboard" product surface.
- * Authenticated Home resolves to /dashboard (Mission Control URL kept for deep links).
+ * Global primary navigation — no Dashboard / Home product tab.
+ * Wallet occupies the former Home/Dashboard slot. Home page remains at `/` and `/dashboard`.
  */
 export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
-  { label: "Home", href: "/", icon: Home, authHome: true },
+  { label: "Wallet", href: "/wallet", icon: Wallet },
   { label: "Marketplace", href: "/marketplace", icon: ShoppingBag, dropdown: true },
   { label: "Orders", href: "/dashboard/orders", icon: Package },
-  { label: "Wallet", href: "/wallet", icon: Wallet },
   { label: "Communities", href: "/communities", icon: Users },
   { label: "Affiliates", href: "/affiliates", icon: DollarSign },
   { label: "UGC & Clipping", mobileLabel: "UGC", href: "/ugc", icon: Clapperboard },
   { label: "Messages", mobileLabel: "Inbox", href: "/dashboard/messages", icon: MessageSquare },
 ];
 
-/** Compact mobile bottom bar — keep only essentials; rest via ⌘K / sidebar. */
+/** Compact mobile bottom bar — essentials only; no Dashboard/Home tab. */
 export const MOBILE_BOTTOM_NAV_ITEMS = [
-  { label: "Home", href: "/", icon: Home, authHome: true as const },
+  { label: "Wallet", href: "/wallet", icon: Wallet },
   { label: "Market", href: "/marketplace", icon: ShoppingBag },
   { label: "Orders", href: "/dashboard/orders", icon: Package },
-  { label: "Wallet", href: "/wallet", icon: Wallet },
+  { label: "Communities", href: "/communities", icon: Users },
 ] as const;
 
 export function resolvePrimaryNavHref(
-  item: Pick<PrimaryNavItem, "href" | "authHome">,
-  isAuthenticated: boolean,
+  item: Pick<PrimaryNavItem, "href">,
+  _isAuthenticated?: boolean,
 ): string {
-  if (item.authHome && isAuthenticated) return "/dashboard";
+  void _isAuthenticated;
   return item.href;
 }
 
@@ -60,21 +56,24 @@ export function isPrimaryNavActive(
   pathname: string,
   item: PrimaryNavItem,
   activeNav?: string,
-  isAuthenticated = false,
+  _isAuthenticated = false,
 ): boolean {
+  void _isAuthenticated;
   if (activeNav && activeNav === item.label) return true;
   if (item.label === "Communities") return isCommunitiesNavActive(pathname);
-  const href = resolvePrimaryNavHref(item, isAuthenticated);
-  if (href === "/") return pathname === "/";
-  if (href === "/dashboard") return pathname === "/dashboard";
-  return pathname === href || pathname.startsWith(`${href}/`);
+  if (item.href === "/") return pathname === "/";
+  return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
-/** @deprecated Prefer isHomeActive — kept for call sites during transition */
+/** Active state helper for legacy Dashboard/Home CTAs (kept for non-primary call sites). */
 export function isDashboardActive(pathname: string): boolean {
-  return isHomeActive(pathname);
+  return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
 }
 
 export function isHomeActive(pathname: string): boolean {
   return pathname === "/dashboard" || pathname === "/";
+}
+
+export function isWalletActive(pathname: string): boolean {
+  return pathname === "/wallet" || pathname.startsWith("/wallet/");
 }

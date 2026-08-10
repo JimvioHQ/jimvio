@@ -14,18 +14,15 @@ import { TopMissionsList } from "@/components/feed/TopMissionsList";
 import { UpcomingLiveSessions } from "@/components/feed/UpcomingLiveSessions";
 import type { FeedTab } from "@/lib/feed/mock-data";
 
-function FeedRightRailTop() {
+/** Single narrow intelligence rail — never multi-column. */
+function FeedRightRail() {
   return (
-    <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-      <div className="min-w-0 space-y-4">
-        <LiveNowCard />
-        <AIAssistantPanel />
-      </div>
-      <div className="min-w-0 space-y-4">
-        <UpcomingLiveSessions />
-        <ActivityFeedCard />
-        <TopMissionsList />
-      </div>
+    <div className="flex min-w-0 flex-col gap-3">
+      <LiveNowCard />
+      <AIAssistantPanel />
+      <UpcomingLiveSessions />
+      <ActivityFeedCard />
+      <TopMissionsList />
     </div>
   );
 }
@@ -35,9 +32,10 @@ export function FeedPageContent() {
 
   return (
     <>
-      <div className="mx-auto w-full max-w-[1600px] bg-gradient-to-b from-[#FFF8F5]/80 via-gray-50/80 to-gray-50/80 p-4 lg:p-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
-          <div className="min-w-0 space-y-5 pb-20 lg:col-span-8 xl:col-span-9 2xl:col-span-7">
+      <div className="mx-auto w-full max-w-[1440px] bg-gradient-to-b from-[#FFF8F5]/80 via-gray-50/80 to-gray-50/80 p-4 lg:p-5">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-5">
+          {/* Main feed — dominant */}
+          <div className="min-w-0 flex-1 space-y-5 pb-8 lg:pb-20">
             <StoriesRail />
             <PostComposer />
             <FeedDiscoverRail />
@@ -46,8 +44,10 @@ export function FeedPageContent() {
               <FeedPostCard tab={feedTab} />
             </div>
           </div>
-          <aside className="scrollbar-hide hidden lg:col-span-4 lg:block lg:sticky lg:top-4 lg:z-10 lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain xl:col-span-3 2xl:col-span-5">
-            <FeedRightRailTop />
+
+          {/* Compact intelligence rail — stacked under feed on mobile */}
+          <aside className="w-full shrink-0 pb-16 lg:sticky lg:top-4 lg:z-10 lg:w-[300px] lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-4 xl:w-[320px]">
+            <FeedRightRail />
           </aside>
         </div>
       </div>

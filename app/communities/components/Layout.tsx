@@ -15,7 +15,7 @@ import {
     Layers,
     MessageSquare,
     Target,
-    LayoutDashboard,
+    Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
@@ -30,8 +30,8 @@ import type { Profile as DbProfile } from "@/types/db";
 import { buildHubLoginUrl, getCommunitySlugFromPath } from "@/lib/community/hub-auth";
 import {
   isCommunitiesNavActive,
-  isDashboardActive,
   isPrimaryNavActive,
+  isWalletActive,
   PRIMARY_NAV_ITEMS,
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
@@ -385,16 +385,16 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
 
                     {isAuthenticated !== false && (
                         <Link
-                            href="/dashboard"
+                            href="/wallet"
                             className={cn(
-                                "hidden h-9 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors sm:inline-flex sm:px-3 sm:text-xs",
-                                isDashboardActive(pathname)
+                                "hidden h-9 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors sm:inline-flex sm:px-3 sm:text-xs min-[1060px]:hidden",
+                                isWalletActive(pathname)
                                     ? "border-[#fd5000] bg-[#fd5000]/10 text-[#fd5000]"
                                     : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[#fd5000]/40 hover:bg-[#fd5000]/5 hover:text-[#fd5000]"
                             )}
                         >
-                            <LayoutDashboard className="h-3.5 w-3.5 shrink-0" />
-                            <span className="whitespace-nowrap">Home</span>
+                            <Wallet className="h-3.5 w-3.5 shrink-0" />
+                            <span className="whitespace-nowrap">Wallet</span>
                         </Link>
                     )}
 

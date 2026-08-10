@@ -400,16 +400,6 @@ export const COMMAND_CENTER_NAV_COMMANDS: StaticCommand[] = [
     icon: "help",
     keywords: ["help", "support", "faq"],
   },
-  {
-    id: "nav-home",
-    kind: "page",
-    title: "Home",
-    subtitle: "Your Jimvio workspace home",
-    href: "/dashboard",
-    icon: "layout",
-    keywords: ["home", "dashboard", "mission control", "start"],
-    frequent: true,
-  },
 ];
 
 export const ALL_STATIC_COMMANDS: StaticCommand[] = [
