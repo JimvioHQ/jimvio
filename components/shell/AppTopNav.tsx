@@ -5,16 +5,20 @@ import { usePathname } from "next/navigation";
 import {
   Bell,
   ChevronDown,
+  Package,
   Plus,
   Search,
   ShoppingCart,
+  Wallet,
 } from "lucide-react";
 import JimvioLogo from "@/components/ui/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import {
+  isOrdersActive,
   isPrimaryNavActive,
+  isWalletActive,
   PRIMARY_NAV_ITEMS,
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
@@ -63,6 +67,34 @@ function UserAvatar({
   );
 }
 
+function UtilityIconLink({
+  href,
+  label,
+  active,
+  children,
+}: {
+  href: string;
+  label: string;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "relative grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors",
+        active
+          ? "bg-orange-50 text-[#FF5A1F]"
+          : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export function AppTopNav({
   showUtilityBar: _showUtilityBar = false,
   activeNav,
@@ -77,8 +109,8 @@ export function AppTopNav({
   const isAuthenticated = Boolean(user);
 
   return (
-    <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-gray-200 bg-white px-3 sm:gap-x-3 sm:px-5 lg:px-6">
-      <div className="flex shrink-0 items-center gap-2">
+    <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-gray-200 bg-white px-3 sm:gap-x-4 sm:px-5 lg:px-6">
+      <div className="flex shrink-0 items-center">
         <Link href="/" aria-label="Jimvio home">
           <JimvioLogo href={undefined} size="md" />
         </Link>
@@ -86,7 +118,7 @@ export function AppTopNav({
 
       <nav
         aria-label="Primary"
-        className="hidden min-w-0 items-center justify-center gap-2 overflow-hidden min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-3"
+        className="hidden min-w-0 items-center justify-center gap-3 overflow-hidden pl-4 min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-4 xl:pl-6"
       >
         {PRIMARY_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
@@ -100,7 +132,7 @@ export function AppTopNav({
               className={cn(
                 "relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors",
                 active
-                  ? "text-orange-500 after:absolute after:bottom-0 after:left-2.5 after:right-2.5 after:h-0.5 after:rounded-full after:bg-orange-500"
+                  ? "text-[#FF5A1F] after:absolute after:bottom-0 after:left-2.5 after:right-2.5 after:h-0.5 after:rounded-full after:bg-[#FF5A1F]"
                   : "text-gray-600 hover:text-gray-900",
               )}
             >
@@ -117,7 +149,7 @@ export function AppTopNav({
           type="button"
           onClick={() => openCommandCenter()}
           className="hidden h-9 w-[148px] items-center gap-1.5 rounded-full border border-gray-200/90 bg-gray-50/90 px-2.5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm transition-all hover:border-gray-300 hover:bg-white min-[1060px]:flex xl:w-[180px]"
-          aria-label="Open command center search"
+          aria-label="Search everything or run a command"
         >
           <Search className="h-3.5 w-3.5 shrink-0 text-gray-400" />
           <span className="min-w-0 flex-1 truncate text-[12px] text-gray-400">Search...</span>
@@ -128,7 +160,16 @@ export function AppTopNav({
 
         <button
           type="button"
-          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-orange-500 px-2.5 text-[12px] font-semibold text-white transition-colors hover:bg-orange-600 sm:gap-1.5 sm:px-3"
+          onClick={() => openCommandCenter()}
+          aria-label="Search"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900 min-[1060px]:hidden"
+        >
+          <Search className="h-[17px] w-[17px]" />
+        </button>
+
+        <button
+          type="button"
+          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-[#FF5A1F] px-2.5 text-[12px] font-semibold text-white transition-colors hover:bg-[#e64e18] sm:gap-1.5 sm:px-3"
         >
           <Plus className="h-3.5 w-3.5 shrink-0" />
           <span className="hidden whitespace-nowrap sm:inline">Create</span>
@@ -148,6 +189,17 @@ export function AppTopNav({
           )}
         </Link>
 
+        {user ? (
+          <>
+            <UtilityIconLink href="/orders" label="Orders" active={isOrdersActive(pathname)}>
+              <Package className="h-[17px] w-[17px]" />
+            </UtilityIconLink>
+            <UtilityIconLink href="/wallet" label="Wallet" active={isWalletActive(pathname)}>
+              <Wallet className="h-[17px] w-[17px]" />
+            </UtilityIconLink>
+          </>
+        ) : null}
+
         <Link
           href="/cart"
           aria-label="Cart"
@@ -155,7 +207,7 @@ export function AppTopNav({
         >
           <ShoppingCart className="h-[17px] w-[17px]" />
           {cartCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-orange-500 px-1 text-[9px] font-semibold text-white">
+            <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full bg-[#FF5A1F] px-1 text-[9px] font-semibold text-white">
               {cartCount > 9 ? "9+" : cartCount}
             </span>
           )}

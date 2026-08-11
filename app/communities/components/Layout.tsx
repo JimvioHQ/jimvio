@@ -16,6 +16,8 @@ import {
     MessageSquare,
     Target,
     Users,
+    Package,
+    Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
@@ -30,14 +32,16 @@ import type { Profile as DbProfile } from "@/types/db";
 import { buildHubLoginUrl, getCommunitySlugFromPath } from "@/lib/community/hub-auth";
 import {
   isCommunitiesNavActive,
+  isOrdersActive,
   isPrimaryNavActive,
+  isWalletActive,
   PRIMARY_NAV_ITEMS,
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
 import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
 import { CommunityAiPanel } from "@/components/community/hub/CommunityAiPanel";
-import { HubSearchDialog } from "@/components/community/hub/HubSearchDialog";
 import { OPEN_HUB_SEARCH_EVENT } from "@/lib/community/hub-search-event";
+import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 
 type Profile = Pick<DbProfile, "id" | "username" | "full_name" | "avatar_url">;
 
@@ -156,8 +160,8 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
-    const [searchOpen, setSearchOpen] = useState(false);
     const [aiOpen, setAiOpen] = useState(false);
+    const openCommandCenter = useCommandCenterStore((s) => s.openCommandCenter);
 
     const pageTitle = usePageTitle(pathname);
     const communitySlug = getCommunitySlugFromPath(pathname);
@@ -172,22 +176,12 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     // Close mobile nav on route change
     useEffect(() => { setMobileNavOpen(false); }, [pathname]);
 
-    // ⌘K / Ctrl+K opens hub search; Feed Search action uses the same dialog
+    // Hub Search actions open the unified global Command+K experience
     useEffect(() => {
-        const onKey = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-                e.preventDefault();
-                setSearchOpen(true);
-            }
-        };
-        const onOpenSearch = () => setSearchOpen(true);
-        window.addEventListener("keydown", onKey);
+        const onOpenSearch = () => openCommandCenter();
         window.addEventListener(OPEN_HUB_SEARCH_EVENT, onOpenSearch);
-        return () => {
-            window.removeEventListener("keydown", onKey);
-            window.removeEventListener(OPEN_HUB_SEARCH_EVENT, onOpenSearch);
-        };
-    }, []);
+        return () => window.removeEventListener(OPEN_HUB_SEARCH_EVENT, onOpenSearch);
+    }, [openCommandCenter]);
 
     // Close mobile nav when returning to desktop width
     useEffect(() => {
@@ -294,8 +288,8 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     <JimvioLogo href={undefined} size="lg" />
                 </Link>
 
-                {/* Primary nav (desktop) */}
-                <nav className="hidden min-w-0 items-center justify-center gap-2 overflow-hidden min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-3">
+                {/* Primary nav (desktop) — breathing room from logo */}
+                <nav className="hidden min-w-0 items-center justify-center gap-3 overflow-hidden pl-4 min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-4 xl:pl-6">
                     {PRIMARY_NAV_ITEMS.map((item) => {
                         const { label, icon: Icon, dropdown } = item;
                         const href = resolvePrimaryNavHref(item, isAuthenticated === true);
@@ -323,16 +317,25 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 </nav>
 
                 <div className="col-start-3 ml-auto flex shrink-0 items-center justify-end gap-1.5">
-                    {/* Search */}
+                    {/* Search → unified Command+K */}
                     <button
                         type="button"
-                        onClick={() => setSearchOpen(true)}
-                        aria-label="Search communities"
+                        onClick={() => openCommandCenter()}
+                        aria-label="Search everything or run a command"
                         className="hidden h-9 w-[132px] items-center gap-1.5 rounded-full border border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface-secondary,#f4f4f5)] px-2.5 text-left min-[1060px]:flex xl:w-[152px]"
                     >
                         <Search className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
                         <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--color-text-muted)]">Search…</span>
                         <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] px-1 py-px text-[9px] font-semibold text-[var(--color-text-muted)] 2xl:block">⌘K</kbd>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => openCommandCenter()}
+                        aria-label="Search"
+                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] min-[1060px]:hidden"
+                    >
+                        <Search className="h-[18px] w-[18px]" />
                     </button>
 
                     {/* Create */}
@@ -363,6 +366,38 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                             </span>
                         )}
                     </Link>
+
+                    {/* Orders / Wallet — icon-only utilities */}
+                    {isAuthenticated && (
+                        <>
+                            <Link
+                                href="/orders"
+                                aria-label="Orders"
+                                title="Orders"
+                                className={cn(
+                                    "hidden h-9 w-9 shrink-0 place-items-center rounded-full transition-colors sm:grid",
+                                    isOrdersActive(pathname)
+                                        ? "bg-[#fd5000]/10 text-[#fd5000]"
+                                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                                )}
+                            >
+                                <Package className="h-[18px] w-[18px]" />
+                            </Link>
+                            <Link
+                                href="/wallet"
+                                aria-label="Wallet"
+                                title="Wallet"
+                                className={cn(
+                                    "hidden h-9 w-9 shrink-0 place-items-center rounded-full transition-colors sm:grid",
+                                    isWalletActive(pathname)
+                                        ? "bg-[#fd5000]/10 text-[#fd5000]"
+                                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                                )}
+                            >
+                                <Wallet className="h-[18px] w-[18px]" />
+                            </Link>
+                        </>
+                    )}
 
                     {/* Cart */}
                     <Link
@@ -496,22 +531,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                             </Link>
                         );
                     })}
-                <button
-                    type="button"
-                    aria-label="Open full menu"
-                    onClick={() => setMobileNavOpen(true)}
-                    className={cn(
-                        "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors",
-                        mobileNavOpen ? "text-[#fd5000]" : "text-[var(--color-text-muted)]"
-                    )}
-                >
-                    <Menu className="h-5 w-5" />
-                    More
-                </button>
                 </nav>
             )}
 
-            <HubSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
             <CommunityAiPanel
                 open={aiOpen}
                 onClose={() => setAiOpen(false)}

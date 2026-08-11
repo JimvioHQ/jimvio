@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
@@ -12,11 +11,9 @@ import {
   MessageSquare,
   Menu,
   X,
-  Globe,
   CircleHelp,
   Settings,
   LogOut,
-  TrendingUp,
   Video,
   Factory,
   Home,
@@ -28,24 +25,10 @@ import {
   ChevronRight,
   Sparkles,
   Zap,
-  Play,
-  Megaphone,
   Clapperboard,
-  Sun,
-  BatteryCharging,
-  Headphones,
-  Laptop,
-  Lamp,
-  Bookmark,
-  Smartphone,
-  Clock,
-  Flame,
-  PlaySquare,
-  Store,
-  Handshake,
   ArrowRight,
-  FileText,
   BanknoteIcon,
+  Wallet,
   DollarSign,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -62,32 +45,18 @@ import { useCartStore } from "@/lib/store/use-cart-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { MarketingSettings, NavLinkConfig } from "@/lib/platform-settings-shared";
-import { NavbarSearch } from "@/components/layout/navbar-search";
 import { CurrencySelector } from "@/context/CurrencyContext";
-import { Input } from "@/components/ui/input";
 import JimvioLogo from "../ui/logo";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
   MOBILE_BOTTOM_NAV_ITEMS,
   PROFILE_QUICK_ACCESS_ITEMS,
+  isOrdersActive,
+  isWalletActive,
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
 import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
-
-
-const TRENDING_SEARCHES: {
-  label: string;
-  count: string;
-  icon: LucideIcon;
-  color: string;
-  bg: string;
-}[] = [
-    { label: "Wireless chargers", count: "142 products", icon: BatteryCharging, color: "#f97316", bg: "bg-orange-50 dark:bg-orange-500/10" },
-    { label: "Wireless earbuds", count: "89 products", icon: Headphones, color: "#3b82f6", bg: "bg-blue-50 dark:bg-blue-500/10" },
-    { label: "Laptop accessories", count: "230 products", icon: Laptop, color: "#8b5cf6", bg: "bg-violet-50 dark:bg-violet-500/10" },
-    { label: "LED desk lamps", count: "77 products", icon: Lamp, color: "#eab308", bg: "bg-yellow-50 dark:bg-yellow-500/10" },
-    { label: "Phone stands", count: "190 products", icon: Smartphone, color: "#10b981", bg: "bg-emerald-50 dark:bg-emerald-500/10" },
-  ];
+import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 
 function useScrollDirection(threshold = 8) {
   const [hidden, setHidden] = useState(false);
@@ -299,19 +268,15 @@ interface NavbarProps {
 export function Navbar({ user, marketing }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [exploreOpen, setExploreOpen] = useState(false);
   const [marketplaceOpen, setMarketplaceOpen] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
-  const [searchQ, setSearchQ] = useState("");
-  const exploreTimer = useRef<NodeJS.Timeout | null>(null);
   const DROPDOWN_CLOSE_DELAY = 220;
   const marketplaceTimer = useRef<NodeJS.Timeout | null>(null);
   const { isMobile } = useIsMobile();
   const { cartCount, chatCount, refreshCounts } = useCartStore();
   const { openAssistant } = useAIStore();
+  const openCommandCenter = useCommandCenterStore((s) => s.openCommandCenter);
   const pathname = usePathname();
-  const router = useRouter();
 
   const navHidden = useScrollDirection();
   useEffect(() => {
@@ -321,19 +286,11 @@ export function Navbar({ user, marketing }: NavbarProps) {
   }, []);
   useEffect(() => setPortalReady(true), []);
   useEffect(() => {
-    document.body.style.overflow = mobileOpen || searchOpen ? "hidden" : "";
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [mobileOpen, searchOpen]);
+  }, [mobileOpen]);
 
   useEffect(() => { if (user) refreshCounts(); }, [user, refreshCounts]);
-  useEffect(() => { setSearchOpen(false); setSearchQ(""); }, [pathname]);
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { setSearchOpen(false); setSearchQ(""); }
-    };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, []);
 
   const navLinks = ensureCoreNavLinks(marketing.nav_links ?? []);
 
@@ -343,18 +300,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
   ];
 
   const mobileBottomLinks = MOBILE_BOTTOM_NAV_ITEMS;
-
-  const runSearch = useCallback(
-    (override?: string) => {
-      const t = (override ?? searchQ).trim();
-      const qs = t ? `?q=${encodeURIComponent(t)}` : "";
-      router.push(`/marketplace${qs}`);
-      setSearchOpen(false);
-      setSearchQ("");
-      setMobileOpen(false);
-    },
-    [router, searchQ]
-  );
 
   const onMarketplaceEnter = () => {
     if (marketplaceTimer.current) clearTimeout(marketplaceTimer.current);
@@ -388,7 +333,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </div>
 
             {/* Desktop nav — flex-1 center column, clips before overlapping search */}
-            <nav className="hidden min-[1240px]:flex min-w-0 flex-nowrap items-center justify-start gap-2 overflow-hidden px-1 xl:gap-3">
+            {/* Desktop nav — discovery destinations with breathing room from logo */}
+            <nav className="hidden min-[1240px]:flex min-w-0 flex-nowrap items-center justify-start gap-3 overflow-hidden pl-4 xl:gap-4 xl:pl-6">
 
               {navLinks.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -489,17 +435,41 @@ export function Navbar({ user, marketing }: NavbarProps) {
             {/* Right side — fixed-width cluster, never overlaps nav */}
             <div className="flex items-center justify-end gap-1.5 sm:gap-2 shrink-0 min-w-0">
 
-              {/* Desktop search */}
-              <div className="hidden min-[1240px]:flex items-center shrink-0">
-                <NavbarSearch
-                  searchQ={searchQ}
-                  setSearchQ={setSearchQ}
-                  placeholder={marketing.search_placeholder}
-                  variant="desktop"
-                  runSearch={runSearch}
-                  navLinks={navLinks}
-                />
-              </div>
+              {/* Desktop search → unified Command+K */}
+              <button
+                type="button"
+                onClick={() => openCommandCenter()}
+                aria-label="Search everything or run a command"
+                className="hidden min-[1240px]:flex h-9 w-[180px] xl:w-[220px] items-center gap-2 rounded-full border border-border bg-stone-50/90 dark:bg-stone-900/80 px-3 text-left transition-colors hover:border-orange-300 hover:bg-white dark:hover:bg-stone-900"
+              >
+                <Search className="h-3.5 w-3.5 shrink-0 text-stone-400" />
+                <span className="min-w-0 flex-1 truncate text-[12px] text-stone-400">
+                  Search everything…
+                </span>
+                <kbd className="hidden shrink-0 rounded border border-border bg-white px-1 py-px text-[9px] font-medium text-stone-400 dark:bg-stone-950 xl:inline">
+                  ⌘K
+                </kbd>
+              </button>
+
+              {/* Orders / Wallet — icon-only utilities */}
+              {user && (
+                <>
+                  <ConsoleIconBtn
+                    href="/orders"
+                    className={cn(isOrdersActive(pathname) && "text-[#FF5A1F]")}
+                    aria-label="Orders"
+                  >
+                    <Package className="h-[18px] w-[18px]" />
+                  </ConsoleIconBtn>
+                  <ConsoleIconBtn
+                    href="/wallet"
+                    className={cn(isWalletActive(pathname) && "text-[#FF5A1F]")}
+                    aria-label="Wallet"
+                  >
+                    <Wallet className="h-[18px] w-[18px]" />
+                  </ConsoleIconBtn>
+                </>
+              )}
 
               {/* Cart */}
               <ConsoleIconBtn href="/cart" badge={cartCount}>
@@ -550,175 +520,18 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 )}
               </div>
 
-              {/* Mobile search icon */}
-              <ConsoleIconBtn className="md:hidden" onClick={() => setSearchOpen(true)}>
+              {/* Mobile search → unified Command+K */}
+              <ConsoleIconBtn className="md:hidden" onClick={() => openCommandCenter()} aria-label="Search">
                 <Search className="h-[18px] w-[18px]" />
               </ConsoleIconBtn>
 
-              {/* Mobile hamburger */}
-              <ConsoleIconBtn className="md:hidden" onClick={() => setMobileOpen(true)}>
+              {/* Mobile hamburger — sole Menu control */}
+              <ConsoleIconBtn className="md:hidden" onClick={() => setMobileOpen(true)} aria-label="Open menu">
                 <Menu className="h-5 w-5" />
               </ConsoleIconBtn>
             </div>
           </div>
         </div>
-
-        {/* ══════════════════════════════════════════
-          MOBILE SEARCH OVERLAY PORTAL
-          ══════════════════════════════════════════ */}
-        {portalReady &&
-          createPortal(
-            <AnimatePresence>
-              {searchOpen && (
-                <>
-                  {/* backdrop */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.18 }}
-                    onClick={() => { setSearchOpen(false); setSearchQ(""); }}
-                    className="fixed inset-0 z-[9990] bg-black/50 md:hidden"
-                  />
-
-                  {/* sheet */}
-                  <motion.div
-                    initial={{ y: -16, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    exit={{ y: -16, opacity: 0 }}
-                    transition={{ type: "spring", damping: 28, stiffness: 320 }}
-                    className="fixed top-20 inset-x-0 z-[9991] md:hidden bg-white dark:bg-[#0a0a0a] border-b border-stone-100 dark:border-white/8 shadow-2xl"
-                  >
-                    {/* input row */}
-                    <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-                      <div className="flex-1 flex items-center gap-2.5 bg-stone-50 dark:bg-[#111] border border-[#fd5000]/40 focus-within:border-[#fd5000] rounded-full px-4 h-11 transition-colors duration-150">
-                        <Search className="h-4 w-4 text-[#fd5000] shrink-0" />
-                        <input
-                          autoFocus
-                          value={searchQ}
-                          onChange={(e) => setSearchQ(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === "Enter" && searchQ.trim()) runSearch(); }}
-                          placeholder={marketing.search_placeholder ?? "Search products, stores…"}
-                          className="flex-1 bg-transparent text-[14px] text-stone-900 dark:text-white placeholder:text-stone-400 outline-none"
-                        />
-                        {searchQ && (
-                          <button
-                            onClick={() => setSearchQ("")}
-                            className="flex items-center justify-center h-5 w-5 rounded-full bg-stone-200 dark:bg-stone-700 shrink-0 transition-colors hover:bg-stone-300 dark:hover:bg-stone-600"
-                          >
-                            <X className="h-3 w-3 text-stone-500 dark:text-stone-300" />
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => { setSearchOpen(false); setSearchQ(""); }}
-                        className="text-[13px] font-semibold text-[#fd5000] shrink-0 px-1 active:opacity-60 transition-opacity"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-
-                    {/* suggestions */}
-                    <div className="px-4 pb-6 max-h-[72vh] overflow-y-auto">
-                      {!searchQ.trim() ? (
-                        <>
-                          <div className="flex items-center gap-2 px-1 pb-2 pt-1">
-                            <Flame className="h-3.5 w-3.5 text-orange-500" />
-                            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Trending</p>
-                          </div>
-                          <div className="space-y-0.5">
-                            {TRENDING_SEARCHES.map((item) => (
-                              <button
-                                key={item.label}
-                                onClick={() => runSearch(item.label)}
-                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 dark:hover:bg-white/5 text-left transition-colors group"
-                              >
-                                <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0", item.bg)}>
-                                  <item.icon className="h-4 w-4" style={{ color: item.color }} />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-[13px] font-semibold text-stone-800 dark:text-white leading-tight">{item.label}</p>
-                                  <p className="text-[11px] text-stone-400 mt-0.5">{item.count}</p>
-                                </div>
-                                <ChevronRight className="h-4 w-4 text-stone-300 dark:text-stone-600 shrink-0 group-hover:text-[#fd5000] transition-colors" />
-                              </button>
-                            ))}
-                          </div>
-
-                          <div className="mt-4 pt-4 border-t border-stone-100 dark:border-white/5">
-                            <div className="flex items-center gap-2 px-1 pb-2">
-                              <Globe className="h-3.5 w-3.5 text-stone-400" />
-                              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Browse</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              {navLinks.slice(0, 4).map((l: NavLinkConfig) => {
-                                const Icon = iconForHref(l.href);
-                                return (
-                                  <Link
-                                    key={l.href}
-                                    href={l.href}
-                                    onClick={() => setSearchOpen(false)}
-                                    className="flex items-center gap-2.5 p-3 rounded-xl bg-stone-50 dark:bg-white/5 hover:bg-stone-100 dark:hover:bg-white/8 transition-colors"
-                                  >
-                                    <Icon className="h-4 w-4 text-stone-400 shrink-0" />
-                                    <span className="text-[12px] font-semibold text-stone-700 dark:text-stone-300 truncate">{l.label}</span>
-                                  </Link>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-2 px-1 pb-2 pt-1">
-                            <Search className="h-3.5 w-3.5 text-stone-400" />
-                            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-                              Results for &ldquo;{searchQ}&rdquo;
-                            </p>
-                          </div>
-                          <div className="space-y-0.5">
-                            {navLinks
-                              .filter((l: NavLinkConfig) => l.label.toLowerCase().includes(searchQ.toLowerCase()))
-                              .map((l: NavLinkConfig) => {
-                                const Icon = iconForHref(l.href);
-                                return (
-                                  <Link
-                                    key={l.href}
-                                    href={l.href}
-                                    onClick={() => setSearchOpen(false)}
-                                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-stone-50 dark:hover:bg-white/5 transition-colors group"
-                                  >
-                                    <div className="h-9 w-9 rounded-xl bg-stone-50 dark:bg-white/5 border border-stone-100 dark:border-white/5 flex items-center justify-center shrink-0">
-                                      <Icon className="h-4 w-4 text-stone-400" />
-                                    </div>
-                                    <span className="text-[13px] font-semibold text-stone-800 dark:text-white flex-1">{l.label}</span>
-                                    <ChevronRight className="h-4 w-4 text-stone-300 dark:text-stone-600 shrink-0 group-hover:text-[#fd5000] transition-colors" />
-                                  </Link>
-                                );
-                              })}
-                          </div>
-
-                          <button
-                            onClick={() => runSearch()}
-                            className="w-full mt-3 flex items-center gap-3 p-3.5 rounded-xl bg-orange-50 dark:bg-orange-500/10 hover:bg-orange-100 dark:hover:bg-orange-500/15 border border-orange-100 dark:border-orange-500/20 transition-colors"
-                          >
-                            <div className="h-9 w-9 rounded-xl bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center shrink-0">
-                              <Search className="h-4 w-4 text-[#fd5000]" />
-                            </div>
-                            <span className="text-[13px] font-bold text-[#fd5000] text-left flex-1">
-                              Search all results for &ldquo;{searchQ}&rdquo;
-                            </span>
-                            <ChevronRight className="h-4 w-4 text-[#fd5000] shrink-0" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>,
-            document.body
-          )}
 
         {/* ══════════════════════════════════════════
           MOBILE DRAWER PORTAL
@@ -788,18 +601,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
                   </Link>
                 );
               })}
-
-              <button
-                type="button"
-                onClick={() => setMobileOpen(true)}
-                aria-label="Open menu"
-                className="flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-0.5 text-stone-400 transition-colors duration-200 dark:text-stone-600"
-              >
-                <Menu className="h-5 w-5 shrink-0 stroke-[2px]" />
-                <span className="text-[9px] font-semibold leading-none tracking-tight whitespace-nowrap opacity-70">
-                  Menu
-                </span>
-              </button>
             </motion.nav>
           </div>,
           document.body

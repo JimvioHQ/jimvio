@@ -1,6 +1,10 @@
 /**
  * Buyer-facing order queries — exclude supplier identifiers (CJ, etc.)
  * from fields returned to the browser.
+ *
+ * IMPORTANT: columns must match the live `orders` / `order_items` schema.
+ * `payment_provider` and `estimated_delivery_at` are NOT order columns —
+ * provider lives on `transactions.provider` / `metadata.payment_provider`.
  */
 
 export const CUSTOMER_ORDER_COLUMNS = `
@@ -23,14 +27,12 @@ export const CUSTOMER_ORDER_COLUMNS = `
   shipped_at,
   delivered_at,
   cancelled_at,
-  estimated_delivery_at,
   created_at,
   affiliate_id,
   tracking_number,
   tracking_status,
   cj_fulfillment_status,
   shopify_fulfillment_status,
-  payment_provider,
   metadata
 `.replace(/\s+/g, " ");
 
@@ -67,12 +69,12 @@ export const CUSTOMER_ORDER_LIST_SELECT = `
   payment_status,
   total_amount,
   currency,
-  payment_provider,
   tracking_number,
   shipped_at,
   delivered_at,
   cj_fulfillment_status,
   created_at,
+  metadata,
   order_items ( product_name, product_image, quantity )
 `.replace(/\s+/g, " ");
 
@@ -99,4 +101,30 @@ export function sanitizeCustomerOrderMetadata(
     delete cleaned[key];
   }
   return cleaned;
+}
+
+/** Resolve payment provider from transactions or sanitized metadata. */
+export function resolveOrderPaymentProvider(order: {
+  payment_provider?: string | null;
+  metadata?: unknown;
+  transactions?: Array<{ provider?: string | null }> | null;
+}): string | null {
+  if (order.payment_provider) return order.payment_provider;
+  const fromTx = order.transactions?.find((t) => t.provider)?.provider;
+  if (fromTx) return fromTx;
+  const meta = order.metadata;
+  if (meta && typeof meta === "object" && !Array.isArray(meta)) {
+    const value = (meta as Record<string, unknown>).payment_provider;
+    return typeof value === "string" ? value : null;
+  }
+  return null;
+}
+
+/** Optional ETA from metadata when the column is not on `orders`. */
+export function resolveOrderEstimatedDelivery(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+  const value = (metadata as Record<string, unknown>).estimated_delivery_at;
+  return typeof value === "string" ? value : null;
 }

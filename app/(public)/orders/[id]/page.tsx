@@ -27,6 +27,8 @@ import { sanitizeOrderTimelineNote } from "@/lib/cj/customer-errors-shared";
 import {
   CUSTOMER_ORDER_DETAIL_SELECT,
   sanitizeCustomerOrderMetadata,
+  resolveOrderEstimatedDelivery,
+  resolveOrderPaymentProvider,
 } from "@/lib/orders/customer-order-fields";
 
 /* ─── Types ─────────────────────────────────────────────────────── */
@@ -91,6 +93,7 @@ type Order = {
   delivered_at: string | null;
   cancelled_at: string | null;
   estimated_delivery_at?: string | null;
+  payment_provider?: string | null;
   created_at: string;
   affiliate_id: string | null;
   integration_source: string | null;
@@ -1314,6 +1317,8 @@ export default function PublicOrderDetailPage() {
         setOrder({
           ...(orderData as Order),
           metadata: sanitizeCustomerOrderMetadata(orderData.metadata),
+          payment_provider: resolveOrderPaymentProvider(orderData as Order),
+          estimated_delivery_at: resolveOrderEstimatedDelivery(orderData.metadata),
           order_status_history: historyData ?? [],
         });
       } catch (err: any) {

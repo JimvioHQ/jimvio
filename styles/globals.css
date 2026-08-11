@@ -571,6 +571,20 @@
     }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    @keyframes jimvio-command-center-enter {
+      from {
+        opacity: 0;
+        transform: none;
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+  }
+
   @keyframes jimvio-creator-command-center-enter {
     from {
       opacity: 0;

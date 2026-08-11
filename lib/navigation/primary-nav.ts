@@ -42,12 +42,13 @@ export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
   { label: "UGC & Clipping", mobileLabel: "UGC", href: "/ugc", icon: Clapperboard },
 ];
 
-/** Compact mobile bottom bar — discovery essentials. */
+/** Compact mobile bottom bar — discovery destinations (Affiliates replaces Menu). */
 export const MOBILE_BOTTOM_NAV_ITEMS = [
   { label: "Home", href: "/", icon: Home },
   { label: "Market", href: "/marketplace", icon: ShoppingBag },
   { label: "Communities", href: "/communities", icon: Users },
   { label: "UGC", href: "/ugc", icon: Clapperboard },
+  { label: "Affiliates", href: "/affiliates", icon: DollarSign },
 ] as const;
 
 /** Canonical personal commerce / communication tools (profile menu). */

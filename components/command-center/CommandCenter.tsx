@@ -178,14 +178,14 @@ export function CommandCenter() {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[10000] flex items-start justify-center px-3 pt-[10vh] sm:px-4 sm:pt-[12vh]"
+      className="fixed inset-0 z-[10000] flex items-stretch justify-center sm:items-start sm:px-4 sm:pt-[12vh]"
       role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) closeCommandCenter();
       }}
     >
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-xl"
+        className="absolute inset-0 bg-black/50 backdrop-blur-xl motion-reduce:backdrop-blur-none"
         style={{ willChange: "opacity" }}
         aria-hidden
       />
@@ -197,14 +197,11 @@ export function CommandCenter() {
         aria-label="Jimvio Universal Command Palette"
         onKeyDown={onKeyDown}
         className={cn(
-          "relative z-10 flex w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-white/20",
-          "bg-white/85 shadow-2xl backdrop-blur-2xl dark:bg-[var(--color-surface)]/90",
+          "relative z-10 flex h-full w-full flex-col overflow-hidden border border-white/20",
+          "rounded-none bg-white/95 shadow-2xl backdrop-blur-2xl dark:bg-[var(--color-surface)]/95",
+          "sm:h-auto sm:max-h-[min(72vh,640px)] sm:max-w-[720px] sm:rounded-2xl sm:bg-white/85 dark:sm:bg-[var(--color-surface)]/90",
+          "motion-safe:animate-[jimvio-command-center-enter_220ms_ease-out]",
         )}
-        style={{
-          maxHeight: "min(72vh, 640px)",
-          animation: "jimvio-command-center-enter 220ms ease-out",
-          willChange: "transform, opacity",
-        }}
       >
         <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-3 py-3 sm:px-4">
           <Search className="size-4 shrink-0 text-[var(--color-text-muted)]" aria-hidden />
@@ -212,7 +209,7 @@ export function CommandCenter() {
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search everything or run a command — Create Campaign, Go Live, Withdraw…"
+            placeholder="Search everything or run a command..."
             aria-label="Universal search and commands"
             role="combobox"
             aria-expanded={flat.length > 0}

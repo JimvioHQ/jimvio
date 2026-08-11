@@ -13,6 +13,7 @@ export type InvoiceOrder = {
   total_amount?: number | null;
   payment_status?: string | null;
   payment_provider?: string | null;
+  metadata?: unknown;
   shipping_address?: unknown;
   billing_address?: unknown;
   order_items?: Array<{
@@ -132,7 +133,14 @@ export function buildInvoiceData(order: InvoiceOrder): InvoiceData {
     paidDate: order.paid_at ? formatInvoiceDate(order.paid_at) : null,
     currency,
     paymentStatus: order.payment_status ?? "pending",
-    paymentProvider: order.payment_provider ?? null,
+    paymentProvider:
+      order.payment_provider ??
+      (order.metadata &&
+      typeof order.metadata === "object" &&
+      !Array.isArray(order.metadata) &&
+      typeof (order.metadata as Record<string, unknown>).payment_provider === "string"
+        ? ((order.metadata as Record<string, unknown>).payment_provider as string)
+        : null),
     buyerName,
     buyerEmail,
     addressLine,
