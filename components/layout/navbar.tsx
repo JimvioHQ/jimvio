@@ -443,8 +443,8 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 className="hidden min-[1240px]:flex h-9 w-[180px] xl:w-[220px] items-center gap-2 rounded-full border border-border bg-stone-50/90 dark:bg-stone-900/80 px-3 text-left transition-colors hover:border-orange-300 hover:bg-white dark:hover:bg-stone-900"
               >
                 <Search className="h-3.5 w-3.5 shrink-0 text-stone-400" />
-                <span className="min-w-0 flex-1 truncate text-[12px] text-stone-400">
-                  Search everything…
+          <span className="min-w-0 flex-1 truncate text-[12px] text-stone-400">
+                  Search globally…
                 </span>
                 <kbd className="hidden shrink-0 rounded border border-border bg-white px-1 py-px text-[9px] font-medium text-stone-400 dark:bg-stone-950 xl:inline">
                   ⌘K

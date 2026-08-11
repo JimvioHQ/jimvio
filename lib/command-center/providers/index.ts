@@ -14,9 +14,11 @@ import type {
 import { getCommandSearchContext } from "../search-context";
 import { nlIntentSearchProvider } from "./nl-intent";
 import { resolveActionEngine } from "../action-engine";
+import { ordersSearchProvider } from "./orders";
 import type { DiscoveryEntityType, DiscoveryHit } from "@/lib/discovery/types";
 
 export { nlIntentSearchProvider };
+export { ordersSearchProvider };
 
 /** Highest-priority provider — resolves action phrases (create campaign, withdraw, go live…) into direct results. */
 export const actionEngineProvider: CommandSearchProvider = {
@@ -84,12 +86,23 @@ const UNIFIED_DISCOVER_TYPES: DiscoveryEntityType[] = [
 ];
 
 function hitToCommand(hit: DiscoveryHit): CommandResult {
+  const price =
+    typeof hit.meta?.price === "number"
+      ? new Intl.NumberFormat(undefined, {
+          style: "currency",
+          currency: typeof hit.meta.currency === "string" ? hit.meta.currency : "USD",
+          maximumFractionDigits: 2,
+        }).format(hit.meta.price)
+      : null;
+  const subtitleParts = [hit.subtitle ?? hit.entityType, price].filter(Boolean);
+
   return {
     id: `discover-${hit.entityType}-${hit.id}`,
     kind: KIND_BY_ENTITY[hit.entityType] ?? "command",
     title: hit.title,
-    subtitle: hit.subtitle ?? hit.entityType,
+    subtitle: subtitleParts.join(" · "),
     href: hit.href,
+    image: hit.imageUrl ?? null,
     icon:
       hit.entityType === "community"
         ? "users"
@@ -101,9 +114,19 @@ function hitToCommand(hit: DiscoveryHit): CommandResult {
               ? "radio"
               : hit.entityType === "message"
                 ? "message"
-                : "search",
+                : hit.entityType === "campaign"
+                  ? "megaphone"
+                  : hit.entityType === "creator"
+                    ? "users"
+                    : "search",
     section: "search",
     score: hit.score,
+    badge:
+      hit.entityType === "campaign" && hit.meta?.kind === "ugc"
+        ? "UGC"
+        : hit.entityType === "campaign"
+          ? "Affiliate"
+          : undefined,
   };
 }
 
@@ -302,5 +325,6 @@ export const CREATOR_OS_SEARCH_PROVIDERS: CommandSearchProvider[] = [
   actionEngineProvider,
   nlIntentSearchProvider,
   communityScopedProvider,
+  ordersSearchProvider,
   unifiedDiscoverProvider,
 ];

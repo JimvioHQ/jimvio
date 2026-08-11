@@ -33,7 +33,7 @@ export function HeroSearch() {
           </div>
 
           <span className="flex-1 truncate text-[14px] text-[#a89f93] font-medium">
-            Search everything or run a command…
+            Search globally or run a command…
           </span>
 
           <kbd className="mr-3 hidden shrink-0 rounded border border-black/10 bg-white px-1.5 py-0.5 text-[10px] font-medium text-[#a89f93] sm:inline dark:border-white/10 dark:bg-transparent">

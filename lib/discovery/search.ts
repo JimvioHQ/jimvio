@@ -71,7 +71,7 @@ async function searchProducts(pattern: string, query: string, limit: number, dig
   let q = admin()
     .from("products")
     .select(
-      "id, name, slug, short_description, images, product_type, view_count, sale_count, is_featured, created_at, tags"
+      "id, name, slug, short_description, images, product_type, price, currency, view_count, sale_count, is_featured, created_at, tags"
     )
     .eq("status", "active")
     .eq("is_active", true)
@@ -98,11 +98,15 @@ async function searchProducts(pattern: string, query: string, limit: number, dig
       id: row.id,
       entityType: (digitalOnly ? "digital" : "product") as DiscoveryEntityType,
       title: row.name,
-      subtitle: row.short_description,
+      subtitle: row.short_description ?? row.product_type ?? "Product",
       href: `/marketplace/${row.slug}`,
       imageUrl: imageUrl(row.images),
       score,
-      meta: { productType: row.product_type },
+      meta: {
+        productType: row.product_type,
+        price: typeof row.price === "number" ? row.price : Number(row.price) || null,
+        currency: row.currency ?? "USD",
+      },
     } satisfies DiscoveryHit;
   });
 }
@@ -301,7 +305,7 @@ async function searchCampaigns(pattern: string, query: string, limit: number) {
       entityType: "campaign",
       title: row.name,
       subtitle: `Affiliate · ${row.status}`,
-      href: "/dashboard/affiliates",
+      href: `/affiliates/dashboard`,
       score: combineScore({
         relevance: textRelevanceScore(query, row.name, row.description),
         freshness: freshnessBoost(row.created_at),
@@ -445,18 +449,21 @@ async function searchMessages(
     .order("created_at", { ascending: false })
     .limit(limit);
 
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).map((row: any) => {
+    const roomId = row.room_id;
+    return {
     id: row.id,
     entityType: "message" as const,
     title: "Message",
     subtitle: String(row.body ?? "").slice(0, 140),
-    href: `/dashboard/messages`,
+    href: roomId ? `/dashboard/messages?room=${encodeURIComponent(String(roomId))}` : `/dashboard/messages`,
     score: combineScore({
       relevance: textRelevanceScore(query, String(row.body ?? "")),
       freshness: freshnessBoost(row.created_at),
     }),
     meta: { roomId: row.room_id },
-  }));
+  };
+  });
 }
 
 /** Organizations — future-ready stub (no org table yet). */

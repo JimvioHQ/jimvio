@@ -476,6 +476,34 @@ export function MarketplacePageClient({
     trending.length,
   ]);
 
+  // Warm the next page after first paint so the first "View More" feels instant.
+  useEffect(() => {
+    if (debouncedSearch || trending.length === 0) return;
+    if (trending.length >= listingCount) return;
+
+    let cancelled = false;
+    const run = () => {
+      if (!cancelled) void prefetchNextPage(MARKETPLACE_PAGE_SIZE);
+    };
+
+    let idleId: number | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(run);
+    } else {
+      timeoutId = setTimeout(run, 400);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId != null && typeof window !== "undefined" && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId != null) clearTimeout(timeoutId);
+    };
+  }, [debouncedSearch, listingCount, prefetchNextPage, trending.length, type]);
+
   // Apply ?category=slug from URL (e.g. category cards)
   useEffect(() => {
     const slug = searchParams.get("category");
@@ -594,16 +622,17 @@ export function MarketplacePageClient({
 
       const skipTrending = Boolean(debouncedSearch);
 
-      const [{ data: catIds }, { data: deals }, { data: trend }, { count }] =
+      // Prefer category table directly — avoid scanning every product row for category_ids.
+      const [{ data: catRows }, { data: deals }, { data: trend }, { count }] =
         await Promise.all([
           supabaseRef.current
-            .from("products")
-            .select("category_id")
-            .eq("status", "active")
+            .from("product_categories")
+            .select("id, name, slug, product_count, image_url, tint_color")
             .eq("is_active", true)
-            .is("deleted_at", null)
-            .in("product_type", [...typeFilter])
-            .not("category_id", "is", null),
+            .eq("visible", true)
+            .is("parent_id", null)
+            .order("product_count", { ascending: false })
+            .limit(40),
 
           applyFilters(
             supabaseRef.current
@@ -659,43 +688,9 @@ export function MarketplacePageClient({
 
       if (loadGeneration !== loadGenRef.current) return;
 
-      const ids = [
-        ...new Set(
-          (catIds ?? [])
-            .map((r: { category_id: string | null }) => r.category_id)
-            .filter(Boolean),
-        ),
-      ] as string[];
-
-      let nextCategories: DbCategory[] = [];
-      if (ids.length > 0) {
-        const { data: catRows } = await supabaseRef.current
-          .from("product_categories")
-          .select("id, name, slug, product_count, image_url, tint_color")
-          .eq("is_active", true)
-          .eq("visible", true)
-          .is("parent_id", null)
-          .in("id", ids)
-          .order("product_count", { ascending: false })
-          .limit(40);
-        if (loadGeneration !== loadGenRef.current) return;
-        nextCategories = (catRows ?? []) as DbCategory[];
-      }
-
+      let nextCategories = (catRows ?? []) as DbCategory[];
       if (nextCategories.length === 0 && (count ?? 0) > 0) {
-        const { data: fallbackCats } = await supabaseRef.current
-          .from("product_categories")
-          .select("id, name, slug, product_count, image_url, tint_color")
-          .eq("is_active", true)
-          .eq("visible", true)
-          .is("parent_id", null)
-          .order("product_count", { ascending: false })
-          .limit(40);
-        if (loadGeneration !== loadGenRef.current) return;
-        nextCategories = (fallbackCats ?? []) as DbCategory[];
-        if (nextCategories.length === 0) {
-          nextCategories = resolveShopCategories(type, []) as DbCategory[];
-        }
+        nextCategories = resolveShopCategories(type, []) as DbCategory[];
       }
 
       const dealList = dedupeProductsByIdentity((deals ?? []) as DbProduct[]);

@@ -48,6 +48,7 @@ export interface ProductCardVideoMediaProps {
   sizes?: string;
   imageError?: boolean;
   onImageError?: () => void;
+  onImageLoad?: () => void;
   /** Use next/image when true (default), plain img when false */
   useNextImage?: boolean;
   /** `fill` = absolute inset (default cards); `fit` = contained in padded area (trending grid) */
@@ -76,6 +77,7 @@ export function ProductCardVideoMedia({
   sizes = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw",
   imageError = false,
   onImageError,
+  onImageLoad,
   useNextImage = true,
   layout = "fill",
   fallback,
@@ -367,6 +369,7 @@ export function ProductCardVideoMedia({
                 className={cn("absolute inset-0", sharedClass)}
                 style={transitionStyle}
                 onError={i === 0 ? onImageError : undefined}
+                onLoad={i === 0 ? onImageLoad : undefined}
               />
             );
           }
@@ -389,6 +392,7 @@ export function ProductCardVideoMedia({
                   height={480}
                   className={cn("max-h-full max-w-full", sharedClass)}
                   onError={i === 0 ? onImageError : undefined}
+                  onLoad={i === 0 ? onImageLoad : undefined}
                 />
               </div>
             );
@@ -408,6 +412,7 @@ export function ProductCardVideoMedia({
               className={cn("absolute inset-0 h-full w-full", sharedClass)}
               style={transitionStyle}
               onError={i === 0 ? onImageError : undefined}
+              onLoad={i === 0 ? onImageLoad : undefined}
             />
           );
         })
@@ -427,6 +432,7 @@ export function ProductCardVideoMedia({
               imageClassName,
             )}
             onError={onImageError}
+            onLoad={onImageLoad}
           />
         ) : layout === "fit" ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -444,6 +450,7 @@ export function ProductCardVideoMedia({
               imageClassName,
             )}
             onError={onImageError}
+            onLoad={onImageLoad}
           />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element

@@ -80,52 +80,8 @@ function groupByKind(items: CommandResult[]): CommandGroup[] {
   }));
 }
 
-/** Maps existing suggestion API payloads — read-only, no API changes. */
-function mapSuggestionProducts(products: Array<{ id: string; name: string; slug: string }>) {
-  return products.map<CommandResult>((p) => ({
-    id: `product-${p.id}`,
-    kind: "product",
-    title: p.name,
-    subtitle: "Marketplace product",
-    href: `/marketplace/${p.slug}`,
-    icon: "package",
-    section: "search",
-  }));
-}
-
-function mapSuggestionVendors(
-  vendors: Array<{ id: string; business_name: string; business_slug: string }>,
-) {
-  return vendors.map<CommandResult>((v) => ({
-    id: `store-${v.id}`,
-    kind: "store",
-    title: v.business_name,
-    subtitle: "Vendor store",
-    href: `/vendors/${v.business_slug}`,
-    icon: "store",
-    section: "search",
-  }));
-}
-
-async function fetchLegacySuggestions(
-  query: string,
-  signal?: AbortSignal,
-): Promise<CommandResult[]> {
-  if (query.trim().length < 2) return [];
-  try {
-    const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`, { signal });
-    if (!res.ok) return [];
-    const data = (await res.json()) as {
-      products?: Array<{ id: string; name: string; slug: string }>;
-      vendors?: Array<{ id: string; business_name: string; business_slug: string }>;
-    };
-    return [
-      ...mapSuggestionProducts(data.products ?? []),
-      ...mapSuggestionVendors(data.vendors ?? []),
-    ];
-  } catch {
-    return [];
-  }
+function sortByScoreDesc(items: CommandResult[]): CommandResult[] {
+  return [...items].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 }
 
 export const localCommandSearchProvider: CommandSearchProvider = {
@@ -193,26 +149,27 @@ export const localCommandSearchProvider: CommandSearchProvider = {
     }
 
     const staticMatches = filterStatic(query, limit);
-    const remote = await fetchLegacySuggestions(query, input.signal);
+    // Single network path via unified discover (+ local action/NL/orders providers).
+    // Legacy /api/search/suggestions was a duplicate of the same globalSearch work.
     const providerResults = await Promise.all(
-      CREATOR_OS_SEARCH_PROVIDERS.map((p) => p.search(input))
+      CREATOR_OS_SEARCH_PROVIDERS.map((p) => p.search(input)),
     );
     const providerFlat = providerResults.flatMap((r) => r.flat);
     const seen = new Set<string>();
-    const flat: CommandResult[] = [];
+    const merged: CommandResult[] = [];
 
-    for (const item of [...staticMatches, ...providerFlat, ...remote]) {
+    for (const item of sortByScoreDesc([...staticMatches, ...providerFlat])) {
       if (seen.has(item.id)) continue;
       seen.add(item.id);
-      flat.push(item);
-      if (flat.length >= limit) break;
+      merged.push(item);
+      if (merged.length >= limit) break;
     }
 
-    return { groups: groupByKind(flat), flat };
+    return { groups: groupByKind(merged), flat: merged };
   },
 };
 
-/** Composite provider — local + creator OS stubs/scoped providers. */
+/** Composite provider — local + creator OS scoped providers. */
 export const compositeCommandSearchProvider: CommandSearchProvider = {
   id: "composite",
   async search(input: CommandSearchInput): Promise<CommandSearchOutput> {
@@ -233,11 +190,9 @@ export const compositeCommandSearchProvider: CommandSearchProvider = {
 };
 
 async function communityScopedEmptySafe(
-  input: CommandSearchInput
+  input: CommandSearchInput,
 ): Promise<CommandSearchOutput> {
-  const provider = CREATOR_OS_SEARCH_PROVIDERS.find(
-    (p) => p.id === "community-scoped"
-  );
+  const provider = CREATOR_OS_SEARCH_PROVIDERS.find((p) => p.id === "community-scoped");
   if (!provider) return { groups: [], flat: [] };
   return provider.search(input);
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cache } from "react";
 import { getCachedCollectionBySlug } from "@/lib/marketplace/collections";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 import { ChevronLeft } from "lucide-react";
 import { LocalizedPrice } from "@/components/currency/localized-price";
 import { notFound } from "next/navigation";
@@ -72,7 +73,8 @@ export default async function MarketplaceCollectionDetailPage({
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {collection.products.map((p) => {
-            const img = Array.isArray(p.images) ? p.images.find(Boolean) : null;
+            const raw = Array.isArray(p.images) ? p.images.find(Boolean) : null;
+            const img = typeof raw === "string" ? safeMediaUrl(raw, 480) : null;
             return (
               <Link
                 key={p.id}
@@ -86,6 +88,10 @@ export default async function MarketplaceCollectionDetailPage({
                     <img
                       src={img}
                       alt=""
+                      width={480}
+                      height={480}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : null}

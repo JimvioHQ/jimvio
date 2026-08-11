@@ -6,6 +6,7 @@ import {
   TrendingUp, Warehouse, ShoppingCart, Eye, ChevronDown, Star, CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useCurrency } from "@/context/CurrencyContext";
 import { type DbProduct, getImage, getEffectiveCompareAtPrice, getProductDiscountLabel, normalizeImages, isRenderableImageSrc } from "@/lib/utils";
@@ -18,6 +19,18 @@ import { ProductCardVideoMedia } from "@/components/marketplace/product-card-vid
 import type { Tables } from "@/types/supabase";
 
 export type DbVariant = Tables<"product_variants">;
+
+const prefetchedProductHrefs = new Set<string>();
+
+function prefetchProductHref(router: ReturnType<typeof useRouter>, href: string) {
+  if (!href || prefetchedProductHrefs.has(href)) return;
+  prefetchedProductHrefs.add(href);
+  try {
+    router.prefetch(href);
+  } catch {
+    /* prefetch is best-effort */
+  }
+}
 
 type Product = DbProduct & {
   vendor_id?: string | null;
@@ -185,7 +198,7 @@ export function TrendingProductsClient({
         <div className="grid grid-cols-2 items-stretch gap-3.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
           {(() => {
             let newIdx = 0;
-            return filtered.map((p) => {
+            return filtered.map((p, index) => {
               const shouldAnimate = newProductIds?.has(p.id) ?? false;
               const staggerIndex = shouldAnimate ? newIdx++ : 0;
               return (
@@ -204,7 +217,11 @@ export function TrendingProductsClient({
                       : undefined
                   }
                 >
-                  <ProductCard p={p} inCartInitially={cartProductIds.has(p.id)} />
+                  <ProductCard
+                    p={p}
+                    inCartInitially={cartProductIds.has(p.id)}
+                    priority={index < 6}
+                  />
                 </div>
               );
             });
@@ -243,10 +260,13 @@ function cssColor(raw: string): string {
 function ProductCard({
   p,
   inCartInitially = false,
+  priority = false,
 }: {
   p: Product;
   inCartInitially?: boolean;
+  priority?: boolean;
 }) {
+  const router = useRouter();
   const trackInventory = Boolean(p.track_inventory);
   const variants: DbVariant[] = filterStorefrontVariants(
     (p.variants ?? p.product_variants ?? []).map(normaliseVariant),
@@ -466,24 +486,11 @@ function ProductCard({
   })();
 
   useEffect(() => {
-    setImgReady(false);
-    if (!displayImage) {
-      setImgReady(true);
-      return;
-    }
-    let cancelled = false;
-    const img = new window.Image();
-    img.onload = () => {
-      if (!cancelled) setImgReady(true);
-    };
-    img.onerror = () => {
-      if (!cancelled) setImgReady(true);
-    };
-    img.src = displayImage;
-    return () => {
-      cancelled = true;
-    };
+    setImgReady(!displayImage);
   }, [displayImage]);
+
+  const productHref = `/marketplace/${p.slug}${activeVariant ? `?variant=${activeVariant.id}` : ""}`;
+  const prefetchHref = () => prefetchProductHref(router, `/marketplace/${p.slug}`);
 
   const isVerifiedVendor = p.vendors?.verification_status === "verified";
   const ratingValue = typeof p.rating === "number" ? p.rating : null;
@@ -492,14 +499,20 @@ function ProductCard({
     <div
       className="product-tap-nav group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-border)] transition-[transform,box-shadow,border-color] duration-200 ease-out will-change-transform hover:scale-[1.01] hover:border-[var(--color-border-strong)] hover:shadow-[0_10px_28px_rgba(0,0,0,0.08)]"
       style={{ background: "var(--color-surface)" }}
-      onMouseEnter={() => setHovered(true)}
+      onMouseEnter={() => {
+        setHovered(true);
+        prefetchHref();
+      }}
       onMouseLeave={() => {
         setHovered(false);
         setCartHovered(false);
       }}
+      onFocusCapture={prefetchHref}
+      onTouchStart={prefetchHref}
     >
       <Link
-        href={`/marketplace/${p.slug}${activeVariant ? `?variant=${activeVariant.id}` : ""}`}
+        href={productHref}
+        prefetch
         className="absolute inset-0 z-[1] rounded-[inherit]"
         aria-label={`View ${p.name}`}
       />
@@ -527,6 +540,9 @@ function ProductCard({
             useNextImage={true}
             layout="fill"
             imageFit="cover"
+            priority={priority}
+            onImageLoad={() => setImgReady(true)}
+            onImageError={() => setImgReady(true)}
             imageClassName={cn(
               "transition-[transform,opacity] duration-300 ease-out",
               imgReady ? "opacity-100" : "opacity-0",

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getCommandSearchProvider } from "@/lib/command-center/search";
-import type { CommandGroup, CommandResult } from "@/lib/command-center/types";
+import type { CommandGroup, CommandResult, CommandSearchOutput } from "@/lib/command-center/types";
 import type { CommandCenterFilter } from "@/lib/store/use-command-center-store";
 
 type FilterPredicate = (item: CommandResult) => boolean;
@@ -26,9 +26,7 @@ const FILTER_PREDICATES: Record<CommandCenterFilter, FilterPredicate | null> = {
   content: (item) => KIND_SETS.content.has(item.kind),
   orders: (item) => KIND_SETS.orders.has(item.kind),
   messages: (item) => KIND_SETS.messages.has(item.kind),
-  // Members includes raw "creator" hits alongside dedicated "member" results.
   members: (item) => item.kind === "member" || item.kind === "creator",
-  // AI includes ai / ai-answer kinds plus any command explicitly badged "AI".
   ai: (item) =>
     item.kind === "ai" || item.kind === "ai-answer" || (item.kind === "command" && item.badge === "AI"),
 };
@@ -41,53 +39,110 @@ function applyFilter(groups: CommandGroup[], filter: CommandCenterFilter): Comma
     .filter((g) => g.items.length > 0);
 }
 
-const SEARCH_DEBOUNCE_MS = 80;
+function applyFilterFlat(items: CommandResult[], filter: CommandCenterFilter): CommandResult[] {
+  const predicate = FILTER_PREDICATES[filter];
+  if (!predicate) return items;
+  return items.filter(predicate);
+}
+
+/** 150–250ms range — balances snappy typing with fewer duplicate network calls. */
+const SEARCH_DEBOUNCE_MS = 180;
+const CLIENT_CACHE_TTL_MS = 12_000;
+const CLIENT_CACHE_MAX = 24;
+
+type CacheEntry = { at: number; result: CommandSearchOutput };
+
+const clientSearchCache = new Map<string, CacheEntry>();
+
+function cacheKey(query: string) {
+  return query.trim().toLowerCase();
+}
+
+function readCache(query: string): CommandSearchOutput | null {
+  const key = cacheKey(query);
+  const hit = clientSearchCache.get(key);
+  if (!hit) return null;
+  if (Date.now() - hit.at > CLIENT_CACHE_TTL_MS) {
+    clientSearchCache.delete(key);
+    return null;
+  }
+  return hit.result;
+}
+
+function writeCache(query: string, result: CommandSearchOutput) {
+  const key = cacheKey(query);
+  clientSearchCache.set(key, { at: Date.now(), result });
+  if (clientSearchCache.size > CLIENT_CACHE_MAX) {
+    const oldest = clientSearchCache.keys().next().value;
+    if (oldest) clientSearchCache.delete(oldest);
+  }
+}
 
 export function useCommandCenterSearch(
   query: string,
   filter: CommandCenterFilter,
   refreshKey = 0,
 ) {
-  const [groups, setGroups] = useState<CommandGroup[]>([]);
-  const [flat, setFlat] = useState<CommandResult[]>([]);
+  const [raw, setRaw] = useState<CommandSearchOutput>({ groups: [], flat: [] });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryTick, setRetryTick] = useState(0);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
     const controller = new AbortController();
-    setLoading(true);
+    const q = query.trim();
+    const requestId = ++requestIdRef.current;
+
+    const cached = readCache(q);
+    if (cached) {
+      setRaw(cached);
+      setLoading(false);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
+
     const id = window.setTimeout(() => {
       void getCommandSearchProvider()
-        .search({ query, limit: 32, signal: controller.signal })
+        .search({ query: q, limit: 32, signal: controller.signal })
         .then((result) => {
-          if (cancelled) return;
-          const filteredGroups = applyFilter(result.groups, filter);
-          const filteredFlat = applyFilter(
-            [{ id: "flat", label: "Results", items: result.flat }],
-            filter,
-          )[0]?.items ?? [];
-          setGroups(filteredGroups);
-          setFlat(filteredFlat.length ? filteredFlat : filteredGroups.flatMap((g) => g.items));
+          if (cancelled || requestId !== requestIdRef.current) return;
+          writeCache(q, result);
+          setRaw(result);
+          setError(null);
         })
-        .catch(() => {
-          // Aborted or failed — swallow, a newer cycle is already in flight.
+        .catch((err: unknown) => {
+          if (cancelled || requestId !== requestIdRef.current) return;
+          if (controller.signal.aborted) return;
+          // Keep prior results usable; surface a compact recoverable error.
+          setError(err instanceof Error ? err.message : "Search failed. Try again.");
         })
         .finally(() => {
-          if (!cancelled) setLoading(false);
+          if (!cancelled && requestId === requestIdRef.current) setLoading(false);
         });
-    }, query.trim() ? SEARCH_DEBOUNCE_MS : 0);
+    }, q ? SEARCH_DEBOUNCE_MS : 0);
 
     return () => {
       cancelled = true;
       controller.abort();
       window.clearTimeout(id);
     };
-  }, [query, filter, refreshKey]);
+  }, [query, refreshKey, retryTick]);
 
-  const navigable = useMemo(() => {
-    if (flat.length) return flat;
+  const groups = useMemo(() => applyFilter(raw.groups, filter), [raw.groups, filter]);
+  const flat = useMemo(() => {
+    const filteredFlat = applyFilterFlat(raw.flat, filter);
+    if (filteredFlat.length) return filteredFlat;
     return groups.flatMap((g) => g.items);
-  }, [flat, groups]);
+  }, [raw.flat, filter, groups]);
 
-  return { groups, flat: navigable, loading };
+  const retry = () => {
+    clientSearchCache.delete(cacheKey(query));
+    setRetryTick((n) => n + 1);
+  };
+
+  return { groups, flat, loading, error, retry };
 }
