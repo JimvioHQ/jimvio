@@ -38,7 +38,7 @@ export async function updateSession(request: NextRequest) {
   });
 
   try {
-    const protectedPaths = ["/dashboard", "/admin", "/settings", "/wallet", "/identity"];
+    const protectedPaths = ["/dashboard", "/admin", "/settings", "/wallet", "/identity", "/orders"];
     const isProtected =
       protectedPaths.some((p) => pathname.startsWith(p)) || isHubAuthRequired(pathname);
     const hasSession = hasSupabaseSession(request);

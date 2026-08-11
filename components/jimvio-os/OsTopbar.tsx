@@ -4,13 +4,12 @@ import Link from "next/link";
 import {
   Bell,
   Menu,
-  MessageSquare,
   Plus,
   Search,
   Sparkles,
-  Wallet,
 } from "lucide-react";
 import { ProfileImage } from "@/components/ui/profile-image";
+import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
 import { OS_WORKSPACE_MODES } from "@/lib/jimvio-os/config";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
 import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
@@ -136,29 +135,44 @@ export function OsTopbar({ user, unreadNotifications = 0, unreadMessages = 0, on
           <Bell className="size-[17px]" />
         </TopbarIconButton>
 
-        <TopbarIconButton href="/dashboard/messages" label="Messages" badge={unreadMessages}>
-          <MessageSquare className="size-[17px]" />
-        </TopbarIconButton>
-
-        <TopbarIconButton href="/wallet" label="Wallet">
-          <Wallet className="size-[17px]" />
-        </TopbarIconButton>
-
-        <Link
-          href="/identity"
-          aria-label="Profile"
-          className={cn(
-            "grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] transition-[border-color] hover:border-[var(--color-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
-          )}
-        >
-          {user?.avatarUrl ? (
-            <ProfileImage src={user.avatarUrl} alt={user.name} className="h-full w-full" />
-          ) : (
-            <span className="text-[10px] font-bold text-[var(--color-accent)]">
-              {getInitials(user?.name || "You")}
-            </span>
-          )}
-        </Link>
+        {user ? (
+          <ProfileAccountMenu
+            user={{
+              name: user.name,
+              email: user.email,
+              avatarUrl: user.avatarUrl,
+            }}
+            messageCount={unreadMessages}
+            inboxCount={unreadNotifications}
+            trigger={
+              <button
+                type="button"
+                aria-label="Open profile menu"
+                className={cn(
+                  "grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] transition-[border-color] hover:border-[var(--color-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
+                )}
+              >
+                {user.avatarUrl ? (
+                  <ProfileImage src={user.avatarUrl} alt={user.name} className="h-full w-full" />
+                ) : (
+                  <span className="text-[10px] font-bold text-[var(--color-accent)]">
+                    {getInitials(user.name || "You")}
+                  </span>
+                )}
+              </button>
+            }
+          />
+        ) : (
+          <Link
+            href="/identity"
+            aria-label="Profile"
+            className={cn(
+              "grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)]",
+            )}
+          >
+            <span className="text-[10px] font-bold text-[var(--color-accent)]">You</span>
+          </Link>
+        )}
       </div>
     </header>
   );

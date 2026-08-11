@@ -96,7 +96,7 @@ const INTENTS: IntentSeed[] = [
     id: "nl-pending-orders",
     title: "Show pending orders",
     subtitle: "Orders awaiting fulfillment",
-    href: "/dashboard/orders",
+    href: "/orders",
     phrases: [
       "show pending orders",
       "pending orders",
@@ -226,7 +226,7 @@ const INTENTS: IntentSeed[] = [
     id: "nl-open-orders",
     title: "Open orders",
     subtitle: "View and fulfill orders",
-    href: "/dashboard/orders",
+    href: "/orders",
     phrases: ["open orders", "show orders", "my orders", "view orders", "order history"],
   },
   {

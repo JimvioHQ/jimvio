@@ -29,6 +29,7 @@ export function OsSidebar() {
 
   function isActive(item: WorkspaceNavItem) {
     if (item.href === "#open-ai") return false;
+    if (item.href === "/") return pathname === "/";
     if (item.href === "/dashboard") return pathname === "/dashboard";
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }

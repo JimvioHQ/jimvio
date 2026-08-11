@@ -237,7 +237,7 @@ function LoggedInView({ profile }: { profile: NonNullable<Profile> }) {
       {/* Quick links */}
       <div className="grid grid-cols-2 gap-2">
         {[
-          { href: "/dashboard/orders", icon: ShoppingBag, label: "Orders" },
+          { href: "/orders", icon: ShoppingBag, label: "Orders" },
           { href: "/dashboard/settings", icon: Settings, label: "Settings" },
           { href: "/dashboard/vendor/setup", icon: Factory, label: "Sell" },
           { href: "/ugc", icon: Megaphone, label: "Campaigns" },

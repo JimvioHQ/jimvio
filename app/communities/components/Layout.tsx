@@ -15,7 +15,7 @@ import {
     Layers,
     MessageSquare,
     Target,
-    Wallet,
+    Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import HubPrimarySidebar from "@/components/shell/HubPrimarySidebar";
@@ -31,10 +31,10 @@ import { buildHubLoginUrl, getCommunitySlugFromPath } from "@/lib/community/hub-
 import {
   isCommunitiesNavActive,
   isPrimaryNavActive,
-  isWalletActive,
   PRIMARY_NAV_ITEMS,
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
+import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
 import { CommunityAiPanel } from "@/components/community/hub/CommunityAiPanel";
 import { HubSearchDialog } from "@/components/community/hub/HubSearchDialog";
 import { OPEN_HUB_SEARCH_EVENT } from "@/lib/community/hub-search-event";
@@ -290,12 +290,12 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     </button>
 
                 {/* Logo */}
-                <Link href="/communities" className="shrink-0" aria-label="Jimvio home">
+                <Link href="/" className="shrink-0" aria-label="Jimvio home">
                     <JimvioLogo href={undefined} size="lg" />
                 </Link>
 
                 {/* Primary nav (desktop) */}
-                <nav className="hidden min-w-0 items-center justify-center gap-0.5 overflow-hidden min-[1060px]:flex min-[1060px]:flex-nowrap">
+                <nav className="hidden min-w-0 items-center justify-center gap-2 overflow-hidden min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-3">
                     {PRIMARY_NAV_ITEMS.map((item) => {
                         const { label, icon: Icon, dropdown } = item;
                         const href = resolvePrimaryNavHref(item, isAuthenticated === true);
@@ -308,7 +308,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                                 key={`${label}-${href}`}
                                 href={href}
                                 className={cn(
-                                    "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-1.5 text-[12px] font-semibold tracking-tight transition-colors xl:px-2.5 xl:text-[13px]",
+                                    "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[13px] font-semibold tracking-tight transition-colors",
                                     active
                                         ? "bg-[#fd5000]/10 text-[#fd5000]"
                                         : "text-[var(--color-text-secondary,#52525b)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
@@ -383,21 +383,6 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         <ThemeToggle />
                     </div>
 
-                    {isAuthenticated !== false && (
-                        <Link
-                            href="/wallet"
-                            className={cn(
-                                "hidden h-9 shrink-0 items-center gap-1 rounded-lg border px-2.5 text-[11px] font-semibold transition-colors sm:inline-flex sm:px-3 sm:text-xs min-[1060px]:hidden",
-                                isWalletActive(pathname)
-                                    ? "border-[#fd5000] bg-[#fd5000]/10 text-[#fd5000]"
-                                    : "border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[#fd5000]/40 hover:bg-[#fd5000]/5 hover:text-[#fd5000]"
-                            )}
-                        >
-                            <Wallet className="h-3.5 w-3.5 shrink-0" />
-                            <span className="whitespace-nowrap">Wallet</span>
-                        </Link>
-                    )}
-
                     {/* Avatar / Sign in */}
                     {isAuthenticated === false ? (
                         <Link
@@ -407,13 +392,26 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                             Sign in
                         </Link>
                     ) : (
-                    <Link
-                        href={profileHref}
-                        aria-label="My profile"
-                        className="ml-0.5 shrink-0 rounded-full transition-opacity hover:opacity-80"
-                    >
-                        <UserAvatar profile={profile} size={32} />
-                    </Link>
+                    <ProfileAccountMenu
+                        user={{
+                            name: profile?.full_name || profile?.username || "Account",
+                            avatarUrl: profile?.avatar_url,
+                        }}
+                        messageCount={unreadMessages}
+                        inboxCount={unreadNotifications}
+                        extraAccountItems={[
+                          { label: "Community profile", href: profileHref, icon: Users },
+                        ]}
+                        trigger={
+                            <button
+                                type="button"
+                                aria-label="Open profile menu"
+                                className="ml-0.5 shrink-0 rounded-full transition-opacity hover:opacity-80 outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+                            >
+                                <UserAvatar profile={profile} size={32} />
+                            </button>
+                        }
+                    />
                     )}
                 </div>
                 </header>

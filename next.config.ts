@@ -57,6 +57,9 @@ const nextConfig: NextConfig = {
       // Community hub: /c → /communities (permanent for bookmarks + SEO)
       { source: "/c", destination: "/communities", permanent: true },
       { source: "/c/:path*", destination: "/communities/:path*", permanent: true },
+      // Canonical Orders URL
+      { source: "/dashboard/orders", destination: "/orders", permanent: false },
+      { source: "/dashboard/orders/:id", destination: "/orders/:id", permanent: false },
     ];
   },
 

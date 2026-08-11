@@ -227,7 +227,7 @@ export const COMMAND_CENTER_QUICK_ACTIONS: StaticCommand[] = [
     kind: "order",
     title: "Jump to Orders",
     subtitle: "Fulfillment and purchase history",
-    href: "/dashboard/orders",
+    href: "/orders",
     icon: "receipt",
     keywords: ["orders", "jump", "fulfillment"],
     frequent: true,
@@ -256,10 +256,10 @@ export const COMMAND_CENTER_QUICK_ACTIONS: StaticCommand[] = [
     id: "open-messages",
     kind: "message",
     title: "Open Messages",
-    subtitle: "Jump to your inbox",
+    subtitle: "Conversations with buyers and sellers",
     href: "/dashboard/messages",
     icon: "message",
-    keywords: ["messages", "inbox", "chat", "open messages"],
+    keywords: ["messages", "chat", "open messages", "dm"],
     frequent: true,
   },
   {
@@ -302,10 +302,10 @@ export const COMMAND_CENTER_QUICK_ACTIONS: StaticCommand[] = [
     id: "universal-inbox",
     kind: "message",
     title: "Universal Inbox",
-    subtitle: "All your conversations in one place",
-    href: "/dashboard/messages",
+    subtitle: "Notifications and activity in one place",
+    href: "/dashboard/notifications",
     icon: "message",
-    keywords: ["inbox", "messages", "chat", "notifications", "universal"],
+    keywords: ["inbox", "notifications", "universal", "activity"],
   },
   {
     id: "create-space",
@@ -328,6 +328,14 @@ export const COMMAND_CENTER_QUICK_ACTIONS: StaticCommand[] = [
 ];
 
 export const COMMAND_CENTER_NAV_COMMANDS: StaticCommand[] = [
+  {
+    id: "nav-home",
+    kind: "page",
+    title: "Home",
+    href: "/",
+    icon: "home",
+    keywords: ["home", "start", "jimvio"],
+  },
   {
     id: "nav-marketplace",
     kind: "page",
@@ -372,7 +380,7 @@ export const COMMAND_CENTER_NAV_COMMANDS: StaticCommand[] = [
     id: "nav-orders",
     kind: "order",
     title: "Orders",
-    href: "/dashboard/orders",
+    href: "/orders",
     icon: "receipt",
     keywords: ["orders", "purchases"],
   },

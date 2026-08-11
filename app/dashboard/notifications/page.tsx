@@ -37,7 +37,7 @@ const VALID_CATEGORIES = new Set<NotificationUiCategory>([
 // (Approvals, Wallet, Campaigns, Affiliate) — presentation-only, no new API categories.
 const INBOX_QUICK_LINKS = [
     { label: "Messages", href: "/dashboard/messages" },
-    { label: "Orders", href: "/dashboard/orders" },
+    { label: "Orders", href: "/orders" },
     { label: "Wallet", href: "/wallet" },
     { label: "Campaigns", href: "/dashboard/vendor/campaigns" },
     { label: "Affiliate", href: "/affiliates" },

@@ -47,7 +47,6 @@ import {
   FileText,
   BanknoteIcon,
   DollarSign,
-  Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -70,9 +69,10 @@ import JimvioLogo from "../ui/logo";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
   MOBILE_BOTTOM_NAV_ITEMS,
-  isWalletActive,
+  PROFILE_QUICK_ACCESS_ITEMS,
   resolvePrimaryNavHref,
 } from "@/lib/navigation/primary-nav";
+import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
 
 
 const TRENDING_SEARCHES: {
@@ -235,19 +235,29 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
   if (!out.some((l) => norm(l.href) === "/communities"))
     out.push({ label: "Communities", href: "/communities" });
 
-  // Primary nav: Wallet replaces Home (Home page remains at `/` via logo / account).
-  out = out.filter((l) => norm(l.href) !== "/");
+  // Primary discovery nav — no Wallet/Orders/Messages/Home-dashboard utilities.
+  out = out.filter((l) => {
+    const h = norm(l.href);
+    return (
+      h !== "/wallet" &&
+      h !== "/dashboard/orders" &&
+      h !== "/orders" &&
+      h !== "/dashboard/messages" &&
+      h !== "/dashboard" &&
+      h !== "/dashboard/notifications"
+    );
+  });
 
-  if (!out.some((l) => norm(l.href) === "/wallet"))
-    out.unshift({ label: "Wallet", href: "/wallet" });
+  if (!out.some((l) => norm(l.href) === "/"))
+    out.unshift({ label: "Home", href: "/" });
 
-  const wi = out.findIndex((l) => norm(l.href) === "/wallet");
-  if (wi > 0) {
-    const [wallet] = out.splice(wi, 1);
-    out.unshift(wallet);
+  const hi = out.findIndex((l) => norm(l.href) === "/");
+  if (hi > 0) {
+    const [home] = out.splice(hi, 1);
+    out.unshift(home);
   }
 
-  // Marketplace immediately after Wallet
+  // Marketplace immediately after Home
   const mi = out.findIndex((l) => norm(l.href) === "/marketplace");
   if (mi > 1) {
     const [marketplace] = out.splice(mi, 1);
@@ -260,7 +270,6 @@ function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
 
 function iconForHref(href: string): LucideIcon {
   const h = href.replace(/\/$/, "") || "/";
-  if (h === "/wallet" || h.startsWith("/wallet/")) return Wallet;
   if (h === "/") return Home;
   if (h.startsWith("/communities")) return Users;
   if (h.startsWith("/ugc")) return Clapperboard;
@@ -379,7 +388,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
             </div>
 
             {/* Desktop nav — flex-1 center column, clips before overlapping search */}
-            <nav className="hidden min-[1240px]:flex min-w-0 flex-nowrap items-center justify-start gap-1 overflow-hidden px-1 xl:gap-1.5">
+            <nav className="hidden min-[1240px]:flex min-w-0 flex-nowrap items-center justify-start gap-2 overflow-hidden px-1 xl:gap-3">
 
               {navLinks.map((item) => {
                 const active = isActive(pathname, item.href);
@@ -492,13 +501,6 @@ export function Navbar({ user, marketing }: NavbarProps) {
                 />
               </div>
 
-              {/* Messages */}
-              {user && (
-                <ConsoleIconBtn href="/dashboard/messages" badge={chatCount} className="flex">
-                  <MessageSquare className="h-[18px] w-[18px]" strokeWidth={2.25} />
-                </ConsoleIconBtn>
-              )}
-
               {/* Cart */}
               <ConsoleIconBtn href="/cart" badge={cartCount}>
                 <ShoppingCart className="h-[18px] w-[18px]" />
@@ -511,86 +513,31 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
               <div className="hidden lg:block h-6 w-px mx-0.5 bg-border/40 shrink-0" />
 
-              {user && (
-                <ConsoleButton
-                  href="/wallet"
-                  active={isWalletActive(pathname)}
-                  className="hidden h-9 shrink-0 gap-1 px-2.5 py-0 text-[11px] font-semibold sm:inline-flex sm:px-3 sm:text-xs min-[1240px]:hidden"
-                >
-                  <Wallet className="h-3.5 w-3.5 shrink-0" />
-                  <span className="whitespace-nowrap">Wallet</span>
-                </ConsoleButton>
-              )}
-
               {/* User menu / auth */}
               <div className="hidden sm:flex items-center shrink-0">
                 {user ? (
-                  <DropdownMenu modal={false}>
-                    <DropdownMenuTrigger asChild>
-                      <button className="relative flex items-center justify-center p-0.5 h-9 w-9 rounded-full transition-all border border-border bg-surface shadow-sm active:scale-95 hover:border-orange-400">
-                        <Avatar className="h-full w-full rounded-full shrink-0">
+                  <ProfileAccountMenu
+                    user={{
+                      name: user.full_name || user.email || "Account",
+                      email: user.email,
+                      avatarUrl: user.avatar_url,
+                    }}
+                    messageCount={chatCount}
+                    trigger={
+                      <button
+                        type="button"
+                        aria-label="Open profile menu"
+                        className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface p-0.5 shadow-sm transition-all hover:border-orange-400 active:scale-95"
+                      >
+                        <Avatar className="h-full w-full shrink-0 rounded-full">
                           <AvatarImage src={user.avatar_url ?? undefined} className="object-cover" />
-                          <AvatarFallback className="bg-orange-100 rounded-full text-orange-600 text-[10px] font-bold capitalize">
+                          <AvatarFallback className="rounded-full bg-orange-100 text-[10px] font-bold capitalize text-orange-600">
                             {user.full_name?.[0] || user.email?.[0] || "U"}
                           </AvatarFallback>
                         </Avatar>
                       </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-60 p-1.5 mt-2 rounded-sm border border-border bg-surface shadow-none outline-none">
-                      <div className="px-3 py-1.5 rounded-md mb-1.5 bg-stone-50 dark:bg-stone-900 border border-border">
-                        <div className="flex items-center gap-2.5">
-                          <Avatar className="h-8 w-8 ring-2 rounded-full ring-white shrink-0">
-                            <AvatarImage src={user.avatar_url ?? undefined} />
-                            <AvatarFallback className="bg-gradient-to-br rounded-full from-orange-400 to-orange-600 text-white text-[10px] font-bold capitalize">
-                              {user.full_name?.[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0">
-                            <p className="text-[13px] font-semibold text-stone-900 dark:text-white truncate leading-tight">{user.full_name}</p>
-                            <p className="text-[10px] text-stone-400 truncate">{user.email}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {[
-                        { href: "/dashboard", icon: Home, label: "Home" },
-                        { href: "/dashboard/orders", icon: Package, label: "Orders" },
-                        { href: "/wallet", icon: DollarSign, label: "Wallet" },
-                        { href: "/dashboard/library", icon: Video, label: "Digital Library" },
-                        { href: "/dashboard/settings", icon: Settings, label: "My Account" },
-                      ].map((item) => (
-                        <DropdownMenuItem key={item.href} asChild className="p-0 focus:bg-transparent rounded-sm cursor-pointer">
-                          <Link
-                            href={item.href}
-                            className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm text-[13px] font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition-colors"
-                            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--color-surface-secondary)")}
-                            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "")}
-                          >
-                            <item.icon className="h-4 w-4 shrink-0" />
-                            {item.label}
-                          </Link>
-                        </DropdownMenuItem>
-                      ))}
-
-                      <div className="h-px my-1 mx-1 bg-border/60" />
-
-                      <DropdownMenuItem
-                        onSelect={async () => { await signOut(); window.location.href = "/"; }}
-                        className="flex items-center gap-2.5 px-3 py-2.5 rounded-sm text-[13px] font-semibold text-red-500 hover:bg-red-500/10 cursor-pointer focus:bg-transparent transition-colors"
-                      >
-                        <LogOut className="h-4 w-4 shrink-0" />
-                        Logout
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem className="min-[1280px]:hidden flex items-center justify-between px-3 py-2.5 rounded-sm text-[13px] font-semibold text-stone-600 dark:text-stone-300 focus:bg-transparent">
-                        <div className="flex items-center gap-2.5">
-                          <Sun className="h-4 w-4 text-stone-400" />
-                          Night Mode
-                        </div>
-                        <ThemeToggle />
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    }
+                  />
                 ) : (
                   <div className="flex items-center gap-2 shrink-0">
                     <Link href="/login" className="h-9 px-4 flex items-center rounded-sm text-[12px] font-bold text-stone-600 dark:text-stone-300 border border-border bg-white dark:bg-stone-900 hover:bg-stone-50 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-white transition-all whitespace-nowrap">
@@ -882,10 +829,11 @@ function MobileDrawer({
   const toggle = (s: string) => setExpanded((p) => (p === s ? null : s));
 
   const accountLinks = [
-    { href: "/dashboard", icon: Home, label: "Home" },
-    { href: "/dashboard/orders", icon: Package, label: "Orders" },
-    { href: "/wallet", icon: DollarSign, label: "Wallet" },
-    { href: "/dashboard/messages", icon: MessageSquare, label: "Messages" },
+    ...PROFILE_QUICK_ACCESS_ITEMS.map((item) => ({
+      href: item.href,
+      icon: item.icon,
+      label: item.label,
+    })),
     { href: "/dashboard/library", icon: Video, label: "Digital Library" },
     { href: "/dashboard/settings", icon: Settings, label: "Settings" },
   ];

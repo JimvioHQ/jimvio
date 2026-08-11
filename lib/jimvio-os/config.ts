@@ -7,14 +7,15 @@ import type {
 
 /** Recents / search labels — product-based destinations (no Dashboard product label). */
 export const OS_NAV_ITEMS: OsNavItem[] = [
-  { id: "home", label: "Home", href: "/dashboard", icon: "home" },
+  { id: "home", label: "Home", href: "/", icon: "home" },
   { id: "marketplace", label: "Marketplace", href: "/marketplace", icon: "store" },
-  { id: "orders", label: "Orders", href: "/dashboard/orders", icon: "shopping-bag" },
+  { id: "orders", label: "Orders", href: "/orders", icon: "shopping-bag" },
   { id: "wallet", label: "Wallet", href: "/wallet", icon: "wallet" },
   { id: "communities", label: "Communities", href: "/communities", icon: "users-round" },
   { id: "affiliate", label: "Affiliates", href: "/affiliates", icon: "link" },
   { id: "ugc", label: "UGC & Clipping", href: "/ugc", icon: "megaphone" },
   { id: "messages", label: "Messages", href: "/dashboard/messages", icon: "message" },
+  { id: "inbox", label: "Inbox", href: "/dashboard/notifications", icon: "bell" },
   { id: "products", label: "Products", href: "/dashboard/products", icon: "package" },
   { id: "analytics", label: "Analytics", href: "/dashboard/analytics", icon: "chart" },
   { id: "ai", label: "Jimvio AI", href: "#open-ai", icon: "sparkles" },

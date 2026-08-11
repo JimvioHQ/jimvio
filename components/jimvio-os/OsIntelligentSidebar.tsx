@@ -135,6 +135,7 @@ function SidebarContent({
 
   function isActive(item: WorkspaceNavItem) {
     if (item.href === "#open-ai") return false;
+    if (item.href === "/") return pathname === "/";
     if (item.href === "/dashboard") return pathname === "/dashboard";
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
@@ -143,7 +144,7 @@ function SidebarContent({
     <div className="flex h-full flex-col">
       <div className={cn("flex items-center gap-2 border-b border-[var(--color-border)] px-3 py-3.5", collapsed && "justify-center px-2")}>
         <JimvioLogo
-          href="/dashboard"
+          href="/"
           size="sm"
           variant={collapsed ? "icon" : "full"}
           className="min-w-0 flex-1"

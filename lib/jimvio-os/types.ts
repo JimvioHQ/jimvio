@@ -11,6 +11,7 @@ export type OsNavId =
   | "campaigns"
   | "live"
   | "messages"
+  | "inbox"
   | "payments"
   | "wallet"
   | "analytics"

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, Plus, ShoppingBag, Users, Wallet } from "lucide-react";
+import { Clapperboard, Home, Plus, ShoppingBag, Users } from "lucide-react";
 import { useJimvioOsStore } from "@/lib/store/use-jimvio-os-store";
 import { OsIntelligentSidebar } from "./OsIntelligentSidebar";
 import { OsTopbar, type OsTopbarUser } from "./OsTopbar";
@@ -18,16 +18,16 @@ type CreatorOsFrameProps = {
   unreadMessages?: number;
 };
 
-/** Essentials only — no Dashboard/Home tab; Wallet is the money surface. */
+/** Discovery essentials — Wallet/Orders/Messages via profile & sidebar. */
 const MOBILE_NAV_ITEMS = [
-  { href: "/wallet", label: "Wallet", icon: Wallet },
+  { href: "/", label: "Home", icon: Home },
   { href: "/marketplace", label: "Market", icon: ShoppingBag },
-  { href: "/dashboard/orders", label: "Orders", icon: Package },
   { href: "/communities", label: "Communities", icon: Users },
+  { href: "/ugc", label: "UGC", icon: Clapperboard },
 ] as const;
 
 function CreatorOsMobileNav() {
-  const pathname = usePathname() ?? "/dashboard";
+  const pathname = usePathname() ?? "/";
   const openQuickCreate = useJimvioOsStore((s) => s.openQuickCreate);
 
   return (
@@ -37,7 +37,9 @@ function CreatorOsMobileNav() {
     >
       {MOBILE_NAV_ITEMS.map((item) => {
         const active =
-          pathname === item.href || pathname.startsWith(`${item.href}/`);
+          item.href === "/"
+            ? pathname === "/"
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
         const Icon = item.icon;
         return (
           <Link

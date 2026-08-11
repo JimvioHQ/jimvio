@@ -70,7 +70,7 @@ const NAV_ITEMS: NavItem[] = [
     activeMatch: (p) => p.startsWith("/marketplace"),
   },
   { label: "Products", href: "/dashboard/products", icon: Package },
-  { label: "Orders", href: "/dashboard/orders", icon: Truck },
+  { label: "Orders", href: "/orders", icon: Truck },
   { label: "Customers", href: "/dashboard/vendor/orders", icon: Users },
   { label: "Revenue", href: "/dashboard/payments", icon: DollarSign },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
