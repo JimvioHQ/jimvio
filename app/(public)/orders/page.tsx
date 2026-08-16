@@ -686,7 +686,7 @@ export default function BuyerOrdersPage() {
    /* ── Loading skeleton ── */
    if (loading) return (
       <div className="min-h-screen pb-24" style={{ background: "var(--color-bg)" }}>
-         <div className="max-w-full mx-auto px-4 sm:px-6 pt-8 sm:pt-12 space-y-8">
+         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 space-y-8">
             {/* Header skeleton */}
             <div className="flex items-center gap-4 animate-pulse">
                <div className="h-9 w-9 rounded-xl bg-[var(--color-border)]" />
@@ -744,7 +744,7 @@ export default function BuyerOrdersPage() {
             />
          )}
 
-         <div className="space-y-6 pb-16">
+         <div className="space-y-6 pb-16 px-4 sm:px-6 lg:px-8">
             <PageHeader
                eyebrow="Dashboard · Commerce"
                title="Orders"
