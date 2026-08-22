@@ -15,8 +15,25 @@ function read(rel) {
 }
 
 const feed = read("app/api/posts/feed/route.ts");
+// Canonical authenticated feed response shape must remain intact.
 assert.match(feed, /return NextResponse\.json\(\{ posts, next_cursor \}\)/);
-assert.doesNotMatch(feed, /return NextResponse\.json\(\{ posts: enriched, next_cursor \}\)/);
+// Pagination integrity (the invariant the original community feed fix locked in):
+// the cursor must follow chronological page order — the last row of the DB page
+// (pageRows) — never the ranked/enriched display order. Ranking may reorder posts
+// *within* a page for display, but it must not drive the cursor. A second, correct
+// discovery path (getPublicDiscoveryFeed) legitimately returns
+// `{ posts: enriched, next_cursor }` while still deriving next_cursor from pageRows,
+// so we validate the actual cursor source rather than the response-shape string.
+assert.match(
+  feed,
+  /const next_cursor =\s+hasMore && pageRows\.length > 0 \? pageRows\[pageRows\.length - 1\]!\.created_at : null;/,
+  "feed next_cursor must be derived from chronological pageRows, not ranked order",
+);
+assert.doesNotMatch(
+  feed,
+  /const next_cursor =\s+hasMore && (?:enriched|posts)\.length/,
+  "feed next_cursor must not be derived from the ranked (enriched/posts) array",
+);
 
 const perms = read("lib/community/workspace/permissions.ts");
 const activeGate = 'if (!membership || membership.status !== "active") return "guest";';

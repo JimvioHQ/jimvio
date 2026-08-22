@@ -9,15 +9,16 @@ import "../styles/globals.css";
 import { constructMetadata } from "@/lib/seo";
 import { JimvioJsonLd } from "@/components/seo/JimvioJsonLd";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next"
 import { ReferralTracker } from "@/components/affiliate/referral-tracker";
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { ChunkReloadGuard } from "@/components/pwa/chunk-reload-guard";
 import { PlatformStatsProvider } from "@/components/platform/platform-stats-provider";
 import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
-import { SoftLaunchProviders } from "@/components/soft-launch/SoftLaunchProviders";
 import { CommandCenterLoader } from "@/components/command-center/CommandCenterLoader";
+import { LocaleProvider } from "@/context/LocaleContext";
+import { ConsentProvider } from "@/context/ConsentContext";
+import { ConsentGatedAnalytics } from "@/components/compliance/ConsentGatedAnalytics";
+import ComplianceBanner from "@/components/ComplianceBanner";
 
 export const metadata: Metadata = constructMetadata();
 
@@ -58,6 +59,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className="antialiased min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-200"
       >
         <JimvioJsonLd />
+        <LocaleProvider>
+        <ConsentProvider>
         <ThemeProvider>
           <DialogProvider>
           <NextTopLoader
@@ -74,7 +77,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </PlatformStatsProvider>
           <JimvioCopilotLoader />
           <CommandCenterLoader />
-          <SoftLaunchProviders />
           <Toaster
             richColors
             position="top-right"
@@ -93,8 +95,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ThemeProvider>
         <ServiceWorkerRegister />
         <ChunkReloadGuard />
-        <Analytics />
-        <SpeedInsights />
+        {/* Non-essential analytics only mount after consent allows it. */}
+        <ConsentGatedAnalytics />
+        <ComplianceBanner />
+        </ConsentProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

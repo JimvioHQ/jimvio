@@ -16,6 +16,8 @@ import type { ContactSettings } from "@/lib/platform-settings-shared";
 import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
 import { FieldInput } from "../ui/field-input";
 import JimvioLogo from "../ui/logo";
+import { openConsentPreferences } from "@/context/ConsentContext";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
 
@@ -351,7 +353,19 @@ const socials = [
           </span>
         </div>
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex flex-wrap items-center justify-center gap-1">
+          <LanguageSwitcher className="mr-1 h-8 py-1" />
+          <button
+            type="button"
+            onClick={openConsentPreferences}
+            className={cn(
+              "rounded flex items-center gap-1 px-2 py-1 text-xs text-text-muted",
+              "transition-[color,background] duration-150",
+              "hover:text-text-primary"
+            )}
+          >
+            Cookie preferences
+          </button>
           {legalLinks.map((item, i) => (
             <LegalLinkItem key={i} label={item.label} href={item.href} external={item.external} />
           ))}
