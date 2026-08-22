@@ -39,9 +39,21 @@ if (!transactional.includes("sendWelcomeEmail")) {
   errors += 1;
 }
 
+// Soft-launch analytics are mounted app-wide through the consent gate
+// (components/compliance/ConsentGatedAnalytics.tsx), which only loads them
+// after the visitor's consent allows analytics. Verify the wiring end-to-end
+// via that gate rather than a direct layout mount.
 const layout = readFileSync(join(root, "app/layout.tsx"), "utf8");
-if (!layout.includes("SoftLaunchProviders")) {
-  console.error("SoftLaunchProviders not mounted in app/layout.tsx");
+if (!layout.includes("ConsentGatedAnalytics")) {
+  console.error("ConsentGatedAnalytics not mounted in app/layout.tsx");
+  errors += 1;
+}
+const gatedAnalytics = readFileSync(
+  join(root, "components/compliance/ConsentGatedAnalytics.tsx"),
+  "utf8"
+);
+if (!gatedAnalytics.includes("SoftLaunchProviders")) {
+  console.error("SoftLaunchProviders not mounted via ConsentGatedAnalytics");
   errors += 1;
 }
 
