@@ -46,7 +46,12 @@ export const HUB_AUTH_REQUIRED_PREFIXES = [
 ] as const;
 
 /** Community sub-routes under /communities/[slug]/ that stay public. */
-export const COMMUNITY_PUBLIC_SUBROUTES = new Set(["leaderboard", "subscribe"]);
+export const COMMUNITY_PUBLIC_SUBROUTES = new Set([
+  "leaderboard",
+  "subscribe",
+  "feed",
+  "spaces",
+]);
 
 /**
  * Community sub-routes under /communities/[slug]/ that require sign-in.

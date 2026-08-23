@@ -9,15 +9,42 @@ export function isCallSignalingMessage(
   return looksLikeSignalingBody(body);
 }
 
+/** Feed/activity bodies that are signaling payloads, not human posts. */
+export function isTechnicalFeedBody(body: string | null | undefined): boolean {
+  return looksLikeSignalingBody(body);
+}
+
 function looksLikeSignalingBody(body: string | null | undefined): boolean {
   if (!body) return false;
   const trimmed = body.trim();
-  if (!trimmed.startsWith("{")) return false;
+  if (!trimmed) return false;
+  if (/^candidate:/i.test(trimmed)) return true;
+  if (/"ice"\s*:\s*\{/.test(trimmed) && /candidate/i.test(trimmed)) return true;
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return false;
   try {
-    const parsed = JSON.parse(trimmed) as { sdp?: unknown; ice?: unknown };
-    return parsed.sdp != null || parsed.ice != null;
+    const parsed = JSON.parse(trimmed) as {
+      sdp?: unknown;
+      ice?: unknown;
+      type?: unknown;
+      candidate?: unknown;
+    };
+    if (parsed.sdp != null || parsed.ice != null || parsed.candidate != null) {
+      return true;
+    }
+    if (
+      parsed.type === "offer" ||
+      parsed.type === "answer" ||
+      parsed.type === "candidate"
+    ) {
+      return true;
+    }
+    return false;
   } catch {
-    return trimmed.includes('"sdp"') || trimmed.includes('"ice"');
+    return (
+      trimmed.includes('"sdp"') ||
+      trimmed.includes('"ice"') ||
+      /"type"\s*:\s*"(offer|answer|candidate)"/.test(trimmed)
+    );
   }
 }
 

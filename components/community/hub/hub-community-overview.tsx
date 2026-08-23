@@ -563,9 +563,18 @@ export function HubCommunityOverview() {
 
         {activeTab === "overview" ? (
           <>
-            {/* Empty foundation state */}
+            <CommunityOverviewHome
+              slug={slug}
+              communityName={communityName}
+              base={base}
+              overview={overview}
+              spacesWithRooms={spacesWithRooms}
+              canManage={canCreateSpace}
+              onCreateSpace={() => setCreateSpaceOpen(true)}
+            />
+
             {!hasSpaces ? (
-              <section className="mt-8 overflow-hidden rounded-[1.35rem] bg-white p-8 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100 sm:p-10 animate-in fade-in duration-300">
+              <section className="mt-4 overflow-hidden rounded-[1.35rem] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100 sm:p-8 animate-in fade-in duration-300">
                 <div className="grid grid-cols-12 gap-6">
                   <div className="col-span-12 flex flex-col gap-4 lg:col-span-8">
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fd5000]/10 text-[#fd5000]">
@@ -615,16 +624,6 @@ export function HubCommunityOverview() {
                 </div>
               </section>
             ) : null}
-
-            <CommunityOverviewHome
-              slug={slug}
-              communityName={communityName}
-              base={base}
-              overview={overview}
-              spacesWithRooms={spacesWithRooms}
-              canManage={canCreateSpace}
-              onCreateSpace={() => setCreateSpaceOpen(true)}
-            />
           </>
         ) : (
           <div className="mt-8 animate-in fade-in duration-300">

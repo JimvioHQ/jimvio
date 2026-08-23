@@ -17,6 +17,7 @@ import {
 import { setActiveChatTarget } from "@/lib/community/chat/active-chat-target";
 import type { ConversationTarget } from "@/lib/community/chat/conversation-messages";
 import { useConversationMessages } from "@/hooks/useConversationMessages";
+import { isCallSignalingMessage } from "@/lib/community/message-signaling";
 import type {
     ActiveConvPeer,
     ChatFilter,
@@ -1036,7 +1037,7 @@ export function useChatRoom({
     const filteredMessages = useMemo(() => {
         const base = serverSearchResults ?? messages;
         let list = base.filter(
-            (m) => m.message_type !== "call_signal" && m.message_type !== "call_start"
+            (m) => !isCallSignalingMessage(m.message_type, m.body)
         );
         if (chatFilter === "media") {
             list = list.filter(

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   subscribePostgresChangesMany,
@@ -26,25 +27,20 @@ import {
     ChevronDown,
     Users,
     Lock,
-    Sparkles,
     BarChart3,
     Flag,
     Quote,
-    FileText,
     Package,
     Radio,
     MoreHorizontal,
     Video,
-    MapPin,
     Copy,
     ExternalLink,
     Pencil,
-    Globe,
     RefreshCw,
     Archive,
     MessageSquareOff,
 } from "lucide-react";
-import { uploadCommunityChatFile } from "@/lib/community-chat-upload";
 import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -57,15 +53,9 @@ import {
     type PostReactionId,
 } from "@/lib/feed/reactions";
 import {
-    extractMentions,
-    extractHashtags,
-    draftStorageKey,
-    saveLocalDraft,
-    loadLocalDraft,
-    clearLocalDraft,
     COMPOSER_MAX_CHARS,
-    compressImageFile,
 } from "@/lib/feed/composer-utils";
+import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -111,20 +101,7 @@ interface Post {
     communities?: { slug?: string | null; name?: string | null } | null;
 }
 
-type ComposerMode = "discussion" | "poll";
-type Audience = "public" | "followers" | "community" | "private";
 type CommentSort = "top" | "newest" | "oldest";
-
-type PendingMedia = {
-    id: string;
-    file?: File;
-    url: string;
-    name: string;
-    mime: string;
-    kind: "image" | "video";
-    progress: number;
-    status: "uploading" | "done" | "error";
-};
 
 interface Comment {
     id: string;
@@ -173,15 +150,6 @@ function normalizePost(raw: Post): Post {
     };
 }
 
-function extractFirstUrl(text: string): string | null {
-    const m = text.match(/https?:\/\/[^\s<>"{}|\\^`[\]]+/i);
-    return m?.[0] ?? null;
-}
-
-function newMediaId() {
-    return `m_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
 function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime();
     const m = Math.floor(diff / 60000);
@@ -218,13 +186,17 @@ export function FeedSection({
   filter = "for-you",
   variant = "default",
   communityId,
+  hideComposer = false,
 }: {
   filter?: string;
   variant?: "default" | "hub";
   /** When set, scopes the feed to a single community (e.g. /communities/[slug]/feed). */
   communityId?: string;
+  /** Hub feed already has a Create Post launcher above this section. */
+  hideComposer?: boolean;
 }) {
     const supabase = useMemo(() => createClient(), []);
+    const router = useRouter();
     const feedFilter = FEED_FILTER_MAP[filter] ?? "for-you";
     const isHub = variant === "hub";
     const scopedCommunityId = communityId ?? null;
@@ -240,40 +212,14 @@ export function FeedSection({
     const [hasMore, setHasMore] = useState(true);
     const [cursor, setCursor] = useState<string | null>(null);
 
-    const [composer, setComposer] = useState("");
-    const [composerMode, setComposerMode] = useState<ComposerMode>("discussion");
-    const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
-    const [pollMultiple, setPollMultiple] = useState(false);
-    const [pollAnonymous, setPollAnonymous] = useState(false);
-    const [pollExpiresAt, setPollExpiresAt] = useState("");
-    const [audience, setAudience] = useState<Audience>("community");
-    const [locationText, setLocationText] = useState("");
-    const [quoteOfPostId, setQuoteOfPostId] = useState<string | null>(null);
-    const [quotePreview, setQuotePreview] = useState<Post | null>(null);
-    const [productAttachId, setProductAttachId] = useState("");
-    const [liveAttachId, setLiveAttachId] = useState("");
-    const [showAttachPanel, setShowAttachPanel] = useState(false);
-    const [aiBusy, setAiBusy] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [composerError, setComposerError] = useState<string | null>(null);
     const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
     const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
     const [detailId, setDetailId] = useState<string | null>(null);
-    const [pendingMedia, setPendingMedia] = useState<PendingMedia[]>([]);
-    const [uploading, setUploading] = useState(false);
     const [showCommunityPicker, setShowCommunityPicker] = useState(false);
-    const [showDrafts, setShowDrafts] = useState(false);
-    const [drafts, setDrafts] = useState<Post[]>([]);
-    const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
-    const [draftRestored, setDraftRestored] = useState(false);
 
-    const imageInputRef = useRef<HTMLInputElement>(null);
-    const videoInputRef = useRef<HTMLInputElement>(null);
-    const composerRef = useRef<HTMLTextAreaElement>(null);
     const realtimeRef = useRef<RealtimeChannel | null>(null);
     const communityPickerRef = useRef<HTMLDivElement>(null);
     const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
-    const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const loadingMoreRef = useRef(false);
 
     // ── Bootstrap current user + memberships ──────────────────────────────────
@@ -281,35 +227,59 @@ export function FeedSection({
         let cancelled = false;
         async function bootstrap() {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user || cancelled) return;
-            setCurrentUserId(user.id);
+            if (cancelled) return;
+            if (user) setCurrentUserId(user.id);
 
             // Load memberships
-            const { data: mships } = await supabase
-                .from("community_memberships")
-                .select("community_id, role, status")
-                .eq("user_id", user.id)
-                .eq("status", "active");
+            const { data: mships } = user
+                ? await supabase
+                    .from("community_memberships")
+                    .select("community_id, role, status")
+                    .eq("user_id", user.id)
+                    .eq("status", "active")
+                : { data: [] as Membership[] };
 
             if (cancelled) return;
             const activeMships = mships ?? [];
             setMemberships(activeMships);
 
-            if (activeMships.length === 0) return;
-
-            // Load community details
             const communityIds = activeMships.map((m: Membership) => m.community_id);
-            const { data: comms } = await supabase
-                .from("communities")
-                .select("id, name, slug, avatar_url, is_private")
-                .in("id", communityIds)
-                .eq("is_active", true);
+            const { data: comms } = communityIds.length
+                ? await supabase
+                    .from("communities")
+                    .select("id, name, slug, avatar_url, is_private")
+                    .in("id", communityIds)
+                    .eq("is_active", true)
+                : { data: [] as Community[] };
 
             if (cancelled) return;
 
+            let scopedRow: Community | null = null;
+            if (scopedCommunityId) {
+                scopedRow =
+                    (comms ?? []).find((c: Community) => c.id === scopedCommunityId) ?? null;
+                if (!scopedRow) {
+                    const { data: scoped } = await supabase
+                        .from("communities")
+                        .select("id, name, slug, avatar_url, is_private")
+                        .eq("id", scopedCommunityId)
+                        .eq("is_active", true)
+                        .maybeSingle();
+                    if (scoped) scopedRow = scoped as Community;
+                }
+            }
+
+            if (cancelled) return;
+            if (activeMships.length === 0 && !scopedRow) return;
+
+            const communityList = [...(comms ?? [])];
+            if (scopedRow && !communityList.some((c) => c.id === scopedRow!.id)) {
+                communityList.unshift(scopedRow);
+            }
+
             // For each community, get the first room to use as default
             const enriched: Community[] = await Promise.all(
-                (comms ?? []).map(async (c: Community) => {
+                communityList.map(async (c: Community) => {
                     const { data: room } = await supabase
                         .from("rooms")
                         .select("id, space_id")
@@ -362,18 +332,21 @@ export function FeedSection({
         return () => document.removeEventListener("mousedown", handleClick);
     }, []);
 
-    // ── Keyboard shortcut: N = focus composer ────────────────────────────────
+    // ── Keyboard shortcut: N = open Create Post ───────────────────────────────
     useEffect(() => {
         function onKey(e: KeyboardEvent) {
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
             if (e.key === "n" || e.key === "N") {
                 e.preventDefault();
-                composerRef.current?.focus();
+                const params = new URLSearchParams();
+                if (selectedCommunity?.slug) params.set("community", selectedCommunity.slug);
+                const qs = params.toString();
+                router.push(qs ? `/create/post?${qs}` : "/create/post");
             }
         }
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
-    }, []);
+    }, [router, selectedCommunity?.slug]);
 
     // ── Load posts (first page) ───────────────────────────────────────────────
     const load = useCallback(async (replace = true) => {
@@ -390,7 +363,9 @@ export function FeedSection({
                 setCursor(null);
                 return;
             }
-            const normalized = (data.posts ?? []).map(normalizePost);
+            const normalized = (data.posts ?? [])
+                .map(normalizePost)
+                .filter((p: Post) => !isTechnicalFeedBody(p.body));
 
             if (replace) {
                 setPosts(normalized);
@@ -417,49 +392,6 @@ export function FeedSection({
     }, [feedFilter, scopedCommunityId]);
 
     useEffect(() => { load(); }, [load]);
-
-    // Restore local composer draft once user + community are known
-    useEffect(() => {
-        if (!currentUserId || draftRestored) return;
-        const key = draftStorageKey(currentUserId, selectedCommunity?.id ?? scopedCommunityId);
-        const draft = loadLocalDraft(key);
-        if (draft?.body) {
-            setComposer(draft.body);
-            if (draft.audience === "public" || draft.audience === "followers" || draft.audience === "community" || draft.audience === "private") {
-                setAudience(draft.audience);
-            }
-            if (draft.mode === "poll" || draft.mode === "discussion") {
-                setComposerMode(draft.mode);
-            }
-            if (Array.isArray(draft.pollOptions) && draft.pollOptions.length >= 2) {
-                setPollOptions(draft.pollOptions);
-            }
-        }
-        setDraftRestored(true);
-    }, [currentUserId, selectedCommunity?.id, scopedCommunityId, draftRestored]);
-
-    // Debounced local draft auto-save
-    useEffect(() => {
-        if (!currentUserId || !draftRestored) return;
-        if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
-        draftTimerRef.current = setTimeout(() => {
-            const key = draftStorageKey(currentUserId, selectedCommunity?.id ?? scopedCommunityId);
-            if (!composer.trim() && pollOptions.every((o) => !o.trim())) {
-                clearLocalDraft(key);
-                return;
-            }
-            saveLocalDraft(key, {
-                body: composer,
-                updatedAt: new Date().toISOString(),
-                audience,
-                pollOptions,
-                mode: composerMode,
-            });
-        }, 600);
-        return () => {
-            if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
-        };
-    }, [composer, audience, pollOptions, composerMode, currentUserId, selectedCommunity?.id, scopedCommunityId, draftRestored]);
 
     // Open post detail from ?post= deep links (notifications, search, share)
     useEffect(() => {
@@ -503,7 +435,9 @@ export function FeedSection({
                 toast.error(data.error || "Failed to load more posts");
                 return;
             }
-            const normalized = (data.posts ?? []).map(normalizePost);
+            const normalized = (data.posts ?? [])
+                .map(normalizePost)
+                .filter((p: Post) => !isTechnicalFeedBody(p.body));
             setPosts((prev) => {
                 const seen = new Set(prev.map((p) => p.id));
                 return [...prev, ...normalized.filter((p: Post) => !seen.has(p.id))];
@@ -521,13 +455,6 @@ export function FeedSection({
             loadingMoreRef.current = false;
             setLoadingMore(false);
         }
-    }
-
-    async function loadDrafts() {
-        const params = new URLSearchParams({ drafts: "1", limit: "20" });
-        const res = await fetch(`/api/posts/feed?${params}`);
-        const data = await res.json();
-        if (res.ok) setDrafts((data.posts ?? []).map(normalizePost));
     }
 
     // ── Load saved post ids ───────────────────────────────────────────────────
@@ -591,6 +518,7 @@ export function FeedSection({
                                 .maybeSingle();
                             if (!data || cancelled) return;
                             const normalized = normalizePost(data as Post);
+                            if (isTechnicalFeedBody(normalized.body)) return;
                             setPosts((prev) => {
                                 if (prev.find((p) => p.id === normalized.id)) return prev;
                                 const without = prev.filter((p) => p.id !== normalized.id);
@@ -657,307 +585,11 @@ export function FeedSection({
         };
     }, [supabase, memberships, scopedCommunityId]);
 
-    // ── Media upload (images + videos) ────────────────────────────────────────
-    async function uploadOneMedia(entry: PendingMedia, file: File) {
-        setPendingMedia((prev) =>
-            prev.map((m) =>
-                m.id === entry.id
-                    ? { ...m, status: "uploading", progress: 12, file }
-                    : m
-            )
-        );
-        setUploading(true);
-        try {
-            let toUpload = file;
-            if (file.type.startsWith("image/")) {
-                toUpload = await compressImageFile(file);
-                setPendingMedia((prev) =>
-                    prev.map((m) => (m.id === entry.id ? { ...m, progress: 35 } : m))
-                );
-            }
-            setPendingMedia((prev) =>
-                prev.map((m) => (m.id === entry.id ? { ...m, progress: 55 } : m))
-            );
-            const uploaded = await uploadCommunityChatFile("", "feed", toUpload);
-            setPendingMedia((prev) =>
-                prev.map((m) =>
-                    m.id === entry.id
-                        ? {
-                              ...m,
-                              url: uploaded.url || "",
-                              name: uploaded.name || file.name,
-                              mime: uploaded.mime || file.type,
-                              progress: 100,
-                              status: "done",
-                              file: undefined,
-                          }
-                        : m
-                )
-            );
-        } catch {
-            setPendingMedia((prev) =>
-                prev.map((m) =>
-                    m.id === entry.id ? { ...m, status: "error", progress: 0 } : m
-                )
-            );
-            toast.error(`Failed to upload ${file.name}`);
-        } finally {
-            setUploading(false);
-        }
-    }
-
-    async function handleMediaUpload(files: FileList | File[] | null) {
-        if (!files) return;
-        const list = Array.from(files);
-        for (const file of list) {
-            const isImage = file.type.startsWith("image/");
-            const isVideo = file.type.startsWith("video/");
-            if (!isImage && !isVideo) continue;
-            const entry: PendingMedia = {
-                id: newMediaId(),
-                file,
-                url: "",
-                name: file.name,
-                mime: file.type,
-                kind: isVideo ? "video" : "image",
-                progress: 0,
-                status: "uploading",
-            };
-            setPendingMedia((prev) => [...prev, entry]);
-            await uploadOneMedia(entry, file);
-        }
-    }
-
-    async function retryMediaUpload(id: string) {
-        const entry = pendingMedia.find((m) => m.id === id);
-        if (!entry?.file) {
-            toast.error("Original file unavailable — re-select the file");
-            return;
-        }
-        await uploadOneMedia(entry, entry.file);
-    }
-
-    function resetComposerFields() {
-        setComposer("");
-        setPollOptions(["", ""]);
-        setPollMultiple(false);
-        setPollAnonymous(false);
-        setPollExpiresAt("");
-        setLocationText("");
-        setComposerMode("discussion");
-        setPendingMedia([]);
-        setQuoteOfPostId(null);
-        setQuotePreview(null);
-        setProductAttachId("");
-        setLiveAttachId("");
-        setShowAttachPanel(false);
-        setEditingDraftId(null);
-        if (currentUserId) {
-            clearLocalDraft(draftStorageKey(currentUserId, selectedCommunity?.id ?? scopedCommunityId));
-        }
-    }
-
-    function buildAttachmentsPayload(cleanPoll: string[]) {
-        const attachments: Record<string, unknown> = {};
-        if (productAttachId.trim()) attachments.product_id = productAttachId.trim();
-        if (liveAttachId.trim()) attachments.live_session_id = liveAttachId.trim();
-        if (locationText.trim()) attachments.location = locationText.trim();
-        const mentions = extractMentions(composer);
-        const hashtags = extractHashtags(composer);
-        if (mentions.length) attachments.mentions = mentions;
-        if (hashtags.length) attachments.hashtags = hashtags;
-        if (composerMode === "poll") {
-            attachments.poll = {
-                options: cleanPoll.map((text) => ({ text, votes: 0 })),
-                multiple: pollMultiple,
-                anonymous: pollAnonymous,
-                expires_at: pollExpiresAt.trim() || null,
-            };
-        }
-        const videos = pendingMedia.filter((m) => m.kind === "video" && m.url).map((m) => m.url);
-        if (videos.length > 1) attachments.videos = videos;
-        return attachments;
-    }
-
-    // ── Submit post ───────────────────────────────────────────────────────────
-    async function submitPost(asDraft = false) {
-        setComposerError(null);
-
-        const trimmed = composer.trim();
-        if (trimmed.length > COMPOSER_MAX_CHARS) {
-            setComposerError(`Post is too long (max ${COMPOSER_MAX_CHARS} characters).`);
-            return;
-        }
-        const cleanPoll = pollOptions.map((o) => o.trim()).filter(Boolean);
-        const readyMedia = pendingMedia.filter((m) => m.status === "done" && m.url);
-        if (pendingMedia.some((m) => m.status === "uploading")) {
-            setComposerError("Wait for uploads to finish.");
-            return;
-        }
-        if (composerMode === "poll") {
-            if (cleanPoll.length < 2) {
-                setComposerError("Add at least 2 poll options.");
-                return;
-            }
-        } else if (!trimmed && readyMedia.length === 0) {
-            return;
-        }
-
-        if (!currentUserId) {
-            setComposerError("You must be signed in to post.");
-            return;
-        }
-
-        if (!selectedCommunity) {
-            setComposerError("Please select a community to post in.");
-            setShowCommunityPicker(true);
-            return;
-        }
-
-        if (!selectedCommunity.default_room_id || !selectedCommunity.default_space_id) {
-            setComposerError("This community has no active feed room. Contact the owner.");
-            return;
-        }
-
-        const isMember = memberships.some(
-            (m) => m.community_id === selectedCommunity.id && m.status === "active"
-        );
-        if (!isMember) {
-            setComposerError("You are not a member of this community.");
-            return;
-        }
-
-        const attachments = buildAttachmentsPayload(cleanPoll);
-        const imageUrls = readyMedia.filter((m) => m.kind === "image").map((m) => m.url);
-        const videoUrls = readyMedia.filter((m) => m.kind === "video").map((m) => m.url);
-        // Always persist the first video so the feed player has a URL even when
-        // additional clips are stored only in attachments.
-        const video_url = videoUrls[0] ?? undefined;
-
-        setSaving(true);
-        try {
-            if (editingDraftId && !asDraft) {
-                const patchRes = await fetch(`/api/posts/${editingDraftId}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        body: trimmed || (composerMode === "poll" ? "Poll" : ""),
-                        post_type: composerMode === "poll" ? "poll" : "discussion",
-                        images: imageUrls,
-                        attachments,
-                        audience,
-                        video_url: video_url ?? (videoUrls.length ? videoUrls[0] : undefined),
-                        is_published: true,
-                    }),
-                });
-                if (!patchRes.ok) {
-                    const err = await patchRes.json().catch(() => ({}));
-                    setComposerError(err.error ?? "Failed to publish draft.");
-                    toast.error(err.error ?? "Failed to publish draft");
-                    return;
-                }
-                const published = await patchRes.json().catch(() => ({}));
-                const draftId = editingDraftId;
-                resetComposerFields();
-                setDrafts((prev) => prev.filter((d) => d.id !== draftId));
-                if (published.post) {
-                    const normalized = normalizePost(published.post);
-                    setPosts((prev) => {
-                        if (prev.find((p) => p.id === normalized.id)) {
-                            return prev.map((p) => (p.id === normalized.id ? normalized : p));
-                        }
-                        const without = prev.filter((p) => p.id !== normalized.id);
-                        if (normalized.is_pinned) return [normalized, ...without];
-                        const pinned = without.filter((p) => p.is_pinned);
-                        const rest = without.filter((p) => !p.is_pinned);
-                        return [...pinned, normalized, ...rest];
-                    });
-                } else {
-                    await load();
-                }
-                toast.success("Draft published");
-                return;
-            }
-
-            const res = await fetch(`/api/posts/feed`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    body: trimmed || (composerMode === "poll" ? "Poll" : ""),
-                    post_type: composerMode === "poll" ? "poll" : "discussion",
-                    community_id: selectedCommunity.id,
-                    room_id: selectedCommunity.default_room_id,
-                    space_id: selectedCommunity.default_space_id,
-                    images: imageUrls,
-                    attachments,
-                    poll_options: composerMode === "poll" ? cleanPoll : undefined,
-                    is_published: !asDraft,
-                    quote_of_post_id: quoteOfPostId,
-                    audience,
-                    video_url,
-                }),
-            });
-
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                setComposerError(err.error ?? "Failed to post. Please try again.");
-                toast.error(err.error ?? "Failed to post");
-                return;
-            }
-
-            const created = await res.json().catch(() => ({}));
-            resetComposerFields();
-            if (asDraft) {
-                toast.success("Draft saved");
-                await loadDrafts();
-                setShowDrafts(true);
-            } else if (created.post) {
-                const normalized = normalizePost(created.post);
-                setPosts((prev) => {
-                    if (prev.find((p) => p.id === normalized.id)) return prev;
-                    const without = prev.filter((p) => p.id !== normalized.id);
-                    if (normalized.is_pinned) return [normalized, ...without];
-                    const pinned = without.filter((p) => p.is_pinned);
-                    const rest = without.filter((p) => !p.is_pinned);
-                    return [...pinned, normalized, ...rest];
-                });
-                toast.success("Post published");
-            } else {
-                toast.success("Post published");
-                await load();
-            }
-        } catch {
-            setComposerError("Network error. Please try again.");
-            toast.error("Network error. Please try again.");
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function runAiAssist(mode: "improve" | "shorten" | "expand" | "engaging" = "improve") {
-        if (!composer.trim() || aiBusy) return;
-        setAiBusy(true);
-        setComposerError(null);
-        try {
-            const res = await fetch("/api/c/feed/assist", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: composer, mode }),
-            });
-            const data = await res.json();
-            if (data.text) setComposer(data.text);
-            else setComposerError(data.error ?? "AI assist unavailable");
-        } catch {
-            setComposerError("AI assist failed. Try again.");
-        } finally {
-            setAiBusy(false);
-        }
-    }
-
     function startQuote(post: Post) {
-        setQuoteOfPostId(post.id);
-        setQuotePreview(post);
-        composerRef.current?.focus();
+        const params = new URLSearchParams();
+        if (selectedCommunity?.slug) params.set("community", selectedCommunity.slug);
+        params.set("quote", post.id);
+        router.push(`/create/post?${params.toString()}`);
     }
 
     async function reportPost(postId: string) {
@@ -1221,17 +853,15 @@ export function FeedSection({
     ];
 
     const detail = detailId ? posts.find((p) => p.id === detailId) : null;
-    const isMemberOfSelected = selectedCommunity
-        ? memberships.some((m) => m.community_id === selectedCommunity.id && m.status === "active")
-        : false;
-    const linkPreviewUrl = extractFirstUrl(composer);
-    const charCount = composer.length;
+    const createPostHref = selectedCommunity?.slug
+        ? `/create/post?community=${encodeURIComponent(selectedCommunity.slug)}`
+        : "/create/post";
 
     return (
         <div className={cn("flex flex-col", isHub ? "gap-3" : "gap-4")}>
 
             {/* ── Community Picker ───────────────────────────────────────────── */}
-            {communities.length > 1 && !isHub && (
+            {communities.length > 1 && !isHub && !scopedCommunityId && (
                 <div className="relative" ref={communityPickerRef}>
                     <button
                         type="button"
@@ -1269,7 +899,6 @@ export function FeedSection({
                                     onClick={() => {
                                         setSelectedCommunity(c);
                                         setShowCommunityPicker(false);
-                                        setComposerError(null);
                                     }}
                                     className={`w-full flex items-center gap-2 px-3 py-2.5 text-[12px] font-medium text-left hover:bg-surface-secondary transition-colors ${selectedCommunity?.id === c.id ? "text-[#fd5000]" : "text-text-primary"}`}
                                 >
@@ -1290,479 +919,42 @@ export function FeedSection({
                 </div>
             )}
 
-            {/* ── Composer ───────────────────────────────────────────────────── */}
-            <div
-                className={cn(
-                    "bg-surface border rounded-2xl p-4",
-                    isHub ? "border-[var(--color-border,#e4e4e7)] bg-white shadow-sm" : "border-border"
-                )}
-            >
-
-                {/* Membership gate warning */}
-                {selectedCommunity && !isMemberOfSelected && (
-                    <div className="flex items-center gap-2 text-[12px] text-amber-600 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 mb-3">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>You are not a member of <strong>{selectedCommunity.name}</strong>. Join first to post.</span>
-                    </div>
-                )}
-
-                {/* No community warning */}
-                {communities.length === 0 && !loading && (
-                    <div className="flex items-center gap-2 text-[12px] text-text-muted bg-surface-secondary border border-border rounded-lg px-3 py-2 mb-3">
-                        <Users className="w-3.5 h-3.5 shrink-0" />
-                        <span>Join a community to start posting.</span>
-                    </div>
-                )}
-
-                {/* Mode tabs */}
-                <div className="flex items-center gap-1 mb-2 overflow-x-auto">
-                    {(
-                        [
-                            { id: "discussion" as const, label: "Post", icon: FileText },
-                            { id: "poll" as const, label: "Poll", icon: BarChart3 },
-                        ] as const
-                    ).map((m) => (
-                        <button
-                            key={m.id}
-                            type="button"
-                            onClick={() => setComposerMode(m.id)}
-                            className={cn(
-                                "inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg transition-colors",
-                                composerMode === m.id
-                                    ? "bg-[#fd5000]/12 text-[#fd5000]"
-                                    : "text-text-muted hover:bg-surface-secondary"
-                            )}
-                        >
-                            <m.icon className="w-3.5 h-3.5" />
-                            {m.label}
-                        </button>
-                    ))}
-                    <button
-                        type="button"
-                        onClick={async () => {
-                            setShowDrafts((v) => !v);
-                            if (!showDrafts) await loadDrafts();
-                        }}
-                        className={cn(
-                            "ml-auto inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg",
-                            showDrafts ? "text-[#fd5000]" : "text-text-muted hover:bg-surface-secondary"
-                        )}
-                    >
-                        Drafts
-                    </button>
-                </div>
-
-                {quotePreview && (
-                    <div className="mb-2 flex items-start gap-2 rounded-xl border border-border bg-surface-secondary/60 px-3 py-2">
-                        <Quote className="w-3.5 h-3.5 text-[#fd5000] mt-0.5 shrink-0" />
-                        <p className="text-[12px] text-text-muted line-clamp-2 flex-1">{quotePreview.body}</p>
-                        <button
-                            type="button"
-                            onClick={() => { setQuoteOfPostId(null); setQuotePreview(null); }}
-                            className="text-text-muted hover:text-[#fd5000]"
-                            aria-label="Remove quote"
-                        >
-                            <X className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                )}
-
-                <textarea
-                    id={isHub ? "hub-community-composer" : undefined}
-                    ref={composerRef}
-                    value={composer}
-                    onChange={(e) => {
-                        const v = e.target.value.slice(0, COMPOSER_MAX_CHARS);
-                        setComposer(v);
-                        setComposerError(null);
-                    }}
-                    onPaste={(e) => {
-                        const files = e.clipboardData?.files;
-                        if (files?.length) {
-                            const media = Array.from(files).filter(
-                                (f) => f.type.startsWith("image/") || f.type.startsWith("video/")
-                            );
-                            if (media.length) {
-                                e.preventDefault();
-                                void handleMediaUpload(media);
-                            }
-                        }
-                    }}
-                    onDragOver={(e) => {
-                        if (e.dataTransfer?.types?.includes("Files")) e.preventDefault();
-                    }}
-                    onDrop={(e) => {
-                        if (!e.dataTransfer?.files?.length) return;
-                        e.preventDefault();
-                        void handleMediaUpload(e.dataTransfer.files);
-                    }}
-                    placeholder={
-                        !selectedCommunity
-                            ? "Select a community above to post…"
-                            : composerMode === "poll"
-                              ? `Ask a question in ${selectedCommunity.name}…`
-                              : `Share something in ${selectedCommunity.name}…`
-                    }
-                    rows={isHub ? 2 : 3}
-                    disabled={!isMemberOfSelected && communities.length > 0}
-                    maxLength={COMPOSER_MAX_CHARS}
+            {!hideComposer ? (
+                <div
                     className={cn(
-                        "w-full resize-none text-[14px] text-text-primary placeholder:text-text-muted focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed",
-                        isHub ? "min-h-[56px] bg-transparent" : "bg-transparent"
+                        "bg-surface border rounded-2xl p-3.5",
+                        isHub ? "border-[var(--color-border,#e4e4e7)] bg-white shadow-sm" : "border-border"
                     )}
-                />
-
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <div className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-surface-secondary/50 p-0.5">
-                        {(
-                            [
-                                { id: "public" as const, label: "Public", icon: Globe },
-                                { id: "followers" as const, label: "Followers", icon: Users },
-                                { id: "community" as const, label: "Community", icon: Users },
-                                { id: "private" as const, label: "Private", icon: Lock },
-                            ] as const
-                        ).map((a) => (
-                            <button
-                                key={a.id}
-                                type="button"
-                                onClick={() => setAudience(a.id)}
-                                className={cn(
-                                    "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md transition-colors",
-                                    audience === a.id
-                                        ? "bg-[#fd5000]/12 text-[#fd5000]"
-                                        : "text-text-muted hover:text-text-primary"
-                                )}
-                            >
-                                <a.icon className="w-3 h-3" />
-                                {a.label}
-                            </button>
-                        ))}
-                    </div>
-                    <span
-                        className={cn(
-                            "ml-auto text-[10px] font-semibold tabular-nums",
-                            charCount > COMPOSER_MAX_CHARS * 0.9 ? "text-[#fd5000]" : "text-text-muted"
-                        )}
+                >
+                    <Link
+                        href={createPostHref}
+                        className="flex items-center gap-3 rounded-xl px-1 py-1 hover:bg-surface-secondary/70 transition-colors"
                     >
-                        {charCount}/{COMPOSER_MAX_CHARS}
-                    </span>
-                </div>
-
-                {linkPreviewUrl && (
-                    <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border bg-surface-secondary/60 px-2.5 py-1.5 text-[11px] text-text-muted">
-                        <ExternalLink className="w-3 h-3 text-[#fd5000] shrink-0" />
-                        <span className="truncate">{linkPreviewUrl}</span>
-                    </div>
-                )}
-
-                <label className="mt-2 flex items-center gap-1.5 text-[11px] text-text-muted">
-                    <MapPin className="w-3 h-3 shrink-0" />
-                    <input
-                        value={locationText}
-                        onChange={(e) => setLocationText(e.target.value)}
-                        placeholder="Add location (optional)"
-                        className="flex-1 bg-transparent text-[12px] text-text-primary placeholder:text-text-muted focus:outline-none"
-                    />
-                </label>
-
-                {composerMode === "poll" && (
-                    <div className="mt-2 space-y-2">
-                        {pollOptions.map((opt, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                                <input
-                                    value={opt}
-                                    onChange={(e) =>
-                                        setPollOptions((prev) =>
-                                            prev.map((p, j) => (j === i ? e.target.value : p))
-                                        )
-                                    }
-                                    placeholder={`Option ${i + 1}`}
-                                    className="flex-1 rounded-lg border border-border bg-surface-secondary px-3 py-2 text-[13px] text-text-primary focus:outline-none"
-                                />
-                                {pollOptions.length > 2 && (
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            setPollOptions((prev) => prev.filter((_, j) => j !== i))
-                                        }
-                                        className="p-1.5 text-text-muted hover:text-red-500"
-                                    >
-                                        <X className="w-3.5 h-3.5" />
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                        {pollOptions.length < 6 && (
-                            <button
-                                type="button"
-                                onClick={() => setPollOptions((prev) => [...prev, ""])}
-                                className="text-[11px] font-semibold text-[#fd5000]"
-                            >
-                                + Add option
-                            </button>
-                        )}
-                        <div className="flex flex-wrap items-center gap-3 pt-1">
-                            <label className="inline-flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={pollMultiple}
-                                    onChange={(e) => setPollMultiple(e.target.checked)}
-                                    className="rounded border-border"
-                                />
-                                Multiple choice
-                            </label>
-                            <label className="inline-flex items-center gap-1.5 text-[11px] text-text-muted cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={pollAnonymous}
-                                    onChange={(e) => setPollAnonymous(e.target.checked)}
-                                    className="rounded border-border"
-                                />
-                                Anonymous
-                            </label>
-                            <label className="inline-flex items-center gap-1.5 text-[11px] text-text-muted">
-                                Expires
-                                <input
-                                    type="datetime-local"
-                                    value={pollExpiresAt}
-                                    onChange={(e) => setPollExpiresAt(e.target.value)}
-                                    className="ml-1 rounded-lg border border-border bg-surface-secondary px-2 py-1 text-[11px] text-text-primary focus:outline-none"
-                                />
-                            </label>
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fd5000]/10 text-[12px] font-bold text-[#fd5000]">
+                            {selectedCommunity?.name?.[0]?.toUpperCase() ?? "J"}
                         </div>
-                    </div>
-                )}
-
-                {showAttachPanel && (
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                        <label className="text-[11px] text-text-muted">
-                            Product ID
-                            <input
-                                value={productAttachId}
-                                onChange={(e) => setProductAttachId(e.target.value)}
-                                placeholder="product uuid"
-                                className="mt-1 w-full rounded-lg border border-border bg-surface-secondary px-3 py-2 text-[12px] text-text-primary focus:outline-none"
-                            />
-                        </label>
-                        <label className="text-[11px] text-text-muted">
-                            Live session ID
-                            <input
-                                value={liveAttachId}
-                                onChange={(e) => setLiveAttachId(e.target.value)}
-                                placeholder="live session uuid"
-                                className="mt-1 w-full rounded-lg border border-border bg-surface-secondary px-3 py-2 text-[12px] text-text-primary focus:outline-none"
-                            />
-                        </label>
-                    </div>
-                )}
-
-                {/* Pending media */}
-                {pendingMedia.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-2 mt-2">
-                        {pendingMedia.map((media) => (
-                            <div key={media.id} className="relative h-16 w-16 shrink-0 rounded-lg overflow-hidden border border-border">
-                                {media.status === "uploading" || !media.url ? (
-                                    <div className="h-full w-full flex flex-col items-center justify-center bg-surface-secondary gap-0.5">
-                                        {media.status === "error" ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => void retryMediaUpload(media.id)}
-                                                className="text-[#fd5000]"
-                                                aria-label="Retry upload"
-                                            >
-                                                <RefreshCw className="h-4 w-4" />
-                                            </button>
-                                        ) : (
-                                            <>
-                                                <Loader2 className="h-4 w-4 animate-spin text-text-muted" />
-                                                <span className="text-[9px] text-text-muted">{media.progress}%</span>
-                                            </>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <>
-                                        {media.kind === "video" ? (
-                                            <CommunityVideoPlayer src={media.url} compact />
-                                        ) : (
-                                            // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={media.url} alt="" className="object-cover w-full h-full" />
-                                        )}
-                                        <button
-                                            type="button"
-                                            onClick={() => setPendingMedia((prev) => prev.filter((m) => m.id !== media.id))}
-                                            className="absolute top-0.5 right-0.5 p-0.5 bg-black/50 text-white rounded"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    </>
-                                )}
-                                {media.status === "error" && (
-                                    <span className="absolute bottom-0 inset-x-0 bg-red-500/80 text-white text-[8px] text-center py-0.5">
-                                        Failed
-                                    </span>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {showDrafts && (
-                    <div className="mt-3 rounded-xl border border-border bg-surface-secondary/40 p-2 space-y-1 max-h-40 overflow-y-auto">
-                        {drafts.length === 0 ? (
-                            <p className="text-[11px] text-text-muted px-2 py-1">No drafts yet.</p>
-                        ) : (
-                            drafts.map((d) => (
-                                <button
-                                    key={d.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setComposer(d.body);
-                                        setComposerMode(d.post_type === "poll" ? "poll" : "discussion");
-                                        setEditingDraftId(d.id);
-                                        if (d.audience === "public" || d.audience === "followers" || d.audience === "community" || d.audience === "private") {
-                                            setAudience(d.audience);
-                                        }
-                                        const imgs = Array.isArray(d.images)
-                                            ? (d.images as string[]).filter(Boolean).map((url) => ({
-                                                  id: newMediaId(),
-                                                  url,
-                                                  name: "image",
-                                                  mime: "image/*",
-                                                  kind: "image" as const,
-                                                  progress: 100,
-                                                  status: "done" as const,
-                                              }))
-                                            : [];
-                                        const vids = d.video_url
-                                            ? [{
-                                                  id: newMediaId(),
-                                                  url: d.video_url,
-                                                  name: "video",
-                                                  mime: "video/*",
-                                                  kind: "video" as const,
-                                                  progress: 100,
-                                                  status: "done" as const,
-                                              }]
-                                            : [];
-                                        setPendingMedia([...imgs, ...vids]);
-                                        setShowDrafts(false);
-                                    }}
-                                    className="w-full text-left rounded-lg px-2 py-1.5 text-[12px] text-text-primary hover:bg-surface"
-                                >
-                                    <span className="line-clamp-1">{d.body || "Untitled draft"}</span>
-                                </button>
-                            ))
-                        )}
-                    </div>
-                )}
-
-                {/* Composer error */}
-                {composerError && (
-                    <div className="flex items-center gap-1.5 text-[11px] text-red-500 mt-2">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                        <span>{composerError}</span>
-                    </div>
-                )}
-
-                <div className={cn("flex items-center justify-between pt-3 border-t border-border gap-2", isHub ? "mt-2" : "mt-3")}>
-                    <div className="flex items-center gap-0.5 flex-wrap">
-                        <button
-                            type="button"
-                            onClick={() => imageInputRef.current?.click()}
-                            disabled={!isMemberOfSelected}
-                            className="p-2 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                            aria-label="Attach photo"
+                        <span className="flex-1 rounded-full bg-surface-secondary px-4 py-2.5 text-[14px] text-text-muted">
+                            {"What's on your mind?"}
+                        </span>
+                    </Link>
+                    <div className="mt-2 flex items-center gap-1 px-1">
+                        <Link
+                            href={createPostHref}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-muted hover:bg-surface-secondary hover:text-[#fd5000]"
                         >
-                            <ImageIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => videoInputRef.current?.click()}
-                            disabled={!isMemberOfSelected}
-                            className="p-2 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                            aria-label="Attach video"
+                            <ImageIcon className="h-4 w-4" />
+                            Photo
+                        </Link>
+                        <Link
+                            href={createPostHref}
+                            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-muted hover:bg-surface-secondary hover:text-[#fd5000]"
                         >
-                            <Video className="w-4 h-4" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setShowAttachPanel((v) => !v)}
-                            disabled={!isMemberOfSelected}
-                            className={cn(
-                                "p-2 rounded-lg transition-colors disabled:opacity-40",
-                                showAttachPanel ? "text-[#fd5000] bg-[#fd5000]/10" : "text-text-muted hover:bg-surface-secondary hover:text-[#fd5000]"
-                            )}
-                            aria-label="Attach product or live"
-                            title="Product / Live"
-                        >
-                            <Package className="w-4 h-4" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => runAiAssist("improve")}
-                            disabled={!isMemberOfSelected || !composer.trim() || aiBusy}
-                            className="p-2 rounded-lg text-text-muted hover:bg-surface-secondary hover:text-[#fd5000] transition-colors disabled:opacity-40"
-                            aria-label="AI Assist"
-                            title="AI Assist"
-                        >
-                            {aiBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                            type="button"
-                            disabled={saving || uploading || !isMemberOfSelected}
-                            onClick={() => submitPost(true)}
-                            className="text-[11px] font-semibold px-3 py-2 rounded-xl text-text-muted hover:bg-surface-secondary disabled:opacity-40"
-                        >
-                            Save draft
-                        </button>
-                        <button
-                            type="button"
-                            disabled={
-                                (composerMode === "discussion" && !composer.trim() && pendingMedia.every((i) => !i.url)) ||
-                                saving ||
-                                uploading ||
-                                !isMemberOfSelected
-                            }
-                            onClick={() => submitPost(false)}
-                            className={cn(
-                                "inline-flex items-center gap-1.5 text-[12px] font-semibold px-4 py-2 rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all",
-                                isHub
-                                    ? "bg-[#fd5000]/15 text-[#fd5000] hover:bg-[#fd5000]/22"
-                                    : "text-white"
-                            )}
-                            style={isHub ? undefined : { background: "linear-gradient(135deg, #fd5000, #ff7a30)" }}
-                        >
-                            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                            Post
-                        </button>
+                            <Video className="h-4 w-4" />
+                            Video
+                        </Link>
                     </div>
                 </div>
-
-                <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*,video/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                        void handleMediaUpload(e.target.files);
-                        e.target.value = "";
-                    }}
-                />
-                <input
-                    ref={videoInputRef}
-                    type="file"
-                    accept="video/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                        void handleMediaUpload(e.target.files);
-                        e.target.value = "";
-                    }}
-                />
-            </div>
+            ) : null}
 
             {/* ── Posts ──────────────────────────────────────────────────────── */}
             {loading ? (

@@ -6,6 +6,7 @@ import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-pub
 import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
 import { extractHashtags, extractMentions } from "@/lib/feed/composer-utils";
 import { rankFeedItems } from "@/lib/growth/feed-ranking";
+import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,10 @@ const FEED_FILTERS = new Set([
   "spaces",
   "missions",
 ]);
+
+function excludeTechnicalPosts<T extends { body?: string | null }>(rows: T[]): T[] {
+  return rows.filter((row) => !isTechnicalFeedBody(row.body));
+}
 
 /**
  * Logged-out discovery: published posts from non-private communities only.
@@ -134,7 +139,7 @@ async function getPublicDiscoveryFeed(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const rows = data ?? [];
+  const rows = excludeTechnicalPosts(data ?? []);
 
   // Defense in depth: public communities + public audience only.
   const safeRows = rows.filter((post) => {
@@ -168,7 +173,8 @@ async function getPublicDiscoveryFeed(req: NextRequest) {
   const next_cursor =
     hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.created_at : null;
 
-  return NextResponse.json({ posts: enriched, next_cursor });
+  const posts = enriched;
+  return NextResponse.json({ posts, next_cursor });
 }
 
 export async function GET(req: NextRequest) {
@@ -196,13 +202,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: membershipError.message }, { status: 400 });
   }
 
-  if (!memberships || memberships.length === 0) {
-    return NextResponse.json({ posts: [], next_cursor: null });
+  const communityIds = (memberships ?? []).map((m) => m.community_id);
+  if (communityId && !communityIds.includes(communityId)) {
+    return getPublicDiscoveryFeed(req);
   }
 
-  const communityIds = memberships.map((m) => m.community_id);
-  if (communityId && !communityIds.includes(communityId)) {
-    return NextResponse.json({ error: "No access" }, { status: 403 });
+  if (!communityIds.length) {
+    return getPublicDiscoveryFeed(req);
   }
 
   const db = supabase as any;
@@ -305,7 +311,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const rows = data ?? [];
+  const rows = excludeTechnicalPosts(data ?? []);
   const hasMore = rows.length > limit;
   const pageRows = rows.slice(0, limit);
   const postIds = pageRows.map((post) => post.id);
@@ -429,6 +435,10 @@ export async function POST(req: NextRequest) {
   const communityId = body.community_id;
   if (!communityId) {
     return NextResponse.json({ error: "community_id is required" }, { status: 400 });
+  }
+
+  if (isTechnicalFeedBody(body.body)) {
+    return NextResponse.json({ error: "Invalid post content" }, { status: 400 });
   }
 
   const { data: membership } = await supabase

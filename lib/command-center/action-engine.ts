@@ -163,7 +163,7 @@ const ACTION_SEEDS: ActionSeed[] = [
         id: "action-pending-orders",
         title: "Pending orders",
         subtitle: "Review orders awaiting fulfillment",
-        href: "/dashboard/orders",
+        href: "/orders",
       },
     ],
   },

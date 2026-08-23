@@ -188,7 +188,7 @@ export function MessageCard({
       className={cn(
         "group flex w-full scroll-mt-24 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]",
         discussion
-          ? cn(compact ? "mb-0.5" : "mb-1 sm:mb-1.5", isOwn ? "justify-end" : "justify-start")
+          ? cn(compact ? "mb-0.5" : "mb-0.5", isOwn ? "justify-end" : "justify-start")
           : "mb-0.5",
         !discussion && (isOwn ? "justify-end" : "justify-start"),
         compact && !discussion && "pl-3"
@@ -288,7 +288,7 @@ export function MessageCard({
               "relative transition-shadow duration-200",
               discussion
                 ? cn(
-                    "px-2.5 py-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+                    "px-2.5 py-1 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
                     isOwn
                       ? "rounded-[16px] rounded-br-md bg-[var(--color-accent-light)] ring-1 ring-[var(--color-accent)]/10"
                       : "rounded-[16px] rounded-bl-md bg-white/95 ring-1 ring-black/[0.04]"

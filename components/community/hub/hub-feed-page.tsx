@@ -346,7 +346,7 @@ export function HubFeedPage() {
           </div>
 
           {/* Community composer + feed posts */}
-          <FeedSection key={activeFilter} filter={activeFilter} variant="hub" />
+          <FeedSection key={activeFilter} filter={activeFilter} variant="hub" hideComposer />
         </div>
 
         {/* ── Right sidebar ── */}

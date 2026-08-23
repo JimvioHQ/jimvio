@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { canAccessRoom } from "@/services/accessControl";
+import { canAccessRoom, canReadPublicCommunityRoom } from "@/services/accessControl";
 import { notifyMentionedUsers } from "@/lib/community/notify-community";
 import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
 import {
@@ -8,6 +8,7 @@ import {
   sanitizeChatAttachments,
 } from "@/lib/community/chat/sanitize-attachments";
 import { rateLimit } from "@/lib/ops/rate-limit";
+import { isCallSignalingMessage } from "@/lib/community/message-signaling";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,15 @@ export async function GET(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const hasAccess = await canAccessRoom(user.id, roomId);
-  if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
+  const publicRead = await canReadPublicCommunityRoom(roomId);
+  const memberAccess = user ? await canAccessRoom(user.id, roomId) : false;
+  if (!memberAccess && !publicRead) {
+    return NextResponse.json(
+      { error: user ? "No access" : "Unauthorized" },
+      { status: user ? 403 : 401 }
+    );
+  }
 
   const { searchParams } = new URL(req.url);
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
@@ -56,7 +62,10 @@ export async function GET(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  const messages = ((data ?? []) as { created_at: string }[]).slice().reverse();
+  const messages = ((data ?? []) as { created_at: string; message_type?: string | null; body?: string | null }[])
+    .filter((m) => !isCallSignalingMessage(m.message_type, m.body))
+    .slice()
+    .reverse();
   const nextCursor = messages.length === limit ? messages[0]?.created_at ?? null : null;
 
   return NextResponse.json({ messages, nextCursor });

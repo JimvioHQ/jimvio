@@ -134,7 +134,7 @@ export function GroupHeader({
     <header
       className={cn(
         "relative shrink-0 border-b border-gray-100/90 bg-white/95 backdrop-blur-sm",
-        "px-3 py-2 sm:px-4 sm:py-2.5",
+        "px-3 py-1.5 sm:px-4 sm:py-2",
         className
       )}
     >
@@ -142,7 +142,7 @@ export function GroupHeader({
         <SpaceAvatar name={group.name} icon={group.icon} />
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
             <h1 className="truncate text-[15px] font-semibold tracking-tight text-gray-900 sm:text-[16px]">
               {group.name}
             </h1>

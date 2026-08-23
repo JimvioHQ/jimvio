@@ -43,6 +43,45 @@ export async function canAccessRoom(userId: string, roomId: string): Promise<boo
   return false;
 }
 
+/** Public community + unlocked public space/room — anonymous SELECT only. */
+export async function canReadPublicCommunityRoom(roomId: string): Promise<boolean> {
+  const supabase = getService();
+  const { data: room } = await supabase
+    .from("rooms")
+    .select("community_id, space_id, is_locked, access_type, is_active")
+    .eq("id", roomId)
+    .maybeSingle();
+
+  if (!room || room.is_active === false) return false;
+  if (room.is_locked) return false;
+  const roomAccess = (room.access_type ?? "inherit").toLowerCase();
+  if (roomAccess === "private" || roomAccess === "paid" || roomAccess === "premium") {
+    return false;
+  }
+
+  const { data: community } = await supabase
+    .from("communities")
+    .select("is_private, is_active")
+    .eq("id", room.community_id)
+    .maybeSingle();
+  if (!community || community.is_active === false || community.is_private === true) {
+    return false;
+  }
+
+  const { data: space } = await supabase
+    .from("spaces")
+    .select("access_type, is_active")
+    .eq("id", room.space_id)
+    .maybeSingle();
+  if (!space || space.is_active === false) return false;
+  const spaceAccess = (space.access_type ?? "free").toLowerCase();
+  if (spaceAccess === "private" || spaceAccess === "paid" || spaceAccess === "premium") {
+    return false;
+  }
+
+  return true;
+}
+
 export async function canAccessSpace(userId: string, spaceId: string): Promise<boolean> {
   const supabase = getService();
   const { data: space } = await supabase

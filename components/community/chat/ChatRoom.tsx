@@ -585,7 +585,7 @@ export function ChatRoom({
           className={cn(
             "flex min-h-0 flex-1 flex-col overflow-y-auto",
             discussionLayout
-              ? "discussion-chat-canvas px-2.5 py-1.5 pb-2 sm:px-4 lg:px-5"
+              ? "discussion-chat-canvas px-2 py-1 pb-1 sm:px-3 lg:px-4"
               : "bg-[var(--color-bg)] px-3 py-3 pb-5 sm:px-[5%]",
             "scrollbar-thin scrollbar-thumb-[var(--color-border-strong)]",
             hook.loading && "overflow-hidden"
@@ -731,7 +731,7 @@ export function ChatRoom({
         ) : (
           <div
             className={cn(
-              "px-4 py-4 text-center",
+              "px-3 py-2 text-center",
               discussionLayout
                 ? "discussion-chat-canvas border-t-0"
                 : "border-t border-[var(--color-border)] bg-[var(--color-surface-secondary)]"
@@ -741,7 +741,7 @@ export function ChatRoom({
             <div
               className={cn(
                 discussionLayout &&
-                  "mx-auto max-w-xl rounded-2xl bg-white/90 px-4 py-3 shadow-sm ring-1 ring-gray-100"
+                  "mx-auto max-w-xl rounded-xl bg-white/90 px-3 py-2 shadow-sm ring-1 ring-gray-100"
               )}
             >
               <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">

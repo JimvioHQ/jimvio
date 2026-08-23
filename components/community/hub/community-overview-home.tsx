@@ -99,7 +99,6 @@ function EmptySoft({ message }: { message: string }) {
  * then optional Rules / Resources / Announcements.
  */
 export function CommunityOverviewHome({
-  communityName,
   base,
   overview,
 }: {
@@ -126,42 +125,34 @@ export function CommunityOverviewHome({
   ].filter((v, i, arr) => arr.indexOf(v) === i);
 
   return (
-    <div className="mt-6 space-y-4 sm:mt-8 sm:space-y-5 animate-in fade-in duration-300">
+    <div className="mt-5 space-y-4 sm:mt-6 sm:space-y-5 animate-in fade-in duration-300">
       {/* Main overview content starts at Description */}
       <div className="space-y-4">
         <InfoCard
           icon={FileText}
           iconClass="bg-orange-50 text-[var(--color-accent)]"
           title="Description"
-          body={
-            description ||
-            `A place for people who care about ${communityName} — learning, sharing, and building together.`
-          }
+          body={description || "No description yet."}
           chips={tags.slice(0, 4)}
         />
 
-        <InfoCard
-          icon={Target}
-          iconClass="bg-emerald-50 text-emerald-600"
-          title="Mission"
-          body={
-            mission ||
-            overview?.tagline?.trim() ||
-            `Help members of ${communityName} learn faster and collaborate with clarity.`
-          }
-        />
+        {mission ? (
+          <InfoCard
+            icon={Target}
+            iconClass="bg-emerald-50 text-emerald-600"
+            title="Mission"
+            body={mission}
+          />
+        ) : null}
 
-        <InfoCard
-          icon={Eye}
-          iconClass="bg-sky-50 text-sky-600"
-          title="Vision"
-          body={
-            vision ||
-            (overview?.category
-              ? `Become the go-to home for ${overview.category.toLowerCase()} creators who want to learn, contribute, and grow together.`
-              : `Build a trusted ecosystem where members of ${communityName} turn knowledge into impact.`)
-          }
-        />
+        {vision ? (
+          <InfoCard
+            icon={Eye}
+            iconClass="bg-sky-50 text-sky-600"
+            title="Vision"
+            body={vision}
+          />
+        ) : null}
 
         {rules.length > 0 ? (
           <InfoCard

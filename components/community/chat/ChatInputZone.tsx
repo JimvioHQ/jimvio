@@ -284,9 +284,9 @@ export function ChatInputZone({
 
           <div
             className={cn(
-              "flex min-h-[44px] items-end gap-1",
+              "flex min-h-[38px] items-end gap-1",
               discussion
-                ? "mx-auto w-full max-w-[720px] flex-col gap-0.5 max-lg:mb-[3.25rem]"
+                ? "mx-auto w-full max-w-[720px] flex-col gap-0.5 max-lg:mb-[2.5rem]"
                 : "px-3 py-[9px] pb-[max(9px,env(safe-area-inset-bottom,0px))] max-lg:pb-[calc(3.5rem+max(9px,env(safe-area-inset-bottom,0px)))]"
             )}
           >

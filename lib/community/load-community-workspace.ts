@@ -51,31 +51,37 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
+  if (!user && community.is_private) return null;
 
-  const { data: membership } = await supabase
-    .from("community_memberships")
-    .select("role, status, plan_type, space_access, created_at")
-    .eq("community_id", community.id)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const { data: membership } = user
+    ? await supabase
+        .from("community_memberships")
+        .select("role, status, plan_type, space_access, created_at")
+        .eq("community_id", community.id)
+        .eq("user_id", user.id)
+        .maybeSingle()
+    : { data: null };
 
-  const isOwner = community.owner_id === user.id;
+  const isOwner = Boolean(user && community.owner_id === user.id);
   const isAdmin = isOwner || membership?.role === "admin" || membership?.role === "moderator";
 
   const [profileRes, pointsRes, spacesRes, roomsRes, overview, ownerRes, staffRes] =
     await Promise.all([
-      supabase
-        .from("profiles")
-        .select("full_name, avatar_url, username")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("member_points")
-        .select("total_points, level, streak_days")
-        .eq("community_id", community.id)
-        .eq("user_id", user.id)
-        .maybeSingle(),
+      user
+        ? supabase
+            .from("profiles")
+            .select("full_name, avatar_url, username")
+            .eq("id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      user
+        ? supabase
+            .from("member_points")
+            .select("total_points, level, streak_days")
+            .eq("community_id", community.id)
+            .eq("user_id", user.id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
       supabase
         .from("spaces")
         .select(
@@ -92,7 +98,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
         .eq("community_id", community.id)
         .eq("is_active", true)
         .order("sort_order"),
-      getCommunityOverviewStats(community.id, user.id).catch((err) => {
+      getCommunityOverviewStats(community.id, user?.id ?? null).catch((err) => {
         console.error("[loadCommunityWorkspace] overview stats failed:", err);
         return null;
       }),
@@ -101,10 +107,12 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
         .select("full_name, username")
         .eq("id", community.owner_id)
         .maybeSingle(),
-      supabase
-        .from("room_staff")
-        .select("room_id, staff_role")
-        .eq("user_id", user.id),
+      user
+        ? supabase
+            .from("room_staff")
+            .select("room_id, staff_role")
+            .eq("user_id", user.id)
+        : Promise.resolve({ data: [] as { room_id: string; staff_role: string | null }[] }),
     ]);
 
   const staffByRoom = new Map<string, "moderator" | "admin" | "publisher">();
@@ -119,41 +127,54 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
   }
 
   const roomsBySpace = new Map<string, NonNullable<typeof roomsRes.data>>();
+  const canSeeRestricted =
+    isOwner ||
+    (membership?.status === "active" && Boolean(membership.role));
+  const isPublicSpace = (accessType: string | null | undefined) => {
+    const t = (accessType ?? "free").toLowerCase();
+    return t !== "private" && t !== "paid" && t !== "premium";
+  };
   for (const r of roomsRes.data ?? []) {
+    if (!canSeeRestricted) {
+      if (r.is_locked) continue;
+      if (!isPublicSpace(r.access_type === "inherit" ? "free" : r.access_type)) continue;
+    }
     const list = roomsBySpace.get(r.space_id) ?? [];
     list.push(r);
     roomsBySpace.set(r.space_id, list);
   }
 
-  const spacesWithRooms: WorkspaceSpaceRow[] = (spacesRes.data ?? []).map((s) => ({
-    id: s.id,
-    name: s.name,
-    slug: s.slug,
-    icon: s.icon,
-    color: (s as { color?: string | null }).color ?? null,
-    description: (s as { description?: string | null }).description ?? null,
-    access_type: s.access_type ?? "free",
-    sort_order: s.sort_order,
-    space_type:
-      (s as { space_type?: string | null }).space_type ?? "discussion",
-    created_at: (s as { created_at?: string | null }).created_at ?? null,
-    is_featured: (s as { is_featured?: boolean | null }).is_featured ?? null,
-    member_count: (s as { member_count?: number | null }).member_count ?? 0,
-    rooms: (roomsBySpace.get(s.id) ?? []).map((r) => ({
-      id: r.id,
-      name: r.name,
-      slug: r.slug,
-      room_type: r.room_type,
-      space_id: r.space_id,
-      is_locked: r.is_locked ?? false,
-      access_type: r.access_type ?? "inherit",
-      sort_order: r.sort_order,
-      permission_config: r.permission_config ?? null,
-      behavior_config: r.behavior_config ?? null,
-      channel_kind: (r as { channel_kind?: string | null }).channel_kind ?? null,
-      channel_staff_role: staffByRoom.get(r.id) ?? null,
-    })),
-  }));
+  const spacesWithRooms: WorkspaceSpaceRow[] = (spacesRes.data ?? [])
+    .filter((s) => canSeeRestricted || isPublicSpace(s.access_type))
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      slug: s.slug,
+      icon: s.icon,
+      color: (s as { color?: string | null }).color ?? null,
+      description: (s as { description?: string | null }).description ?? null,
+      access_type: s.access_type ?? "free",
+      sort_order: s.sort_order,
+      space_type:
+        (s as { space_type?: string | null }).space_type ?? "discussion",
+      created_at: (s as { created_at?: string | null }).created_at ?? null,
+      is_featured: (s as { is_featured?: boolean | null }).is_featured ?? null,
+      member_count: (s as { member_count?: number | null }).member_count ?? 0,
+      rooms: (roomsBySpace.get(s.id) ?? []).map((r) => ({
+        id: r.id,
+        name: r.name,
+        slug: r.slug,
+        room_type: r.room_type,
+        space_id: r.space_id,
+        is_locked: r.is_locked ?? false,
+        access_type: r.access_type ?? "inherit",
+        sort_order: r.sort_order,
+        permission_config: r.permission_config ?? null,
+        behavior_config: r.behavior_config ?? null,
+        channel_kind: (r as { channel_kind?: string | null }).channel_kind ?? null,
+        channel_staff_role: staffByRoom.get(r.id) ?? null,
+      })),
+    }));
 
   const points: PointsSnapshot | null = pointsRes.data
     ? buildPointsSnapshot(
@@ -165,7 +186,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
 
   return {
     community,
-    currentUserId: user.id,
+    currentUserId: user?.id ?? "",
     membership:
       membership?.role && membership?.status
         ? {

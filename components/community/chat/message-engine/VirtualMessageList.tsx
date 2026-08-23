@@ -180,7 +180,7 @@ export function VirtualMessageList({
               }}
             >
               {item.kind === "day" && (
-                <div className="my-1.5 mb-2 flex justify-center" role="separator">
+                <div className="my-1 flex justify-center" role="separator">
                   <span
                     className={cn(
                       "rounded-full border border-white/70 px-2.5 py-0.5 text-[11px] font-medium shadow-sm",

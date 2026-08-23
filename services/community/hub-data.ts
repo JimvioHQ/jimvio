@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { aggregateMemberPoints, buildPointsSnapshot, levelFromTotalPoints, progressPercentInLevel } from "@/lib/community/points";
+import { isCallSignalingMessage, isTechnicalFeedBody } from "@/lib/community/message-signaling";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -1432,7 +1433,7 @@ function mapProfileMember(
 
 export async function getCommunityOverviewStats(
   communityId: string,
-  userId: string
+  userId: string | null
 ): Promise<CommunityOverviewStats> {
   const supabase = await createClient();
   const onlineCutoff = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
@@ -1522,17 +1523,19 @@ export async function getCommunityOverviewStats(
       .gte("last_active_at", onlineCutoff)
       .order("last_active_at", { ascending: false })
       .limit(8),
-    supabase
-      .from("lesson_progress")
-      .select("course_id, is_completed")
-      .eq("user_id", userId),
+    userId
+      ? supabase
+          .from("lesson_progress")
+          .select("course_id, is_completed")
+          .eq("user_id", userId)
+      : Promise.resolve({ data: [] as { course_id: string; is_completed: boolean | null }[] }),
     supabase
       .from("community_messages")
-      .select("id, body, created_at, room_id, sender_id, profiles!community_messages_sender_id_fkey(full_name, username)")
+      .select("id, body, created_at, room_id, sender_id, message_type, profiles!community_messages_sender_id_fkey(full_name, username)")
       .eq("community_id", communityId)
       .eq("is_deleted", false)
       .order("created_at", { ascending: false })
-      .limit(10),
+      .limit(20),
     supabase
       .from("member_points")
       .select("user_id, total_points, profiles!member_points_user_id_fkey(full_name, avatar_url, username)")
@@ -1585,11 +1588,13 @@ export async function getCommunityOverviewStats(
       .not("images", "is", null)
       .order("created_at", { ascending: false })
       .limit(12),
-    supabase
-      .from("wallets")
-      .select("total_earned")
-      .eq("user_id", userId)
-      .maybeSingle(),
+    userId
+      ? supabase
+          .from("wallets")
+          .select("total_earned")
+          .eq("user_id", userId)
+          .maybeSingle()
+      : Promise.resolve({ data: null as { total_earned: number | null } | null }),
     supabase
       .from("community_tasks")
       .select("id, title, due_date")
@@ -1617,9 +1622,8 @@ export async function getCommunityOverviewStats(
   const base = `/communities/${slug}`;
   const communityName = community?.name ?? "Community";
   const description =
-    community?.description ??
-    community?.long_description ??
-    community?.tagline ??
+    community?.description?.trim() ||
+    community?.long_description?.trim() ||
     null;
   const tagline = community?.tagline ?? null;
   const coverImage = community?.cover_image ?? null;
@@ -1640,14 +1644,7 @@ export async function getCommunityOverviewStats(
     .filter((line) => line.length > 0 && line.length < 120)
     .slice(0, 6);
 
-  const defaultRules = [
-    "Be respectful to all members",
-    "No spam or self-promotion without permission",
-    "Keep discussions on-topic for each space",
-    "Share knowledge and help others grow",
-    "Report issues to moderators privately",
-  ];
-  const rules = parsedRules.length > 0 ? parsedRules : defaultRules;
+  const rules = parsedRules;
 
   const chatRooms = (roomsRes.data ?? []).filter((r) => r.room_type === "chat");
   const chatRoomIds = new Set(chatRooms.map((r) => r.id));
@@ -1710,18 +1707,27 @@ export async function getCommunityOverviewStats(
   });
   const featuredCourse = courses[0] ?? null;
 
-  const recentActivity = (activityRes.data ?? []).map((row) => {
-    const profile = row.profiles as { full_name: string | null; username: string | null } | null;
-    const name = profile?.full_name ?? profile?.username ?? "Someone";
-    const room = roomNameById.get(row.room_id) ?? "a space";
-    const preview = (row.body ?? "").slice(0, 60);
-    return {
-      id: row.id,
-      text: `${name} posted in ${room}${preview ? `: ${preview}` : ""}`,
-      time: row.created_at ?? new Date().toISOString(),
-      href: `${base}/chat`,
-    };
-  });
+  const recentActivity = (activityRes.data ?? [])
+    .filter(
+      (row) =>
+        !isCallSignalingMessage(
+          (row as { message_type?: string | null }).message_type,
+          row.body
+        )
+    )
+    .slice(0, 10)
+    .map((row) => {
+      const profile = row.profiles as { full_name: string | null; username: string | null } | null;
+      const name = profile?.full_name ?? profile?.username ?? "Someone";
+      const room = roomNameById.get(row.room_id) ?? "a space";
+      const preview = (row.body ?? "").slice(0, 60);
+      return {
+        id: row.id,
+        text: `${name} posted in ${room}${preview ? `: ${preview}` : ""}`,
+        time: row.created_at ?? new Date().toISOString(),
+        href: `${base}/chat`,
+      };
+    });
 
   const popularThisWeek = courses.slice(0, 4).map((course) => ({
     id: course.id,
@@ -1788,7 +1794,9 @@ export async function getCommunityOverviewStats(
     return mapProfileMember(row.user_id, profile);
   });
 
-  const featuredPosts: OverviewPost[] = (featuredPostsRes.data ?? []).map((post) => {
+  const featuredPosts: OverviewPost[] = (featuredPostsRes.data ?? [])
+    .filter((post) => !isTechnicalFeedBody(post.body))
+    .map((post) => {
     const profile = post.profiles as {
       full_name: string | null;
       avatar_url: string | null;
@@ -1997,20 +2005,8 @@ export async function getCommunityOverviewStats(
   }
 
   const createdAt = community?.created_at ?? null;
-  const longDescription = community?.long_description?.trim() || null;
-  const shortDescription = community?.description?.trim() || null;
 
-  const missionVision: OverviewMissionVision | null = (() => {
-    const mission = tagline?.trim() || null;
-    const visionCandidate =
-      longDescription && longDescription !== mission && longDescription !== shortDescription
-        ? longDescription
-        : shortDescription && shortDescription !== mission
-          ? shortDescription
-          : null;
-    if (!mission && !visionCandidate) return null;
-    return { mission, vision: visionCandidate };
-  })();
+  const missionVision: OverviewMissionVision | null = null;
 
   const fourWeekMs = 28 * DAY_MS;
   const weekBuckets = [0, 0, 0, 0];
