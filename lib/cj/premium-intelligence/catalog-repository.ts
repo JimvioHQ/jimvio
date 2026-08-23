@@ -748,11 +748,10 @@ export async function markQueueJob(
 
 export async function getRawProduct(pid: string): Promise<CjRawProductRow | null> {
   const db = getCatalogDB();
+  // Select * — production columns are title/sell_price/cost, not name/price/is_video.
   const { data, error } = await db
     .from("cj_raw_products")
-    .select(
-      "pid, name, sku, price, stock, warehouse, orders, is_video, raw_payload, list_synced_at, updated_at"
-    )
+    .select("*")
     .eq("pid", pid)
     .maybeSingle();
   if (error) throw new Error(error.message);

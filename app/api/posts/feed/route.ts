@@ -31,6 +31,26 @@ function excludeTechnicalPosts<T extends { body?: string | null }>(rows: T[]): T
   return rows.filter((row) => !isTechnicalFeedBody(row.body));
 }
 
+/** Match RLS COALESCE(is_private, false) = false — NULL privacy is public. */
+async function loadPublicCommunityIds(
+  db: Awaited<ReturnType<typeof createClient>>,
+  limit = 80,
+): Promise<{ ids: string[]; error: string | null }> {
+  const { data, error } = await db
+    .from("communities")
+    .select("id")
+    .eq("is_active", true)
+    .or("is_private.eq.false,is_private.is.null")
+    .order("member_count", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("Error loading public communities:", error);
+    return { ids: [], error: error.message };
+  }
+  return { ids: (data ?? []).map((c) => c.id), error: null };
+}
+
 /**
  * Logged-out discovery: published posts from non-private communities only.
  * Never returns private/members-only content. Drafts / following / friends require auth.
@@ -58,24 +78,25 @@ async function getPublicDiscoveryFeed(
   // User/anon client so public SELECT RLS applies. App filters remain defense in depth.
   let publicCommunityIds: string[] = [];
   if (communityId) {
-    const { data: community } = await db
+    const { data: community, error: communityError } = await db
       .from("communities")
       .select("id, is_private, is_active")
       .eq("id", communityId)
       .maybeSingle();
+    if (communityError) {
+      console.error("Error loading public community:", communityError);
+      return NextResponse.json({ error: communityError.message }, { status: 400 });
+    }
     if (!community || community.is_active === false || community.is_private === true) {
       return NextResponse.json({ error: "No access" }, { status: 403 });
     }
     publicCommunityIds = [community.id];
   } else {
-    const { data: communities } = await db
-      .from("communities")
-      .select("id")
-      .eq("is_active", true)
-      .eq("is_private", false)
-      .order("member_count", { ascending: false })
-      .limit(80);
-    publicCommunityIds = (communities ?? []).map((c) => c.id);
+    const loaded = await loadPublicCommunityIds(db);
+    if (loaded.error) {
+      return NextResponse.json({ error: loaded.error }, { status: 400 });
+    }
+    publicCommunityIds = loaded.ids;
   }
 
   if (!publicCommunityIds.length) {
@@ -203,13 +224,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: membershipError.message }, { status: 400 });
   }
 
-  const communityIds = (memberships ?? []).map((m) => m.community_id);
-  if (communityId && !communityIds.includes(communityId)) {
+  const membershipIds = (memberships ?? []).map((m) => m.community_id);
+  if (communityId && !membershipIds.includes(communityId)) {
     return getPublicDiscoveryFeed(req, supabase);
   }
 
+  let publicCommunityIds: string[] = [];
+  if (!communityId && !draftsOnly) {
+    const loaded = await loadPublicCommunityIds(supabase);
+    if (loaded.error) {
+      return NextResponse.json({ error: loaded.error }, { status: 400 });
+    }
+    publicCommunityIds = loaded.ids;
+  }
+
+  const communityIds = communityId
+    ? [communityId]
+    : Array.from(new Set([...membershipIds, ...publicCommunityIds]));
+
   if (!communityIds.length) {
-    return getPublicDiscoveryFeed(req, supabase);
+    return NextResponse.json({ posts: [], next_cursor: null });
   }
 
   const db = supabase as any;
@@ -219,11 +253,11 @@ export async function GET(req: NextRequest) {
       .select("following_id")
       .eq("follower_id", user.id)
       .limit(500),
-    filter === "friends"
+    filter === "friends" && membershipIds.length
       ? supabase
           .from("community_memberships")
           .select("user_id")
-          .in("community_id", communityIds)
+          .in("community_id", membershipIds)
           .eq("status", "active")
           .neq("user_id", user.id)
           .limit(2000)

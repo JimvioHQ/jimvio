@@ -331,6 +331,8 @@ export function MarketplacePageClient({
   const [searchExactMatch, setSearchExactMatch] = useState(true);
   const [searchError, setSearchError] = useState(false);
   const [searchRetry, setSearchRetry] = useState(0);
+  const [browseError, setBrowseError] = useState(false);
+  const [browseRetry, setBrowseRetry] = useState(0);
 
   const supabaseRef = useRef(supabase);
   const filtersKey = JSON.stringify(filters);
@@ -393,7 +395,7 @@ export function MarketplacePageClient({
         return q;
       }
 
-      const { data: trend } = await applyFilters(
+      const { data: trend, error: trendError } = await applyFilters(
         supabaseRef.current
           .from("products")
           .select(`
@@ -411,6 +413,10 @@ export function MarketplacePageClient({
           .order("view_count", { ascending: false })
           .range(offset, offset + MARKETPLACE_PAGE_SIZE - 1),
       );
+      if (trendError) {
+        console.error("[marketplace] trending slice failed:", trendError);
+        return null;
+      }
 
       if (generation !== loadGenRef.current) return null;
 
@@ -595,6 +601,7 @@ export function MarketplacePageClient({
 
     const loadGeneration = ++loadGenRef.current;
     const typeFilter = getMarketplaceTypeFilter(type);
+    setBrowseError(false);
 
     async function load() {
       const showSectionSkeleton =
@@ -630,8 +637,7 @@ export function MarketplacePageClient({
       const skipTrending = Boolean(debouncedSearch);
 
       // Prefer category table directly — avoid scanning every product row for category_ids.
-      const [{ data: catRows }, { data: deals }, { data: trend }, { count }] =
-        await Promise.all([
+      const [catsRes, dealsRes, trendRes, countRes] = await Promise.all([
           supabaseRef.current
             .from("product_categories")
             .select("id, name, slug, product_count, image_url, tint_color")
@@ -662,7 +668,7 @@ export function MarketplacePageClient({
           ),
 
           skipTrending
-            ? Promise.resolve({ data: null })
+            ? Promise.resolve({ data: null, error: null })
             : applyFilters(
                 supabaseRef.current
                   .from("products")
@@ -694,6 +700,20 @@ export function MarketplacePageClient({
         ]);
 
       if (loadGeneration !== loadGenRef.current) return;
+
+      const productError = dealsRes.error || trendRes.error || countRes.error;
+      if (productError) {
+        console.error("[marketplace] browse load failed:", productError);
+        setBrowseError(true);
+        setLoading(false);
+        setProductsLoading(false);
+        return;
+      }
+
+      const catRows = catsRes.data;
+      const deals = dealsRes.data;
+      const trend = trendRes.data;
+      const count = countRes.count;
 
       let nextCategories = (catRows ?? []) as DbCategory[];
       if (nextCategories.length === 0 && (count ?? 0) > 0) {
@@ -740,8 +760,15 @@ export function MarketplacePageClient({
       setProductsLoading(false);
     }
 
-    load();
-  }, [type, filtersKey, debouncedSearch, urlType, initialType]);
+    void load().catch((err) => {
+      console.error("[marketplace] browse load failed:", err);
+      if (loadGeneration === loadGenRef.current) {
+        setBrowseError(true);
+        setLoading(false);
+        setProductsLoading(false);
+      }
+    });
+  }, [type, filtersKey, debouncedSearch, urlType, initialType, browseRetry]);
 
   useEffect(() => {
     if (!debouncedSearch) {
@@ -1200,6 +1227,31 @@ export function MarketplacePageClient({
                 onClick={() => {
                   setSearchError(false);
                   setSearchRetry((n) => n + 1);
+                }}
+                className="mt-4 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white"
+              >
+                Retry
+              </button>
+            </div>
+          ) : browseError && !debouncedSearch ? (
+            <div
+              className="rounded-2xl border border-dashed px-6 py-14 text-center"
+              style={{
+                borderColor: "var(--color-border)",
+                background: "var(--color-surface-secondary)",
+              }}
+            >
+              <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
+                Couldn’t load products
+              </p>
+              <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                Check your connection and try again.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setBrowseError(false);
+                  setBrowseRetry((n) => n + 1);
                 }}
                 className="mt-4 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white"
               >

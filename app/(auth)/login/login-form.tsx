@@ -135,6 +135,9 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
           <Field label="Email Address" required icon={<Mail className="h-5 w-5" />}>
             <FieldInput
               name="email"
+              type="email"
+              autoComplete="email"
+              inputMode="email"
               placeholder="you@example.com"
               disabled={pending}
             />
@@ -153,6 +156,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
                 id="password"
                 type={showPw ? "text" : "password"}
                 name="password"
+                autoComplete="current-password"
                 placeholder="••••••••"
                 disabled={pending}
               />

@@ -103,7 +103,7 @@ async function fetchMarketplaceProductPool(
   typeFilter: readonly string[],
   visibilitySets: MarketplaceVisibilitySets,
 ): Promise<{ pool: DbProduct[]; listingCount: number }> {
-  const [{ count }, { data }] = await Promise.all([
+  const [countRes, dataRes] = await Promise.all([
     supabase
       .from("products")
       .select("id", { count: "estimated", head: true })
@@ -122,15 +122,24 @@ async function fetchMarketplaceProductPool(
       .limit(FIRST_PAINT_POOL_LIMIT),
   ]);
 
-  const listingCount = count ?? 0;
+  if (countRes.error) {
+    console.error("[marketplace] product count failed:", countRes.error);
+    throw new Error(countRes.error.message);
+  }
+  if (dataRes.error) {
+    console.error("[marketplace] product pool failed:", dataRes.error);
+    throw new Error(dataRes.error.message);
+  }
+
+  const listingCount = countRes.count ?? 0;
   let pool = resolveMarketplaceProductPool(
-    dedupeProductsByIdentity((data ?? []) as DbProduct[]),
+    dedupeProductsByIdentity((dataRes.data ?? []) as DbProduct[]),
     visibilitySets,
     listingCount,
   );
 
   if (pool.length === 0 && listingCount > 0) {
-    const { data: fallback } = await supabase
+    const { data: fallback, error: fallbackError } = await supabase
       .from("products")
       .select(PRODUCT_SELECT)
       .eq("status", "active")
@@ -139,6 +148,11 @@ async function fetchMarketplaceProductPool(
       .in("product_type", [...typeFilter])
       .order("created_at", { ascending: false })
       .limit(FIRST_PAINT_POOL_LIMIT);
+
+    if (fallbackError) {
+      console.error("[marketplace] product fallback pool failed:", fallbackError);
+      throw new Error(fallbackError.message);
+    }
 
     pool = resolveMarketplaceProductPool(
       dedupeProductsByIdentity((fallback ?? []) as DbProduct[]),

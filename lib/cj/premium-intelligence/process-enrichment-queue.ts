@@ -91,7 +91,15 @@ export async function processEnrichmentQueue(
 
     processed++;
     const jobStart = Date.now();
-    const result = await enrichSingleProduct(pid);
+    let result: Awaited<ReturnType<typeof enrichSingleProduct>> = false;
+    try {
+      result = await enrichSingleProduct(pid);
+    } catch (err) {
+      await markQueueJob(pid, {
+        status: "failed",
+        last_error: err instanceof Error ? err.message : "enrichment failed",
+      }).catch(() => undefined);
+    }
     enrichmentDurations.push(Date.now() - jobStart);
 
     if (result === "skipped") skipped++;

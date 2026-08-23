@@ -51,7 +51,17 @@ function isFullyEnriched(intel: {
 }
 
 export async function enrichSingleProduct(pid: string): Promise<EnrichResult> {
-  const raw = await getRawProduct(pid);
+  let raw: Awaited<ReturnType<typeof getRawProduct>>;
+  try {
+    raw = await getRawProduct(pid);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "raw product lookup failed";
+    await markQueueJob(pid, {
+      status: "failed",
+      last_error: message,
+    });
+    return false;
+  }
   if (!raw) {
     await markQueueJob(pid, {
       status: "failed",
@@ -255,7 +265,6 @@ export async function enrichSingleProduct(pid: string): Promise<EnrichResult> {
     return true;
   } catch (err) {
     const message = err instanceof Error ? err.message : "enrichment failed";
-    const raw2 = await getRawProduct(pid);
     const attempts = (await getAttempts(pid)) + 1;
     const delay = RETRY_DELAYS_MS[Math.min(attempts - 1, RETRY_DELAYS_MS.length - 1)];
     const isDeadLetter = attempts >= MAX_ENRICHMENT_ATTEMPTS;

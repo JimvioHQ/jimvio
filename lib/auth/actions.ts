@@ -15,6 +15,11 @@ import {
 } from "@/lib/platform-maintenance"
 import { isAccountAccessBlocked } from "@/lib/users/account-status"
 import { rethrowIfNextNavigation } from "@/lib/auth/redirect-error"
+import {
+  mapSignInAuthError,
+  normalizeSignInEmail,
+  oauthOnlySignInMessage,
+} from "@/lib/auth/sign-in-errors"
 
 // ─────────────────────────────────────────────
 // Constants
@@ -139,7 +144,7 @@ export async function signUp(formData: FormData) {
   try {
     const supabase = await createClient()
 
-    const email = (formData.get("email") as string)?.trim()
+    const email = normalizeSignInEmail((formData.get("email") as string) || "")
     const password = formData.get("password") as string
     const fullName = (formData.get("full_name") as string)?.trim()
 
@@ -175,8 +180,40 @@ export async function signUp(formData: FormData) {
 // Sign in (password)
 // ─────────────────────────────────────────────
 
+async function messageForFailedPasswordSignIn(email: string, error: { message?: string | null; code?: string | null; status?: number | null }): Promise<string> {
+  const mapped = mapSignInAuthError(error)
+  const isInvalid =
+    String(error.code ?? "").toLowerCase() === "invalid_credentials" ||
+    String(error.message ?? "").toLowerCase().includes("invalid login credentials")
+  if (!isInvalid) return mapped
+
+  try {
+    const admin = createAdminClient()
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .limit(1)
+      .maybeSingle()
+    if (!profile?.id) return mapped
+
+    const { data, error: userError } = await admin.auth.admin.getUserById(profile.id)
+    if (userError || !data.user) return mapped
+
+    const providers = (data.user.identities ?? [])
+      .map((identity) => identity.provider)
+      .filter((provider): provider is string => Boolean(provider))
+    if (providers.includes("email")) return mapped
+    const oauth = providers.find((provider) => provider !== "email")
+    if (oauth) return oauthOnlySignInMessage(oauth)
+  } catch (err) {
+    console.error("[auth] identity lookup failed:", err)
+  }
+  return mapped
+}
+
 export async function signIn(formData: FormData) {
-  const email = (formData.get("email") as string)?.trim()
+  const email = normalizeSignInEmail((formData.get("email") as string) || "")
   const password = formData.get("password") as string
   const next = (formData.get("next") as string | null)?.trim() || null
 
@@ -188,7 +225,7 @@ export async function signIn(formData: FormData) {
     const supabase = await createClient()
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) return { error: error.message }
+    if (error) return { error: await messageForFailedPasswordSignIn(email, error) }
     if (!data.user) return { error: "Sign in failed. Please try again." }
 
     userId = data.user.id

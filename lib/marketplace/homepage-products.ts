@@ -83,7 +83,7 @@ async function fetchPhysicalProductPool(): Promise<{
 }> {
   const supabase = createAdminClient();
 
-  const { data, count } = await supabase
+  const { data, count, error } = await supabase
     .from("products")
     .select(HOMEPAGE_PRODUCT_SELECT, { count: "estimated" })
     .eq("status", "active")
@@ -92,6 +92,11 @@ async function fetchPhysicalProductPool(): Promise<{
     .eq("product_type", "physical")
     .order("view_count", { ascending: false })
     .limit(POOL_LIMIT);
+
+  if (error) {
+    console.error("[homepage] product pool failed:", error);
+    throw new Error(error.message);
+  }
 
   const raw = (data ?? []) as unknown as DbProduct[];
   const total = count ?? raw.length;
