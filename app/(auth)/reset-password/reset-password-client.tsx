@@ -168,7 +168,7 @@ export function ResetPasswordClient() {
         <h1 className="text-3xl font-black text-[var(--color-text-primary)] mb-2">Set new password</h1>
         <p className="text-[var(--color-text-secondary)]">Choose a strong password for your account.</p>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form method="post" action="/reset-password" onSubmit={handleSubmit} className="space-y-5">
         <Field label="New password" required icon={<KeyRound className="h-4 w-4" />} >
           <FieldInput
             name="password"

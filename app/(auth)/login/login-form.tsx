@@ -122,7 +122,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
           <div className="flex-grow border-t border-zinc-200 dark:border-border" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form method="post" action="/login" onSubmit={handleSubmit} className="space-y-5">
           {error && (
             <div
               role="alert"

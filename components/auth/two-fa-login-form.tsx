@@ -138,7 +138,7 @@ export function TwoFALoginForm({ next }: { next: string }) {
                 </p>
             </header>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form method="post" action="/login/2fa" onSubmit={handleSubmit} className="space-y-6">
                 {error && (
                     <div
                         role="alert"

@@ -46,7 +46,7 @@ export function ForgotPasswordForm() {
         <h1 className="text-3xl font-black text-white mb-2">Reset password</h1>
         <p className="text-white/50">We&apos;ll send you a reset link to your email</p>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form method="post" action="/forgot-password" onSubmit={handleSubmit} className="space-y-5">
         <Input
           name="email"
           type="email"

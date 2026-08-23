@@ -59,6 +59,16 @@ const NAV_ITEMS: NavItem[] = [
   { id: "wallet", label: "Wallet", href: "/communities/wallet", icon: Wallet },
 ];
 
+const GUEST_PROFILE = {
+  name: "Guest",
+  avatarUrl: null as string | null,
+  level: 0,
+  role: "",
+  verified: false,
+  xp: 0,
+  xpGoal: 1,
+};
+
 type CommunityRow = {
   id: string;
   name: string;
@@ -129,7 +139,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
   const [communitiesOpen, setCommunitiesOpen] = useState(true);
   const [communities, setCommunities] = useState<CommunityRow[]>([]);
   const [pinned, setPinned] = useState<CommunityRow[]>([]);
-  const [user, setUser] = useState(userProp);
+  const [user, setUser] = useState(userProp ?? null);
 
   useEffect(() => {
     if (userProp) setUser(userProp);
@@ -213,23 +223,17 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
     return () => { cancelled = true; };
   }, [userProp]);
 
-  const profile = user ?? {
-    name: "John Doe",
-    level: 42,
-    role: "Creator",
-    verified: true,
-    xp: 4250,
-    xpGoal: 6000,
-  };
+  const profile = user ?? GUEST_PROFILE;
+  const isGuest = !user;
 
   return (
     <aside className={cn("flex h-full w-[240px] shrink-0 flex-col border-r border-gray-200 bg-white", className)}>
       <div className="flex-1 overflow-y-auto">
         <div className="border-b border-gray-200 p-4">
           <Link
-            href="/identity"
+            href={isGuest ? "/login?next=/communities" : "/identity"}
             className="flex items-center gap-3 rounded-lg transition hover:bg-gray-50"
-            aria-label="Open Jimvio Identity"
+            aria-label={isGuest ? "Sign in" : "Open Jimvio Identity"}
           >
             {profile.avatarUrl ? (
               <img src={profile.avatarUrl} alt={profile.name} className="h-10 w-10 rounded-full object-cover" />
@@ -248,7 +252,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
                 )}
               </div>
               <p className="text-xs text-gray-500">
-                Level {profile.level} {profile.role}
+                {isGuest ? "Sign in to continue" : `Level ${profile.level} ${profile.role}`}
               </p>
             </div>
           </Link>

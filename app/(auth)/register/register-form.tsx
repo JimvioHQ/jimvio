@@ -89,7 +89,7 @@ export function RegisterForm() {
           <div className="flex-grow border-t border-zinc-200 dark:border-border"></div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form method="post" action="/register" onSubmit={handleSubmit} className="space-y-5">
           {error && (
             <div role="alert" className="p-3.5 rounded-sm text-[13px] font-semibold bg-red-50 text-red-600 flex items-center justify-center text-center">
               {error}

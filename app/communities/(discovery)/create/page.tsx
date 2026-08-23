@@ -2,6 +2,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { CreateCommunityForm } from "@/components/community/creator/CreateCommunityForm";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Create Community",
 };

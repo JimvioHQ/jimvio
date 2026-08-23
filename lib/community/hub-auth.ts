@@ -43,6 +43,7 @@ export const HUB_AUTH_REQUIRED_PREFIXES = [
   "/communities/courses",
   "/communities/events",
   "/communities/community/creator",
+  "/communities/create",
 ] as const;
 
 /** Community sub-routes under /communities/[slug]/ that stay public. */
