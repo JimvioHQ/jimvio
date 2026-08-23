@@ -1,6 +1,7 @@
 import { FeedSection } from "@/components/community/workspace/sections/Feed";
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { buildHubLoginUrl } from "@/lib/community/hub-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +14,31 @@ export default async function CommunityFeedPage({
   const supabase = await createClient();
   const { data: community } = await supabase
     .from("communities")
-    .select("id, name, slug")
+    .select("id, name, slug, is_private, owner_id")
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
 
   if (!community) notFound();
+
+  if (community.is_private) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const next = `/communities/${slug}/feed`;
+    if (!user) redirect(buildHubLoginUrl(next));
+
+    const isOwner = community.owner_id === user.id;
+    const { data: membership } = await supabase
+      .from("community_memberships")
+      .select("status, role")
+      .eq("community_id", community.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const memberOk =
+      isOwner || (membership?.status === "active" && Boolean(membership.role));
+    if (!memberOk) redirect(`/communities/${slug}`);
+  }
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--color-bg,#f4f4f5)]">

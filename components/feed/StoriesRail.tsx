@@ -10,8 +10,9 @@ import {
   subscribePostgresChanges,
   unsubscribeRealtime,
 } from "@/lib/supabase/realtime-subscribe";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import { StoryViewer, type StoryViewerGroup } from "@/components/feed/StoryViewer";
+import { buildHubLoginUrl } from "@/lib/community/hub-auth";
 
 const STORY_RING = "border-2 border-[#FF5C00]";
 const STORY_RING_SEEN = "border-2 border-gray-300";
@@ -32,11 +33,10 @@ function displayName(group: StoryApiGroup) {
 function StoryAvatar({
   name,
   url,
-  seed,
 }: {
   name: string;
   url: string | null;
-  seed: string;
+  seed?: string;
 }) {
   if (url) {
     return (
@@ -45,12 +45,9 @@ function StoryAvatar({
     );
   }
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={`https://picsum.photos/seed/${seed}/108/108`}
-      alt={name}
-      className="h-full w-full rounded-full object-cover"
-    />
+    <span className="flex h-full w-full items-center justify-center rounded-full bg-gray-200 text-[11px] font-bold text-gray-600">
+      {getInitials(name)}
+    </span>
   );
 }
 
@@ -124,6 +121,10 @@ export function StoriesRail() {
   };
 
   const onPickFile = async (files: FileList | null) => {
+    if (!currentUserId) {
+      window.location.href = buildHubLoginUrl("/communities");
+      return;
+    }
     const file = files?.[0];
     if (!file) return;
     const isPhoto = file.type.startsWith("image/");
@@ -179,6 +180,10 @@ export function StoriesRail() {
               type="button"
               disabled={uploading}
               onClick={() => {
+                if (!currentUserId) {
+                  window.location.href = buildHubLoginUrl("/communities");
+                  return;
+                }
                 if (ownGroup && ownGroup.stories.length > 0) {
                   openGroup(ownGroup.author_id, 0);
                   return;
@@ -213,7 +218,13 @@ export function StoriesRail() {
               type="button"
               aria-label="Add story"
               disabled={uploading}
-              onClick={() => fileRef.current?.click()}
+              onClick={() => {
+                if (!currentUserId) {
+                  window.location.href = buildHubLoginUrl("/communities");
+                  return;
+                }
+                fileRef.current?.click();
+              }}
               className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#FF5C00] disabled:opacity-60"
             >
               <Plus className="h-3 w-3 text-white" strokeWidth={3} />

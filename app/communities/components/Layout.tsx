@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
     Home,
@@ -29,7 +29,7 @@ import { useCartStore } from "@/lib/store/use-cart-store";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 import type { Profile as DbProfile } from "@/types/db";
-import { buildHubLoginUrl, getCommunitySlugFromPath } from "@/lib/community/hub-auth";
+import { buildHubLoginUrl, getCommunitySlugFromPath, isHubAuthRequired } from "@/lib/community/hub-auth";
 import {
   isCommunitiesNavActive,
   isOrdersActive,
@@ -153,6 +153,7 @@ function useCommunityIdFromPath(pathname: string): string | null {
 // ── Layout ────────────────────────────────────────────────────────────────────
 export default function HubLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
 
     const [collapsed, setCollapsed] = useState(false);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -254,6 +255,13 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             if (channel) supabase.removeChannel(channel);
         };
     }, [refreshCounts]);
+
+    useEffect(() => {
+        if (isAuthenticated !== false) return;
+        if (isHubAuthRequired(pathname)) {
+            router.replace(buildHubLoginUrl(pathname));
+        }
+    }, [isAuthenticated, pathname, router]);
 
     const profileHref = profile?.username ? `/communities/profile/${profile.username}` : "/communities/profile";
     const loginHref = buildHubLoginUrl(pathname);

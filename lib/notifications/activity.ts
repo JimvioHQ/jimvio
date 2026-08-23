@@ -5,6 +5,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { NotificationCategory } from "@/lib/notifications/categories";
 import { groupActivityByDate } from "@/lib/notifications/ui-utils";
+import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 
 export type ActivityNotification = {
   id: string;
@@ -102,8 +103,11 @@ export async function getActivityFeed(
       const legacyRes = await legacy;
       if (legacyRes.error) throw new Error(legacyRes.error.message);
       const rows = (legacyRes.data ?? []) as ActivityNotification[];
+      const visible = rows.filter(
+        (row) => !isTechnicalFeedBody(row.message) && !isTechnicalFeedBody(row.title),
+      );
       const hasMore = rows.length > limit;
-      const items = hasMore ? rows.slice(0, limit) : rows;
+      const items = visible.slice(0, Math.min(limit, visible.length));
       return {
         items,
         nextCursor: hasMore ? items[items.length - 1]?.created_at ?? null : null,
@@ -114,8 +118,11 @@ export async function getActivityFeed(
   }
 
   const rows = (data ?? []) as ActivityNotification[];
+  const visible = rows.filter(
+    (row) => !isTechnicalFeedBody(row.message) && !isTechnicalFeedBody(row.title),
+  );
   const hasMore = rows.length > limit;
-  const items = hasMore ? rows.slice(0, limit) : rows;
+  const items = visible.slice(0, Math.min(limit, visible.length));
   const nextCursor = hasMore ? items[items.length - 1]?.created_at ?? null : null;
 
   return { items, nextCursor, hasMore };

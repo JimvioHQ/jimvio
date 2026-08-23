@@ -52,6 +52,40 @@ async function loadPublicCommunity(slug: string): Promise<CommunityDetailPayload
 
   if (!community) return null;
 
+  const {
+    data: { user: viewer },
+  } = await supabase.auth.getUser();
+  const isPrivate = community.is_private === true;
+
+  // Private communities: join wall only — do not leak members, posts, or course stats.
+  if (isPrivate) {
+    let canSeePrivate = false;
+    if (viewer) {
+      const isOwner = community.owner_id === viewer.id;
+      const { data: membership } = await supabase
+        .from("community_memberships")
+        .select("status, role")
+        .eq("community_id", community.id)
+        .eq("user_id", viewer.id)
+        .maybeSingle();
+      canSeePrivate =
+        isOwner || (membership?.status === "active" && Boolean(membership.role));
+    }
+    if (!canSeePrivate) {
+      return {
+        ...community,
+        owner: community.owner ?? null,
+        recent_members: [],
+        stats: {
+          course_count: 0,
+          lesson_count: 0,
+          posts_last_week: 0,
+          last_post_at: null,
+        },
+      };
+    }
+  }
+
   const oneWeekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
   const [recentMembersRes, courseCountRes, lessonCountRes, postsLastWeekRes, lastPostRes] =
     await Promise.all([

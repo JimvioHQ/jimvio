@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { Json } from "@/types/supabase";
 import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
 import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
@@ -36,7 +35,10 @@ function excludeTechnicalPosts<T extends { body?: string | null }>(rows: T[]): T
  * Logged-out discovery: published posts from non-private communities only.
  * Never returns private/members-only content. Drafts / following / friends require auth.
  */
-async function getPublicDiscoveryFeed(req: NextRequest) {
+async function getPublicDiscoveryFeed(
+  req: NextRequest,
+  db: Awaited<ReturnType<typeof createClient>>,
+) {
   const { searchParams } = req.nextUrl;
   const limit = Math.min(Number(searchParams.get("limit") ?? PAGE_SIZE), 50);
   const cursor = searchParams.get("cursor");
@@ -53,11 +55,10 @@ async function getPublicDiscoveryFeed(req: NextRequest) {
   const publicFilter =
     filter === "following" || filter === "friends" ? "for-you" : filter;
 
-  const admin = createAdminClient();
-
+  // User/anon client so public SELECT RLS applies. App filters remain defense in depth.
   let publicCommunityIds: string[] = [];
   if (communityId) {
-    const { data: community } = await admin
+    const { data: community } = await db
       .from("communities")
       .select("id, is_private, is_active")
       .eq("id", communityId)
@@ -67,7 +68,7 @@ async function getPublicDiscoveryFeed(req: NextRequest) {
     }
     publicCommunityIds = [community.id];
   } else {
-    const { data: communities } = await admin
+    const { data: communities } = await db
       .from("communities")
       .select("id")
       .eq("is_active", true)
@@ -81,7 +82,7 @@ async function getPublicDiscoveryFeed(req: NextRequest) {
     return NextResponse.json({ posts: [], next_cursor: null });
   }
 
-  let query = admin
+  let query = db
     .from("community_posts")
     .select(
       "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug, name, is_private)",
@@ -110,7 +111,7 @@ async function getPublicDiscoveryFeed(req: NextRequest) {
       query = query.gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
       break;
     case "verified": {
-      const { data: featuredCommunities } = await admin
+      const { data: featuredCommunities } = await db
         .from("communities")
         .select("id")
         .in("id", publicCommunityIds)
@@ -182,7 +183,7 @@ export async function GET(req: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return getPublicDiscoveryFeed(req);
+  if (!user) return getPublicDiscoveryFeed(req, supabase);
 
   const { searchParams } = req.nextUrl;
   const limit = Math.min(Number(searchParams.get("limit") ?? PAGE_SIZE), 50);
@@ -204,11 +205,11 @@ export async function GET(req: NextRequest) {
 
   const communityIds = (memberships ?? []).map((m) => m.community_id);
   if (communityId && !communityIds.includes(communityId)) {
-    return getPublicDiscoveryFeed(req);
+    return getPublicDiscoveryFeed(req, supabase);
   }
 
   if (!communityIds.length) {
-    return getPublicDiscoveryFeed(req);
+    return getPublicDiscoveryFeed(req, supabase);
   }
 
   const db = supabase as any;

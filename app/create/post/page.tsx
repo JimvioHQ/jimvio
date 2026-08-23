@@ -17,7 +17,7 @@ function UploadPostPageInner() {
         router.push(`/communities/${communitySlug}${postId ? `?post=${postId}` : ""}`);
         return;
       }
-      router.push(postId ? `/feed?post=${postId}` : "/feed");
+      router.push(postId ? `/communities?post=${postId}` : "/communities");
     },
     [communitySlug, router]
   );
@@ -25,7 +25,7 @@ function UploadPostPageInner() {
   return (
     <div className="space-y-4">
       <Link
-        href={communitySlug ? `/communities/${communitySlug}` : "/feed"}
+        href={communitySlug ? `/communities/${communitySlug}` : "/communities"}
         className="inline-flex items-center gap-1.5 text-[13px] font-medium text-gray-600 hover:text-[#fd5000]"
       >
         <ArrowLeft className="h-4 w-4" />

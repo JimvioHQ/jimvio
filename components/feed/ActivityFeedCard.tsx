@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, Loader2 } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
+import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 
 type ActivityItem = {
   id: string;
@@ -45,7 +46,14 @@ export function ActivityFeedCard() {
           return;
         }
         const data = (await res.json()) as { items?: ActivityItem[] };
-        if (!cancelled) setItems(Array.isArray(data.items) ? data.items : []);
+        const raw = Array.isArray(data.items) ? data.items : [];
+        if (!cancelled) {
+          setItems(
+            raw.filter(
+              (item) => !isTechnicalFeedBody(item.message) && !isTechnicalFeedBody(item.title),
+            ),
+          );
+        }
       } catch {
         if (!cancelled) {
           setItems([]);

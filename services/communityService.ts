@@ -77,6 +77,21 @@ export async function getCommunityBySlug(slug: string) {
  */
 export async function getCommunitySpaces(communityId: string, userId?: string) {
   const supabase = getService();
+  const { data: community } = await supabase
+    .from("communities")
+    .select("id, is_private, is_active, owner_id")
+    .eq("id", communityId)
+    .maybeSingle();
+
+  if (!community || community.is_active === false) return [];
+
+  const membership = userId ? await getUserMembership(userId, communityId) : null;
+  const isOwner = Boolean(userId && community.owner_id === userId);
+  const memberOk = isOwner || isMembershipActive(membership);
+
+  // Private communities: spaces are members-only.
+  if (community.is_private && !memberOk) return [];
+
   const { data: spaces } = await supabase
     .from("spaces")
     .select("*")
@@ -86,18 +101,23 @@ export async function getCommunitySpaces(communityId: string, userId?: string) {
 
   if (!spaces?.length) return [];
 
+  const isPublicSpace = (accessType: string | null | undefined) => {
+    const t = (accessType ?? "free").toLowerCase();
+    return t !== "private" && t !== "paid" && t !== "premium";
+  };
+
   if (!userId) {
-    return spaces.map((s) => ({ ...s, hasAccess: s.access_type === "free" }));
+    return spaces
+      .filter((s) => isPublicSpace(s.access_type))
+      .map((s) => ({ ...s, hasAccess: true }));
   }
 
-  const membership = await getUserMembership(userId, communityId);
-  const isActive = isMembershipActive(membership);
   const spaceAccessIds = new Set((membership?.space_access ?? []).map((id) => String(id)));
 
   return spaces.map((space) => {
     let hasAccess = false;
     if (space.access_type === "free") hasAccess = true;
-    else if (isActive) {
+    else if (isMembershipActive(membership)) {
       if (space.access_type === "paid") hasAccess = true;
       if (space.access_type === "premium") {
         hasAccess =
@@ -106,6 +126,7 @@ export async function getCommunitySpaces(communityId: string, userId?: string) {
           spaceAccessIds.has(String(space.id));
       }
     }
+    if (isOwner) hasAccess = true;
     return { ...space, hasAccess };
   });
 }

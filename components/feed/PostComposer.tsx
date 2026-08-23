@@ -538,7 +538,11 @@ export function PostComposer({
             )
           ) : (
             <Link
-              href={buildHubLoginUrl(isPage ? "/create/post" : "/communities")}
+              href={buildHubLoginUrl(
+                isPage
+                  ? `/create/post${initialCommunitySlug ? `?community=${encodeURIComponent(initialCommunitySlug)}` : ""}`
+                  : "/communities",
+              )}
               className="block min-w-0 flex-1 rounded-full bg-gray-50 px-4 py-2.5 text-sm text-gray-500 transition-colors hover:bg-gray-100"
             >
               Sign in to share what&apos;s on your mind…

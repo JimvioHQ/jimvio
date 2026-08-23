@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import { communityProfileHref } from "@/lib/community/profile-href";
 import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlayer";
 import { toPlayableCommunityVideoUrl } from "@/lib/community-chat-upload";
@@ -150,6 +150,33 @@ function formatEngagement(value: number | string): string {
   return String(value);
 }
 
+function AuthorAvatar({
+  name,
+  url,
+  className,
+}: {
+  name: string;
+  url: string | null;
+  className?: string;
+}) {
+  if (url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={url} alt="" className={cn("h-10 w-10 rounded-full object-cover", className)} />
+    );
+  }
+  return (
+    <span
+      className={cn(
+        "flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-[11px] font-bold text-gray-600",
+        className,
+      )}
+    >
+      {getInitials(name)}
+    </span>
+  );
+}
+
 export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
   const router = useRouter();
   const { isAuthenticated } = useFeedUser();
@@ -159,6 +186,7 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [usingMock, setUsingMock] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const filter = FEED_TAB_FILTERS[tab];
@@ -177,6 +205,7 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
           setUsingMock(false);
           setHasMore(false);
           setCursor(null);
+          setLoadError(false);
         }
         return;
       }
@@ -185,12 +214,14 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
         if (!isMore) {
           setPosts([]);
           setUsingMock(false);
+          setLoadError(true);
         }
         toast.error(data.error || "Failed to load feed");
         return;
       }
       const mapped = ((data.posts ?? []) as ApiPost[]).map(mapApiPost);
       setUsingMock(false);
+      setLoadError(false);
       setPosts((prev) => {
         if (!isMore) return mapped;
         const seen = new Set(prev.map((p) => p.id));
@@ -202,6 +233,7 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
       if (!isMore) {
         setPosts([]);
         setUsingMock(false);
+        setLoadError(true);
       }
     } finally {
       setLoading(false);
@@ -229,8 +261,12 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
   }, [hasMore, cursor, loadingMore, usingMock, load]);
 
   async function toggleLike(postId: string) {
+    const next =
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : "/communities";
     if (usingMock || !isAuthenticated) {
-      router.push(`/login?next=${encodeURIComponent("/communities")}`);
+      router.push(`/login?next=${encodeURIComponent(next)}`);
       return;
     }
     setPosts((prev) =>
@@ -251,7 +287,7 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
     try {
       const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
       if (res.status === 401) {
-        router.push(`/login?next=${encodeURIComponent("/communities")}`);
+        router.push(`/login?next=${encodeURIComponent(next)}`);
         return;
       }
       if (!res.ok) throw new Error("like failed");
@@ -289,6 +325,24 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
     );
   }
 
+  if (!loading && loadError && posts.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center">
+        <p className="text-[15px] font-bold text-[#111827]">Couldn’t load the feed</p>
+        <p className="mx-auto mt-1 max-w-sm text-[13px] text-[#6B7280]">
+          Check your connection and try again.
+        </p>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="mt-4 inline-flex h-10 items-center rounded-xl bg-[#fd5000] px-4 text-[13px] font-bold text-white"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   if (!loading && posts.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center">
@@ -317,7 +371,7 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
 
   return (
     <div className="divide-y divide-gray-100">
-      {posts.map((post) => (
+      {posts.map((post, index) => (
         <article
           key={post.id}
           className="bg-transparent px-0.5 py-5 transition-colors first:pt-4 hover:bg-white/40"
@@ -331,26 +385,10 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
                   className="mt-0.5 shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/50"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={
-                      post.author.avatar ??
-                      `https://picsum.photos/seed/${post.author.handle.replace("@", "")}/80/80`
-                    }
-                    alt=""
-                    className="h-10 w-10 rounded-full object-cover"
-                  />
+                  <AuthorAvatar name={post.author.name} url={post.author.avatar} />
                 </Link>
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={
-                    post.author.avatar ??
-                    `https://picsum.photos/seed/${post.author.handle.replace("@", "")}/80/80`
-                  }
-                  alt={post.author.name}
-                  className="mt-0.5 h-10 w-10 shrink-0 rounded-full object-cover"
-                />
+                <AuthorAvatar name={post.author.name} url={post.author.avatar} className="mt-0.5 shrink-0" />
               )}
               <div className="min-w-0 pt-0.5">
                 <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
@@ -425,7 +463,11 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
               <div className="mb-3 overflow-hidden rounded-2xl">
                 <img
                   src={post.media.thumbnail}
-                  alt=""
+                  alt={post.body.slice(0, 80) || post.author.name}
+                  width={800}
+                  height={450}
+                  loading={index < 2 ? "eager" : "lazy"}
+                  decoding="async"
                   className="aspect-video w-full object-cover"
                 />
               </div>
@@ -472,25 +514,6 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
               </div>
-
-              {post.engagement.socialProof && (
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <div className="flex shrink-0 -space-x-1.5">
-                    {post.engagement.socialProof.avatars.map((name) => (
-                      <img
-                        key={name}
-                        src={`https://picsum.photos/seed/${name.toLowerCase()}/40/40`}
-                        alt={name}
-                        className="h-5 w-5 rounded-full object-cover shadow-[0_0_0_1.5px_white]"
-                      />
-                    ))}
-                  </div>
-                  <span className="truncate text-[11px] text-gray-400">
-                    {post.engagement.socialProof.names.join(", ")} +{" "}
-                    {post.engagement.socialProof.others} others
-                  </span>
-                </div>
-              )}
             </div>
           </div>
         </article>

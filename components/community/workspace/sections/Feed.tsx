@@ -45,6 +45,7 @@ import { CommunityVideoPlayer } from "@/components/community/CommunityVideoPlaye
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { communityProfileHref } from "@/lib/community/profile-href";
+import { buildHubLoginUrl } from "@/lib/community/hub-auth";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
     POST_REACTIONS,
@@ -675,6 +676,14 @@ export function FeedSection({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ reaction: next }),
             });
+            if (res.status === 401) {
+                const nextPath =
+                    typeof window !== "undefined"
+                        ? `${window.location.pathname}${window.location.search}`
+                        : "/communities";
+                router.push(buildHubLoginUrl(nextPath));
+                throw new Error("Sign in required");
+            }
             if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "reaction failed");
             const data = await res.json().catch(() => ({}));
             if (data.counts) {
@@ -708,6 +717,7 @@ export function FeedSection({
                     };
                 })
             );
+            if (e instanceof Error && e.message === "Sign in required") return;
             toast.error(e instanceof Error ? e.message : "Failed to update reaction");
         }
     }
