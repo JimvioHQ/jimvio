@@ -60,9 +60,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (memberCommunityIds.length) {
-    query = query.or(`is_private.eq.false,id.in.(${memberCommunityIds.join(",")})`);
+    query = query.or(
+      `is_private.eq.false,is_private.is.null,id.in.(${memberCommunityIds.join(",")})`,
+    );
   } else {
-    query = query.eq("is_private", false);
+    query = query.or("is_private.eq.false,is_private.is.null");
   }
 
   if (requestedCategories.length) {
@@ -137,7 +139,10 @@ export async function GET(req: NextRequest) {
   const { data, count, error } = isRising
     ? await query.limit(500)
     : await query.range((page - 1) * limit, page * limit - 1);
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("[communities] list failed:", error.message);
+    return NextResponse.json({ error: "Failed to load communities" }, { status: 500 });
+  }
 
   let communities = data ?? [];
   if (isRising && communities.length) {
@@ -215,18 +220,38 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await supabase.from("communities").insert(insert as any).select().single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    const duplicate =
+      error.code === "23505" || /duplicate|unique/i.test(error.message);
+    if (duplicate) {
+      return NextResponse.json(
+        { error: "A community with this name already exists." },
+        { status: 409 },
+      );
+    }
+    console.error("[communities] insert failed:", error.message);
+    return NextResponse.json({ error: "Could not create community." }, { status: 400 });
+  }
 
-  await supabase.from("community_memberships").insert({
+  // Owner membership uses service role: user-scoped INSERT only allows free self-join.
+  const admin = getAdminDB();
+  const { error: membershipError } = await admin.from("community_memberships").insert({
     community_id: data.id,
     user_id: user.id,
     role: "owner",
     plan_type: "lifetime",
     status: "active",
   });
+  if (membershipError) {
+    console.error("[communities] owner membership insert failed:", membershipError.message);
+    await admin.from("communities").delete().eq("id", data.id).eq("owner_id", user.id);
+    return NextResponse.json(
+      { error: "Could not finish community setup. Please try again." },
+      { status: 500 },
+    );
+  }
 
   // Seed default workspace with service role so RLS cannot block first group/room.
-  const admin = getAdminDB();
   await ensureDefaultCommunityWorkspace(admin as any, data.id);
 
   return NextResponse.json({ community: data });

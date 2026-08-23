@@ -305,6 +305,7 @@ export function CommunitiesDiscovery({
   const [items, setItems] = useState<CommunityRow[]>(initialCommunities);
   const [loading, setLoading] = useState(initialCommunities.length === 0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim()), 300);
     return () => clearTimeout(t);
@@ -325,6 +326,7 @@ export function CommunitiesDiscovery({
       };
       if (!res.ok) throw new Error(json.error || "Failed to load");
       const raw = json.communities ?? [];
+      setLoadError(false);
       setItems((prev) => (append ? [...prev, ...raw] : raw));
       setTotal(json.total ?? 0);
     },
@@ -336,19 +338,26 @@ export function CommunitiesDiscovery({
       if (sort !== "popular" && sort !== "free") {
         setLoading(true);
         fetchPage(1, false)
-          .catch(() => setItems([]))
+          .catch(() => {
+            setLoadError(true);
+            setItems([]);
+          })
           .finally(() => setLoading(false));
         return;
       }
       setItems(initialCommunities);
       setTotal(initialTotal);
+      setLoadError(false);
       setLoading(false);
       return;
     }
     setPage(1);
     setLoading(true);
     fetchPage(1, false)
-      .catch(() => setItems([]))
+      .catch(() => {
+        setLoadError(true);
+        setItems([]);
+      })
       .finally(() => setLoading(false));
   }, [debounced, category, sort, fetchPage, initialCommunities, initialTotal]);
 
@@ -535,22 +544,66 @@ export function CommunitiesDiscovery({
               <SkeletonCard key={i} />
             ))}
           </div>
-        ) : visibleItems.length === 0 ? (
+        ) : loadError ? (
           <div className="rounded-2xl border border-dashed border-[var(--color-border)] py-20 text-center sm:py-24">
             <p className="font-medium text-[var(--color-text-primary)]">
-              No communities match.
+              Couldn’t load communities
             </p>
             <p className="mt-1.5 text-[13px] text-[var(--color-text-muted)]">
-              Widen your search or try another category.
+              Check your connection and try again.
             </p>
-            {hasFilter && (
-              <button
-                type="button"
-                onClick={resetAll}
-                className="mt-5 text-[13px] font-medium text-[var(--color-accent)] hover:underline"
-              >
-                Clear filters
-              </button>
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                fetchPage(1, false)
+                  .catch(() => {
+                    setLoadError(true);
+                    setItems([]);
+                  })
+                  .finally(() => setLoading(false));
+              }}
+              className="mt-5 text-[13px] font-medium text-[var(--color-accent)] hover:underline"
+            >
+              Retry
+            </button>
+          </div>
+        ) : visibleItems.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-[var(--color-border)] py-20 text-center sm:py-24">
+            {hasFilter ? (
+              <>
+                <p className="font-medium text-[var(--color-text-primary)]">
+                  No communities match.
+                </p>
+                <p className="mt-1.5 text-[13px] text-[var(--color-text-muted)]">
+                  Widen your search or try another category.
+                </p>
+                <button
+                  type="button"
+                  onClick={resetAll}
+                  className="mt-5 text-[13px] font-medium text-[var(--color-accent)] hover:underline"
+                >
+                  Clear filters
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="font-medium text-[var(--color-text-primary)]">
+                  No communities are available yet
+                </p>
+                <p className="mt-1.5 text-[13px] text-[var(--color-text-muted)]">
+                  Create a public or private community when you’re ready. Nothing here is placeholder content.
+                </p>
+                <Link
+                  href="/communities/create"
+                  className="mt-5 inline-flex text-[13px] font-medium text-[var(--color-accent)] hover:underline"
+                >
+                  Create community
+                </Link>
+                <div className={`mx-auto mt-8 max-w-sm ${GRID}`}>
+                  <CreateCommunityTile />
+                </div>
+              </>
             )}
           </div>
         ) : (

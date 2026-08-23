@@ -118,13 +118,13 @@ async function fetchPublicCommunitiesUncached(limit: number) {
     .from("communities")
     .select(COMMUNITY_CARD_COLUMNS)
     .eq("is_active", true)
-    .eq("is_private", false)
+    .or("is_private.eq.false,is_private.is.null")
     .order("member_count", { ascending: false })
     .limit(limit);
 
   if (error) {
     console.error("Error fetching public communities:", error);
-    return [];
+    throw error;
   }
   return attachOwnerProfiles(data ?? []);
 }
@@ -132,7 +132,7 @@ async function fetchPublicCommunitiesUncached(limit: number) {
 export async function getPublicCommunities(limit = 12) {
   return unstable_cache(
     () => fetchPublicCommunitiesUncached(limit),
-    [`public-communities-v4-${limit}`],
+    [`public-communities-v5-${limit}`],
     { revalidate: 120 },
   )();
 }
@@ -143,13 +143,13 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
     .from("communities")
     .select("id, name, slug, tagline, member_count, avatar_url, cover_image, category")
     .eq("is_active", true)
-    .eq("is_private", false)
+    .or("is_private.eq.false,is_private.is.null")
     .order("member_count", { ascending: false })
     .limit(limit);
 
   if (error) {
     console.error("Error fetching homepage communities:", error);
-    return [];
+    throw error;
   }
   return data ?? [];
 }
@@ -158,7 +158,7 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
 export async function getHomepageCommunities(limit = 8) {
   return unstable_cache(
     () => fetchHomepageCommunitiesUncached(limit),
-    [`homepage-communities-v3-${limit}`],
+    [`homepage-communities-v4-${limit}`],
     { revalidate: 120 },
   )();
 }
