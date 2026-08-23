@@ -72,9 +72,10 @@ export default async function MarketplaceCollectionDetailPage({
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {collection.products.map((p) => {
+          {collection.products.map((p, index) => {
             const raw = Array.isArray(p.images) ? p.images.find(Boolean) : null;
             const img = typeof raw === "string" ? safeMediaUrl(raw, 480) : null;
+            const eager = index < 8;
             return (
               <Link
                 key={p.id}
@@ -87,10 +88,11 @@ export default async function MarketplaceCollectionDetailPage({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={img}
-                      alt=""
+                      alt={p.name}
                       width={480}
                       height={480}
-                      loading="lazy"
+                      loading={eager ? "eager" : "lazy"}
+                      fetchPriority={index < 4 ? "high" : "auto"}
                       decoding="async"
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />

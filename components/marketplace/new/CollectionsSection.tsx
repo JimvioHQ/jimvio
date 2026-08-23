@@ -92,18 +92,19 @@ export function CollectionsSection({
       <div
         className={cn(
           isRow
-            ? // Mobile: exactly 2 rows (4×2 for 8). Desktop/laptop: single non-wrapping row.
-              "grid grid-cols-4 gap-2 sm:flex sm:flex-nowrap sm:gap-2.5"
+            ? // Mobile/tablet: exactly 2 rows (4×2 for 8). Laptop/desktop: single non-wrapping row.
+              "grid grid-cols-4 gap-2 overflow-hidden lg:flex lg:flex-nowrap lg:gap-2.5"
             : "grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6",
         )}
       >
-        {collections.map((c) => {
+        {collections.map((c, index) => {
           const cover = c.cover_image_url || c.preview_images?.[0];
           const countLabel =
             typeof c.product_count === "number" && c.product_count > 0
               ? `${c.product_count}+`
               : null;
           const href = `/marketplace/collections/${c.slug}`;
+          const eager = isRow ? index < 8 : index < 6;
           return (
             <Link
               key={c.id}
@@ -114,7 +115,7 @@ export function CollectionsSection({
               onTouchStart={() => prefetchCollection(c.slug)}
               className={cn(
                 "group relative min-w-0 overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] transition-all hover:border-[var(--color-accent)]/40 hover:shadow-md",
-                isRow && "sm:min-w-0 sm:flex-1",
+                isRow && "lg:min-w-0 lg:flex-1",
               )}
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-surface-secondary)] sm:aspect-[5/3]">
@@ -122,8 +123,10 @@ export function CollectionsSection({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={cover}
-                    alt=""
-                    loading="lazy"
+                    alt={c.title}
+                    width={320}
+                    height={240}
+                    loading={eager ? "eager" : "lazy"}
                     decoding="async"
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
                   />

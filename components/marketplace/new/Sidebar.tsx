@@ -234,63 +234,25 @@ export function Sidebar({ type = "physical" }: Props) {
   useEffect(() => {
     async function load() {
       setLoadingCats(true);
-      const typeFilter = type === "digital" ? [...DIGITAL_TYPES] : [...PHYSICAL_TYPES];
 
-      const { data: catIds } = await supabase
-        .from("products")
-        .select("category_id")
-        .eq("status", "active")
+      const { data } = await supabase
+        .from("product_categories")
+        .select("name, slug, product_count, icon")
         .eq("is_active", true)
-        .is("deleted_at", null)
-        .in("product_type", typeFilter as any[])
-        .not("category_id", "is", null);
+        .eq("visible", true)
+        .is("parent_id", null)
+        .order("product_count", { ascending: false })
+        .limit(14);
 
-      const ids = [...new Set((catIds ?? []).map((r: any) => r.category_id).filter(Boolean))];
-
-      let categories: SidebarCategory[] = [];
-
-      if (ids.length > 0) {
-        const { data } = await supabase
-          .from("product_categories")
-          .select("name, slug, product_count, icon")
-          .eq("is_active", true)
-          .eq("visible", true)
-          .is("parent_id", null)
-          .in("id", ids)
-          .order("product_count", { ascending: false })
-          .limit(14);
-
-        if (data) categories = data as SidebarCategory[];
-      }
+      let categories: SidebarCategory[] = (data ?? []) as SidebarCategory[];
 
       if (categories.length === 0) {
-        const { count } = await supabase
-          .from("products")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "active")
-          .eq("is_active", true)
-          .is("deleted_at", null)
-          .in("product_type", typeFilter as any[]);
-
-        if ((count ?? 0) > 0) {
-          const { data: fallback } = await supabase
-            .from("product_categories")
-            .select("name, slug, product_count, icon")
-            .eq("is_active", true)
-            .eq("visible", true)
-            .is("parent_id", null)
-            .order("product_count", { ascending: false })
-            .limit(14);
-          if (fallback?.length) categories = fallback as SidebarCategory[];
-          else {
-            categories = resolveShopCategories(type, []).map((c) => ({
-              name: c.name,
-              slug: c.slug,
-              product_count: c.product_count,
-              icon: null,
-            }));
-          }
-        }
+        categories = resolveShopCategories(type, []).map((c) => ({
+          name: c.name,
+          slug: c.slug,
+          product_count: c.product_count,
+          icon: null,
+        }));
       }
 
       setSidebarCategories(categories);
@@ -323,14 +285,20 @@ export function Sidebar({ type = "physical" }: Props) {
           .from("products")
           .select("shipping_from")
           .eq("status", "active")
+          .eq("is_active", true)
+          .is("deleted_at", null)
           .in("product_type", typeFilter as any[])
-          .not("shipping_from", "is", null),
+          .not("shipping_from", "is", null)
+          .limit(800),
         supabase
           .from("products")
           .select("delivery_time")
           .eq("status", "active")
+          .eq("is_active", true)
+          .is("deleted_at", null)
           .in("product_type", typeFilter as any[])
-          .not("delivery_time", "is", null),
+          .not("delivery_time", "is", null)
+          .limit(800),
       ]);
 
       if (sd) {

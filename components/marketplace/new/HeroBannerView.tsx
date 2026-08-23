@@ -302,6 +302,7 @@ function FeaturedProductStage({
   stageProfile,
   className = "",
   mobile = false,
+  priority = false,
 }: {
   image: string | null;
   alt: string;
@@ -309,6 +310,7 @@ function FeaturedProductStage({
   stageProfile: StageProfile;
   className?: string;
   mobile?: boolean;
+  priority?: boolean;
 }) {
   const atmosphere = blueAtmosphereLayers(stageProfile);
   const { blurPx, blueTintOpacity } = stageProfile;
@@ -335,7 +337,8 @@ function FeaturedProductStage({
             key={`${stageKey}-bg`}
             src={image}
             alt=""
-            loading="lazy"
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
             decoding="async"
             className="absolute inset-0 h-full w-full object-cover object-center"
             style={{
@@ -384,7 +387,8 @@ function FeaturedProductStage({
               key={`${stageKey}-fg`}
               src={image}
               alt={alt}
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : "auto"}
               decoding="async"
               className="block h-full max-h-full w-auto max-w-[92%] object-contain object-center"
               style={{
@@ -403,7 +407,8 @@ function FeaturedProductStage({
               key={`${stageKey}-fg`}
               src={image}
               alt={alt}
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : "auto"}
               decoding="async"
               className="h-[90%] w-[90%] object-contain object-center transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.02]"
               style={{
@@ -702,6 +707,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
             stageKey={`${typeKey}-${activeIdx}-mobile`}
             stageProfile={stageProfile}
             mobile
+            priority={activeIdx === 0}
             className="h-full min-h-full w-full rounded-l-2xl"
           />
         </div>
@@ -717,6 +723,7 @@ export function HeroBannerView({ physical, digital, initialType = "physical" }: 
           alt={product.name}
           stageKey={`${typeKey}-${activeIdx}-desktop`}
           stageProfile={stageProfile}
+          priority={activeIdx === 0}
           className="h-full w-full rounded-l-3xl"
         />
         <div

@@ -121,6 +121,8 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
   const [categories, setCategories] = useState<{ name: string; slug: string }[]>([]);
   const [exactMatch, setExactMatch] = useState(true);
   const [aiIntent, setAiIntent] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     if (!q) {
@@ -129,12 +131,14 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
       setRecommended([]);
       setCategories([]);
       setAiIntent(null);
+      setSearchError(false);
       setLoading(false);
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
+    setSearchError(false);
 
     const run = async () => {
       try {
@@ -143,9 +147,11 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: q, type }),
+            signal: controller.signal,
           });
+          if (!res.ok) throw new Error("Search failed");
           const data = await res.json();
-          if (cancelled) return;
+          if (controller.signal.aborted) return;
           const products = (data.products ?? []) as DbProduct[];
           setResults(products);
           setSimilar([]);
@@ -168,41 +174,45 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
         }
 
         const res = await fetch(
-          `/api/marketplace/search?q=${encodeURIComponent(q)}&type=${type}&limit=40`
+          `/api/marketplace/search?q=${encodeURIComponent(q)}&type=${type}&limit=40`,
+          { signal: controller.signal },
         );
+        if (!res.ok) throw new Error("Search failed");
         const data = await res.json();
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         setResults(data.results ?? []);
         setSimilar(data.similar ?? []);
         setRecommended(data.recommended ?? []);
         setCategories(data.categories ?? []);
         setExactMatch(Boolean(data.exactMatch));
         setAiIntent(null);
-      } catch {
-        if (!cancelled) {
-          setResults([]);
-          setSimilar([]);
-          setRecommended([]);
-          setCategories([]);
-          setExactMatch(false);
-          setAiIntent(null);
+      } catch (err) {
+        if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+          return;
         }
+        setResults([]);
+        setSimilar([]);
+        setRecommended([]);
+        setCategories([]);
+        setExactMatch(false);
+        setAiIntent(null);
+        setSearchError(true);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     void run();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [q, type, aiMode]);
+  }, [q, type, aiMode, retry]);
 
   const hasResults = exactMatch && results.length > 0;
   const hasSimilar = !exactMatch && similar.length > 0;
   const hasRecommended = !exactMatch && recommended.length > 0;
-  const isEmpty = !loading && !hasResults && !hasSimilar && !hasRecommended;
+  const isEmpty = !loading && !searchError && !hasResults && !hasSimilar && !hasRecommended;
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
@@ -258,6 +268,22 @@ export function MarketplaceSearchResultsClient({ initialType }: Props) {
 
       {loading ? (
         <SearchSkeletonGrid />
+      ) : searchError ? (
+        <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-6 py-14 text-center">
+          <h2 className="text-base font-bold text-[var(--color-text-primary)]">
+            Couldn’t load search results
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-[var(--color-text-muted)]">
+            Check your connection and try again.
+          </p>
+          <button
+            type="button"
+            onClick={() => setRetry((n) => n + 1)}
+            className="mt-5 inline-flex rounded-xl bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-white"
+          >
+            Retry
+          </button>
+        </div>
       ) : hasResults ? (
         <ProductGrid products={results} />
       ) : hasSimilar || hasRecommended ? (

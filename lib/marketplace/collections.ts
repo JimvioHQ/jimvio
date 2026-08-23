@@ -368,10 +368,13 @@ async function fetchDbFeaturedCollections(
       };
     });
 
-    // Only use DB rows when they actually have covers — otherwise fall through to catalog.
-    if (enriched.some((c) => c.cover_image_url && (c.product_count ?? 0) > 0)) {
-      return enriched.filter((c) => c.cover_image_url);
-    }
+    // Only surface collections that have real product imagery — empty DB rows 404 or show blanks.
+    const usable = enriched.filter(
+      (c) =>
+        Boolean(c.cover_image_url) &&
+        (c.preview_images?.length ?? 0) >= MIN_COLLECTION_PRODUCTS,
+    );
+    if (usable.length > 0) return usable;
     return null;
   } catch {
     return null;
@@ -446,23 +449,22 @@ export async function fetchCollectionBySlug(
         }))
         .filter((p) => p.images?.length);
 
-      if (products.length > 0) {
-        const cover =
-          (collection.cover_image_url && isRenderableUrl(collection.cover_image_url)
-            ? safeMediaUrl(collection.cover_image_url, 640)
-            : null) ?? products[0]?.images?.[0] ?? null;
+      const cover =
+        (collection.cover_image_url && isRenderableUrl(collection.cover_image_url)
+          ? safeMediaUrl(collection.cover_image_url, 640)
+          : null) ?? products[0]?.images?.[0] ?? null;
 
-        return {
-          ...(collection as MarketplaceCollection),
-          cover_image_url: cover,
-          product_count: products.length,
-          preview_images: products
-            .map((p) => p.images?.[0])
-            .filter((u): u is string => Boolean(u))
-            .slice(0, 3),
-          products,
-        };
-      }
+      // Known DB slug: return even when empty so the route 404s only for unknown slugs.
+      return {
+        ...(collection as MarketplaceCollection),
+        cover_image_url: cover,
+        product_count: products.length,
+        preview_images: products
+          .map((p) => p.images?.[0])
+          .filter((u): u is string => Boolean(u))
+          .slice(0, 3),
+        products,
+      };
     }
   } catch {
     /* fall through to catalog */
@@ -494,7 +496,7 @@ export function getCachedFeaturedCollections(limit = HOME_COLLECTION_LIMIT) {
       const supabase = createAdminClient();
       return fetchFeaturedCollections(supabase, limit);
     },
-    ["marketplace-featured-collections-v1", String(limit)],
+    ["marketplace-featured-collections-v2", String(limit)],
     { revalidate: 60 },
   )();
 }
@@ -506,7 +508,7 @@ export function getCachedCollectionBySlug(slug: string) {
       const supabase = createAdminClient();
       return fetchCollectionBySlug(supabase, slug);
     },
-    ["marketplace-collection-by-slug-v1", slug],
+    ["marketplace-collection-by-slug-v2", slug],
     { revalidate: 60 },
   )();
 }

@@ -72,7 +72,7 @@ export function MarketplaceTrustStrip({
         {BADGES.map((b) => (
           <div
             key={b.title}
-            className="flex min-w-0 flex- rounded-sm items-center border border-[var(--color-border)]
+            className="flex min-w-0 flex-col rounded-sm items-center border border-[var(--color-border)]
              bg-[var(--color-surface)] px-1 py-2 text-center sm:flex-row sm:items-center
              sm:gap-2 sm:px-2.5 sm:py-2.5 sm:text-left"
           >

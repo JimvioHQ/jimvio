@@ -90,6 +90,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
         <DigitalProductDetail
           product={product}
           vendor={vendor}
+          relatedProducts={relatedProducts}
           followedVendorIds={followedVendorIds}
         />
       </>

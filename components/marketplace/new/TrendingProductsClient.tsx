@@ -591,7 +591,9 @@ function ProductCard({
         <div
           className={cn(
             "pointer-events-auto absolute inset-x-0 bottom-0 z-10 flex gap-1.5 p-2 transition-[transform,opacity] duration-200 ease-out will-change-transform",
-            inCart ? "translate-y-0 opacity-100" : "translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100",
+            inCart
+              ? "translate-y-0 opacity-100"
+              : "translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 max-md:translate-y-0 max-md:opacity-100",
           )}
           style={{ background: "linear-gradient(to top, rgba(0,0,0,.58) 0%, transparent 100%)" }}
         >

@@ -88,7 +88,7 @@ const getCachedMarketplaceChrome = unstable_cache(
       collections,
     };
   },
-  ["marketplace-chrome-v4"],
+  ["marketplace-chrome-v5"],
   { revalidate: 60 },
 );
 

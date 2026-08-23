@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Zap, ChevronRight, ArrowRight,
+  Zap, ChevronRight,
   Sparkles, Camera, Search,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -100,6 +100,21 @@ type Stats = {
   revenue_today: number;
   creators_active: number;
 };
+
+async function resolveCategoryId(
+  client: ReturnType<typeof createClient>,
+  category: string,
+): Promise<string | null> {
+  const value = category.trim();
+  if (!value || value === SELECT_CATEGORY_LABEL) return null;
+
+  const [{ data: bySlug }, { data: byName }] = await Promise.all([
+    client.from("product_categories").select("id").eq("is_active", true).eq("slug", value).maybeSingle(),
+    client.from("product_categories").select("id").eq("is_active", true).ilike("name", value).maybeSingle(),
+  ]);
+
+  return bySlug?.id ?? byName?.id ?? null;
+}
 
 type Props = {
   initialType: ProductType;
@@ -314,6 +329,8 @@ export function MarketplacePageClient({
   const [isMobile, setIsMobile] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchExactMatch, setSearchExactMatch] = useState(true);
+  const [searchError, setSearchError] = useState(false);
+  const [searchRetry, setSearchRetry] = useState(0);
 
   const supabaseRef = useRef(supabase);
   const filtersKey = JSON.stringify(filters);
@@ -362,13 +379,8 @@ export function MarketplacePageClient({
 
       let categoryId: string | null = null;
       if (hasCategory) {
-        const { data: catRow } = await supabaseRef.current
-          .from("product_categories")
-          .select("id")
-          .ilike("name", filters.category)
-          .single();
+        categoryId = await resolveCategoryId(supabaseRef.current, filters.category);
         if (generation !== loadGenRef.current) return null;
-        categoryId = catRow?.id ?? null;
       }
 
       function applyFilters(q: any): any {
@@ -601,13 +613,8 @@ export function MarketplacePageClient({
 
       let categoryId: string | null = null;
       if (hasCategory) {
-        const { data: catRow } = await supabaseRef.current
-          .from("product_categories")
-          .select("id")
-          .ilike("name", filters.category)
-          .single();
+        categoryId = await resolveCategoryId(supabaseRef.current, filters.category);
         if (loadGeneration !== loadGenRef.current) return;
-        categoryId = catRow?.id ?? null;
       }
 
       function applyFilters(q: any): any {
@@ -739,6 +746,7 @@ export function MarketplacePageClient({
   useEffect(() => {
     if (!debouncedSearch) {
       setSearchExactMatch(true);
+      setSearchError(false);
       return;
     }
 
@@ -746,8 +754,9 @@ export function MarketplacePageClient({
     prefetchingRef.current.clear();
     setNewProductIds(new Set());
     setLoadingMore(false);
+    setSearchError(false);
 
-    let cancelled = false;
+    const controller = new AbortController();
     const searchGeneration = ++loadGenRef.current;
     setProductsLoading(true);
 
@@ -755,10 +764,11 @@ export function MarketplacePageClient({
       try {
         const res = await fetch(
           `/api/marketplace/search?q=${encodeURIComponent(debouncedSearch)}&type=${type}&limit=40`,
+          { signal: controller.signal },
         );
         if (!res.ok) throw new Error("Search failed");
         const data = await res.json();
-        if (cancelled || searchGeneration !== loadGenRef.current) return;
+        if (controller.signal.aborted || searchGeneration !== loadGenRef.current) return;
 
         const primary = (data.exactMatch ? data.results : data.similar) ?? [];
         const related = data.exactMatch ? [] : (data.recommended ?? []);
@@ -773,22 +783,30 @@ export function MarketplacePageClient({
           supabaseRef.current,
           combined.map((p: DbProduct) => p.id),
         );
-        if (cancelled || searchGeneration !== loadGenRef.current) return;
+        if (controller.signal.aborted || searchGeneration !== loadGenRef.current) return;
 
         setTrending(dedupeProductsByIdentity(attachProductVideos(combined, videoMap)));
         setSearchExactMatch(Boolean(data.exactMatch));
         setListingCount(combined.length);
-      } catch {
-        if (!cancelled && searchGeneration === loadGenRef.current) setTrending([]);
+      } catch (err) {
+        if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+          return;
+        }
+        if (searchGeneration === loadGenRef.current) {
+          setTrending([]);
+          setSearchError(true);
+        }
       } finally {
-        if (!cancelled && searchGeneration === loadGenRef.current) setProductsLoading(false);
+        if (!controller.signal.aborted && searchGeneration === loadGenRef.current) {
+          setProductsLoading(false);
+        }
       }
     })();
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
-  }, [debouncedSearch, type]);
+  }, [debouncedSearch, type, searchRetry]);
 
   // Intentionally no "hydrate all remaining products" effect.
   // SSR ships one page; Load more / pagination grows the list on demand.
@@ -1108,15 +1126,7 @@ export function MarketplacePageClient({
         {/* ── Shop by Category — always rendered ── */}
         {displayCategories.length > 0 && (
           <section>
-            <div className="mb-4 flex items-center gap-2">
-              <h2 className="text-lg font-black tracking-[-0.02em] text-[var(--color-text-primary)]">Shop by Category</h2>
-              <button
-                className="text-xs font-semibold"
-                style={{ color: "var(--color-accent)" }}
-              >
-                Explore top categories
-              </button>
-            </div>
+            <h2 className="mb-4 text-lg font-black tracking-[-0.02em] text-[var(--color-text-primary)]">Shop by Category</h2>
             <div className="grid grid-cols-3 gap-2.5 md:grid-cols-4 md:gap-3.5 lg:grid-cols-4 xl:grid-cols-7">
               {displayCategories.map((c) => (
                 <CategoryCard key={c.id} c={c} type={type} />
@@ -1163,23 +1173,39 @@ export function MarketplacePageClient({
                 ✕ Clear
               </button>
             ) : null}
-            {!debouncedSearch && (
-              <button
-                type="button"
-                className="ml-auto flex items-center gap-1 text-xs font-semibold"
-                style={{ color: "var(--color-accent)" }}
-              >
-                View all <ArrowRight className="size-3.5" />
-              </button>
-            )}
           </div>
-          {debouncedSearch && !searchExactMatch && !productsLoading && (
+          {debouncedSearch && !searchError && !searchExactMatch && !productsLoading && (
             <p className="mb-2 text-xs text-[var(--color-text-muted)]">
               No exact matches found — showing similar products
             </p>
           )}
           {(loading || productsLoading) && displayTrending.length === 0 ? (
             <SkeletonGrid />
+          ) : searchError && debouncedSearch ? (
+            <div
+              className="rounded-2xl border border-dashed px-6 py-14 text-center"
+              style={{
+                borderColor: "var(--color-border)",
+                background: "var(--color-surface-secondary)",
+              }}
+            >
+              <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
+                Couldn’t load search results
+              </p>
+              <p className="mt-2 text-xs text-[var(--color-text-muted)]">
+                Check your connection and try again.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchError(false);
+                  setSearchRetry((n) => n + 1);
+                }}
+                className="mt-4 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white"
+              >
+                Retry
+              </button>
+            </div>
           ) : displayTrending.length === 0 ? (
             <div
               className="rounded-2xl border border-dashed px-6 py-14 text-center"
