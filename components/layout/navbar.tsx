@@ -50,6 +50,7 @@ import JimvioLogo from "../ui/logo";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
   MOBILE_BOTTOM_NAV_ITEMS,
+  PRIMARY_NAV_ITEMS,
   PROFILE_QUICK_ACCESS_ITEMS,
   isOrdersActive,
   isWalletActive,
@@ -179,61 +180,13 @@ const ConsoleIconBtn = React.forwardRef<
 ConsoleIconBtn.displayName = "ConsoleIconBtn";
 
 
-function ensureCoreNavLinks(links: NavLinkConfig[]): NavLinkConfig[] {
-  const hide = [
-    "/vendors",
-    "/influencers",
-    "/influencers/browse",
-    "/influencers/program",
-    "/shorts",
-  ];
-
-  const norm = (h: string) => h.replace(/\/$/, "") || "/";
-
-  let out = links.filter((l) => {
-    const h = norm(l.href);
-    return h !== "/clips" && !hide.includes(h);
-  });
-
-  if (!out.some((l) => norm(l.href) === "/ugc"))
-    out.push({ label: "UGC & Clipping", href: "/ugc" });
-
-  if (!out.some((l) => norm(l.href) === "/marketplace"))
-    out.push({ label: "Marketplace", href: "/marketplace" });
-
-  if (!out.some((l) => norm(l.href) === "/communities"))
-    out.push({ label: "Communities", href: "/communities" });
-
-  // Primary discovery nav — no Wallet/Orders/Messages/Home-dashboard utilities.
-  out = out.filter((l) => {
-    const h = norm(l.href);
-    return (
-      h !== "/wallet" &&
-      h !== "/dashboard/orders" &&
-      h !== "/orders" &&
-      h !== "/dashboard/messages" &&
-      h !== "/dashboard" &&
-      h !== "/dashboard/notifications"
-    );
-  });
-
-  if (!out.some((l) => norm(l.href) === "/"))
-    out.unshift({ label: "Home", href: "/" });
-
-  const hi = out.findIndex((l) => norm(l.href) === "/");
-  if (hi > 0) {
-    const [home] = out.splice(hi, 1);
-    out.unshift(home);
-  }
-
-  // Marketplace immediately after Home
-  const mi = out.findIndex((l) => norm(l.href) === "/marketplace");
-  if (mi > 1) {
-    const [marketplace] = out.splice(mi, 1);
-    out.splice(1, 0, marketplace);
-  }
-
-  return out;
+function ensureCoreNavLinks(_links: NavLinkConfig[]): NavLinkConfig[] {
+  void _links;
+  // CMS leftovers (Campaigns=/ugc, Affiliate) must not override the canonical set.
+  return PRIMARY_NAV_ITEMS.map((item) => ({
+    label: item.label,
+    href: item.href,
+  }));
 }
 
 
