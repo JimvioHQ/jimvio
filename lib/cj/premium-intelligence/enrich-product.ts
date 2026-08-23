@@ -9,7 +9,7 @@ import {
   MAX_ENRICHMENT_ATTEMPTS,
   updateIntelligence,
 } from "./catalog-repository";
-import { rawRowToCJProduct } from "./map-to-cj-product";
+import { mergeDetailIntoRawPayload, rawRowToCJProduct } from "./map-to-cj-product";
 import { scoreEnrichedProduct } from "./score-product";
 import { resolveDeliveryDaysFromFreight } from "./resolve-delivery-days";
 import { detectSignalChanges, scheduleSignalRecalc, type IntelSnapshot } from "./signal-watch";
@@ -176,13 +176,6 @@ export async function enrichSingleProduct(pid: string): Promise<EnrichResult> {
 
     const patched = patchProductWithIntelligence(stub, intelPayload) as EnrichedProduct;
     patched.intelligence.enrichmentStatus = "complete";
-    const scored = scoreEnrichedProduct(patched, "complete");
-    const trendScoreRaw = calculateTrendScore(rawRowToCJProduct(raw));
-    const isTrending =
-      trendScoreRaw >= QUICK_FILTER_DEFAULTS.trendingMinAbsoluteScore &&
-      trendScoreRaw > 0;
-    patched.intelligence.trending = isTrending;
-    const v3 = evaluateV3Intelligence(patched);
 
     const description = String(detail.description ?? "").replace(/<[^>]+>/g, " ").trim();
     const imageSet = Array.isArray(detail.productImageSet) ? detail.productImageSet : [];
@@ -191,19 +184,46 @@ export async function enrichSingleProduct(pid: string): Promise<EnrichResult> {
       ...(detail.bigImage ? [detail.bigImage] : []),
     ].filter((u) => typeof u === "string" && u.startsWith("http"));
     const uniqueImages = [...new Set(images)];
-
+    if (uniqueImages.length > 0 || typeof detail.description === "string") {
+      await db
+        .from("cj_raw_products")
+        .update({
+          raw_payload: mergeDetailIntoRawPayload(raw, detail as Record<string, unknown>, {
+            images: uniqueImages,
+            videos: videos.length > 0 ? videos : undefined,
+          }),
+          ...(uniqueImages[0] ? { image: uniqueImages[0] } : {}),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("pid", pid);
+    }
     const deliveryDays = intelPayload.deliveryCycle
       ? parseInt(intelPayload.deliveryCycle, 10)
       : null;
-
     const productIdResolved = productId;
-
     const hasVideo =
       intelPayload.hasVideo || videos.length > 0 || base.isVideo === 1;
     const supplierVerified =
       intelPayload.supplierVerified ||
       intelPayload.verifiedWarehouse === 1 ||
       calculateSupplierScore(patched) >= 75;
+
+    patched.supplierVerified = supplierVerified;
+    if (intelPayload.verifiedWarehouse === 1) patched.verifiedWarehouse = 1;
+    if (hasVideo) patched.isVideo = 1;
+    if (uniqueImages.length > 0) patched.imageCount = uniqueImages.length;
+    if (description.length > 0) patched.descriptionLength = description.length;
+    if (deliveryDays != null && !Number.isNaN(deliveryDays)) {
+      patched.deliveryCycle = String(deliveryDays);
+    }
+
+    const scored = scoreEnrichedProduct(patched, "complete");
+    const trendScoreRaw = calculateTrendScore(rawRowToCJProduct(raw));
+    const isTrending =
+      trendScoreRaw >= QUICK_FILTER_DEFAULTS.trendingMinAbsoluteScore &&
+      trendScoreRaw > 0;
+    patched.intelligence.trending = isTrending;
+    const v3 = evaluateV3Intelligence(patched);
 
     await updateIntelligence(pid, {
       enrichment_status: "complete",

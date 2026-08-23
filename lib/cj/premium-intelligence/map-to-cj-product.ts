@@ -1,5 +1,119 @@
+import type { CJProduct as ActionCJProduct } from "@/lib/actions/cj_product";
 import type { CJProduct } from "../import-intelligence/types";
 import type { CjProductIntelligenceRow, CjRawProductRow } from "./types";
+
+function httpUrls(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (url): url is string => typeof url === "string" && url.startsWith("http")
+  );
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+/** Collect publishable image URLs from list row + optional CJ detail payload. */
+export function collectCjImageUrls(
+  raw: CjRawProductRow,
+  detail?: Record<string, unknown> | null
+): string[] {
+  const payload = raw.raw_payload ?? {};
+  const seen = new Set<string>();
+  const images: string[] = [];
+  const add = (url: unknown) => {
+    if (typeof url !== "string" || !url.startsWith("http") || seen.has(url)) return;
+    seen.add(url);
+    images.push(url);
+  };
+
+  for (const url of httpUrls(detail?.productImageSet)) add(url);
+  for (const url of httpUrls(payload.productImageSet)) add(url);
+  add(detail?.bigImage);
+  add(raw.image);
+  add(payload.bigImage);
+  add(payload.productImage);
+
+  return images;
+}
+
+export function mergeDetailIntoRawPayload(
+  raw: CjRawProductRow,
+  detail?: Record<string, unknown> | null,
+  extra?: { images?: string[]; videos?: string[] }
+): Record<string, unknown> {
+  const images = extra?.images?.length ? extra.images : collectCjImageUrls(raw, detail);
+  const payload: Record<string, unknown> = {
+    ...(raw.raw_payload ?? {}),
+    ...(detail ?? {}),
+  };
+  if (images.length > 0) payload.productImageSet = images;
+  if (extra?.videos && extra.videos.length > 0) {
+    payload.productVideo = extra.videos;
+  }
+  return payload;
+}
+
+/**
+ * Map catalog/detail rows onto the Action CJProduct shape used by upsertCJProduct.
+ * Intelligence scoring uses bigImage; product insert uses productImage / productImageSet.
+ */
+export function toActionCJProduct(
+  raw: CjRawProductRow,
+  intel?: CjProductIntelligenceRow | null,
+  detail?: Record<string, unknown> | null
+): ActionCJProduct {
+  const payload: Record<string, unknown> = {
+    ...(raw.raw_payload ?? {}),
+    ...(detail ?? {}),
+  };
+  const images = collectCjImageUrls(raw, detail);
+  const videos = [
+    ...httpUrls(payload.productVideo),
+    ...httpUrls(payload.videoList),
+  ];
+  const categoryName =
+    asString(payload.categoryName) ??
+    [payload.oneCategoryName, payload.twoCategoryName, payload.threeCategoryName]
+      .filter((part): part is string => typeof part === "string" && part.trim().length > 0)
+      .join(" > ");
+
+  return {
+    pid: raw.pid,
+    productName: asString(payload.productName) ?? raw.title,
+    productNameEn: raw.title,
+    productSku: raw.sku ?? asString(payload.productSku) ?? raw.pid,
+    productImage: images[0] ?? raw.image ?? "",
+    productWeight: String(payload.productWeight ?? payload.packageWeight ?? "0"),
+    productType: asString(payload.productType) ?? "",
+    categoryId: asString(payload.categoryId) ?? "",
+    categoryName,
+    listingCount: Number(payload.listedNum ?? raw.orders ?? 0),
+    sellPrice: String(raw.sell_price ?? payload.sellPrice ?? "0"),
+    remark: asString(payload.description) ?? "",
+    addMarkStatus: String(payload.addMarkStatus ?? ""),
+    isFreeShipping: Boolean(payload.isFreeShipping ?? Number(payload.addMarkStatus ?? 0) === 1),
+    createTime: Number(payload.createAt ?? 0),
+    saleStatus: parseInt(String(payload.status ?? payload.saleStatus ?? "0"), 10) || 0,
+    listedNum: Number(raw.orders ?? payload.listedNum ?? 0),
+    shippingCountryCodes: Array.isArray(payload.shippingCountryCodes)
+      ? payload.shippingCountryCodes.filter((code): code is string => typeof code === "string")
+      : [],
+    sourceFrom: "cj",
+    deliveryCycle:
+      intel?.delivery_days ??
+      (typeof payload.deliveryCycle === "string" || typeof payload.deliveryCycle === "number"
+        ? payload.deliveryCycle
+        : undefined),
+    verifiedWarehouse:
+      intel?.verified_warehouse ??
+      (typeof payload.verifiedWarehouse === "number" ? payload.verifiedWarehouse : undefined),
+    customizationVersion: 0,
+    isTestProduct: false,
+    productVideos: videos,
+    productImageSet: images,
+  };
+}
 
 export function rawRowToCJProduct(
   raw: CjRawProductRow,
