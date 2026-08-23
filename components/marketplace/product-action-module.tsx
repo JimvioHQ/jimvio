@@ -647,7 +647,7 @@ export function ProductActionModule({
       ) : (
         <>
           {/* ── Quantity + Add to cart row ── */}
-          <div className="flex items-end gap-2">
+          <div className="flex min-w-0 items-end gap-2">
             {!isDigital && (
               <div className="shrink-0">
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
@@ -665,7 +665,7 @@ export function ProductActionModule({
               onClick={handleAddToCart}
               disabled={isDisabled}
               className={cn(
-                "flex-1 h-11 font-semibold text-[13px] rounded-xl border-none gap-2",
+                "min-w-0 flex-1 h-11 font-semibold text-[13px] rounded-xl border-none gap-2",
                 !isDisabled && !added && "hover:scale-[1.01]",
                 cartBtnColors,
               )}

@@ -18,7 +18,7 @@ type CommerceGraphRailProps = {
 
 function RailSkeleton() {
   return (
-    <div className="flex gap-3 overflow-hidden px-0.5" aria-hidden>
+    <div className="flex min-w-0 gap-3 overflow-x-auto overflow-y-hidden px-0.5" aria-hidden>
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={`graph-rail-skel-${i}`} className="w-[148px] shrink-0 sm:w-[168px]">
           <CommerceGraphNodeSkeleton />
@@ -74,7 +74,7 @@ export const CommerceGraphRail = memo(function CommerceGraphRail({
       aria-label={`${sectionId} discovery rail`}
       tabIndex={0}
       onKeyDown={onKeyDown}
-      className="relative w-full overflow-x-auto overflow-y-hidden pb-1 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]"
+      className="relative min-w-0 w-full overflow-x-auto overflow-y-hidden pb-1 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]"
       style={{
         scrollSnapType: "x mandatory",
         WebkitOverflowScrolling: "touch",

@@ -488,7 +488,7 @@ export function VariantSelector({
                             ref={(el) => { groupRefs.current.set(key, el); }}
                             onKeyDown={(e) => handleKeyDown(e, key)}
                             className={cn(
-                                "flex gap-2",
+                                "flex min-w-0 gap-2",
                                 isColorAxis
                                     ? "flex-wrap"
                                     : values.length > maxVisibleOptions

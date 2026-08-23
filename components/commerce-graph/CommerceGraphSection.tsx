@@ -15,7 +15,7 @@ function SectionSkeleton() {
   return (
     <div className="space-y-3" aria-hidden>
       <div className="h-5 w-48 animate-pulse rounded bg-[var(--color-surface-secondary)]" />
-      <div className="flex gap-3 overflow-hidden">
+      <div className="flex min-w-0 gap-3 overflow-x-auto overflow-y-hidden">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={`section-skel-${i}`} className="w-[168px] shrink-0">
             <CommerceGraphNodeSkeleton />

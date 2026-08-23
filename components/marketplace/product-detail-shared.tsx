@@ -168,19 +168,15 @@ export function ProductTitleBadges({
 
 export function ProductBreadcrumb({ productName }: { productName: string }) {
     return (
-        <div className="sticky top-[var(--navbar-height,64px)] z-30 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-sm">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 h-11 flex items-center">
-                <nav className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--color-text-muted)] min-w-0">
-                    <Link href="/" className="hover:text-[var(--color-accent)] transition-colors">Home</Link>
-                    <ChevronRight className="h-3 w-3 opacity-40 shrink-0" />
-                    <Link href="/marketplace" className="hover:text-[var(--color-accent)] transition-colors">Shop</Link>
-                    <ChevronRight className="h-3 w-3 opacity-40 shrink-0" />
-                    <span className="text-[var(--color-text-primary)] font-semibold truncate max-w-[180px] sm:max-w-xs">
-                        {productName}
-                    </span>
-                </nav>
-            </div>
-        </div>
+        <nav className="flex min-w-0 flex-1 items-center gap-1.5 text-[10px] font-medium text-[var(--color-text-muted)]">
+            <Link href="/" className="shrink-0 hover:text-[var(--color-accent)] transition-colors">Home</Link>
+            <ChevronRight className="h-3 w-3 shrink-0 opacity-40" />
+            <Link href="/marketplace" className="shrink-0 hover:text-[var(--color-accent)] transition-colors">Shop</Link>
+            <ChevronRight className="h-3 w-3 shrink-0 opacity-40" />
+            <span className="min-w-0 truncate font-semibold text-[var(--color-text-primary)]">
+                {productName}
+            </span>
+        </nav>
     );
 }
 

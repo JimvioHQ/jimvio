@@ -138,6 +138,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
               type="email"
               autoComplete="email"
               inputMode="email"
+              required
               placeholder="you@example.com"
               disabled={pending}
             />
@@ -157,6 +158,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
                 type={showPw ? "text" : "password"}
                 name="password"
                 autoComplete="current-password"
+                required
                 placeholder="••••••••"
                 disabled={pending}
               />

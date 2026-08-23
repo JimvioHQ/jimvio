@@ -253,11 +253,11 @@ function LiveActivityToast({ realActivity }: { realActivity?: ActivityEvent[] })
   }, [realActivity]);
   if (!realActivity?.length) return null;
   return (
-    <div className={cn("fixed bottom-6 left-6 z-50 flex items-center gap-3 px-4 py-3 rounded-md shadow-lg border transition-all duration-500 max-w-[280px]", "bg-[var(--color-surface)] border-[var(--color-border)]", visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none")}>
+    <div className={cn("fixed bottom-6 left-6 right-6 z-50 flex max-w-[280px] min-w-0 items-center gap-3 overflow-hidden rounded-md border px-4 py-3 shadow-lg transition-all duration-500", "bg-[var(--color-surface)] border-[var(--color-border)]", visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none")}>
       <div className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center shrink-0"><ShoppingBag className="h-4 w-4 text-orange-500" /></div>
-      <div>
-        <p className="text-[11px] font-semibold text-[var(--color-text-primary)] leading-none">Someone from {message.city}</p>
-        <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{message.action}</p>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold text-[var(--color-text-primary)] leading-none truncate">Someone from {message.city}</p>
+        <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 truncate">{message.action}</p>
       </div>
     </div>
   );
@@ -1289,24 +1289,26 @@ export function PhysicalProductDetail({
       <LiveActivityToast realActivity={recentActivity} />
 
       {/* ── Sticky breadcrumb bar ── */}
-      <div className="sticky top-[var(--navbar-height,64px)] z-30 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-sm">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-between">
+      <div className="sticky top-[var(--navbar-height,64px)] z-30 min-w-0 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-sm">
+        <div className="mx-auto flex h-11 min-w-0 max-w-[1440px] items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
           <ProductBreadcrumb productName={title} />
-          <SaveShareBar />
+          <div className="shrink-0">
+            <SaveShareBar />
+          </div>
         </div>
       </div>
 
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6">
+      <div className="mx-auto min-w-0 max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+        <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12 xl:gap-6">
 
           {/* ════════════ COLUMN A: main (9 cols) ════════════ */}
-          <div className="lg:col-span-9 space-y-6">
+          <div className="min-w-0 space-y-6 lg:col-span-9">
 
             {/* ── Top row: 3 sub-columns ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6">
+            <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12 xl:gap-6">
 
               {/* Sub-col 1: Gallery (3 of 12) */}
-              <section className="lg:col-span-7 space-y-3">
+              <section className="min-w-0 space-y-3 lg:col-span-7">
                 <ProductTitleBadges
                   vendor={vendor}
                   product={product}
@@ -1328,10 +1330,10 @@ export function PhysicalProductDetail({
                 />
               </section>
               {/* Sub-col 2: Product info + buy box (6 of 12) */}
-              <section className="lg:col-span-5 space-y-4">
+              <section className="min-w-0 space-y-4 lg:col-span-5">
                 <div>
                   {/* Title */}
-                  <h1 className="text-[20px] font-bold leading-[1.25] tracking-[-0.02em] text-[var(--color-text-primary)] lg:text-[24px]">
+                  <h1 className="break-words text-[20px] font-bold leading-[1.25] tracking-[-0.02em] text-[var(--color-text-primary)] lg:text-[24px]">
                     {title}
                   </h1>
 
@@ -1483,8 +1485,8 @@ export function PhysicalProductDetail({
                   background: "var(--color-surface)"
                 }}>
                 {/* Custom Tab Implementation */}
-                <div className="px-2 pt-1 overflow-x-auto overflow-y-hidden no-scrollbar border-b border-[var(--color-border)]">
-                  <div className="flex h-11 min-w-max items-center gap-1">
+                <div className="min-w-0 w-full overflow-x-auto overflow-y-hidden overscroll-x-contain no-scrollbar border-b border-[var(--color-border)] px-2 pt-1">
+                  <div className="flex h-11 w-max max-w-none items-center gap-1">
                     {[
                       { id: "overview", label: "Overview", badge: null },
                       { id: "specs", label: "Specifications", badge: specRows.length > 0 ? specRows.length : null },
@@ -1500,7 +1502,7 @@ export function PhysicalProductDetail({
                           key={id}
                           onClick={() => setActiveTab(id)}
                           className={cn(
-                            "relative px-3 h-11 rounded-none text-[13px] font-medium capitalize gap-1.5 flex items-center transition-colors",
+                            "relative flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none px-3 text-[13px] font-medium capitalize transition-colors",
                             activeTab === id
                               ? "text-orange-600"
                               : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
@@ -1738,12 +1740,12 @@ export function PhysicalProductDetail({
             )}
             <AffiliateBanner product={product} />
             <CommunityAccessCard vendorSlug={vendor?.business_slug} productName={title} />
-            <CommerceGraphDiscovery graph={commerceGraph} maxSections={6} className="space-y-5" />
+            <CommerceGraphDiscovery graph={commerceGraph} maxSections={6} className="min-w-0 space-y-5" />
             <BusinessCollaborationPanel graph={businessGraph} title="Business opportunities" />
             <RelatedProducts products={relatedProducts} formatMoney={formatMoney} />
             <RecentlyViewedSection currentId={product.id} formatMoney={formatMoney} />
           </div>
-          <aside className="lg:col-span-3 hidden lg:block">
+          <aside className="hidden min-w-0 lg:col-span-3 lg:block">
             <div className="space-y-4">
               <StickyPurchaseCard
                 product={productProps}

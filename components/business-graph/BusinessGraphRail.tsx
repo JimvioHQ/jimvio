@@ -57,7 +57,7 @@ export const BusinessGraphRail = memo(function BusinessGraphRail({
       aria-label={`${sectionId} business graph rail`}
       tabIndex={0}
       onKeyDown={onKeyDown}
-      className="relative w-full overflow-x-auto overflow-y-hidden pb-1 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50"
+      className="relative min-w-0 w-full overflow-x-auto overflow-y-hidden pb-1 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/50"
       style={{ scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", contentVisibility: "auto", containIntrinsicSize: "auto 260px" }}
     >
       <div className="relative min-h-[260px]" style={{ width: virtualizer.getTotalSize() }}>

@@ -1321,22 +1321,24 @@ export function DigitalProductDetail({
       />
 
       {/* ── Sticky breadcrumb ── */}
-      <div className="sticky top-[var(--navbar-height,64px)] z-30 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-sm">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-11 flex items-center justify-between">
+      <div className="sticky top-[var(--navbar-height,64px)] z-30 min-w-0 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur-sm">
+        <div className="mx-auto flex h-11 min-w-0 max-w-[1440px] items-center justify-between gap-2 px-4 sm:px-6 lg:px-8">
           <ProductBreadcrumb productName={product.name} />
-          <SaveShareBar />
+          <div className="shrink-0">
+            <SaveShareBar />
+          </div>
         </div>
       </div>
 
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6">
+      <div className="mx-auto min-w-0 max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
         {/* ══ TOP-LEVEL GRID: 12 cols, 9 main + 3 sidebar ══ */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6">
+        <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12 xl:gap-6">
           {/* ════════════ COLUMN A: main (9 cols) ════════════ */}
-          <div className="lg:col-span-9 space-y-6">
+          <div className="min-w-0 space-y-6 lg:col-span-9">
             {/* ── Top row: gallery (7) + info (5) ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 xl:gap-6">
+            <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12 xl:gap-6">
               {/* Sub-col 1: Gallery */}
-              <section className="lg:col-span-7 space-y-3">
+              <section className="min-w-0 space-y-3 lg:col-span-7">
                 <DigitalBadgePills product={product} savings={savings} />
                 <ImageGallery
                   images={images}
@@ -1350,10 +1352,10 @@ export function DigitalProductDetail({
               </section>
 
               {/* Sub-col 2: Info + buy box */}
-              <section className="lg:col-span-5 space-y-4">
+              <section className="min-w-0 space-y-4 lg:col-span-5">
                 <div>
                   {/* Title */}
-                  <h1 className="text-[20px] lg:text-[22px] font-bold leading-snug text-[var(--color-text-primary)] tracking-tight">
+                  <h1 className="break-words text-[20px] font-bold leading-snug tracking-tight text-[var(--color-text-primary)] lg:text-[22px]">
                     {product.name}
                   </h1>
 
@@ -1470,8 +1472,8 @@ export function DigitalProductDetail({
                 background: "var(--color-surface)",
               }}
             >
-              <div className="px-2 pt-1 overflow-x-auto overflow-y-hidden no-scrollbar border-b border-[var(--color-border)]">
-                <div className="flex h-11 min-w-max items-center gap-1">
+              <div className="min-w-0 w-full overflow-x-auto overflow-y-hidden overscroll-x-contain no-scrollbar border-b border-[var(--color-border)] px-2 pt-1">
+                <div className="flex h-11 w-max max-w-none items-center gap-1">
                   {[
                     { id: "overview", label: "Overview", badge: null },
                     {
@@ -1497,7 +1499,7 @@ export function DigitalProductDetail({
                       key={id}
                       onClick={() => setActiveTab(id)}
                       className={cn(
-                        "relative px-3 h-11 rounded-none text-[13px] font-medium gap-1.5 flex items-center transition-colors whitespace-nowrap",
+                        "relative flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-none px-3 text-[13px] font-medium transition-colors",
                         activeTab === id
                           ? "text-orange-600"
                           : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]",
@@ -1945,7 +1947,7 @@ export function DigitalProductDetail({
           </div>
 
           {/* ════════════ COLUMN B: sidebar (3 cols) ════════════ */}
-          <aside className="lg:col-span-3 hidden lg:block">
+          <aside className="hidden min-w-0 lg:col-span-3 lg:block">
             <div className="sticky top-24 space-y-4">
               {sidebarCards}
               <CompactBuyerProtectionCard />

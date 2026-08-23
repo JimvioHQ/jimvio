@@ -744,7 +744,7 @@ export function ImageGallery({
 
     return (
         <>
-            <div className={cn(isLeftThumbnails ? "flex flex-col md:flex-row gap-4 items-start" : "flex flex-col gap-3", className)}>
+            <div className={cn("min-w-0", isLeftThumbnails ? "flex flex-col md:flex-row gap-4 items-start" : "flex flex-col gap-3", className)}>
 
                 {hasVideos && hasImages && (
                     <div className="inline-flex self-start overflow-hidden rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 shadow-sm">

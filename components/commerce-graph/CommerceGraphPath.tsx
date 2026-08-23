@@ -9,7 +9,7 @@ export function CommerceGraphPath({ steps }: { steps: GraphPathStep[] }) {
   if (steps.length < 2) return null;
 
   return (
-    <nav aria-label="Commerce graph path" className="overflow-x-auto pb-1">
+    <nav aria-label="Commerce graph path" className="min-w-0 overflow-x-auto pb-1">
       <ol className="flex min-w-0 items-center gap-1">
         {steps.map((step, index) => {
           const meta = GRAPH_NODE_META[step.kind];
