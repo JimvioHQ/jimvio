@@ -52,6 +52,8 @@ assert.match(auth, /oauthOnlySignInMessage/);
 assert.match(auth, /mapSignUpAuthError/);
 assert.match(auth, /isExistingAccountAuthError/);
 assert.match(auth, /Registration failed\. Please try again\./);
+assert.match(auth, /Authentication service is temporarily unavailable/);
+assert.match(auth, /already exists\. Sign in instead/);
 
 const actions = mustExist("lib/auth/actions.ts");
 assert.match(actions, /normalizeSignInEmail/);
@@ -60,6 +62,8 @@ assert.match(actions, /mapSignInAuthError/);
 assert.match(actions, /mapSignUpAuthError/);
 assert.match(actions, /authProvidersForEmail/);
 assert.match(actions, /await getPublicAppUrl\(\)/);
+assert.match(actions, /profile setup failed/);
+assert.match(actions, /Temporary server error/);
 assert.doesNotMatch(actions, /`\$\{getPublicAppUrl\(\)\}/);
 assert.doesNotMatch(actions, /console\.(log|debug|info)\(.*password/i);
 

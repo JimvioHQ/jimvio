@@ -347,18 +347,30 @@ async function cleanupOrphanedShopifyProducts(activeVendorIds: string[]) {
   // Use raw parenthetical syntax for PostgREST 'in' compatibility
   const vendorFilter = `(${activeVendorIds.join(",")})`;
 
-  const { error: deleteErr } = await supabase
+  const { data: orphans, error: selectErr } = await supabase
     .from("products")
-    .delete()
+    .select("id")
     .eq("source", "shopify")
-    .not("vendor_id", "in", vendorFilter);
+    .not("vendor_id", "in", vendorFilter)
+    .limit(200);
 
-  if (deleteErr) {
-    // Fallback to archive if delete is blocked
-    await supabase
+  if (selectErr || !orphans?.length) return;
+
+  const ids = orphans.map((row) => row.id as string).filter(Boolean);
+  for (let i = 0; i < ids.length; i += 40) {
+    const chunk = ids.slice(i, i + 40);
+    const { error: deleteErr } = await supabase
       .from("products")
-      .update({ status: "archived", is_active: false })
+      .delete()
       .eq("source", "shopify")
-      .not("vendor_id", "in", vendorFilter);
+      .in("id", chunk);
+
+    if (deleteErr) {
+      await supabase
+        .from("products")
+        .update({ status: "archived", is_active: false })
+        .eq("source", "shopify")
+        .in("id", chunk);
+    }
   }
 }

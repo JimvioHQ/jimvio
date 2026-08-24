@@ -164,7 +164,7 @@ export async function signUp(formData: FormData) {
     return { success: "Account created! Check your email to confirm." }
   } catch (err) {
     console.error("[auth] signUp error:", err)
-    return { error: "Registration failed. Please try again." }
+    return { error: "Temporary server error. Please try again." }
   }
 }
 

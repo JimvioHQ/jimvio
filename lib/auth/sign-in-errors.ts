@@ -100,6 +100,17 @@ export function mapSignUpAuthError(error: {
   ) {
     return "Too many attempts. Please wait a moment and try again.";
   }
+  if (code === "email_not_confirmed" || lower.includes("email not confirmed")) {
+    return "Please confirm your email before continuing. Check your inbox for the confirmation link.";
+  }
+  if (
+    code === "unexpected_failure" ||
+    lower.includes("failed to fetch") ||
+    lower.includes("networkerror") ||
+    lower.includes("fetch failed")
+  ) {
+    return "Authentication service is temporarily unavailable. Please try again.";
+  }
   return "Registration failed. Please try again.";
 }
 
