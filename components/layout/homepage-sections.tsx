@@ -143,46 +143,8 @@ function HomepageShowcaseLayout({
   return <OneRowHorizontalScroll>{children}</OneRowHorizontalScroll>;
 }
 
-/* ═══ 1. What do you want to do today ═══ */
-const ACTIONS = [
-  { icon: ShoppingBag, title: "Buy Products", desc: "Browse what's selling and order when you find a fit.", cta: "Go to marketplace", href: "/marketplace", color: ORANGE },
-  { icon: Store, title: "Sell Products", desc: "List inventory and manage orders from your seller tools.", cta: "Open Home", href: "/dashboard", color: BLUE },
-  { icon: DollarSign, title: "Earn Commissions", desc: "Share links and get a cut when someone checks out.", cta: "See affiliate program", href: "/affiliates", color: GREEN },
-  { icon: Megaphone, title: "Create Campaigns", desc: "Post a brief and pay creators for content.", cta: "New campaign", href: "/dashboard/vendor/campaigns/new", color: PURPLE },
-  { icon: Target, title: "Join Campaigns", desc: "Apply to brand briefs and get paid per post or view.", cta: "Browse campaigns", href: "/ugc", color: BLUE },
-  { icon: Users, title: "Build Communities", desc: "Start a group around your niche and charge if you want.", cta: "Create community", href: "/communities", color: YELLOW },
-];
-
-export function WhatToDoToday() {
-  return (
-    <section className={`${section} py-10 sm:py-14`}>
-      <div className={shell}>
-        <SectionTitle sub="Pick what you're here for.">What do you want to do today?</SectionTitle>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-6">
-          {ACTIONS.map((a) => (
-            <div key={a.title} className={`flex h-full flex-col p-3 sm:p-5 ${cardBase}`}>
-              <span
-                className="mb-3 grid size-9 place-items-center rounded-xl sm:mb-4 sm:size-11"
-                style={iconTintStyle(a.color)}
-              >
-                <a.icon className="size-4 sm:size-5" strokeWidth={2.2} />
-              </span>
-              <h3 className="text-[12px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[15px]">{a.title}</h3>
-              <p className="mt-1 flex-1 text-[11px] leading-snug text-[var(--color-text-muted)] sm:text-[13px]">{a.desc}</p>
-              <Link
-                href={a.href}
-                className="mt-2 inline-flex items-center gap-0.5 text-[11px] font-bold transition-opacity hover:opacity-80 sm:mt-4 sm:gap-1 sm:text-[13px]"
-                style={{ color: a.color }}
-              >
-                {a.cta} <ArrowRight className="size-3 sm:size-3.5" />
-              </Link>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+/* ═══ 1. Action Hub ═══ */
+export { WhatToDoToday } from "./action-hub";
 
 /* ═══ 2. Trusted strip ═══ */
 const AVATARS = [
