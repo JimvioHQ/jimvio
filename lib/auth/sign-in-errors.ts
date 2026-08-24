@@ -51,6 +51,58 @@ export function mapSignInAuthError(error: {
   return "Sign in failed. Please try again.";
 }
 
+export function isExistingAccountAuthError(error: {
+  message?: string | null;
+  code?: string | null;
+}): boolean {
+  const code = String(error.code ?? "").toLowerCase();
+  const lower = String(error.message ?? "").toLowerCase();
+  return (
+    code === "user_already_exists" ||
+    code === "email_exists" ||
+    lower.includes("already registered") ||
+    lower.includes("user already exists") ||
+    lower.includes("email already")
+  );
+}
+
+export function mapSignUpAuthError(error: {
+  message?: string | null;
+  code?: string | null;
+  status?: number | null;
+}): string {
+  const code = String(error.code ?? "").toLowerCase();
+  const message = String(error.message ?? "");
+  const lower = message.toLowerCase();
+
+  if (isExistingAccountAuthError(error)) {
+    return "An account with this email already exists. Sign in instead.";
+  }
+  if (code === "weak_password" || lower.includes("password should be") || lower.includes("weak password")) {
+    return "Password is too weak. Use at least 8 characters.";
+  }
+  if (
+    code === "email_address_invalid" ||
+    lower.includes("invalid email") ||
+    lower.includes("unable to validate email")
+  ) {
+    return "Enter a valid email address.";
+  }
+  if (code === "signup_disabled" || lower.includes("signups not allowed") || lower.includes("signup is disabled")) {
+    return "New registrations are temporarily unavailable. Please try again later.";
+  }
+  if (
+    code === "over_request_rate_limit" ||
+    code === "over_email_send_rate_limit" ||
+    code === "too_many_requests" ||
+    error.status === 429 ||
+    lower.includes("rate limit")
+  ) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+  return "Registration failed. Please try again.";
+}
+
 const LOGIN_QUERY_MESSAGES: Record<string, string> = {
   session_revoked:
     "This device was signed out from your account settings. Sign in again to restore access.",

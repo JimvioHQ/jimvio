@@ -460,11 +460,28 @@ export function TrendingProductsRow({
   products = [],
   flashDeals,
   total,
+  loadError = false,
 }: {
   products?: TrendingProductCardProduct[];
   flashDeals?: TrendingProductCardProduct[];
   total?: number;
+  loadError?: boolean;
 }) {
+  if (loadError) {
+    return (
+      <section className={`${sectionAlt} py-12 sm:py-16`}>
+        <div className={shell}>
+          <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">
+            🔥 Trending Products
+          </h2>
+          <p className="mt-3 text-[14px] font-medium text-[var(--color-text-muted)]">
+            Couldn’t load products. Retry.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   const trending = products.length > 0 ? products : flashDeals ?? [];
   if (!trending.length) return null;
 

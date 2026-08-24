@@ -4,11 +4,19 @@ import { CommunitiesDiscovery } from "@/components/community/communities-discove
 export const revalidate = 120;
 
 export default async function CommunitiesExplorePage() {
-  const initialCommunities = await getPublicCommunities(20).catch(() => []);
+  let initialCommunities: Awaited<ReturnType<typeof getPublicCommunities>> = [];
+  let initialError = false;
+  try {
+    initialCommunities = await getPublicCommunities(20);
+  } catch (err) {
+    console.error("[communities/explore] initial load failed:", err);
+    initialError = true;
+  }
   return (
     <CommunitiesDiscovery
       initialCommunities={initialCommunities as never}
       initialTotal={initialCommunities.length}
+      initialError={initialError}
     />
   );
 }

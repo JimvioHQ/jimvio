@@ -49,12 +49,45 @@ assert.match(auth, /email_not_confirmed/);
 assert.match(auth, /over_request_rate_limit/);
 assert.match(auth, /Invalid login credentials/);
 assert.match(auth, /oauthOnlySignInMessage/);
+assert.match(auth, /mapSignUpAuthError/);
+assert.match(auth, /isExistingAccountAuthError/);
+assert.match(auth, /Registration failed\. Please try again\./);
 
 const actions = mustExist("lib/auth/actions.ts");
 assert.match(actions, /normalizeSignInEmail/);
 assert.match(actions, /messageForFailedPasswordSignIn/);
 assert.match(actions, /mapSignInAuthError/);
+assert.match(actions, /mapSignUpAuthError/);
+assert.match(actions, /authProvidersForEmail/);
+assert.match(actions, /await getPublicAppUrl\(\)/);
+assert.doesNotMatch(actions, /`\$\{getPublicAppUrl\(\)\}/);
 assert.doesNotMatch(actions, /console\.(log|debug|info)\(.*password/i);
+
+const recover = mustExist("lib/auth/ensure-user-profile.ts");
+assert.match(recover, /recover_profile_for_auth_user/);
+assert.match(recover, /auth_identity_providers_for_email/);
+
+const recoverSql = mustExist("database/migrations/127_recover_orphan_auth_profiles.sql");
+assert.match(recoverSql, /recover_profile_for_auth_user/);
+assert.match(recoverSql, /handle_new_user/);
+assert.match(recoverSql, /request\.jwt\.claim\.role/);
+assert.doesNotMatch(recoverSql, /TRUNCATE/i);
+
+const recoverSupabase = mustExist("supabase/migrations/20260824021611_recover_orphan_auth_profiles_v3.sql");
+assert.match(recoverSupabase, /recover_profile_for_auth_user/);
+
+const homepagePage = mustExist("app/(public)/page.tsx");
+assert.match(homepagePage, /communitiesLoadError/);
+assert.match(homepagePage, /productsLoadError/);
+assert.doesNotMatch(homepagePage, /getHomepageCommunities\(8\)\.catch\(\(\) => \[\]\)/);
+
+const explore = mustExist("app/communities/(discovery)/explore/page.tsx");
+assert.match(explore, /initialError/);
+assert.doesNotMatch(explore, /getPublicCommunities\(20\)\.catch\(\(\) => \[\]\)/);
+
+const feedCard = mustExist("components/feed/FeedPostCard.tsx");
+assert.match(feedCard, /Communities are not available yet/);
+assert.match(feedCard, /Couldn’t load the feed/);
 
 const rls = mustExist("supabase/migrations/20260821120000_public_community_read_rls.sql");
 assert.match(rls, /community_posts_select_public/);

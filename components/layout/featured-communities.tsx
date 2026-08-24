@@ -164,9 +164,26 @@ function FeaturedCommunityCard({ community }: { community: FeaturedCommunityRow 
 
 export function FeaturedCommunities({
   communities = [],
+  loadError = false,
 }: {
   communities: FeaturedCommunityRow[];
+  loadError?: boolean;
 }) {
+  if (loadError) {
+    return (
+      <section className="bg-[var(--color-surface-secondary)] py-12 sm:py-16">
+        <div className={shell}>
+          <h2 className="text-[20px] font-black tracking-tight text-[var(--color-text-primary)] sm:text-[26px]">
+            Featured Communities
+          </h2>
+          <p className="mt-3 text-[14px] font-medium text-[var(--color-text-muted)]">
+            Couldn’t load communities. Retry.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
   if (!communities.length) return null;
 
   return (

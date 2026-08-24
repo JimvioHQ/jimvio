@@ -1710,8 +1710,10 @@ interface Community {
 interface HomepageRedesignProps {
     campaigns?: SharedCampaignRow[];
     communities?: Community[];
+    communitiesLoadError?: boolean;
     products?: any[];
     flashDeals?: any[];
+    productsLoadError?: boolean;
     trendingProductsTotal?: number;
     creators?: any[];
     platform?: {
@@ -3088,8 +3090,10 @@ function FinalCTA() {
 export function HomepageRedesign({
     campaigns = [],
     communities = [],
+    communitiesLoadError = false,
     products = [],
     flashDeals = [],
+    productsLoadError = false,
     trendingProductsTotal,
     creators = [],
     platform,
@@ -3108,9 +3112,10 @@ export function HomepageRedesign({
                 products={products}
                 flashDeals={flashDeals}
                 total={trendingProductsTotal}
+                loadError={productsLoadError}
             />
             <FeaturedUGCCampaigns campaigns={campaigns} />
-            <FeaturedCommunities communities={communities} />
+            <FeaturedCommunities communities={communities} loadError={communitiesLoadError} />
             <PlatformOverviewBar />
             <HowJimvioWorks />
             <OnePlatformOpportunities />

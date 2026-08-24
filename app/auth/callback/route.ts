@@ -6,37 +6,12 @@ import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions";
 import { canSignInDuringMaintenance } from "@/lib/platform-maintenance";
 import { resolvePublicOrigin } from "@/lib/app-url";
 import { isSafeInternalPath } from "@/lib/auth/safe-path";
+import { ensureUserProfile } from "@/lib/auth/ensure-user-profile";
 import {
   TWO_FA_PENDING_COOKIE,
   TWO_FA_VERIFIED_COOKIE,
   twoFaPendingCookieOptions,
 } from "@/lib/auth/two-fa-session";
-
-async function ensureUserProfile(
-  userId: string,
-  email: string,
-  fullName?: string
-): Promise<void> {
-  const admin = createAdminClient();
-  try {
-    await Promise.all([
-      admin.from("profiles").upsert(
-        { id: userId, email, full_name: fullName || email.split("@")[0] },
-        { onConflict: "id", ignoreDuplicates: true }
-      ),
-      admin.from("user_roles").upsert(
-        { user_id: userId, role: "buyer" },
-        { onConflict: "user_id,role", ignoreDuplicates: true }
-      ),
-      admin.from("wallets").upsert(
-        { user_id: userId },
-        { onConflict: "user_id", ignoreDuplicates: true }
-      ),
-    ]);
-  } catch (err) {
-    console.error("[auth/callback] ensureUserProfile error:", err);
-  }
-}
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -121,12 +96,14 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=no_user`);
   }
 
-  // ── Ensure profile exists ──
-  await ensureUserProfile(
+  const recovered = await ensureUserProfile(
     user.id,
     user.email,
     user.user_metadata?.full_name as string | undefined
   );
+  if (!recovered) {
+    console.error("[auth/callback] profile recovery failed for", user.id);
+  }
 
   const allowedDuringMaintenance = await canSignInDuringMaintenance(user.id, user.email);
   if (!allowedDuringMaintenance) {

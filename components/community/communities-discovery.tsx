@@ -291,9 +291,11 @@ function PriceFilterChips({
 export function CommunitiesDiscovery({
   initialCommunities = [],
   initialTotal = 0,
+  initialError = false,
 }: {
   initialCommunities?: CommunityRow[];
   initialTotal?: number;
+  initialError?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -305,7 +307,7 @@ export function CommunitiesDiscovery({
   const [items, setItems] = useState<CommunityRow[]>(initialCommunities);
   const [loading, setLoading] = useState(initialCommunities.length === 0);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState(initialError);
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim()), 300);
     return () => clearTimeout(t);
@@ -547,7 +549,7 @@ export function CommunitiesDiscovery({
         ) : loadError ? (
           <div className="rounded-2xl border border-dashed border-[var(--color-border)] py-20 text-center sm:py-24">
             <p className="font-medium text-[var(--color-text-primary)]">
-              Couldn’t load communities
+              Couldn’t load communities. Retry.
             </p>
             <p className="mt-1.5 text-[13px] text-[var(--color-text-muted)]">
               Check your connection and try again.
@@ -589,7 +591,7 @@ export function CommunitiesDiscovery({
             ) : (
               <>
                 <p className="font-medium text-[var(--color-text-primary)]">
-                  No communities are available yet
+                  Communities are not available yet.
                 </p>
                 <p className="mt-1.5 text-[13px] text-[var(--color-text-muted)]">
                   Create a public or private community when you’re ready. Nothing here is placeholder content.

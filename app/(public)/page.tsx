@@ -57,23 +57,32 @@ async function HomepageContent() {
     platformStats,
     platformSettings,
     campaigns,
-    communitiesList,
-    homepageProducts,
+    communitiesResult,
+    homepageProductsResult,
     topCreators,
   ] = await Promise.all([
     getPlatformStats().catch(() => DEFAULT_STATS),
     getResolvedPlatformSettings().catch(() => null),
     getHomepageCampaigns(8).catch(() => []),
-    getHomepageCommunities(8).catch(() => []),
-    getHomepageProductBundle().catch(() => ({
-      trending: [],
-      flashDeals: [],
-      hero: null,
-      total: 0,
-    })),
+    getHomepageCommunities(8)
+      .then((communities) => ({ communities, error: false as const }))
+      .catch((err) => {
+        console.error("[homepage] communities failed:", err);
+        return { communities: [] as Awaited<ReturnType<typeof getHomepageCommunities>>, error: true as const };
+      }),
+    getHomepageProductBundle()
+      .then((bundle) => ({ bundle, error: false as const }))
+      .catch((err) => {
+        console.error("[homepage] products failed:", err);
+        return {
+          bundle: { trending: [], flashDeals: [], hero: null, total: 0 },
+          error: true as const,
+        };
+      }),
     getTopCreators(6).catch(() => []),
   ]);
 
+  const homepageProducts = homepageProductsResult.bundle;
   const trendingProducts = stripDataUriProps(homepageProducts.trending);
   const flashDeals = stripDataUriProps(homepageProducts.flashDeals);
   const trendingProductsTotal = homepageProducts.total;
@@ -81,9 +90,11 @@ async function HomepageContent() {
   return (
     <HomepageRedesign
       campaigns={stripDataUriProps(campaigns) as never}
-      communities={stripDataUriProps(communitiesList) as never}
+      communities={stripDataUriProps(communitiesResult.communities) as never}
+      communitiesLoadError={communitiesResult.error}
       products={trendingProducts as never}
       flashDeals={flashDeals as never}
+      productsLoadError={homepageProductsResult.error}
       trendingProductsTotal={trendingProductsTotal}
       creators={stripDataUriProps(topCreators) as never}
       platform={{

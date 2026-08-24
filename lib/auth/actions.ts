@@ -16,10 +16,16 @@ import {
 import { isAccountAccessBlocked } from "@/lib/users/account-status"
 import { rethrowIfNextNavigation } from "@/lib/auth/redirect-error"
 import {
+  isExistingAccountAuthError,
   mapSignInAuthError,
+  mapSignUpAuthError,
   normalizeSignInEmail,
   oauthOnlySignInMessage,
 } from "@/lib/auth/sign-in-errors"
+import {
+  authProvidersForEmail,
+  ensureUserProfile,
+} from "@/lib/auth/ensure-user-profile"
 import { isSafeInternalPath } from "@/lib/auth/safe-path"
 import {
   TWO_FA_PENDING_COOKIE,
@@ -100,30 +106,13 @@ async function registerLoginSession(userId: string) {
   }
 }
 
-async function ensureUserProfile(
-  userId: string,
-  email: string,
-  fullName?: string
-): Promise<void> {
-  const admin = createAdminClient()
-  try {
-    await Promise.all([
-      admin.from("profiles").upsert(
-        { id: userId, email, full_name: fullName || email.split("@")[0] },
-        { onConflict: "id", ignoreDuplicates: true }
-      ),
-      admin.from("user_roles").upsert(
-        { user_id: userId, role: "buyer" },
-        { onConflict: "user_id,role", ignoreDuplicates: true }
-      ),
-      admin.from("wallets").upsert(
-        { user_id: userId },
-        { onConflict: "user_id", ignoreDuplicates: true }
-      ),
-    ])
-  } catch (err) {
-    console.error("[auth] ensureUserProfile error:", err)
+async function messageForExistingEmail(email: string): Promise<string> {
+  const identity = await authProvidersForEmail(email)
+  const oauth = identity?.providers.find((provider) => provider !== "email")
+  if (oauth && !identity?.providers.includes("email")) {
+    return `An account with this email already exists. ${oauthOnlySignInMessage(oauth)}`
   }
+  return "An account with this email already exists. Sign in instead."
 }
 
 // ─────────────────────────────────────────────
@@ -142,7 +131,7 @@ export async function signUp(formData: FormData) {
     if (password.length < 8) return { error: "Password must be at least 8 characters." }
 
     const next = (formData.get("next") as string)?.trim()
-    let callbackUrl = `${getPublicAppUrl()}/auth/callback`
+    let callbackUrl = `${await getPublicAppUrl()}/auth/callback`
     if (next && isSafeInternalPath(next)) {
       callbackUrl += `?next=${encodeURIComponent(next)}`
     }
@@ -156,8 +145,21 @@ export async function signUp(formData: FormData) {
       },
     })
 
-    if (error) return { error: mapSignInAuthError(error) }
-    if (data.user) await ensureUserProfile(data.user.id, email, fullName)
+    if (error) {
+      if (isExistingAccountAuthError(error)) {
+        return { error: await messageForExistingEmail(email) }
+      }
+      return { error: mapSignUpAuthError(error) }
+    }
+    if (data.user) {
+      const recovered = await ensureUserProfile(data.user.id, email, fullName)
+      if (!recovered) {
+        return {
+          error:
+            "Account was created but profile setup failed. Please try signing in.",
+        }
+      }
+    }
 
     return { success: "Account created! Check your email to confirm." }
   } catch (err) {
@@ -177,28 +179,11 @@ async function messageForFailedPasswordSignIn(email: string, error: { message?: 
     String(error.message ?? "").toLowerCase().includes("invalid login credentials")
   if (!isInvalid) return mapped
 
-  try {
-    const admin = createAdminClient()
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .limit(1)
-      .maybeSingle()
-    if (!profile?.id) return mapped
-
-    const { data, error: userError } = await admin.auth.admin.getUserById(profile.id)
-    if (userError || !data.user) return mapped
-
-    const providers = (data.user.identities ?? [])
-      .map((identity) => identity.provider)
-      .filter((provider): provider is string => Boolean(provider))
-    if (providers.includes("email")) return mapped
-    const oauth = providers.find((provider) => provider !== "email")
-    if (oauth) return oauthOnlySignInMessage(oauth)
-  } catch (err) {
-    console.error("[auth] identity lookup failed:", err)
-  }
+  const identity = await authProvidersForEmail(email)
+  if (!identity) return mapped
+  if (identity.providers.includes("email")) return mapped
+  const oauth = identity.providers.find((provider) => provider !== "email")
+  if (oauth) return oauthOnlySignInMessage(oauth)
   return mapped
 }
 
