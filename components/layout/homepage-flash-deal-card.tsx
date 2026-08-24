@@ -174,7 +174,7 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
             imageClassName={cn(
               "transition-[transform,opacity] duration-500 ease-out",
               imageReady ? "opacity-100" : "opacity-0",
-              "group-hover:scale-[1.06]",
+              "group-hover:scale-[1.03] motion-reduce:group-hover:scale-100",
             )}
           />
 

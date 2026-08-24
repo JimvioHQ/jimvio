@@ -21,7 +21,7 @@ export const FeaturedUGCCampaigns = dynamic(
 );
 
 export const FeaturedCommunities = dynamic(
-  () => import("./homepage-sections").then((m) => ({ default: m.FeaturedCommunities })),
+  () => import("./featured-communities").then((m) => ({ default: m.FeaturedCommunities })),
   { loading },
 );
 

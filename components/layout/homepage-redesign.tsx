@@ -3102,8 +3102,8 @@ export function HomepageRedesign({
             <Hero />
 
             <WhatToDoToday />
-
-            {/* Trending Products / Flash Deals — directly below WhatToDoToday, above Featured UGC */}
+            <TrustedStrip />
+            <ChooseYourJourney />
             <TrendingProductsRow
                 products={products}
                 flashDeals={flashDeals}
@@ -3111,11 +3111,7 @@ export function HomepageRedesign({
             />
             <FeaturedUGCCampaigns campaigns={campaigns} />
             <FeaturedCommunities communities={communities} />
-
-            <TrustedStrip />
-
             <PlatformOverviewBar />
-            <ChooseYourJourney />
             <HowJimvioWorks />
             <OnePlatformOpportunities />
             <GrowthStack />

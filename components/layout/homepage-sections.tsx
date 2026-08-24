@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, Fragment, type ReactNode } from "react";
+import { useState, useMemo, useEffect, Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ShoppingBag, Store, DollarSign, Megaphone, Users, Package,
   ArrowRight, Check, ShieldCheck, Globe, Sparkles,
   Bot, Wand2, Search, Clapperboard, Share2, Star,
-  ChevronDown, TrendingUp, Wallet, Target, Award, BarChart3, LineChart,
+  ChevronDown, TrendingUp, Wallet, Target, BarChart3, LineChart,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -16,7 +16,10 @@ import type { SharedCampaignRow } from "@/components/ugc/campaign-card-shared";
 import { type WorldMapPin } from "@/components/ui/world-map";
 import { TakeJimvioDevicesSkeleton } from "@/components/layout/take-jimvio-phones-client";
 import { Slider } from "@/components/ui/slider";
-import { CommunityLetterAvatar } from "@/components/community/community-letter-avatar";
+import {
+  HomepageShowcaseRail,
+  ugcShowcaseVisibleCount,
+} from "@/components/layout/homepage-showcase-rail";
 import {
   AnimatedPlatformStatValue,
   PlatformStatsRotatingBadge,
@@ -77,70 +80,23 @@ function SectionTitle({ children, sub }: { children: React.ReactNode; sub?: stri
   );
 }
 
-/** One row, horizontal scroll — responsive visible card counts */
-function OneRowHorizontalScroll({
-  children,
-  gapPx = 10,
-}: {
-  children: ReactNode[];
-  gapPx?: number;
-}) {
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const [cardWidth, setCardWidth] = useState<number | null>(null);
-
-  useEffect(() => {
-    const el = viewportRef.current;
-    if (!el) return;
-
-    const update = () => {
-      const w = el.clientWidth;
-      const cols = w >= 1280 ? 6 : w >= 1024 ? 5 : w >= 768 ? 3 : 2;
-      const width = (w - gapPx * (cols - 1)) / cols;
-      setCardWidth(width > 0 ? width : null);
-    };
-
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [gapPx]);
-
-  if (!children.length) return null;
-
-  return (
-    <div ref={viewportRef} className="-mx-4 overflow-hidden sm:-mx-6">
-      <div
-        className="flex w-full gap-2.5 overflow-x-auto px-4 pb-1 snap-x snap-mandatory scrollbar-thin scrollbar-track-transparent scrollbar-thumb-[var(--color-border)] sm:px-6"
-        style={{
-          gap: gapPx,
-          visibility: cardWidth == null ? "hidden" : "visible",
-        }}
-      >
-        {children.map((child, i) => (
-          <div
-            key={i}
-            className="shrink-0 snap-start"
-            style={cardWidth != null ? { width: cardWidth } : undefined}
-          >
-            {child}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 /** Single-row horizontal showcase on all breakpoints. */
 function HomepageShowcaseLayout({
   children,
+  ariaLabel = "Featured items",
 }: {
   children: ReactNode[];
   cardMinWidth?: number;
   gap?: string;
   desktopCols?: string;
+  ariaLabel?: string;
 }) {
   if (!children.length) return null;
-  return <OneRowHorizontalScroll>{children}</OneRowHorizontalScroll>;
+  return (
+    <HomepageShowcaseRail ariaLabel={ariaLabel} gapPx={14} getVisibleCount={ugcShowcaseVisibleCount}>
+      {children}
+    </HomepageShowcaseRail>
+  );
 }
 
 /* ═══ 1. Action Hub ═══ */
@@ -253,153 +209,7 @@ export function PlatformOverviewBar() {
 }
 
 /* ═══ 4. Choose your journey ═══ */
-const JOURNEYS = [
-  {
-    role: "Buyer",
-    icon: ShoppingBag,
-    color: ORANGE,
-    metric: "Protected checkout",
-    tagline: "Browse verified suppliers and track every order in one place.",
-    items: ["Verified sellers", "Order tracking", "Buyer protection"],
-    cta: "Browse marketplace",
-    href: "/marketplace",
-  },
-  {
-    role: "Seller",
-    icon: Store,
-    color: BLUE,
-    metric: "Your own storefront",
-    tagline: "List products, manage orders, and get paid without a separate tool stack.",
-    items: ["Store dashboard", "Inventory & orders", "Fast payouts"],
-    cta: "Open your store",
-    href: "/dashboard",
-  },
-  {
-    role: "Affiliate",
-    icon: DollarSign,
-    color: GREEN,
-    metric: "Up to 30% commission",
-    tagline: "Share referral links and earn when your audience buys.",
-    items: ["Custom links", "Real-time stats", "Wallet withdrawals"],
-    cta: "Start earning",
-    href: "/affiliates",
-  },
-  {
-    role: "Brand",
-    icon: Award,
-    color: BLUE,
-    metric: "UGC at scale",
-    tagline: "Launch campaigns, brief creators, and track performance from one hub.",
-    items: ["Campaign builder", "Creator matching", "ROI tracking"],
-    cta: "Launch a campaign",
-    href: "/dashboard/vendor/campaigns/new",
-  },
-  {
-    role: "Creator",
-    icon: Clapperboard,
-    color: PURPLE,
-    metric: "Paid per campaign",
-    tagline: "Join brand briefs, publish content, and get paid for results.",
-    items: ["Campaign marketplace", "Per-view payouts", "Creator dashboard"],
-    cta: "Find campaigns",
-    href: "/ugc",
-  },
-  {
-    role: "Community Owner",
-    icon: Users,
-    color: YELLOW,
-    metric: "Recurring revenue",
-    tagline: "Run memberships, live sessions, and paid spaces for your audience.",
-    items: ["Public or private", "Subscriptions", "Live & courses"],
-    cta: "Build community",
-    href: "/communities",
-  },
-] as const;
-
-export function ChooseYourJourney() {
-  return (
-    <section className={`border-t border-[var(--color-border)] ${section} py-10 sm:py-14`}>
-      <div className={shell}>
-        <SectionTitle sub="One account — sell, earn, create, or buy depending on what you need right now.">
-          Choose Your Journey
-        </SectionTitle>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
-          {JOURNEYS.map((j) => (
-            <Link
-              key={j.role}
-              href={j.href}
-              className="group relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] sm:p-5"
-            >
-              <span
-                className="absolute bottom-0 left-0 top-0 w-1 rounded-r-full transition-all duration-200 group-hover:w-1.5"
-                style={{ background: j.color }}
-                aria-hidden
-              />
-
-              <j.icon
-                className="pointer-events-none absolute -bottom-5 -right-5 size-[88px] opacity-[0.05] transition-transform duration-300 group-hover:scale-110 sm:size-[100px]"
-                style={{ color: j.color }}
-                strokeWidth={1.25}
-                aria-hidden
-              />
-
-              <div className="relative pl-2.5 sm:pl-3">
-                <div className="flex items-start gap-3">
-                  <span
-                    className="grid size-11 shrink-0 place-items-center rounded-xl transition-transform duration-200 group-hover:scale-105 sm:size-12"
-                    style={{ background: `${j.color}14`, color: j.color }}
-                  >
-                    <j.icon className="size-5 sm:size-[22px]" strokeWidth={2.2} />
-                  </span>
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <h3 className="text-[16px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[17px]">
-                      {j.role}
-                    </h3>
-                    <p
-                      className="mt-1 inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold tracking-wide sm:text-[11px]"
-                      style={{ background: `${j.color}12`, color: j.color }}
-                    >
-                      {j.metric}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="mt-3 text-[12px] leading-relaxed text-[var(--color-text-secondary)] sm:mt-3.5 sm:text-[13px]">
-                  {j.tagline}
-                </p>
-
-                <ul className="mt-3 space-y-1.5 sm:mt-4">
-                  {j.items.map((it) => (
-                    <li
-                      key={it}
-                      className="flex items-center gap-2 text-[11px] text-[var(--color-text-muted)] sm:text-[12px]"
-                    >
-                      <span
-                        className="size-1.5 shrink-0 rounded-full"
-                        style={{ background: j.color }}
-                        aria-hidden
-                      />
-                      {it}
-                    </li>
-                  ))}
-                </ul>
-
-                <span
-                  className="mt-4 inline-flex items-center gap-1.5 text-[12px] font-bold transition-all group-hover:gap-2 sm:mt-5 sm:text-[13px]"
-                  style={{ color: j.color }}
-                >
-                  {j.cta}
-                  <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+export { ChooseYourJourney } from "./choose-your-journey";
 
 /* ═══ 5. How Jimvio works ═══ */
 const STEPS = [
@@ -645,45 +455,7 @@ export function HowJimvioWorks() {
   );
 }
 
-/* ═══ 6. Flash Deals (one-row product strip) ═══ */
-function FlashDealsHeaderCountdown() {
-  const [t, setT] = useState({ h: 0, m: 0, s: 0 });
-
-  useEffect(() => {
-    function calc() {
-      const now = new Date();
-      const end = new Date();
-      end.setHours(23, 59, 59, 0);
-      const diff = Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000));
-      return {
-        h: Math.floor(diff / 3600),
-        m: Math.floor((diff % 3600) / 60),
-        s: diff % 60,
-      };
-    }
-    setT(calc());
-    const id = setInterval(() => setT(calc()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const pad = (n: number) => String(n).padStart(2, "0");
-
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-text-muted)] sm:text-[12px]">
-      <span>Ends in</span>
-      <span className="rounded-md bg-[var(--color-surface)] px-2 py-0.5 font-bold tabular-nums text-[var(--color-text-primary)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] ring-1 ring-[var(--color-border)]">
-        {pad(t.h)}h {pad(t.m)}m {pad(t.s)}s
-      </span>
-    </span>
-  );
-}
-
-function truncateLabel(text: string, max: number) {
-  const t = text.trim();
-  if (t.length <= max) return t;
-  return `${t.slice(0, max - 1).trim()}…`;
-}
-
+/* ═══ 6. Trending Products ═══ */
 export function TrendingProductsRow({
   products = [],
   flashDeals,
@@ -693,31 +465,27 @@ export function TrendingProductsRow({
   flashDeals?: TrendingProductCardProduct[];
   total?: number;
 }) {
-  const deals =
-    flashDeals && flashDeals.length > 0 ? flashDeals : products;
-  if (!deals.length) return null;
+  const trending = products.length > 0 ? products : flashDeals ?? [];
+  if (!trending.length) return null;
 
   return (
     <section className={`${sectionAlt} py-12 sm:py-16`}>
       <div className={shell}>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
-            <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">
-              🔥 Trending Products
-            </h2>
-            <FlashDealsHeaderCountdown />
-          </div>
+          <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">
+            🔥 Trending Products
+          </h2>
           <Link
             href="/marketplace"
-            className="inline-flex shrink-0 items-center gap-1 text-[12px] font-bold sm:text-[13px]"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1 text-[12px] font-bold sm:text-[13px]"
             style={{ color: ORANGE }}
           >
             View All <ArrowRight className="size-3" />
           </Link>
         </div>
         <HomepageTrendingProductsClient
-          initialProducts={deals}
-          initialTotal={total ?? deals.length}
+          initialProducts={trending}
+          initialTotal={total ?? trending.length}
         />
       </div>
     </section>
@@ -767,7 +535,7 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
               <img
                 src={safeMediaUrl(banner, 640)!}
                 alt=""
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                 loading="lazy"
                 decoding="async"
               />
@@ -794,17 +562,10 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
             Featured
           </span>
 
-          <div
-            className={cn(
-              "pointer-events-none absolute inset-x-0 bottom-0 z-[2] flex justify-center px-3 pb-3",
-              "translate-y-2 opacity-0 transition-all duration-200 ease-out",
-              "group-hover:translate-y-0 group-hover:opacity-100",
-              "motion-reduce:translate-y-0 motion-reduce:opacity-100",
-            )}
-          >
+          <div className="absolute inset-x-0 bottom-0 z-[2] flex justify-center px-3 pb-3">
             <Link
               href={`/ugc/${c.id}/join`}
-              className="pointer-events-auto inline-flex h-9 items-center justify-center rounded-full bg-[#FF5A1F] px-5 text-[12px] font-bold text-white shadow-[0_8px_22px_rgba(255,90,31,0.42)] transition-all hover:bg-[#E54E18]"
+              className="inline-flex h-9 min-w-[44px] items-center justify-center rounded-full bg-[#FF5A1F] px-5 text-[12px] font-bold text-white shadow-[0_8px_22px_rgba(255,90,31,0.42)] transition-colors hover:bg-[#E54E18]"
             >
               Join Campaign
             </Link>
@@ -864,6 +625,7 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
           </Link>
         </div>
         <HomepageShowcaseLayout
+          ariaLabel="Featured UGC campaigns"
           cardMinWidth={188}
           desktopCols="lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
         >
@@ -875,179 +637,7 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
 }
 
 /* ═══ 8. Featured communities ═══ */
-type CommunityRow = {
-  id: string;
-  name: string;
-  slug: string;
-  tagline?: string;
-  member_count?: number;
-  category?: string;
-  avatar_url?: string | null;
-  cover_image?: string | null;
-  image_url?: string | null;
-  profiles?:
-    | { full_name?: string | null; avatar_url?: string | null }
-    | { full_name?: string | null; avatar_url?: string | null }[]
-    | null;
-};
-
-const COMMUNITY_PALETTE: Record<string, { color: string; bg: string }> = {
-  affiliate: { color: GREEN, bg: "#f0fdf4" },
-  ecommerce: { color: BLUE, bg: "#eff6ff" },
-  ugc: { color: PURPLE, bg: "#f5f3ff" },
-  digital: { color: ORANGE, bg: "#fff4ed" },
-};
-
-function communityPalette(name: string) {
-  const n = name.toLowerCase();
-  if (n.includes("affiliate")) return COMMUNITY_PALETTE.affiliate;
-  if (n.includes("ecom") || n.includes("seller")) return COMMUNITY_PALETTE.ecommerce;
-  if (n.includes("ugc") || n.includes("creator")) return COMMUNITY_PALETTE.ugc;
-  return COMMUNITY_PALETTE.digital;
-}
-
-function communityProfileImage(c: CommunityRow): string | null {
-  const profile = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
-  return c.avatar_url ?? c.image_url ?? c.cover_image ?? profile?.avatar_url ?? null;
-}
-
-export function FeaturedCommunities({ communities = [] }: { communities: CommunityRow[] }) {
-  const list = communities.length > 0 ? communities : [
-    { id: "1", name: "Affiliate Hub", slug: "affiliate-hub", member_count: 12400, tagline: "Learn, share and earn together." },
-    { id: "2", name: "Ecommerce Sellers", slug: "ecommerce-sellers", member_count: 8900, tagline: "Scale your online store." },
-    { id: "3", name: "UGC Creators", slug: "ugc-creators", member_count: 15600, tagline: "Create content, get paid." },
-    { id: "4", name: "Digital Products", slug: "digital-products", member_count: 6700, tagline: "Courses, tools and templates." },
-    { id: "5", name: "Jimvio Community", slug: "jimvio", member_count: 14, tagline: "Connect with sellers and creators worldwide." },
-    { id: "6", name: "Brand Growth", slug: "brand-growth", member_count: 4200, tagline: "Launch campaigns and scale your brand." },
-    { id: "7", name: "Creator Studio", slug: "creator-studio", member_count: 3100, tagline: "Tools and tips for content creators." },
-    { id: "8", name: "Global Sellers", slug: "global-sellers", member_count: 9800, tagline: "Ship and sell across borders." },
-  ];
-
-  const cards = list.map((c) => {
-    const palette = communityPalette(c.name);
-    const profileImage = communityProfileImage(c);
-    const heroImage = c.cover_image ?? c.avatar_url ?? profileImage;
-    const shortName = truncateLabel(c.name, 36);
-    const desktopName = truncateLabel(c.name, 48);
-    const tagline = c.tagline ?? "Connect with like-minded people.";
-
-    return (
-      <Link
-        key={c.id}
-        href={`/communities/${c.slug}`}
-        title={c.name}
-        className={cn(
-          "flex h-full min-h-[96px] items-start gap-2.5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-2.5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] transition-transform active:scale-[0.98] dark:shadow-[0_2px_12px_rgba(0,0,0,0.25)]",
-          "lg:min-h-0 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-hidden lg:p-0",
-          "lg:transition-all lg:hover:-translate-y-0.5 lg:hover:shadow-lg lg:active:scale-100",
-        )}
-      >
-        {/* ── Mobile: compact horizontal row (unchanged) ── */}
-        <div className="flex min-w-0 flex-1 items-start gap-2.5 lg:hidden">
-          {safeMediaUrl(profileImage, 160) ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={safeMediaUrl(profileImage, 160)}
-              alt={c.name}
-              width={48}
-              height={48}
-              className="size-12 shrink-0 rounded-xl border border-[var(--color-border)] object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <CommunityLetterAvatar
-              name={c.name}
-              className="size-12 shrink-0 rounded-xl"
-              textClassName="text-[20px]"
-              style={{ background: palette.bg, color: palette.color }}
-            />
-          )}
-          <div className="min-w-0 flex-1">
-            <h3 className="line-clamp-1 text-[11px] font-bold text-[var(--color-text-primary)]">
-              {shortName}
-            </h3>
-            <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)]">
-              {fmtCount(c.member_count ?? 0)} members
-            </p>
-            <p className="mt-1 line-clamp-2 text-[10px] leading-snug text-[var(--color-text-muted)]">
-              {tagline}
-            </p>
-            <span className="mt-1.5 inline-flex items-center gap-0.5 text-[10px] font-bold" style={{ color: ORANGE }}>
-              Join Community <ArrowRight className="size-2.5" />
-            </span>
-          </div>
-        </div>
-
-        {/* ── Desktop: compact vertical community card ── */}
-        <div className="hidden lg:flex lg:flex-col lg:h-full">
-          <div className="relative h-24 w-full shrink-0 overflow-hidden bg-[var(--color-surface-secondary)] 2xl:h-28">
-            {safeMediaUrl(heroImage, 640) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={safeMediaUrl(heroImage, 640)}
-                alt={c.name}
-                width={640}
-                height={280}
-                className="size-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <CommunityLetterAvatar
-                name={c.name}
-                className="size-full"
-                textClassName="text-[40px] font-black 2xl:text-[48px]"
-                style={{ background: palette.bg, color: palette.color }}
-              />
-            )}
-            <span
-              className="absolute left-2 top-2 rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white shadow-sm"
-              style={{ background: "rgba(0,0,0,.55)" }}
-            >
-              {fmtCount(c.member_count ?? 0)} members
-            </span>
-          </div>
-
-          <div className="flex flex-1 flex-col gap-1 p-2.5">
-            <h3 className="line-clamp-2 text-[12px] font-bold leading-snug text-[var(--color-text-primary)]">
-              {desktopName}
-            </h3>
-            <p className="line-clamp-2 text-[10px] leading-snug text-[var(--color-text-muted)]">
-              {tagline}
-            </p>
-            <span
-              className="mt-auto inline-flex items-center gap-0.5 pt-1 text-[10px] font-bold"
-              style={{ color: ORANGE }}
-            >
-              Join Community
-              <ArrowRight className="size-2.5" />
-            </span>
-          </div>
-        </div>
-      </Link>
-    );
-  });
-
-  return (
-    <section className={`${sectionAlt} py-12 sm:py-16`}>
-      <div className={shell}>
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Featured Communities</h2>
-          <Link href="/communities" className="shrink-0 text-[12px] font-bold sm:text-[13px]" style={{ color: ORANGE }}>
-            Explore All <ArrowRight className="inline size-3" />
-          </Link>
-        </div>
-        <HomepageShowcaseLayout
-          cardMinWidth={200}
-          desktopCols="lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8"
-        >
-          {cards}
-        </HomepageShowcaseLayout>
-      </div>
-    </section>
-  );
-}
+export { FeaturedCommunities } from "./featured-communities";
 
 /* ═══ 9. One platform opportunities ═══ */
 const OPPS = [

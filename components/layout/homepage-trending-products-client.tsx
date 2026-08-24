@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchProductVideosMap, attachProductVideos } from "@/lib/product-videos";
 import { HomepageFlashDealCard } from "@/components/layout/homepage-flash-deal-card";
@@ -265,6 +266,19 @@ export function HomepageTrendingProductsClient({
     };
   }, [autoScroll, scheduleResume, wrapScrollPosition]);
 
+  const scrollByCard = useCallback(
+    (direction: -1 | 1) => {
+      const scroller = scrollerRef.current;
+      if (!scroller || cardWidth == null) return;
+      scheduleResume();
+      scroller.scrollBy({
+        left: direction * (cardWidth + GAP_PX),
+        behavior: reducedMotion ? "auto" : "smooth",
+      });
+    },
+    [cardWidth, reducedMotion, scheduleResume],
+  );
+
   if (!products.length) return null;
 
   const items = autoScroll ? loopProducts : products;
@@ -277,8 +291,24 @@ export function HomepageTrendingProductsClient({
         autoScroll ? "overflow-hidden" : "px-4 sm:px-6",
       )}
       role="region"
-      aria-label="Flash deals — horizontal browse"
+      aria-label="Trending products — horizontal browse"
     >
+      <button
+        type="button"
+        onClick={() => scrollByCard(-1)}
+        aria-label="Show previous products"
+        className="absolute left-2 top-[38%] z-20 hidden size-10 -translate-y-1/2 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/95 text-[var(--color-text-primary)] shadow-[0_4px_16px_rgba(17,24,39,0.08)] backdrop-blur-sm transition-[opacity,box-shadow] duration-200 hover:shadow-[0_8px_20px_rgba(17,24,39,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 md:grid"
+      >
+        <ChevronLeft className="size-4" strokeWidth={2.2} />
+      </button>
+      <button
+        type="button"
+        onClick={() => scrollByCard(1)}
+        aria-label="Show next products"
+        className="absolute right-2 top-[38%] z-20 hidden size-10 -translate-y-1/2 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/95 text-[var(--color-text-primary)] shadow-[0_4px_16px_rgba(17,24,39,0.08)] backdrop-blur-sm transition-[opacity,box-shadow] duration-200 hover:shadow-[0_8px_20px_rgba(17,24,39,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 md:grid"
+      >
+        <ChevronRight className="size-4" strokeWidth={2.2} />
+      </button>
       {autoScroll && (
         <>
           <div
