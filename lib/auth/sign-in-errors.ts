@@ -48,14 +48,39 @@ export function mapSignInAuthError(error: {
   if (code === "invalid_credentials" || lower.includes("invalid login credentials")) {
     return "Invalid login credentials";
   }
+  return "Sign in failed. Please try again.";
+}
+
+const LOGIN_QUERY_MESSAGES: Record<string, string> = {
+  session_revoked:
+    "This device was signed out from your account settings. Sign in again to restore access.",
+  account_suspended: "This account is suspended and cannot sign in.",
+  account_deleted: "This account has been deleted and can no longer sign in.",
+  session_expired: "Your sign-in session expired. Please sign in again.",
+  auth_error: "Sign-in could not be completed. Please try again.",
+  auth_error_missing_code: "Sign-in could not be completed. Please try again.",
+  no_user: "Sign-in could not be completed. Please try again.",
+  server_error: "Sign-in is temporarily unavailable. Please try again.",
+  google_signin_failed: "Google sign-in failed. Please try again.",
+};
+
+/** Map ?error= codes (and safe human phrases) for the login page. Never echo internals. */
+export function formatLoginQueryError(raw: string): string {
+  const code = raw.trim().toLowerCase();
+  if (LOGIN_QUERY_MESSAGES[code]) return LOGIN_QUERY_MESSAGES[code];
+
+  const human = raw.replace(/\+/g, " ").trim();
+  const lower = human.toLowerCase();
   if (
-    message.length > 0 &&
-    message.length < 140 &&
+    human.length > 0 &&
+    human.length < 160 &&
     !lower.includes("jwt") &&
     !lower.includes("api key") &&
-    !lower.includes("service_role")
+    !lower.includes("service_role") &&
+    !lower.includes("sql") &&
+    !lower.includes("stack")
   ) {
-    return message;
+    return human;
   }
   return "Sign in failed. Please try again.";
 }

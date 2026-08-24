@@ -1,6 +1,9 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
+import { isSafeInternalPath } from "@/lib/auth/safe-path";
+import { TWO_FA_PENDING_COOKIE, cookieMatchesUser } from "@/lib/auth/two-fa-session";
 
 /**
  * If the visitor already has a valid session, send them to their home (or `next`).
@@ -15,6 +18,12 @@ export async function redirectIfAuthenticated(
   } = await supabase.auth.getUser();
 
   if (!user) return;
+
+  const pending = (await cookies()).get(TWO_FA_PENDING_COOKIE)?.value;
+  if (cookieMatchesUser(pending, user.id)) {
+    const next = rawNext && isSafeInternalPath(rawNext) ? rawNext : "/dashboard";
+    redirect(`/login/2fa?next=${encodeURIComponent(next)}`);
+  }
 
   const destination = await resolvePostLoginPath(user.id, rawNext);
   redirect(destination);

@@ -1,5 +1,6 @@
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import { createClient as createAdminClient } from "@supabase/supabase-js"
+import { sanitizeInternalPath } from "@/lib/auth/safe-path"
 
 let _adminClient: ReturnType<typeof createAdminClient> | null = null
 
@@ -15,11 +16,7 @@ function adminDb() {
 }
 
 function sanitizePath(raw: string | null | undefined): string {
-  const s = raw?.trim() ?? ""
-  if (!s || !s.startsWith("/") || s.startsWith("//") || s.includes("://")) {
-    return "/dashboard"
-  }
-  return s
+  return sanitizeInternalPath(raw, "/dashboard")
 }
 
 // Role priority — highest wins

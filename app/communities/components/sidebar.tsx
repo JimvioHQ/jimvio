@@ -598,8 +598,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { signOut } from "@/lib/auth/actions";
 import { HubPremiumCard, HubUserCard } from "@/components/community/hub/hub-ui";
 import { aggregateMemberPoints } from "@/lib/community/points";
 import { HUB_AUTH_NAV_IDS, buildHubLoginUrl } from "@/lib/community/hub-auth";
@@ -863,7 +864,6 @@ function SidebarContent({
     onClose?: () => void;
 }) {
     const pathname = usePathname();
-    const router = useRouter();
     const [communitiesOpen, setCommunitiesOpen] = useState(true);
     const [userCard, setUserCard] = useState<{
         name: string;
@@ -930,10 +930,8 @@ function SidebarContent({
     };
 
     async function handleSignOut() {
-        const supabase = createClient();
-        await supabase.auth.signOut();
-        router.push("/");
-        router.refresh();
+        await signOut();
+        window.location.href = "/";
     }
 
     // ── Shared style helpers ──

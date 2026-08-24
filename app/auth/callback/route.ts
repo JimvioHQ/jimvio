@@ -3,21 +3,14 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
 import { extractSessionMeta, syncUserSession } from "@/lib/auth/user-sessions";
+import { canSignInDuringMaintenance } from "@/lib/platform-maintenance";
+import { resolvePublicOrigin } from "@/lib/app-url";
+import { isSafeInternalPath } from "@/lib/auth/safe-path";
 import {
-  canSignInDuringMaintenance,
-  MAINTENANCE_LOGIN_ERROR,
-} from "@/lib/platform-maintenance";
-
-function isSafeInternalPath(path: string): boolean {
-  return (
-    typeof path === "string" &&
-    path.startsWith("/") &&
-    !path.startsWith("//") &&
-    !path.startsWith("/\\") &&
-    !path.includes("%2F") &&
-    !path.includes("%5C")
-  );
-}
+  TWO_FA_PENDING_COOKIE,
+  TWO_FA_VERIFIED_COOKIE,
+  twoFaPendingCookieOptions,
+} from "@/lib/auth/two-fa-session";
 
 async function ensureUserProfile(
   userId: string,
@@ -49,10 +42,7 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const { searchParams } = requestUrl;
 
-  // ── Always use the request's own origin (fixes localhost vs production mismatch) ──
-  const origin =
-    process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") ||
-    `${requestUrl.protocol}//${requestUrl.host}`;
+  const origin = resolvePublicOrigin(requestUrl);
 
   if (process.env.NODE_ENV === "development") {
     console.log("[auth/callback] incoming:", {
@@ -76,10 +66,7 @@ export async function GET(request: Request) {
     if (errorParam === "access_denied") {
       return NextResponse.redirect(`${origin}/login`);
     }
-    const message = errorDescription ?? errorParam ?? "auth_error";
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(message)}`
-    );
+    return NextResponse.redirect(`${origin}/login?error=auth_error`);
   }
 
   // ── Missing code ──
@@ -125,9 +112,7 @@ export async function GET(request: Request) {
       );
     }
 
-    return NextResponse.redirect(
-      `${origin}/login?error=${encodeURIComponent(exchangeError.message)}`
-    );
+    return NextResponse.redirect(`${origin}/login?error=auth_error`);
   }
 
   const user = sessionData?.user;
@@ -162,6 +147,24 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error("[auth/callback] resolvePostLoginPath threw:", err);
     destination = safeNext;
+  }
+
+  const admin = createAdminClient();
+  const { data: profile2fa } = await admin
+    .from("profiles")
+    .select("two_factor_enabled")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile2fa?.two_factor_enabled) {
+    const safeDest = isSafeInternalPath(destination) ? destination : "/dashboard";
+    const challenge = NextResponse.redirect(
+      `${origin}/login/2fa?next=${encodeURIComponent(safeDest)}`,
+    );
+    challenge.cookies.set(TWO_FA_PENDING_COOKIE, user.id, twoFaPendingCookieOptions());
+    challenge.cookies.delete(TWO_FA_VERIFIED_COOKIE);
+    challenge.cookies.delete("sb-code-verifier");
+    return challenge;
   }
 
   // ── Redirect and clean up PKCE cookie ──

@@ -7,22 +7,9 @@ import { Mail, Lock, Eye, EyeOff, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { signIn, signInWithGoogle } from "@/lib/auth/actions";
 import { isNextRedirectError } from "@/lib/auth/redirect-error";
+import { formatLoginQueryError } from "@/lib/auth/sign-in-errors";
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
-
-function formatLoginError(raw: string): string {
-  const code = raw.trim().toLowerCase();
-  if (code === "session_revoked") {
-    return "This device was signed out from your account settings. Sign in again to restore access.";
-  }
-  if (code === "account_suspended") {
-    return "This account is suspended and cannot sign in.";
-  }
-  if (code === "account_deleted") {
-    return "This account has been deleted and can no longer sign in.";
-  }
-  return raw.replace(/\+/g, " ");
-}
 
 export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boolean }) {
   const searchParams = useSearchParams();
@@ -39,7 +26,7 @@ export function LoginForm({ maintenanceMode = false }: { maintenanceMode?: boole
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (urlError) setError(formatLoginError(decodeURIComponent(urlError)));
+    if (urlError) setError(formatLoginQueryError(decodeURIComponent(urlError)));
   }, [urlError]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

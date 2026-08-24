@@ -14,6 +14,24 @@ import {
   getSupabaseUrl,
   hasSupabaseSecretKey,
 } from "@/lib/supabase/service-role";
+import { isSafeInternalPath } from "@/lib/auth/safe-path";
+import {
+  TWO_FA_PENDING_COOKIE,
+  TWO_FA_VERIFIED_COOKIE,
+  cookieMatchesUser,
+  isTwoFaChallengePath,
+  twoFaPendingCookieOptions,
+} from "@/lib/auth/two-fa-session";
+
+function redirectToTwoFa(request: NextRequest, nextPath: string) {
+  const url = request.nextUrl.clone();
+  url.pathname = "/login/2fa";
+  url.search = "";
+  if (isSafeInternalPath(nextPath) && !isTwoFaChallengePath(nextPath)) {
+    url.searchParams.set("next", nextPath);
+  }
+  return NextResponse.redirect(url);
+}
 
 function isGuestOnlyAuthPath(pathname: string): boolean {
   if (pathname.startsWith("/login/2fa")) return false;
@@ -38,7 +56,7 @@ export async function updateSession(request: NextRequest) {
   });
 
   try {
-    const protectedPaths = ["/dashboard", "/admin", "/settings", "/wallet", "/identity", "/orders"];
+    const protectedPaths = ["/dashboard", "/admin", "/settings", "/wallet", "/identity", "/orders", "/checkout"];
     const isProtected =
       protectedPaths.some((p) => pathname.startsWith(p)) || isHubAuthRequired(pathname);
     const hasSession = hasSupabaseSession(request);
@@ -155,6 +173,33 @@ export async function updateSession(request: NextRequest) {
             url.searchParams.set("redirect", request.nextUrl.pathname);
             return NextResponse.redirect(url);
           }
+        }
+      }
+
+      const onTwoFa = isTwoFaChallengePath(pathname);
+      const pending = request.cookies.get(TWO_FA_PENDING_COOKIE)?.value;
+      const verified = request.cookies.get(TWO_FA_VERIFIED_COOKIE)?.value;
+
+      if (user && cookieMatchesUser(pending, user.id) && !onTwoFa) {
+        return redirectToTwoFa(request, pathname);
+      }
+
+      if (
+        user &&
+        (isProtected || isGuestAuth) &&
+        !onTwoFa &&
+        !cookieMatchesUser(verified, user.id)
+      ) {
+        const { data: profile2fa } = await supabase
+          .from("profiles")
+          .select("two_factor_enabled")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profile2fa?.two_factor_enabled) {
+          const challenge = redirectToTwoFa(request, pathname);
+          challenge.cookies.set(TWO_FA_PENDING_COOKIE, user.id, twoFaPendingCookieOptions());
+          return challenge;
         }
       }
 

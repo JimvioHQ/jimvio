@@ -20,13 +20,18 @@ import {
   normalizeSignInEmail,
   oauthOnlySignInMessage,
 } from "@/lib/auth/sign-in-errors"
+import { isSafeInternalPath } from "@/lib/auth/safe-path"
+import {
+  TWO_FA_PENDING_COOKIE,
+  TWO_FA_VERIFIED_COOKIE,
+  twoFaPendingCookieOptions,
+  twoFaVerifiedCookieOptions,
+} from "@/lib/auth/two-fa-session"
 
 // ─────────────────────────────────────────────
 // Constants
 // ─────────────────────────────────────────────
 
-const TWO_FA_COOKIE = "2fa_pending_user"
-const TWO_FA_COOKIE_MAX_AGE = 60 * 5 // seconds (5 minutes)
 const MAX_2FA_ATTEMPTS = 5
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000 // 15 minutes
 
@@ -82,21 +87,6 @@ function clearFailedAttempts(userId: string) {
 // ─────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────
-
-/**
- * Returns true only for safe, relative internal paths.
- * Guards against open-redirect attacks including encoded slashes.
- */
-function isSafeInternalPath(path: string): boolean {
-  return (
-    typeof path === "string" &&
-    path.startsWith("/") &&
-    !path.startsWith("//") &&
-    !path.startsWith("/\\") &&
-    !path.includes("%2F") &&
-    !path.includes("%5C")
-  )
-}
 
 async function resolveLandingPath(userId: string, next?: string | null): Promise<string> {
   return resolvePostLoginPath(userId, next)
@@ -166,7 +156,7 @@ export async function signUp(formData: FormData) {
       },
     })
 
-    if (error) return { error: error.message }
+    if (error) return { error: mapSignInAuthError(error) }
     if (data.user) await ensureUserProfile(data.user.id, email, fullName)
 
     return { success: "Account created! Check your email to confirm." }
@@ -276,13 +266,8 @@ export async function signIn(formData: FormData) {
 
     if (needs2FA) {
       const cookieStore = await cookies()
-      cookieStore.set(TWO_FA_COOKIE, userId, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        path: "/",
-        maxAge: TWO_FA_COOKIE_MAX_AGE,
-      })
+      cookieStore.delete(TWO_FA_VERIFIED_COOKIE)
+      cookieStore.set(TWO_FA_PENDING_COOKIE, userId, twoFaPendingCookieOptions())
 
       const safe = next && isSafeInternalPath(next) ? next : "/dashboard"
       redirect(`/login/2fa?next=${encodeURIComponent(safe)}`)
@@ -304,10 +289,10 @@ export async function signIn(formData: FormData) {
 
 export async function verify2FAAndLogin(formData: FormData) {
   const cookieStore = await cookies()
-  const pendingUserId = cookieStore.get(TWO_FA_COOKIE)?.value
+  const pendingUserId = cookieStore.get(TWO_FA_PENDING_COOKIE)?.value
 
   if (!pendingUserId) {
-    redirect("/login?error=Session+expired.+Please+sign+in+again.")
+    redirect("/login?error=session_expired")
   }
 
   // ── Lockout check ──
@@ -327,8 +312,8 @@ export async function verify2FAAndLogin(formData: FormData) {
   const { data: { user: sessionUser } } = await supabase.auth.getUser()
 
   if (!sessionUser || sessionUser.id !== pendingUserId) {
-    cookieStore.delete(TWO_FA_COOKIE)
-    redirect("/login?error=Session+mismatch.+Please+sign+in+again.")
+    cookieStore.delete(TWO_FA_PENDING_COOKIE)
+    redirect("/login?error=session_expired")
   }
 
   // ── Fetch secret & backup codes ──
@@ -346,9 +331,22 @@ export async function verify2FAAndLogin(formData: FormData) {
 
   const next = (formData.get("next") as string)?.trim() || undefined
 
-  // ── No secret stored — skip 2FA and continue ──
+  // ── No secret stored — fail closed when 2FA is enabled ──
   if (!secretData?.secret) {
-    cookieStore.delete(TWO_FA_COOKIE)
+    const { data: profile2fa } = await admin
+      .from("profiles")
+      .select("two_factor_enabled")
+      .eq("id", pendingUserId)
+      .maybeSingle()
+
+    if (profile2fa?.two_factor_enabled) {
+      return {
+        error: "Two-factor authentication is not fully set up on this account. Contact support.",
+      }
+    }
+
+    cookieStore.delete(TWO_FA_PENDING_COOKIE)
+    cookieStore.set(TWO_FA_VERIFIED_COOKIE, pendingUserId, twoFaVerifiedCookieOptions())
     const allowed = await canSignInDuringMaintenance(pendingUserId, sessionUser.email)
     if (!allowed) {
       await supabase.auth.signOut()
@@ -390,7 +388,8 @@ export async function verify2FAAndLogin(formData: FormData) {
     }
 
     clearFailedAttempts(pendingUserId)
-    cookieStore.delete(TWO_FA_COOKIE)
+    cookieStore.delete(TWO_FA_PENDING_COOKIE)
+    cookieStore.set(TWO_FA_VERIFIED_COOKIE, pendingUserId, twoFaVerifiedCookieOptions())
     const allowedBackup = await canSignInDuringMaintenance(pendingUserId, sessionUser.email)
     if (!allowedBackup) {
       await supabase.auth.signOut()
@@ -411,7 +410,8 @@ export async function verify2FAAndLogin(formData: FormData) {
   }
 
   clearFailedAttempts(pendingUserId)
-  cookieStore.delete(TWO_FA_COOKIE)
+  cookieStore.delete(TWO_FA_PENDING_COOKIE)
+  cookieStore.set(TWO_FA_VERIFIED_COOKIE, pendingUserId, twoFaVerifiedCookieOptions())
   const allowedTotp = await canSignInDuringMaintenance(pendingUserId, sessionUser.email)
   if (!allowedTotp) {
     await supabase.auth.signOut()
@@ -446,13 +446,13 @@ export async function signInWithGoogle(next?: string): Promise<void> {
     })
 
     if (error || !data?.url) {
-      redirectUrl = `/login?error=${encodeURIComponent(error?.message ?? "Google sign-in failed")}`
+      redirectUrl = "/login?error=google_signin_failed"
     } else {
       redirectUrl = data.url
     }
   } catch (err) {
     console.error("[auth] signInWithGoogle error:", err)
-    redirectUrl = "/login?error=Google+sign-in+failed"
+    redirectUrl = "/login?error=google_signin_failed"
   }
 
   redirect(redirectUrl) // ← always runs, catches all paths
@@ -468,7 +468,8 @@ export async function signOut(): Promise<void> {
     await supabase.auth.signOut()
 
     const cookieStore = await cookies()
-    cookieStore.delete(TWO_FA_COOKIE)
+    cookieStore.delete(TWO_FA_PENDING_COOKIE)
+    cookieStore.delete(TWO_FA_VERIFIED_COOKIE)
   } catch (err) {
     console.error("[auth] signOut error:", err)
   }
@@ -482,13 +483,13 @@ export async function signOut(): Promise<void> {
 export async function resetPassword(formData: FormData) {
   try {
     const supabase = await createClient()
-    const email = (formData.get("email") as string)?.trim()
+    const email = normalizeSignInEmail((formData.get("email") as string) || "")
     if (!email) return { error: "Email is required." }
 
     const redirectTo = `${await getPublicAppUrl()}/auth/callback?next=${encodeURIComponent("/reset-password")}`
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
-    if (error) return { error: error.message }
+    if (error) return { error: "Failed to send reset email. Please try again." }
 
     return { success: "Password reset link sent. Check your email." }
   } catch (err) {
@@ -524,7 +525,7 @@ export async function updatePassword(formData: FormData) {
 
   try {
     const { error } = await supabase.auth.updateUser({ password: newPassword })
-    if (error) return { error: error.message }
+    if (error) return { error: "Failed to update password. Please try again." }
   } catch (err) {
     console.error("[auth] updatePassword error:", err)
     return { error: "Failed to update password. Please try again." }
