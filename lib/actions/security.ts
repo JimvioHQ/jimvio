@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { ADMIN_PLATFORM_SETTING_KEYS } from '@/lib/security/platform-settings-access'
 import type { Json } from '@/types/database.types'
 import { generateTOTPSecret, verifyTOTP, generateBackupCodes } from '@/lib/totp'
 import QRCode from 'qrcode'
@@ -382,7 +383,27 @@ export async function changePassword(input: {
 
 export async function getPlatformSettings(): Promise<Record<string, unknown>> {
   const supabase = await createClient()
-  const { data, error } = await supabase.from('platform_settings').select('key, value')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {}
+
+  const { data: roles } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+
+  const isAdminRole = roles?.some((r) => r.role === 'admin') ?? false
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean)
+  if (!isAdminRole && !adminEmails.includes(user.email ?? '')) return {}
+
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('platform_settings')
+    .select('key, value')
+    .in('key', [...ADMIN_PLATFORM_SETTING_KEYS])
   if (error || !data) return {}
   return data.reduce(
     (acc, row) => { acc[row.key] = row.value; return acc },

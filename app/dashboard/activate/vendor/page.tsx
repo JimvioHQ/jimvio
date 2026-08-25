@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { activateVendorRole } from "@/lib/actions/activate-vendor-role";
 import { lookupVendorsByUserId } from "@/lib/vendor/lookup";
 import { useUserStore } from "@/lib/store/use-user-store";
 import { toast } from "sonner";
@@ -199,10 +200,11 @@ export default function ActivateVendorPage() {
       setSubmitting(false);
       if (error) { toast.error(error.message); return; }
 
-      await supabase.from("user_roles").upsert(
-         { user_id: user.id, role: "vendor", is_active: true },
-         { onConflict: "user_id,role" }
-      );
+      const roleResult = await activateVendorRole();
+      if (!roleResult.success) {
+         toast.error(roleResult.error ?? "Application saved but the vendor role could not be assigned.");
+         return;
+      }
       await fetchRoles();
       toast.success("Application submitted successfully.");
       router.refresh();

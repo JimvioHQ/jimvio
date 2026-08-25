@@ -3,12 +3,22 @@
 
 import { revalidatePath } from "next/cache";
 import { getAdminDB } from "@/lib/supabase/admin";
+import { assertAdminAccess } from "@/lib/cj/premium-intelligence/super-admin-auth";
+
+async function requireAdminAction() {
+    const auth = await assertAdminAccess();
+    if (!auth.ok) return { error: auth.error };
+    return { user: auth.user };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VENDOR ACTIONS
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function approveVendor(vendorId: string, notes?: string) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("vendors")
@@ -60,6 +70,9 @@ export async function approveVendor(vendorId: string, notes?: string) {
 }
 
 export async function rejectVendor(vendorId: string, notes: string) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("vendors")
@@ -100,6 +113,9 @@ export async function rejectVendor(vendorId: string, notes: string) {
 }
 
 export async function suspendVendor(vendorId: string, notes: string) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("vendors")
@@ -117,6 +133,9 @@ export async function suspendVendor(vendorId: string, notes: string) {
 }
 
 export async function revertVendorApproval(vendorId: string) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("vendors")
@@ -133,6 +152,9 @@ export async function revertVendorApproval(vendorId: string) {
 }
 
 export async function toggleVendorFeatured(vendorId: string, featured: boolean) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("vendors")
@@ -146,6 +168,9 @@ export async function toggleVendorFeatured(vendorId: string, featured: boolean) 
 
 export async function updateVendorCommission(vendorId: string, rate: number) {
     if (rate < 0 || rate > 100) return { success: false, error: "Rate must be 0–100" };
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("vendors")
@@ -162,6 +187,9 @@ export async function updateVendorCommission(vendorId: string, rate: number) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function approveCreator(influencerId: string) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
 
     // Fetch user_id so we can activate the influencer role
@@ -195,6 +223,9 @@ export async function approveCreator(influencerId: string) {
 }
 
 export async function rejectCreator(influencerId: string, reason: string) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     // Null out guidelines_accepted_at so they must re-accept before reapplying
     const { error } = await admin
@@ -210,6 +241,9 @@ export async function rejectCreator(influencerId: string, reason: string) {
 }
 
 export async function suspendCreator(influencerId: string, reason: string) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("influencers")
@@ -226,6 +260,9 @@ export async function suspendCreator(influencerId: string, reason: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function approveUGCSubmission(submissionId: string, reviewerId: string) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("ugc_submissions")
@@ -246,6 +283,9 @@ export async function rejectUGCSubmission(
     reviewerId: string,
     reason: string
 ) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("ugc_submissions")
@@ -263,6 +303,9 @@ export async function rejectUGCSubmission(
 }
 
 export async function removeUGCSubmission(submissionId: string, reviewerId: string) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("ugc_submissions")
@@ -279,6 +322,9 @@ export async function removeUGCSubmission(submissionId: string, reviewerId: stri
 }
 
 export async function flagUGCSubmissionSuspicious(submissionId: string, score: number) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("ugc_submissions")
@@ -299,6 +345,9 @@ export async function resolveReport(
     reviewerId: string,
     action: "dismissed" | "actioned"
 ) {
+    const gate = await requireAdminAction();
+    if (gate.error) return { success: false, error: gate.error };
+
     const admin = getAdminDB();
     const { error } = await admin
         .from("ugc_reports")

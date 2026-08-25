@@ -16,7 +16,8 @@ export async function assertSuperAdminAccess(): Promise<
   const { data: roles } = await supabase
     .from("user_roles")
     .select("role")
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .eq("is_active", true);
 
   const isSuperAdmin = roles?.some((r) => String(r.role) === "super_admin") ?? false;
   const superAdminEmails = (process.env.SUPER_ADMIN_EMAILS ?? process.env.ADMIN_EMAILS ?? "")
@@ -44,7 +45,8 @@ export async function assertAdminAccess(): Promise<
   const { data: roles } = await supabase
     .from("user_roles")
     .select("role")
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .eq("is_active", true);
 
   const isAdmin =
     roles?.some((r) => {

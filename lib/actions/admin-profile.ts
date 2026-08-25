@@ -65,7 +65,8 @@ export async function updateAdminProfile(
   const { data: roles } = await supabase
     .from("user_roles")
     .select("role")
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .eq("is_active", true);
   if (!roles?.some((r) => r.role === "admin")) {
     return { success: false, error: "Admin access required." };
   }

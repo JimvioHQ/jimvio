@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { provisionOwnNonPrivilegedRole } from "@/lib/auth/provision-nonprivileged-role";
 import type { ActionResult } from "@/lib/actions/security";
 
 export type VendorPolicies = {
@@ -93,10 +95,12 @@ export async function deactivateAccount(): Promise<ActionResult<{ message: strin
     .eq("id", user.id);
   if (profileError) return { success: false, error: profileError.message };
 
-  await supabase
+  const admin = createAdminClient();
+  await admin
     .from("user_roles")
     .update({ is_active: false })
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .neq("role", "admin");
 
   revalidatePath("/dashboard");
   return {
@@ -293,11 +297,8 @@ export async function activateUserRole(
     }
   }
 
-  const { error: roleError } = await supabase.from("user_roles").upsert(
-    { user_id: user.id, role, is_active: true },
-    { onConflict: "user_id,role" }
-  );
-  if (roleError) return { success: false, error: roleError.message };
+  const provisioned = await provisionOwnNonPrivilegedRole(role);
+  if (!("ok" in provisioned)) return { success: false, error: provisioned.error };
 
   revalidatePath("/dashboard/settings");
   return { success: true };

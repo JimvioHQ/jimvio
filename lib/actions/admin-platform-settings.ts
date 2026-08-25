@@ -13,7 +13,11 @@ export async function savePlatformSettingsAction(next: ResolvedPlatformSettings)
     } = await supabase.auth.getUser();
     if (!user) return { error: "Unauthorized" };
 
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("is_active", true);
     if (!roles?.some((r) => r.role === "admin")) return { error: "Forbidden" };
 
     const admin = getAdminDB();

@@ -6,6 +6,7 @@ import {
   resolvePlatformSettingsFromRows,
   type ResolvedPlatformSettings,
 } from "@/lib/platform-settings-shared";
+import { PUBLIC_PLATFORM_SETTING_KEYS } from "@/lib/security/platform-settings-access";
 
 export const getResolvedPlatformSettings = cache(async (): Promise<ResolvedPlatformSettings> => {
   try {
@@ -13,7 +14,7 @@ export const getResolvedPlatformSettings = cache(async (): Promise<ResolvedPlatf
     const { data } = await supabase
       .from("platform_settings")
       .select("key, value")
-      .in("key", ["fees", "social_proof", "marketing", "contact"]);
+      .in("key", [...PUBLIC_PLATFORM_SETTING_KEYS]);
     return resolvePlatformSettingsFromRows(data ?? []);
   } catch {
     return PLATFORM_SETTINGS_DEFAULTS;

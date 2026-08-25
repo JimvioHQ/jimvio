@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
+import { activateVendorRole } from "@/lib/actions/activate-vendor-role";
 
 function slugify(text: string) {
   return text.toLowerCase().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "");
@@ -136,11 +137,11 @@ export default function VendorSetupPage() {
         return;
       }
 
-      // Add vendor role to user_roles
-      await supabase.from("user_roles").upsert(
-        { user_id: userId, role: "vendor", is_active: true },
-        { onConflict: "user_id,role" }
-      );
+      const roleResult = await activateVendorRole();
+      if (!roleResult.success) {
+        setError(roleResult.error ?? "Vendor profile was created but the vendor role could not be assigned.");
+        return;
+      }
 
       router.push("/dashboard?welcome=vendor");
     });

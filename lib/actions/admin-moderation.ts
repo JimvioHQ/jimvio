@@ -15,7 +15,8 @@ async function assertAdminAccess() {
   const { data: roles } = await supabase
     .from("user_roles")
     .select("role")
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .eq("is_active", true);
 
   const isAdminRole = roles?.some((r) => r.role === "admin") ?? false;
   const adminEmails = (process.env.ADMIN_EMAILS ?? "")
