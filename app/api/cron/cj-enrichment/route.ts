@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 import {
   bootstrapCatalog,
   processEnrichmentQueue,
@@ -18,17 +19,11 @@ export const maxDuration = 300;
 const BATCH_SIZE = 30;
 const TIME_BUDGET_MS = 240_000;
 
-function authorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return req.headers.get("authorization") === `Bearer ${secret}`;
-}
 
 /** One enrichment batch per invocation — checkpoint resumes on next cron tick. */
 export async function GET(req: Request) {
-  if (!authorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = assertCronAuthorized(req);
+  if (denied) return denied;
 
   const lock = await tryAcquireHeavyWorkerLock("enrichment", {
     metadata: { source: "cj-enrichment-cron" },

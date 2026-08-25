@@ -1,24 +1,16 @@
 import { NextResponse } from "next/server";
+import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 import { runMarketplaceMaintenance } from "@/lib/cj/premium-intelligence/marketplace-maintenance";
 import { getActiveHeavyWorkerJob } from "@/lib/cj/premium-intelligence/worker-coordinator";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-function authorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return (
-    req.headers.get("authorization") === `Bearer ${secret}` ||
-    req.headers.get("x-cron-secret") === secret
-  );
-}
 
 /** Every 5 minutes — self-healing marketplace maintenance (skips when enrichment/sync is running). */
 export async function GET(req: Request) {
-  if (!authorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = assertCronAuthorized(req);
+  if (denied) return denied;
 
   try {
     const activeJob = await getActiveHeavyWorkerJob();

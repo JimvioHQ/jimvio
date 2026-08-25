@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { previewPrivilegedDenied } from "@/lib/ops/preview-guard";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -55,6 +56,9 @@ export type PlatformAdminDenied = {
 export async function assertPlatformAdmin(): Promise<
   PlatformAdminOk | PlatformAdminDenied
 > {
+  const preview = previewPrivilegedDenied();
+  if (preview) return preview;
+
   const supabase = await createClient();
   const {
     data: { user },

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 import { isAutomaticAutoPublishEnabled } from "@/lib/platform/background-jobs";
 import { runAutoPublishRetry } from "@/lib/cj/premium-intelligence/auto-publish-retry";
 import { computeAutoPublishAnalytics } from "@/lib/cj/premium-intelligence/auto-publish-analytics";
@@ -8,20 +9,11 @@ import { runAutoPublishWorker } from "@/lib/cj/premium-intelligence/auto-publish
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-function authorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return (
-    req.headers.get("authorization") === `Bearer ${secret}` ||
-    req.headers.get("x-cron-secret") === secret
-  );
-}
 
 /** Every 6 hours — re-evaluate draft products, queue & publish ready ones (50/batch) */
 export async function GET(req: Request) {
-  if (!authorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = assertCronAuthorized(req);
+  if (denied) return denied;
 
   if (!isAutomaticAutoPublishEnabled()) {
     return NextResponse.json({

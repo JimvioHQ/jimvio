@@ -26,6 +26,8 @@ import {
   scheduleFromWebhookFields,
   scheduleProductRemoval,
 } from "@/lib/cj/premium-intelligence/cj-watcher";
+import { timingSafeEqual } from "node:crypto";
+import { previewPrivilegedForbidden } from "@/lib/ops/preview-guard";
 
 function createClient() {
     return createSupabaseClient(
@@ -121,6 +123,49 @@ function parseCJPrice(raw: string | null | undefined): string {
 
 function isTestPing(params: CJProductParams): boolean {
     return params.pid === "test" && params.productName === "test";
+}
+
+function secretsEqual(presented: string, expected: string): boolean {
+    const a = Buffer.from(presented);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+}
+
+async function assertCjWebhookAuthorized(
+    req: Request,
+    payload: CJWebhookPayload,
+    supabase: SupabaseClient,
+): Promise<Response | null> {
+    const envWebhookSecret = process.env.CJ_WEBHOOK_SECRET?.trim();
+    if (envWebhookSecret) {
+        const presented =
+            req.headers.get("x-cj-webhook-secret") ||
+            req.headers.get("x-webhook-secret") ||
+            "";
+        if (!secretsEqual(presented, envWebhookSecret)) {
+            return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+        }
+        return null;
+    }
+
+    const { data: credRow } = await supabase
+        .from("platform_settings")
+        .select("value")
+        .eq("key", "cj_credentials")
+        .maybeSingle();
+    const stored = (credRow?.value ?? {}) as { open_id?: unknown; openId?: unknown };
+    const storedOpenId = stored.open_id ?? stored.openId;
+    const hasStoredOpenId = storedOpenId != null && String(storedOpenId).length > 0;
+
+    if (hasStoredOpenId) {
+        if (payload.openId == null || String(payload.openId) !== String(storedOpenId)) {
+            return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+        }
+        return null;
+    }
+
+    return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 }
 
 async function syncOrderFromWebhook(
@@ -497,6 +542,9 @@ function mapParamsToCJProduct(params: CJProductParams): CJProduct {
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(req: Request): Promise<Response> {
+    const previewBlocked = previewPrivilegedForbidden();
+    if (previewBlocked) return previewBlocked;
+
     const rawBody = await req.text();
 
     let payload: CJWebhookPayload;
@@ -504,23 +552,25 @@ export async function POST(req: Request): Promise<Response> {
         payload = JSON.parse(rawBody) as CJWebhookPayload;
     } catch (err: any) {
         console.error("[CJ webhook] Failed to parse JSON body");
-        console.error("[CJ webhook] Raw body (first 500 chars):", rawBody.substring(0, 500));
         console.error("[CJ webhook] Parse error:", err?.message || String(err));
         return Response.json(
             { 
                 ok: false, 
                 error: "Invalid JSON",
-                details: err?.message || "Unknown parse error"
             }, 
-            { status: 200 }
+            { status: 400 }
         );
     }
+
+    const supabase = createClient();
+    const unauthorized = await assertCjWebhookAuthorized(req, payload, supabase);
+    if (unauthorized) return unauthorized;
 
     if (!payload.type || !payload.messageType) {
         console.warn("[CJ webhook] Missing type or messageType");
         return Response.json(
             { ok: false, error: "Missing type or messageType" },
-            { status: 200 }
+            { status: 400 }
         );
     }
 
@@ -528,41 +578,15 @@ export async function POST(req: Request): Promise<Response> {
         console.error("[CJ webhook] CJ_VENDOR_ID env var not set");
         return Response.json(
             { ok: false, error: "Server misconfiguration" },
-            { status: 200 }
+            { status: 503 }
         );
-    }
-
-    const envWebhookSecret = process.env.CJ_WEBHOOK_SECRET?.trim();
-    if (envWebhookSecret) {
-        const presented =
-            req.headers.get("x-cj-webhook-secret") ||
-            req.headers.get("x-webhook-secret") ||
-            "";
-        if (presented !== envWebhookSecret) {
-            return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-        }
     }
 
     console.log(
         `[CJ webhook] type=${payload.type} messageType=${payload.messageType} messageId=${payload.messageId}`
     );
 
-    const supabase = createClient();
-
     try {
-        const { data: credRow } = await supabase
-            .from("platform_settings")
-            .select("value")
-            .eq("key", "cj_credentials")
-            .maybeSingle();
-        const stored = (credRow?.value ?? {}) as { open_id?: unknown; openId?: unknown };
-        const storedOpenId = stored.open_id ?? stored.openId;
-        if (storedOpenId != null && String(storedOpenId).length > 0) {
-            if (payload.openId == null || String(payload.openId) !== String(storedOpenId)) {
-                return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
-            }
-        }
-
         // ── PRODUCT ───────────────────────────────────────────────────────
         if (payload.type === "PRODUCT") {
             const params = payload.params as CJProductParams;

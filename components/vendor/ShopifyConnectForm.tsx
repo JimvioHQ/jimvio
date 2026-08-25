@@ -122,15 +122,20 @@ export function ShopifyConnectForm({ vendorId }: Props) {
   }
 
   async function handleDisconnect() {
-    const supabase = createClient();
-    const { error } = await supabase.from("shopify_credentials").delete().eq("vendor_id", vendorId);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const res = await fetch("/api/shopify/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vendorId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Disconnect failed");
+      toast.success("Disconnected");
+      setConnected(null);
+      setPreviewProducts([]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Disconnect failed");
     }
-    toast.success("Disconnected");
-    setConnected(null);
-    setPreviewProducts([]);
   }
 
   if (loading) {

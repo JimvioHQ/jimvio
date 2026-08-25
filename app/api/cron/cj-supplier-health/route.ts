@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 import { getSchemaHealth } from "@/lib/cj/premium-intelligence/schema-health";
 import { recalculateSupplierHealth } from "@/lib/cj/premium-intelligence/supplier-reputation-engine";
 import { triggerAutoPublishFromWorker } from "@/lib/cj/premium-intelligence/auto-publish-worker";
@@ -6,20 +7,11 @@ import { triggerAutoPublishFromWorker } from "@/lib/cj/premium-intelligence/auto
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-function authorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return (
-    req.headers.get("authorization") === `Bearer ${secret}` ||
-    req.headers.get("x-cron-secret") === secret
-  );
-}
 
 /** Every 30min — recalculate supplier reputation, re-evaluate auto publish */
 export async function GET(req: Request) {
-  if (!authorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = assertCronAuthorized(req);
+  if (denied) return denied;
 
   try {
     const health = await getSchemaHealth();

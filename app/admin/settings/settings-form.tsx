@@ -738,7 +738,7 @@ export default function AdminPlatformSettingsForm({
 
   // ── API keys (demo) ──
   const [apiKeys, setApiKeys] = useState<APIKey[]>([
-    { id: "1", name: "Production API", key: "sk_live_51234567890abcdefgh", created: "Jan 15, 2025", lastUsed: "Now", scope: "admin:full" },
+    { id: "1", name: "Production API", key: "demo-key-not-live", created: "Jan 15, 2025", lastUsed: "Now", scope: "admin:full" },
   ])
 
   const [loginHistory] = useState<LoginEvent[]>([
@@ -844,7 +844,7 @@ export default function AdminPlatformSettingsForm({
     const newKey: APIKey = {
       id: String(apiKeys.length + 1),
       name: "New API key",
-      key: "sk_live_" + Math.random().toString(36).substr(2, 24),
+      key: "demo_" + Math.random().toString(36).substr(2, 24),
       created: new Date().toLocaleDateString(),
       lastUsed: "Never",
       scope: "admin:full",

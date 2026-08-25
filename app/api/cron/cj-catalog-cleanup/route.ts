@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 import { getSchemaHealth } from "@/lib/cj/premium-intelligence/schema-health";
 import { runCatalogCleanup } from "@/lib/cj/premium-intelligence/catalog-cleanup";
 import { computeCatalogHealth } from "@/lib/cj/premium-intelligence/catalog-health";
@@ -8,20 +9,11 @@ import { logAutoPublishEvent } from "@/lib/cj/premium-intelligence/auto-publish-
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-function authorized(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return (
-    req.headers.get("authorization") === `Bearer ${secret}` ||
-    req.headers.get("x-cron-secret") === secret
-  );
-}
 
 /** Daily — catalog cleanup + health snapshot + AI recommendations */
 export async function GET(req: Request) {
-  if (!authorized(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = assertCronAuthorized(req);
+  if (denied) return denied;
 
   try {
     const health = await getSchemaHealth();

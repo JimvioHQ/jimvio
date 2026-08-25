@@ -22,6 +22,10 @@ import {
   isTwoFaChallengePath,
   twoFaPendingCookieOptions,
 } from "@/lib/auth/two-fa-session";
+import {
+  isPreviewPrivilegedPath,
+  isVercelPreview,
+} from "@/lib/ops/preview-guard";
 
 function redirectToTwoFa(request: NextRequest, nextPath: string) {
   const url = request.nextUrl.clone();
@@ -48,6 +52,17 @@ function hasSupabaseSession(request: NextRequest): boolean {
 
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  if (isVercelPreview() && isPreviewPrivilegedPath(pathname)) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { error: "This operation is disabled on Preview" },
+        { status: 403 },
+      );
+    }
+    return new NextResponse("This operation is disabled on Preview", {
+      status: 403,
+    });
+  }
   // Expose pathname to Server Components (layouts) for membership gating.
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-jimvio-pathname", pathname);

@@ -13,7 +13,14 @@ import crypto from "crypto";
 // ─────────────────────────────────────────────────────────────
 
 const BOT_UA_PATTERNS = /bot|crawl|spider|slurp|teoma|facebook|prerender|headless/i;
-const VIEW_SALT = process.env.VIEW_HASH_SALT ?? "jimvio-salt-2025";
+
+function viewHashSalt(): string | null {
+  const salt =
+    process.env.VIEW_HASH_SALT?.trim() ||
+    process.env.DOWNLOAD_SIGNING_SECRET?.trim() ||
+    "";
+  return salt.length > 0 ? salt : null;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,6 +38,11 @@ export async function POST(req: NextRequest) {
     // Require at least 3 seconds of watch time to count
     if (Number(watchedSeconds) < 3) {
       return NextResponse.json({ ok: false, reason: "too_short" });
+    }
+
+    const VIEW_SALT = viewHashSalt();
+    if (!VIEW_SALT) {
+      return NextResponse.json({ ok: false, reason: "not_configured" });
     }
 
     // Build privacy-safe IP hash (SHA-256, not reversible)

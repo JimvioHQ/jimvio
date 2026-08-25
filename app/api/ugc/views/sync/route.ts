@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncAllApprovedSubmissions } from '@/lib/ugc/syncViews';
+import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 
 // POST /api/ugc/views/sync
 // Called by Vercel Cron every 24 hours
-// Must send Authorization: Bearer <CRON_SECRET>
-export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
+export async function GET(req: NextRequest) {
+  return POST(req);
+}
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export async function POST(req: NextRequest) {
+  const denied = assertCronAuthorized(req);
+  if (denied) return denied;
 
   try {
     const result = await syncAllApprovedSubmissions();
