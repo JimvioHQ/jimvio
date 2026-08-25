@@ -200,7 +200,7 @@ function scanEnvExample() {
   ];
   // Prefer new keys OR legacy fallbacks
   const either = [
-    ["SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+    ["SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"],
     ["SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"],
   ];
   for (const key of required) {

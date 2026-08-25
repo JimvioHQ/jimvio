@@ -4,6 +4,8 @@
  * Does not crash the entire Jimvio app unless LIVE_STUDIO_REQUIRE_INFRA=true.
  */
 
+import { getSupabasePublishableKey } from "@/lib/supabase/public-env";
+
 export type LiveStudioEnvKey =
   | "NEXT_PUBLIC_LIVEKIT_URL"
   | "LIVEKIT_API_KEY"
@@ -35,13 +37,12 @@ function liveKitUrl(): string {
   return trim(process.env.NEXT_PUBLIC_LIVEKIT_URL) || trim(process.env.LIVEKIT_URL);
 }
 
-function supabaseAnon(): string {
-  return (
-    trim(process.env.SUPABASE_PUBLISHABLE_KEY) ||
-    trim(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
-    trim(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-    trim(process.env.SUPABASE_ANON_KEY)
-  );
+function supabasePublishablePresent(): boolean {
+  try {
+    return has(getSupabasePublishableKey());
+  } catch {
+    return false;
+  }
 }
 
 function supabaseSecret(): string {
@@ -59,7 +60,7 @@ export function getLiveStudioEnvReport(): LiveStudioEnvReport {
     ["LIVEKIT_API_KEY", has(process.env.LIVEKIT_API_KEY)],
     ["LIVEKIT_API_SECRET", has(process.env.LIVEKIT_API_SECRET)],
     ["NEXT_PUBLIC_SUPABASE_URL", has(process.env.NEXT_PUBLIC_SUPABASE_URL)],
-    ["SUPABASE_ANON_OR_PUBLISHABLE", has(supabaseAnon())],
+    ["SUPABASE_ANON_OR_PUBLISHABLE", supabasePublishablePresent()],
     ["SUPABASE_SERVICE_ROLE_OR_SECRET", has(supabaseSecret())],
     ["CLOUDINARY_CLOUD_NAME", has(cloudinaryCloud())],
     ["CLOUDINARY_API_KEY", has(process.env.CLOUDINARY_API_KEY)],

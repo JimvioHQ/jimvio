@@ -79,6 +79,8 @@ assert.match(serviceRole, /getSupabaseSecretKey is server-only/);
 assert.match(mustExist("lib/supabase/admin.ts"), /import ["']server-only["']/);
 assert.doesNotMatch(mustExist("lib/cj/import-intelligence/api.ts"), /catalog-filter-index/);
 assert.doesNotMatch(publicEnv, /SERVICE_ROLE|SECRET_KEY/);
+assert.doesNotMatch(publicEnv, /ANON_KEY/);
+assert.doesNotMatch(mustExist("lib/live/env.ts"), /NEXT_PUBLIC_SUPABASE_ANON_KEY|SUPABASE_ANON_KEY/);
 
 // 5. Wallet mutation RPC is not executable by ordinary clients after migration.
 assert.match(migration, /REVOKE ALL ON FUNCTION public\.increment_wallet_balance/);
