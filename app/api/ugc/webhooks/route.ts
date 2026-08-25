@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireVendor } from "@/lib/ugc/platform/auth";
-import { roleCan } from "@/lib/ugc/enterprise/permissions";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 import { newWebhookSecret } from "@/lib/ugc/enterprise/webhooks";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
 
   const { db, vendor } = await requireVendor(user.id);
   if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
-  if (!roleCan("owner", "webhooks.manage")) {
+  const perm = await requireBrandPermission(db, vendor.id, user.id, "webhooks.manage");
+  if (!perm.ok) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

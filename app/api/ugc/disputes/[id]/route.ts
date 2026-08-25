@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireVendor, requireInfluencer, isAdmin } from "@/lib/ugc/platform/auth";
-import { roleCan } from "@/lib/ugc/enterprise/permissions";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -86,9 +86,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const isBrand = Boolean(vendor && existing.brand_id === vendor.id);
-    const canResolve =
-      admin ||
-      (isBrand && (roleCan("owner", "disputes.manage") || roleCan("manager", "disputes.manage")));
+    let canResolve = admin;
+    if (isBrand && vendor) {
+      const perm = await requireBrandPermission(db, vendor.id, user.id, "disputes.manage");
+      canResolve = admin || perm.ok;
+    }
 
     if (["resolved", "rejected"].includes(status) && !canResolve) {
       return NextResponse.json({ error: "Only brand/admin can resolve" }, { status: 403 });

@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createPayment } from "@/services/nowpayments";
 import type { Database } from "@/types/supabase";
 import { TransactionInsert } from "@/types/db";
-import { stat } from "fs";
+import { orderTotalsForUsdGateway } from "@/lib/money";
+import { notFoundIfInvalidId } from "@/lib/auth/require-session";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 type OrderUpdate = Database["public"]["Tables"]["orders"]["Update"];
 
@@ -17,44 +19,43 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { orderIds, totalAmount, currency = "usd", payCurrency = "btc" } = body as {
+    const { orderIds, payCurrency = "btc" } = body as {
       orderIds: string[];
-      totalAmount: number;
+      totalAmount?: number;
       currency?: string;
       payCurrency?: string;
     };
 
-    if (!orderIds?.length || totalAmount == null || totalAmount <= 0) {
+    if (!orderIds?.length) {
       return NextResponse.json(
-        { error: "orderIds and totalAmount are required" },
+        { error: "orderIds are required" },
         { status: 400 }
       );
     }
-
-    // Convert RWF to USD if needed
-    let amountUsd = totalAmount;
-    if (currency.toLowerCase() === "rwf") {
-      const rate = parseFloat(process.env.RWF_TO_USD_RATE || "0.0008");
-      amountUsd = totalAmount * rate;
+    for (const id of orderIds) {
+      const bad = notFoundIfInvalidId(id);
+      if (bad) return bad;
     }
 
-    if (amountUsd < 1) {
-      return NextResponse.json(
-        { error: "Minimum payment amount is $1 USD equivalent" },
-        { status: 400 }
-      );
-    }
-
-    // Verify user owns these orders
     const { data: orders, error: ordersError } = await supabase
       .from("orders")
-      .select("id, order_number, total_amount")
+      .select("id, order_number, total_amount, currency")
       .in("id", orderIds)
       .eq("buyer_id", user.id)
       .eq("status", "pending");
 
     if (ordersError || !orders?.length || orders.length !== orderIds.length) {
       return NextResponse.json({ error: "Invalid or unauthorized orders" }, { status: 403 });
+    }
+
+    const totalAmount = orders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+    const { amount: amountUsd } = orderTotalsForUsdGateway(totalAmount, orders[0].currency);
+
+    if (amountUsd < 1) {
+      return NextResponse.json(
+        { error: "Minimum payment amount is $1 USD equivalent" },
+        { status: 400 }
+      );
     }
 
     const baseUrl =
@@ -72,12 +73,12 @@ export async function POST(req: NextRequest) {
       cancel_url: `${baseUrl}/cart?payment=cancelled`,
     });
 
-    // Store NowPayments payment_id on orders and set payment_status to processing
-    // 1. Update order status only (no nowpayments_payment_id on orders)
-    await supabase
+    const admin = createServiceRoleClient();
+    await admin
       .from("orders")
       .update({ payment_status: "processing" } satisfies OrderUpdate)
-      .in("id", orderIds);
+      .in("id", orders.map((row) => row.id))
+      .eq("buyer_id", user.id);
 
     const txRows = orderIds.map((orderId) => ({
       user_id: user.id,
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
       description: `NowPayments crypto payment`,
     }))  as TransactionInsert[];
 
-    await supabase.from("transactions").insert(txRows);
+    await admin.from("transactions").insert(txRows);
 
     return NextResponse.json({
       paymentId: payment.payment_id,

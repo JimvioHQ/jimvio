@@ -165,6 +165,10 @@ export const verifyFlutterwave: ProviderVerifier = async (headers, rawBody) => {
 // ---------------------------------------------------------------------------
 
 export const verifyPayPal: ProviderVerifier = async (headers, rawBody) => {
+  const hosted = Boolean(process.env.VERCEL_ENV);
+  if (hosted && !process.env.PAYPAL_WEBHOOK_ID) {
+    return { ok: false, reason: "PayPal webhook is not configured", status: 401 };
+  }
   if (process.env.PAYPAL_WEBHOOK_ID) {
     const hdrMap: Record<string, string | undefined> = {
       "paypal-auth-algo": headers.get("paypal-auth-algo") ?? undefined,

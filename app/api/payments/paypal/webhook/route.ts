@@ -32,6 +32,11 @@ export async function POST(req: NextRequest) {
     "paypal-transmission-time": req.headers.get("paypal-transmission-time") ?? undefined,
   };
 
+  const hosted = Boolean(process.env.VERCEL_ENV);
+  if (hosted && !process.env.PAYPAL_WEBHOOK_ID) {
+    console.error("[PayPal webhook] PAYPAL_WEBHOOK_ID is not configured");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   if (process.env.PAYPAL_WEBHOOK_ID) {
     const isValid = await validatePayPalWebhook(headers, rawBody);
     if (!isValid) {

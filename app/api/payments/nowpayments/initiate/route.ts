@@ -1,14 +1,10 @@
-import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
-// app/api/payments/nowpayments/initiate/route.ts
-// Called by Jimvio frontend to create a crypto payment invoice
-// Returns: { invoiceUrl } — frontend redirects buyer there
-// Buyer can choose which crypto to pay with on NowPayments page
-
 import { NextRequest, NextResponse } from 'next/server'
 import { createNowPaymentsInvoice } from '@/lib/nowpayments'
 import { orderTotalsForUsdGateway } from '@/lib/money'
 import { buildNowPaymentsOrderDescription } from '@/lib/invoice-order-description'
 import { createClient } from '@supabase/supabase-js'
+import { requireSessionUser, notFoundIfInvalidId } from '@/lib/auth/require-session'
+import { getSupabaseSecretKey, getSupabaseUrl } from '@/lib/supabase/service-role'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,16 +15,22 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await requireSessionUser()
+    if ('error' in session) return session.error
+
     const { orderId, orderIds: rawOrderIds, payCurrency } = await req.json()
     const orderIds: string[] = Array.isArray(rawOrderIds) ? rawOrderIds : [orderId].filter(Boolean)
 
     if (orderIds.length === 0) {
       return NextResponse.json({ error: 'Missing orderId or orderIds' }, { status: 400 })
     }
+    for (const id of orderIds) {
+      const bad = notFoundIfInvalidId(id)
+      if (bad) return bad
+    }
 
     const primaryOrderId = orderIds[0]
 
-    // Fetch all orders + buyer email
     const { data: orders, error } = await supabase
       .from('orders')
       .select(`
@@ -45,8 +47,9 @@ export async function POST(req: NextRequest) {
         )
       `)
       .in('id', orderIds)
+      .eq('buyer_id', session.user.id)
 
-    if (error || !orders || orders.length === 0) {
+    if (error || !orders || orders.length === 0 || orders.length !== orderIds.length) {
       return NextResponse.json({ error: 'Orders not found' }, { status: 404 })
     }
 
@@ -84,7 +87,7 @@ export async function POST(req: NextRequest) {
         gateway_used:     'nowpayments',
         updated_at:       new Date().toISOString(),
       })
-      .in('id', orderIds)
+      .in('id', orders.map((row) => row.id))
 
     return NextResponse.json({ invoiceUrl: result.invoiceUrl })
 

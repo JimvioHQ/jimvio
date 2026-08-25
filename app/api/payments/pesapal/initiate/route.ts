@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createPesapalOrder, registerPesapalIPN } from '@/lib/pesapal'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { requireSessionUser, notFoundIfInvalidId } from '@/lib/auth/require-session'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,11 +13,18 @@ const supabase = createServiceRoleClient()
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await requireSessionUser()
+    if ('error' in session) return session.error
+
     const { orderId, orderIds: rawOrderIds } = await req.json()
     const orderIds: string[] = Array.isArray(rawOrderIds) ? rawOrderIds : [orderId].filter(Boolean)
     
     if (orderIds.length === 0) {
       return NextResponse.json({ error: 'Missing orderId or orderIds' }, { status: 400 })
+    }
+    for (const id of orderIds) {
+      const bad = notFoundIfInvalidId(id)
+      if (bad) return bad
     }
 
     const primaryOrderId = orderIds[0]
@@ -30,6 +38,7 @@ export async function POST(req: NextRequest) {
         total_amount,
         currency,
         shipping_address,
+        buyer_id,
         profiles!orders_buyer_id_fkey (
           full_name,
           email,
@@ -37,8 +46,9 @@ export async function POST(req: NextRequest) {
         )
       `)
       .in('id', orderIds)
+      .eq('buyer_id', session.user.id)
 
-    if (error || !orders || orders.length === 0) {
+    if (error || !orders || orders.length === 0 || orders.length !== orderIds.length) {
       return NextResponse.json({ error: 'Orders not found' }, { status: 404 })
     }
 
@@ -155,7 +165,7 @@ export async function POST(req: NextRequest) {
         payment_provider:     'pesapal',
         updated_at:           new Date().toISOString(),
       })
-      .in('id', orderIds)
+      .in('id', orders.map((row) => row.id))
 
     if (updateError) {
       console.error('[PesaPal Initiate] DB Update Error:', updateError)

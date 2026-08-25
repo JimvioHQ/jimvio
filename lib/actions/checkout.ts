@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { isUuid } from "@/lib/auth/platform-admin";
 import { getAdminDB } from "@/services/db";
 import { isPendingVariantSelection } from "@/lib/cart/pending-variant";
 import { OrderUpdate } from "@/types/db";
@@ -736,12 +737,20 @@ export async function proceedToCheckout(): Promise<
 export async function clearCartForOrder(
   orderId: string
 ): Promise<Result<{ failedItems: number }>> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return err("Authentication required");
+  if (!isUuid(orderId)) return err("Order not found");
+
   const admin = getAdminDB();
 
   const { data: order, error: orderError } = await admin
     .from("orders")
     .select("buyer_id, metadata")
     .eq("id", orderId)
+    .eq("buyer_id", user.id)
     .single();
 
   if (orderError || !order) {

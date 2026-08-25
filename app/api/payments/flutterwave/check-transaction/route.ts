@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifyFlutterwaveTransaction, FlutterwaveError, isFlutterwaveSuccessfulStatus } from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
-
+import { requireSessionUser, notFoundIfInvalidId } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+
 const supabase = createClient(
     getSupabaseUrl(),
     getSupabaseSecretKey(),
@@ -12,14 +13,14 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
     try {
+        const session = await requireSessionUser();
+        if ("error" in session) return session.error;
+
         const { orderId, txRef, transactionId } = await req.json() as {
             orderId?: string;
             txRef?: string;
             transactionId?: string | number;
         };
-
-
-
 
         if (!orderId && !txRef && !transactionId) {
             return NextResponse.json(
@@ -28,7 +29,11 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ── Step 1: Find the order ──────────────────────────────────
+        if (orderId) {
+            const bad = notFoundIfInvalidId(orderId);
+            if (bad) return bad;
+        }
+
         let order: {
             id: string;
             payment_status: string;
@@ -42,6 +47,7 @@ export async function POST(req: NextRequest) {
                 .from("orders")
                 .select("id, payment_status, buyer_id, flutterwave_tx_ref, flutterwave_transaction_id")
                 .eq("id", orderId)
+                .eq("buyer_id", session.user.id)
                 .single();
             order = data;
         } else if (txRef) {
@@ -49,6 +55,15 @@ export async function POST(req: NextRequest) {
                 .from("orders")
                 .select("id, payment_status, buyer_id, flutterwave_tx_ref, flutterwave_transaction_id")
                 .eq("flutterwave_tx_ref", txRef)
+                .eq("buyer_id", session.user.id)
+                .single();
+            order = data;
+        } else if (transactionId) {
+            const { data } = await supabase
+                .from("orders")
+                .select("id, payment_status, buyer_id, flutterwave_tx_ref, flutterwave_transaction_id")
+                .eq("flutterwave_transaction_id", String(transactionId))
+                .eq("buyer_id", session.user.id)
                 .single();
             order = data;
         }
@@ -65,31 +80,26 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // ── Step 2: Resolve transaction ID to verify ────────────────
         const txIdToVerify =
             transactionId ||
-            order.flutterwave_tx_ref ||
             order.flutterwave_transaction_id ||
+            order.flutterwave_tx_ref ||
             null;
-
 
         if (!txIdToVerify) {
             return NextResponse.json({
                 alreadyPaid: false,
                 paymentStatus: order.payment_status,
-                flutterwaveTxRef: order.flutterwave_tx_ref,
                 message: "No Flutterwave transaction ID found yet. Payment may not have been completed.",
             });
         }
 
         let verified;
         try {
-            verified = await verifyFlutterwaveTransaction("SAPH3921917776153398", {
+            verified = await verifyFlutterwaveTransaction(String(txIdToVerify), {
                 retryOnNotFound: false,
-                useTxRef: true,
+                useTxRef: !transactionId && Boolean(order.flutterwave_tx_ref) && !order.flutterwave_transaction_id,
             });
-            console.log({ verified });
-
         } catch (err) {
             if (err instanceof FlutterwaveError && err.isNotFound) {
                 return NextResponse.json({
@@ -102,8 +112,6 @@ export async function POST(req: NextRequest) {
             throw err;
         }
 
-        console.log("[Manual check] Flutterwave status:", verified.status, "for order:", order.id);
-
         if (!isFlutterwaveSuccessfulStatus(verified.status)) {
             return NextResponse.json({
                 alreadyPaid: false,
@@ -113,7 +121,12 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // ── Step 4: Finalize if successful ──────────────────────────
+        const verifiedRef = String(verified.tx_ref ?? "");
+        const expectedRef = order.flutterwave_tx_ref;
+        if (expectedRef && verifiedRef && verifiedRef !== expectedRef) {
+            return NextResponse.json({ error: "Transaction does not match this order" }, { status: 409 });
+        }
+
         await finalizeOrderPayment(supabase, order.id, {
             providerTransactionId: String(verified.id),
             providerReference: verified.tx_ref,
@@ -135,21 +148,16 @@ export async function POST(req: NextRequest) {
             })
             .eq("id", order.id);
 
-        console.log("[Manual check] ✓ Order finalized:", order.id);
-
         return NextResponse.json({
             success: true,
             orderId: order.id,
             flutterwaveStatus: verified.status,
-            transactionId: verified.id,
-            amount: verified.amount,
-            currency: verified.currency,
             message: "Payment verified and order marked as completed.",
         });
     } catch (err) {
-        console.error("[Manual check] Error:", err);
+        console.error("[Manual check] Error:", err instanceof Error ? err.message : "error");
         return NextResponse.json(
-            { error: err instanceof Error ? err.message : "Unknown error" },
+            { error: "Unable to verify payment" },
             { status: 500 }
         );
     }

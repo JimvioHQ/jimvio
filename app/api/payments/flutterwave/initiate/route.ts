@@ -6,7 +6,7 @@ import { usdToRwfAmount } from "@/lib/money";
 import { generateTxRef } from "@/lib/payments/tx-ref";
 import { buildPaymentSnapshot } from "@/lib/payments/order-payment-utils";
 import { verifyFlutterwaveTransaction, FlutterwaveAPIError } from "@/lib/payments/Transaction-verify";
-
+import { requireSessionUser } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
@@ -165,6 +165,9 @@ export async function POST(req: NextRequest) {
   const { orderId, channel, returnUrl } = body;
 
   try {
+    const session = await requireSessionUser();
+    if ("error" in session) return session.error;
+
     const supabase = getSupabase();
 
     // ── 1. Fetch order + buyer profile ────────────────────────────────────
@@ -172,6 +175,7 @@ export async function POST(req: NextRequest) {
       .from("orders")
       .select(`id, order_number, buyer_id, total_amount, currency, payment_status, metadata, profiles (full_name, email, phone)`)
       .eq("id", orderId)
+      .eq("buyer_id", session.user.id)
       .single();
 
     if (fetchError || !order) {

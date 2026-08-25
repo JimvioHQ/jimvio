@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireVendor } from "@/lib/ugc/platform/auth";
-import { roleCan } from "@/lib/ugc/enterprise/permissions";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
-const ENTRY_TYPES = new Set(["fund", "lock", "release", "refund", "adjust", "dispute_hold"]);
+/** User-facing ledger may lock/hold existing funds. Funding and adjustments require payment webhooks. */
+const ALLOWED_ENTRY_TYPES = new Set(["lock", "release", "refund", "dispute_hold"]);
 
 export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
@@ -13,9 +14,8 @@ export async function POST(req: NextRequest) {
   const { db, vendor } = await requireVendor(user.id);
   if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
 
-  const canFinance =
-    roleCan("owner", "finance.payout") || roleCan("finance", "finance.payout");
-  if (!canFinance) {
+  const perm = await requireBrandPermission(db, vendor.id, user.id, "finance.payout");
+  if (!perm.ok) {
     return NextResponse.json({ error: "Forbidden — owner/finance required" }, { status: 403 });
   }
 
@@ -26,7 +26,13 @@ export async function POST(req: NextRequest) {
   const reference = typeof body.reference === "string" ? body.reference : null;
 
   if (!campaignId) return NextResponse.json({ error: "campaign_id is required" }, { status: 400 });
-  if (!ENTRY_TYPES.has(entryType)) {
+  if (entryType === "fund" || entryType === "adjust") {
+    return NextResponse.json(
+      { error: "Escrow funding must come from a verified payment, not this endpoint" },
+      { status: 403 },
+    );
+  }
+  if (!ALLOWED_ENTRY_TYPES.has(entryType)) {
     return NextResponse.json({ error: "Invalid entry_type" }, { status: 400 });
   }
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -49,63 +55,55 @@ export async function POST(req: NextRequest) {
     .eq("campaign_id", campaignId)
     .maybeSingle();
 
-  const funded = Number(escrow?.amount ?? 0);
-  const locked = Number(escrow?.locked_amount ?? 0);
-  const released = Number(escrow?.released_amount ?? 0);
-  const refunded = Number(escrow?.refunded_amount ?? 0);
+  if (!escrow) {
+    return NextResponse.json({ error: "No escrow record — fund first" }, { status: 409 });
+  }
+
+  const funded = Number(escrow.amount ?? 0);
+  const locked = Number(escrow.locked_amount ?? 0);
+  const released = Number(escrow.released_amount ?? 0);
+  const refunded = Number(escrow.refunded_amount ?? 0);
+  const available = Math.max(0, funded - locked - released - refunded);
 
   let nextAmount = funded;
   let nextLocked = locked;
   let nextReleased = released;
   let nextRefunded = refunded;
-  let nextStatus = escrow?.status ?? "held";
+  let nextStatus = escrow.status ?? "held";
 
-  if (entryType === "fund") {
-    nextAmount = funded + amount;
-    nextStatus = "held";
-  } else if (entryType === "lock") {
+  if (entryType === "lock" || entryType === "dispute_hold") {
+    if (amount > available) {
+      return NextResponse.json({ error: "Amount exceeds available escrow" }, { status: 409 });
+    }
     nextLocked = locked + amount;
   } else if (entryType === "release") {
+    if (amount > locked) {
+      return NextResponse.json({ error: "Amount exceeds locked escrow" }, { status: 409 });
+    }
     nextReleased = released + amount;
     nextLocked = Math.max(0, locked - amount);
-    nextStatus = "released";
+    if (nextLocked === 0 && nextReleased > 0) nextStatus = "released";
   } else if (entryType === "refund") {
+    if (amount > available) {
+      return NextResponse.json({ error: "Amount exceeds available escrow" }, { status: 409 });
+    }
     nextRefunded = refunded + amount;
     nextAmount = Math.max(0, funded - amount);
-    nextStatus = "refunded";
-  } else if (entryType === "dispute_hold") {
-    nextLocked = locked + amount;
-  } else if (entryType === "adjust") {
-    nextAmount = Math.max(0, funded + amount);
+    nextStatus = nextAmount === 0 ? "refunded" : nextStatus;
   }
 
   const balanceAfter = nextAmount - nextLocked - nextReleased;
 
-  if (escrow) {
-    await db
-      .from("ugc_campaign_escrow")
-      .update({
-        amount: nextAmount,
-        locked_amount: nextLocked,
-        released_amount: nextReleased,
-        refunded_amount: nextRefunded,
-        status: nextStatus,
-      })
-      .eq("id", escrow.id);
-  } else if (entryType === "fund") {
-    await db.from("ugc_campaign_escrow").insert({
-      campaign_id: campaignId,
+  await db
+    .from("ugc_campaign_escrow")
+    .update({
       amount: nextAmount,
       locked_amount: nextLocked,
       released_amount: nextReleased,
       refunded_amount: nextRefunded,
       status: nextStatus,
-      currency: "USD",
-      deposited_at: new Date().toISOString(),
-    });
-  } else {
-    return NextResponse.json({ error: "No escrow record — fund first" }, { status: 409 });
-  }
+    })
+    .eq("id", escrow.id);
 
   const { data: entry, error: iErr } = await db
     .from("ugc_escrow_ledger")

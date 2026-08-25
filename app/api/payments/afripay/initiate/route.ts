@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { initiateAfriPayPayment } from "@/lib/payments/afripay";
-
+import { requireSessionUser, notFoundIfInvalidId } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,9 @@ const supabase = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await requireSessionUser();
+    if ("error" in session) return session.error;
+
     const body = await req.json();
     const { orderId, orderIds, network, phoneNumber } = body as {
       orderId?: string;
@@ -20,6 +23,8 @@ export async function POST(req: NextRequest) {
     };
 
     if (!orderId) return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+    const bad = notFoundIfInvalidId(orderId);
+    if (bad) return bad;
     if (!network) return NextResponse.json({ error: "Missing network" }, { status: 400 });
     if (!phoneNumber) return NextResponse.json({ error: "Missing phoneNumber" }, { status: 400 });
 
@@ -27,6 +32,7 @@ export async function POST(req: NextRequest) {
       .from("orders")
       .select("id, total_amount, currency, payment_status")
       .eq("id", orderId)
+      .eq("buyer_id", session.user.id)
       .single();
 
     if (error || !order) {
@@ -67,18 +73,22 @@ export async function POST(req: NextRequest) {
         payment_provider: "afripay",
         updated_at: new Date().toISOString(),
       })
-      .eq("id", orderId);
+      .eq("id", orderId)
+      .eq("buyer_id", session.user.id);
 
-    // Also update any other selected orders to align their payment status to afripay
     if (orderIds && orderIds.length > 1) {
-       await supabase
-         .from("orders")
-         .update({
-           payment_external_reference: res.transactionId || orderId,
-           payment_provider: "afripay",
-           updated_at: new Date().toISOString()
-         })
-         .in("id", orderIds);
+      const ownedExtras = orderIds.filter((id) => id !== orderId);
+      if (ownedExtras.length) {
+        await supabase
+          .from("orders")
+          .update({
+            payment_external_reference: res.transactionId || orderId,
+            payment_provider: "afripay",
+            updated_at: new Date().toISOString(),
+          })
+          .in("id", ownedExtras)
+          .eq("buyer_id", session.user.id);
+      }
     }
 
     return NextResponse.json({

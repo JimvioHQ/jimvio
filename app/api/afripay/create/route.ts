@@ -1,31 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createAfriPaySession } from "@/lib/afripay/afripay";
-
+import { requireSessionUser, notFoundIfInvalidId } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+
 export async function POST(req: NextRequest) {
   try {
-    // SECURITY RULE 2: Handle logic in backend. 
-    // The frontend only asks "create payment for this order ID" instead of passing raw amounts directly.
+    const session = await requireSessionUser();
+    if ("error" in session) return session.error;
+
     const { orderId } = await req.json();
 
     if (!orderId) {
       return NextResponse.json({ success: false, message: "Missing Order ID" }, { status: 400 });
     }
+    const bad = notFoundIfInvalidId(orderId);
+    if (bad) return bad;
 
-    // Use Service Role to fetch order securely bypassing user-auth (for system reliability)
     const supabaseAdmin = createClient(
       getSupabaseUrl(),
       getSupabaseSecretKey()
     );
 
-    // STEP 1 & 2 (Already handled by your cart system creating the UUID)
-    // Here we find the order and verify it's definitely PENDING
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .select("id, total_amount, currency, status, payment_status")
       .eq("id", orderId)
-      .single();
+      .eq("buyer_id", session.user.id)
+      .maybeSingle();
 
     if (orderError || !order) {
       return NextResponse.json({ success: false, message: "Order not found" }, { status: 404 });

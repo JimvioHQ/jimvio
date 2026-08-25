@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { convertFromUSD } from "@/lib/currency/rates";
-
+import { createClient } from "@supabase/supabase-js";
+import { requireSessionUser, notFoundIfInvalidId } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export async function POST(request: Request) {
   try {
@@ -17,6 +18,29 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     let { amount, currency, orderId, country, returnUrl } = body;
+
+    const session = await requireSessionUser();
+    if ("error" in session) return session.error;
+    if (!orderId) {
+      return NextResponse.json({ error: "orderId is required" }, { status: 400 });
+    }
+    const badId = notFoundIfInvalidId(orderId);
+    if (badId) return badId;
+
+    const db = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+    const { data: ownedOrder } = await db
+      .from("orders")
+      .select("id, total_amount, currency, buyer_id")
+      .eq("id", orderId)
+      .eq("buyer_id", session.user.id)
+      .maybeSingle();
+    if (!ownedOrder) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+    amount = Number(ownedOrder.total_amount);
+    currency = ownedOrder.currency || currency;
 
     // Priority 1: Detect user's current physical location from IP
     let ipCountry = request.headers.get("x-vercel-ip-country") || request.headers.get("cf-ipcountry");
@@ -168,17 +192,11 @@ export async function POST(request: Request) {
     // Response contains redirectUrl
     console.log("pawaPay v2/paymentpage Backend Success Data:", JSON.stringify(data, null, 2));
 
-    // Update order with payment provider
-    const { createClient } = await import("@supabase/supabase-js");
-    const supabase = createClient(
-      getSupabaseUrl(),
-      getSupabaseSecretKey()
-    );
-    await supabase.from("orders").update({
+    await db.from("orders").update({
       payment_provider: "pawapay",
       gateway_used: "pawapay",
       pawapay_deposit_id: depositId,
-    }).eq("id", orderId);
+    }).eq("id", orderId).eq("buyer_id", session.user.id);
 
     return NextResponse.json(data);
   } catch (error: any) {

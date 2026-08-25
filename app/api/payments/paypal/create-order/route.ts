@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createPayPalOrder } from "@/lib/paypal";
-
+import { requireSessionUser, notFoundIfInvalidId } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
@@ -16,16 +16,22 @@ const supabase = createClient(
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await requireSessionUser();
+    if ("error" in session) return session.error;
+
     const body = (await req.json()) as { orderId?: string; orderIds?: string[] };
     const orderId = body.orderId?.trim();
     if (!orderId) {
       return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
     }
+    const bad = notFoundIfInvalidId(orderId);
+    if (bad) return bad;
 
     const { data: order, error } = await supabase
       .from("orders")
-      .select("id, order_number, total_amount, currency, payment_status")
+      .select("id, order_number, total_amount, currency, payment_status, buyer_id")
       .eq("id", orderId)
+      .eq("buyer_id", session.user.id)
       .single();
 
     if (error || !order) {
@@ -51,7 +57,16 @@ export async function POST(req: NextRequest) {
     });
 
     // Save PayPal order ID to our DB immediately
-    const orderIdsToUpdate = body.orderIds?.length ? body.orderIds : [orderId];
+    const requestedIds = body.orderIds?.length ? body.orderIds : [orderId];
+    const { data: owned } = await supabase
+      .from("orders")
+      .select("id")
+      .in("id", requestedIds)
+      .eq("buyer_id", session.user.id);
+    const orderIdsToUpdate = (owned ?? []).map((row) => row.id);
+    if (!orderIdsToUpdate.length) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
     await supabase
       .from("orders")
       .update({

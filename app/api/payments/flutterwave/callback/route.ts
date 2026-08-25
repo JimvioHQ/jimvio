@@ -29,29 +29,8 @@ export async function GET(req: NextRequest) {
     const redirect = (path: string) =>
         NextResponse.redirect(new URL(path, appUrl));
 
-    // ── Cancelled / failed redirect ───────────────────────────────────────────
+    // ── Cancelled / failed redirect: never mutate orders from query params ──
     if (status === "failed" || status === "cancelled") {
-        if (txRef) {
-            await supabase
-                .from("transactions")
-                .update({ status: "failed", updated_at: new Date().toISOString() })
-                .eq("provider_transaction_id", txRef)
-                .eq("provider", "flutterwave")
-                .eq("status", "pending");
-        }
-
-        if (orderId) {
-            await supabase
-                .from("orders")
-                .update({
-                    payment_status: "failed",
-                    status: "cancelled",
-                    updated_at: new Date().toISOString(),
-                })
-                .eq("id", orderId)
-                .eq("payment_status", "pending");
-        }
-
         return redirect(
             `/checkout/cancel?reason=payment_${status}&order=${orderId || ""}`
         );
@@ -65,7 +44,6 @@ export async function GET(req: NextRequest) {
 
     try {
         const txData = await verifyFlutterwaveTransaction(transactionId);
-        console.log(txData);
 
         if (!isFlutterwaveSuccessfulStatus(txData.status)) {
             await supabase
@@ -88,9 +66,12 @@ export async function GET(req: NextRequest) {
             .eq("provider", "flutterwave")
             .maybeSingle();
 
-        const resolvedOrderId = txRecord?.order_id ?? orderId;
+        const resolvedOrderId = txRecord?.order_id ?? null;
         if (!resolvedOrderId) {
             return redirect(`/checkout/cancel?reason=order_not_found`);
+        }
+        if (orderId && orderId !== resolvedOrderId) {
+            return redirect(`/checkout/cancel?reason=order_mismatch`);
         }
 
         // ── Fetch order to check current status ───────────────────────────────

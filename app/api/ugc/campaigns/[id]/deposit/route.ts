@@ -7,8 +7,8 @@ const MIN_FUNDING_RWF = 1000;
 
 /**
  * POST /api/ugc/campaigns/[id]/deposit
- * Funds campaign escrow (min RWF 1,000) then auto-activates when held.
- * Backward compatible: still accepts `{ phone }` for mobile-money style funding.
+ * Records a pending escrow intent. Does not credit or activate until a
+ * verified payment webhook confirms funds.
  */
 export async function POST(
   req: NextRequest,
@@ -65,15 +65,14 @@ export async function POST(
     );
   }
 
-  const { data: existingEscrow } = await db
+  const { data: heldEscrow } = await db
     .from("ugc_campaign_escrow")
     .select("id, amount, status")
     .eq("campaign_id", id)
     .eq("status", "held")
     .maybeSingle();
 
-  if (existingEscrow) {
-    // Already funded — ensure active
+  if (heldEscrow) {
     if (campaign.status !== "active") {
       await db.from("ugc_campaigns").update({ status: "active" }).eq("id", id);
     }
@@ -85,52 +84,51 @@ export async function POST(
     });
   }
 
+  const { data: pendingEscrow } = await db
+    .from("ugc_campaign_escrow")
+    .select("id, amount, status")
+    .eq("campaign_id", id)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (pendingEscrow) {
+    return NextResponse.json({
+      success: true,
+      funded: false,
+      activated: false,
+      pending: true,
+      amount: pendingEscrow.amount,
+      currency: "RWF",
+      payment_method,
+      message: "Escrow intent already pending payment confirmation.",
+    });
+  }
+
   const budget = Number(campaign.total_budget) || MIN_FUNDING_RWF;
-  const requested =
-    typeof body.amount === "number" && Number.isFinite(body.amount)
-      ? Number(body.amount)
-      : budget;
-  const amount = Math.max(MIN_FUNDING_RWF, requested, budget);
+  const amount = Math.max(MIN_FUNDING_RWF, budget);
 
   const escrowInsert = await db.from("ugc_campaign_escrow").insert({
     campaign_id: id,
     deposited_by: user.id,
     amount,
     currency: "RWF",
-    status: "held",
+    status: "pending",
     payment_method,
-    payment_ref: `TX_${payment_method}_${randomUUID()}`,
+    payment_ref: `PENDING_${payment_method}_${randomUUID()}`,
   });
 
   if (escrowInsert.error) {
     return NextResponse.json({ error: escrowInsert.error.message }, { status: 500 });
   }
 
-  const { error: activateErr } = await db
-    .from("ugc_campaigns")
-    .update({ status: "active" })
-    .eq("id", id);
-
-  if (activateErr) {
-    return NextResponse.json(
-      {
-        success: true,
-        funded: true,
-        activated: false,
-        error: activateErr.message,
-        message: "Funds locked — activation failed. Retry activate from Campaign Center.",
-      },
-      { status: 200 },
-    );
-  }
-
   return NextResponse.json({
     success: true,
-    funded: true,
-    activated: true,
+    funded: false,
+    activated: false,
+    pending: true,
     amount,
     currency: "RWF",
     payment_method,
-    message: "Campaign funded and activated successfully.",
+    message: "Escrow intent recorded. Campaign activates after payment confirmation.",
   });
 }

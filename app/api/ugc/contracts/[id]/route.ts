@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
-import { roleCan } from "@/lib/ugc/enterprise/permissions";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +66,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const updates: Record<string, unknown> = { updated_at: now };
 
   if (action === "send") {
-    if (!isBrand || !roleCan("owner", "contracts.manage")) {
+    if (!isBrand || !vendor) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const perm = await requireBrandPermission(db, vendor.id, user.id, "contracts.manage");
+    if (!perm.ok) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     if (!["draft", "declined"].includes(existing.status)) {
@@ -89,7 +93,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     updates.status = "declined";
     updates.declined_at = now;
   } else if (action === "void") {
-    if (!isBrand || !roleCan("owner", "contracts.manage")) {
+    if (!isBrand || !vendor) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const perm = await requireBrandPermission(db, vendor.id, user.id, "contracts.manage");
+    if (!perm.ok) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     if (["accepted", "void"].includes(existing.status)) {
@@ -97,7 +105,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     updates.status = "void";
   } else {
-    if (!isBrand || !roleCan("owner", "contracts.manage")) {
+    if (!isBrand || !vendor) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    const perm = await requireBrandPermission(db, vendor.id, user.id, "contracts.manage");
+    if (!perm.ok) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     if (typeof body.title === "string") updates.title = body.title.trim();

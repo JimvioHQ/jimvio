@@ -517,7 +517,7 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     if (!payload.type || !payload.messageType) {
-        console.warn("[CJ webhook] Missing type or messageType", payload);
+        console.warn("[CJ webhook] Missing type or messageType");
         return Response.json(
             { ok: false, error: "Missing type or messageType" },
             { status: 200 }
@@ -532,6 +532,17 @@ export async function POST(req: Request): Promise<Response> {
         );
     }
 
+    const envWebhookSecret = process.env.CJ_WEBHOOK_SECRET?.trim();
+    if (envWebhookSecret) {
+        const presented =
+            req.headers.get("x-cj-webhook-secret") ||
+            req.headers.get("x-webhook-secret") ||
+            "";
+        if (presented !== envWebhookSecret) {
+            return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+        }
+    }
+
     console.log(
         `[CJ webhook] type=${payload.type} messageType=${payload.messageType} messageId=${payload.messageId}`
     );
@@ -539,6 +550,19 @@ export async function POST(req: Request): Promise<Response> {
     const supabase = createClient();
 
     try {
+        const { data: credRow } = await supabase
+            .from("platform_settings")
+            .select("value")
+            .eq("key", "cj_credentials")
+            .maybeSingle();
+        const stored = (credRow?.value ?? {}) as { open_id?: unknown; openId?: unknown };
+        const storedOpenId = stored.open_id ?? stored.openId;
+        if (storedOpenId != null && String(storedOpenId).length > 0) {
+            if (payload.openId == null || String(payload.openId) !== String(storedOpenId)) {
+                return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+            }
+        }
+
         // ── PRODUCT ───────────────────────────────────────────────────────
         if (payload.type === "PRODUCT") {
             const params = payload.params as CJProductParams;

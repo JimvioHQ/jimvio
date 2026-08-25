@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
-import { roleCan } from "@/lib/ugc/enterprise/permissions";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -74,8 +74,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (isBrand && !roleCan("owner", "disputes.manage") && !roleCan("manager", "disputes.manage")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (isBrand && vendor) {
+    const perm = await requireBrandPermission(db, vendor.id, user.id, "disputes.manage");
+    if (!perm.ok) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const againstRole = ["brand", "creator", "platform"].includes(String(body.against_role))

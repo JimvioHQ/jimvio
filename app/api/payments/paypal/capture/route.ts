@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { capturePayPalOrder } from "@/lib/paypal";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { isUuid } from "@/lib/auth/platform-admin";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
@@ -23,12 +24,11 @@ export async function GET(req: NextRequest) {
   const orderId = searchParams.get("orderId"); // Our Jimvio order ID
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "";
 
-  if (!token || !orderId) {
+  if (!token || !orderId || !isUuid(orderId)) {
     return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=missing_params`);
   }
 
   try {
-    // Capture the PayPal payment
     const capture = await capturePayPalOrder(token);
 
     if (capture.status !== "COMPLETED") {
@@ -37,6 +37,10 @@ export async function GET(req: NextRequest) {
 
     const captureId =
       capture.purchase_units?.[0]?.payments?.captures?.[0]?.id ?? null;
+    const customId = capture.purchase_units?.[0]?.custom_id;
+    if (!customId || customId !== orderId) {
+      return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=order_mismatch`);
+    }
 
     // Check order status
     const { data: order } = await supabase

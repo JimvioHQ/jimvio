@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireVendor } from "@/lib/ugc/platform/auth";
-import { roleCan } from "@/lib/ugc/enterprise/permissions";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +36,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { db, vendor } = await requireVendor(user.id);
   if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
-  if (!roleCan("owner", "automations.manage") && !roleCan("manager", "automations.manage")) {
+  const perm = await requireBrandPermission(db, vendor.id, user.id, "automations.manage");
+  if (!perm.ok) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -76,7 +77,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   const { db, vendor } = await requireVendor(user.id);
   if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
-  if (!roleCan("owner", "automations.manage") && !roleCan("manager", "automations.manage")) {
+  const perm = await requireBrandPermission(db, vendor.id, user.id, "automations.manage");
+  if (!perm.ok) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

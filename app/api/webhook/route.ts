@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { confirmPawaPayDepositCompleted } from "@/lib/payments/confirm-pawapay-deposit";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import {
   logWebhookEvent,
@@ -83,27 +84,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, duplicate: true });
   }
 
-  // Handle failed payments
-  if (status === "FAILED") {
-    const { data: order } = await supabase
-      .from("orders")
-      .select("id")
-      .eq("payment_external_reference", depositId)
-      .maybeSingle();
-
-    if (order) {
-      await supabase
-        .from("orders")
-        .update({ payment_status: "failed", status: "cancelled", updated_at: new Date().toISOString() })
-        .eq("id", order.id)
-        .neq("payment_status", "completed");
-    }
-    if (eventId) await markWebhookProcessed(supabase, eventId, order?.id ?? null);
-    return NextResponse.json({ success: true });
+  const confirmed = await confirmPawaPayDepositCompleted(depositId);
+  if (!confirmed) {
+    if (eventId) await markWebhookFailed(supabase, eventId, "PawaPay API did not confirm COMPLETED");
+    return NextResponse.json({ success: true, verified: false });
   }
 
-  // Handle successful payments
-  if (status === "COMPLETED") {
+  {
     const { data: order } = await supabase
       .from("orders")
       .select("id, buyer_id, payment_status")
@@ -111,7 +98,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle();
 
     if (!order) {
-      console.warn("[PawaPay /api/webhook] No order found for depositId:", depositId);
+      console.warn("[PawaPay /api/webhook] No order found for depositId");
       if (eventId) await markWebhookFailed(supabase, eventId, "Order not found");
       return NextResponse.json({ success: true });
     }

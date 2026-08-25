@@ -1,12 +1,16 @@
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
-export async function requireUser() {
+export async function requireUser(): Promise<
+  | { user: User; db: ReturnType<typeof createServiceRoleClient>; error: null }
+  | { user: null; db: null; error: "Unauthorized" }
+> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { user: null, db: createServiceRoleClient(), error: "Unauthorized" as const };
+  if (!user) return { user: null, db: null, error: "Unauthorized" };
   return { user, db: createServiceRoleClient(), error: null };
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { checkAfriPayStatus } from "@/lib/payments/afripay";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import {
   logWebhookEvent,
@@ -21,6 +22,16 @@ type Body = {
   status?: string;
 };
 
+function isSuccess(status: string) {
+  const st = status.toLowerCase();
+  return st === "success" || st === "completed" || st === "paid";
+}
+
+function isFailure(status: string) {
+  const st = status.toLowerCase();
+  return st === "failed" || st === "cancelled" || st === "canceled";
+}
+
 export async function POST(req: NextRequest) {
   let body: Body;
   try {
@@ -34,14 +45,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "missing transactionId" }, { status: 400 });
   }
 
-  const st = (body.status || "").toLowerCase();
+  const verified = await checkAfriPayStatus(transactionId);
+  if (verified.error || !verified.status) {
+    return NextResponse.json({ received: true, verified: false });
+  }
 
-  // Idempotency
   const idempotencyKey = `afripay-${transactionId}`;
   const { isDuplicate, eventId } = await logWebhookEvent(supabase, {
     provider: "afripay",
     idempotencyKey,
-    payload: body,
+    payload: { transactionId, providerStatus: verified.status },
     orderId: null,
   });
 
@@ -56,12 +69,11 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (!order) {
-    console.warn("[webhooks/afripay] no order for transactionId", transactionId);
+    console.warn("[webhooks/afripay] no order for transactionId");
     if (eventId) await markWebhookFailed(supabase, eventId, "Order not found");
     return NextResponse.json({ received: true });
   }
 
-  // Update event row with resolved order id
   if (eventId) {
     await supabase
       .from("webhook_events")
@@ -74,7 +86,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  if (st === "failed" || st === "cancelled") {
+  if (isFailure(verified.status)) {
     await supabase
       .from("orders")
       .update({
@@ -88,7 +100,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   }
 
-  if (st === "success" || st === "completed" || st === "paid") {
+  if (isSuccess(verified.status)) {
     try {
       await finalizeOrderPayment(supabase, order.id, {
         providerTransactionId: transactionId,
@@ -107,11 +119,10 @@ export async function POST(req: NextRequest) {
         })
         .eq("id", order.id);
 
-      console.log("[webhooks/afripay] ✓ Order finalized:", order.id);
       if (eventId) await markWebhookProcessed(supabase, eventId, order.id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("[webhooks/afripay] ✗ finalize failed", msg);
+      console.error("[webhooks/afripay] finalize failed", msg);
       if (eventId) await markWebhookFailed(supabase, eventId, msg);
     }
   }
