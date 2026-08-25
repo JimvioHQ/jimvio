@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseSecretKey } from "@/lib/supabase/service-role";
+import { isBootstrapAdminEmail } from "@/lib/auth/platform-admin";
 
 export const MAINTENANCE_LOGIN_ERROR =
   "The platform is in maintenance mode. Only administrators can sign in right now.";
@@ -12,12 +13,7 @@ let cachedMaintenance: { value: boolean; expiresAt: number } | null = null;
 const CACHE_MS = 60_000;
 
 export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const list = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return list.includes(email.toLowerCase());
+  return isBootstrapAdminEmail(email);
 }
 
 export async function getMaintenanceModeEnabled(): Promise<boolean> {
@@ -68,7 +64,8 @@ export async function userIsPlatformAdmin(
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
-      .eq("role", "admin");
+      .eq("role", "admin")
+      .eq("is_active", true);
 
     return (data ?? []).length > 0;
   } catch (err) {

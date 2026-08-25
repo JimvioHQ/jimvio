@@ -12,8 +12,8 @@ import { resolvePostLoginPath } from "@/lib/auth/post-login-redirect";
 import {
   getSupabasePublishableKey,
   getSupabaseUrl,
-  hasSupabaseSecretKey,
-} from "@/lib/supabase/service-role";
+} from "@/lib/supabase/public-env";
+import { hasSupabaseSecretKey } from "@/lib/supabase/service-role";
 import { isSafeInternalPath } from "@/lib/auth/safe-path";
 import {
   TWO_FA_PENDING_COOKIE,

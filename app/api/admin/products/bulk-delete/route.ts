@@ -111,12 +111,14 @@
 // app/api/admin/products/bulk-delete/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { unsubscribeCJProducts } from "@/lib/cj/webhoo-subscription";
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
-
-import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { getSupabaseSecretKey } from "@/lib/supabase/service-role";
+import { getSupabaseUrl } from "@/lib/supabase/public-env";
+import { requirePlatformAdmin, isUuid } from "@/lib/auth/platform-admin";
+import { MAX_BULK_PRODUCT_DELETE } from "@/lib/security/destructive-limits";
+import { writeAuditEvent } from "@/services/ops/audit";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface CJUnsubscribeResult {
@@ -161,10 +163,22 @@ async function unsubscribeAllCJProducts(
 
 // ─── Route handler ────────────────────────────────────────────────────────────
 
+export const MAX_BULK_PRODUCT_DELETE_ROUTE = MAX_BULK_PRODUCT_DELETE;
+
 export async function DELETE(req: NextRequest) {
     try {
-        const body = await req.json();
+        const gate = await requirePlatformAdmin();
+        if (gate.error) return gate.error;
+
+        const body = await req.json().catch(() => null);
         const ids: string[] = body?.ids;
+
+        if (body?.selectAll === true || body?.deleteAll === true || body?.table || body?.sql) {
+            return NextResponse.json(
+                { error: "Unbounded or arbitrary delete is not allowed." },
+                { status: 400 }
+            );
+        }
 
         if (!Array.isArray(ids) || ids.length === 0) {
             return NextResponse.json(
@@ -173,58 +187,40 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
-        const uuidRegex =
-            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (ids.some((id) => !uuidRegex.test(id))) {
+        if (ids.length > MAX_BULK_PRODUCT_DELETE) {
+            return NextResponse.json(
+                { error: `At most ${MAX_BULK_PRODUCT_DELETE} products can be deleted per request.` },
+                { status: 400 }
+            );
+        }
+
+        if (ids.some((id) => !isUuid(id))) {
             return NextResponse.json(
                 { error: "One or more IDs are invalid." },
                 { status: 400 }
             );
         }
 
-        // ── Auth check ──────────────────────────────────────────────────────────
-        const supabase = await createClient();
-        const {
-            data: { user },
-            error: authError,
-        } = await supabase.auth.getUser();
-
-        if (authError || !user) {
-            return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
-        }
-
-        // ── Admin role check ────────────────────────────────────────────────────
-        const { data: adminRole, error: roleError } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", user.id)
-            .eq("role", "admin")
-            .eq("is_active", true)
-            .maybeSingle();
-
-        if (roleError) {
-            console.error("[bulk-delete] Role check error:", roleError);
-            return NextResponse.json(
-                { error: "Failed to verify permissions." },
-                { status: 500 }
-            );
-        }
-
-        if (!adminRole) {
-            return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-        }
+        const uniqueIds = [...new Set(ids)];
 
         const admin = createAdminClient(
             getSupabaseUrl(),
             getSupabaseSecretKey()
         );
 
+        await writeAuditEvent({
+            actorId: gate.user.id,
+            action: "product_bulk_delete_start",
+            entityType: "product",
+            metadata: { ids: uniqueIds, count: uniqueIds.length },
+        });
+
         // ── Detect CJ products among the IDs being deleted ──────────────────────
         // We read source + source_metadata.cj_pid for all products in the batch
         const { data: productRows, error: fetchError } = await admin
             .from("products")
             .select("id, source, source_metadata")
-            .in("id", ids);
+            .in("id", uniqueIds);
 
         if (fetchError) {
             console.error("[bulk-delete] Failed to fetch product sources:", fetchError);
@@ -296,7 +292,7 @@ export async function DELETE(req: NextRequest) {
             const { error } = await admin
                 .from(table)
                 .update({ [column]: null })
-                .in(column, ids);
+                .in(column, uniqueIds);
 
             if (error) {
                 console.error(
@@ -316,7 +312,7 @@ export async function DELETE(req: NextRequest) {
         const { error: deleteError, count } = await admin
             .from("products")
             .delete({ count: "exact" })
-            .in("id", ids);
+            .in("id", uniqueIds);
 
         if (deleteError) {
             console.error("[bulk-delete] Delete error:", deleteError);
@@ -326,11 +322,18 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
+        await writeAuditEvent({
+            actorId: gate.user.id,
+            action: "product_bulk_delete_complete",
+            entityType: "product",
+            metadata: { ids: uniqueIds, deleted: count ?? uniqueIds.length },
+        });
+
         // ── Respond ─────────────────────────────────────────────────────────────
         return NextResponse.json(
             {
                 success: true,
-                deleted: count ?? ids.length,
+                deleted: count ?? uniqueIds.length,
                 cj_unsubscribed: cjPids.length,
                 // Surface any non-fatal CJ warnings to the client
                 ...(cjWarnings.length > 0 && { warnings: cjWarnings }),

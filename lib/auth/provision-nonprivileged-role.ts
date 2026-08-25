@@ -11,7 +11,20 @@ export const CLAIMABLE_USER_ROLES = [
 
 export type ClaimableUserRole = (typeof CLAIMABLE_USER_ROLES)[number];
 
+/** Platform roles that must never be self-claimed or accepted from the client. */
+export const PRIVILEGED_USER_ROLES = [
+  "admin",
+  "super_admin",
+  "service_role",
+  "owner",
+] as const;
+
 const CLAIMABLE = new Set<string>(CLAIMABLE_USER_ROLES);
+const PRIVILEGED = new Set<string>(PRIVILEGED_USER_ROLES);
+
+export function isPrivilegedUserRole(role: string): boolean {
+  return PRIVILEGED.has(String(role).toLowerCase());
+}
 
 /**
  * Attach a non-privileged role to the authenticated caller.
@@ -22,7 +35,7 @@ export async function provisionOwnNonPrivilegedRole(
   role: ClaimableUserRole,
 ): Promise<{ ok: true } | { error: string }> {
   const requested = String(role);
-  if (!CLAIMABLE.has(requested) || requested === "admin" || requested === "super_admin") {
+  if (!CLAIMABLE.has(requested) || isPrivilegedUserRole(requested)) {
     return { error: "That role cannot be self-provisioned." };
   }
 

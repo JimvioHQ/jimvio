@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { ensureNativeVendorCreditsApplied } from "@/lib/payments/credit-vendors-for-native-order";
+import { getSupabaseSecretKey } from "@/lib/supabase/service-role";
+import { getSupabaseUrl } from "@/lib/supabase/public-env";
+import { requireAdminSessionOrCron } from "@/lib/ops/admin-or-cron";
+import { isUuid } from "@/lib/auth/platform-admin";
 
-import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
-  // Simple admin auth check via header
-  const adminKey = req.headers.get("x-admin-key");
-  if (adminKey !== process.env.ADMIN_SECRET_KEY) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const gate = await requireAdminSessionOrCron(req);
+  if (!gate.ok) return gate.error;
 
   const { orderId } = await params;
-  if (!orderId) {
-    return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+  if (!isUuid(orderId)) {
+    return NextResponse.json({ error: "Invalid orderId" }, { status: 400 });
   }
 
   const supabaseUrl = getSupabaseUrl();
@@ -25,7 +25,6 @@ export async function POST(
   const db = createClient(supabaseUrl, supabaseKey);
 
   try {
-    // 1. Verify the order exists and is completed
     const { data: order, error } = await db
       .from("orders")
       .select("id, payment_status, payment_provider")
@@ -43,7 +42,6 @@ export async function POST(
       );
     }
 
-    // 2. Fetch the corresponding successful transaction to get the providerTransactionId
     const { data: tx } = await db
       .from("transactions")
       .select("provider_transaction_id")
@@ -55,7 +53,6 @@ export async function POST(
 
     const providerTransactionId = tx?.provider_transaction_id || `MANUAL-RETRY-${Date.now()}`;
 
-    // 3. Re-run the idempotent credit logic
     await ensureNativeVendorCreditsApplied(db, orderId, {
       providerTransactionId,
       paymentProvider: order.payment_provider || "system_retry",

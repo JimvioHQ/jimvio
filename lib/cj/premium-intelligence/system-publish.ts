@@ -7,8 +7,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import {
   filterProductsForCustomers,
-  getMarketplaceVisibilitySets,
 } from "./marketplace-filter";
+import { getMarketplaceVisibilitySets } from "./marketplace-filter-server";
 
 export const AUTO_PUBLISH_WORKER_BATCH_SIZE = 25;
 

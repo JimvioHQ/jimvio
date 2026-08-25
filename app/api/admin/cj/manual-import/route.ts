@@ -1,11 +1,10 @@
+import { requireAdminSessionOrCron } from "@/lib/ops/admin-or-cron";
+
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-    // Require a bearer token for safety (use CRON_SECRET or admin key)
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
-    }
+    const gate = await requireAdminSessionOrCron(req);
+    if (!gate.ok) return gate.error;
 
     let body: any;
     try {
@@ -20,7 +19,6 @@ export async function POST(req: Request) {
     }
 
     try {
-        // Import handler lives at app/api/cj/import/route.ts — call it directly
         const { POST: cjImportPOST } = await import("../../../cj/import/route");
 
         const internalReq = new Request("/api/cj/import", {
@@ -31,7 +29,6 @@ export async function POST(req: Request) {
 
         const resp = await cjImportPOST(internalReq);
         const text = await resp.text();
-        // Mirror response
         return new Response(text, { status: resp.status, headers: resp.headers });
     } catch (err: any) {
         console.error("[Admin CJ import] failed:", err?.message ?? err);
@@ -39,6 +36,8 @@ export async function POST(req: Request) {
     }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+    const gate = await requireAdminSessionOrCron(req);
+    if (!gate.ok) return gate.error;
     return new Response(JSON.stringify({ ok: true, info: "Admin manual CJ import endpoint" }));
 }

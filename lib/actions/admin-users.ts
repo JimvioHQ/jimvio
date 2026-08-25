@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/lib/supabase/admin";
 import type { ActionResult } from "@/lib/actions/security";
+import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
+import { CLAIMABLE_USER_ROLES, isPrivilegedUserRole } from "@/lib/auth/provision-nonprivileged-role";
 import {
   type AccountStatus,
   isDeletedAccountEmail,
@@ -24,30 +25,9 @@ export type AdminUserEditInput = {
 };
 
 async function assertAdminAccess() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Not authenticated." };
-
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("is_active", true);
-
-  const isAdminRole = roles?.some((r) => r.role === "admin") ?? false;
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean);
-  const isAdminEmail = adminEmails.includes(user.email ?? "");
-
-  if (!isAdminRole && !isAdminEmail) {
-    return { ok: false as const, error: "Admin access required." };
-  }
-
-  return { ok: true as const, adminId: user.id };
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return { ok: false as const, error: auth.error };
+  return { ok: true as const, adminId: auth.user.id };
 }
 
 async function userHasAdminRole(userId: string) {
@@ -247,8 +227,13 @@ export async function toggleManagedUserRole(
   const auth = await assertAdminAccess();
   if (!auth.ok) return { success: false, error: auth.error };
 
-  if (role === "admin") {
+  if (role === "admin" || isPrivilegedUserRole(role)) {
     return { success: false, error: "Admin role cannot be changed from this panel." };
+  }
+
+  const allowed = new Set<string>(["buyer", ...CLAIMABLE_USER_ROLES]);
+  if (!allowed.has(role)) {
+    return { success: false, error: "That role cannot be assigned from this panel." };
   }
 
   const admin = getAdminDB();

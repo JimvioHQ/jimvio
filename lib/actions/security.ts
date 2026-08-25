@@ -2,11 +2,12 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { ADMIN_PLATFORM_SETTING_KEYS } from '@/lib/security/platform-settings-access'
+import { ADMIN_PLATFORM_SETTING_KEYS, isAdminPlatformSettingKey, isSensitivePlatformSettingKey } from '@/lib/security/platform-settings-access'
 import type { Json } from '@/types/database.types'
 import { generateTOTPSecret, verifyTOTP, generateBackupCodes } from '@/lib/totp'
 import QRCode from 'qrcode'
 import { headers } from 'next/headers'
+import { assertPlatformAdmin } from '@/lib/auth/platform-admin'
 import {
   extractSessionMeta,
   listUserSessions,
@@ -382,22 +383,8 @@ export async function changePassword(input: {
 // ─────────────────────────────────────────────
 
 export async function getPlatformSettings(): Promise<Record<string, unknown>> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return {}
-
-  const { data: roles } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .eq('is_active', true)
-
-  const isAdminRole = roles?.some((r) => r.role === 'admin') ?? false
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim())
-    .filter(Boolean)
-  if (!isAdminRole && !adminEmails.includes(user.email ?? '')) return {}
+  const auth = await assertPlatformAdmin()
+  if (!auth.ok) return {}
 
   const admin = createAdminClient()
   const { data, error } = await admin
@@ -415,16 +402,11 @@ export async function updatePlatformSetting(
   key: string,
   value: Json | undefined
 ): Promise<ActionResult> {
-  const { user } = await getAuthenticatedUser()
+  const auth = await assertPlatformAdmin()
+  if (!auth.ok) return { success: false, error: auth.error }
 
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',').map(e => e.trim()).filter(Boolean)
-
-  if (adminEmails.length === 0) {
-    return { success: false, error: 'Server misconfiguration: ADMIN_EMAILS not set.' }
-  }
-  if (!adminEmails.includes(user.email ?? '')) {
-    return { success: false, error: 'Unauthorized.' }
+  if (!isAdminPlatformSettingKey(key) || isSensitivePlatformSettingKey(key)) {
+    return { success: false, error: 'That setting cannot be updated here.' }
   }
 
   const supabase = createAdminClient()
@@ -444,23 +426,18 @@ export async function updatePlatformSetting(
 export async function updatePlatformSettings(
   entries: Record<string, Json>
 ): Promise<ActionResult<{ saved: string[]; failed: { key: string; error: string }[] }>> {
-  const { user } = await getAuthenticatedUser()
-
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',').map(e => e.trim()).filter(Boolean)
-
-  if (adminEmails.length === 0) {
-    return { success: false, error: 'Server misconfiguration: ADMIN_EMAILS not set.' }
-  }
-  if (!adminEmails.includes(user.email ?? '')) {
-    return { success: false, error: 'Unauthorized.' }
-  }
+  const auth = await assertPlatformAdmin()
+  if (!auth.ok) return { success: false, error: auth.error }
 
   const supabase = createAdminClient()
   const saved: string[] = []
   const failed: { key: string; error: string }[] = []
 
   for (const [key, value] of Object.entries(entries)) {
+    if (!isAdminPlatformSettingKey(key) || isSensitivePlatformSettingKey(key)) {
+      failed.push({ key, error: 'That setting cannot be updated here.' })
+      continue
+    }
     const { error } = await supabase.from('platform_settings').upsert(
       { key, value, updated_at: new Date().toISOString() },
       { onConflict: 'key' }

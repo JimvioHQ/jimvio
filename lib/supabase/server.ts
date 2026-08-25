@@ -5,7 +5,7 @@ import { cache } from "react";
 import {
   getSupabasePublishableKey,
   getSupabaseUrl,
-} from "@/lib/supabase/service-role";
+} from "@/lib/supabase/public-env";
 
 type SetAllCookies = NonNullable<CookieMethodsServer["setAll"]>;
 

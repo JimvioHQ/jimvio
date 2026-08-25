@@ -9,6 +9,7 @@ import { normalizeProductSource } from "@/lib/sources/product-source";
 import { getAdminDB } from "@/services/db";
 import { revalidatePath } from "next/cache";
 import { handleCJFulfillment } from "@/services/cj/cj-lifecycle-integration";
+import { assertPlatformAdmin, isUuid } from "@/lib/auth/platform-admin";
 
 export async function createOrder(productId: string, quantity: number = 1) {
   const supabase = await createClient();
@@ -139,8 +140,11 @@ export async function createOrder(productId: string, quantity: number = 1) {
 
 
 export async function resolveFailedCreditAction(formData: FormData) {
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return;
+
   const id = formData.get("id") as string;
-  if (!id) return;
+  if (!id || !isUuid(id)) return;
 
   const admin = getAdminDB();
 
@@ -159,8 +163,11 @@ export async function resolveFailedCreditAction(formData: FormData) {
 }
 
 export async function retryCJOrderAction(formData: FormData) {
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return;
+
   const orderId = formData.get("orderId") as string;
-  if (!orderId) return;
+  if (!orderId || !isUuid(orderId)) return;
 
   try {
     await handleCJFulfillment(orderId, { throwOnError: true });

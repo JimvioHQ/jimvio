@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/lib/actions/security";
+import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
 
 export type AdminProfileInput = {
   full_name: string;
@@ -22,24 +23,23 @@ export type AdminProfileData = AdminProfileInput & {
 };
 
 export async function getAdminProfile(): Promise<AdminProfileData | null> {
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return null;
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
 
   const { data: profile } = await supabase
     .from("profiles")
     .select(
       "email, full_name, username, phone, bio, website, city, country, avatar_url, is_verified, two_factor_enabled"
     )
-    .eq("id", user.id)
+    .eq("id", auth.user.id)
     .single();
 
   if (!profile) return null;
 
   return {
-    email: profile.email ?? user.email ?? "",
+    email: profile.email ?? auth.user.email ?? "",
     full_name: profile.full_name ?? "",
     username: profile.username ?? "",
     phone: profile.phone ?? "",
@@ -56,20 +56,10 @@ export async function getAdminProfile(): Promise<AdminProfileData | null> {
 export async function updateAdminProfile(
   input: AdminProfileInput
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Not authenticated." };
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return { success: false, error: auth.error };
 
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("is_active", true);
-  if (!roles?.some((r) => r.role === "admin")) {
-    return { success: false, error: "Admin access required." };
-  }
+  const supabase = await createClient();
 
   if (!input.full_name.trim()) {
     return { success: false, error: "Full name is required." };
@@ -99,7 +89,7 @@ export async function updateAdminProfile(
       avatar_url: input.avatar_url.trim() || null,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", user.id);
+    .eq("id", auth.user.id);
 
   if (error) {
     if (error.code === "23505") {

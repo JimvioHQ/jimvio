@@ -48,36 +48,16 @@
 
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/actions/security";
+import { assertPlatformAdmin, isUuid } from "@/lib/auth/platform-admin";
+import { MAX_ADMIN_PRODUCT_MOVE } from "@/lib/security/destructive-limits";
 
 async function assertAdminAccess() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Not authenticated." };
-
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("is_active", true);
-
-  const isAdminRole = roles?.some((r) => r.role === "admin") ?? false;
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean);
-  const isAdminEmail = adminEmails.includes(user.email ?? "");
-
-  if (!isAdminRole && !isAdminEmail) {
-    return { ok: false as const, error: "Admin access required." };
-  }
-
-  return { ok: true as const, user };
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return { ok: false as const, error: auth.error };
+  return { ok: true as const, user: auth.user };
 }
 
 export type AdminProductUpdateInput = {
@@ -259,15 +239,32 @@ export async function getCJImportedMap(): Promise<
 }
 
 export async function searchAdminVendors(query: string) {
+  const auth = await assertAdminAccess();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const safe = String(query ?? "")
+    .replace(/[%_,()\\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+  if (!safe) return { success: true, vendors: [] };
+
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("vendors")
-      .select("id, business_name, business_slug, business_email, verification_status, is_active, profiles(email, avatar_url)")
-      .or(`business_name.ilike.%${query}%,business_email.ilike.%${query}%`)
-      .limit(20);
-    if (error) return { success: false, error: error.message };
-    const vendors = (data ?? []).map((v: any) => ({
+    const admin = createAdminClient();
+    const pattern = `%${safe}%`;
+    const select =
+      "id, business_name, business_slug, business_email, verification_status, is_active, profiles(email, avatar_url)";
+    const [byName, byEmail] = await Promise.all([
+      admin.from("vendors").select(select).ilike("business_name", pattern).limit(20),
+      admin.from("vendors").select(select).ilike("business_email", pattern).limit(20),
+    ]);
+    if (byName.error) return { success: false, error: byName.error.message };
+    if (byEmail.error) return { success: false, error: byEmail.error.message };
+    const merged = new Map<string, any>();
+    for (const row of [...(byName.data ?? []), ...(byEmail.data ?? [])]) {
+      merged.set(row.id, row);
+    }
+    const vendors = [...merged.values()].slice(0, 20).map((v: any) => ({
       ...v,
       owner_email: v.profiles?.email ?? v.business_email ?? "",
       avatar_url:  v.profiles?.avatar_url ?? null,
@@ -283,12 +280,20 @@ export async function moveProductToVendor(
   productIds: string | string[],
   vendorId: string
 ) {
-  try {
-    const supabase = await createClient();
-    const ids = Array.isArray(productIds) ? productIds : [productIds];
-    if (ids.length === 0) return { success: false, error: "No products selected" };
+  const auth = await assertAdminAccess();
+  if (!auth.ok) return { success: false, error: auth.error };
 
-    const { error } = await supabase
+  if (!isUuid(vendorId)) return { success: false, error: "Invalid vendor id" };
+
+  try {
+    const ids = (Array.isArray(productIds) ? productIds : [productIds]).filter(isUuid);
+    if (ids.length === 0) return { success: false, error: "No products selected" };
+    if (ids.length > MAX_ADMIN_PRODUCT_MOVE) {
+      return { success: false, error: `At most ${MAX_ADMIN_PRODUCT_MOVE} products can be moved at once.` };
+    }
+
+    const admin = createAdminClient();
+    const { error } = await admin
       .from("products")
       .update({ vendor_id: vendorId })
       .in("id", ids);

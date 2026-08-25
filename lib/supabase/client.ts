@@ -2,7 +2,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import {
   getSupabasePublishableKey,
   getSupabaseUrl,
-} from "@/lib/supabase/service-role";
+} from "@/lib/supabase/public-env";
 
 let browserClient: ReturnType<typeof createBrowserClient> | undefined;
 

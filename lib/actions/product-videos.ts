@@ -3,31 +3,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { syncProductVideos } from "@/lib/product-videos";
+import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
 
 async function assertAdminAccess() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Not authenticated." };
-
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id);
-
-  const isAdminRole = roles?.some((r) => r.role === "admin") ?? false;
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean);
-  const isAdminEmail = adminEmails.includes(user.email ?? "");
-
-  if (!isAdminRole && !isAdminEmail) {
-    return { ok: false as const, error: "Admin access required." };
-  }
-
-  return { ok: true as const, user };
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return { ok: false as const, error: auth.error };
+  return { ok: true as const, user: auth.user };
 }
 
 export async function saveProductVideos(

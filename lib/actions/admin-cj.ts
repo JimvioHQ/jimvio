@@ -1,10 +1,9 @@
 "use server";
 
-
-import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { enqueueCJOrder, logCJ, processCJQueue } from "../cj/cj-order-queue";
+import { logCJ, processCJQueue } from "../cj/cj-order-queue";
 import { getAdminDB } from "../supabase/admin";
+import { assertPlatformAdmin, isUuid } from "@/lib/auth/platform-admin";
 
 export type CJActionResult = {
     success: boolean;
@@ -12,9 +11,32 @@ export type CJActionResult = {
     error?: string;
 };
 
+async function requireAdminCj(orderId: string): Promise<
+    | { ok: true }
+    | { ok: false; result: CJActionResult }
+> {
+    if (!isUuid(orderId)) {
+        return {
+            ok: false,
+            result: { success: false, message: "Invalid order id", error: "Invalid order id" },
+        };
+    }
+    const auth = await assertPlatformAdmin();
+    if (!auth.ok) {
+        return {
+            ok: false,
+            result: { success: false, message: auth.error, error: auth.error },
+        };
+    }
+    return { ok: true };
+}
+
 // ─── Retry failed submission ──────────────────────────────────────────────────
 
 export async function retryCJSubmission(orderId: string): Promise<CJActionResult> {
+    const gate = await requireAdminCj(orderId);
+    if (!gate.ok) return gate.result;
+
     try {
         const db = getAdminDB();
 
@@ -61,6 +83,9 @@ export async function retryCJSubmission(orderId: string): Promise<CJActionResult
 // ─── Force submit now ─────────────────────────────────────────────────────────
 
 export async function sendToCJNow(orderId: string): Promise<CJActionResult> {
+    const gate = await requireAdminCj(orderId);
+    if (!gate.ok) return gate.result;
+
     try {
         const db = getAdminDB();
 
@@ -197,6 +222,9 @@ export async function sendToCJNow(orderId: string): Promise<CJActionResult> {
 // ─── Sync one order's CJ status ───────────────────────────────────────────────
 
 export async function syncOneCJOrder(orderId: string): Promise<CJActionResult> {
+    const gate = await requireAdminCj(orderId);
+    if (!gate.ok) return gate.result;
+
     try {
         const db = getAdminDB();
 
@@ -239,6 +267,10 @@ export async function syncOneCJOrder(orderId: string): Promise<CJActionResult> {
 // ─── Get logs for an order ────────────────────────────────────────────────────
 
 export async function getCJLogsForOrder(orderId: string) {
+    if (!isUuid(orderId)) return [];
+    const auth = await assertPlatformAdmin();
+    if (!auth.ok) return [];
+
     const db = getAdminDB();
     const { data } = await db
         .from("cj_logs")

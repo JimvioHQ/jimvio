@@ -3,6 +3,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
 
 export async function assertSuperAdminAccess(): Promise<
   { ok: true; user: { id: string; email?: string } } | { ok: false; error: string }
@@ -36,32 +37,7 @@ export async function assertSuperAdminAccess(): Promise<
 export async function assertAdminAccess(): Promise<
   { ok: true; user: { id: string; email?: string } } | { ok: false; error: string }
 > {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not authenticated." };
-
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", user.id)
-    .eq("is_active", true);
-
-  const isAdmin =
-    roles?.some((r) => {
-      const role = String(r.role);
-      return role === "admin" || role === "super_admin";
-    }) ?? false;
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean);
-  const isAdminEmail = adminEmails.includes(user.email ?? "");
-
-  if (!isAdmin && !isAdminEmail) {
-    return { ok: false, error: "Admin access required." };
-  }
-
-  return { ok: true, user: { id: user.id, email: user.email } };
+  const auth = await assertPlatformAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  return { ok: true, user: { id: auth.user.id, email: auth.user.email } };
 }

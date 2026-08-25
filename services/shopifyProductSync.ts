@@ -4,6 +4,7 @@ import { htmlToReadablePlainText } from "@/lib/htmlToPlainText";
 import { createClient } from "@supabase/supabase-js";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { MAX_SHOPIFY_CLEANUP_BATCH } from "@/lib/security/destructive-limits";
 const supabase = createClient(getSupabaseUrl(), getSupabaseSecretKey(), {
   auth: { autoRefreshToken: false, persistSession: false },
 });
@@ -281,36 +282,28 @@ async function cleanupMissingProducts(vendorId: string, activeShopifyIds: string
 
   if (missingInShopify.length === 0) return;
 
-  const idsToProcess = missingInShopify.map(p => p.id);
-  
-  console.log(`[Shopify-Cleanup] Processing ${missingInShopify.length} stale products for vendor ${vendorId}...`);
-  
-  // Step 1: Try a Hard Delete (cleanest for the database)
-  const { error: deleteErr } = await supabase
-    .from("products")
-    .delete()
-    .in("id", idsToProcess);
+  // Soft-archive only. Cron must not hard-delete Jimvio products.
+  const idsToProcess = missingInShopify.map(p => p.id).slice(0, MAX_SHOPIFY_CLEANUP_BATCH);
 
-  // Step 2: If Hard Delete fails (e.g., product has orders), perform a Soft Archive
-  if (deleteErr) {
-    console.warn(`[Shopify-Cleanup] Hard delete failed (likely due to existing orders). Switching to Soft Archive...`);
-    
+  console.log(`[Shopify-Cleanup] Archiving ${idsToProcess.length} stale products for vendor ${vendorId}...`);
+
+  for (let i = 0; i < idsToProcess.length; i += MAX_SHOPIFY_CLEANUP_BATCH) {
+    const chunk = idsToProcess.slice(i, i + MAX_SHOPIFY_CLEANUP_BATCH);
     const { error: archiveErr } = await supabase
       .from("products")
-      .update({ 
-        status: "archived", 
+      .update({
+        status: "archived",
         is_active: false,
-        shopify_product_id: null // Stop tracking in sync
       })
-      .in("id", idsToProcess);
+      .eq("vendor_id", vendorId)
+      .eq("source", "shopify")
+      .in("id", chunk);
 
     if (archiveErr) {
       console.error(`[Shopify-Cleanup] Critical error archiving items:`, archiveErr.message);
     } else {
-      console.log(`[Shopify-Cleanup] Successfully archived ${idsToProcess.length} products with order history.`);
+      console.log(`[Shopify-Cleanup] Successfully archived ${chunk.length} products.`);
     }
-  } else {
-    console.log(`[Shopify-Cleanup] Successfully deleted ${idsToProcess.length} products.`);
   }
 }
 
@@ -356,21 +349,13 @@ async function cleanupOrphanedShopifyProducts(activeVendorIds: string[]) {
 
   if (selectErr || !orphans?.length) return;
 
-  const ids = orphans.map((row) => row.id as string).filter(Boolean);
-  for (let i = 0; i < ids.length; i += 40) {
-    const chunk = ids.slice(i, i + 40);
-    const { error: deleteErr } = await supabase
+  const ids = orphans.map((row) => row.id as string).filter(Boolean).slice(0, MAX_SHOPIFY_CLEANUP_BATCH);
+  for (let i = 0; i < ids.length; i += MAX_SHOPIFY_CLEANUP_BATCH) {
+    const chunk = ids.slice(i, i + MAX_SHOPIFY_CLEANUP_BATCH);
+    await supabase
       .from("products")
-      .delete()
+      .update({ status: "archived", is_active: false })
       .eq("source", "shopify")
       .in("id", chunk);
-
-    if (deleteErr) {
-      await supabase
-        .from("products")
-        .update({ status: "archived", is_active: false })
-        .eq("source", "shopify")
-        .in("id", chunk);
-    }
   }
 }

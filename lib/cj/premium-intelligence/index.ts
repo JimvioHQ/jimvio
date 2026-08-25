@@ -16,9 +16,11 @@ export * from "./types";
 export { isCustomerVisibleTier } from "../import-intelligence/quality-engine";
 export {
   filterProductsForCustomers,
+} from "./marketplace-filter";
+export {
   getCustomerVisibleCjPids,
   getMarketplaceVisibilitySets,
-} from "./marketplace-filter";
+} from "./marketplace-filter-server";
 export { processAutoPublishQueue, enqueueAutoPublishBatch } from "./auto-publish-queue";
 export { runAutoPublishRetry } from "./auto-publish-retry";
 export { computeAutoPublishAnalytics, getLatestAutoPublishAnalytics } from "./auto-publish-analytics";

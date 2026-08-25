@@ -1,5 +1,5 @@
 import type { CJApiFilters, CJProduct, CatalogTier } from "./types";
-import { intelligenceFiltersToCatalogIndex } from "@/lib/cj/premium-intelligence/catalog-filter-index";
+import { intelligenceFiltersToCatalogIndex } from "@/lib/cj/premium-intelligence/catalog-filter-shared";
 import type { IntelligenceFilters } from "./types";
 
 const CATALOG_CACHE_TTL_MS = 30_000;

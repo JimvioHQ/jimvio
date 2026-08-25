@@ -8,6 +8,7 @@ import {
   filterShippingOptions,
   type RegionalShippingOption,
 } from "@/lib/shipping/regional-shipping";
+import { isUuid } from "@/lib/auth/platform-admin";
 
 const CJ_BASE_URL =
   process.env.CJ_API_BASE_URL ?? "https://developers.cjdropshipping.com/api2.0/v1";
@@ -60,6 +61,9 @@ export async function GET(
 ) {
   try {
     const { id: productId } = await params;
+    if (!isUuid(productId)) {
+      return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
+    }
     const country =
       normalizeCountryCode(req.nextUrl.searchParams.get("country")) ?? "RW";
     const variantId = req.nextUrl.searchParams.get("variantId");
@@ -121,6 +125,18 @@ export async function GET(
     const cjVid = variant?.cj_vid as string | null | undefined;
     if (!cjVid) {
       return NextResponse.json({ success: true, country, options: [], source: "none" });
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({
+        success: true,
+        country,
+        options: [],
+        source: "cached",
+      });
     }
 
     const live = await fetchLiveCjRates({

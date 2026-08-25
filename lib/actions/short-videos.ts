@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
 /** Rate constants — adjust via env or admin later */
@@ -302,7 +303,7 @@ export async function recordVideoView(videoId: string, watchTimeSec: number) {
       .update({ total_earnings: supabase.rpc as any })  // updated via separate RPC below
       .eq("id", videoId);
 
-    await supabase.rpc("add_video_earnings" as any, { vid: videoId, amt: earningRwf });
+    await createAdminClient().rpc("add_video_earnings" as any, { vid: videoId, amt: earningRwf });
   }
 
   return { success: true };

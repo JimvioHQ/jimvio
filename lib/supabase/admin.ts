@@ -1,6 +1,7 @@
-// lib/supabase/admin.ts
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
-import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { getSupabaseSecretKey } from "@/lib/supabase/service-role";
+import { getSupabaseUrl } from "@/lib/supabase/public-env";
 
 export function createAdminClient() {
   const url = getSupabaseUrl();
@@ -16,7 +17,7 @@ export function createAdminClient() {
 
 /**
  * Returns a Supabase client that uses the Secret API key (bypasses RLS).
- * Only use in server-side admin actions.
+ * Only use in server-side admin actions after assertPlatformAdmin().
  */
 export function getAdminDB() {
   return createClient(getSupabaseUrl(), getSupabaseSecretKey(), {

@@ -3,6 +3,7 @@
 import { getAdminDB } from "@/services/db";
 import { recordBothStatusChanges } from "@/lib/payments/record-status-change";
 import { decrementOrderInventory } from "./inventory-management";
+import { assertPlatformAdmin, isUuid } from "@/lib/auth/platform-admin";
 
 export type AutoHealResult = {
     action: "completed" | "failed" | "none" | "error";
@@ -20,7 +21,15 @@ type HealInput = {
 };
 
 export async function autoHealTransaction(input: HealInput): Promise<AutoHealResult> {
+    const auth = await assertPlatformAdmin();
+    if (!auth.ok) {
+        return { action: "error", reason: auth.error };
+    }
+
     const { transactionId, orderId, provider, verifiedStatus, isStuck } = input;
+    if (!isUuid(transactionId) || (orderId != null && orderId !== "" && !isUuid(orderId))) {
+        return { action: "error", reason: "invalid_id · heal_aborted" };
+    }
     const admin = getAdminDB();
     const now = new Date().toISOString();
 

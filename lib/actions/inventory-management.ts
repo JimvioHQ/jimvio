@@ -1,5 +1,7 @@
-"use server";
-
+/**
+ * Server helper for payment/webhook inventory adjustments.
+ * Not a Next.js Server Action. Callers must already be authorized.
+ */
 import { getAdminDB } from "@/services/db";
 import { syncProductInventoryFromVariants } from "@/lib/cj/sync-inventory";
 
