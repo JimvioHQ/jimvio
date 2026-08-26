@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Json } from "@/types/supabase";
 import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
 import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
+import { requireCommunityMember } from "@/lib/community/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -18,20 +19,10 @@ export async function GET(_req: NextRequest, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { data: membership, error: membershipError } = await supabase
-    .from("community_memberships")
-    .select("id, role, status")
-    .eq("community_id", communityId)
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (membershipError) {
-    console.error("Error checking membership:", membershipError);
-    return NextResponse.json({ error: membershipError.message }, { status: 400 });
+  const memberGate = await requireCommunityMember(supabase, user.id, communityId);
+  if (!memberGate.ok) {
+    return NextResponse.json({ error: memberGate.error }, { status: memberGate.status });
   }
-
-  if (!membership) return NextResponse.json({ error: "No access" }, { status: 403 });
 
   const { data, error } = await supabase
     .from("community_posts")
@@ -59,16 +50,10 @@ export async function POST(req: NextRequest, { params }: Params) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Verify active membership
-  const { data: membership } = await supabase
-    .from("community_memberships")
-    .select("id, role, status")
-    .eq("community_id", communityId)
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (!membership) return NextResponse.json({ error: "No access" }, { status: 403 });
+  const memberGate = await requireCommunityMember(supabase, user.id, communityId);
+  if (!memberGate.ok) {
+    return NextResponse.json({ error: memberGate.error }, { status: memberGate.status });
+  }
 
   const body = (await req.json()) as {
     title?: string | null;
@@ -85,9 +70,9 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (!content) return NextResponse.json({ error: "body is required" }, { status: 400 });
 
   const canPin =
-    membership.role === "owner" ||
-    membership.role === "admin" ||
-    membership.role === "moderator";
+    memberGate.ctx.role === "owner" ||
+    memberGate.ctx.role === "admin" ||
+    memberGate.ctx.role === "moderator";
 
   // Resolve a default room/space — empty UUID strings are invalid.
   const { data: room } = await supabase

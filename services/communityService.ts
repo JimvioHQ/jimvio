@@ -1,5 +1,12 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { notifyCommunityOwnerOnJoin } from "@/lib/community/notify-community";
+import { notifyCommunityOwnerOnJoin, notifyCommunityOwnerOnJoinRequest } from "@/lib/community/notify-community";
+import {
+  communityAcceptsInstantJoin,
+  communityRequiresApproval,
+  communityRequiresInvite,
+  sanitizeInviteCode,
+} from "@/lib/community/join-policy";
+import { isAssignableRole } from "@/lib/community/owner-console/members";
 
 function getService() {
   return createServiceRoleClient();
@@ -168,44 +175,102 @@ export async function getSpaceRooms(spaceId: string, communityId: string, userId
 }
 
 /**
- * Join a free community
+ * Join a free community, or queue a join request / redeem an invite.
+ * Visibility is resolved from the database — never from the client.
  */
-export async function joinFreeCommunity(userId: string, communityId: string) {
+export type JoinCommunityOutcome =
+  | { kind: "joined"; membership: CommunityMembershipRow }
+  | { kind: "pending"; requestId: string };
+
+export async function joinFreeCommunity(
+  userId: string,
+  communityId: string,
+  opts?: { inviteCode?: string; reason?: string; userEmail?: string | null }
+): Promise<JoinCommunityOutcome> {
   const supabase = getService();
   const { data: community } = await supabase
     .from("communities")
-    .select("id, is_free, member_count, owner_id, slug, name")
+    .select(
+      "id, is_free, is_private, is_active, member_count, owner_id, slug, name, visibility, visibility_mode, archived_at"
+    )
     .eq("id", communityId)
     .eq("is_active", true)
-    .single();
+    .maybeSingle();
 
-  if (!community) throw new Error("Community not found");
+  if (!community || community.archived_at) throw new Error("Community not found");
   if (!community.is_free) throw new Error("This community requires a subscription");
 
   const existing = await getUserMembership(userId, communityId);
+  if (existing?.status === "banned") {
+    throw new Error("You are banned from this community");
+  }
+
+  const inviteCode = sanitizeInviteCode(opts?.inviteCode);
+  if (inviteCode) {
+    return redeemCommunityInvite(userId, community, inviteCode, opts?.userEmail ?? null);
+  }
+
+  if (communityRequiresInvite(community)) {
+    throw new Error("This community is invite-only. You need a valid invitation.");
+  }
+
+  if (communityRequiresApproval(community)) {
+    return submitJoinRequest(userId, community, opts?.reason);
+  }
+
+  if (!communityAcceptsInstantJoin(community)) {
+    throw new Error("This community cannot be joined directly");
+  }
+
+  return activateFreeMembership(userId, community, existing, "member");
+}
+
+type JoinCommunityRow = {
+  id: string;
+  is_free: boolean | null;
+  is_private: boolean | null;
+  is_active: boolean | null;
+  member_count: number | null;
+  owner_id: string;
+  slug: string;
+  name: string;
+  visibility?: string | null;
+  visibility_mode?: string | null;
+  archived_at?: string | null;
+};
+
+async function activateFreeMembership(
+  userId: string,
+  community: JoinCommunityRow,
+  existing: CommunityMembershipRow | null,
+  role: string
+): Promise<{ kind: "joined"; membership: CommunityMembershipRow }> {
+  const supabase = getService();
+  const communityId = community.id;
+  const safeRole = role === "owner" ? "member" : role;
+
   if (existing) {
-    if (existing.status === "active") return existing;
-    if (existing.status === "cancelled" || existing.status === "expired") {
+    if (existing.status === "active") {
+      return { kind: "joined", membership: existing };
+    }
+    if (existing.status === "cancelled" || existing.status === "expired" || existing.status === "paused") {
       const { data: membership, error } = await supabase
         .from("community_memberships")
         .update({
           status: "active",
           cancelled_at: null,
           plan_type: existing.plan_type ?? "free",
-          role: existing.role === "owner" ? "owner" : "member",
+          role: existing.role === "owner" ? "owner" : safeRole === "member" ? (existing.role || "member") : safeRole,
           updated_at: new Date().toISOString(),
         })
         .eq("id", existing.id)
         .select()
         .single();
       if (error) throw error;
-      await supabase
-        .from("communities")
-        .update({ member_count: (community.member_count ?? 0) + 1 })
-        .eq("id", communityId);
-      return membership;
+      await bumpMemberCount(communityId, community.member_count);
+      return { kind: "joined", membership: membership as CommunityMembershipRow };
     }
-    return existing;
+    throw new Error("You cannot join this community right now");
   }
 
   const { data: membership, error } = await supabase
@@ -213,7 +278,7 @@ export async function joinFreeCommunity(userId: string, communityId: string) {
     .insert({
       community_id: communityId,
       user_id: userId,
-      role: "member",
+      role: safeRole,
       plan_type: "free",
       status: "active",
     })
@@ -222,11 +287,21 @@ export async function joinFreeCommunity(userId: string, communityId: string) {
 
   if (error) throw error;
 
+  await bumpMemberCount(communityId, community.member_count);
+  await notifyJoin(userId, community);
+  return { kind: "joined", membership: membership as CommunityMembershipRow };
+}
+
+async function bumpMemberCount(communityId: string, current: number | null) {
+  const supabase = getService();
   await supabase
     .from("communities")
-    .update({ member_count: (community.member_count ?? 0) + 1 })
+    .update({ member_count: (current ?? 0) + 1 })
     .eq("id", communityId);
+}
 
+async function notifyJoin(userId: string, community: JoinCommunityRow) {
+  const supabase = getService();
   try {
     const { data: profile } = await supabase
       .from("profiles")
@@ -244,8 +319,147 @@ export async function joinFreeCommunity(userId: string, communityId: string) {
   } catch (err) {
     console.error("[joinFreeCommunity] notify failed:", err);
   }
+}
 
-  return membership;
+async function submitJoinRequest(
+  userId: string,
+  community: JoinCommunityRow,
+  reason?: string
+): Promise<{ kind: "pending"; requestId: string }> {
+  const supabase = getService();
+  const existing = await getUserMembership(userId, community.id);
+  if (existing?.status === "active") {
+    throw new Error("You are already a member");
+  }
+
+  const { data: current } = await supabase
+    .from("community_join_requests")
+    .select("id, status")
+    .eq("community_id", community.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (current?.status === "pending") {
+    return { kind: "pending", requestId: current.id };
+  }
+
+  const now = new Date().toISOString();
+  if (current) {
+    const { data: updated, error } = await supabase
+      .from("community_join_requests")
+      .update({
+        status: "pending",
+        reason: reason?.trim() || null,
+        reviewed_by: null,
+        reviewed_at: null,
+        review_note: null,
+        updated_at: now,
+      })
+      .eq("id", current.id)
+      .select("id")
+      .single();
+    if (error) throw error;
+    await notifyJoinRequest(userId, community);
+    return { kind: "pending", requestId: updated.id };
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("community_join_requests")
+    .insert({
+      community_id: community.id,
+      user_id: userId,
+      reason: reason?.trim() || null,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  await notifyJoinRequest(userId, community);
+  return { kind: "pending", requestId: inserted.id };
+}
+
+async function notifyJoinRequest(userId: string, community: JoinCommunityRow) {
+  const supabase = getService();
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, username")
+      .eq("id", userId)
+      .maybeSingle();
+    await notifyCommunityOwnerOnJoinRequest(supabase, {
+      ownerId: community.owner_id,
+      memberId: userId,
+      memberName: profile?.full_name || profile?.username || "Someone",
+      communityId: community.id,
+      communitySlug: community.slug,
+      communityName: community.name,
+    });
+  } catch (err) {
+    console.error("[submitJoinRequest] notify failed:", err);
+  }
+}
+
+async function redeemCommunityInvite(
+  userId: string,
+  community: JoinCommunityRow,
+  code: string,
+  userEmail: string | null
+): Promise<JoinCommunityOutcome> {
+  const supabase = getService();
+  const { data: invite } = await supabase
+    .from("community_invites")
+    .select("id, community_id, code, email, role, status, max_uses, uses_count, expires_at")
+    .eq("community_id", community.id)
+    .eq("code", code)
+    .maybeSingle();
+
+  if (!invite) throw new Error("Invitation is invalid");
+  if (invite.status === "revoked") throw new Error("Invitation has been revoked");
+  if (invite.status === "exhausted" || invite.status === "expired") {
+    throw new Error("Invitation is no longer valid");
+  }
+  if (invite.expires_at && new Date(invite.expires_at).getTime() <= Date.now()) {
+    await supabase
+      .from("community_invites")
+      .update({ status: "expired" })
+      .eq("id", invite.id);
+    throw new Error("Invitation has expired");
+  }
+  const used = Number(invite.uses_count ?? 0);
+  const max = invite.max_uses == null ? null : Number(invite.max_uses);
+  if (max != null && used >= max) {
+    throw new Error("Invitation has already been used");
+  }
+  if (invite.email) {
+    const expected = invite.email.trim().toLowerCase();
+    const actual = (userEmail ?? "").trim().toLowerCase();
+    if (!actual || actual !== expected) {
+      throw new Error("This invitation was issued for a different email");
+    }
+  }
+
+  const existing = await getUserMembership(userId, community.id);
+  if (existing?.status === "active") {
+    return { kind: "joined", membership: existing };
+  }
+  const requestedRole = String(invite.role || "member").toLowerCase();
+  const role =
+    requestedRole !== "owner" && isAssignableRole(requestedRole) ? requestedRole : "member";
+
+  const joined = await activateFreeMembership(userId, community, existing, role);
+
+  const nextUses = used + 1;
+  const exhausted = max != null && nextUses >= max;
+  await supabase
+    .from("community_invites")
+    .update({
+      uses_count: nextUses,
+      status: exhausted ? "exhausted" : invite.status === "pending" && max === 1 ? "accepted" : invite.status,
+      accepted_by: userId,
+    })
+    .eq("id", invite.id);
+
+  return joined;
 }
 
 /**

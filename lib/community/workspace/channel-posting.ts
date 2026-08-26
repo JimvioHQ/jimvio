@@ -32,6 +32,30 @@ export function isGroupDiscussionRoom(room: {
   return type === "chat" && /^(discussion|general|chat|lounge)$/.test(slug);
 }
 
+/**
+ * Announcement-only channels: members read; OWNER/ADMIN/MODERATOR post
+ * (existing Jimvio postingMode admins_moderators).
+ */
+export function isAnnouncementOnlyRoom(room: {
+  channel_kind?: string | null;
+  slug?: string | null;
+  room_type?: string | null;
+  permission_config?: unknown;
+} | null | undefined): boolean {
+  if (!room) return false;
+  if (isGroupDiscussionRoom(room)) return false;
+  if (room.channel_kind === "announcement") return true;
+  const slug = (room.slug ?? "").trim().toLowerCase();
+  if (slug === "announcement" || slug === "announcements") return true;
+  const mode =
+    room.permission_config &&
+    typeof room.permission_config === "object" &&
+    "postingMode" in room.permission_config
+      ? String((room.permission_config as { postingMode?: unknown }).postingMode ?? "")
+      : "";
+  return mode === "admins_only" || mode === "admins_moderators";
+}
+
 export type ChannelStaffLite = {
   staffRole: "moderator" | "admin" | "publisher";
 };

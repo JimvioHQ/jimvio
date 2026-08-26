@@ -51,6 +51,7 @@ export {
 export {
   canCommentInChannel,
   canPublishInChannel,
+  isAnnouncementOnlyRoom,
   isGroupDiscussionRoom,
   resolveChannelPostingAccess,
   type ChannelPostingContext,

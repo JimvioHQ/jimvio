@@ -6,6 +6,8 @@ import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media
 import { extractHashtags, extractMentions } from "@/lib/feed/composer-utils";
 import { rankFeedItems } from "@/lib/growth/feed-ranking";
 import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
+import { roomBelongsToCommunity, roomSpaceMatches } from "@/lib/community/assert-room-community";
+import { requireCommunityMember } from "@/lib/community/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -476,15 +478,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid post content" }, { status: 400 });
   }
 
-  const { data: membership } = await supabase
-    .from("community_memberships")
-    .select("id")
-    .eq("community_id", communityId)
-    .eq("user_id", user.id)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (!membership) return NextResponse.json({ error: "No access" }, { status: 403 });
+  const memberGate = await requireCommunityMember(supabase, user.id, communityId);
+  if (!memberGate.ok) {
+    return NextResponse.json({ error: memberGate.error }, { status: memberGate.status });
+  }
 
   let roomId = body.room_id?.trim() || "";
   let spaceId = body.space_id?.trim() || "";
@@ -492,7 +489,7 @@ export async function POST(req: NextRequest) {
   if (!roomId || !spaceId) {
     const { data: room } = await supabase
       .from("rooms")
-      .select("id, space_id")
+      .select("id, space_id, community_id, is_active")
       .eq("community_id", communityId)
       .eq("is_active", true)
       .order("created_at", { ascending: true })
@@ -505,6 +502,17 @@ export async function POST(req: NextRequest) {
   if (!roomId || !spaceId) {
     return NextResponse.json({ error: "Community has no room for posts" }, { status: 400 });
   }
+
+  const { data: boundRoom } = await supabase
+    .from("rooms")
+    .select("id, community_id, space_id, is_active")
+    .eq("id", roomId)
+    .maybeSingle();
+
+  if (!roomBelongsToCommunity(boundRoom, communityId) || !roomSpaceMatches(boundRoom, spaceId)) {
+    return NextResponse.json({ error: "Invalid room" }, { status: 400 });
+  }
+  spaceId = boundRoom.space_id || spaceId;
 
   const publishGate = await assertCanPublishInRoom(supabase, user.id, roomId);
   if (!publishGate.ok) {

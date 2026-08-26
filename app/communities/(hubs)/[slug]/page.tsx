@@ -152,7 +152,7 @@ export default async function CommunitySlugPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ space?: string | string[]; room?: string | string[] }>;
+  searchParams: Promise<{ space?: string | string[]; room?: string | string[]; invite?: string | string[] }>;
 }) {
   const { slug } = await params;
   const query = await searchParams;
@@ -198,6 +198,13 @@ export default async function CommunitySlugPage({
         community={community}
         membership={membership}
         isLoggedIn={!!user}
+        inviteCode={
+          typeof query.invite === "string"
+            ? query.invite
+            : Array.isArray(query.invite)
+              ? query.invite[0]
+              : ""
+        }
       />
     </>
   );

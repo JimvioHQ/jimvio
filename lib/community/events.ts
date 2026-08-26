@@ -85,7 +85,7 @@ export async function listHubCommunityEvents(userId: string) {
       is_interested: status === "interested",
       kind: e.kind,
       href: community?.slug
-        ? `/communities/${community.slug}/events?event=${e.id}`
+        ? `/communities/events?community=${encodeURIComponent(community.slug)}&event=${e.id}`
         : `/communities/events?event=${e.id}`,
       community_name: community?.name ?? null,
       community_slug: community?.slug ?? null,

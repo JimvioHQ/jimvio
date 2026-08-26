@@ -19,8 +19,9 @@ const BY_TYPE: Record<ChannelType, ChannelEmptyCopy> = {
     emptyDescription:
       "Share updates, launches, and important news with this channel.",
     emptyActionLabel: "Write announcement",
-    readOnlyTitle: "This is an announcement channel.",
-    readOnlyDescription: "Only authorized publishers can post.",
+    readOnlyTitle: "Announcements only",
+    readOnlyDescription:
+      "Members can read. Only owners, admins, and moderators can post.",
   },
   discussion: {
     emptyTitle: "Start the conversation",

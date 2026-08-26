@@ -13,6 +13,10 @@ import {
 import { cn, formatNumber } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
 import { toast } from "sonner";
+import {
+  resolveCommunityJoinVisibility,
+  sanitizeInviteCode,
+} from "@/lib/community/join-policy";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
@@ -36,6 +40,8 @@ export type CommunityDetailPayload = {
   tags: string[] | null;
   is_free: boolean | null;
   is_private: boolean | null;
+  visibility?: string | null;
+  visibility_mode?: string | null;
   monthly_price: number | string | null;
   yearly_price: number | string | null;
   lifetime_price: number | string | null;
@@ -240,10 +246,12 @@ export function CommunityDetailView({
   community,
   membership,
   isLoggedIn,
+  inviteCode: inviteCodeProp = "",
 }: {
   community: CommunityDetailPayload;
   membership: MembershipPayload;
   isLoggedIn: boolean;
+  inviteCode?: string;
 }) {
   const router = useRouter();
   const { formatMoney } = useCurrency();
@@ -251,10 +259,30 @@ export function CommunityDetailView({
   const [plan, setPlan] = useState<PlanKey>("monthly");
   const [joining, setJoining] = useState(false);
   const [localMembership, setLocalMembership] = useState<MembershipPayload>(membership);
+  const [inviteCode, setInviteCode] = useState(() => sanitizeInviteCode(inviteCodeProp));
+  const [joinPending, setJoinPending] = useState(false);
 
   // Stable dep — only re-sync when meaningful values change
   const membershipKey = `${membership?.status}-${membership?.expires_at}-${membership?.role}`;
   useEffect(() => { setLocalMembership(membership); }, [community.id, membershipKey]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/communities/${community.slug}/join`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { pendingRequest?: { id: string } | null };
+        if (!cancelled && data.pendingRequest) setJoinPending(true);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [community.slug, isLoggedIn]);
 
   useEffect(() => {
     let cancelled = false;
@@ -292,7 +320,9 @@ export function CommunityDetailView({
   const lifetime = Number(community.lifetime_price ?? 0);
   const currency = (community.currency || "USD").toUpperCase();
   const isFree = community.is_free || (monthly === 0 && yearly === 0 && lifetime === 0);
-  const isPrivate = !!community.is_private;
+  const joinVisibility = resolveCommunityJoinVisibility(community);
+  const isPrivate = joinVisibility !== "public";
+  const needsInvite = joinVisibility === "invite_only" || joinVisibility === "hidden";
   const trialDays = community.trial_days ?? 0;
 
   const priceForPlan = (p: PlanKey) =>
@@ -346,13 +376,27 @@ export function CommunityDetailView({
       return;
     }
 
-    // Private free communities still use the join API (active membership + owner notify).
-    // There is no separate pending-approval table in production yet.
+    if (needsInvite && !sanitizeInviteCode(inviteCode)) {
+      toast.error("Enter a valid invitation code");
+      return;
+    }
+
     setJoining(true);
     try {
-      const res = await fetch(`/api/communities/${community.slug}/join`, { method: "POST" });
+      const res = await fetch(`/api/communities/${community.slug}/join`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inviteCode: sanitizeInviteCode(inviteCode) || undefined,
+        }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Couldn't join community");
+      if (data.pending) {
+        setJoinPending(true);
+        toast.success("Request sent. The owner will review it.");
+        return;
+      }
       setLocalMembership(data.membership);
       toast.success(`Welcome to ${community.name}`);
       router.refresh();
@@ -669,20 +713,46 @@ export function CommunityDetailView({
                     </Link>
                   )}
                 </>
-              ) : isPrivate ? (
-                /* Private free — join API; paid private handled via subscribe in handleJoin */
+              ) : joinPending ? (
                 <>
                   <div>
                     <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
                       Access
                     </p>
-                    <p className="text-xl font-semibold text-[var(--color-text-primary)]">Invite only</p>
+                    <p className="text-xl font-semibold text-[var(--color-text-primary)]">Request pending</p>
                     <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-                      {isFree
-                        ? "Join to enter this private community. The owner is notified."
-                        : "Choose a plan to request access."}
+                      The owner will approve or decline your request.
                     </p>
                   </div>
+                </>
+              ) : isPrivate ? (
+                /* Private / invite-only — never instant-join */
+                <>
+                  <div>
+                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-[var(--color-text-muted)]">
+                      Access
+                    </p>
+                    <p className="text-xl font-semibold text-[var(--color-text-primary)]">
+                      {needsInvite ? "Invite only" : "Private"}
+                    </p>
+                    <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+                      {needsInvite
+                        ? "You need a valid invitation to join."
+                        : isFree
+                          ? "Request to join. The owner must approve you."
+                          : "Choose a plan to request access."}
+                    </p>
+                  </div>
+                  {needsInvite && isFree ? (
+                    <input
+                      type="text"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value)}
+                      placeholder="Invitation code"
+                      autoComplete="off"
+                      className="h-10 w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[13px] outline-none focus:border-[var(--color-accent)]"
+                    />
+                  ) : null}
                   <button
                     onClick={handleJoin}
                     disabled={joining}
@@ -691,7 +761,7 @@ export function CommunityDetailView({
                     {joining ? (
                       <Loader2 size={14} className="animate-spin" />
                     ) : isFree ? (
-                      "Join community"
+                      needsInvite ? "Redeem invitation" : "Request to join"
                     ) : (
                       "View plans"
                     )}

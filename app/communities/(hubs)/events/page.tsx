@@ -43,6 +43,7 @@ function EventsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const legacyTab = searchParams.get("tab");
+  const communitySlug = searchParams.get("community")?.trim() || "";
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
@@ -61,7 +62,10 @@ function EventsPage() {
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/c/events");
+        const qs = communitySlug
+          ? `?community=${encodeURIComponent(communitySlug)}`
+          : "";
+        const res = await fetch(`/api/c/events${qs}`);
         if (!res.ok) return;
         const data = (await res.json()) as { events: HubEvent[] };
         if (!cancelled) setEvents(data.events ?? []);
@@ -70,7 +74,7 @@ function EventsPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [legacyTab]);
+  }, [legacyTab, communitySlug]);
 
   const filteredEvents = useMemo(() => {
     const now = new Date();
@@ -104,7 +108,9 @@ function EventsPage() {
               Events
             </h1>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Workshops, webinars, AMAs, meetups, launches — plus missions on your calendar
+              {communitySlug
+                ? "Events for this community"
+                : "Workshops, webinars, AMAs, meetups, launches — plus missions on your calendar"}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

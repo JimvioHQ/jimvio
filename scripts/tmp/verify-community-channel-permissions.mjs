@@ -60,6 +60,7 @@ assert.match(channelConstants, /general_chat/);
 // Engine helpers
 assert.match(posting, /export function canPublishInChannel/);
 assert.match(posting, /export function canCommentInChannel/);
+assert.match(posting, /export function isAnnouncementOnlyRoom/);
 assert.match(posting, /publisherIds\.includes/);
 assert.match(assertPublish, /assertCanPublishInRoom/);
 

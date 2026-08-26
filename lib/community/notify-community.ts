@@ -221,3 +221,32 @@ export async function notifyCommunityOwnerOnJoin(
     data: { event: "member_joined", memberId: params.memberId, communityId: params.communityId },
   });
 }
+
+/** Notify owner that someone requested to join a private community. */
+export async function notifyCommunityOwnerOnJoinRequest(
+  db: SupabaseClient,
+  params: {
+    ownerId: string;
+    memberId: string;
+    memberName: string;
+    communityId: string;
+    communitySlug: string;
+    communityName: string;
+  }
+): Promise<void> {
+  if (params.ownerId === params.memberId) return;
+
+  const allowed = await filterCommunityMutedRecipients(db, params.communityId, [
+    params.ownerId,
+  ]);
+  if (!allowed.length) return;
+
+  await notifyUser(db, {
+    userId: params.ownerId,
+    type: "community",
+    title: "Join request",
+    message: `${params.memberName} requested to join ${params.communityName}`,
+    actionUrl: `/dashboard/communities/${params.communitySlug}/members`,
+    data: { event: "join_request", memberId: params.memberId, communityId: params.communityId },
+  });
+}

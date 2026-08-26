@@ -26,7 +26,7 @@ async function resolveRoomPostingAccess(
     .maybeSingle();
 
   if (!room) {
-    return { room: null as null, access: null };
+    return { room: null as null, access: null, membership: null };
   }
 
   const { data: community } = await supabase
@@ -37,7 +37,7 @@ async function resolveRoomPostingAccess(
 
   const { data: membership } = await supabase
     .from("community_memberships")
-    .select("role, status, plan_type, space_access")
+    .select("role, status, plan_type, space_access, muted_until, timeout_until, suspended_until")
     .eq("community_id", room.community_id)
     .eq("user_id", userId)
     .maybeSingle();
@@ -78,7 +78,33 @@ async function resolveRoomPostingAccess(
     room,
   });
 
-  return { room, access };
+  return { room, access, membership };
+}
+
+function restrictionUntil(
+  membership: {
+    muted_until?: string | null;
+    timeout_until?: string | null;
+    suspended_until?: string | null;
+  } | null
+): { ok: false; status: number; error: string } | null {
+  if (!membership) return null;
+  const now = Date.now();
+  const blocked = (iso: string | null | undefined, label: string) => {
+    if (!iso) return null;
+    const at = new Date(iso).getTime();
+    if (Number.isNaN(at) || at <= now) return null;
+    return {
+      ok: false as const,
+      status: 403,
+      error: `You are ${label} in this community until ${new Date(iso).toISOString()}.`,
+    };
+  };
+  return (
+    blocked(membership.suspended_until, "suspended") ||
+    blocked(membership.timeout_until, "in timeout") ||
+    blocked(membership.muted_until, "muted")
+  );
 }
 
 function lockedOrArchivedError(
@@ -107,9 +133,14 @@ export async function assertCanPublishInRoom(
   userId: string,
   roomId: string
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  const { room, access } = await resolveRoomPostingAccess(supabase, userId, roomId);
+  const { room, access, membership } = await resolveRoomPostingAccess(supabase, userId, roomId);
   if (!room || !access) {
     return { ok: false, status: 404, error: "Room not found" };
+  }
+
+  if (access.role !== "owner") {
+    const restricted = restrictionUntil(membership);
+    if (restricted) return restricted;
   }
 
   const { data: space } = room.space_id
@@ -151,9 +182,14 @@ export async function assertCanCommentInRoom(
   userId: string,
   roomId: string
 ): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
-  const { room, access } = await resolveRoomPostingAccess(supabase, userId, roomId);
+  const { room, access, membership } = await resolveRoomPostingAccess(supabase, userId, roomId);
   if (!room || !access) {
     return { ok: false, status: 404, error: "Room not found" };
+  }
+
+  if (access.role !== "owner") {
+    const restricted = restrictionUntil(membership);
+    if (restricted) return restricted;
   }
 
   const { data: space } = room.space_id

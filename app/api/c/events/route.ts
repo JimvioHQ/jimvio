@@ -19,7 +19,7 @@ const KINDS = new Set<CommunityEventKind>([
   "other",
 ]);
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -29,13 +29,17 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const communitySlug = req.nextUrl.searchParams.get("community")?.trim() || "";
+
   const [legacy, native] = await Promise.all([
-    getHubEvents(user.id),
+    communitySlug ? Promise.resolve([]) : getHubEvents(user.id),
     listHubCommunityEvents(user.id).catch(() => []),
   ]);
 
   const events = [
-    ...native,
+    ...native.filter((e: { community_slug?: string | null }) =>
+      communitySlug ? e.community_slug === communitySlug : true
+    ),
     ...legacy.map((e) => ({
       ...e,
       source: e.kind === "campaign" ? "campaign" : "task",

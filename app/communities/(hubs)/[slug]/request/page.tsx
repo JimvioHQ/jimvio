@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 
 /**
  * Private-community "Request to join" target.
- * Uses the existing join API (membership + owner notify) — no new join pipeline.
+ * Submits a join request (approval required) via the existing join API.
  */
 export default function CommunityJoinRequestPage() {
   const params = useParams();
@@ -28,8 +28,15 @@ export default function CommunityJoinRequestPage() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/communities/${slug}/join`, { method: "POST" });
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        const res = await fetch(`/api/communities/${slug}/join`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          pending?: boolean;
+        };
         if (cancelled) return;
         if (!res.ok) {
           if (res.status === 401) {
@@ -41,6 +48,11 @@ export default function CommunityJoinRequestPage() {
           return;
         }
         setStatus("ok");
+        setMessage(
+          data.pending
+            ? "Request sent. The owner will review it."
+            : "You are in."
+        );
         router.replace(`/communities/${slug}`);
         router.refresh();
       } catch {
@@ -63,6 +75,9 @@ export default function CommunityJoinRequestPage() {
           <Loader2 className="h-6 w-6 animate-spin text-[var(--color-text-muted)]" />
           <p className="text-sm text-[var(--color-text-muted)]">Submitting join request…</p>
         </>
+      )}
+      {status === "ok" && (
+        <p className="text-sm text-[var(--color-text-muted)]">{message}</p>
       )}
       {status === "error" && (
         <>
