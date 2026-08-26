@@ -3,12 +3,14 @@
 import React, { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { KeyRound, ArrowLeft, CheckCircle } from "lucide-react";
+import { KeyRound, ArrowLeft, CheckCircle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { beginPasswordRecovery, completePasswordReset, hasPasswordRecoverySession } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/client";
 import { Field } from "@/components/ui/field";
 import { FieldInput } from "@/components/ui/field-input";
+import { validateNewPassword } from "@/lib/auth/password-rules";
+import type { AuthChangeEvent } from "@supabase/supabase-js";
 
 function parseHashParams(): {
   error: string | null;
@@ -35,6 +37,8 @@ export function ResetPasswordClient() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const queryError = searchParams.get("error");
   const queryErrorCode = searchParams.get("error_code");
@@ -46,46 +50,45 @@ export function ResetPasswordClient() {
     const errCode = queryErrorCode || hash.error_code;
     const errDesc = queryErrorDesc || hash.error_description;
 
-    if (err === "access_denied" || errCode === "otp_expired") {
-      setLinkError(
-        "This password reset link has expired or was already used. Request a new link below."
-      );
+    if (err === "link_expired" || err === "access_denied" || errCode === "otp_expired") {
+      setLinkError("Reset link expired. Request a new one.");
       return;
     }
-    if (errCode || err) {
-      setLinkError(
-        (errDesc && decodeURIComponent(errDesc.replace(/\+/g, " "))) ||
-        "This link is invalid. Request a new reset email."
-      );
+    if (errCode || (err && err !== "link_expired")) {
+      setLinkError("This link is invalid. Request a new reset email.");
       return;
     }
+    void errDesc;
 
     let cancelled = false;
     (async () => {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (session) {
-        setReady(true);
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent) => {
+        if (cancelled) return;
+        if (event === "PASSWORD_RECOVERY") {
+          const marked = await beginPasswordRecovery();
+          if (!cancelled && marked.ok) setReady(true);
+        }
+      });
+
+      if (await hasPasswordRecoverySession()) {
+        if (!cancelled) setReady(true);
+        subscription.unsubscribe();
         return;
       }
-      await new Promise((r) => setTimeout(r, 150));
-      const { data: { session: s2 } } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (s2) {
-        setReady(true);
+
+      await new Promise((r) => setTimeout(r, 700));
+      if (cancelled) {
+        subscription.unsubscribe();
         return;
       }
-      await new Promise((r) => setTimeout(r, 400));
-      const { data: { session: s3 } } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (s3) {
+      if (await hasPasswordRecoverySession()) {
         setReady(true);
+        subscription.unsubscribe();
         return;
       }
-      setLinkError(
-        "We could not verify your reset session. Open the link from your latest email, or request a new reset link."
-      );
+      subscription.unsubscribe();
+      setLinkError("Reset link expired. Request a new one.");
     })();
 
     return () => {
@@ -99,9 +102,9 @@ export function ResetPasswordClient() {
     const formData = new FormData(e.currentTarget);
     const p1 = (formData.get("password") as string) || "";
     const p2 = (formData.get("password_confirm") as string) || "";
-    alert(`${p2} ${p1.length}`);
-    if (p1.length < 8) {
-      setFormError("Password must be at least 8 characters.");
+    const invalid = validateNewPassword(p1);
+    if (invalid) {
+      setFormError(invalid);
       return;
     }
     if (p1 !== p2) {
@@ -109,9 +112,8 @@ export function ResetPasswordClient() {
       return;
     }
     startTransition(async () => {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password: p1 });
-      if (error) setFormError(error.message);
+      const result = await completePasswordReset(formData);
+      if (result?.error) setFormError(result.error);
       else setDone(true);
     });
   }
@@ -124,7 +126,7 @@ export function ResetPasswordClient() {
         </div>
         <h2 className="text-2xl font-bold text-[var(--color-text-primary)] mb-3">Password updated</h2>
         <p className="text-[var(--color-text-secondary)] mb-6">You can sign in with your new password.</p>
-        <Link href="/login">
+        <Link href="/login?status=password_updated">
           <Button className="w-full" size="lg">
             Sign in
           </Button>
@@ -169,32 +171,51 @@ export function ResetPasswordClient() {
         <p className="text-[var(--color-text-secondary)]">Choose a strong password for your account.</p>
       </div>
       <form method="post" action="/reset-password" onSubmit={handleSubmit} className="space-y-5">
-        <Field label="New password" required icon={<KeyRound className="h-4 w-4" />} >
+        <Field label="New password" required icon={<KeyRound className="h-4 w-4" />}>
           <FieldInput
             name="password"
-            type="password"
-            placeholder="••••••••"
-            autoComplete="new-password"
-            required
-            minLength={8} />
-        </Field>
-        <Field label="Confirm password" icon={<KeyRound className="h-4 w-4" />}>
-          <FieldInput
-            name="password_confirm"
-            type="password"
+            type={showPw ? "text" : "password"}
             placeholder="••••••••"
             autoComplete="new-password"
             required
             minLength={8}
+            className="pr-10"
           />
+          <button
+            type="button"
+            onClick={() => setShowPw((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 p-1"
+            aria-label={showPw ? "Hide password" : "Show password"}
+          >
+            {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </Field>
+        <Field label="Confirm password" required icon={<KeyRound className="h-4 w-4" />}>
+          <FieldInput
+            name="password_confirm"
+            type={showConfirm ? "text" : "password"}
+            placeholder="••••••••"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirm((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-700 p-1"
+            aria-label={showConfirm ? "Hide password" : "Show password"}
+          >
+            {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
         </Field>
 
         {formError && (
-          <div className="rounded-sm border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div role="alert" className="rounded-sm border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
             {formError}
           </div>
         )}
-        <Button type="submit" className="w-full" size="lg" loading={isPending}>
+        <Button type="submit" className="w-full" size="lg" loading={isPending} disabled={isPending}>
           Update password
         </Button>
       </form>
@@ -206,4 +227,3 @@ export function ResetPasswordClient() {
     </div>
   );
 }
-

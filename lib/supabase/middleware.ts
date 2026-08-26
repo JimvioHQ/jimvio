@@ -23,6 +23,10 @@ import {
   twoFaPendingCookieOptions,
 } from "@/lib/auth/two-fa-session";
 import {
+  PASSWORD_RECOVERY_COOKIE,
+  isRecoveryTwoFaExemptPath,
+} from "@/lib/auth/recovery-session";
+import {
   isPreviewPrivilegedPath,
   isVercelPreview,
 } from "@/lib/ops/preview-guard";
@@ -194,8 +198,14 @@ export async function updateSession(request: NextRequest) {
       const onTwoFa = isTwoFaChallengePath(pathname);
       const pending = request.cookies.get(TWO_FA_PENDING_COOKIE)?.value;
       const verified = request.cookies.get(TWO_FA_VERIFIED_COOKIE)?.value;
+      const recovery = request.cookies.get(PASSWORD_RECOVERY_COOKIE)?.value;
+      const skipTwoFaForRecovery = Boolean(
+        user &&
+        cookieMatchesUser(recovery, user.id) &&
+        isRecoveryTwoFaExemptPath(pathname),
+      );
 
-      if (user && cookieMatchesUser(pending, user.id) && !onTwoFa) {
+      if (user && cookieMatchesUser(pending, user.id) && !onTwoFa && !skipTwoFaForRecovery) {
         return redirectToTwoFa(request, pathname);
       }
 
@@ -203,6 +213,7 @@ export async function updateSession(request: NextRequest) {
         user &&
         (isProtected || isGuestAuth) &&
         !onTwoFa &&
+        !skipTwoFaForRecovery &&
         !cookieMatchesUser(verified, user.id)
       ) {
         const { data: profile2fa } = await supabase

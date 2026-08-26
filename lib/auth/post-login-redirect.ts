@@ -1,6 +1,7 @@
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 import { sanitizeInternalPath } from "@/lib/auth/safe-path"
+import { isAuthCompletionPath, isPasswordResetPath } from "@/lib/auth/recovery-session"
 
 let _adminClient: ReturnType<typeof createAdminClient> | null = null
 
@@ -33,7 +34,10 @@ export async function resolvePostLoginPath(
   userId: string,
   rawNext: string | null | undefined
 ): Promise<string> {
-  const safe = sanitizePath(rawNext)
+  const incoming = sanitizePath(rawNext)
+  const safe = isPasswordResetPath(incoming) ? "/dashboard" : incoming
+
+  if (isAuthCompletionPath(safe) && !isPasswordResetPath(safe)) return safe
 
   // If a specific destination was requested and it's not just /dashboard,
   // honor it — the user was trying to go somewhere

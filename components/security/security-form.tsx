@@ -12,6 +12,8 @@ import {
 import { SessionCard } from "./session-card"
 import { TwoFAEnabled, NewBackupCodesPanel } from "@/components/security/2fa-enabled"
 import { revokeSession, changePassword, revokeAllOtherSessions, type Session } from "@/lib/actions/security"
+import { getAuthMethods, linkGoogleIdentity, unlinkAuthIdentity, type AuthMethods } from "@/lib/auth/actions"
+import { isNextRedirectError } from "@/lib/auth/redirect-error"
 import { TwoFASetup } from "./2fa-setup"
 
 function PasswordStrength({ password }: { password: string }) {
@@ -49,11 +51,12 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export function SecurityForm({
-    initialTwoFa, initialSessions, sessionsError,
+    initialTwoFa, initialSessions, sessionsError, initialMethods,
 }: {
     initialTwoFa: { enabled: boolean; backupCodesRemaining?: number }
     initialSessions: Session[]
     sessionsError?: string
+    initialMethods?: AuthMethods | null
 }) {
     // ── State ──
     const [twoFaEnabled, setTwoFaEnabled] = useState(initialTwoFa.enabled)
@@ -71,13 +74,16 @@ export function SecurityForm({
     const [confirmPw, setConfirmPw] = useState("")
     const [showNewPw, setShowNewPw] = useState(false)
     const [pwSubmitting, setPwSubmitting] = useState(false)
+    const [methods, setMethods] = useState<AuthMethods | null>(initialMethods ?? null)
+    const [identityBusy, setIdentityBusy] = useState(false)
 
     const [toast, setToast] = useState<ToastMsg | null>(null)
     const notify = (msg: string, type: "ok" | "err" = "ok") => setToast({ msg, type })
 
     // ── Handlers ──
     const handleChangePassword = async () => {
-        if (!currentPw || !newPw || !confirmPw) {
+        const needsCurrent = Boolean(methods?.hasPassword)
+        if ((needsCurrent && !currentPw) || !newPw || !confirmPw) {
             notify("Fill in all password fields", "err"); return
         }
         if (newPw !== confirmPw) {
@@ -89,15 +95,21 @@ export function SecurityForm({
 
         setPwSubmitting(true)
         try {
-            const r = await changePassword({ currentPassword: currentPw, newPassword: newPw })
+            const r = await changePassword({
+                currentPassword: needsCurrent ? currentPw : undefined,
+                newPassword: newPw,
+            })
             if (!r.success) {
                 notify(r.error ?? "Failed to update password", "err")
                 return
             }
-            notify("Password updated")
+            notify(needsCurrent ? "Password updated" : "Password added. You can now sign in with email.")
             setCurrentPw(""); setNewPw(""); setConfirmPw("")
+            const next = await getAuthMethods()
+            if (next) setMethods(next)
         } catch (e) {
-            notify((e as Error).message ?? "Failed to update password", "err")
+            if (isNextRedirectError(e)) throw e
+            notify("Something went wrong. Please try again.", "err")
         } finally {
             setPwSubmitting(false)
         }
@@ -200,15 +212,114 @@ export function SecurityForm({
                     }
                 </section>
 
+                {/* ─── Connected accounts ─── */}
+                <section>
+                    <SectionHeader
+                        icon={<Lock className="size-4" />}
+                        title="Authentication methods"
+                        description="Email and Google are the same Jimvio account when they share a verified identity"
+                    />
+                    <div className="space-y-3">
+                        <div
+                            className="flex items-center justify-between gap-3 p-4"
+                            style={{
+                                borderRadius: "var(--radius-md)",
+                                border: "1px solid var(--color-border)",
+                                background: "var(--color-surface)",
+                            }}
+                        >
+                            <div>
+                                <div className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                                    Email
+                                </div>
+                                <div className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+                                    {methods?.email ?? "Not available"}
+                                    {" · "}
+                                    {methods?.hasPassword ? "Password set" : "No password yet"}
+                                </div>
+                                {methods?.pendingEmail ? (
+                                    <div className="text-[11px] mt-1" style={{ color: "var(--color-warning)" }}>
+                                        Pending change to {methods.pendingEmail}
+                                    </div>
+                                ) : null}
+                            </div>
+                        </div>
+                        <div
+                            className="flex items-center justify-between gap-3 p-4"
+                            style={{
+                                borderRadius: "var(--radius-md)",
+                                border: "1px solid var(--color-border)",
+                                background: "var(--color-surface)",
+                            }}
+                        >
+                            <div>
+                                <div className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                                    Google
+                                </div>
+                                <div className="text-[12px] mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+                                    {methods?.googleConnected ? "Connected" : "Not connected"}
+                                </div>
+                            </div>
+                            {methods?.googleConnected ? (
+                                <BrandBtn
+                                    variant="ghost"
+                                    disabled={identityBusy || !methods.hasPassword}
+                                    onClick={async () => {
+                                        setIdentityBusy(true)
+                                        const r = await unlinkAuthIdentity("google")
+                                        if (r.error) notify(r.error, "err")
+                                        else {
+                                            notify(r.success ?? "Google disconnected")
+                                            const next = await getAuthMethods()
+                                            if (next) setMethods(next)
+                                        }
+                                        setIdentityBusy(false)
+                                    }}
+                                >
+                                    Disconnect
+                                </BrandBtn>
+                            ) : (
+                                <BrandBtn
+                                    variant="primary"
+                                    disabled={identityBusy}
+                                    onClick={async () => {
+                                        setIdentityBusy(true)
+                                        try {
+                                            await linkGoogleIdentity()
+                                        } catch (e) {
+                                            if (isNextRedirectError(e)) throw e
+                                            notify("Could not connect Google. Please try again.", "err")
+                                            setIdentityBusy(false)
+                                        }
+                                    }}
+                                >
+                                    Connect Google
+                                </BrandBtn>
+                            )}
+                        </div>
+                        {!methods?.hasPassword && methods?.googleConnected ? (
+                            <p className="text-[12px]" style={{ color: "var(--color-text-muted)" }}>
+                                Google is your only sign-in method. Add a password below if you want email login too.
+                            </p>
+                        ) : null}
+                    </div>
+                </section>
+
                 {/* ─── Password ─── */}
                 <section>
                     <SectionHeader
                         icon={<Lock className="size-4" />}
-                        title="Password"
-                        description="Choose a strong password unique to this account"
+                        title={methods?.hasPassword ? "Change password" : "Add a password"}
+                        description={
+                            methods?.hasPassword
+                                ? "Choose a strong password unique to this account"
+                                : "Add email-and-password sign-in to this Google account"
+                        }
                     />
 
                     <Grid cols={2}>
+                        {methods?.hasPassword ? (
+                            <>
                         <Field label="Current password">
                             <Input
                                 type="password"
@@ -221,6 +332,8 @@ export function SecurityForm({
                             />
                         </Field>
                         <div className="hidden md:block" />
+                            </>
+                        ) : null}
 
                         <Field label="New password">
                             <div className="relative">
@@ -263,11 +376,11 @@ export function SecurityForm({
                         <BrandBtn
                             onClick={handleChangePassword}
                             loading={pwSubmitting}
-                            disabled={pwSubmitting || !currentPw || !newPw || !confirmPw}
+                            disabled={pwSubmitting || !newPw || !confirmPw || (Boolean(methods?.hasPassword) && !currentPw)}
                             variant="primary"
                             icon={<Lock className="size-3.5" />}
                         >
-                            Update password
+                            {methods?.hasPassword ? "Change password" : "Add password"}
                         </BrandBtn>
                     </div>
                 </section>
@@ -299,7 +412,7 @@ export function SecurityForm({
                                 color: "var(--color-danger)",
                             }}
                         >
-                            {sessionsError}. Check that `SUPABASE_SECRET_KEY` is set, then sign in again.
+                            {sessionsError}. Sign in again, or contact support if this continues.
                         </div>
                     )}
 

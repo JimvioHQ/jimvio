@@ -16,7 +16,14 @@ import {
 import { isAccountAccessBlocked } from "@/lib/users/account-status"
 import { rethrowIfNextNavigation } from "@/lib/auth/redirect-error"
 import {
+  GENERIC_CONFIRMATION_SENT,
+  GENERIC_RESET_SENT,
   isExistingAccountAuthError,
+  isRateLimitAuthError,
+  isUnconfirmedDuplicateSignUp,
+  isValidAuthEmail,
+  mapIdentityLinkError,
+  mapPasswordUpdateError,
   mapSignInAuthError,
   mapSignUpAuthError,
   normalizeSignInEmail,
@@ -26,13 +33,23 @@ import {
   authProvidersForEmail,
   ensureUserProfile,
 } from "@/lib/auth/ensure-user-profile"
-import { isSafeInternalPath } from "@/lib/auth/safe-path"
+import { buildAuthCallbackUrl } from "@/lib/auth/callback-origin"
+import { validateNewPassword } from "@/lib/auth/password-rules"
+import {
+  PASSWORD_RECOVERY_COOKIE,
+  accessTokenHasRecoveryAmr,
+  claimsIndicatePasswordRecovery,
+  passwordRecoveryCookieOptions,
+  sanitizeAuthenticatedNext,
+} from "@/lib/auth/recovery-session"
 import {
   TWO_FA_PENDING_COOKIE,
   TWO_FA_VERIFIED_COOKIE,
+  cookieMatchesUser,
   twoFaPendingCookieOptions,
   twoFaVerifiedCookieOptions,
 } from "@/lib/auth/two-fa-session"
+import type { UserIdentity } from "@supabase/supabase-js"
 
 // ─────────────────────────────────────────────
 // Constants
@@ -95,7 +112,22 @@ function clearFailedAttempts(userId: string) {
 // ─────────────────────────────────────────────
 
 async function resolveLandingPath(userId: string, next?: string | null): Promise<string> {
-  return resolvePostLoginPath(userId, next)
+  return resolvePostLoginPath(userId, sanitizeAuthenticatedNext(next) ?? "/dashboard")
+}
+
+async function currentSessionIsPasswordRecovery(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<boolean> {
+  const { data: claimsWrap, error } = await supabase.auth.getClaims()
+  if (!error && claimsWrap?.claims) {
+    const sub = typeof claimsWrap.claims.sub === "string" ? claimsWrap.claims.sub : ""
+    if (sub && sub !== userId) return false
+    return claimsIndicatePasswordRecovery(claimsWrap.claims)
+  }
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token || session.user.id !== userId) return false
+  return accessTokenHasRecoveryAmr(session.access_token)
 }
 
 async function registerLoginSession(userId: string) {
@@ -106,13 +138,47 @@ async function registerLoginSession(userId: string) {
   }
 }
 
-async function messageForExistingEmail(email: string): Promise<string> {
-  const identity = await authProvidersForEmail(email)
-  const oauth = identity?.providers.find((provider) => provider !== "email")
-  if (oauth && !identity?.providers.includes("email")) {
-    return `An account with this email already exists. ${oauthOnlySignInMessage(oauth)}`
+function providersFromUser(user: {
+  identities?: { provider?: string }[] | null
+  app_metadata?: { providers?: string[]; provider?: string } | null
+}): string[] {
+  const fromIdentities = (user.identities ?? [])
+    .map((identity) => identity.provider)
+    .filter((provider): provider is string => Boolean(provider))
+  if (fromIdentities.length > 0) return Array.from(new Set(fromIdentities))
+  const meta = user.app_metadata?.providers
+  if (Array.isArray(meta) && meta.length > 0) return meta.filter(Boolean)
+  if (user.app_metadata?.provider) return [user.app_metadata.provider]
+  return []
+}
+
+export type AuthMethods = {
+  email: string | null
+  pendingEmail: string | null
+  providers: string[]
+  hasPassword: boolean
+  googleConnected: boolean
+}
+
+export async function getAuthMethods(): Promise<AuthMethods | null> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+    const { data } = await supabase.auth.getUserIdentities()
+    const providers = (data?.identities ?? user.identities ?? []).map((i) => i.provider)
+    const unique = Array.from(new Set(providers.filter(Boolean)))
+    return {
+      email: user.email ?? null,
+      pendingEmail: (user as { new_email?: string | null }).new_email ?? null,
+      providers: unique.length > 0 ? unique : providersFromUser(user),
+      hasPassword: unique.includes("email") || providersFromUser(user).includes("email"),
+      googleConnected: unique.includes("google") || providersFromUser(user).includes("google"),
+    }
+  } catch (err) {
+    console.error("[auth] getAuthMethods error:", err)
+    return null
   }
-  return "An account with this email already exists. Sign in instead."
 }
 
 // ─────────────────────────────────────────────
@@ -128,13 +194,12 @@ export async function signUp(formData: FormData) {
     const fullName = (formData.get("full_name") as string)?.trim()
 
     if (!email || !password) return { error: "Email and password are required." }
-    if (password.length < 8) return { error: "Password must be at least 8 characters." }
+    if (!isValidAuthEmail(email)) return { error: "Enter a valid email address." }
+    const passwordError = validateNewPassword(password, email)
+    if (passwordError) return { error: passwordError }
 
     const next = (formData.get("next") as string)?.trim()
-    let callbackUrl = `${await getPublicAppUrl()}/auth/callback`
-    if (next && isSafeInternalPath(next)) {
-      callbackUrl += `?next=${encodeURIComponent(next)}`
-    }
+    const callbackUrl = buildAuthCallbackUrl(await getPublicAppUrl(), next || "/verify")
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -147,10 +212,15 @@ export async function signUp(formData: FormData) {
 
     if (error) {
       if (isExistingAccountAuthError(error)) {
-        return { error: await messageForExistingEmail(email) }
+        return { error: mapSignUpAuthError(error) }
       }
       return { error: mapSignUpAuthError(error) }
     }
+
+    if (isUnconfirmedDuplicateSignUp(data.user)) {
+      return { success: "Check your email to confirm your account." }
+    }
+
     if (data.user) {
       const recovered = await ensureUserProfile(data.user.id, email, fullName)
       if (!recovered) {
@@ -161,10 +231,39 @@ export async function signUp(formData: FormData) {
       }
     }
 
-    return { success: "Account created! Check your email to confirm." }
+    if (data.session && data.user) {
+      await registerLoginSession(data.user.id)
+      const path = await resolveLandingPath(data.user.id, next)
+      redirect(path)
+    }
+
+    return { success: "Check your email to confirm your account." }
   } catch (err) {
+    rethrowIfNextNavigation(err)
     console.error("[auth] signUp error:", err)
     return { error: "Temporary server error. Please try again." }
+  }
+}
+
+export async function resendSignUpConfirmation(formData: FormData) {
+  try {
+    const email = normalizeSignInEmail((formData.get("email") as string) || "")
+    if (!isValidAuthEmail(email)) return { error: "Enter a valid email address." }
+
+    const supabase = await createClient()
+    const callbackUrl = buildAuthCallbackUrl(await getPublicAppUrl(), "/verify")
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: callbackUrl },
+    })
+    if (error && isRateLimitAuthError(error)) {
+      return { error: "Too many attempts. Please wait a moment and try again." }
+    }
+    return { success: GENERIC_CONFIRMATION_SENT }
+  } catch (err) {
+    console.error("[auth] resendSignUpConfirmation error:", err)
+    return { success: GENERIC_CONFIRMATION_SENT }
   }
 }
 
@@ -193,6 +292,7 @@ export async function signIn(formData: FormData) {
   const next = (formData.get("next") as string | null)?.trim() || null
 
   if (!email || !password) return { error: "Email and password are required." }
+  if (!isValidAuthEmail(email)) return { error: "Invalid email or password." }
 
   let userId: string
 
@@ -204,6 +304,8 @@ export async function signIn(formData: FormData) {
     if (!data.user) return { error: "Sign in failed. Please try again." }
 
     userId = data.user.id
+    const cookieStore = await cookies()
+    cookieStore.delete(PASSWORD_RECOVERY_COOKIE)
     await ensureUserProfile(userId, email)
 
     const meta = (data.user.user_metadata ?? {}) as Record<string, unknown>;
@@ -250,11 +352,10 @@ export async function signIn(formData: FormData) {
       profileResult.data?.two_factor_enabled || Boolean(secretResult.data?.secret)
 
     if (needs2FA) {
-      const cookieStore = await cookies()
       cookieStore.delete(TWO_FA_VERIFIED_COOKIE)
       cookieStore.set(TWO_FA_PENDING_COOKIE, userId, twoFaPendingCookieOptions())
 
-      const safe = next && isSafeInternalPath(next) ? next : "/dashboard"
+      const safe = sanitizeAuthenticatedNext(next) ?? "/dashboard"
       redirect(`/login/2fa?next=${encodeURIComponent(safe)}`)
     }
   } catch (err) {
@@ -300,6 +401,8 @@ export async function verify2FAAndLogin(formData: FormData) {
     cookieStore.delete(TWO_FA_PENDING_COOKIE)
     redirect("/login?error=session_expired")
   }
+
+  cookieStore.delete(PASSWORD_RECOVERY_COOKIE)
 
   // ── Fetch secret & backup codes ──
   const admin = createAdminClient()
@@ -416,21 +519,22 @@ export async function signInWithGoogle(next?: string): Promise<void> {
 
   try {
     const supabase = await createClient()
-
-    let callbackUrl = `${await getPublicAppUrl()}/auth/callback`
-    if (next && isSafeInternalPath(next)) {
-      callbackUrl += `?next=${encodeURIComponent(next)}`
-    }
+    const callbackUrl = buildAuthCallbackUrl(
+      await getPublicAppUrl(),
+      sanitizeAuthenticatedNext(next),
+    )
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: callbackUrl,
+        skipBrowserRedirect: true,
         queryParams: { access_type: "offline", prompt: "select_account" },
       },
     })
 
     if (error || !data?.url) {
+      console.error("[auth] signInWithGoogle:", error?.message ?? "missing oauth url")
       redirectUrl = "/login?error=google_signin_failed"
     } else {
       redirectUrl = data.url
@@ -440,7 +544,7 @@ export async function signInWithGoogle(next?: string): Promise<void> {
     redirectUrl = "/login?error=google_signin_failed"
   }
 
-  redirect(redirectUrl) // ← always runs, catches all paths
+  redirect(redirectUrl)
 }
 
 // ─────────────────────────────────────────────
@@ -450,11 +554,12 @@ export async function signInWithGoogle(next?: string): Promise<void> {
 export async function signOut(): Promise<void> {
   try {
     const supabase = await createClient()
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: "local" })
 
     const cookieStore = await cookies()
     cookieStore.delete(TWO_FA_PENDING_COOKIE)
     cookieStore.delete(TWO_FA_VERIFIED_COOKIE)
+    cookieStore.delete(PASSWORD_RECOVERY_COOKIE)
   } catch (err) {
     console.error("[auth] signOut error:", err)
   }
@@ -467,20 +572,94 @@ export async function signOut(): Promise<void> {
 
 export async function resetPassword(formData: FormData) {
   try {
-    const supabase = await createClient()
     const email = normalizeSignInEmail((formData.get("email") as string) || "")
     if (!email) return { error: "Email is required." }
+    if (!isValidAuthEmail(email)) return { error: "Enter a valid email address." }
 
-    const redirectTo = `${await getPublicAppUrl()}/auth/callback?next=${encodeURIComponent("/reset-password")}`
+    const supabase = await createClient()
+    const redirectTo = buildAuthCallbackUrl(await getPublicAppUrl(), "/reset-password")
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
-    if (error) return { error: "Failed to send reset email. Please try again." }
-
-    return { success: "Password reset link sent. Check your email." }
+    if (error && isRateLimitAuthError(error)) {
+      return { error: "Too many attempts. Please wait a moment and try again." }
+    }
+    return { success: GENERIC_RESET_SENT }
   } catch (err) {
     console.error("[auth] resetPassword error:", err)
-    return { error: "Failed to send reset email. Please try again." }
+    return { success: GENERIC_RESET_SENT }
   }
+}
+
+export async function beginPasswordRecovery(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { ok: false, error: "Reset link expired. Request a new one." }
+    if (!(await currentSessionIsPasswordRecovery(supabase, user.id))) {
+      return { ok: false, error: "Reset link expired. Request a new one." }
+    }
+    const cookieStore = await cookies()
+    cookieStore.set(PASSWORD_RECOVERY_COOKIE, user.id, passwordRecoveryCookieOptions())
+    return { ok: true }
+  } catch (err) {
+    console.error("[auth] beginPasswordRecovery error:", err)
+    return { ok: false, error: "Reset link expired. Request a new one." }
+  }
+}
+
+export async function hasPasswordRecoverySession(): Promise<boolean> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+    const cookieStore = await cookies()
+    if (!cookieMatchesUser(cookieStore.get(PASSWORD_RECOVERY_COOKIE)?.value, user.id)) {
+      return false
+    }
+    return currentSessionIsPasswordRecovery(supabase, user.id)
+  } catch {
+    return false
+  }
+}
+
+export async function completePasswordReset(formData: FormData) {
+  const password = (formData.get("password") as string) || ""
+  const confirm = (formData.get("password_confirm") as string) || ""
+  if (password !== confirm) return { error: "Passwords do not match." }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: "Reset link expired. Request a new one." }
+
+  const cookieStore = await cookies()
+  const recovery = cookieStore.get(PASSWORD_RECOVERY_COOKIE)?.value
+  if (!cookieMatchesUser(recovery, user.id)) {
+    return { error: "Reset link expired. Request a new one." }
+  }
+  if (!(await currentSessionIsPasswordRecovery(supabase, user.id))) {
+    cookieStore.delete(PASSWORD_RECOVERY_COOKIE)
+    return { error: "Reset link expired. Request a new one." }
+  }
+
+  const passwordError = validateNewPassword(password, user.email)
+  if (passwordError) return { error: passwordError }
+
+  try {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) return { error: mapPasswordUpdateError(error) }
+  } catch (err) {
+    console.error("[auth] completePasswordReset error:", err)
+    return { error: "Something went wrong. Please try again." }
+  }
+
+  cookieStore.delete(PASSWORD_RECOVERY_COOKIE)
+  cookieStore.delete(TWO_FA_PENDING_COOKIE)
+  try {
+    await supabase.auth.signOut({ scope: "local" })
+  } catch (err) {
+    console.error("[auth] completePasswordReset signOut:", err)
+  }
+  return { success: "Password updated. Sign in with your new password." }
 }
 
 // ─────────────────────────────────────────────
@@ -493,14 +672,18 @@ export async function updatePassword(formData: FormData) {
   const currentPassword = formData.get("current_password") as string | null
   const newPassword = formData.get("password") as string
 
-  if (!newPassword) return { error: "New password is required." }
-  if (newPassword.length < 8) return { error: "Password must be at least 8 characters." }
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: "Not authenticated." }
 
-  // Verify current password (skip for first-time set after OAuth signup)
-  if (currentPassword && user.email) {
+  const passwordError = validateNewPassword(newPassword, user.email)
+  if (passwordError) return { error: passwordError }
+
+  const methods = providersFromUser(user)
+  const hasPassword = methods.includes("email")
+
+  if (hasPassword) {
+    if (!currentPassword) return { error: "Current password is required." }
+    if (!user.email) return { error: "Account email required to change password." }
     const { error: verifyErr } = await supabase.auth.signInWithPassword({
       email: user.email,
       password: currentPassword,
@@ -510,14 +693,73 @@ export async function updatePassword(formData: FormData) {
 
   try {
     const { error } = await supabase.auth.updateUser({ password: newPassword })
-    if (error) return { error: "Failed to update password. Please try again." }
+    if (error) return { error: mapPasswordUpdateError(error) }
   } catch (err) {
     console.error("[auth] updatePassword error:", err)
-    return { error: "Failed to update password. Please try again." }
+    return { error: "Something went wrong. Please try again." }
   }
 
   const path = await resolveLandingPath(user.id, "/dashboard")
   redirect(path)
+}
+
+export async function linkGoogleIdentity(): Promise<void> {
+  let redirectUrl = "/dashboard/security?error=link_failed"
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      redirect("/login?error=session_expired")
+    }
+    const callbackUrl = buildAuthCallbackUrl(
+      await getPublicAppUrl(),
+      "/dashboard/security",
+    )
+    const { data, error } = await supabase.auth.linkIdentity({
+      provider: "google",
+      options: {
+        redirectTo: callbackUrl,
+        skipBrowserRedirect: true,
+        queryParams: { access_type: "offline", prompt: "select_account" },
+      },
+    })
+    if (error || !data?.url) {
+      console.error("[auth] linkGoogleIdentity:", error?.message ?? "missing url")
+      redirectUrl = "/dashboard/security?error=link_failed"
+    } else {
+      redirectUrl = data.url
+    }
+  } catch (err) {
+    rethrowIfNextNavigation(err)
+    console.error("[auth] linkGoogleIdentity error:", err)
+  }
+  redirect(redirectUrl)
+}
+
+export async function unlinkAuthIdentity(provider: "google" | "email"): Promise<{
+  error?: string
+  success?: string
+}> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: "Not authenticated." }
+
+    const { data, error } = await supabase.auth.getUserIdentities()
+    if (error) return { error: mapIdentityLinkError(error) }
+    const identities = (data?.identities ?? []) as UserIdentity[]
+    if (identities.length < 2) {
+      return { error: "Keep at least one sign-in method on your account." }
+    }
+    const target = identities.find((identity) => identity.provider === provider)
+    if (!target) return { error: "That sign-in method is not connected." }
+    const { error: unlinkError } = await supabase.auth.unlinkIdentity(target)
+    if (unlinkError) return { error: mapIdentityLinkError(unlinkError) }
+    return { success: provider === "google" ? "Google disconnected." : "Email login removed." }
+  } catch (err) {
+    console.error("[auth] unlinkAuthIdentity error:", err)
+    return { error: "Could not update connected accounts. Please try again." }
+  }
 }
 
 // ─────────────────────────────────────────────

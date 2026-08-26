@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Loader2, Shield, Settings } from "lucide-react";
 import { check2FAStatus, getSessions } from "@/lib/actions/security";
+import { getAuthMethods } from "@/lib/auth/actions";
 import { SecurityForm } from "@/components/security/security-form";
 import { AccountSettingsHeader } from "@/components/dashboard/account-settings-header";
 
@@ -14,9 +15,10 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardSecurityPage() {
-  const [status, sessions] = await Promise.allSettled([
+  const [status, sessions, methods] = await Promise.allSettled([
     check2FAStatus(),
     getSessions(),
+    getAuthMethods(),
   ]);
 
   const initialTwoFa =
@@ -74,6 +76,7 @@ export default async function DashboardSecurityPage() {
             initialTwoFa={initialTwoFa}
             initialSessions={initialSessions}
             sessionsError={sessionsError}
+            initialMethods={methods.status === "fulfilled" ? methods.value : null}
           />
         </Suspense>
       </div>

@@ -16,6 +16,8 @@ import {
   syncUserSession,
   type Session,
 } from '@/lib/auth/user-sessions'
+import { validateNewPassword } from '@/lib/auth/password-rules'
+import { mapPasswordUpdateError } from '@/lib/auth/sign-in-errors'
 
 export type { Session } from '@/lib/auth/user-sessions'
 
@@ -349,31 +351,36 @@ export async function revokeAllOtherSessions(): Promise<ActionResult<{ revokedCo
 // ─────────────────────────────────────────────
 
 export async function changePassword(input: {
-  currentPassword: string
+  currentPassword?: string
   newPassword: string
 }): Promise<ActionResult> {
   const { user, supabase } = await getAuthenticatedUser()
 
-  if (!input.currentPassword?.trim()) {
-    return { success: false, error: 'Current password is required.' }
-  }
-  if (!input.newPassword || input.newPassword.length < 8) {
-    return { success: false, error: 'New password must be at least 8 characters.' }
-  }
-  if (!user.email) {
-    return { success: false, error: 'Account email required to change password.' }
-  }
+  const passwordError = validateNewPassword(input.newPassword, user.email)
+  if (passwordError) return { success: false, error: passwordError }
 
-  const { error: verifyErr } = await supabase.auth.signInWithPassword({
-    email: user.email,
-    password: input.currentPassword,
-  })
-  if (verifyErr) {
-    return { success: false, error: 'Current password is incorrect.' }
+  const providers = (user.identities ?? []).map((identity) => identity.provider)
+  const hasPassword = providers.includes('email')
+
+  if (hasPassword) {
+    if (!input.currentPassword?.trim()) {
+      return { success: false, error: 'Current password is required.' }
+    }
+    if (!user.email) {
+      return { success: false, error: 'Account email required to change password.' }
+    }
+
+    const { error: verifyErr } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: input.currentPassword,
+    })
+    if (verifyErr) {
+      return { success: false, error: 'Current password is incorrect.' }
+    }
   }
 
   const { error } = await supabase.auth.updateUser({ password: input.newPassword })
-  if (error) return { success: false, error: error.message }
+  if (error) return { success: false, error: mapPasswordUpdateError(error) }
 
   return { success: true }
 }

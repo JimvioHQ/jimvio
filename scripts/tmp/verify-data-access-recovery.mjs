@@ -47,13 +47,14 @@ const auth = mustExist("lib/auth/sign-in-errors.ts");
 assert.match(auth, /normalizeSignInEmail/);
 assert.match(auth, /email_not_confirmed/);
 assert.match(auth, /over_request_rate_limit/);
-assert.match(auth, /Invalid login credentials/);
+assert.match(auth, /Invalid email or password/);
 assert.match(auth, /oauthOnlySignInMessage/);
 assert.match(auth, /mapSignUpAuthError/);
 assert.match(auth, /isExistingAccountAuthError/);
 assert.match(auth, /Registration failed\. Please try again\./);
 assert.match(auth, /Authentication service is temporarily unavailable/);
-assert.match(auth, /already exists\. Sign in instead/);
+assert.match(auth, /This email is already in use/);
+assert.match(auth, /already in use\. Sign in instead/);
 
 const actions = mustExist("lib/auth/actions.ts");
 assert.match(actions, /normalizeSignInEmail/);

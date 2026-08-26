@@ -52,7 +52,7 @@ assert.match(actions, /Two-factor authentication is not fully set up/);
 assert.doesNotMatch(actions, /error=\$\{encodeURIComponent\(error\?\.message/);
 
 const errors = mustExist("lib/auth/sign-in-errors.ts");
-assert.match(errors, /Invalid login credentials/);
+assert.match(errors, /Invalid email or password/);
 assert.match(errors, /formatLoginQueryError/);
 assert.doesNotMatch(
   errors,

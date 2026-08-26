@@ -54,6 +54,8 @@ import {
   saveVendorPolicies,
   type VendorPolicies,
 } from "@/lib/actions/account-settings";
+import { getAuthMethods, linkGoogleIdentity, type AuthMethods } from "@/lib/auth/actions";
+import { isNextRedirectError } from "@/lib/auth/redirect-error";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency/config";
 
 export const dynamic = "force-dynamic";
@@ -231,6 +233,7 @@ export default function DashboardSettingsClient() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [newEmail, setNewEmail] = useState("");
+  const [authMethods, setAuthMethods] = useState<AuthMethods | null>(null);
   const [preferredCurrency, setPreferredCurrency] = useState("USD");
   const [activeRoles, setActiveRoles] = useState<string[]>([]);
 
@@ -269,6 +272,8 @@ export default function DashboardSettingsClient() {
       if (!user) return;
       setUserId(user.id);
       setUserEmail(user.email ?? null);
+      const methods = await getAuthMethods();
+      if (methods) setAuthMethods(methods);
       setPreferredCurrency(
         (user.user_metadata?.preferred_currency as string) || "USD"
       );
@@ -811,6 +816,62 @@ export default function DashboardSettingsClient() {
             <p className="text-[11px] text-[var(--color-text-muted)]">
               We&apos;ll email a confirmation link to the new address before it takes effect.
             </p>
+            {authMethods?.pendingEmail ? (
+              <p className="text-[12px] text-amber-600">
+                Pending confirmation for {authMethods.pendingEmail}
+              </p>
+            ) : null}
+
+            <Divider label="Connected accounts" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl p-4 ring-1 ring-[var(--color-border)] bg-[var(--color-surface-secondary)]/30">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]">Email</p>
+                <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)] truncate">
+                  {userEmail ?? "—"}
+                </p>
+                <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+                  {authMethods?.hasPassword ? "Password set" : "No password yet"}
+                </p>
+              </div>
+              <div className="rounded-xl p-4 ring-1 ring-[var(--color-border)] bg-[var(--color-surface-secondary)]/30">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]">Google</p>
+                <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
+                  {authMethods?.googleConnected ? "Connected" : "Not connected"}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {authMethods?.googleConnected ? (
+                    <Link
+                      href="/dashboard/security"
+                      className="text-[12px] font-semibold text-orange-600 hover:text-orange-500"
+                    >
+                      Manage in Security
+                    </Link>
+                  ) : (
+                    <BrandBtn
+                      onClick={() => {
+                        startTransition(async () => {
+                          try {
+                            await linkGoogleIdentity();
+                          } catch (err) {
+                            if (isNextRedirectError(err)) throw err;
+                            showToast("Could not connect Google. Please try again.", "err");
+                          }
+                        });
+                      }}
+                      disabled={isPending}
+                    >
+                      Continue with Google
+                    </BrandBtn>
+                  )}
+                  <Link
+                    href="/dashboard/security"
+                    className="text-[12px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+                  >
+                    Change password
+                  </Link>
+                </div>
+              </div>
+            </div>
 
             {profileHasErrors ? (
               <ValidationBanner message="Please fix the errors above before saving." />

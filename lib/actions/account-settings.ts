@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { provisionOwnNonPrivilegedRole } from "@/lib/auth/provision-nonprivileged-role";
 import type { ActionResult } from "@/lib/actions/security";
+import { isValidAuthEmail, mapEmailChangeError, normalizeSignInEmail } from "@/lib/auth/sign-in-errors";
+import { getPublicAppUrl } from "@/lib/app-url";
+import { buildAuthCallbackUrl } from "@/lib/auth/callback-origin";
 
 export type VendorPolicies = {
   shipping_policy: string;
@@ -12,8 +15,8 @@ export type VendorPolicies = {
 };
 
 export async function requestEmailChange(newEmail: string): Promise<ActionResult<{ message: string }>> {
-  const email = newEmail.trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  const email = normalizeSignInEmail(newEmail);
+  if (!isValidAuthEmail(email)) {
     return { success: false, error: "Enter a valid email address." };
   }
 
@@ -27,8 +30,11 @@ export async function requestEmailChange(newEmail: string): Promise<ActionResult
     return { success: false, error: "That is already your email address." };
   }
 
-  const { error } = await supabase.auth.updateUser({ email });
-  if (error) return { success: false, error: error.message };
+  const { error } = await supabase.auth.updateUser(
+    { email },
+    { emailRedirectTo: buildAuthCallbackUrl(await getPublicAppUrl(), "/dashboard/settings") },
+  );
+  if (error) return { success: false, error: mapEmailChangeError(error) };
 
   revalidatePath("/dashboard/settings");
   revalidatePath("/dashboard/security");
