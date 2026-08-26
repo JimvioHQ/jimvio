@@ -405,6 +405,39 @@ export function useLiveSession(initialSessionId?: string | null) {
     [participants]
   );
 
+  useEffect(() => {
+    if (!session?.id || session.status !== "live") return;
+    const sid = session.id;
+    const tick = () => {
+      void fetch(`/api/c/live/sessions/${sid}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "heartbeat" }),
+        keepalive: true,
+      }).catch(() => undefined);
+    };
+    tick();
+    const timer = window.setInterval(tick, 120_000);
+    return () => window.clearInterval(timer);
+  }, [session?.id, session?.status]);
+
+  useEffect(() => {
+    if (!session?.id || !userId) return;
+    const sid = session.id;
+    const isHost = session.host_id === userId;
+    const onPageHide = () => {
+      if (isHost) return;
+      void fetch(`/api/c/live/sessions/${sid}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "leave" }),
+        keepalive: true,
+      });
+    };
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, [session?.id, session?.host_id, userId]);
+
   return {
     session,
     participants,

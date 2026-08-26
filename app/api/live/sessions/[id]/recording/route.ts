@@ -126,25 +126,16 @@ export async function GET(
   if (!allowed) return NextResponse.json({ error: "No access" }, { status: 403 });
 
   const recordings = await listSessionRecordings(sessionId);
+  const ready = recordings.find((r) => r.status === "ready" && r.cloudinary_url);
   return NextResponse.json({
     recordings,
-    recordingStatus:
-      recordings.find((r) => (r as { status?: string }).status === "recording") != null
-        ? "recording"
-        : recordings.find((r) => (r as { status?: string }).status === "ready") != null
-          ? "ready"
-          : recordings.length > 0
-            ? "processing"
-            : "none",
-    replayUrl:
-      (
-        recordings.find(
-          (r) =>
-            (r as { status?: string; cloudinary_url?: string | null }).status === "ready" &&
-            (r as { cloudinary_url?: string | null }).cloudinary_url
-        ) as { cloudinary_url?: string | null } | undefined
-      )?.cloudinary_url ??
-      session.recording_url ??
-      null,
+    recordingStatus: recordings.some((r) => r.status === "recording")
+      ? "recording"
+      : ready
+        ? "ready"
+        : recordings.length > 0
+          ? "processing"
+          : "none",
+    replayUrl: ready?.cloudinary_url ?? session.recording_url ?? null,
   });
 }

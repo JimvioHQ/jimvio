@@ -1,6 +1,9 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { getUserMembership, isMembershipActive } from "@/services/communityService";
 import { notifyCommunityLiveEvent } from "@/lib/community/notify-live";
+import { liveStudioLog } from "@/lib/live/observability";
+import type { LivePollPublic } from "@/lib/live/poll-types";
+import { isCommunityUuid } from "@/lib/community/resolve-community";
 import {
   canAcceptSpeaker,
   canChangeRoles,
@@ -48,6 +51,7 @@ export type LiveSessionRow = {
   engagement_events?: number | null;
   settings?: Record<string, unknown> | null;
   recording_url?: string | null;
+  updated_at?: string | null;
 };
 
 export type LiveParticipantRow = {
@@ -67,6 +71,41 @@ export type LiveParticipantRow = {
 
 function db() {
   return createServiceRoleClient();
+}
+
+function writeFailed(
+  action: string,
+  error: { code?: string } | null | undefined,
+  fallback: string
+): { error: string; status: number } {
+  liveStudioLog("error", "unhandled", {
+    action,
+    code: error?.code ?? null,
+  });
+  return { error: fallback, status: 400 };
+}
+
+function membershipChatBlock(
+  membership: Awaited<ReturnType<typeof getUserMembership>>
+): { error: string; status: number } | null {
+  if (!membership) return null;
+  const extra = membership as typeof membership & {
+    muted_until?: string | null;
+    timeout_until?: string | null;
+    suspended_until?: string | null;
+  };
+  const now = Date.now();
+  const blocked = (iso: string | null | undefined, label: string) => {
+    if (!iso) return null;
+    const at = new Date(iso).getTime();
+    if (Number.isNaN(at) || at <= now) return null;
+    return { error: `You are ${label} in this community.`, status: 403 };
+  };
+  return (
+    blocked(extra.suspended_until, "suspended") ||
+    blocked(extra.timeout_until, "in timeout") ||
+    blocked(extra.muted_until, "muted")
+  );
 }
 
 async function assertCommunityStaff(userId: string, communityId: string) {
@@ -590,6 +629,8 @@ export async function sendDueLiveReminders(withinMinutes = 15): Promise<number> 
     .lte("scheduled_at", until)
     .limit(20);
 
+  void sweepStaleLiveSessions().catch(() => undefined);
+
   let sent = 0;
   for (const raw of sessions ?? []) {
     const session = raw as LiveSessionRow;
@@ -809,23 +850,14 @@ export async function leaveLiveSession(
   return { ok: true };
 }
 
-export async function endLiveSession(
-  sessionId: string,
-  userId: string
+async function finalizeEndedSession(
+  session: LiveSessionRow,
+  actorId: string
 ): Promise<{ session: LiveSessionRow } | { error: string; status: number }> {
-  const session = await getSession(sessionId);
-  if (!session) return { error: "Session not found", status: 404 };
-  const me = await getParticipant(sessionId, userId);
-  const role = me?.role ?? (session.host_id === userId ? "host" : "viewer");
-  if (!canEndLive(role) && session.host_id !== userId) {
-    return { error: "Only the host can end live", status: 403 };
-  }
-
-  // Accrue watch time for still-joined participants.
   const { data: stillJoined } = await db()
     .from("live_session_participants")
     .select("joined_at")
-    .eq("session_id", sessionId)
+    .eq("session_id", session.id)
     .eq("status", "joined");
   let watchAdd = 0;
   for (const row of stillJoined ?? []) {
@@ -845,25 +877,26 @@ export async function endLiveSession(
       total_watch_seconds: (session.total_watch_seconds ?? 0) + watchAdd,
       updated_at: now,
     })
-    .eq("id", sessionId)
+    .eq("id", session.id)
+    .eq("status", "live")
     .select("*")
     .single();
 
-  if (error || !data) return { error: error?.message ?? "End failed", status: 400 };
+  if (error || !data) return writeFailed("live_end", error, "Unable to end this Live.");
 
   await db()
     .from("live_session_participants")
     .update({ status: "left", left_at: now, updated_at: now })
-    .eq("session_id", sessionId)
+    .eq("session_id", session.id)
     .neq("status", "removed");
 
   const slug = await communitySlug(session.community_id);
   if (slug && session.community_id) {
     void notifyCommunityLiveEvent(db(), {
       communityId: session.community_id,
-      actorId: userId,
+      actorId,
       communitySlug: slug,
-      sessionId,
+      sessionId: session.id,
       event: "live_ended",
       title: "Live ended",
       message: `${session.title} has ended`,
@@ -871,6 +904,93 @@ export async function endLiveSession(
   }
 
   return { session: data as LiveSessionRow };
+}
+
+export async function endLiveSession(
+  sessionId: string,
+  userId: string
+): Promise<{ session: LiveSessionRow } | { error: string; status: number }> {
+  const session = await getSession(sessionId);
+  if (!session) return { error: "Session not found", status: 404 };
+  const me = await getParticipant(sessionId, userId);
+  const role = me?.role ?? (session.host_id === userId ? "host" : "viewer");
+  if (!canEndLive(role) && session.host_id !== userId) {
+    return { error: "Only the host can end live", status: 403 };
+  }
+
+  return finalizeEndedSession(session, userId);
+}
+
+const STALE_LIVE_IDLE_MS = 90 * 60 * 1000;
+
+/** End abandoned Lives (host gone, or no heartbeat for 90 minutes). */
+export async function sweepStaleLiveSessions(): Promise<number> {
+  const { data: lives } = await db()
+    .from("live_sessions")
+    .select("*")
+    .eq("status", "live")
+    .limit(40);
+
+  let ended = 0;
+  const now = Date.now();
+  for (const raw of lives ?? []) {
+    const session = raw as LiveSessionRow;
+    const host = await getParticipant(session.id, session.host_id);
+    const hostGone = host?.status === "left" || host?.status === "removed";
+
+    const { data: latest } = await db()
+      .from("live_session_participants")
+      .select("updated_at")
+      .eq("session_id", session.id)
+      .eq("status", "joined")
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const lastActivity = Math.max(
+      session.updated_at ? new Date(session.updated_at).getTime() : 0,
+      latest?.updated_at ? new Date(latest.updated_at).getTime() : 0
+    );
+    const started = session.started_at ? new Date(session.started_at).getTime() : 0;
+    const idle =
+      lastActivity > 0
+        ? now - lastActivity >= STALE_LIVE_IDLE_MS
+        : started > 0 && now - started >= STALE_LIVE_IDLE_MS;
+    if (!hostGone && !idle) continue;
+
+    const result = await finalizeEndedSession(session, session.host_id);
+    if ("session" in result) {
+      liveStudioLog("info", "session_end", {
+        sessionId: session.id,
+        userId: session.host_id,
+        reason: hostGone ? "host_gone" : "stale_idle",
+      });
+      ended += 1;
+    }
+  }
+  return ended;
+}
+
+export async function heartbeatLiveParticipant(
+  sessionId: string,
+  userId: string
+): Promise<{ ok: true } | { error: string; status: number }> {
+  const session = await getSession(sessionId);
+  if (!session || session.status !== "live") return { ok: true };
+  const me = await getParticipant(sessionId, userId);
+  if (!me || me.status !== "joined") return { ok: true };
+  const now = new Date().toISOString();
+  await db()
+    .from("live_session_participants")
+    .update({ updated_at: now })
+    .eq("session_id", sessionId)
+    .eq("user_id", userId);
+  await db()
+    .from("live_sessions")
+    .update({ updated_at: now })
+    .eq("id", sessionId)
+    .eq("status", "live");
+  return { ok: true };
 }
 
 export async function inviteSpeaker(
@@ -1119,9 +1239,16 @@ export async function createPoll(
   question: string,
   options: string[]
 ): Promise<{ poll: Record<string, unknown> } | { error: string; status: number }> {
+  const session = await getSession(sessionId);
+  if (!session || session.status !== "live") return { error: "Session not live", status: 400 };
   const actor = await getParticipant(sessionId, userId);
   if (!actor || !canLaunchPoll(actor.role)) return { error: "Not allowed", status: 403 };
-  if (!question.trim() || options.length < 2) {
+  const cleanOptions = options
+    .map((o) => o.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+  const q = question.trim().slice(0, 200);
+  if (!q || cleanOptions.length < 2) {
     return { error: "Poll needs a question and at least 2 options", status: 400 };
   }
 
@@ -1130,15 +1257,157 @@ export async function createPoll(
     .insert({
       session_id: sessionId,
       created_by: userId,
-      question: question.trim(),
-      options,
+      question: q,
+      options: cleanOptions,
       status: "active",
     })
     .select("*")
     .single();
 
-  if (error || !data) return { error: error?.message ?? "Poll failed", status: 400 };
+  if (error || !data) return writeFailed("live_poll_create", error, "Unable to create poll.");
   return { poll: data };
+}
+
+export type { LivePollPublic } from "@/lib/live/poll-types";
+
+function pollOptionLabels(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (item && typeof item === "object" && "label" in item) {
+        return String((item as { label: unknown }).label).trim();
+      }
+      return "";
+    })
+    .filter(Boolean);
+}
+
+export async function listLivePolls(
+  sessionId: string,
+  userId: string
+): Promise<LivePollPublic[]> {
+  const { data: polls } = await db()
+    .from("live_polls")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  const rows = (polls ?? []) as Array<{
+    id: string;
+    session_id: string;
+    question: string;
+    options: unknown;
+    status: string;
+    created_at: string;
+    ended_at: string | null;
+  }>;
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((p) => p.id);
+  const { data: votes } = await db()
+    .from("live_poll_votes")
+    .select("poll_id, user_id, option_index")
+    .in("poll_id", ids);
+
+  const count = new Map<string, number>();
+  const mine = new Map<string, number>();
+  for (const v of votes ?? []) {
+    const key = `${v.poll_id}:${v.option_index}`;
+    count.set(key, (count.get(key) ?? 0) + 1);
+    if (v.user_id === userId) mine.set(v.poll_id, v.option_index);
+  }
+
+  return rows.map((p) => {
+    const labels = pollOptionLabels(p.options);
+    return {
+      id: p.id,
+      session_id: p.session_id,
+      question: p.question,
+      options: labels.map((label, i) => ({
+        id: String(i),
+        label,
+        votes: count.get(`${p.id}:${i}`) ?? 0,
+      })),
+      status: p.status,
+      created_at: p.created_at,
+      ended_at: p.ended_at,
+      my_option_index: mine.get(p.id) ?? null,
+    };
+  });
+}
+
+export async function voteLivePoll(
+  sessionId: string,
+  userId: string,
+  pollId: string,
+  optionIndex: number
+): Promise<{ poll: LivePollPublic } | { error: string; status: number }> {
+  const session = await getSession(sessionId);
+  if (!session || session.status !== "live") return { error: "Session not live", status: 400 };
+  if (!isCommunityUuid(pollId)) return { error: "Poll not found", status: 404 };
+  const me = await getParticipant(sessionId, userId);
+  if (!me || me.status !== "joined") return { error: "Join the session first", status: 403 };
+
+  const idx = Number(optionIndex);
+  if (!Number.isInteger(idx) || idx < 0 || idx > 7) {
+    return { error: "Invalid option", status: 400 };
+  }
+
+  const { data: poll } = await db()
+    .from("live_polls")
+    .select("*")
+    .eq("id", pollId)
+    .eq("session_id", sessionId)
+    .maybeSingle();
+  if (!poll) return { error: "Poll not found", status: 404 };
+  if (poll.status !== "active") return { error: "This poll is closed.", status: 400 };
+  const labels = pollOptionLabels(poll.options);
+  if (idx >= labels.length) return { error: "Invalid option", status: 400 };
+
+  const { error } = await db().from("live_poll_votes").insert({
+    poll_id: pollId,
+    user_id: userId,
+    option_index: idx,
+  });
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "You already voted on this poll.", status: 409 };
+    }
+    return writeFailed("live_poll_vote", error, "Unable to record your vote.");
+  }
+
+  const list = await listLivePolls(sessionId, userId);
+  const next = list.find((p) => p.id === pollId);
+  if (!next) return { error: "Poll not found", status: 404 };
+  return { poll: next };
+}
+
+export async function closeLivePoll(
+  sessionId: string,
+  userId: string,
+  pollId: string
+): Promise<{ poll: LivePollPublic } | { error: string; status: number }> {
+  if (!isCommunityUuid(pollId)) return { error: "Poll not found", status: 404 };
+  const actor = await getParticipant(sessionId, userId);
+  if (!actor || !canLaunchPoll(actor.role)) return { error: "Not allowed", status: 403 };
+
+  const now = new Date().toISOString();
+  const { data, error } = await db()
+    .from("live_polls")
+    .update({ status: "closed", ended_at: now })
+    .eq("id", pollId)
+    .eq("session_id", sessionId)
+    .eq("status", "active")
+    .select("id")
+    .maybeSingle();
+  if (error) return writeFailed("live_poll_close", error, "Unable to close poll.");
+  if (!data) return { error: "Poll not found", status: 404 };
+
+  const list = await listLivePolls(sessionId, userId);
+  const next = list.find((p) => p.id === pollId);
+  if (!next) return { error: "Poll not found", status: 404 };
+  return { poll: next };
 }
 
 export async function setParticipantRole(
@@ -1258,7 +1527,7 @@ export async function emitLiveReaction(
     signal_type: "reaction",
     payload: { emoji: safeEmoji },
   });
-  if (error) return { error: error.message, status: 400 };
+  if (error) return writeFailed("live_reaction", error, "Unable to send reaction.");
 
   await db()
     .from("live_sessions")
@@ -1444,13 +1713,25 @@ export async function listLiveHistoryForSpace(spaceId: string, limit = 12) {
   return (data as LiveSessionRow[]) ?? [];
 }
 
+export function toPublicLiveRecording(row: Record<string, unknown>) {
+  return {
+    id: String(row.id ?? ""),
+    status: typeof row.status === "string" ? row.status : "unknown",
+    cloudinary_url: typeof row.cloudinary_url === "string" ? row.cloudinary_url : null,
+    thumbnail_url: typeof row.thumbnail_url === "string" ? row.thumbnail_url : null,
+    duration_seconds: typeof row.duration_seconds === "number" ? row.duration_seconds : null,
+    created_at: typeof row.created_at === "string" ? row.created_at : null,
+    failed: row.status === "failed",
+  };
+}
+
 export async function listSessionRecordings(sessionId: string) {
   const { data } = await db()
     .from("live_recordings")
     .select("*")
     .eq("session_id", sessionId)
     .order("created_at", { ascending: false });
-  return data ?? [];
+  return (data ?? []).map((row) => toPublicLiveRecording(row as Record<string, unknown>));
 }
 
 export type LiveSessionChatMessage = {
@@ -1539,6 +1820,16 @@ export async function postLiveSessionMessage(input: {
   replyToBody?: string | null;
   replyToSender?: string | null;
 }): Promise<{ message: LiveSessionChatMessage } | { error: string; status: number }> {
+  const session = await getSession(input.sessionId);
+  if (!session || session.status !== "live") {
+    return { error: "The Live has ended.", status: 410 };
+  }
+  if (session.community_id) {
+    const membership = await getUserMembership(input.userId, session.community_id);
+    const blocked = membershipChatBlock(membership);
+    if (blocked) return blocked;
+  }
+
   const metadata: Record<string, unknown> = {};
   if (input.replyToId) {
     metadata.reply_to_id = input.replyToId;
@@ -1560,7 +1851,7 @@ export async function postLiveSessionMessage(input: {
     .single();
 
   if (error || !data) {
-    return { error: error?.message ?? "Failed to send", status: 400 };
+    return writeFailed("live_chat_insert", error, "Unable to send message. Please try again.");
   }
 
   const { data: profile } = await db()

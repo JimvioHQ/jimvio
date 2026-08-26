@@ -12,7 +12,7 @@ type ApiRecording = {
   cloudinary_url?: string | null;
   thumbnail_url?: string | null;
   duration_seconds?: number | null;
-  error?: string | null;
+  failed?: boolean;
   created_at?: string | null;
 };
 
@@ -71,8 +71,8 @@ export function LiveRecordingPanel({
               durationSec: r.duration_seconds ?? null,
               url: r.cloudinary_url ?? json.replayUrl ?? null,
               ready: r.status === "ready" && Boolean(r.cloudinary_url ?? json.replayUrl),
-              transcriptPlaceholder: r.error
-                ? `Recording error: ${r.error}`
+              transcriptPlaceholder: r.failed
+                ? "Recording failed. Try recording again."
                 : r.status === "ready"
                   ? "Transcript attaches when available."
                   : `Status: ${r.status ?? "processing"}`,

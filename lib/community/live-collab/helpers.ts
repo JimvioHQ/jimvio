@@ -4,6 +4,7 @@
 
 import type { Msg } from "@/types";
 import type { ChatMessage } from "@/lib/community/hub-live-types";
+import { canonicalLiveUrl } from "@/lib/live/live-url";
 import type {
   LiveRoomType,
   ScreenShareQuality,
@@ -65,8 +66,7 @@ export function shareVideoConstraints(
 }
 
 export function defaultInviteLink(sessionId: string): string {
-  if (typeof window === "undefined") return `/communities/live/${sessionId}`;
-  return `${window.location.origin}/communities/live/${sessionId}`;
+  return canonicalLiveUrl(sessionId);
 }
 
 /**

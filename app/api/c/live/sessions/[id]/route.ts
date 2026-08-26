@@ -8,13 +8,16 @@ import {
   averageViewers,
   cancelLiveSession,
   canViewLiveSession,
+  closeLivePoll,
   createPoll,
   emitLiveReaction,
   endLiveSession,
   getSession,
+  heartbeatLiveParticipant,
   inviteSpeaker,
   joinLiveSession,
   leaveLiveSession,
+  listLivePolls,
   listParticipants,
   listSessionRecordings,
   muteParticipant,
@@ -28,6 +31,7 @@ import {
   transferHost,
   updateLiveChatSettings,
   updateSelfMedia,
+  voteLivePoll,
   type LiveChatSettings,
 } from "@/services/live/session-service";
 import type { LiveStageRole } from "@/lib/live/roles";
@@ -45,6 +49,8 @@ type ActionBody = {
   sharing?: boolean;
   question?: string;
   options?: string[];
+  pollId?: string;
+  optionIndex?: number;
   role?: LiveStageRole;
   emoji?: string;
   chatSettings?: LiveChatSettings;
@@ -78,16 +84,19 @@ export async function GET(
 
   const url = new URL(req.url);
   const includeRecordings = url.searchParams.get("recordings") === "1";
+  const includePolls = url.searchParams.get("polls") === "1";
 
-  const [participants, recordings] = await Promise.all([
+  const [participants, recordings, polls] = await Promise.all([
     listParticipants(id),
     includeRecordings ? listSessionRecordings(id) : Promise.resolve(null),
+    includePolls ? listLivePolls(id, user.id) : Promise.resolve(null),
   ]);
 
   return NextResponse.json({
     session,
     participants,
     recordings: recordings ?? undefined,
+    polls: polls ?? undefined,
     metrics: {
       durationSeconds: sessionDurationSeconds(session),
       peakViewers: session.peak_viewers ?? 0,
@@ -216,6 +225,25 @@ export async function POST(
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }
+    case "vote": {
+      if (!body.pollId || typeof body.optionIndex !== "number") {
+        return NextResponse.json({ error: "pollId and optionIndex required" }, { status: 400 });
+      }
+      const result = await voteLivePoll(id, user.id, body.pollId, body.optionIndex);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "close-poll": {
+      if (!body.pollId) return NextResponse.json({ error: "pollId required" }, { status: 400 });
+      const result = await closeLivePoll(id, user.id, body.pollId);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "heartbeat": {
+      const result = await heartbeatLiveParticipant(id, user.id);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
     case "promote":
     case "set-role": {
       if (!body.targetUserId || !body.role) {
@@ -232,6 +260,13 @@ export async function POST(
       return NextResponse.json(result);
     }
     case "react": {
+      const reactLimited = rateLimit(`live-react:${user.id}`, 30, 60_000);
+      if (!reactLimited.allowed) {
+        return NextResponse.json(
+          { error: "Too many reactions — try again shortly" },
+          { status: 429 }
+        );
+      }
       const result = await emitLiveReaction(id, user.id, body.emoji ?? "");
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
@@ -251,7 +286,14 @@ export async function POST(
         signal_type: "report",
         payload: { reason: "user_report", at: new Date().toISOString() },
       });
-      if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+      if (error) {
+        liveStudioLog("error", "unhandled", {
+          action: "session_report",
+          sessionId: id,
+          code: error.code ?? null,
+        });
+        return NextResponse.json({ error: "Unable to submit report." }, { status: 400 });
+      }
       liveStudioLog("info", "session_report", { sessionId: id, userId: user.id });
       return NextResponse.json({ ok: true });
     }

@@ -157,9 +157,11 @@ function ControlDockImpl({
             >
               <ScreenShare className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
-            <DockBtn onClick={onCopyLink} label="Share" className="hidden sm:flex">
-              <Share2 className={icon} strokeWidth={sw} aria-hidden />
-            </DockBtn>
+            {onCopyLink && (
+              <DockBtn onClick={onCopyLink} label="Share">
+                <Share2 className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            )}
             <DockBtn onClick={onInvite} label="Invite" className="hidden sm:flex">
               <UsersRound className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
@@ -214,6 +216,11 @@ function ControlDockImpl({
             >
               <CircleDot className={icon} strokeWidth={sw} aria-hidden />
             </DockBtn>
+            {onCopyLink && (
+              <DockBtn onClick={onCopyLink} label="Share">
+                <Share2 className={icon} strokeWidth={sw} aria-hidden />
+              </DockBtn>
+            )}
           </>
         )}
 

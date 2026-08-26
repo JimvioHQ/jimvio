@@ -219,7 +219,12 @@ export async function POST(
     .select(SELECT_WITH_PROFILE)
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    return NextResponse.json(
+      { error: "Unable to send message. Please try again." },
+      { status: 400 }
+    );
+  }
 
   if (bodyTrim) void notifyMentionsInMessage(supabase, room.community_id, roomId, bodyTrim, user.id, data);
 

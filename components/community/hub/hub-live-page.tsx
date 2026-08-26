@@ -40,11 +40,14 @@ import {
 } from "@/lib/live/roles";
 import { uploadLiveRecording } from "@/lib/live/upload-recording";
 import { liveStudioLog } from "@/lib/live/observability";
+import { canonicalLiveUrl } from "@/lib/live/live-url";
+import { copyTextToClipboard } from "@/lib/live/native-share";
 import { AiFab } from "./live/AiFab";
 import { CommandPalette, defaultLiveCommands } from "./live/CommandPalette";
 import { ControlDock, useEphemeralToast } from "./live/ControlDock";
 import { ChatWorkspace } from "./live/ChatWorkspace";
 import { LiveContextNav } from "./live/LiveContextNav";
+import { LiveShareSheet } from "./live/LiveShareSheet";
 import { StageMediaPreview } from "./live/StageMediaPreview";
 import { RemoteAudioSink } from "./live/RemoteAudioSink";
 import {
@@ -130,6 +133,7 @@ export function HubLivePage({
   const [elapsed, setElapsed] = useState(0);
   const [chatInput, setChatInput] = useState("");
   const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [online, setOnline] = useState(true);
   const [connection, setConnection] = useState<"excellent" | "good" | "poor">("excellent");
   const [peopleQuery, setPeopleQuery] = useState("");
@@ -176,15 +180,6 @@ export function HubLivePage({
     (live.myRole === "host" || live.myRole === "cohost" || live.myRole === "speaker"
       ? media.previewStream
       : null);
-
-  const sessionUrl =
-    typeof window !== "undefined"
-      ? live.session?.id
-        ? `${window.location.origin}/communities/live/${live.session.id}`
-        : `${window.location.origin}/communities/live`
-      : live.session?.id
-        ? `jimvio.com/communities/live/${live.session.id}`
-        : "jimvio.com/communities/live";
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -1076,38 +1071,29 @@ export function HubLivePage({
     });
   }, [data, drawer.rightTab]);
 
-  const copyUrl = async () => {
-    const url = sessionUrl.startsWith("http")
-      ? sessionUrl
-      : typeof window !== "undefined"
-        ? `${window.location.origin}/communities/live/${live.session?.id ?? ""}`
-        : sessionUrl;
-    try {
-      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-        await navigator.share({
-          title: live.session?.title ?? session.title,
-          text: "Join this Jimvio Live",
-          url,
-        });
-        showToast("Share sheet opened");
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      showToast("Link copied");
-      setTimeout(() => setCopied(false), 1600);
-    } catch (e) {
-      if (e instanceof Error && e.name === "AbortError") return;
-      try {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        showToast("Link copied");
-        setTimeout(() => setCopied(false), 1600);
-      } catch {
-        showToast("Could not share link");
-      }
+  const copyLiveLink = useCallback(async () => {
+    if (!live.session?.id) {
+      showToast("No live session to share");
+      return;
     }
-  };
+    const url = canonicalLiveUrl(live.session.id);
+    const ok = await copyTextToClipboard(url);
+    if (!ok) {
+      showToast("Could not copy the Live link.");
+      return;
+    }
+    setCopied(true);
+    showToast("Link copied");
+    setTimeout(() => setCopied(false), 1600);
+  }, [live.session?.id, showToast]);
+
+  const openShareSheet = useCallback(() => {
+    if (!live.session?.id) {
+      showToast("No live session to share");
+      return;
+    }
+    setShareOpen(true);
+  }, [live.session?.id, showToast]);
 
   const toggleFollowHost = useCallback(async () => {
     if (!hostUserId || hostUserId === live.userId) {
@@ -1189,7 +1175,7 @@ export function HubLivePage({
             : undefined,
         analytics: () => openRight("analytics"),
         searchPeople: () => toggleLeft("people"),
-        copyLink: () => void copyUrl(),
+        copyLink: () => void copyLiveLink(),
       }),
     [
       openRight,
@@ -1197,6 +1183,7 @@ export function HubLivePage({
       toggleLeft,
       toggleRecord,
       startShare,
+      copyLiveLink,
       gate,
       live,
       media.recordingState,
@@ -1430,7 +1417,7 @@ export function HubLivePage({
               </button>
               <button
                 type="button"
-                onClick={copyUrl}
+                onClick={openShareSheet}
                 title="Share"
                 aria-label="Share live link"
                 className={cn(
@@ -1505,7 +1492,7 @@ export function HubLivePage({
                 openRight(tab);
                 setLiveNavOpen(false);
               }}
-              onShare={copyUrl}
+              onShare={openShareSheet}
               onInvite={() => {
                 if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only")) return;
                 toggleLeft("people");
@@ -1550,7 +1537,7 @@ export function HubLivePage({
                         openRight(tab);
                         setLiveNavOpen(false);
                       }}
-                      onShare={copyUrl}
+                      onShare={openShareSheet}
                       onInvite={() => {
                         if (live.session && !gate(canInviteSpeaker(live.myRole), "Host controls only"))
                           return;
@@ -1848,7 +1835,7 @@ export function HubLivePage({
               }}
               onReact={() => openRight("chat")}
               onQa={() => openRight("qa")}
-              onCopyLink={copyUrl}
+              onCopyLink={openShareSheet}
               onFullscreen={() => setFocusMode(true)}
               onMore={() => openRight("tools")}
               onEnd={() => void endLive()}
@@ -2188,6 +2175,21 @@ export function HubLivePage({
           if (id === "resources") openRight("resources");
           if (id === "questions") openRight("qa");
         }}
+      />
+
+      <LiveShareSheet
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        sessionId={live.session?.id ?? null}
+        title={live.session?.title ?? session.title}
+        communityBound={Boolean(live.session?.community_id)}
+        onCopied={() => {
+          setCopied(true);
+          showToast("Link copied");
+          setTimeout(() => setCopied(false), 1600);
+        }}
+        onMessaged={(name) => showToast(`Sent to ${name}`)}
+        onError={(message) => showToast(message)}
       />
 
       <CommandPalette

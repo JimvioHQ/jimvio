@@ -75,7 +75,10 @@ assert.match(tokenRoute, /rateLimit/);
 assert.match(liveApi, /slug|communityId/);
 assert.match(liveApi, /getHubLiveDashboard/);
 
-assert.match(hubLive, /onLeave|leaveLive/);
+assert.match(hubLive, /LiveShareSheet/);
+assert.match(hubLive, /openShareSheet/);
+assert.match(sessionSvc, /voteLivePoll/);
+assert.match(sessionSvc, /sweepStaleLiveSessions/);
 assert.match(hubLive, /Accept|pendingInvite/);
 assert.match(hubLive, /started_at/);
 assert.match(hubLive, /Discussion/);
