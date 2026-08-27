@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,23 +11,20 @@ function campaignOf(raw: unknown): { id: string; title: string } | null {
 }
 
 export async function GET(_req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, error } = await requireUser();
+  if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const db = createServiceRoleClient();
-
-  const { data: influencer } = await db
-    .from("influencers")
-    .select("id, available_balance, pending_balance, total_earnings")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const { db, influencer } = await requireInfluencer(user.id);
 
   if (!influencer) {
     return NextResponse.json({ needsProfile: true });
   }
+
+  const { data: balanceRow } = await db
+    .from("influencers")
+    .select("available_balance, pending_balance, total_earnings")
+    .eq("id", influencer.id)
+    .maybeSingle();
 
   const { data: submissions } = await db
     .from("ugc_submissions")
@@ -105,9 +101,9 @@ export async function GET(_req: NextRequest) {
     summary: {
       totalViews,
       ugcEarnings,
-      availableBalance: Number(influencer.available_balance ?? 0),
-      pendingBalance: Number(influencer.pending_balance ?? 0),
-      lifetimeEarnings: Number(influencer.total_earnings ?? ugcEarnings),
+      availableBalance: Number(balanceRow?.available_balance ?? 0),
+      pendingBalance: Number(balanceRow?.pending_balance ?? 0),
+      lifetimeEarnings: Number(balanceRow?.total_earnings ?? ugcEarnings),
       approvalRate,
       totalSubmissions: subs.length,
       approvedCount: approved.length,

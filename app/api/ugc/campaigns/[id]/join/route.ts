@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
 import {
   canAccessResources,
   canSubmitContent,
@@ -23,17 +22,10 @@ export async function POST(
   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
   if (!isUUID) return NextResponse.json({ error: "Invalid campaign ID format" }, { status: 400 });
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, error: authError } = await requireUser();
+  if (!user) return NextResponse.json({ error: authError }, { status: 401 });
 
-  const db = createServiceRoleClient();
-
-  const { data: influencer } = await db
-    .from("influencers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const { db, influencer } = await requireInfluencer(user.id);
 
   if (!influencer) {
     return NextResponse.json({ error: "Complete your influencer profile first." }, { status: 403 });

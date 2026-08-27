@@ -187,6 +187,7 @@ export function UGCApplicationsPage() {
         setRows([]);
         return;
       }
+      setNeedsProfile(false);
       setRows(json.data ?? []);
       if (sRes.ok) {
         const sJson = await sRes.json();

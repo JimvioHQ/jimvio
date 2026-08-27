@@ -1,31 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+const noStore = { headers: { "Cache-Control": "private, no-store" } };
 
-  const db = createServiceRoleClient();
+export async function GET(req: NextRequest) {
+  const { user, error: authError } = await requireUser();
+  if (!user) return NextResponse.json({ error: authError }, { status: 401, ...noStore });
+
+  const { db, influencer, mirror } = await requireInfluencer(user.id);
   const { searchParams } = req.nextUrl;
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const limit = Math.min(50, Number(searchParams.get("limit") ?? 20));
   const offset = (page - 1) * limit;
   const status = searchParams.get("status") ?? undefined;
 
-  const { data: influencer } = await db
-    .from("influencers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: profile }, { data: jip }] = await Promise.all([
+    db.from("profiles").select("id").eq("id", user.id).maybeSingle(),
+    db.from("jip_identity").select("user_id").eq("user_id", user.id).maybeSingle(),
+  ]);
+
+  const needsProfile = !influencer;
+  console.info("[ugc-participants]", {
+    userId: user.id,
+    profile: Boolean(profile?.id),
+    jip: Boolean(jip?.user_id),
+    influencer: Boolean(influencer?.id),
+    mirrorCreated: mirror.created,
+    mirrorReason: mirror.reason,
+    needsProfile,
+  });
 
   if (!influencer) {
-    return NextResponse.json({ data: [], total: 0, page, limit, needsProfile: true });
+    return NextResponse.json(
+      { data: [], total: 0, page, limit, needsProfile: true },
+      noStore,
+    );
   }
 
   let query = db
@@ -59,7 +70,7 @@ export async function GET(req: NextRequest) {
   if (status) query = query.eq("status", status);
 
   const { data, count, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500, ...noStore });
 
-  return NextResponse.json({ data: data ?? [], total: count ?? 0, page, limit });
+  return NextResponse.json({ data: data ?? [], total: count ?? 0, page, limit }, noStore);
 }

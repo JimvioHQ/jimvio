@@ -1,6 +1,10 @@
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  ensureInfluencerMirror,
+  type InfluencerMirrorResult,
+} from "@/lib/identity/sync";
 
 export async function requireUser(): Promise<
   | { user: User; db: ReturnType<typeof createServiceRoleClient>; error: null }
@@ -26,12 +30,28 @@ export async function requireVendor(userId: string) {
 
 export async function requireInfluencer(userId: string) {
   const db = createServiceRoleClient();
-  const { data: influencer } = await db
+  const select =
+    "id, user_id, display_name, profile_image, niche, total_followers, is_verified";
+  const { data: existing } = await db
     .from("influencers")
-    .select("id, user_id, display_name, profile_image, niche, total_followers, is_verified")
+    .select(select)
     .eq("user_id", userId)
     .maybeSingle();
-  return { db, influencer };
+  if (existing) {
+    return {
+      db,
+      influencer: existing,
+      mirror: { id: existing.id, created: false, reason: "existing" } satisfies InfluencerMirrorResult,
+    };
+  }
+
+  const mirror = await ensureInfluencerMirror(userId);
+  const { data: influencer } = await db
+    .from("influencers")
+    .select(select)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return { db, influencer, mirror };
 }
 
 export async function isAdmin(userId: string) {

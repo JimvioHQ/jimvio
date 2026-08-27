@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CreatorProfileSnapshot } from "@/lib/ugc/campaign-detail";
+import { ensureInfluencerMirror } from "@/lib/identity/sync";
 import {
   evaluateJoinEligibility,
   resolveJoinConfig,
@@ -27,6 +28,8 @@ export async function loadCreatorProfile(
   db: SupabaseClient,
   userId: string,
 ): Promise<CreatorProfileSnapshot> {
+  await ensureInfluencerMirror(userId);
+
   const { data: inf } = await db
     .from("influencers")
     .select("id, total_followers, social_platforms, niche, created_at, is_verified, engagement_rate")
