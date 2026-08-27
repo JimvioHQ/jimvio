@@ -17,9 +17,14 @@ type CalendarEvent = {
 export async function GET(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, influencer } = await requireInfluencer(user.id);
-  if (!influencer) {
-    return NextResponse.json({ data: [], needsProfile: true });
+  const { db, influencer, ready, completion } = await requireInfluencer(user.id);
+  if (!ready || !influencer) {
+    return NextResponse.json({
+      data: [],
+      needsProfile: true,
+      complete: false,
+      missing: completion.missing,
+    });
   }
 
   const from = req.nextUrl.searchParams.get("from");

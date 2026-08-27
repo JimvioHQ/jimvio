@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CreatorProfileSnapshot } from "@/lib/ugc/campaign-detail";
-import { ensureInfluencerMirror } from "@/lib/identity/sync";
+import { isCreatorWorkspaceReady } from "@/lib/identity/creator-profile-completion";
+import { ensureInfluencerMirror, loadCreatorProfileCompletion } from "@/lib/identity/sync";
 import {
   evaluateJoinEligibility,
   resolveJoinConfig,
@@ -28,7 +29,10 @@ export async function loadCreatorProfile(
   db: SupabaseClient,
   userId: string,
 ): Promise<CreatorProfileSnapshot> {
-  await ensureInfluencerMirror(userId);
+  const completion = await loadCreatorProfileCompletion(userId);
+  if (completion.complete) {
+    await ensureInfluencerMirror(userId);
+  }
 
   const { data: inf } = await db
     .from("influencers")
@@ -36,7 +40,7 @@ export async function loadCreatorProfile(
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (!inf) {
+  if (!inf || !isCreatorWorkspaceReady(completion, inf)) {
     return { hasProfile: false, totalFollowers: null, platforms: [], niche: [], accountAgeDays: null, isVerified: false };
   }
 

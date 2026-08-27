@@ -165,6 +165,7 @@ export function UGCApplicationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsProfile, setNeedsProfile] = useState(false);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
@@ -184,10 +185,18 @@ export function UGCApplicationsPage() {
       const json = await pRes.json();
       if (json.needsProfile) {
         setNeedsProfile(true);
+        setMissingFields(
+          Array.isArray(json.missing)
+            ? (json.missing as Array<{ label?: string }>)
+                .map((m) => m.label)
+                .filter((label): label is string => Boolean(label))
+            : [],
+        );
         setRows([]);
         return;
       }
       setNeedsProfile(false);
+      setMissingFields([]);
       setRows(json.data ?? []);
       if (sRes.ok) {
         const sJson = await sRes.json();
@@ -277,7 +286,11 @@ export function UGCApplicationsPage() {
       {!loading && !error && needsProfile ? (
         <UGCPageEmpty
           title="Creator profile required"
-          description="Complete your creator profile to apply to campaigns."
+          description={
+            missingFields.length > 0
+              ? `Complete these remaining items: ${missingFields.join(", ")}.`
+              : "Complete your creator profile to apply to campaigns."
+          }
           illustration="profile"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   BadgeCheck,
@@ -38,6 +39,7 @@ import {
   IdentityPill,
   cn,
 } from "@/components/identity/identity-ui";
+import { evaluateCreatorProfileCompletion } from "@/lib/identity/creator-profile-completion";
 
 type Tab = "profile" | "social" | "portfolio" | "resume" | "privacy";
 
@@ -80,6 +82,7 @@ const RESUME_TYPES: IdentityResumeEntryType[] = [
 ];
 
 export function IdentityEditClient({ initialPayload }: { initialPayload: IdentityProfilePayload }) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("profile");
   const { profile } = initialPayload;
 
@@ -119,13 +122,34 @@ export function IdentityEditClient({ initialPayload }: { initialPayload: Identit
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to save");
-      toast.success("Profile saved");
+
+      const missing = Array.isArray(json.missing)
+        ? (json.missing as Array<{ id?: string; label?: string }>)
+            .map((m) => m.label)
+            .filter((label): label is string => Boolean(label))
+        : [];
+
+      if (json.complete === true) {
+        toast.success("Profile saved successfully", {
+          description: "Your creator profile is ready.",
+        });
+      } else {
+        toast.success("Profile saved");
+        if (missing.length > 0) {
+          toast.message("Complete these remaining items", {
+            description: missing.map((label) => `• ${label}`).join("\n"),
+          });
+        } else if (json.mirror?.reason && json.mirror.reason !== "incomplete") {
+          toast.error("Creator workspace could not be updated. Try saving again.");
+        }
+      }
+      router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
     }
-  }, [core]);
+  }, [core, router]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
@@ -297,8 +321,24 @@ function ProfileTab({
       </IdentityCard>
 
       <IdentityCard className="space-y-4 p-6">
+        {(() => {
+          const live = evaluateCreatorProfileCompletion({
+            fullName: core.fullName,
+            headline: core.headline,
+            bio: core.bio,
+          });
+          if (live.complete) return null;
+          return (
+            <div className="rounded-2xl border border-[#FFDCC7] bg-[#FFF6F1] px-4 py-3">
+              <p className="text-[12.5px] font-semibold text-[#D6480F]">Required to apply to campaigns</p>
+              <p className="mt-1 text-[12px] text-[#8B8579]">
+                Complete: {live.missing.map((m) => m.label).join(", ")}.
+              </p>
+            </div>
+          );
+        })()}
         <div className="grid gap-4 sm:grid-cols-2">
-          <EditField label="Full name">
+          <EditField label="Full name" required>
             <input
               className="identity-input"
               value={core.fullName}
@@ -306,7 +346,7 @@ function ProfileTab({
               maxLength={120}
             />
           </EditField>
-          <EditField label="Headline">
+          <EditField label="Headline" required>
             <input
               className="identity-input"
               placeholder="e.g. Beauty & lifestyle creator"
@@ -317,7 +357,7 @@ function ProfileTab({
           </EditField>
         </div>
 
-        <EditField label="Bio">
+        <EditField label="Bio" required>
           <textarea
             className="identity-input resize-none"
             rows={4}
@@ -957,10 +997,21 @@ function VerificationRow({
 
 // ─── Shared bits ────────────────────────────────────────────────────────────
 
-function EditField({ label, children }: { label: string; children: React.ReactNode }) {
+function EditField({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-[12px] font-medium text-[#7C766B]">{label}</span>
+      <span className="mb-1.5 block text-[12px] font-medium text-[#7C766B]">
+        {label}
+        {required ? <span className="ml-0.5 text-[#D6480F]">*</span> : null}
+      </span>
       {children}
     </label>
   );

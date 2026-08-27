@@ -7,12 +7,15 @@
  *
  * Never throws — a mirror failure must not fail the originating request.
  *
- * Influencer rows are the UGC/creator join key. Identity save used to UPDATE
- * only, so a 0-row update looked successful while UGC still returned
- * needsProfile. This inserts the missing join-key row from `profiles`.
+ * The influencers row is the UGC join-key, not proof the creator profile is
+ * complete. Insert it only after Identity required fields are filled.
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import {
+  evaluateCreatorProfileCompletion,
+  type CreatorProfileCompletion,
+} from "@/lib/identity/creator-profile-completion";
 
 export interface RoleMirrorProfile {
   bio?: string | null;
@@ -20,6 +23,7 @@ export interface RoleMirrorProfile {
   full_name?: string | null;
   username?: string | null;
   website?: string | null;
+  headline?: string | null;
 }
 
 export type InfluencerMirrorResult = {
@@ -35,21 +39,45 @@ export function identityDisplayName(profile: {
   return profile.full_name?.trim() || profile.username?.trim() || "Creator";
 }
 
-/** A canonical `profiles` row is enough to create the UGC join-key mirror. */
-export function isIdentityReadyForCreatorMirror(
-  profile: RoleMirrorProfile | null | undefined,
-): boolean {
-  return Boolean(profile);
+export function isIdentityReadyForCreatorMirror(profile: {
+  full_name?: string | null;
+  username?: string | null;
+  headline?: string | null;
+  bio?: string | null;
+}): boolean {
+  return evaluateCreatorProfileCompletion({
+    fullName: profile.full_name,
+    headline: profile.headline,
+    bio: profile.bio,
+  }).complete;
 }
 
 function logMirror(payload: Record<string, unknown>) {
   console.info("[ugc-influencer-mirror]", payload);
 }
 
+export async function loadCreatorProfileCompletion(
+  userId: string,
+): Promise<CreatorProfileCompletion> {
+  if (!userId) {
+    return evaluateCreatorProfileCompletion({});
+  }
+  const db = createServiceRoleClient();
+  const [{ data: profile }, { data: identity }] = await Promise.all([
+    db.from("profiles").select("full_name, bio").eq("id", userId).maybeSingle(),
+    db.from("jip_identity").select("headline").eq("user_id", userId).maybeSingle(),
+  ]);
+  return evaluateCreatorProfileCompletion({
+    fullName: profile?.full_name,
+    headline: identity?.headline,
+    bio: profile?.bio,
+  });
+}
+
 /**
- * Ensure the legacy `influencers` join-key row exists for an Identity profile.
+ * Ensure the legacy `influencers` join-key row exists for a COMPLETE Identity.
  * Does not invent a second profile — copies display fields from `profiles`.
- * Uses the service-role client (bypasses RLS) after the caller has authorized.
+ * Incomplete identities are not auto-inserted.
  */
 export async function ensureInfluencerMirror(
   userId: string,
@@ -70,6 +98,21 @@ export async function ensureInfluencerMirror(
       message: existingErr.message,
     });
   }
+
+  const completion = await loadCreatorProfileCompletion(userId);
+  if (!completion.complete) {
+    logMirror({
+      event: "incomplete",
+      userId,
+      missing: completion.missing.map((m) => m.id),
+    });
+    return {
+      id: existing?.id ?? null,
+      created: false,
+      reason: "incomplete",
+    };
+  }
+
   if (existing?.id) {
     return { id: existing.id, created: false, reason: "existing" };
   }
@@ -131,7 +174,7 @@ export async function ensureInfluencerMirror(
     logMirror({
       event: error ? "recovered-after-upsert-error" : "ensured",
       userId,
-      created: !existing?.id,
+      created: true,
       reason: error ? "recovered" : "upserted",
     });
     return {
@@ -192,7 +235,9 @@ export async function syncRoleMirrors(
     } else {
       const ensured = await ensureInfluencerMirror(userId);
       if (ensured.id) synced.push("influencers");
-      else errors.push(`influencers:${ensured.reason}`);
+      else if (ensured.reason === "incomplete") {
+        /* join-key is created only after required Identity fields are saved */
+      } else errors.push(`influencers:${ensured.reason}`);
     }
   } catch (err) {
     errors.push(`influencers:${(err as Error).message}`);

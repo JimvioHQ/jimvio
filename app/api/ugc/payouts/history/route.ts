@@ -53,9 +53,17 @@ function toCsv(
 export async function GET(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, influencer } = await requireInfluencer(user.id);
-  if (!influencer) {
-    return NextResponse.json({ error: "Influencer profile required", needsProfile: true }, { status: 403 });
+  const { db, influencer, ready, completion } = await requireInfluencer(user.id);
+  if (!ready || !influencer) {
+    return NextResponse.json(
+      {
+        error: "Creator profile required",
+        needsProfile: true,
+        complete: false,
+        missing: completion.missing,
+      },
+      { status: 403 },
+    );
   }
 
   const format = req.nextUrl.searchParams.get("format");

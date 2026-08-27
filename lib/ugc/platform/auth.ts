@@ -2,7 +2,13 @@ import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
+  evaluateCreatorProfileCompletion,
+  isCreatorWorkspaceReady,
+  type CreatorProfileCompletion,
+} from "@/lib/identity/creator-profile-completion";
+import {
   ensureInfluencerMirror,
+  loadCreatorProfileCompletion,
   type InfluencerMirrorResult,
 } from "@/lib/identity/sync";
 
@@ -30,28 +36,39 @@ export async function requireVendor(userId: string) {
 
 export async function requireInfluencer(userId: string) {
   const db = createServiceRoleClient();
+  const completion = await loadCreatorProfileCompletion(userId);
   const select =
     "id, user_id, display_name, profile_image, niche, total_followers, is_verified";
+
   const { data: existing } = await db
     .from("influencers")
     .select(select)
     .eq("user_id", userId)
     .maybeSingle();
-  if (existing) {
-    return {
-      db,
-      influencer: existing,
-      mirror: { id: existing.id, created: false, reason: "existing" } satisfies InfluencerMirrorResult,
-    };
+
+  let mirror: InfluencerMirrorResult = {
+    id: existing?.id ?? null,
+    created: false,
+    reason: completion.complete ? "existing" : "incomplete",
+  };
+
+  if (completion.complete) {
+    mirror = await ensureInfluencerMirror(userId);
   }
 
-  const mirror = await ensureInfluencerMirror(userId);
   const { data: influencer } = await db
     .from("influencers")
     .select(select)
     .eq("user_id", userId)
     .maybeSingle();
-  return { db, influencer, mirror };
+
+  return {
+    db,
+    influencer,
+    mirror,
+    completion,
+    ready: isCreatorWorkspaceReady(completion, influencer),
+  };
 }
 
 export async function isAdmin(userId: string) {
@@ -65,3 +82,6 @@ export async function isAdmin(userId: string) {
     .maybeSingle();
   return Boolean(data);
 }
+
+export { evaluateCreatorProfileCompletion, isCreatorWorkspaceReady };
+export type { CreatorProfileCompletion };

@@ -7,9 +7,17 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const { user, db, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { influencer } = await requireInfluencer(user.id);
-  if (!influencer) {
-    return NextResponse.json({ error: "Influencer profile required", needsProfile: true }, { status: 403 });
+  const { influencer, ready, completion } = await requireInfluencer(user.id);
+  if (!ready || !influencer) {
+    return NextResponse.json(
+      {
+        error: "Creator profile required",
+        needsProfile: true,
+        complete: false,
+        missing: completion.missing,
+      },
+      { status: 403 },
+    );
   }
 
   const synced = await syncCreatorBadgesAndXp(db, user.id, influencer.id);

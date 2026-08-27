@@ -25,10 +25,18 @@ export async function POST(
   const { user, error: authError } = await requireUser();
   if (!user) return NextResponse.json({ error: authError }, { status: 401 });
 
-  const { db, influencer } = await requireInfluencer(user.id);
+  const { db, influencer, ready, completion } = await requireInfluencer(user.id);
 
-  if (!influencer) {
-    return NextResponse.json({ error: "Complete your influencer profile first." }, { status: 403 });
+  if (!ready || !influencer) {
+    return NextResponse.json(
+      {
+        error: "Complete your creator profile first.",
+        needsProfile: true,
+        complete: false,
+        missing: completion.missing,
+      },
+      { status: 403 },
+    );
   }
 
   const { data: campaign, error: cErr } = await db

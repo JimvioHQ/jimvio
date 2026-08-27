@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const { user, error: authError } = await requireUser();
   if (!user) return NextResponse.json({ error: authError }, { status: 401, ...noStore });
 
-  const { db, influencer, mirror } = await requireInfluencer(user.id);
+  const { db, influencer, mirror, completion, ready } = await requireInfluencer(user.id);
   const { searchParams } = req.nextUrl;
   const page = Math.max(1, Number(searchParams.get("page") ?? 1));
   const limit = Math.min(50, Number(searchParams.get("limit") ?? 20));
@@ -21,20 +21,30 @@ export async function GET(req: NextRequest) {
     db.from("jip_identity").select("user_id").eq("user_id", user.id).maybeSingle(),
   ]);
 
-  const needsProfile = !influencer;
+  const needsProfile = !ready;
   console.info("[ugc-participants]", {
     userId: user.id,
     profile: Boolean(profile?.id),
     jip: Boolean(jip?.user_id),
     influencer: Boolean(influencer?.id),
+    completionComplete: completion.complete,
+    missing: completion.missing.map((m) => m.id),
     mirrorCreated: mirror.created,
     mirrorReason: mirror.reason,
     needsProfile,
   });
 
-  if (!influencer) {
+  if (!ready || !influencer) {
     return NextResponse.json(
-      { data: [], total: 0, page, limit, needsProfile: true },
+      {
+        data: [],
+        total: 0,
+        page,
+        limit,
+        needsProfile: true,
+        complete: false,
+        missing: completion.missing,
+      },
       noStore,
     );
   }

@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/ugc/platform/auth";
-import { syncRoleMirrors } from "@/lib/identity/sync";
+import { isCreatorWorkspaceReady } from "@/lib/identity/creator-profile-completion";
+import {
+  ensureInfluencerMirror,
+  loadCreatorProfileCompletion,
+  syncRoleMirrors,
+} from "@/lib/identity/sync";
 import { ensureJipIdentity, getIdentityByUserId } from "@/lib/identity/resolve";
 
 export const dynamic = "force-dynamic";
@@ -105,13 +111,30 @@ export async function PATCH(req: NextRequest) {
     }
   }
 
-  // Additive, best-effort mirror — never fails the request.
-  const mirror = await syncRoleMirrors(user.id);
+  // Display-column mirror is best-effort. Join-key insert happens only when complete.
+  const mirrorSync = await syncRoleMirrors(user.id);
+  const completion = await loadCreatorProfileCompletion(user.id);
+  const mirror = completion.complete
+    ? await ensureInfluencerMirror(user.id)
+    : { id: null as string | null, created: false, reason: "incomplete" };
 
   const identity = await getIdentityByUserId(user.id, user.id);
   if (!identity) {
     return NextResponse.json({ error: "Identity not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ ...identity, mirror });
+  const ready = isCreatorWorkspaceReady(completion, mirror);
+  revalidatePath("/identity/edit");
+  revalidatePath("/identity");
+  revalidatePath("/ugc/applications");
+  revalidatePath("/ugc");
+  revalidatePath("/ugc/dashboard");
+
+  return NextResponse.json({
+    ...identity,
+    saved: true,
+    complete: ready,
+    missing: completion.missing,
+    mirror: { ...mirror, sync: mirrorSync },
+  });
 }

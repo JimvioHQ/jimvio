@@ -14,10 +14,14 @@ export async function GET(_req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, influencer } = await requireInfluencer(user.id);
+  const { db, influencer, ready, completion } = await requireInfluencer(user.id);
 
-  if (!influencer) {
-    return NextResponse.json({ needsProfile: true });
+  if (!ready || !influencer) {
+    return NextResponse.json({
+      needsProfile: true,
+      complete: false,
+      missing: completion.missing,
+    });
   }
 
   const { data: balanceRow } = await db
