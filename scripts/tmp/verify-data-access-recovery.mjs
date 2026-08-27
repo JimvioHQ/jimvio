@@ -24,8 +24,9 @@ assert.doesNotMatch(
 );
 
 const feed = mustExist("app/api/posts/feed/route.ts");
+const publicFeed = mustExist("lib/feed/load-public-discovery-feed.ts");
 assert.match(feed, /loadPublicCommunityIds/);
-assert.match(feed, /is_private\.eq\.false,is_private\.is\.null/);
+assert.match(publicFeed, /is_private\.eq\.false,is_private\.is\.null/);
 assert.match(feed, /membershipIds, \.\.\.publicCommunityIds/);
 assert.match(feed, /if \(error\)/);
 assert.doesNotMatch(feed, /\.eq\("user_id", user\.id\)\s*\n\s*\.eq\("is_published"/);
@@ -94,7 +95,8 @@ const feedCard = mustExist("components/feed/FeedPostCard.tsx");
 assert.match(feedCard, /No public posts yet/);
 assert.match(feedCard, /Unable to load the community feed/);
 assert.match(feedCard, /Loading your community feed/);
-assert.match(feedCard, /showSignIn/);
+assert.doesNotMatch(feedCard, /showSignIn/);
+assert.doesNotMatch(feedCard, /Sign in to participate/);
 assert.match(feedCard, /setLoadError\(true\)/);
 assert.doesNotMatch(feedCard, /Communities are not available yet/);
 

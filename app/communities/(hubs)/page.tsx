@@ -1,10 +1,16 @@
 import { FeedPageContent } from "@/components/feed/FeedPageContent";
 import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
+import type { ApiPost } from "@/components/feed/FeedPostCard";
 import { isCommunityVerified } from "@/lib/community/trending-score";
+import { loadPublicDiscoveryFeed } from "@/lib/feed/load-public-discovery-feed";
+import { createClient } from "@/lib/supabase/server";
 import { getHomepageCommunities } from "@/services/platform";
+
+export const dynamic = "force-dynamic";
 
 export default async function FeedPage() {
   let initialCommunities: TrendingCommunity[] = [];
+  let initialPosts: ApiPost[] = [];
   try {
     const rows = await getHomepageCommunities(8);
     initialCommunities = rows.map((row) => {
@@ -32,5 +38,19 @@ export default async function FeedPage() {
     console.error("[communities] public catalog preload failed:", err);
   }
 
-  return <FeedPageContent initialCommunities={initialCommunities} />;
+  try {
+    const supabase = await createClient();
+    const feed = await loadPublicDiscoveryFeed(supabase, { filter: "for-you", limit: 20 });
+    if (feed.ok) initialPosts = feed.posts as ApiPost[];
+    else console.error("[communities] public feed preload failed:", feed.error);
+  } catch (err) {
+    console.error("[communities] public feed preload failed:", err);
+  }
+
+  return (
+    <FeedPageContent
+      initialCommunities={initialCommunities}
+      initialPosts={initialPosts}
+    />
+  );
 }

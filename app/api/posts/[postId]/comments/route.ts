@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { canAccessRoom } from "@/services/accessControl";
+import { canAccessRoom, canReadPublicCommunityRoom } from "@/services/accessControl";
 import { notifyPostAuthor } from "@/lib/community/notify-community";
 import { assertCanCommentInRoom } from "@/lib/community/workspace/assert-can-publish";
 import { rateLimit } from "@/lib/ops/rate-limit";
@@ -16,7 +16,6 @@ export async function GET(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: post } = await supabase
     .from("community_posts")
@@ -25,8 +24,11 @@ export async function GET(
     .maybeSingle();
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const hasAccess = await canAccessRoom(user.id, post.room_id);
-  if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
+  const memberAccess = user ? await canAccessRoom(user.id, post.room_id) : false;
+  const publicAccess = memberAccess ? true : await canReadPublicCommunityRoom(post.room_id);
+  if (!memberAccess && !publicAccess) {
+    return NextResponse.json({ error: "No access" }, { status: 403 });
+  }
 
   const { searchParams } = new URL(req.url);
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));

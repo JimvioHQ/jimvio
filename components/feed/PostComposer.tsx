@@ -77,7 +77,7 @@ export function PostComposer({
   const [expanded, setExpanded] = useState(isPage);
   const [preview, setPreview] = useState(false);
   const [body, setBody] = useState("");
-  const [audience, setAudience] = useState<Audience>("community");
+  const [audience, setAudience] = useState<Audience>("public");
   const [location, setLocation] = useState("");
   const [mode, setMode] = useState<"discussion" | "poll">("discussion");
   const [pollOptions, setPollOptions] = useState(["", ""]);

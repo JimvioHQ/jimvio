@@ -355,7 +355,7 @@ export function FeedSection({
         try {
             const params = new URLSearchParams({ limit: String(PAGE_SIZE), filter: feedFilter });
             if (scopedCommunityId) params.set("community_id", scopedCommunityId);
-            const res = await fetch(`/api/posts/feed?${params}`);
+            const res = await fetch(`/api/posts/feed?${params}`, { cache: "no-store" });
             const data = await res.json();
             if (!res.ok) {
                 toast.error(data.error || "Failed to load feed");
@@ -430,7 +430,7 @@ export function FeedSection({
                 filter: feedFilter,
             });
             if (scopedCommunityId) params.set("community_id", scopedCommunityId);
-            const res = await fetch(`/api/posts/feed?${params}`);
+            const res = await fetch(`/api/posts/feed?${params}`, { cache: "no-store" });
             const data = await res.json();
             if (!res.ok) {
                 toast.error(data.error || "Failed to load more posts");

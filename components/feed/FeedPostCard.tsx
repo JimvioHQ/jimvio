@@ -23,7 +23,7 @@ import type { FeedTab } from "@/lib/feed/mock-data";
 import { FEED_TAB_FILTERS } from "@/lib/feed/tab-filters";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
 
-type ApiPost = {
+export type ApiPost = {
   id: string;
   body: string | null;
   title?: string | null;
@@ -177,11 +177,17 @@ function AuthorAvatar({
   );
 }
 
-export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
+export function FeedPostCard({
+  tab = "For You",
+  initialPosts = [],
+}: {
+  tab?: FeedTab;
+  initialPosts?: ApiPost[];
+}) {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useFeedUser();
-  const [posts, setPosts] = useState<DisplayPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { isAuthenticated } = useFeedUser();
+  const [posts, setPosts] = useState<DisplayPost[]>(() => initialPosts.map(mapApiPost));
+  const [loading, setLoading] = useState(initialPosts.length === 0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -197,7 +203,7 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
     try {
       const params = new URLSearchParams({ limit: "20", filter });
       if (nextCursor) params.set("cursor", nextCursor);
-      const res = await fetch(`/api/posts/feed?${params}`);
+      const res = await fetch(`/api/posts/feed?${params}`, { cache: "no-store" });
       if (res.status === 401) {
         if (!isMore) {
           setPosts([]);
@@ -344,7 +350,6 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
   }
 
   if (!loading && posts.length === 0) {
-    const showSignIn = !authLoading && !isAuthenticated;
     return (
       <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center">
         <Flame className="mx-auto h-6 w-6 text-[#fd5000]" />
@@ -363,14 +368,6 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
           >
             Explore communities
           </Link>
-          {showSignIn ? (
-            <Link
-              href="/login?next=/communities"
-              className="inline-flex h-10 items-center rounded-xl border border-[#E5E7EB] bg-white px-4 text-[13px] font-semibold text-[#111827]"
-            >
-              Sign in to participate
-            </Link>
-          ) : null}
         </div>
       </div>
     );

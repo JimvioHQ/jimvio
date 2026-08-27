@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { canAccessRoom } from "@/services/accessControl";
+import { canAccessRoom, canReadPublicCommunityRoom } from "@/services/accessControl";
 import { sanitizePostImageUrls } from "@/lib/community/posts/sanitize-post-media";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,6 @@ export async function GET(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data: post } = await supabase
     .from("community_posts")
@@ -24,8 +23,11 @@ export async function GET(
 
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const hasAccess = await canAccessRoom(user.id, post.room_id);
-  if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
+  const memberAccess = user ? await canAccessRoom(user.id, post.room_id) : false;
+  const publicAccess = memberAccess ? true : await canReadPublicCommunityRoom(post.room_id);
+  if (!memberAccess && !publicAccess) {
+    return NextResponse.json({ error: "No access" }, { status: 403 });
+  }
 
   const { data, error } = await supabase
     .from("community_posts")

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AIAssistantPanel } from "@/components/feed/AIAssistantPanel";
 import { ActivityFeedCard } from "@/components/feed/ActivityFeedCard";
 import { FeedDiscoverRail } from "@/components/feed/FeedDiscoverRail";
-import { FeedPostCard } from "@/components/feed/FeedPostCard";
+import { FeedPostCard, type ApiPost } from "@/components/feed/FeedPostCard";
 import { FeedTabs } from "@/components/feed/FeedTabs";
 import { LiveNowCard } from "@/components/feed/LiveNowCard";
 import { MiniLivePlayerBar } from "@/components/feed/MiniLivePlayerBar";
@@ -30,8 +30,10 @@ function FeedRightRail() {
 
 export function FeedPageContent({
   initialCommunities = [],
+  initialPosts = [],
 }: {
   initialCommunities?: TrendingCommunity[];
+  initialPosts?: ApiPost[];
 }) {
   const [feedTab, setFeedTab] = useState<FeedTab>("For You");
 
@@ -46,7 +48,7 @@ export function FeedPageContent({
             <FeedDiscoverRail initialCommunities={initialCommunities} />
             <div className="space-y-0">
               <FeedTabs value={feedTab} onChange={setFeedTab} />
-              <FeedPostCard tab={feedTab} />
+              <FeedPostCard tab={feedTab} initialPosts={feedTab === "For You" ? initialPosts : []} />
             </div>
           </div>
 

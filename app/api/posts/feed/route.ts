@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { Json } from "@/types/supabase";
 import { assertCanPublishInRoom } from "@/lib/community/workspace/assert-can-publish";
@@ -9,6 +10,7 @@ import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 import { roomBelongsToCommunity, roomSpaceMatches } from "@/lib/community/assert-room-community";
 import { requireCommunityMember } from "@/lib/community/rbac";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
+import { loadPublicCommunityIds, loadPublicDiscoveryFeed } from "@/lib/feed/load-public-discovery-feed";
 
 export const dynamic = "force-dynamic";
 
@@ -34,175 +36,22 @@ function excludeTechnicalPosts<T extends { body?: string | null }>(rows: T[]): T
   return rows.filter((row) => !isTechnicalFeedBody(row.body));
 }
 
-/** Match RLS COALESCE(is_private, false) = false — NULL privacy is public. */
-async function loadPublicCommunityIds(
-  db: Awaited<ReturnType<typeof createClient>>,
-  limit = 80,
-): Promise<{ ids: string[]; error: string | null }> {
-  const { data, error } = await db
-    .from("communities")
-    .select("id, is_active, is_private, visibility, visibility_mode, archived_at")
-    .eq("is_active", true)
-    .or("is_private.eq.false,is_private.is.null")
-    .order("member_count", { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    console.error("Error loading public communities:", error);
-    return { ids: [], error: error.message };
-  }
-  return {
-    ids: (data ?? []).filter(communityIsPubliclyDiscoverable).map((c) => c.id),
-    error: null,
-  };
-}
-
-/**
- * Logged-out discovery: published posts from non-private communities only.
- * Never returns private/members-only content. Drafts / following / friends require auth.
- */
 async function getPublicDiscoveryFeed(
   req: NextRequest,
   db: Awaited<ReturnType<typeof createClient>>,
 ) {
   const { searchParams } = req.nextUrl;
-  const limit = Math.min(Number(searchParams.get("limit") ?? PAGE_SIZE), 50);
-  const cursor = searchParams.get("cursor");
-  const requestedFilter = searchParams.get("filter") ?? "for-you";
-  const filter = FEED_FILTERS.has(requestedFilter) ? requestedFilter : "for-you";
-  const communityId = searchParams.get("community_id");
-  const draftsOnly = searchParams.get("drafts") === "1";
-
-  if (draftsOnly) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // Personalized filters need an account — surface public discovery instead.
-  const publicFilter =
-    filter === "following" || filter === "friends" ? "for-you" : filter;
-
-  // User/anon client so public SELECT RLS applies. App filters remain defense in depth.
-  let publicCommunityIds: string[] = [];
-  if (communityId) {
-    const { data: community, error: communityError } = await db
-      .from("communities")
-      .select("id, is_private, is_active, visibility, visibility_mode, archived_at")
-      .eq("id", communityId)
-      .maybeSingle();
-    if (communityError) {
-      console.error("Error loading public community:", communityError);
-      return NextResponse.json({ error: communityError.message }, { status: 400 });
-    }
-    if (!community || !communityIsPubliclyDiscoverable(community)) {
-      return NextResponse.json({ error: "No access" }, { status: 403 });
-    }
-    publicCommunityIds = [community.id];
-  } else {
-    const loaded = await loadPublicCommunityIds(db);
-    if (loaded.error) {
-      return NextResponse.json({ error: loaded.error }, { status: 400 });
-    }
-    publicCommunityIds = loaded.ids;
-  }
-
-  if (!publicCommunityIds.length) {
-    return NextResponse.json({ posts: [], next_cursor: null });
-  }
-
-  let query = db
-    .from("community_posts")
-    .select(
-      "*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username), communities(slug, name, is_private)",
-    )
-    .in("community_id", publicCommunityIds)
-    .eq("is_published", true)
-    .is("archived_at", null);
-
-  if (cursor) {
-    query = query.lt("created_at", cursor);
-  }
-
-  switch (publicFilter) {
-    case "trending":
-    case "ai-picks":
-      query = query
-        .gte("created_at", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())
-        .or("like_count.gte.1,comment_count.gte.1");
-      break;
-    case "hot":
-      query = query
-        .gte("created_at", new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString())
-        .or("like_count.gte.1,comment_count.gte.1");
-      break;
-    case "rising":
-      query = query.gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
-      break;
-    case "verified": {
-      const { data: featuredCommunities } = await db
-        .from("communities")
-        .select("id")
-        .in("id", publicCommunityIds)
-        .or("is_featured.eq.true,member_count.gte.100");
-      const featuredIds = (featuredCommunities ?? []).map((community) => community.id);
-      if (!featuredIds.length) return NextResponse.json({ posts: [], next_cursor: null });
-      query = query.in("community_id", featuredIds);
-      break;
-    }
-    case "spaces":
-      query = query.neq("space_id", "00000000-0000-0000-0000-000000000000");
-      break;
-    case "missions":
-      query = query.in("post_type", ["mission", "task", "challenge"]);
-      break;
-    default:
-      break;
-  }
-
-  query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
-  // Over-fetch slightly so audience/privacy filtering still yields a full page.
-  const { data, error } = await query.limit(Math.min(limit * 2 + 4, 80));
-
-  if (error) {
-    console.error("Error fetching public discovery feed:", error);
-    return NextResponse.json({ error: error.message }, { status: 400 });
-  }
-
-  const rows = excludeTechnicalPosts(data ?? []);
-
-  // Defense in depth: public communities + public audience only.
-  const safeRows = rows.filter((post) => {
-    const community = (post as { communities?: { is_private?: boolean | null } | null }).communities;
-    if (community?.is_private === true) return false;
-    const audience = (post as { audience?: string | null }).audience;
-    return !audience || audience === "public";
+  const result = await loadPublicDiscoveryFeed(db, {
+    limit: Number(searchParams.get("limit") ?? PAGE_SIZE),
+    cursor: searchParams.get("cursor"),
+    filter: searchParams.get("filter") ?? "for-you",
+    communityId: searchParams.get("community_id"),
+    draftsOnly: searchParams.get("drafts") === "1",
   });
-
-  const hasMore = safeRows.length > limit;
-  const pageRows = safeRows.slice(0, limit);
-
-  let enriched = pageRows.map((post) => ({
-    ...post,
-    user_has_liked: false,
-    user_reaction: null,
-    user_has_saved: false,
-    quoted_post: null,
-  }));
-
-  const shouldRank = ["for-you", "trending", "ai-picks", "hot", "rising", "recommended"].includes(
-    publicFilter,
-  );
-  if (shouldRank) {
-    enriched = rankFeedItems(enriched as unknown as Parameters<typeof rankFeedItems>[0], {
-      viewerId: "",
-      followedAuthorIds: new Set(),
-    }) as typeof enriched;
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
-
-  const next_cursor =
-    hasMore && pageRows.length > 0 ? pageRows[pageRows.length - 1]!.created_at : null;
-
-  const posts = enriched;
-  return NextResponse.json({ posts, next_cursor });
+  return NextResponse.json({ posts: result.posts, next_cursor: result.next_cursor });
 }
 
 export async function GET(req: NextRequest) {
@@ -574,9 +423,17 @@ export async function POST(req: NextRequest) {
     };
   }
 
+  const { data: destCommunity } = await supabase
+    .from("communities")
+    .select("owner_id, slug, is_private, is_active, visibility, visibility_mode, archived_at")
+    .eq("id", communityId)
+    .maybeSingle();
+
   const audience = AUDIENCES.has(body.audience ?? "")
     ? (body.audience as string)
-    : "community";
+    : destCommunity && communityIsPubliclyDiscoverable(destCommunity)
+      ? "public"
+      : "community";
   const scheduledAt =
     typeof body.scheduled_at === "string" && body.scheduled_at
       ? body.scheduled_at
@@ -585,11 +442,6 @@ export async function POST(req: NextRequest) {
 
   let canPin = false;
   if (body.is_pinned) {
-    const { data: community } = await supabase
-      .from("communities")
-      .select("owner_id")
-      .eq("id", communityId)
-      .maybeSingle();
     const { data: staffMembership } = await supabase
       .from("community_memberships")
       .select("role, status")
@@ -597,7 +449,7 @@ export async function POST(req: NextRequest) {
       .eq("user_id", user.id)
       .maybeSingle();
     canPin =
-      community?.owner_id === user.id ||
+      destCommunity?.owner_id === user.id ||
       (staffMembership?.status === "active" &&
         (staffMembership.role === "owner" ||
           staffMembership.role === "admin" ||
@@ -633,5 +485,15 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+  if (isPublished) {
+    revalidatePath("/communities");
+    revalidatePath("/communities/explore");
+    if (destCommunity?.slug) {
+      revalidatePath(`/communities/${destCommunity.slug}`);
+      revalidatePath(`/communities/${destCommunity.slug}/feed`);
+    }
+  }
+
   return NextResponse.json({ post: data });
 }
