@@ -63,18 +63,25 @@ export function CampaignFundClient() {
   const [loading, setLoading] = useState(true);
   const [method, setMethod] = useState<PayMethod>("flutterwave");
   const [phone, setPhone] = useState("");
-  const [walletBalance] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [funding, setFunding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [outcome, setOutcome] = useState<"idle" | "activated" | "pending">("idle");
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/ugc/campaigns/${id}`);
-        const json = await res.json();
-        if (!cancelled) setCampaign(json.campaign ?? null);
+        const [campaignRes, walletRes] = await Promise.all([
+          fetch(`/api/ugc/campaigns/${id}`),
+          fetch("/api/identity/wallet"),
+        ]);
+        const json = await campaignRes.json();
+        const walletJson = walletRes.ok ? await walletRes.json().catch(() => ({})) : {};
+        if (!cancelled) {
+          setCampaign(json.campaign ?? null);
+          setWalletBalance(Number(walletJson.balance ?? 0));
+        }
       } catch {
         if (!cancelled) setCampaign(null);
       } finally {
@@ -119,6 +126,14 @@ export function CampaignFundClient() {
       setError(`Minimum funding is RWF ${MIN_FUNDING_RWF.toLocaleString()}`);
       return;
     }
+    if (method === "flutterwave" && !phone.trim()) {
+      setError("A valid funding phone number is required.");
+      return;
+    }
+    if (method === "wallet" && walletBalance < amountToFund) {
+      setError("Insufficient wallet balance for this escrow amount.");
+      return;
+    }
     setFunding(true);
     setError(null);
     try {
@@ -128,7 +143,7 @@ export function CampaignFundClient() {
         body: JSON.stringify({
           amount: amountToFund,
           payment_method: method,
-          phone: method === "flutterwave" ? phone || "250700000000" : undefined,
+          phone: method === "flutterwave" ? phone : undefined,
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -139,11 +154,18 @@ export function CampaignFundClient() {
         throw new Error(missing || json.error || "Funding failed");
       }
 
-      setSuccess(true);
-      toast.success("Campaign funded and activated");
-      window.setTimeout(() => {
-        router.push("/ugc/campaign-center/active");
-      }, 1800);
+      const activated = Boolean(json.activated || json.already_funded);
+      if (activated) {
+        setOutcome("activated");
+        toast.success("Campaign funded and activated");
+        window.setTimeout(() => {
+          router.push("/ugc/campaign-center/active");
+        }, 1800);
+        return;
+      }
+
+      setOutcome("pending");
+      toast.message(json.message || "Funding submitted. Waiting for payment confirmation.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Funding failed");
     } finally {
@@ -239,7 +261,7 @@ export function CampaignFundClient() {
         {[
           { label: "Draft", done: true },
           { label: "Pending Funding", done: true, current: true },
-          { label: "Active", done: success },
+          { label: "Active", done: outcome === "activated" },
         ].map((s, i) => (
           <li key={s.label} className="flex items-center gap-2">
             {i > 0 ? <span className="text-[#D1D5DB]">→</span> : null}
@@ -247,8 +269,9 @@ export function CampaignFundClient() {
               className={cn(
                 "rounded-full px-2.5 py-1",
                 s.done && !s.current && "bg-[#ECFDF5] text-[#059669]",
-                s.current && !success && "bg-[#FFF0E8] text-[#FF5A1F]",
-                success && s.label === "Active" && "bg-[#ECFDF5] text-[#059669]",
+                s.current && outcome === "idle" && "bg-[#FFF0E8] text-[#FF5A1F]",
+                outcome === "activated" && s.label === "Active" && "bg-[#ECFDF5] text-[#059669]",
+                outcome === "pending" && s.label === "Pending Funding" && "bg-[#FFF0E8] text-[#FF5A1F]",
                 !s.done && !s.current && "bg-[#F3F4F6] text-[#9CA3AF]",
               )}
             >
@@ -259,7 +282,7 @@ export function CampaignFundClient() {
       </ol>
 
       <AnimatePresence mode="wait">
-        {success ? (
+        {outcome !== "idle" ? (
           <motion.div
             key="ok"
             initial={{ opacity: 0, scale: 0.96 }}
@@ -274,10 +297,22 @@ export function CampaignFundClient() {
             >
               <Check className="h-8 w-8" strokeWidth={2.5} />
             </motion.div>
-            <h2 className="mt-5 text-[22px] font-bold text-[#111827]">Campaign activated</h2>
+            <h2 className="mt-5 text-[22px] font-bold text-[#111827]">
+              {outcome === "activated" ? "Campaign activated" : "Funding submitted"}
+            </h2>
             <p className="mt-2 text-[13px] text-[#6B7280]">
-              Escrow locked · Creators can now discover and join “{campaign.title}”.
+              {outcome === "activated"
+                ? `Escrow locked · Creators can now discover and join “${campaign.title}”.`
+                : "Escrow is pending payment confirmation. The campaign stays inactive until funds clear."}
             </p>
+            {outcome === "pending" ? (
+              <Link
+                href="/ugc/campaign-center"
+                className="mt-6 inline-flex h-10 items-center rounded-full bg-[#FF5A1F] px-5 text-[13px] font-bold text-white"
+              >
+                Back to Campaign Center
+              </Link>
+            ) : null}
           </motion.div>
         ) : (
           <motion.div
@@ -323,7 +358,7 @@ export function CampaignFundClient() {
                 <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#F3F4F6]">
                   <div
                     className="h-full rounded-full bg-[#FF5A1F] transition-all"
-                    style={{ width: success ? "100%" : "18%" }}
+                    style={{ width: "18%" }}
                   />
                 </div>
                 <p className="mt-2 text-[12px] text-[#6B7280]">
@@ -427,7 +462,11 @@ export function CampaignFundClient() {
 
               <button
                 type="button"
-                disabled={funding || Boolean(readiness && !readiness.success)}
+                disabled={
+                  funding ||
+                  Boolean(readiness && !readiness.success) ||
+                  (method === "wallet" && walletBalance < amountToFund)
+                }
                 onClick={() => void fund()}
                 className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white shadow-[0_8px_24px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18] disabled:opacity-60"
               >
@@ -436,7 +475,7 @@ export function CampaignFundClient() {
                 ) : (
                   <Lock className="h-4 w-4" />
                 )}
-                {funding ? "Processing…" : `Fund & Activate · RWF ${amountToFund.toLocaleString()}`}
+                {funding ? "Processing…" : method === "wallet" ? `Fund & Activate · RWF ${amountToFund.toLocaleString()}` : `Submit funding · RWF ${amountToFund.toLocaleString()}`}
               </button>
               <p className="mt-2 text-center text-[11px] text-[#9CA3AF]">
                 Activation is blocked until escrow clears. No charge without confirmation.

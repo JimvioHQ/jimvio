@@ -94,10 +94,12 @@ function KanbanCard({
   row,
   column,
   formatMoney,
+  onWithdraw,
 }: {
   row: ParticipantRow;
   column: KanbanColumnId;
   formatMoney: (n: number, c?: string) => string;
+  onWithdraw?: () => void;
 }) {
   const campaign = row.campaign;
   const reward = campaign
@@ -106,6 +108,24 @@ function KanbanCard({
   const deadline = campaign?.ends_at
     ? new Date(campaign.ends_at).toLocaleDateString()
     : null;
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  async function withdraw() {
+    if (!campaign?.id) return;
+    setWithdrawing(true);
+    try {
+      const res = await fetch(`/api/ugc/campaigns/${campaign.id}/application/withdraw`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json.error || "Withdraw failed");
+      }
+      onWithdraw?.();
+    } finally {
+      setWithdrawing(false);
+    }
+  }
 
   return (
     <div className="rounded-2xl border border-[#EEF0F2] bg-white p-3.5 shadow-[0_4px_16px_rgba(17,24,39,0.04)] transition hover:border-[#FFE4D6] hover:shadow-[0_8px_24px_rgba(255,90,31,0.08)]">
@@ -135,9 +155,20 @@ function KanbanCard({
             ) : null
           : null}
         {column === "applied" && campaign?.id ? (
-          <Button asChild size="sm" variant="outline" className="h-8 rounded-lg px-2.5 text-[11px]">
-            <Link href={`/ugc/${campaign.id}/application`}>View status</Link>
-          </Button>
+          <>
+            <Button asChild size="sm" variant="outline" className="h-8 rounded-lg px-2.5 text-[11px]">
+              <Link href={`/ugc/${campaign.id}/application`}>View status</Link>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 rounded-lg px-2.5 text-[11px]"
+              disabled={withdrawing}
+              onClick={() => void withdraw()}
+            >
+              {withdrawing ? "Withdrawing…" : "Withdraw"}
+            </Button>
+          </>
         ) : null}
         {column === "submitted" && campaign?.id ? (
           <Button asChild size="sm" variant="outline" className="h-8 rounded-lg px-2.5 text-[11px]">
@@ -347,6 +378,7 @@ export function UGCApplicationsPage() {
                           row={row}
                           column={col.id}
                           formatMoney={formatMoney}
+                          onWithdraw={load}
                         />
                       ))
                     )}

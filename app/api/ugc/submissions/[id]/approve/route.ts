@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { creditFixedPayoutIfNeeded } from '@/lib/ugc/credit-fixed-payout';
+import { emitUgcWebhook } from '@/lib/ugc/enterprise/webhooks';
+
+const REVIEWABLE = ['pending', 'revision_requested'];
 
 // PATCH /api/ugc/submissions/[id]/approve
 export async function PATCH(
@@ -14,19 +18,27 @@ export async function PATCH(
 
   const db = createServiceRoleClient();
 
-  // Confirm user is vendor of this campaign OR admin
   const { data: submission } = await db
     .from('ugc_submissions')
-    .select('id, status, campaign_id, ugc_campaigns!campaign_id(brand_id, vendors!brand_id(user_id))')
+    .select('id, status, campaign_id, influencer_id, ugc_campaigns!campaign_id(brand_id, vendors!brand_id(user_id))')
     .eq('id', id)
     .single();
 
   if (!submission) return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
-  if (submission.status === 'approved') return NextResponse.json({ error: 'Already approved' }, { status: 409 });
+  if (submission.status === 'approved') {
+    return NextResponse.json({ error: 'Already approved' }, { status: 409 });
+  }
+  if (!REVIEWABLE.includes(submission.status)) {
+    return NextResponse.json({ error: 'Submission cannot be approved from this status' }, { status: 409 });
+  }
 
-  const campaign = submission.ugc_campaigns as unknown as {
+  const campaignJoin = submission.ugc_campaigns as unknown as {
     brand_id: string;
-    vendors: { user_id: string } | null;
+    vendors: { user_id: string } | { user_id: string }[] | null;
+  };
+  const campaign = {
+    brand_id: campaignJoin?.brand_id,
+    vendors: Array.isArray(campaignJoin?.vendors) ? campaignJoin.vendors[0] : campaignJoin?.vendors,
   };
 
   const { data: adminRole } = await db
@@ -49,27 +61,56 @@ export async function PATCH(
       reviewed_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .in('status', REVIEWABLE)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  // Notify influencer
-  const { data: influencer } = await db
-    .from('influencers')
-    .select('user_id')
-    .eq('id', (updated as { influencer_id: string }).influencer_id)
-    .single();
-
-  if (influencer) {
-    await db.from('notifications').insert({
-      user_id: influencer.user_id,
-      type: 'influencer',
-      title: 'Submission Approved! 🎉',
-      message: 'Your content submission has been approved and will start earning views-based payouts.',
-      data: { submission_id: id },
-    });
+  if (!updated) {
+    return NextResponse.json({ error: 'Already approved' }, { status: 409 });
   }
 
-  return NextResponse.json({ submission: updated });
+  const credit = await creditFixedPayoutIfNeeded(db, {
+    submissionId: id,
+    campaignId: submission.campaign_id,
+    influencerId: submission.influencer_id,
+  });
+
+  if (!credit.ok) {
+    await db
+      .from('ugc_submissions')
+      .update({ status: submission.status, reviewed_by: null, reviewed_at: null })
+      .eq('id', id)
+      .eq('status', 'approved');
+    return NextResponse.json({ error: credit.error }, { status: credit.status });
+  }
+
+  if (!credit.credited) {
+    const { data: influencer } = await db
+      .from('influencers')
+      .select('user_id')
+      .eq('id', submission.influencer_id)
+      .maybeSingle();
+
+    if (influencer?.user_id) {
+      await db.from('notifications').insert({
+        user_id: influencer.user_id,
+        type: 'influencer',
+        title: 'Submission Approved! 🎉',
+        message: 'Your content submission has been approved and will start earning views-based payouts.',
+        data: { submission_id: id },
+      });
+    }
+  }
+
+  try {
+    await emitUgcWebhook(db, campaign.brand_id, 'submission.approved', {
+      submissionId: id,
+      campaignId: submission.campaign_id,
+    });
+  } catch {
+    /* additive — never fail approval */
+  }
+
+  return NextResponse.json({ submission: updated, payout: credit });
 }

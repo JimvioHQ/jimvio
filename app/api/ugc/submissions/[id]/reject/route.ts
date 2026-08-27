@@ -24,9 +24,18 @@ export async function PATCH(
     .single();
 
   if (!submission) return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
+  if (submission.status === 'approved') {
+    return NextResponse.json({ error: 'Approved submissions cannot be rejected' }, { status: 409 });
+  }
+  if (!['pending', 'revision_requested'].includes(submission.status)) {
+    return NextResponse.json({ error: 'Submission cannot be rejected from this status' }, { status: 409 });
+  }
 
-  const campaign = submission.ugc_campaigns as unknown as {
-    vendors: { user_id: string } | null;
+  const campaignJoin = submission.ugc_campaigns as unknown as {
+    vendors: { user_id: string } | { user_id: string }[] | null;
+  };
+  const campaign = {
+    vendors: Array.isArray(campaignJoin?.vendors) ? campaignJoin.vendors[0] : campaignJoin?.vendors,
   };
 
   const { data: adminRole } = await db
@@ -50,10 +59,14 @@ export async function PATCH(
       reviewed_at: new Date().toISOString(),
     })
     .eq('id', id)
+    .in('status', ['pending', 'revision_requested'])
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!updated) {
+    return NextResponse.json({ error: 'Submission cannot be rejected from this status' }, { status: 409 });
+  }
 
   // Notify influencer
   const { data: influencer } = await db

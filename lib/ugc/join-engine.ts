@@ -135,13 +135,14 @@ export function evaluateJoinEligibility(
 
   const rules = config.eligibilityRules ?? {};
 
-  if (rules.minFollowers != null && profile?.totalFollowers != null) {
-    const met = profile.totalFollowers >= rules.minFollowers;
+  if (rules.minFollowers != null && rules.minFollowers > 0) {
+    const followers = profile?.totalFollowers ?? 0;
+    const met = followers >= rules.minFollowers;
     reasons.push({
       id: "min_followers",
       label: "Minimum followers",
       met,
-      detail: `${profile.totalFollowers.toLocaleString()} / ${rules.minFollowers.toLocaleString()}`,
+      detail: `${followers.toLocaleString()} / ${rules.minFollowers.toLocaleString()}`,
     });
   }
 

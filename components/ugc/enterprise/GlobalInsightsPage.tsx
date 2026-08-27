@@ -17,9 +17,9 @@ type InsightsPayload = {
     display_name?: string;
     name?: string;
     username?: string;
-    total_earnings?: number;
+    total_earnings?: number | null;
   }>;
-  topBrandsBySpend?: Array<{ business_name?: string; name?: string; spend?: number }>;
+  topBrandsBySpend?: Array<{ business_name?: string; name?: string; spend?: number | null }>;
   trendingCampaigns?: Array<{ id?: string; title?: string; views?: number; total_views_tracked?: number }>;
 };
 
@@ -91,7 +91,7 @@ export function GlobalInsightsPage() {
               empty="No creator earnings yet."
               rows={(data.topCreatorsByEarnings ?? []).map((r) => ({
                 label: r.display_name || r.name || r.username || "Creator",
-                value: Number(r.total_earnings ?? 0).toLocaleString(),
+                value: r.total_earnings == null ? "—" : Number(r.total_earnings).toLocaleString(),
               }))}
             />
             <InsightList
@@ -99,7 +99,7 @@ export function GlobalInsightsPage() {
               empty="No brand spend yet."
               rows={(data.topBrandsBySpend ?? []).map((r) => ({
                 label: r.business_name || r.name || "Brand",
-                value: Number(r.spend ?? 0).toLocaleString(),
+                value: r.spend == null ? "—" : Number(r.spend).toLocaleString(),
               }))}
             />
           </div>

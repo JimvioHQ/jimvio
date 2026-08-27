@@ -113,10 +113,16 @@ export async function POST(req: NextRequest) {
 
   if (!title?.trim())          return NextResponse.json({ error: 'title is required' }, { status: 400 });
   if (!campaign_type)           return NextResponse.json({ error: 'campaign_type is required' }, { status: 400 });
-  if (!rate_per_1k_views || rate_per_1k_views <= 0)
-    return NextResponse.json({ error: 'rate_per_1k_views must be > 0' }, { status: 400 });
   if (!total_budget || total_budget <= 0)
     return NextResponse.json({ error: 'total_budget must be > 0' }, { status: 400 });
+  const model = payment_model ?? 'per_views';
+  if (model === 'fixed_per_content') {
+    if (!fixed_rate || fixed_rate <= 0) {
+      return NextResponse.json({ error: 'fixed_rate must be > 0' }, { status: 400 });
+    }
+  } else if (!rate_per_1k_views || rate_per_1k_views <= 0) {
+    return NextResponse.json({ error: 'rate_per_1k_views must be > 0' }, { status: 400 });
+  }
 
   if (body.readyForFunding) {
     const ready = assertCampaignReadyForFunding(body as unknown as Record<string, unknown>);
@@ -133,7 +139,7 @@ export async function POST(req: NextRequest) {
       description,
       campaign_type,
       payment_model: payment_model ?? 'per_views',
-      rate_per_1k_views,
+      rate_per_1k_views: model === 'fixed_per_content' ? (rate_per_1k_views ?? 0) : rate_per_1k_views,
       fixed_rate: fixed_rate ?? 0,
       total_budget,
       max_payout_per_sub: max_payout_per_sub ?? 400,

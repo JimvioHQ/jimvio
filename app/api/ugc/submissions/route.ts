@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import type { CreateSubmissionPayload } from '@/types/ugc';
+import { isUgcSubmitPlatform, normalizePostUrl } from '@/lib/ugc/normalize-post-url';
 
 // ─── GET /api/ugc/submissions ────────────────────────────────────────────────
 // Influencer sees own; vendor sees their campaign subs; admin sees all
@@ -42,7 +43,13 @@ export async function GET(req: NextRequest) {
   if (adminRole) {
     // admin sees all
   } else if (vendor && campaignId) {
-    // vendor reviewing one specific campaign
+    const { data: owned } = await db
+      .from('ugc_campaigns')
+      .select('id')
+      .eq('id', campaignId)
+      .eq('brand_id', vendor.id)
+      .maybeSingle();
+    if (!owned) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     query = query.eq('campaign_id', campaignId);
   } else if (vendor) {
     // vendor: all their campaign submissions
@@ -93,7 +100,13 @@ export async function POST(req: NextRequest) {
 
   if (!campaign_id) return NextResponse.json({ error: 'campaign_id required' }, { status: 400 });
   if (!post_url?.trim()) return NextResponse.json({ error: 'post_url required' }, { status: 400 });
-  if (!platform)         return NextResponse.json({ error: 'platform required' }, { status: 400 });
+  if (!isUgcSubmitPlatform(platform)) {
+    return NextResponse.json(
+      { error: 'platform must be tiktok, instagram, youtube, or x' },
+      { status: 400 }
+    );
+  }
+  const canonicalUrl = normalizePostUrl(post_url);
 
   // Verify campaign exists and is active
   const { data: campaign } = await db
@@ -135,7 +148,7 @@ export async function POST(req: NextRequest) {
     .insert({
       campaign_id,
       influencer_id: influencer.id,
-      post_url: post_url.trim(),
+      post_url: canonicalUrl,
       platform,
       caption,
       status: 'pending',

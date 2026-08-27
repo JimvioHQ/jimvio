@@ -220,6 +220,21 @@ export function buildEligibility(
   };
   requirements.push(faceReq);
 
+  const joinConfig = campaign.join_config;
+  const minFollowersRaw =
+    joinConfig && typeof joinConfig === "object"
+      ? Number((joinConfig as { eligibilityRules?: { minFollowers?: number } }).eligibilityRules?.minFollowers ?? 0)
+      : 0;
+  if (Number.isFinite(minFollowersRaw) && minFollowersRaw > 0) {
+    const followers = profile?.totalFollowers ?? 0;
+    requirements.push({
+      id: "min_followers",
+      label: "Minimum followers",
+      met: followers >= minFollowersRaw,
+      detail: `${followers.toLocaleString()} / ${minFollowersRaw.toLocaleString()}`,
+    });
+  }
+
   const metCount = requirements.filter((r) => r.met).length;
   const score = Math.round((metCount / requirements.length) * 100);
 

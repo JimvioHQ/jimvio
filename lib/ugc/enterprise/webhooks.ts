@@ -1,8 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createHash, randomBytes } from "crypto";
+import { createHash, createHmac, randomBytes } from "crypto";
 
 export function newWebhookSecret() {
   return randomBytes(24).toString("hex");
+}
+
+export function signUgcWebhookBody(secret: string, body: string) {
+  return createHmac("sha256", secret).update(body).digest("hex");
 }
 
 export async function emitUgcWebhook(
@@ -22,17 +26,19 @@ export async function emitUgcWebhook(
   );
 
   for (const sub of matches) {
+    const body = JSON.stringify({ event: eventType, data: payload });
     const idempotencyKey = createHash("sha256")
-      .update(`${sub.id}:${eventType}:${JSON.stringify(payload).slice(0, 200)}:${Date.now()}`)
+      .update(`${sub.id}:${eventType}:${JSON.stringify(payload)}`)
       .digest("hex")
       .slice(0, 32);
+    const signature = signUgcWebhookBody(sub.secret, body);
 
     const { data: delivery } = await db
       .from("ugc_webhook_deliveries")
       .insert({
         subscription_id: sub.id,
         event_type: eventType,
-        payload: { event: eventType, data: payload, ts: new Date().toISOString() },
+        payload: { event: eventType, data: payload },
         status: "pending",
         attempts: 1,
         idempotency_key: idempotencyKey,
@@ -46,9 +52,9 @@ export async function emitUgcWebhook(
         headers: {
           "Content-Type": "application/json",
           "X-Jimvio-Event": eventType,
-          "X-Jimvio-Signature": sub.secret,
+          "X-Jimvio-Signature": signature,
         },
-        body: JSON.stringify({ event: eventType, data: payload }),
+        body,
         signal: AbortSignal.timeout(8000),
       });
       await db

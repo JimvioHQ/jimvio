@@ -87,6 +87,15 @@ export async function GET() {
     .sort((a, b) => b.spend - a.spend)
     .slice(0, 10);
 
+  const { data: adminRole } = await db
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .eq("is_active", true)
+    .maybeSingle();
+  const showEarnings = Boolean(adminRole);
+
   return NextResponse.json({
     topCountries,
     campaignTypes: campaignTypes.map((c) => ({ type: c.key, count: c.count })),
@@ -96,9 +105,11 @@ export async function GET() {
       profile_image: c.profile_image,
       niche: c.niche,
       is_verified: c.is_verified,
-      total_earnings: Number(c.total_earnings ?? 0),
+      total_earnings: showEarnings ? Number(c.total_earnings ?? 0) : null,
     })),
-    topBrandsBySpend,
+    topBrandsBySpend: showEarnings
+      ? topBrandsBySpend
+      : topBrandsBySpend.map((b) => ({ ...b, spend: null })),
     trendingCampaigns: trendingRes.data ?? [],
   });
 }

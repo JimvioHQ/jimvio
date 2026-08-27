@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { createClient } from '@/lib/supabase/server';
+import { creditFixedPayoutIfNeeded } from '@/lib/ugc/credit-fixed-payout';
+
+async function assertCanReadSubmission(
+  db: ReturnType<typeof createServiceRoleClient>,
+  userId: string,
+  submission: {
+    influencer?: { user_id?: string | null } | { user_id?: string | null }[] | null;
+    campaign?: { brand_id?: string | null } | { brand_id?: string | null }[] | null;
+  },
+) {
+  const influencer = Array.isArray(submission.influencer)
+    ? submission.influencer[0]
+    : submission.influencer;
+  const campaign = Array.isArray(submission.campaign)
+    ? submission.campaign[0]
+    : submission.campaign;
+  const [{ data: vendor }, { data: adminRole }] = await Promise.all([
+    db.from('vendors').select('id').eq('user_id', userId).maybeSingle(),
+    db.from('user_roles').select('id').eq('user_id', userId).eq('role', 'admin').eq('is_active', true).maybeSingle(),
+  ]);
+  if (adminRole) return true;
+  if (influencer?.user_id === userId) return true;
+  if (vendor && campaign?.brand_id === vendor.id) return true;
+  return false;
+}
 
 export async function GET(
   _req: NextRequest,
@@ -24,7 +49,11 @@ export async function GET(
     .eq('id', id)
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 404 });
+  if (error || !data) return NextResponse.json({ error: error?.message ?? 'Not found' }, { status: 404 });
+
+  const allowed = await assertCanReadSubmission(db, user.id, data);
+  if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
   return NextResponse.json({ submission: data });
 }
 
@@ -45,7 +74,6 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
   }
 
-  // 1. Get submission + vendor check
   const { data: sub } = await db
     .from('ugc_submissions')
     .select('*, campaign:ugc_campaigns!campaign_id(brand_id)')
@@ -54,7 +82,6 @@ export async function PATCH(
 
   if (!sub) return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
 
-  // 2. Verify current user is the vendor or admin
   const { data: vendor } = await db
     .from('vendors')
     .select('id')
@@ -63,91 +90,69 @@ export async function PATCH(
 
   const isAdmin = (await db.from('user_roles').select('id').eq('user_id', user.id).eq('role', 'admin').eq('is_active', true).maybeSingle()).data;
 
-  // @ts-ignore
-  if (!isAdmin && (!vendor || vendor.id !== sub.campaign?.brand_id)) {
+  const campaignJoinRaw = sub.campaign as { brand_id?: string } | { brand_id?: string }[] | null;
+  const campaignJoin = Array.isArray(campaignJoinRaw) ? campaignJoinRaw[0] : campaignJoinRaw;
+  if (!isAdmin && (!vendor || vendor.id !== campaignJoin?.brand_id)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  // 3. Update status
-  const { data: updated, error } = await db
-    .from('ugc_submissions')
-    .update({ 
-      status, 
-      rejection_reason: status === 'rejected' ? rejection_reason : null,
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString()
-    })
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  // 4. Handle "Fixed Rate" Immediate Earnings Crediting
-  const campaign = sub.campaign as unknown as { brand_id: string } | null;
-  if (status === 'approved' && sub.status !== 'approved') {
-    const { data: campData } = await db
-      .from('ugc_campaigns')
-      .select('payment_model, fixed_rate, spent_budget, approved_count')
-      .eq('id', sub.campaign_id)
-      .single();
-
-    if (campData) {
-       if (campData.payment_model === 'fixed_per_content' && campData.fixed_rate > 0) {
-         const payout = campData.fixed_rate;
-         
-         // 1. Mark Submission Earnings
-         await db.from('ugc_submissions').update({ total_earnings: payout }).eq('id', id);
-
-         // 2. Mark Campaign Budget Consumption
-         await db.from('ugc_campaigns').update({
-           spent_budget: (campData.spent_budget ?? 0) + payout,
-           approved_count: (campData.approved_count ?? 0) + 1
-         }).eq('id', sub.campaign_id);
-
-         // 3. Credit Influencer
-         const { data: infData } = await db.from('influencers').select('id, user_id, total_earnings, available_balance').eq('id', sub.influencer_id).single();
-         if (infData) {
-            await db.from('influencers').update({
-              total_earnings: (infData.total_earnings ?? 0) + payout,
-              available_balance: (infData.available_balance ?? 0) + payout
-            }).eq('id', infData.id);
-
-            // 4. Credit Wallet
-            const { data: wallet } = await db.from('wallets').select('available_balance, total_earned').eq('user_id', infData.user_id).single();
-            if (wallet) {
-              await db.from('wallets').update({
-                available_balance: (wallet.available_balance ?? 0) + payout,
-                total_earned: (wallet.total_earned ?? 0) + payout
-              }).eq('user_id', infData.user_id);
-            }
-
-            // 5. Payout Record & Notification
-            await db.from('payouts').insert({
-              user_id: infData.user_id,
-              type: 'ugc_earnings',
-              amount: payout,
-              currency: 'USD',
-              status: 'paid',
-              notes: `Fixed Asset Reward — submission ${id}`
-            });
-
-            await db.from('notifications').insert({
-              user_id: infData.user_id,
-              type: 'influencer',
-              title: 'Fixed Reward Approved!',
-              message: `You earned $${payout.toFixed(2)} from your approved submission.`,
-              data: { submission_id: id, earnings: payout }
-            });
-         }
-       } else {
-         // Standard pay-per-view: just track approval count
-         await db.from('ugc_campaigns').update({
-           approved_count: (campData.approved_count ?? 0) + 1
-         }).eq('id', sub.campaign_id);
-       }
-    }
+  if (sub.status === 'approved' && status !== 'approved') {
+    return NextResponse.json({ error: 'Approved submissions cannot be changed' }, { status: 409 });
   }
 
+  if (status === 'approved') {
+    const { data: updated, error } = await db
+      .from('ugc_submissions')
+      .update({
+        status: 'approved',
+        rejection_reason: null,
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .in('status', ['pending', 'revision_requested'])
+      .select()
+      .maybeSingle();
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!updated) return NextResponse.json({ error: 'Already approved' }, { status: 409 });
+
+    const credit = await creditFixedPayoutIfNeeded(db, {
+      submissionId: id,
+      campaignId: sub.campaign_id,
+      influencerId: sub.influencer_id,
+    });
+    if (!credit.ok) {
+      await db
+        .from('ugc_submissions')
+        .update({ status: sub.status, reviewed_by: null, reviewed_at: null })
+        .eq('id', id)
+        .eq('status', 'approved');
+      return NextResponse.json({ error: credit.error }, { status: credit.status });
+    }
+    return NextResponse.json({ submission: updated, payout: credit });
+  }
+
+  if (status === 'rejected' && sub.status === 'approved') {
+    return NextResponse.json({ error: 'Approved submissions cannot be rejected' }, { status: 409 });
+  }
+
+  const { data: updated, error } = await db
+    .from('ugc_submissions')
+    .update({
+      status,
+      rejection_reason: status === 'rejected' ? rejection_reason : null,
+      reviewed_by: user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .in('status', status === 'rejected' ? ['pending', 'revision_requested'] : ['pending', 'revision_requested', 'rejected'])
+    .select()
+    .maybeSingle();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!updated) {
+    return NextResponse.json({ error: 'Submission cannot be updated from this status' }, { status: 409 });
+  }
   return NextResponse.json({ submission: updated });
 }

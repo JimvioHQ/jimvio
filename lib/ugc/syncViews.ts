@@ -325,6 +325,13 @@ export async function syncAllApprovedSubmissions(): Promise<{
         notes: `UGC campaign earnings sync — submission ${sub.id} (Clears in 48h)`,
       });
 
+      await db.from('ugc_payouts').insert({
+        influencer_id: influencer.id,
+        submission_id: sub.id,
+        amount: earningsThisSync,
+        status: 'pending',
+      });
+
       // 2j. Insert notification
       await db.from('notifications').insert({
         user_id: influencer.user_id,

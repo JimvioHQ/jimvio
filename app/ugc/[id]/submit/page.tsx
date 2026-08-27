@@ -11,7 +11,6 @@ import {
   Instagram,
   Twitter,
   AlertCircle,
-  Facebook,
   Loader2,
   ExternalLink,
 } from 'lucide-react';
@@ -22,7 +21,6 @@ const PLATFORMS = [
   { id: 'tiktok', name: 'TikTok', icon: Video, hostHint: 'tiktok.com' },
   { id: 'instagram', name: 'Instagram', icon: Instagram, hostHint: 'instagram.com' },
   { id: 'youtube', name: 'YouTube', icon: Globe, hostHint: 'youtube.com|youtu.be' },
-  { id: 'facebook', name: 'Facebook', icon: Facebook, hostHint: 'facebook.com|fb.watch' },
   { id: 'x', name: 'X', icon: Twitter, hostHint: 'x.com|twitter.com' },
 ] as const;
 
@@ -43,7 +41,6 @@ function validateUrl(platform: string, url: string): string | null {
     tiktok: /(tiktok\.com|vm\.tiktok\.com)$/i,
     instagram: /(instagram\.com|instagr\.am)$/i,
     youtube: /(youtube\.com|youtu\.be)$/i,
-    facebook: /(facebook\.com|fb\.watch|fb\.com)$/i,
     x: /(x\.com|twitter\.com)$/i,
   };
   const re = rules[platform];

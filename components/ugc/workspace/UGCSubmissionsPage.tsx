@@ -15,7 +15,7 @@ import {
   UGCStatusPill,
 } from "./UGCPageShell";
 
-const STATUS_TABS = ["all", "pending", "approved", "rejected"] as const;
+const STATUS_TABS = ["all", "pending", "revision_requested", "approved", "rejected"] as const;
 
 export function UGCSubmissionsPage() {
   const { formatMoney } = useCurrency();
@@ -84,7 +84,7 @@ export function UGCSubmissionsPage() {
         >
           {STATUS_TABS.map((s) => (
             <option key={s} value={s}>
-              {s === "all" ? "All status" : s}
+              {s === "all" ? "All status" : s.replace("_", " ")}
             </option>
           ))}
         </select>
@@ -95,7 +95,7 @@ export function UGCSubmissionsPage() {
       {!loading && !error && filtered.length === 0 ? (
         <UGCPageEmpty
           title="No submissions yet"
-          description="Submit your first piece of content from an active project. Platforms: TikTok, Instagram, YouTube, Facebook, and X."
+          description="Submit your first piece of content from an active project. Platforms: TikTok, Instagram, YouTube, and X."
           illustration="campaigns"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
@@ -141,11 +141,14 @@ export function UGCSubmissionsPage() {
                   </div>
                   <UGCStatusPill status={sub.status} />
                 </div>
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap gap-2">
                   {camp?.id && sub.status === "rejected" ? (
                     <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
                       <Link href={`/ugc/${camp.id}/submit`}>Resubmit</Link>
                     </Button>
+                  ) : null}
+                  {sub.status === "revision_requested" ? (
+                    <RevisionAction submissionId={sub.id} onDone={load} />
                   ) : null}
                   {camp?.id ? (
                     <Button asChild size="sm" variant="outline" className="rounded-xl">
@@ -182,5 +185,77 @@ export function UGCSubmissionsPage() {
         </div>
       ) : null}
     </UGCPageShell>
+  );
+}
+
+function RevisionAction({
+  submissionId,
+  onDone,
+}: {
+  submissionId: string;
+  onDone: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [postUrl, setPostUrl] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/ugc/submissions/${submissionId}/revision`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          post_url: postUrl.trim() || undefined,
+          creator_response: notes.trim() || "Updated content submitted.",
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Could not submit revision");
+      setOpen(false);
+      onDone();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not submit revision");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <Button size="sm" className="rounded-xl bg-[#FF5A1F]" onClick={() => setOpen(true)}>
+        Submit revision
+      </Button>
+    );
+  }
+
+  return (
+    <div className="w-full space-y-2 rounded-xl border border-[#FFE4D6] bg-[#FFF8F5] p-3">
+      <input
+        value={postUrl}
+        onChange={(e) => setPostUrl(e.target.value)}
+        placeholder="Updated post URL (optional)"
+        className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#FF5A1F]"
+      />
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="What did you change?"
+        rows={2}
+        className="w-full rounded-lg border border-[#E5E7EB] bg-white px-3 py-2 text-[13px] outline-none focus:border-[#FF5A1F]"
+      />
+      {error ? <p className="text-[12px] text-red-600">{error}</p> : null}
+      <div className="flex gap-2">
+        <Button size="sm" className="rounded-xl bg-[#FF5A1F]" disabled={saving} onClick={() => void submit()}>
+          {saving ? "Sending…" : "Send revision"}
+        </Button>
+        <Button size="sm" variant="outline" className="rounded-xl" disabled={saving} onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+      </div>
+    </div>
   );
 }
