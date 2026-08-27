@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
@@ -73,6 +74,7 @@ function StatCard({
 
 export function UGCDashboardPage() {
   const { formatMoney } = useCurrency();
+  const pathname = usePathname();
   const [data, setData] = useState<Stats | null>(null);
   const [notifs, setNotifs] = useState<UGCNotifItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export function UGCDashboardPage() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, pathname]);
 
   const s = data?.summary;
 

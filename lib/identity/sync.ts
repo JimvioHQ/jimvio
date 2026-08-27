@@ -8,7 +8,8 @@
  * Never throws — a mirror failure must not fail the originating request.
  *
  * The influencers row is the UGC join-key, not proof the creator profile is
- * complete. Insert it only after Identity required fields are filled.
+ * complete. Insert only after required Identity fields are filled. UPDATE
+ * that affects zero rows is not a successful sync — INSERT instead.
  */
 
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -75,9 +76,9 @@ export async function loadCreatorProfileCompletion(
 }
 
 /**
- * Ensure the legacy `influencers` join-key row exists for a COMPLETE Identity.
- * Does not invent a second profile — copies display fields from `profiles`.
- * Incomplete identities are not auto-inserted.
+ * Ensure the legacy `influencers` join-key exists for a COMPLETE Identity.
+ * UPDATE if it exists (0 rows is not success). INSERT if it does not.
+ * Never upsert-on-conflict. Never invent a second profile.
  */
 export async function ensureInfluencerMirror(
   userId: string,
@@ -85,106 +86,111 @@ export async function ensureInfluencerMirror(
   if (!userId) return { id: null, created: false, reason: "no-user" };
   const db = createServiceRoleClient();
 
-  const { data: existing, error: existingErr } = await db
-    .from("influencers")
-    .select("id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (existingErr) {
-    logMirror({
-      event: "select-existing-failed",
-      userId,
-      code: existingErr.code ?? null,
-      message: existingErr.message,
-    });
-  }
+  const [{ data: profile, error: profileErr }, { data: identity, error: jipErr }, { data: existing, error: existingErr }] =
+    await Promise.all([
+      db.from("profiles").select("id, bio, avatar_url, full_name, username").eq("id", userId).maybeSingle(),
+      db.from("jip_identity").select("user_id, headline").eq("user_id", userId).maybeSingle(),
+      db.from("influencers").select("id").eq("user_id", userId).maybeSingle(),
+    ]);
 
-  const completion = await loadCreatorProfileCompletion(userId);
+  const completion = evaluateCreatorProfileCompletion({
+    fullName: profile?.full_name,
+    headline: identity?.headline,
+    bio: profile?.bio,
+  });
+
+  logMirror({
+    event: "ensure-start",
+    userId,
+    profile: Boolean(profile?.id),
+    jip: Boolean(identity?.user_id),
+    mirror: Boolean(existing?.id),
+    complete: completion.complete,
+    missing: completion.missing.map((m) => m.id),
+    profileReadFailed: Boolean(profileErr),
+    jipReadFailed: Boolean(jipErr),
+    mirrorReadFailed: Boolean(existingErr),
+  });
+
   if (!completion.complete) {
-    logMirror({
-      event: "incomplete",
-      userId,
-      missing: completion.missing.map((m) => m.id),
-    });
     return {
       id: existing?.id ?? null,
       created: false,
       reason: "incomplete",
     };
   }
-
-  if (existing?.id) {
-    return { id: existing.id, created: false, reason: "existing" };
-  }
-
-  const { data: profile, error: profileErr } = await db
-    .from("profiles")
-    .select("bio, avatar_url, full_name, username")
-    .eq("id", userId)
-    .maybeSingle();
-  if (profileErr) {
-    logMirror({
-      event: "select-profile-failed",
-      userId,
-      code: profileErr.code ?? null,
-      message: profileErr.message,
-    });
-    return { id: null, created: false, reason: "profile-read-failed" };
-  }
-  if (!profile) {
+  if (!profile?.id) {
     logMirror({ event: "no-profile", userId, reason: "no-profile" });
     return { id: null, created: false, reason: "no-profile" };
   }
 
-  const now = new Date().toISOString();
-  const { error } = await db.from("influencers").upsert(
-    {
-      user_id: userId,
-      display_name: identityDisplayName(profile),
-      bio: profile.bio ?? null,
-      profile_image: profile.avatar_url ?? null,
-      updated_at: now,
-    },
-    { onConflict: "user_id", ignoreDuplicates: false },
-  );
+  const payload = {
+    display_name: identityDisplayName(profile),
+    bio: profile.bio ?? null,
+    profile_image: profile.avatar_url ?? null,
+    updated_at: new Date().toISOString(),
+  };
 
-  if (error) {
-    logMirror({
-      event: "upsert-failed",
-      userId,
-      code: error.code ?? null,
-      message: error.message,
-    });
+  if (existing?.id) {
+    const { data: updated, error: updateErr } = await db
+      .from("influencers")
+      .update(payload)
+      .eq("user_id", userId)
+      .select("id")
+      .maybeSingle();
+    if (updateErr) {
+      logMirror({
+        event: "update-failed",
+        userId,
+        code: updateErr.code ?? null,
+        message: updateErr.message,
+      });
+    }
+    if (updated?.id) {
+      logMirror({ event: "updated", userId, created: false, reason: "updated" });
+      return { id: updated.id, created: false, reason: "updated" };
+    }
+    logMirror({ event: "update-zero-rows", userId, reason: "insert-fallback" });
   }
 
-  const { data: row, error: reloadErr } = await db
+  const { data: inserted, error: insertErr } = await db
     .from("influencers")
+    .insert({ user_id: userId, ...payload })
     .select("id")
-    .eq("user_id", userId)
     .maybeSingle();
-  if (reloadErr) {
+
+  if (insertErr) {
     logMirror({
-      event: "reload-failed",
+      event: "insert-failed",
       userId,
-      code: reloadErr.code ?? null,
-      message: reloadErr.message,
+      code: insertErr.code ?? null,
+      message: insertErr.message,
     });
-  }
-  if (row?.id) {
-    logMirror({
-      event: error ? "recovered-after-upsert-error" : "ensured",
-      userId,
-      created: true,
-      reason: error ? "recovered" : "upserted",
-    });
-    return {
-      id: row.id,
-      created: true,
-      reason: error ? "recovered" : "upserted",
-    };
+    if (insertErr.code === "23505") {
+      const { data: raced } = await db
+        .from("influencers")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (raced?.id) {
+        logMirror({ event: "recovered-unique", userId, created: false, reason: "existing" });
+        return { id: raced.id, created: false, reason: "existing" };
+      }
+    }
   }
 
-  logMirror({ event: "missing-after-upsert", userId, reason: "insert-failed" });
+  if (inserted?.id) {
+    logMirror({ event: "inserted", userId, created: true, reason: "inserted" });
+    return { id: inserted.id, created: true, reason: "inserted" };
+  }
+
+  const { data: row } = await db.from("influencers").select("id").eq("user_id", userId).maybeSingle();
+  if (row?.id) {
+    logMirror({ event: "recovered", userId, created: false, reason: "recovered" });
+    return { id: row.id, created: false, reason: "recovered" };
+  }
+
+  logMirror({ event: "missing-after-write", userId, reason: "insert-failed" });
   return { id: null, created: false, reason: "insert-failed" };
 }
 
@@ -215,30 +221,9 @@ export async function syncRoleMirrors(
   if (!source) return { synced, errors };
 
   try {
-    const { data: existing } = await db
-      .from("influencers")
-      .select("id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    const payload = {
-      bio: source.bio ?? null,
-      profile_image: source.avatar_url ?? null,
-      display_name: identityDisplayName(source),
-      updated_at: new Date().toISOString(),
-    };
-
-    if (existing?.id) {
-      const { error } = await db.from("influencers").update(payload).eq("user_id", userId);
-      if (error) errors.push(`influencers:${error.message}`);
-      else synced.push("influencers");
-    } else {
-      const ensured = await ensureInfluencerMirror(userId);
-      if (ensured.id) synced.push("influencers");
-      else if (ensured.reason === "incomplete") {
-        /* join-key is created only after required Identity fields are saved */
-      } else errors.push(`influencers:${ensured.reason}`);
-    }
+    const ensured = await ensureInfluencerMirror(userId);
+    if (ensured.id) synced.push("influencers");
+    else if (ensured.reason !== "incomplete") errors.push(`influencers:${ensured.reason}`);
   } catch (err) {
     errors.push(`influencers:${(err as Error).message}`);
   }

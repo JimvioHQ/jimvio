@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +25,7 @@ type MatchRow = {
 };
 
 export function UGCMatchesPage() {
+  const pathname = usePathname();
   const [rows, setRows] = useState<MatchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export function UGCMatchesPage() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, pathname]);
 
   return (
     <UGCPageShell

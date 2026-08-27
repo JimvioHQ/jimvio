@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Trophy } from "lucide-react";
 import {
   UGCPageEmpty,
@@ -32,6 +33,7 @@ type AchievementsResponse = {
 };
 
 export function UGCAchievementsPage() {
+  const pathname = usePathname();
   const [data, setData] = useState<AchievementsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export function UGCAchievementsPage() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, pathname]);
 
   const badges = (data?.badges ?? []).map((b) => {
     if (typeof b === "string") return { id: b, name: b.replace(/_/g, " ") };

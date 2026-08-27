@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { UGCCampaign } from "@/types/ugc";
 import { Button } from "@/components/ui/button";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -160,6 +161,7 @@ function KanbanCard({
 
 export function UGCApplicationsPage() {
   const { formatMoney } = useCurrency();
+  const pathname = usePathname();
   const [rows, setRows] = useState<ParticipantRow[]>([]);
   const [subs, setSubs] = useState<SubmissionLite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,7 +185,7 @@ export function UGCApplicationsPage() {
       }
       if (!pRes.ok) throw new Error("Failed to load applications");
       const json = await pRes.json();
-      if (json.needsProfile) {
+      if (json.needsProfile === true) {
         setNeedsProfile(true);
         setMissingFields(
           Array.isArray(json.missing)
@@ -219,7 +221,7 @@ export function UGCApplicationsPage() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, pathname]);
 
   const byCampaign = useMemo(() => {
     const m = new Map<string, SubmissionLite[]>();

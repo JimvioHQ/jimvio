@@ -82,5 +82,15 @@ export async function GET(req: NextRequest) {
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500, ...noStore });
 
-  return NextResponse.json({ data: data ?? [], total: count ?? 0, page, limit }, noStore);
+  return NextResponse.json(
+    {
+      data: data ?? [],
+      total: count ?? 0,
+      page,
+      limit,
+      needsProfile: false,
+      complete: true,
+    },
+    noStore,
+  );
 }

@@ -1,5 +1,6 @@
 /**
- * Identity save must unlock UGC only after required creator-profile fields are complete.
+ * Identity save must unlock UGC only after required creator-profile fields are complete
+ * AND the influencers join-key is inserted/updated with a returned row.
  * Auto-picked up by npm test via scripts/tmp/verify-*.mjs
  */
 import assert from "node:assert/strict";
@@ -24,12 +25,18 @@ const joinRoute = read("app/api/ugc/campaigns/[id]/join/route.ts");
 const calendar = read("app/api/ugc/calendar/route.ts");
 const achievements = read("app/api/ugc/achievements/route.ts");
 const eligibility = read("app/api/ugc/campaigns/[id]/eligibility/route.ts");
+const match = read("app/api/ugc/ai/match/route.ts");
 
 assert.match(identityUpdate, /from\("profiles"\)/);
 assert.match(identityUpdate, /from\("jip_identity"\)/);
 assert.match(identityUpdate, /loadCreatorProfileCompletion/);
 assert.match(identityUpdate, /complete: ready/);
-assert.match(identityUpdate, /revalidatePath\("\/ugc\/applications"\)/);
+assert.match(identityUpdate, /\.select\("id"\)/);
+assert.match(identityUpdate, /\.select\("user_id"\)/);
+assert.match(identityUpdate, /profile-update-zero-rows/);
+assert.match(identityUpdate, /jip-update-zero-rows/);
+assert.match(identityUpdate, /Creator workspace could not be synchronized/);
+assert.match(identityUpdate, /\[creator-profile-save\]/);
 assert.doesNotMatch(identityUpdate, /from\("influencers"\)\s*\.insert/);
 assert.doesNotMatch(identityUpdate, /veriff|didit|kyc|jumio|onfido/i);
 
@@ -43,12 +50,18 @@ assert.doesNotMatch(completion, /identityVerified|documentsVerified|veriff/i);
 assert.match(sync, /export async function ensureInfluencerMirror/);
 assert.match(sync, /reason: "incomplete"/);
 assert.match(sync, /createServiceRoleClient/);
+assert.match(sync, /update-zero-rows/);
+assert.match(sync, /\.insert\(\{ user_id: userId/);
+assert.match(sync, /\.update\(payload\)/);
+assert.match(sync, /\.select\("id"\)/);
+assert.doesNotMatch(sync, /onConflict:\s*"user_id"/);
 assert.doesNotMatch(sync, /from\("affiliates"\)[\s\S]{0,80}\.insert/);
 
 assert.match(auth, /loadCreatorProfileCompletion/);
 assert.match(auth, /ready: isCreatorWorkspaceReady/);
 
 assert.match(participants, /needsProfile: true/);
+assert.match(participants, /needsProfile: false/);
 assert.match(participants, /completionComplete/);
 assert.match(participants, /!ready \|\| !influencer/);
 
@@ -59,17 +72,23 @@ assert.match(joinRoute, /Complete your creator profile first/);
 assert.match(joinService, /isCreatorWorkspaceReady/);
 assert.match(joinService, /hasProfile: false/);
 assert.match(eligibility, /loadCreatorProfile/);
+assert.match(match, /requireInfluencer/);
+assert.match(match, /needsProfile: true/);
 
 assert.match(applications, /title="Creator profile required"/);
-assert.match(applications, /json\.needsProfile/);
+assert.match(applications, /json\.needsProfile === true/);
 assert.match(applications, /href="\/identity\/edit"/);
+assert.match(applications, /usePathname/);
 
-assert.match(identityEdit, /Profile saved successfully/);
+assert.match(identityEdit, /Creator Profile Saved/);
+assert.match(identityEdit, /Your creator profile is ready/);
 assert.match(identityEdit, /Complete these remaining items/);
 assert.match(identityEdit, /evaluateCreatorProfileCompletion/);
 assert.match(identityEdit, /label="Full name" required/);
 assert.match(identityEdit, /label="Headline" required/);
 assert.match(identityEdit, /label="Bio" required/);
+assert.match(identityEdit, /json\.saved === true && json\.complete === true/);
+assert.doesNotMatch(identityEdit, /router\.refresh/);
 
 function evaluateCreatorProfileCompletion(input) {
   const missing = [];

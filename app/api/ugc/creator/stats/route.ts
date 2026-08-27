@@ -121,5 +121,7 @@ export async function GET(_req: NextRequest) {
     topCampaigns,
     topVideos,
     recentSubmissions: subs.slice(0, 10),
+    needsProfile: false,
+    complete: true,
   });
 }

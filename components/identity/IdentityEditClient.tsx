@@ -2,12 +2,12 @@
 
 import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   BadgeCheck,
   Briefcase,
   Camera,
+  Check,
   Eye,
   EyeOff,
   Globe,
@@ -82,7 +82,6 @@ const RESUME_TYPES: IdentityResumeEntryType[] = [
 ];
 
 export function IdentityEditClient({ initialPayload }: { initialPayload: IdentityProfilePayload }) {
-  const router = useRouter();
   const [tab, setTab] = useState<Tab>("profile");
   const { profile } = initialPayload;
 
@@ -111,6 +110,7 @@ export function IdentityEditClient({ initialPayload }: { initialPayload: Identit
   const [resume, setResume] = useState<IdentityResumeEntry[]>(initialPayload.resume);
 
   const [saving, setSaving] = useState(false);
+  const [saveNotice, setSaveNotice] = useState<"complete" | "incomplete" | null>(null);
 
   const saveCore = useCallback(async () => {
     setSaving(true);
@@ -129,27 +129,29 @@ export function IdentityEditClient({ initialPayload }: { initialPayload: Identit
             .filter((label): label is string => Boolean(label))
         : [];
 
-      if (json.complete === true) {
-        toast.success("Profile saved successfully", {
+      if (json.saved === true && json.complete === true) {
+        setSaveNotice("complete");
+        toast.success("Creator Profile Saved", {
           description: "Your creator profile is ready.",
         });
-      } else {
-        toast.success("Profile saved");
-        if (missing.length > 0) {
-          toast.message("Complete these remaining items", {
-            description: missing.map((label) => `• ${label}`).join("\n"),
-          });
-        } else if (json.mirror?.reason && json.mirror.reason !== "incomplete") {
-          toast.error("Creator workspace could not be updated. Try saving again.");
-        }
+        return;
       }
-      router.refresh();
+
+      setSaveNotice("incomplete");
+      if (missing.length > 0) {
+        toast.message("Complete these remaining items", {
+          description: missing.map((label) => `• ${label}`).join("\n"),
+        });
+      } else {
+        toast.error(json.error ?? "Creator profile is not complete yet.");
+      }
     } catch (err) {
+      setSaveNotice(null);
       toast.error(err instanceof Error ? err.message : "Failed to save");
     } finally {
       setSaving(false);
     }
-  }, [core, router]);
+  }, [core]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8">
@@ -194,7 +196,15 @@ export function IdentityEditClient({ initialPayload }: { initialPayload: Identit
         </nav>
 
         <div className="space-y-5">
-          {tab === "profile" && <ProfileTab core={core} setCore={setCore} onSave={saveCore} saving={saving} />}
+          {tab === "profile" && (
+            <ProfileTab
+              core={core}
+              setCore={setCore}
+              onSave={saveCore}
+              saving={saving}
+              saveNotice={saveNotice}
+            />
+          )}
           {tab === "social" && <SocialTab social={social} setSocial={setSocial} />}
           {tab === "portfolio" && <PortfolioTab portfolio={portfolio} setPortfolio={setPortfolio} />}
           {tab === "resume" && <ResumeTab resume={resume} setResume={setResume} />}
@@ -242,11 +252,13 @@ function ProfileTab({
   setCore,
   onSave,
   saving,
+  saveNotice,
 }: {
   core: CoreState;
   setCore: React.Dispatch<React.SetStateAction<CoreState>>;
   onSave: () => void;
   saving: boolean;
+  saveNotice: "complete" | "incomplete" | null;
 }) {
   const avatarUpload = useCloudinaryUpload("jimvio/avatars");
   const coverUpload = useCloudinaryUpload("jimvio/identity");
@@ -327,6 +339,22 @@ function ProfileTab({
             headline: core.headline,
             bio: core.bio,
           });
+          if (saveNotice === "complete" && live.complete) {
+            return (
+              <div className="rounded-2xl border border-[#C8E6C9] bg-[#F3FBF3] px-4 py-3">
+                <p className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#1B7A3A]">
+                  <Check className="h-3.5 w-3.5" /> Creator Profile Saved
+                </p>
+                <p className="mt-1 text-[12px] text-[#3E3A34]">Your creator profile is ready.</p>
+                <Link
+                  href="/ugc/applications"
+                  className="mt-2 inline-flex text-[12.5px] font-semibold text-[#D6480F] hover:underline"
+                >
+                  Continue to My Applications
+                </Link>
+              </div>
+            );
+          }
           if (live.complete) return null;
           return (
             <div className="rounded-2xl border border-[#FFDCC7] bg-[#FFF6F1] px-4 py-3">

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { CalendarDays, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -38,6 +39,7 @@ function sameDay(a: string, day: Date) {
 }
 
 export function UGCCalendarPage() {
+  const pathname = usePathname();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export function UGCCalendarPage() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, pathname]);
 
   const monthLabel = cursor.toLocaleString(undefined, { month: "long", year: "numeric" });
   const totalDays = daysInMonth(cursor);
