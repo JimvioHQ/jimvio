@@ -16,16 +16,22 @@ import { toast } from "sonner";
 import type { UGCCampaignType, UGCPlatform } from "@/types/ugc";
 import { cloudinaryService } from "@/services/media/cloudinary";
 import { cn } from "@/lib/utils";
+import {
+  CAMPAIGN_WIZARD_STEPS,
+  CAMPAIGN_TYPES,
+  canOpenCampaignWizardStep,
+  campaignWizardIncompleteSteps,
+  campaignWizardProgressPercent,
+  coerceFiniteNumber,
+  firstIncompleteCampaignStep,
+  isCampaignStepComplete,
+  parseCampaignWizardStepParam,
+  validateCampaignStep,
+  validateCampaignWizardReady,
+} from "@/lib/ugc/campaign-wizard-validation";
 
-const STEPS = [
-  "Type",
-  "Basics",
-  "Rewards",
-  "Targeting",
-  "Requirements",
-  "Assets",
-  "Review",
-] as const;
+const STEPS = CAMPAIGN_WIZARD_STEPS.map((s) => s.label);
+const STEP_KEY = "jimvio-campaign-center-step-v1";
 
 const TYPES: { value: UGCCampaignType; label: string; desc: string }[] = [
   { value: "ugc", label: "UGC Campaign", desc: "Original creator content for your brand." },
@@ -101,12 +107,14 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
   const searchParams = useSearchParams();
   const duplicateId = searchParams.get("duplicate");
   const templateId = searchParams.get("template");
+  const stepParam = searchParams.get("step");
   const sourceId = editId || duplicateId || templateId || undefined;
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [autoSavedAt, setAutoSavedAt] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState({ hashtag: "", mention: "", keyword: "" });
   const [activeCampaignId, setActiveCampaignId] = useState<string | undefined>(editId);
@@ -117,19 +125,26 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
   }, []);
 
   const applyCampaign = useCallback((c: Record<string, unknown>) => {
-    setForm({
+    const loadedType = CAMPAIGN_TYPES.includes(c.campaign_type as (typeof CAMPAIGN_TYPES)[number])
+      ? (c.campaign_type as FormState["campaign_type"])
+      : typeof c.campaign_type === "string" && c.campaign_type
+        ? (c.campaign_type as FormState["campaign_type"])
+        : "ugc";
+    const next: FormState = {
       ...DEFAULT_FORM,
       title: String(c.title ?? ""),
       description: String(c.description ?? ""),
-      campaign_type: (c.campaign_type as FormState["campaign_type"]) ?? "ugc",
-      payment_model: (c.payment_model as FormState["payment_model"]) ?? "per_views",
-      rate_per_1k_views: Number(c.rate_per_1k_views) || 3,
-      fixed_rate: Number(c.fixed_rate) || 50,
-      total_budget: Number(c.total_budget) || 500,
-      max_payout_per_sub: Number(c.max_payout_per_sub) || 400,
-      allowed_platforms: (c.allowed_platforms as UGCPlatform[]) ?? ["tiktok", "instagram"],
-      min_duration: Number(c.min_duration) || 15,
-      max_duration: Number(c.max_duration) || 60,
+      campaign_type: loadedType,
+      payment_model: c.payment_model === "fixed_per_content" ? "fixed_per_content" : "per_views",
+      rate_per_1k_views: coerceFiniteNumber(c.rate_per_1k_views) ?? 0,
+      fixed_rate: coerceFiniteNumber(c.fixed_rate) ?? 0,
+      total_budget: coerceFiniteNumber(c.total_budget) ?? 0,
+      max_payout_per_sub: coerceFiniteNumber(c.max_payout_per_sub) ?? 0,
+      allowed_platforms: Array.isArray(c.allowed_platforms)
+        ? (c.allowed_platforms as string[])
+        : [],
+      min_duration: coerceFiniteNumber(c.min_duration) ?? 0,
+      max_duration: coerceFiniteNumber(c.max_duration) ?? 0,
       required_hashtags: Array.isArray(c.required_hashtags) ? (c.required_hashtags as string[]) : [],
       required_mentions: Array.isArray(c.required_mentions) ? (c.required_mentions as string[]) : [],
       required_keywords: Array.isArray(c.required_keywords) ? (c.required_keywords as string[]) : [],
@@ -145,12 +160,31 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             usage: m.usage || "example",
           }))
         : [],
-    });
+    };
+    setForm(next);
+    return next;
   }, []);
 
   // Load local autosave, edit target, duplicate, or template campaign
   useEffect(() => {
     let cancelled = false;
+    const requestedStep = parseCampaignWizardStepParam(stepParam);
+    const restoreStep = (draft: FormState) => {
+      let saved: number | null = null;
+      try {
+        const raw = sessionStorage.getItem(STEP_KEY);
+        saved = raw != null ? Number(raw) : null;
+        if (!Number.isInteger(saved)) saved = null;
+      } catch {
+        saved = null;
+      }
+      const candidate = requestedStep ?? saved ?? 0;
+      const target = canOpenCampaignWizardStep(draft, candidate)
+        ? candidate
+        : firstIncompleteCampaignStep(draft);
+      if (!cancelled) setStep(target);
+    };
+
     (async () => {
       if (sourceId) {
         try {
@@ -158,8 +192,9 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
           const json = await res.json();
           const c = json.campaign;
           if (!c || cancelled) return;
-          applyCampaign(c);
+          const next = applyCampaign(c);
           setActiveCampaignId(String(c.id ?? sourceId));
+          restoreStep(next);
         } catch {
           toast.error("Could not load campaign");
         }
@@ -171,7 +206,13 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         const raw = localStorage.getItem(DRAFT_KEY);
         if (raw) {
           const parsed = JSON.parse(raw) as FormState;
-          if (!cancelled) setForm({ ...DEFAULT_FORM, ...parsed });
+          const next = { ...DEFAULT_FORM, ...parsed };
+          if (!cancelled) {
+            setForm(next);
+            restoreStep(next);
+          }
+        } else if (requestedStep != null && !cancelled) {
+          restoreStep(DEFAULT_FORM);
         }
       } catch {
         /* ignore */
@@ -181,7 +222,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     return () => {
       cancelled = true;
     };
-  }, [sourceId, applyCampaign]);
+  }, [sourceId, applyCampaign, stepParam]);
 
   // Autosave to localStorage
   useEffect(() => {
@@ -197,35 +238,22 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     return () => window.clearTimeout(t);
   }, [form, activeCampaignId]);
 
-  const progress = ((step + 1) / STEPS.length) * 100;
-
-  const validateStep = (s: number): string | null => {
-    if (s === 1 && !form.title.trim()) return "Campaign title is required";
-    if (s === 2) {
-      if (form.total_budget <= 0) return "Budget must be greater than 0";
-      if (form.payment_model === "per_views" && form.rate_per_1k_views <= 0)
-        return "Rate per 1K views must be greater than 0";
-      if (form.payment_model === "fixed_per_content" && form.fixed_rate <= 0)
-        return "Fixed rate must be greater than 0";
+  const persistLocalDraft = useCallback((nextForm: FormState, nextStep?: number) => {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(nextForm));
+      if (typeof nextStep === "number") {
+        sessionStorage.setItem(STEP_KEY, String(nextStep));
+      }
+      setAutoSavedAt(new Date().toLocaleTimeString());
+      return true;
+    } catch {
+      return false;
     }
-    if (s === 3 && form.allowed_platforms.length === 0)
-      return "Select at least one platform";
-    return null;
-  };
+  }, []);
 
-  const next = () => {
-    const err = validateStep(step);
-    if (err) {
-      setError(err);
-      return;
-    }
-    setError("");
-    setStep((v) => Math.min(v + 1, STEPS.length - 1));
-  };
-
-  const back = () => {
-    setError("");
-    setStep((v) => Math.max(v - 1, 0));
+  const applyStepErrors = (errors: { field: string; message: string }[]) => {
+    setError(errors.map((e) => e.message).join(" · "));
+    setFieldErrors(Object.fromEntries(errors.map((e) => [e.field, e.message])));
   };
 
   const uploadMedia = async (
@@ -306,11 +334,103 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     };
   }, [form]);
 
+  const serverDraftPatch = (extra: Record<string, unknown> = {}) => ({
+    title: payload.title,
+    description: payload.description,
+    campaign_type: payload.campaign_type,
+    payment_model: payload.payment_model,
+    rate_per_1k_views: payload.rate_per_1k_views,
+    fixed_rate: payload.fixed_rate,
+    total_budget: payload.total_budget,
+    max_payout_per_sub: payload.max_payout_per_sub,
+    allowed_platforms: payload.allowed_platforms,
+    min_duration: payload.min_duration,
+    max_duration: payload.max_duration,
+    required_hashtags: payload.required_hashtags,
+    required_mentions: payload.required_mentions,
+    required_keywords: payload.required_keywords,
+    requires_face: payload.requires_face,
+    status: "draft" as const,
+    ...extra,
+  });
+
+  const persistServerDraft = async (): Promise<boolean> => {
+    if (!activeCampaignId) return true;
+    const res = await fetch(`/api/ugc/campaigns/${activeCampaignId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(serverDraftPatch()),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((json as { error?: string }).error || "Save failed");
+    return true;
+  };
+
+  const progress = campaignWizardProgressPercent(form);
+
+  const next = async () => {
+    const result = validateCampaignStep(step, form);
+    if (!result.success) {
+      applyStepErrors(result.errors);
+      return;
+    }
+    setError("");
+    setFieldErrors({});
+    if (!persistLocalDraft(form, step)) {
+      setError("Could not save this step. Try again.");
+      return;
+    }
+    if (activeCampaignId) {
+      setLoading(true);
+      try {
+        await persistServerDraft();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not save this step. Try again.");
+        setLoading(false);
+        return;
+      }
+      setLoading(false);
+    }
+    const nextIndex = Math.min(step + 1, STEPS.length - 1);
+    persistLocalDraft(form, nextIndex);
+    setStep(nextIndex);
+  };
+
+  const back = () => {
+    setError("");
+    setFieldErrors({});
+    setStep((v) => Math.max(v - 1, 0));
+  };
+
+  const goToStep = (target: number) => {
+    if (!canOpenCampaignWizardStep(form, target)) {
+      const first = firstIncompleteCampaignStep(form);
+      const result = validateCampaignStep(first, form);
+      applyStepErrors(
+        result.errors.length
+          ? result.errors
+          : [{ field: "step", message: "Complete the previous required steps first." }],
+      );
+      setStep(first);
+      return;
+    }
+    setError("");
+    setFieldErrors({});
+    setStep(target);
+    persistLocalDraft(form, target);
+  };
+
   const saveDraft = async () => {
-    const err = validateStep(1) || validateStep(2);
-    if (err) {
-      setError(err);
-      setStep(err.includes("title") ? 1 : 2);
+    const basics = validateCampaignStep("basics", form);
+    const rewards = validateCampaignStep("rewards", form);
+    if (!basics.success) {
+      applyStepErrors(basics.errors);
+      setStep(1);
+      return;
+    }
+    if (!rewards.success) {
+      applyStepErrors(rewards.errors);
+      setStep(2);
       return;
     }
     setLoading(true);
@@ -320,21 +440,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         const res = await fetch(`/api/ugc/campaigns/${activeCampaignId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: payload.title,
-            description: payload.description,
-            rate_per_1k_views: payload.rate_per_1k_views,
-            total_budget: payload.total_budget,
-            max_payout_per_sub: payload.max_payout_per_sub,
-            allowed_platforms: payload.allowed_platforms,
-            min_duration: payload.min_duration,
-            max_duration: payload.max_duration,
-            required_hashtags: payload.required_hashtags,
-            required_mentions: payload.required_mentions,
-            required_keywords: payload.required_keywords,
-            requires_face: payload.requires_face,
-            status: "draft",
-          }),
+          body: JSON.stringify(serverDraftPatch()),
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.error || "Save failed");
@@ -361,13 +467,11 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
   };
 
   const continueToFunding = async () => {
-    for (let s = 0; s < STEPS.length - 1; s++) {
-      const err = validateStep(s);
-      if (err) {
-        setError(err);
-        setStep(s);
-        return;
-      }
+    const ready = validateCampaignWizardReady(form);
+    if (!ready.success) {
+      applyStepErrors(ready.errors);
+      setStep(firstIncompleteCampaignStep(form));
+      return;
     }
     setLoading(true);
     setError("");
@@ -377,34 +481,30 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         const res = await fetch("/api/ugc/campaigns", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ ...payload, readyForFunding: true }),
         });
         const json = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(json.error || "Create failed");
+        if (!res.ok) {
+          const missing = Array.isArray(json.missing)
+            ? (json.missing as { message?: string }[]).map((m) => m.message).filter(Boolean).join(" · ")
+            : "";
+          throw new Error(missing || json.error || "Create failed");
+        }
         id = json.campaign?.id as string;
         localStorage.removeItem(DRAFT_KEY);
       } else {
         const res = await fetch(`/api/ugc/campaigns/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: payload.title,
-            description: payload.description,
-            rate_per_1k_views: payload.rate_per_1k_views,
-            total_budget: payload.total_budget,
-            max_payout_per_sub: payload.max_payout_per_sub,
-            allowed_platforms: payload.allowed_platforms,
-            min_duration: payload.min_duration,
-            max_duration: payload.max_duration,
-            required_hashtags: payload.required_hashtags,
-            required_mentions: payload.required_mentions,
-            required_keywords: payload.required_keywords,
-            requires_face: payload.requires_face,
-            status: "draft",
-          }),
+          body: JSON.stringify(serverDraftPatch({ readyForFunding: true })),
         });
         const json = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(json.error || "Update failed");
+        if (!res.ok) {
+          const missing = Array.isArray(json.missing)
+            ? (json.missing as { message?: string }[]).map((m) => m.message).filter(Boolean).join(" · ")
+            : "";
+          throw new Error(missing || json.error || "Update failed");
+        }
       }
 
       toast.success("Campaign ready — fund to activate");
@@ -466,24 +566,27 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         />
       </div>
       <div className="mt-3 flex gap-1 overflow-x-auto pb-1">
-        {STEPS.map((label, i) => (
+        {STEPS.map((label, i) => {
+          const complete = isCampaignStepComplete(form, i);
+          return (
           <button
             key={label}
             type="button"
-            onClick={() => setStep(i)}
+            onClick={() => goToStep(i)}
             className={cn(
               "shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold transition",
               i === step
                 ? "bg-[#FFF0E8] text-[#FF5A1F]"
-                : i < step
+                : complete
                   ? "bg-[#ECFDF5] text-[#059669]"
                   : "bg-[#F9FAFB] text-[#9CA3AF]",
             )}
           >
-            {i < step ? <Check className="mr-1 inline h-3 w-3" /> : null}
+            {complete && i !== step ? <Check className="mr-1 inline h-3 w-3" /> : null}
             {label}
           </button>
-        ))}
+          );
+        })}
       </div>
 
       <div className="mt-5 rounded-2xl border border-[#EEF0F2] bg-white p-5 shadow-[0_1px_2px_rgba(17,24,39,0.04)] sm:p-6">
@@ -510,7 +613,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
 
         {step === 1 && (
           <div className="space-y-4">
-            <Field label="Campaign Title" required>
+            <Field label="Campaign Title" required error={fieldErrors.title}>
               <input
                 value={form.title}
                 onChange={(e) => set("title", e.target.value)}
@@ -557,7 +660,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               </div>
             </Field>
             {form.payment_model === "per_views" ? (
-              <Field label="Rate per 1K views (USD)">
+              <Field label="Rate per 1K views (USD)" required error={fieldErrors.rate_per_1k_views}>
                 <input
                   type="number"
                   min={0.1}
@@ -568,7 +671,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 />
               </Field>
             ) : (
-              <Field label="Fixed rate per content (USD)">
+              <Field label="Fixed rate per content (USD)" required error={fieldErrors.fixed_rate}>
                 <input
                   type="number"
                   min={1}
@@ -579,7 +682,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               </Field>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Total budget (USD)" required>
+              <Field label="Total budget (USD)" required error={fieldErrors.total_budget}>
                 <input
                   type="number"
                   min={1}
@@ -620,7 +723,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
 
         {step === 3 && (
           <div className="space-y-4">
-            <Field label="Content Platforms">
+            <Field label="Content Platforms" required error={fieldErrors.allowed_platforms}>
               <div className="flex flex-wrap gap-2">
                 {PLATFORMS.map((p) => {
                   const on = form.allowed_platforms.includes(p);
@@ -680,19 +783,25 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         {step === 4 && (
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Min duration (sec)">
+              <Field label="Min duration (sec)" required error={fieldErrors.min_duration}>
                 <input
                   type="number"
-                  value={form.min_duration}
-                  onChange={(e) => set("min_duration", Number(e.target.value))}
+                  min={1}
+                  value={form.min_duration > 0 ? form.min_duration : ""}
+                  onChange={(e) =>
+                    set("min_duration", e.target.value === "" ? 0 : Number(e.target.value))
+                  }
                   className={inputCls}
                 />
               </Field>
-              <Field label="Max duration (sec)">
+              <Field label="Max duration (sec)" required error={fieldErrors.max_duration}>
                 <input
                   type="number"
-                  value={form.max_duration}
-                  onChange={(e) => set("max_duration", Number(e.target.value))}
+                  min={1}
+                  value={form.max_duration > 0 ? form.max_duration : ""}
+                  onChange={(e) =>
+                    set("max_duration", e.target.value === "" ? 0 : Number(e.target.value))
+                  }
                   className={inputCls}
                 />
               </Field>
@@ -825,8 +934,32 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
 
         {step === 6 && (
           <div className="space-y-3 text-[13px] text-[#374151]">
+            {campaignWizardIncompleteSteps(form).length > 0 ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-[12.5px] text-red-800">
+                <p className="font-semibold">This campaign is not ready for funding.</p>
+                <ul className="mt-2 list-disc space-y-1 pl-4">
+                  {campaignWizardIncompleteSteps(form).map((s) => (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        className="font-semibold underline decoration-red-300 underline-offset-2"
+                        onClick={() => goToStep(CAMPAIGN_WIZARD_STEPS.find((x) => x.id === s.id)?.index ?? 0)}
+                      >
+                        {s.label}
+                      </button>
+                      {": "}
+                      {s.errors.map((e) => e.message).join(" ")}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="rounded-xl border border-[#BBF7D0] bg-[#ECFDF5] px-3 py-3 text-[12.5px] text-[#166534]">
+                Required campaign data is complete. Fund escrow to activate.
+              </p>
+            )}
             <ReviewRow label="Type" value={form.campaign_type.replace(/_/g, " ")} />
-            <ReviewRow label="Title" value={form.title || "—"} />
+            <ReviewRow label="Title" value={form.title.trim() || "—"} />
             <ReviewRow
               label="Reward"
               value={
@@ -836,13 +969,27 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               }
             />
             <ReviewRow label="Platforms" value={form.allowed_platforms.join(", ") || "—"} />
+            <ReviewRow
+              label="Duration"
+              value={
+                form.min_duration > 0 && form.max_duration > 0 && form.min_duration <= form.max_duration
+                  ? `${form.min_duration}–${form.max_duration}s`
+                  : "—"
+              }
+            />
             <ReviewRow label="Creator limit" value={String(form.creator_limit)} />
+            <ReviewRow
+              label="Hashtags"
+              value={form.required_hashtags.length ? form.required_hashtags.map((t) => `#${t}`).join(" ") : "None"}
+            />
             <ReviewRow label="Assets" value={`${form.media.length} file(s)`} />
-            <p className="rounded-xl bg-[#FFF8F5] px-3 py-3 text-[12.5px] text-[#9A3412]">
-              Next step: fund your campaign (minimum RWF 1,000). It stays in{" "}
-              <strong>Pending Funding</strong> until escrow is deposited, then activates
-              automatically.
-            </p>
+            {validateCampaignWizardReady(form).success ? (
+              <p className="rounded-xl bg-[#FFF8F5] px-3 py-3 text-[12.5px] text-[#9A3412]">
+                Next step: fund your campaign (minimum RWF 1,000). It stays in{" "}
+                <strong>Pending Funding</strong> until escrow is deposited, then activates
+                automatically.
+              </p>
+            ) : null}
           </div>
         )}
 
@@ -871,7 +1018,8 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             {step < STEPS.length - 1 ? (
               <button
                 type="button"
-                onClick={next}
+                onClick={() => void next()}
+                disabled={loading}
                 className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white"
               >
                 Continue
@@ -881,7 +1029,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               <button
                 type="button"
                 onClick={() => void continueToFunding()}
-                disabled={loading}
+                disabled={loading || !validateCampaignWizardReady(form).success}
                 className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white disabled:opacity-50"
               >
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
@@ -901,10 +1049,12 @@ const inputCls =
 function Field({
   label,
   required,
+  error,
   children,
 }: {
   label: string;
   required?: boolean;
+  error?: string;
   children: ReactNode;
 }) {
   return (
@@ -914,6 +1064,7 @@ function Field({
         {required ? <span className="text-[#FF5A1F]"> *</span> : null}
       </label>
       {children}
+      {error ? <p className="mt-1 text-[12px] font-medium text-red-600">{error}</p> : null}
     </div>
   );
 }

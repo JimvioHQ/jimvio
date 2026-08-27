@@ -19,6 +19,11 @@ import { toast } from "sonner";
 import type { UGCCampaign } from "@/types/ugc";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
+import {
+  assertCampaignReadyForFunding,
+  campaignWizardIncompleteSteps,
+  toCampaignWizardDraft,
+} from "@/lib/ugc/campaign-wizard-validation";
 
 const MIN_FUNDING_RWF = 1000;
 
@@ -86,6 +91,18 @@ export function CampaignFundClient() {
     return Math.max(MIN_FUNDING_RWF, budget);
   }, [campaign]);
 
+  const readiness = useMemo(
+    () => (campaign ? assertCampaignReadyForFunding(campaign as unknown as Record<string, unknown>) : null),
+    [campaign],
+  );
+  const incompleteSteps = useMemo(
+    () =>
+      campaign
+        ? campaignWizardIncompleteSteps(toCampaignWizardDraft(campaign as unknown as Record<string, unknown>))
+        : [],
+    [campaign],
+  );
+
   const estimatedReach = useMemo(() => {
     const rate = Number(campaign?.rate_per_1k_views) || 1;
     const views = Math.floor((amountToFund / rate) * 1000);
@@ -94,6 +111,10 @@ export function CampaignFundClient() {
 
   const fund = async () => {
     if (!campaign) return;
+    if (readiness && !readiness.success) {
+      setError(readiness.errors.map((e) => e.message).join(" · "));
+      return;
+    }
     if (amountToFund < MIN_FUNDING_RWF) {
       setError(`Minimum funding is RWF ${MIN_FUNDING_RWF.toLocaleString()}`);
       return;
@@ -111,7 +132,12 @@ export function CampaignFundClient() {
         }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json.error || "Funding failed");
+      if (!res.ok) {
+        const missing = Array.isArray(json.missing)
+          ? (json.missing as { message?: string }[]).map((m) => m.message).filter(Boolean).join(" · ")
+          : "";
+        throw new Error(missing || json.error || "Funding failed");
+      }
 
       setSuccess(true);
       toast.success("Campaign funded and activated");
@@ -188,6 +214,25 @@ export function CampaignFundClient() {
           Your campaign must be funded before it becomes active.
         </p>
       </div>
+
+      {readiness && !readiness.success ? (
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800">
+          <p className="font-semibold">This campaign is not ready to fund.</p>
+          <ul className="mt-2 list-disc space-y-1 pl-4">
+            {incompleteSteps.map((s) => (
+              <li key={s.id}>
+                {s.label}: {s.errors.map((e) => e.message).join(" ")}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href={`/ugc/campaign-center/${campaign.id}/edit`}
+            className="mt-3 inline-flex text-[13px] font-semibold text-[#FF5A1F]"
+          >
+            Complete required fields
+          </Link>
+        </div>
+      ) : null}
 
       {/* Status stepper */}
       <ol className="mt-5 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide">
@@ -382,7 +427,7 @@ export function CampaignFundClient() {
 
               <button
                 type="button"
-                disabled={funding}
+                disabled={funding || Boolean(readiness && !readiness.success)}
                 onClick={() => void fund()}
                 className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white shadow-[0_8px_24px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18] disabled:opacity-60"
               >

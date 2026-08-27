@@ -5,6 +5,10 @@ import type { CreateCampaignPayload } from '@/types/ugc';
 import { recordUgcActivity } from '@/lib/ugc/platform/activity';
 import { computeCampaignQuality } from '@/lib/ugc/enterprise/quality-engine';
 import { emitUgcWebhook } from '@/lib/ugc/enterprise/webhooks';
+import {
+  assertCampaignReadyForFunding,
+  campaignWizardErrorPayload,
+} from '@/lib/ugc/campaign-wizard-validation';
 
 // ─── GET /api/ugc/campaigns ─────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -95,7 +99,7 @@ export async function POST(req: NextRequest) {
     vendorId = newVendor.id;
   }
 
-  const body: CreateCampaignPayload = await req.json();
+  const body: CreateCampaignPayload & { readyForFunding?: boolean } = await req.json();
   const {
     title, description, campaign_type, rate_per_1k_views, total_budget,
     max_payout_per_sub, allowed_platforms, 
@@ -113,6 +117,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'rate_per_1k_views must be > 0' }, { status: 400 });
   if (!total_budget || total_budget <= 0)
     return NextResponse.json({ error: 'total_budget must be > 0' }, { status: 400 });
+
+  if (body.readyForFunding) {
+    const ready = assertCampaignReadyForFunding(body as unknown as Record<string, unknown>);
+    if (!ready.success) {
+      return NextResponse.json(campaignWizardErrorPayload(ready), { status: 400 });
+    }
+  }
 
   const { data: campaign, error } = await db
     .from('ugc_campaigns')

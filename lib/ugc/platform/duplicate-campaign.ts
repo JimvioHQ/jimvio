@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { recordUgcActivity } from "./activity";
+import { coerceFiniteNumber } from "@/lib/ugc/campaign-wizard-validation";
 
 /** Deep-clone a campaign (fields, media, join settings) as a new draft. */
 export async function duplicateCampaign(
@@ -104,13 +105,13 @@ export async function duplicateCampaign(
     description: created.description ?? "",
     campaign_type: created.campaign_type,
     payment_model: created.payment_model ?? "per_views",
-    rate_per_1k_views: Number(created.rate_per_1k_views) || 3,
-    fixed_rate: Number(created.fixed_rate) || 50,
-    total_budget: Number(created.total_budget) || 500,
-    max_payout_per_sub: Number(created.max_payout_per_sub) || 400,
-    allowed_platforms: created.allowed_platforms ?? ["tiktok", "instagram"],
-    min_duration: Number(created.min_duration) || 15,
-    max_duration: Number(created.max_duration) || 60,
+    rate_per_1k_views: coerceFiniteNumber(created.rate_per_1k_views) ?? 0,
+    fixed_rate: coerceFiniteNumber(created.fixed_rate) ?? 0,
+    total_budget: coerceFiniteNumber(created.total_budget) ?? 0,
+    max_payout_per_sub: coerceFiniteNumber(created.max_payout_per_sub) ?? 0,
+    allowed_platforms: Array.isArray(created.allowed_platforms) ? created.allowed_platforms : [],
+    min_duration: coerceFiniteNumber(created.min_duration) ?? 0,
+    max_duration: coerceFiniteNumber(created.max_duration) ?? 0,
     required_hashtags: created.required_hashtags ?? [],
     required_mentions: created.required_mentions ?? [],
     required_keywords: created.required_keywords ?? [],

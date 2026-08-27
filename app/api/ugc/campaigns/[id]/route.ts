@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import {
+  assertCampaignReadyForFunding,
+  campaignNeedsCompletenessGate,
+  campaignWizardErrorPayload,
+} from '@/lib/ugc/campaign-wizard-validation';
 
 // ─── GET /api/ugc/campaigns/[id] ────────────────────────────────────────────
 export async function GET(
@@ -51,10 +56,11 @@ export async function PATCH(
 
   const db = createServiceRoleClient();
 
-  // verify ownership OR admin
+  // verify ownership OR admin — load the full row so readiness is evaluated
+  // against the resulting campaign, not only the PATCH fields.
   const { data: campaign } = await db
     .from('ugc_campaigns')
-    .select('brand_id, vendors!brand_id(user_id)')
+    .select('*, vendors!brand_id(user_id)')
     .eq('id', id)
     .single();
 
@@ -73,14 +79,34 @@ export async function PATCH(
 
   const body = await req.json();
   const allowed = [
-    'title', 'description', 'status', 'rate_per_1k_views', 'total_budget',
-    'max_payout_per_sub', 'allowed_platforms', 
+    'title', 'description', 'status', 'campaign_type', 'payment_model',
+    'rate_per_1k_views', 'fixed_rate', 'total_budget',
+    'max_payout_per_sub', 'allowed_platforms',
     'min_duration', 'max_duration', 'required_hashtags', 'required_mentions', 'required_keywords',
     'requires_face', 'starts_at', 'ends_at',
   ];
   const updates = Object.fromEntries(
     Object.entries(body).filter(([k]) => allowed.includes(k))
   );
+
+  const currentStatus = typeof campaign?.status === 'string' ? campaign.status : 'draft';
+  if (
+    campaignNeedsCompletenessGate({
+      currentStatus,
+      nextStatus: updates.status,
+      readyForFunding: body.readyForFunding,
+    })
+  ) {
+    const { vendors: _vendors, ...currentRow } = (campaign ?? {}) as Record<string, unknown> & {
+      vendors?: unknown;
+    };
+    void _vendors;
+    const merged = { ...currentRow, ...updates };
+    const ready = assertCampaignReadyForFunding(merged);
+    if (!ready.success) {
+      return NextResponse.json(campaignWizardErrorPayload(ready), { status: 400 });
+    }
+  }
 
   // Escrow Gate Logic: You cannot activate a campaign without deposited funds 
   if (updates.status === 'active') {

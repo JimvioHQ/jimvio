@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { randomUUID } from "crypto";
+import {
+  assertCampaignReadyForFunding,
+  campaignWizardErrorPayload,
+} from "@/lib/ugc/campaign-wizard-validation";
 
 const MIN_FUNDING_RWF = 1000;
 
@@ -63,6 +67,13 @@ export async function POST(
       { error: "Forbidden - User does not own this campaign" },
       { status: 403 },
     );
+  }
+
+  if (campaign.status === "draft") {
+    const ready = assertCampaignReadyForFunding(campaign as Record<string, unknown>);
+    if (!ready.success) {
+      return NextResponse.json(campaignWizardErrorPayload(ready), { status: 400 });
+    }
   }
 
   const { data: heldEscrow } = await db
