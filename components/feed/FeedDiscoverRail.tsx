@@ -17,7 +17,7 @@ type LiveItem = {
   badge?: string;
 };
 
-type TrendingCommunity = {
+export type TrendingCommunity = {
   id: string;
   name: string;
   slug: string;
@@ -165,8 +165,14 @@ function CommunityMiniCard({
   );
 }
 
-export function FeedDiscoverRail() {
-  const [data, setData] = useState<DiscoverPayload | null>(null);
+export function FeedDiscoverRail({
+  initialCommunities = [],
+}: {
+  initialCommunities?: TrendingCommunity[];
+}) {
+  const [data, setData] = useState<DiscoverPayload | null>(
+    initialCommunities.length ? { communities: initialCommunities } : null,
+  );
   const [topics, setTopics] = useState<TrendingTopic[]>([]);
   const [pins, setPins] = useState<PinnedRow[]>([]);
 
@@ -185,7 +191,16 @@ export function FeedDiscoverRail() {
     ])
       .then(([discover, topicPayload, pinPayload]) => {
         if (cancelled) return;
-        if (discover) setData(discover);
+        if (discover) {
+          const nextCommunities =
+            Array.isArray(discover.communities) && discover.communities.length > 0
+              ? discover.communities
+              : initialCommunities;
+          setData({
+            communities: nextCommunities,
+            live: discover.live ?? [],
+          });
+        }
         setTopics(topicPayload?.topics ?? []);
         setPins(pinPayload?.pins ?? []);
       })

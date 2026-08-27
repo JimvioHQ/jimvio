@@ -13,6 +13,7 @@ import { StoriesRail } from "@/components/feed/StoriesRail";
 import { TopMissionsList } from "@/components/feed/TopMissionsList";
 import { UpcomingLiveSessions } from "@/components/feed/UpcomingLiveSessions";
 import type { FeedTab } from "@/lib/feed/mock-data";
+import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
 
 /** Single narrow intelligence rail — never multi-column. */
 function FeedRightRail() {
@@ -27,7 +28,11 @@ function FeedRightRail() {
   );
 }
 
-export function FeedPageContent() {
+export function FeedPageContent({
+  initialCommunities = [],
+}: {
+  initialCommunities?: TrendingCommunity[];
+}) {
   const [feedTab, setFeedTab] = useState<FeedTab>("For You");
 
   return (
@@ -38,7 +43,7 @@ export function FeedPageContent() {
           <div className="min-w-0 flex-1 space-y-5 pb-8 lg:pb-20">
             <StoriesRail />
             <PostComposer />
-            <FeedDiscoverRail />
+            <FeedDiscoverRail initialCommunities={initialCommunities} />
             <div className="space-y-0">
               <FeedTabs value={feedTab} onChange={setFeedTab} />
               <FeedPostCard tab={feedTab} />

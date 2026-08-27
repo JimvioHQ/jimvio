@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn, getInitials } from "@/lib/utils";
+import { useFeedUser } from "@/lib/feed/use-feed-user";
 
 export type SidebarItem =
   | "feed"
@@ -135,6 +136,7 @@ function NavBadge({ badge }: { badge: NonNullable<NavItem["badge"]> }) {
 
 export function PrimarySidebar({ activeItem, user: userProp, className }: PrimarySidebarProps) {
   const pathname = usePathname();
+  const { user: feedUser, isAuthenticated } = useFeedUser();
   const resolvedActive = activeItem ?? resolveSidebarActiveItem(pathname);
   const [communitiesOpen, setCommunitiesOpen] = useState(true);
   const [communities, setCommunities] = useState<CommunityRow[]>([]);
@@ -142,20 +144,46 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
   const [user, setUser] = useState(userProp ?? null);
 
   useEffect(() => {
-    if (userProp) setUser(userProp);
-  }, [userProp]);
+    if (userProp) {
+      setUser(userProp);
+      return;
+    }
+    if (feedUser) {
+      setUser({
+        name: feedUser.fullName ?? feedUser.displayName,
+        avatarUrl: feedUser.avatarUrl,
+        level: 1,
+        role: "Creator",
+        verified: false,
+        xp: 0,
+        xpGoal: 1,
+      });
+      return;
+    }
+    if (!isAuthenticated) setUser(null);
+  }, [userProp, feedUser, isAuthenticated]);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
+      if (!isAuthenticated && !userProp) {
+        setCommunities([]);
+        setPinned([]);
+        return;
+      }
       const supabase = createClient();
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (!authUser || cancelled) return;
+      const authUserId = feedUser?.id ?? authUser?.id;
+      if (!authUserId || cancelled) {
+        setCommunities([]);
+        setPinned([]);
+        return;
+      }
 
       if (!userProp) {
         const [profRes, pointsRes] = await Promise.all([
-          supabase.from("profiles").select("full_name, username, avatar_url").eq("id", authUser.id).maybeSingle(),
-          supabase.from("member_points").select("total_points, level").eq("user_id", authUser.id).order("total_points", { ascending: false }).limit(1).maybeSingle(),
+          supabase.from("profiles").select("full_name, username, avatar_url").eq("id", authUserId).maybeSingle(),
+          supabase.from("member_points").select("total_points, level").eq("user_id", authUserId).order("total_points", { ascending: false }).limit(1).maybeSingle(),
         ]);
         if (!cancelled && profRes.data) {
           const level = pointsRes.data?.level ?? 1;
@@ -175,7 +203,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
       const { data } = await supabase
         .from("community_memberships")
         .select("communities!inner(id, name, slug, avatar_url, is_active)")
-        .eq("user_id", authUser.id)
+        .eq("user_id", authUserId)
         .eq("status", "active")
         .eq("communities.is_active", true)
         .limit(20);
@@ -221,10 +249,10 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
     }
     load();
     return () => { cancelled = true; };
-  }, [userProp]);
+  }, [userProp, isAuthenticated, feedUser?.id]);
 
   const profile = user ?? GUEST_PROFILE;
-  const isGuest = !user;
+  const isGuest = !isAuthenticated && !userProp;
 
   return (
     <aside className={cn("flex h-full w-[240px] shrink-0 flex-col border-r border-gray-200 bg-white", className)}>

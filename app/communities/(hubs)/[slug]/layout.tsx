@@ -12,6 +12,7 @@ import {
   buildHubLoginUrl,
   isCommunityWorkspaceSubroute,
 } from "@/lib/community/hub-auth";
+import { communityIsRestrictedToMembers } from "@/lib/community/join-policy";
 
 function WorkspaceFallback() {
   return (
@@ -75,7 +76,7 @@ export default async function CommunitySlugLayout({
   const supabase = await createClient();
   const { data: community } = await supabase
     .from("communities")
-    .select("id, is_private")
+    .select("id, is_private, visibility, visibility_mode, is_active, archived_at")
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
@@ -88,7 +89,7 @@ export default async function CommunitySlugLayout({
 
   if (!user) {
     if (needsWorkspace) {
-      if (community.is_private) {
+      if (communityIsRestrictedToMembers(community)) {
         redirect(buildHubLoginUrl(pathname));
       }
       const payload = await loadCommunityWorkspace(slug);
@@ -107,7 +108,7 @@ export default async function CommunitySlugLayout({
 
   if (!hasWorkspaceAccess) {
     if (needsWorkspace) {
-      if (payload.community.is_private) {
+      if (communityIsRestrictedToMembers(payload.community)) {
         redirect(`/communities/${slug}`);
       }
       return renderWorkspace(slug, payload, children);

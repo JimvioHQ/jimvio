@@ -2,6 +2,7 @@ import { FeedSection } from "@/components/community/workspace/sections/Feed";
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import { buildHubLoginUrl } from "@/lib/community/hub-auth";
+import { resolveCommunityJoinVisibility } from "@/lib/community/join-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -14,14 +15,15 @@ export default async function CommunityFeedPage({
   const supabase = await createClient();
   const { data: community } = await supabase
     .from("communities")
-    .select("id, name, slug, is_private, owner_id")
+    .select("id, name, slug, is_private, owner_id, visibility, visibility_mode, is_active, archived_at")
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
 
   if (!community) notFound();
 
-  if (community.is_private) {
+  const restricted = resolveCommunityJoinVisibility(community) !== "public";
+  if (restricted) {
     const {
       data: { user },
     } = await supabase.auth.getUser();

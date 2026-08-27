@@ -1,9 +1,9 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { buildPointsSnapshot } from "@/lib/community/points";
-import { getCommunityOverviewStats } from "@/services/community/hub-data";
+import { getCommunityOverviewStats, type CommunityOverviewStats } from "@/services/community/hub-data";
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
-import type { CommunityOverviewStats } from "@/services/community/hub-data";
+import { communityIsRestrictedToMembers } from "@/lib/community/join-policy";
 
 export type CommunityWorkspacePayload = {
   community: {
@@ -15,6 +15,9 @@ export type CommunityWorkspacePayload = {
     owner_id: string;
     cover_image?: string | null;
     is_private?: boolean | null;
+    visibility?: string | null;
+    visibility_mode?: string | null;
+    archived_at?: string | null;
     tagline?: string | null;
   };
   currentUserId: string;
@@ -41,7 +44,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
   const supabase = await createClient();
   const { data: community } = await supabase
     .from("communities")
-    .select("id, slug, name, avatar_url, member_count, owner_id, cover_image, is_private, tagline")
+    .select("id, slug, name, avatar_url, member_count, owner_id, cover_image, is_private, tagline, visibility, visibility_mode, archived_at")
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
@@ -51,7 +54,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user && community.is_private) return null;
+  if (!user && communityIsRestrictedToMembers(community)) return null;
 
   const { data: membership } = user
     ? await supabase

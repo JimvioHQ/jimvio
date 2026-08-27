@@ -348,9 +348,13 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
     return (
       <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center">
         <Flame className="mx-auto h-6 w-6 text-[#fd5000]" />
-        <p className="mt-3 text-[15px] font-bold text-[#111827]">No public posts yet.</p>
+        <p className="mt-3 text-[15px] font-bold text-[#111827]">
+          {isAuthenticated ? "No posts yet." : "No public posts yet."}
+        </p>
         <p className="mx-auto mt-1 max-w-sm text-[13px] text-[#6B7280]">
-          Public communities are still here. This is an empty feed, not a failed load.
+          {isAuthenticated
+            ? "Public communities and member posts will show up here. This is an empty feed, not a failed load."
+            : "Public communities are still here. This is an empty feed, not a failed load."}
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link

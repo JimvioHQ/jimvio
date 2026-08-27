@@ -10,6 +10,7 @@ import { loadCommunityWorkspace } from "@/lib/community/load-community-workspace
 import { redirectLegacySpaceRoomQuery } from "@/lib/community/workspace/legacy-redirect";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
+import { resolveCommunityJoinVisibility } from "@/lib/community/join-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -55,11 +56,11 @@ async function loadPublicCommunity(slug: string): Promise<CommunityDetailPayload
   const {
     data: { user: viewer },
   } = await supabase.auth.getUser();
-  const isPrivate = community.is_private === true;
+  const visibility = resolveCommunityJoinVisibility(community);
 
-  // Private communities: join wall only — do not leak members, posts, or course stats.
-  if (isPrivate) {
-    let canSeePrivate = false;
+  // Restricted communities: join wall or 404 — do not leak members, posts, or course stats.
+  if (visibility !== "public") {
+    let canSeeInside = false;
     if (viewer) {
       const isOwner = community.owner_id === viewer.id;
       const { data: membership } = await supabase
@@ -68,10 +69,11 @@ async function loadPublicCommunity(slug: string): Promise<CommunityDetailPayload
         .eq("community_id", community.id)
         .eq("user_id", viewer.id)
         .maybeSingle();
-      canSeePrivate =
+      canSeeInside =
         isOwner || (membership?.status === "active" && Boolean(membership.role));
     }
-    if (!canSeePrivate) {
+    if (!canSeeInside) {
+      if (visibility === "hidden") return null;
       return {
         ...community,
         owner: community.owner ?? null,

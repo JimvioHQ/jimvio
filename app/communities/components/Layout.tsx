@@ -42,6 +42,7 @@ import { ProfileAccountMenu } from "@/components/shell/ProfileAccountMenu";
 import { CommunityAiPanel } from "@/components/community/hub/CommunityAiPanel";
 import { OPEN_HUB_SEARCH_EVENT } from "@/lib/community/hub-search-event";
 import { useCommandCenterStore } from "@/lib/store/use-command-center-store";
+import { useFeedUser } from "@/lib/feed/use-feed-user";
 
 type Profile = Pick<DbProfile, "id" | "username" | "full_name" | "avatar_url">;
 
@@ -155,10 +156,10 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
 
+    const { user: feedUser, isAuthenticated, isLoading: authLoading } = useFeedUser();
     const [collapsed, setCollapsed] = useState(false);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [profile, setProfile] = useState<Profile | null>(null);
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const [unreadMessages, setUnreadMessages] = useState(0);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
     const [aiOpen, setAiOpen] = useState(false);
@@ -194,59 +195,59 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     }, []);
 
     useEffect(() => {
+        if (feedUser) {
+            setProfile({
+                id: feedUser.id,
+                username: feedUser.username,
+                full_name: feedUser.fullName,
+                avatar_url: feedUser.avatarUrl,
+            });
+            return;
+        }
+        if (!isAuthenticated) setProfile(null);
+    }, [feedUser, isAuthenticated]);
+
+    useEffect(() => {
         let cancelled = false;
         const supabase = createClient();
+        const userId = feedUser?.id;
+        if (!userId) {
+            setUnreadMessages(0);
+            setUnreadNotifications(0);
+            refreshCounts();
+            return;
+        }
 
         async function load() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (cancelled) return;
-            if (!user) {
-                setIsAuthenticated(false);
-                setProfile(null);
-                return;
-            }
-            setIsAuthenticated(true);
-
-            const [profResult, notifResult, msgResult] = await Promise.all([
-                supabase
-                    .from("profiles")
-                    .select("id, username, full_name, avatar_url")
-                    .eq("id", user.id)
-                    .maybeSingle(),
+            const [notifResult, msgResult] = await Promise.all([
                 supabase
                     .from("notifications")
                     .select("id", { count: "exact", head: true })
-                    .eq("user_id", user.id)
+                    .eq("user_id", userId)
                     .eq("is_read", false),
                 supabase
                     .from("notifications")
                     .select("id", { count: "exact", head: true })
-                    .eq("user_id", user.id)
+                    .eq("user_id", userId)
                     .eq("type", "message")
                     .eq("is_read", false),
             ]);
 
             if (cancelled) return;
-            if (profResult.data) setProfile(profResult.data);
             setUnreadNotifications(notifResult.count ?? 0);
             setUnreadMessages(msgResult.count ?? 0);
-
-            return user;
         }
 
         let channel: ReturnType<typeof supabase.channel> | null = null;
-
-        void load().then((user) => {
-            if (!user || cancelled) return;
-            channel = supabase
-                .channel(`hub-notifications-${user.id}`)
-                .on(
-                    "postgres_changes",
-                    { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-                    () => { void load(); }
-                )
-                .subscribe();
-        });
+        void load();
+        channel = supabase
+            .channel(`hub-notifications-${userId}`)
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+                () => { void load(); }
+            )
+            .subscribe();
 
         refreshCounts();
 
@@ -254,14 +255,15 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             cancelled = true;
             if (channel) supabase.removeChannel(channel);
         };
-    }, [refreshCounts]);
+    }, [feedUser?.id, refreshCounts]);
 
     useEffect(() => {
-        if (isAuthenticated !== false) return;
+        if (authLoading) return;
+        if (isAuthenticated) return;
         if (isHubAuthRequired(pathname)) {
             router.replace(buildHubLoginUrl(pathname));
         }
-    }, [isAuthenticated, pathname, router]);
+    }, [authLoading, isAuthenticated, pathname, router]);
 
     const profileHref = profile?.username ? `/communities/profile/${profile.username}` : "/communities/profile";
     const loginHref = buildHubLoginUrl(pathname);
@@ -300,11 +302,11 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 <nav className="hidden min-w-0 items-center justify-center gap-3 overflow-hidden pl-4 min-[1060px]:flex min-[1060px]:flex-nowrap xl:gap-4 xl:pl-6">
                     {PRIMARY_NAV_ITEMS.map((item) => {
                         const { label, icon: Icon, dropdown } = item;
-                        const href = resolvePrimaryNavHref(item, isAuthenticated === true);
+                        const href = resolvePrimaryNavHref(item, isAuthenticated);
                         const active =
                             item.label === "Communities"
                                 ? isCommunitiesNavActive(pathname)
-                                : isPrimaryNavActive(pathname, item, undefined, isAuthenticated === true);
+                                : isPrimaryNavActive(pathname, item, undefined, isAuthenticated);
                         return (
                     <Link
                                 key={`${label}-${href}`}

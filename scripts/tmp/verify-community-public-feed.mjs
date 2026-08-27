@@ -18,6 +18,14 @@ const discover = read("app/api/c/hub/discover/route.ts");
 const platform = read("services/platform.ts");
 const feedCard = read("components/feed/FeedPostCard.tsx");
 const explore = read("app/communities/(discovery)/explore/page.tsx");
+const hubsLayout = read("app/communities/(hubs)/layout.tsx");
+const hubsFeedPage = read("app/communities/(hubs)/page.tsx");
+const slugPage = read("app/communities/(hubs)/[slug]/page.tsx");
+const slugFeed = read("app/communities/(hubs)/[slug]/feed/page.tsx");
+const useFeedUser = read("lib/feed/use-feed-user.tsx");
+const loadFeedAuth = read("lib/feed/load-feed-auth.ts");
+const discoverRail = read("components/feed/FeedDiscoverRail.tsx");
+const composer = read("components/feed/PostComposer.tsx");
 const rbac = read("lib/community/rbac.ts");
 const roomBind = read("lib/community/assert-room-community.ts");
 const publicRls = read("supabase/migrations/20260821120000_public_community_read_rls.sql");
@@ -63,9 +71,29 @@ assert.match(feedCard, /Unable to load the community feed/);
 
 // 16: empty public feed is distinct from error / signed-in CTA.
 assert.match(feedCard, /No public posts yet/);
+assert.match(feedCard, /No posts yet/);
 assert.match(feedCard, /Loading your community feed/);
-assert.match(feedCard, /showSignIn/);
+assert.match(feedCard, /showSignIn = !authLoading && !isAuthenticated/);
 assert.doesNotMatch(feedCard, /Communities are not available yet/);
+assert.match(composer, /isAuthenticated \?/);
+assert.match(composer, /Sign in to share/);
+
+// 16b: hub UI hydrates from server getUser(); client getUser cannot demote a signed-in SSR snapshot.
+assert.match(hubsLayout, /loadFeedAuthInitial/);
+assert.match(hubsLayout, /FeedAuthProvider/);
+assert.match(loadFeedAuth, /getCachedUser/);
+assert.doesNotMatch(loadFeedAuth, /getSession\(/);
+assert.match(useFeedUser, /FeedAuthProvider/);
+assert.match(useFeedUser, /allowDowngrade/);
+assert.match(useFeedUser, /SIGNED_OUT/);
+assert.match(useFeedUser, /applyAuthUser\(authUser, false\)/);
+assert.match(hubsFeedPage, /getHomepageCommunities/);
+assert.match(discoverRail, /initialCommunities/);
+
+// 16c: invite_only / hidden stay off the public surface.
+assert.match(joinPolicy, /communityIsRestrictedToMembers/);
+assert.match(slugPage, /visibility === "hidden"/);
+assert.match(slugFeed, /resolveCommunityJoinVisibility/);
 
 // 18: RBAC write helpers unchanged; public SELECT policy is read-only.
 assert.match(rbac, /export async function requireCommunityMember/);

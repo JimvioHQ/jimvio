@@ -70,6 +70,13 @@ export function communityIsPubliclyDiscoverable(
   return resolveCommunityJoinVisibility(community) === "public";
 }
 
+/** Private / invite-only / hidden: guests and non-members must not see member content. */
+export function communityIsRestrictedToMembers(
+  community: CommunityJoinPolicyInput
+): boolean {
+  return resolveCommunityJoinVisibility(community) !== "public";
+}
+
 export function sanitizeInviteCode(raw: string | null | undefined): string {
   return (raw ?? "").trim().slice(0, 64);
 }

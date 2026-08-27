@@ -604,6 +604,7 @@ import { signOut } from "@/lib/auth/actions";
 import { HubPremiumCard, HubUserCard } from "@/components/community/hub/hub-ui";
 import { aggregateMemberPoints } from "@/lib/community/points";
 import { HUB_AUTH_NAV_IDS, buildHubLoginUrl } from "@/lib/community/hub-auth";
+import { useFeedUser } from "@/lib/feed/use-feed-user";
 
 const Icons = {
     Feed: () => (
@@ -864,6 +865,7 @@ function SidebarContent({
     onClose?: () => void;
 }) {
     const pathname = usePathname();
+    const { isAuthenticated } = useFeedUser();
     const [communitiesOpen, setCommunitiesOpen] = useState(true);
     const [userCard, setUserCard] = useState<{
         name: string;
@@ -872,7 +874,6 @@ function SidebarContent({
         xp: number;
         xpMax: number;
     } | null>(null);
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const communitiesToRender = useCommunityList([]);
 
     useEffect(() => {
@@ -882,10 +883,8 @@ function SidebarContent({
             const { data: { user } } = await supabase.auth.getUser();
             if (cancelled) return;
             if (!user) {
-                setIsAuthenticated(false);
                 return;
             }
-            setIsAuthenticated(true);
 
             const [profileRes, pointsRes] = await Promise.all([
                 supabase
