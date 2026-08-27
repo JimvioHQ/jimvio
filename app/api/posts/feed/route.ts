@@ -8,6 +8,7 @@ import { rankFeedItems } from "@/lib/growth/feed-ranking";
 import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 import { roomBelongsToCommunity, roomSpaceMatches } from "@/lib/community/assert-room-community";
 import { requireCommunityMember } from "@/lib/community/rbac";
+import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ async function loadPublicCommunityIds(
 ): Promise<{ ids: string[]; error: string | null }> {
   const { data, error } = await db
     .from("communities")
-    .select("id")
+    .select("id, is_active, is_private, visibility, visibility_mode, archived_at")
     .eq("is_active", true)
     .or("is_private.eq.false,is_private.is.null")
     .order("member_count", { ascending: false })
@@ -50,7 +51,10 @@ async function loadPublicCommunityIds(
     console.error("Error loading public communities:", error);
     return { ids: [], error: error.message };
   }
-  return { ids: (data ?? []).map((c) => c.id), error: null };
+  return {
+    ids: (data ?? []).filter(communityIsPubliclyDiscoverable).map((c) => c.id),
+    error: null,
+  };
 }
 
 /**
@@ -82,14 +86,14 @@ async function getPublicDiscoveryFeed(
   if (communityId) {
     const { data: community, error: communityError } = await db
       .from("communities")
-      .select("id, is_private, is_active")
+      .select("id, is_private, is_active, visibility, visibility_mode, archived_at")
       .eq("id", communityId)
       .maybeSingle();
     if (communityError) {
       console.error("Error loading public community:", communityError);
       return NextResponse.json({ error: communityError.message }, { status: 400 });
     }
-    if (!community || community.is_active === false || community.is_private === true) {
+    if (!community || !communityIsPubliclyDiscoverable(community)) {
       return NextResponse.json({ error: "No access" }, { status: 403 });
     }
     publicCommunityIds = [community.id];

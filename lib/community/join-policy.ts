@@ -61,6 +61,15 @@ export function communityRequiresApproval(
   return resolveCommunityJoinVisibility(community) === "private";
 }
 
+/** Public catalog/feed: active, not archived, visibility public. Never invite-only/hidden/private. */
+export function communityIsPubliclyDiscoverable(
+  community: CommunityJoinPolicyInput
+): boolean {
+  if (community.is_active === false) return false;
+  if (community.archived_at) return false;
+  return resolveCommunityJoinVisibility(community) === "public";
+}
+
 export function sanitizeInviteCode(raw: string | null | undefined): string {
   return (raw ?? "").trim().slice(0, 64);
 }

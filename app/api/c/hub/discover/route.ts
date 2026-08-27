@@ -4,6 +4,7 @@ import {
   communityTrendingScore,
   isCommunityVerified,
 } from "@/lib/community/trending-score";
+import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -63,9 +64,10 @@ async function fetchTrendingViaFallback(
       supabase
         .from("communities")
         .select(
-          "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured"
+          "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at"
         )
         .eq("is_active", true)
+        .or("is_private.eq.false,is_private.is.null")
         .order("member_count", { ascending: false })
         .limit(40),
       supabase
@@ -100,6 +102,7 @@ async function fetchTrendingViaFallback(
   const onlineMap = countBy(onlineRows as Array<{ community_id: string }> | null);
 
   return (communities ?? [])
+    .filter(communityIsPubliclyDiscoverable)
     .map((c) => {
       const recent_posts = postsMap.get(c.id) ?? 0;
       const recent_joins = joinsMap.get(c.id) ?? 0;
@@ -150,14 +153,26 @@ export async function GET() {
     p_limit: 8,
   });
 
-  if (!rpc.error && Array.isArray(rpc.data)) {
-    trendingRows = rpc.data as TrendingCommunityRow[];
-  } else {
+  if (rpc.error || !Array.isArray(rpc.data)) {
     try {
       trendingRows = await fetchTrendingViaFallback(supabase);
     } catch {
       trendingRows = [];
     }
+  } else {
+    trendingRows = rpc.data as TrendingCommunityRow[];
+  }
+
+  if (trendingRows.length) {
+    const ids = trendingRows.map((row) => row.id);
+    const { data: visRows } = await supabase
+      .from("communities")
+      .select("id, is_private, is_active, visibility, visibility_mode, archived_at")
+      .in("id", ids);
+    const allowed = new Set(
+      (visRows ?? []).filter(communityIsPubliclyDiscoverable).map((row) => row.id),
+    );
+    trendingRows = trendingRows.filter((row) => allowed.has(row.id));
   }
 
   // Enrich display copy (tagline/description) without changing ranking.

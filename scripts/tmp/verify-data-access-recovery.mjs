@@ -91,8 +91,12 @@ assert.match(explore, /initialError/);
 assert.doesNotMatch(explore, /getPublicCommunities\(20\)\.catch\(\(\) => \[\]\)/);
 
 const feedCard = mustExist("components/feed/FeedPostCard.tsx");
-assert.match(feedCard, /Communities are not available yet/);
-assert.match(feedCard, /Couldn’t load the feed/);
+assert.match(feedCard, /No public posts yet/);
+assert.match(feedCard, /Unable to load the community feed/);
+assert.match(feedCard, /Loading your community feed/);
+assert.match(feedCard, /showSignIn/);
+assert.match(feedCard, /setLoadError\(true\)/);
+assert.doesNotMatch(feedCard, /Communities are not available yet/);
 
 const rls = mustExist("supabase/migrations/20260821120000_public_community_read_rls.sql");
 assert.match(rls, /community_posts_select_public/);

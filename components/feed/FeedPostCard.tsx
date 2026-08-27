@@ -179,7 +179,7 @@ function AuthorAvatar({
 
 export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
   const router = useRouter();
-  const { isAuthenticated } = useFeedUser();
+  const { isAuthenticated, isLoading: authLoading } = useFeedUser();
   const [posts, setPosts] = useState<DisplayPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -199,13 +199,12 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
       if (nextCursor) params.set("cursor", nextCursor);
       const res = await fetch(`/api/posts/feed?${params}`);
       if (res.status === 401) {
-        // Drafts / protected feed modes still require auth.
         if (!isMore) {
           setPosts([]);
           setUsingMock(false);
           setHasMore(false);
           setCursor(null);
-          setLoadError(false);
+          setLoadError(true);
         }
         return;
       }
@@ -319,8 +318,9 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
 
   if (loading && posts.length === 0) {
     return (
-      <div className="flex items-center justify-center py-16 text-gray-400">
+      <div className="flex flex-col items-center justify-center gap-2 py-16 text-gray-400">
         <Loader2 className="h-5 w-5 animate-spin" />
+        <p className="text-[13px] font-medium text-[#6B7280]">Loading your community feed...</p>
       </div>
     );
   }
@@ -328,7 +328,7 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
   if (!loading && loadError && posts.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center">
-        <p className="text-[15px] font-bold text-[#111827]">Couldn’t load the feed</p>
+        <p className="text-[15px] font-bold text-[#111827]">Unable to load the community feed.</p>
         <p className="mx-auto mt-1 max-w-sm text-[13px] text-[#6B7280]">
           Check your connection and try again.
         </p>
@@ -344,12 +344,13 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
   }
 
   if (!loading && posts.length === 0) {
+    const showSignIn = !authLoading && !isAuthenticated;
     return (
       <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center">
         <Flame className="mx-auto h-6 w-6 text-[#fd5000]" />
-        <p className="mt-3 text-[15px] font-bold text-[#111827]">Communities are not available yet.</p>
+        <p className="mt-3 text-[15px] font-bold text-[#111827]">No public posts yet.</p>
         <p className="mx-auto mt-1 max-w-sm text-[13px] text-[#6B7280]">
-          There are no public posts to show right now. This is an empty feed, not a failed load.
+          Public communities are still here. This is an empty feed, not a failed load.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link
@@ -358,12 +359,14 @@ export function FeedPostCard({ tab = "For You" }: { tab?: FeedTab }) {
           >
             Explore communities
           </Link>
-          <Link
-            href="/login?next=/communities"
-            className="inline-flex h-10 items-center rounded-xl border border-[#E5E7EB] bg-white px-4 text-[13px] font-semibold text-[#111827]"
-          >
-            Sign in to participate
-          </Link>
+          {showSignIn ? (
+            <Link
+              href="/login?next=/communities"
+              className="inline-flex h-10 items-center rounded-xl border border-[#E5E7EB] bg-white px-4 text-[13px] font-semibold text-[#111827]"
+            >
+              Sign in to participate
+            </Link>
+          ) : null}
         </div>
       </div>
     );

@@ -591,7 +591,7 @@ export function CommunitiesDiscovery({
             ) : (
               <>
                 <p className="font-medium text-[var(--color-text-primary)]">
-                  Communities are not available yet.
+                  No public communities yet.
                 </p>
                 <p className="mt-1.5 text-[13px] text-[var(--color-text-muted)]">
                   Create a public or private community when you’re ready. Nothing here is placeholder content.

@@ -34,6 +34,7 @@ const supabaseTwin = read(
 const roomBind = read("lib/community/assert-room-community.ts");
 
 assert.match(joinPolicy, /export function resolveCommunityJoinVisibility/);
+assert.match(joinPolicy, /communityIsPubliclyDiscoverable/);
 assert.match(joinPolicy, /invite_only/);
 assert.match(joinPolicy, /communityAcceptsInstantJoin/);
 assert.match(joinPolicy, /communityRequiresInvite/);

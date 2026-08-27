@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getAdminDB } from "./base";
+import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 
 async function fetchPlatformStats() {
   const admin = getAdminDB();
@@ -83,7 +84,7 @@ export async function getAdminRevenueChartData() {
 }
 
 const COMMUNITY_CARD_COLUMNS =
-  "id, name, slug, tagline, category, member_count, post_count, is_free, monthly_price, currency, cover_image, avatar_url, created_at, owner_id";
+  "id, name, slug, tagline, category, member_count, post_count, is_free, monthly_price, currency, cover_image, avatar_url, created_at, owner_id, is_private, is_active, visibility, visibility_mode, archived_at";
 
 async function attachOwnerProfiles<T extends { owner_id?: string | null }>(
   rows: T[],
@@ -126,13 +127,15 @@ async function fetchPublicCommunitiesUncached(limit: number) {
     console.error("Error fetching public communities:", error);
     throw error;
   }
-  return attachOwnerProfiles(data ?? []);
+  return attachOwnerProfiles(
+    (data ?? []).filter(communityIsPubliclyDiscoverable),
+  );
 }
 
 export async function getPublicCommunities(limit = 12) {
   return unstable_cache(
     () => fetchPublicCommunitiesUncached(limit),
-    [`public-communities-v5-${limit}`],
+    [`public-communities-v6-${limit}`],
     { revalidate: 120 },
   )();
 }
@@ -141,7 +144,7 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
   const admin = getAdminDB();
   const { data, error } = await admin
     .from("communities")
-    .select("id, name, slug, tagline, member_count, avatar_url, cover_image, category")
+    .select("id, name, slug, tagline, member_count, avatar_url, cover_image, category, is_private, is_active, visibility, visibility_mode, archived_at")
     .eq("is_active", true)
     .or("is_private.eq.false,is_private.is.null")
     .order("member_count", { ascending: false })
@@ -151,14 +154,14 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
     console.error("Error fetching homepage communities:", error);
     throw error;
   }
-  return data ?? [];
+  return (data ?? []).filter(communityIsPubliclyDiscoverable);
 }
 
 /** Lighter query for homepage cards — skips owner profile join. */
 export async function getHomepageCommunities(limit = 8) {
   return unstable_cache(
     () => fetchHomepageCommunitiesUncached(limit),
-    [`homepage-communities-v4-${limit}`],
+    [`homepage-communities-v5-${limit}`],
     { revalidate: 120 },
   )();
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/services/base";
 import { ensureDefaultCommunityWorkspace } from "@/lib/community/ensure-default-workspace";
+import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -145,6 +146,11 @@ export async function GET(req: NextRequest) {
   }
 
   let communities = data ?? [];
+  const memberSet = new Set(memberCommunityIds);
+  communities = communities.filter(
+    (community) =>
+      memberSet.has(community.id) || communityIsPubliclyDiscoverable(community),
+  );
   if (isRising && communities.length) {
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
     const { data: joins } = await admin
