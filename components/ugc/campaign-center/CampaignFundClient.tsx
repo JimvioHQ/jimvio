@@ -456,7 +456,7 @@ export function CampaignFundClient() {
 
               <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] font-medium text-[#6B7280]">
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#F0FDF4] px-2 py-1 text-[#15803D]">
-                  <ShieldCheck className="h-3 w-3" /> Escrow protected
+                  <ShieldCheck className="h-3 w-3" /> {t("escrowProtected")}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2 py-1 text-[#4338CA]">
                   <Lock className="h-3 w-3" /> PCI-ready checkout
@@ -482,10 +482,10 @@ export function CampaignFundClient() {
                 ) : (
                   <Lock className="h-4 w-4" />
                 )}
-                {funding ? "Processing…" : method === "wallet" ? `Fund & Activate · RWF ${amountToFund.toLocaleString()}` : `Submit funding · RWF ${amountToFund.toLocaleString()}`}
+                {funding ? t("processing") : method === "wallet" ? `${t("fundAndActivate")} · RWF ${amountToFund.toLocaleString()}` : `${t("submitFunding")} · RWF ${amountToFund.toLocaleString()}`}
               </button>
               <p className="mt-2 text-center text-[11px] text-[#9CA3AF]">
-                Activation is blocked until escrow clears. No charge without confirmation.
+                {t("activationBlockedUntilEscrow")}
               </p>
             </div>
           </motion.div>

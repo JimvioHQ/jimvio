@@ -109,6 +109,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (typeof body.resolution === "string") updates.resolution = body.resolution;
     }
   } else if (typeof body.resolution === "string") {
+    const isBrand = await userCanAccessBrand(db, existing.brand_id, user.id);
+    let canResolve = admin;
+    if (isBrand) {
+      const perm = await requireBrandPermission(db, existing.brand_id, user.id, "disputes.manage");
+      canResolve = admin || perm.ok;
+    }
+    if (!canResolve) {
+      return NextResponse.json({ error: "Only brand/admin can resolve" }, { status: 403 });
+    }
     updates.resolution = body.resolution;
   }
 

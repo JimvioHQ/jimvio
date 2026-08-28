@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { requireUser } from "@/lib/ugc/platform/auth";
 import { requireBrandWorkspace, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
   const { db, vendor } = ws;
+  const perm = await requireBrandPermission(db, vendor.id, user.id, "creators.invite");
+  if (!perm.ok) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const list = await assertListOwned(db, id, vendor.id);
   if (!list) return NextResponse.json({ error: "List not found" }, { status: 404 });
@@ -78,6 +83,10 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
   const { db, vendor } = ws;
+  const perm = await requireBrandPermission(db, vendor.id, user.id, "creators.invite");
+  if (!perm.ok) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const list = await assertListOwned(db, id, vendor.id);
   if (!list) return NextResponse.json({ error: "List not found" }, { status: 404 });

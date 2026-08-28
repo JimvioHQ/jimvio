@@ -1,5 +1,6 @@
 
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { DialogProvider } from "@/components/providers/dialog-provider";
 import { CurrencyProvider } from "@/context/CurrencyContext";
@@ -18,6 +19,7 @@ import { PlatformStatsProvider } from "@/components/platform/platform-stats-prov
 import { JimvioCopilotLoader } from "@/components/copilot/JimvioCopilotLoader";
 import { SoftLaunchProviders } from "@/components/soft-launch/SoftLaunchProviders";
 import { CommandCenterLoader } from "@/components/command-center/CommandCenterLoader";
+import { normalizeUgcLocale, UGC_LOCALE_COOKIE } from "@/lib/ugc/i18n/messages";
 
 export const metadata: Metadata = constructMetadata();
 
@@ -45,10 +47,12 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const lang = normalizeUgcLocale(cookieStore.get(UGC_LOCALE_COOKIE)?.value);
   return (
     <html
-      lang="en"
+      lang={lang}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${dmSans.variable} ${jetbrainsMono.variable}`}

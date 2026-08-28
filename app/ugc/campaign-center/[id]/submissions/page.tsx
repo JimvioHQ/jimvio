@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Pill } from "@/components/ugc/campaign-detail/campaign-detail-ui";
 import { UGCPageError, UGCPageLoading, UGCPageShell } from "@/components/ugc/workspace/UGCPageShell";
+import { useLocale } from "@/context/LocaleContext";
 
 type SubmissionRow = {
   id: string;
@@ -54,6 +55,7 @@ function chatKey(campaignId: string, submissionId: string) {
 
 export default function CampaignSubmissionsPage() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useLocale();
   const campaignId = String(id ?? "");
   const [submissions, setSubmissions] = useState<SubmissionRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,7 +149,7 @@ export default function CampaignSubmissionsPage() {
         const res = await fetch(`/api/ugc/submissions/${submissionId}/approve`, { method: "PATCH" });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.error ?? "Approval failed");
-        toast.success("Submission approved");
+        toast.success(t("submissionApproved"));
         await load();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Approval failed");
@@ -179,7 +181,7 @@ export default function CampaignSubmissionsPage() {
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.error ?? "Revision request failed");
-        toast.success("Revision requested");
+        toast.success(t("revisionRequestedToast"));
       } else {
         const reason = modalReason.trim()
           ? modalReason.trim()
@@ -191,7 +193,7 @@ export default function CampaignSubmissionsPage() {
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.error ?? "Rejection failed");
-        toast.success("Submission rejected");
+        toast.success(t("submissionRejected"));
       }
       setModalOpen(false);
       setModalSubmissionId(null);
@@ -443,7 +445,7 @@ export default function CampaignSubmissionsPage() {
                             onClick={() => void approve(s.id)}
                           >
                             <Check className="mr-2 h-4 w-4" />
-                            Approve
+                            {t("approveAction")}
                           </Button>
                           <Button
                             size="sm"
@@ -452,7 +454,7 @@ export default function CampaignSubmissionsPage() {
                             disabled={isBusy}
                             onClick={() => openModal("revision", s.id)}
                           >
-                            Request revision
+                            {t("requestRevision")}
                           </Button>
                           <Button
                             size="sm"
@@ -462,7 +464,7 @@ export default function CampaignSubmissionsPage() {
                             onClick={() => openModal("reject", s.id)}
                           >
                             <X className="mr-2 h-4 w-4" />
-                            Reject
+                            {t("rejectAction")}
                           </Button>
                         </>
                       ) : null}

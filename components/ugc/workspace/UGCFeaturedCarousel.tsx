@@ -11,6 +11,7 @@ import {
 import type { UGCCampaign } from "@/types/ugc";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/context/LocaleContext";
 import {
   formatCreatorCount,
   getCampaignBanner,
@@ -44,6 +45,7 @@ type UGCFeaturedCarouselProps = {
 
 export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
   const { formatMoney } = useCurrency();
+  const { t } = useLocale();
   const [index, setIndex] = useState(0);
 
   const next = useCallback(() => {
@@ -134,7 +136,7 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
                 <span className="font-bold text-[#FF8A55]">{rewardLine}</span>
                 <span className="text-white/40">·</span>
                 <span className="text-white/70">
-                  {formatCreatorCount(creators)} creators joined
+                  {t("creatorsJoined", { count: formatCreatorCount(creators) })}
                 </span>
               </div>
 
@@ -143,14 +145,14 @@ export function UGCFeaturedCarousel({ campaigns }: UGCFeaturedCarouselProps) {
                   href={`/ugc/${c.id}/join`}
                   className="inline-flex h-11 items-center justify-center rounded-full bg-[#FF5A1F] px-6 text-[13px] font-bold text-white shadow-[0_6px_20px_rgba(255,90,31,0.42)] transition-all hover:bg-[#E54E18] hover:shadow-[0_8px_24px_rgba(255,90,31,0.5)]"
                 >
-                  Join Campaign
+                  {t("joinCampaign")}
                 </Link>
                 <Link
                   href={`/ugc/${c.id}`}
                   className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-5 text-[13px] font-semibold text-white backdrop-blur-md transition-all hover:border-white/45 hover:bg-white/15"
                 >
                   <Play className="h-3 w-3 fill-current" />
-                  View Brief
+                  {t("viewBrief")}
                 </Link>
               </div>
             </div>

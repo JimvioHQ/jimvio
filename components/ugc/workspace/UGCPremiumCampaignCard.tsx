@@ -13,6 +13,7 @@ import {
 import type { UGCCampaign } from "@/types/ugc";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/context/LocaleContext";
 import {
   formatCreatorCount,
   getCampaignBanner,
@@ -61,6 +62,7 @@ function UGCPremiumCampaignCardInner({
   featured = false,
 }: UGCPremiumCampaignCardProps) {
   const { formatMoney } = useCurrency();
+  const { t } = useLocale();
   const banner = getCampaignBanner(c);
   const clipBadge = getClipRateBadge(c, formatMoney);
   const platforms = (c.allowed_platforms ?? ["tiktok"]).slice(0, 3);
@@ -117,7 +119,7 @@ function UGCPremiumCampaignCardInner({
 
           {featured ? (
             <span className="absolute left-2.5 top-2.5 z-[1] rounded-full bg-[#FF5A1F] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-[0_2px_8px_rgba(255,90,31,0.35)]">
-              Featured
+              {t("featured")}
             </span>
           ) : null}
 
@@ -133,14 +135,14 @@ function UGCPremiumCampaignCardInner({
             <Link
               href={`/ugc/${c.id}/join`}
               className={cn(
-                "pointer-events-auto inline-flex h-9 items-center justify-center rounded-full",
+                "pointer-events-auto inline-flex min-h-11 items-center justify-center rounded-full",
                 "bg-[#FF5A1F] px-5 text-[12px] font-bold text-white",
                 "shadow-[0_8px_22px_rgba(255,90,31,0.42),0_2px_6px_rgba(17,24,39,0.18)]",
                 "transition-all duration-200 hover:bg-[#E54E18] hover:shadow-[0_10px_26px_rgba(255,90,31,0.5)]",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80",
               )}
             >
-              Join Campaign
+              {t("joinCampaign")}
             </Link>
           </div>
         </div>
@@ -189,7 +191,7 @@ function UGCPremiumCampaignCardInner({
           <div className="mt-2 flex items-center justify-between gap-2">
             <span className="flex min-w-0 items-center gap-1 text-[10.5px] font-medium text-[#6B7280]">
               <Users className="h-3 w-3 shrink-0 text-[#9CA3AF]" strokeWidth={2} />
-              <span className="truncate">{formatCreatorCount(creators)} creators</span>
+              <span className="truncate">{formatCreatorCount(creators)} {t("creatorsLabel")}</span>
             </span>
             {clipBadge ? (
               <span className="shrink-0 rounded-[6px] bg-[#ECFDF5] px-1.5 py-[3px] text-[10px] font-bold tabular-nums leading-none tracking-tight text-[#059669]">

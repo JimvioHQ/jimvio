@@ -24,6 +24,7 @@ import { DEFAULT_TERMS } from "@/lib/ugc/join-engine";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn } from "@/lib/utils";
 import { ProgressBar } from "@/components/ugc/campaign-detail/campaign-detail-ui";
+import { useLocale } from "@/context/LocaleContext";
 import {
   getCampaignRewardLine,
 } from "@/components/ugc/workspace/ugc-campaign-utils";
@@ -39,6 +40,7 @@ export function CampaignJoinFlow() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { formatMoney } = useCurrency();
+  const { t } = useLocale();
 
   const [campaign, setCampaign] = useState<UGCCampaign | null>(null);
   const [ctx, setCtx] = useState<JoinContext | null>(null);
@@ -338,7 +340,7 @@ export function CampaignJoinFlow() {
               }}
               className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#FF5A1F] text-[14px] font-bold text-white shadow-[0_8px_24px_rgba(255,90,31,0.35)] disabled:opacity-50"
             >
-              {ctx.joinMode === "invite_only" ? "Invite only" : "Continue to confirm"}
+              {ctx.joinMode === "invite_only" ? t("inviteOnly") : t("continueToConfirm")}
             </button>
           </motion.div>
         )}

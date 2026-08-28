@@ -23,12 +23,14 @@ async function refundWalletDebit(
   userId: string,
   amount: number,
   availableAfterDebit: number,
-) {
-  await db
+): Promise<boolean> {
+  const { data: rows } = await db
     .from("wallets")
     .update({ available_balance: availableAfterDebit + amount })
     .eq("user_id", userId)
-    .eq("available_balance", availableAfterDebit);
+    .eq("available_balance", availableAfterDebit)
+    .select("id");
+  return Boolean(rows?.length);
 }
 
 async function debitWalletForEscrow(
@@ -293,31 +295,32 @@ export async function POST(
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
   }
 
-  if (campaign.status === "draft") {
-    const ready = assertCampaignReadyForFunding(campaign as Record<string, unknown>);
-    if (!ready.success) {
-      return NextResponse.json(campaignWizardErrorPayload(ready), { status: 400 });
-    }
-  }
+  const ready = assertCampaignReadyForFunding(campaign as Record<string, unknown>);
 
-  const { data: heldEscrow } = await db
+  const { data: heldEscrowRow } = await db
     .from("ugc_campaign_escrow")
     .select("id, amount, status")
     .eq("campaign_id", id)
     .eq("status", "held")
     .maybeSingle();
 
-  if (heldEscrow) {
-    if (campaign.status !== "active") {
+  if (heldEscrowRow) {
+    if (ready.success && campaign.status !== "active") {
       await db.from("ugc_campaigns").update({ status: "active" }).eq("id", id);
     }
     return NextResponse.json({
       success: true,
       already_funded: true,
-      activated: true,
+      activated: ready.success,
       pending: false,
-      message: "Campaign already funded and activated.",
+      message: ready.success
+        ? "Campaign already funded and activated."
+        : "Escrow is held. Complete required campaign fields before activation.",
     });
+  }
+
+  if (!ready.success) {
+    return NextResponse.json(campaignWizardErrorPayload(ready), { status: 400 });
   }
 
   const { data: pendingEscrow } = await db
@@ -352,30 +355,50 @@ export async function POST(
           .select("id, status")
           .eq("campaign_id", id)
           .maybeSingle();
-        await refundWalletDebit(db, user.id, amount, debit.availableAfter);
+        const refunded = await refundWalletDebit(db, user.id, amount, debit.availableAfter);
         if (existing?.status === "held") {
-          if (campaign.status !== "active") {
+          if (ready.success && campaign.status !== "active") {
             await db.from("ugc_campaigns").update({ status: "active" }).eq("id", id);
           }
           return NextResponse.json({
             success: true,
             already_funded: true,
-            activated: true,
+            activated: ready.success,
             pending: false,
-            message: "Campaign already funded and activated.",
+            message: ready.success
+              ? "Campaign already funded and activated."
+              : "Escrow is held. Complete required campaign fields before activation.",
           });
+        }
+        if (!refunded) {
+          return NextResponse.json(
+            { error: "Could not reverse wallet debit after escrow conflict. Contact support." },
+            { status: 500 },
+          );
         }
         return NextResponse.json(
           { error: "Escrow already exists for this campaign." },
           { status: 409 },
         );
       }
-      await refundWalletDebit(db, user.id, amount, debit.availableAfter);
+      const refunded = await refundWalletDebit(db, user.id, amount, debit.availableAfter);
+      if (!refunded) {
+        return NextResponse.json(
+          { error: "Escrow lock failed and wallet debit could not be reversed. Contact support." },
+          { status: 500 },
+        );
+      }
       return NextResponse.json({ error: held.error.message }, { status: 500 });
     }
 
     if (!held.data) {
-      await refundWalletDebit(db, user.id, amount, debit.availableAfter);
+      const refunded = await refundWalletDebit(db, user.id, amount, debit.availableAfter);
+      if (!refunded) {
+        return NextResponse.json(
+          { error: "Could not lock escrow and wallet debit could not be reversed. Contact support." },
+          { status: 500 },
+        );
+      }
       return NextResponse.json(
         { error: "Could not lock escrow. Please retry." },
         { status: 409 },
@@ -455,15 +478,17 @@ export async function POST(
         .eq("campaign_id", id)
         .maybeSingle();
       if (existing?.status === "held") {
-        if (campaign.status !== "active") {
+        if (ready.success && campaign.status !== "active") {
           await db.from("ugc_campaigns").update({ status: "active" }).eq("id", id);
         }
         return NextResponse.json({
           success: true,
           already_funded: true,
-          activated: true,
+          activated: ready.success,
           pending: false,
-          message: "Campaign already funded and activated.",
+          message: ready.success
+            ? "Campaign already funded and activated."
+            : "Escrow is held. Complete required campaign fields before activation.",
         });
       }
       return NextResponse.json({

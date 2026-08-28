@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { emitUgcEvent } from "@/lib/ugc/enterprise/events";
 import { assertCampaignReadyForFunding } from "@/lib/ugc/campaign-wizard-validation";
+import { paidAmountCoversEscrow } from "@/lib/ugc/escrow-amount";
 
 const MIN_FUNDING_RWF = 1000;
 
@@ -84,12 +85,39 @@ export async function confirmUgcEscrowPayment(
 
   const expected = Number(escrow.amount ?? 0);
   const escrowCurrency = String(escrow.currency ?? "RWF").toUpperCase();
-  const paidCurrency = opts.currency ? String(opts.currency).toUpperCase() : null;
-  if (paidCurrency && paidCurrency === escrowCurrency && opts.amount != null && Number.isFinite(Number(opts.amount))) {
-    const paid = Number(opts.amount);
-    if (paid + 0.009 < expected) {
-      return { handled: true, activated: false, campaignId, alreadyHeld: false };
-    }
+  if (Number.isFinite(expected) && expected < MIN_FUNDING_RWF) {
+    return { handled: true, activated: false, campaignId, alreadyHeld: false };
+  }
+
+  let invoiceAmount: number | null = null;
+  let invoiceCurrency: string | null = null;
+  const { data: tx } = await db
+    .from("transactions")
+    .select("metadata")
+    .eq("type", "ugc_escrow")
+    .eq("reference", campaignId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const meta = (tx?.metadata ?? {}) as { invoice_amount?: number; invoice_currency?: string };
+  if (meta.invoice_amount != null && Number.isFinite(Number(meta.invoice_amount))) {
+    invoiceAmount = Number(meta.invoice_amount);
+  }
+  if (typeof meta.invoice_currency === "string") {
+    invoiceCurrency = meta.invoice_currency;
+  }
+
+  if (
+    !paidAmountCoversEscrow({
+      expected,
+      escrowCurrency,
+      paidAmount: opts.amount,
+      paidCurrency: opts.currency,
+      invoiceAmount,
+      invoiceCurrency,
+    })
+  ) {
+    return { handled: true, activated: false, campaignId, alreadyHeld: false };
   }
 
   if (escrow.status === "held") {
@@ -150,7 +178,6 @@ export async function confirmUgcEscrowPayment(
     /* never fail confirmation */
   }
 
-  void MIN_FUNDING_RWF;
   return { handled: true, activated: canActivate, campaignId, alreadyHeld: false };
 }
 

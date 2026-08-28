@@ -7,6 +7,8 @@ type CreditResult =
 /**
  * Credits a fixed-rate UGC payout exactly once per submission.
  * Per-views campaigns are skipped (view-sync owns those earnings).
+ * Campaign spent_budget is incremented with compare-and-swap so concurrent
+ * approvals of different submissions cannot overspend.
  */
 export async function creditFixedPayoutIfNeeded(
   db: SupabaseClient,
@@ -16,16 +18,6 @@ export async function creditFixedPayoutIfNeeded(
     influencerId: string;
   },
 ): Promise<CreditResult> {
-  const { data: existing } = await db
-    .from("ugc_payouts")
-    .select("id, amount")
-    .eq("submission_id", opts.submissionId)
-    .maybeSingle();
-
-  if (existing) {
-    return { ok: true, credited: false, amount: Number(existing.amount ?? 0) };
-  }
-
   const { data: campaign } = await db
     .from("ugc_campaigns")
     .select("payment_model, fixed_rate, spent_budget, approved_count, total_budget")
@@ -37,14 +29,6 @@ export async function creditFixedPayoutIfNeeded(
   const isFixed = campaign.payment_model === "fixed_per_content";
   const payout = isFixed ? Number(campaign.fixed_rate ?? 0) : 0;
 
-  if (isFixed && payout > 0) {
-    const spent = Number(campaign.spent_budget ?? 0);
-    const budget = Number(campaign.total_budget ?? 0);
-    if (budget > 0 && spent + payout > budget) {
-      return { ok: false, error: "Campaign budget is exhausted.", status: 409 };
-    }
-  }
-
   if (!isFixed || !(payout > 0)) {
     await db
       .from("ugc_campaigns")
@@ -53,7 +37,46 @@ export async function creditFixedPayoutIfNeeded(
     return { ok: true, credited: false, amount: 0 };
   }
 
+  const { data: existingRows } = await db
+    .from("ugc_payouts")
+    .select("id, amount")
+    .eq("submission_id", opts.submissionId)
+    .limit(1);
+
+  if (existingRows?.length) {
+    return { ok: true, credited: false, amount: Number(existingRows[0].amount ?? 0) };
+  }
+
   const spent = Number(campaign.spent_budget ?? 0);
+  const budget = Number(campaign.total_budget ?? 0);
+  if (budget > 0 && spent + payout > budget) {
+    return { ok: false, error: "Campaign budget is exhausted.", status: 409 };
+  }
+
+  const nextSpent = spent + payout;
+  const priorApproved = campaign.approved_count ?? 0;
+  const { data: budgetRow } = await db
+    .from("ugc_campaigns")
+    .update({
+      spent_budget: nextSpent,
+      approved_count: priorApproved + 1,
+    })
+    .eq("id", opts.campaignId)
+    .eq("spent_budget", spent)
+    .select("id")
+    .maybeSingle();
+
+  if (!budgetRow) {
+    return { ok: false, error: "Campaign budget is exhausted.", status: 409 };
+  }
+
+  const revertBudget = async () => {
+    await db
+      .from("ugc_campaigns")
+      .update({ spent_budget: spent, approved_count: priorApproved })
+      .eq("id", opts.campaignId)
+      .eq("spent_budget", nextSpent);
+  };
 
   const { data: infData } = await db
     .from("influencers")
@@ -62,6 +85,7 @@ export async function creditFixedPayoutIfNeeded(
     .maybeSingle();
 
   if (!infData?.user_id) {
+    await revertBudget();
     return { ok: false, error: "Creator account not found", status: 404 };
   }
 
@@ -74,23 +98,14 @@ export async function creditFixedPayoutIfNeeded(
   });
 
   if (ugcPayErr) {
+    await revertBudget();
     if (ugcPayErr.code === "23505") {
       return { ok: true, credited: false, amount: payout };
     }
     return { ok: false, error: ugcPayErr.message, status: 500 };
   }
 
-  await db
-    .from("ugc_campaigns")
-    .update({ approved_count: (campaign.approved_count ?? 0) + 1 })
-    .eq("id", opts.campaignId);
-
   await db.from("ugc_submissions").update({ total_earnings: payout }).eq("id", opts.submissionId);
-
-  await db
-    .from("ugc_campaigns")
-    .update({ spent_budget: spent + payout })
-    .eq("id", opts.campaignId);
 
   await db
     .from("influencers")

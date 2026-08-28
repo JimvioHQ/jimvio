@@ -34,11 +34,15 @@ import { useLocale } from "@/context/LocaleContext";
 
 const STEP_KEY = "jimvio-campaign-center-step-v1";
 
-const TYPES: { value: UGCCampaignType; label: string; desc: string }[] = [
-  { value: "ugc", label: "UGC Campaign", desc: "Original creator content for your brand." },
-  { value: "clipping", label: "Clipping", desc: "Pay creators per 1K views on clips." },
-  { value: "music_clipping", label: "Music Clipping", desc: "Promote a track with short clips." },
-  { value: "promotion", label: "Promotion", desc: "Drive traffic to a product or link." },
+const TYPES: {
+  value: UGCCampaignType;
+  labelKey: "typeUgc" | "typeClipping" | "typeMusic" | "typePromotion";
+  descKey: "typeUgcDesc" | "typeClippingDesc" | "typeMusicDesc" | "typePromotionDesc";
+}[] = [
+  { value: "ugc", labelKey: "typeUgc", descKey: "typeUgcDesc" },
+  { value: "clipping", labelKey: "typeClipping", descKey: "typeClippingDesc" },
+  { value: "music_clipping", labelKey: "typeMusic", descKey: "typeMusicDesc" },
+  { value: "promotion", labelKey: "typePromotion", descKey: "typePromotionDesc" },
 ];
 
 const PLATFORMS: UGCPlatform[] = ["tiktok", "instagram", "youtube", "x"];
@@ -209,7 +213,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
           setActiveCampaignId(String(c.id ?? sourceId));
           restoreStep(next);
         } catch {
-          toast.error("Could not load campaign");
+          toast.error(t("couldNotLoadCampaign"));
         }
         hydrated.current = true;
         return;
@@ -302,9 +306,9 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         }
         return { ...prev, media: [...prev.media, item] };
       });
-      toast.success("Asset uploaded");
+      toast.success(t("assetUploaded"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Upload failed");
+      toast.error(err instanceof Error ? err.message : t("uploadFailed"));
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -458,7 +462,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.error || "Save failed");
-        toast.success("Draft updated");
+        toast.success(t("draftUpdated"));
         router.push("/ugc/campaign-center/drafts");
         return;
       }
@@ -471,7 +475,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Save failed");
       localStorage.removeItem(DRAFT_KEY);
-      toast.success("Draft saved");
+      toast.success(t("draftSaved"));
       router.push("/ugc/campaign-center/drafts");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -521,7 +525,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         }
       }
 
-      toast.success("Campaign ready — fund to activate");
+      toast.success(t("campaignReadyFund"));
       router.push(`/ugc/campaign-center/${id}/fund`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not continue");
@@ -606,20 +610,20 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       <div className="mt-5 rounded-2xl border border-[#EEF0F2] bg-white p-5 shadow-[0_1px_2px_rgba(17,24,39,0.04)] sm:p-6">
         {step === 0 && (
           <div className="grid gap-3 sm:grid-cols-2">
-            {TYPES.map((t) => (
+            {TYPES.map((item) => (
               <button
-                key={t.value}
+                key={item.value}
                 type="button"
-                onClick={() => set("campaign_type", t.value)}
+                onClick={() => set("campaign_type", item.value)}
                 className={cn(
                   "rounded-2xl border p-4 text-left transition",
-                  form.campaign_type === t.value
+                  form.campaign_type === item.value
                     ? "border-[#FF5A1F] bg-[#FFF8F5] shadow-[0_0_0_3px_rgba(255,90,31,0.12)]"
                     : "border-[#E5E7EB] hover:border-[#FF5A1F]/40",
                 )}
               >
-                <p className="text-[14px] font-bold text-[#111827]">{t.label}</p>
-                <p className="mt-1 text-[12px] text-[#6B7280]">{t.desc}</p>
+                <p className="text-[14px] font-bold text-[#111827]">{t(item.labelKey)}</p>
+                <p className="mt-1 text-[12px] text-[#6B7280]">{t(item.descKey)}</p>
               </button>
             ))}
           </div>
@@ -627,20 +631,20 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
 
         {step === 1 && (
           <div className="space-y-4">
-            <Field label="Campaign Title" required error={fieldErrors.title}>
+            <Field label={t("wizardTitle")} required error={fieldErrors.title}>
               <input
                 value={form.title}
                 onChange={(e) => set("title", e.target.value)}
-                placeholder="e.g. Summer Glow Creator Challenge"
+                placeholder={t("wizardPhTitle")}
                 className={inputCls}
               />
             </Field>
-            <Field label="Description">
+            <Field label={t("wizardDescription")}>
               <textarea
                 value={form.description}
                 onChange={(e) => set("description", e.target.value)}
                 rows={5}
-                placeholder="Brief, creative direction, do's and don'ts…"
+                placeholder={t("wizardPhDescription")}
                 className={cn(inputCls, "resize-none")}
               />
             </Field>
@@ -649,7 +653,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
 
         {step === 2 && (
           <div className="space-y-4">
-            <Field label="Reward Model">
+            <Field label={t("wizardRewardModel")}>
               <div className="grid grid-cols-2 gap-2">
                 {(
                   [
@@ -674,7 +678,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               </div>
             </Field>
             {form.payment_model === "per_views" ? (
-              <Field label="Rate per 1K views (USD)" required error={fieldErrors.rate_per_1k_views}>
+              <Field label={t("wizardRatePer1k")} required error={fieldErrors.rate_per_1k_views}>
                 <input
                   type="number"
                   min={0.1}
@@ -685,7 +689,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 />
               </Field>
             ) : (
-              <Field label="Fixed rate per content (USD)" required error={fieldErrors.fixed_rate}>
+              <Field label={t("wizardFixedRate")} required error={fieldErrors.fixed_rate}>
                 <input
                   type="number"
                   min={1}
@@ -696,7 +700,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               </Field>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Total budget (USD)" required error={fieldErrors.total_budget}>
+              <Field label={t("wizardTotalBudget")} required error={fieldErrors.total_budget}>
                 <input
                   type="number"
                   min={1}
@@ -705,7 +709,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                   className={inputCls}
                 />
               </Field>
-              <Field label="Max payout per submission">
+              <Field label={t("wizardMaxPayout")}>
                 <input
                   type="number"
                   min={1}
@@ -715,11 +719,11 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 />
               </Field>
             </div>
-            <Field label="Views goal (optional note in brief)">
+            <Field label={t("wizardViewsGoal")}>
               <input
                 type="number"
                 min={0}
-                placeholder="e.g. 100000"
+                placeholder={t("wizardPhViews")}
                 className={inputCls}
                 onBlur={(e) => {
                   const n = Number(e.target.value);
@@ -737,7 +741,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
 
         {step === 3 && (
           <div className="space-y-4">
-            <Field label="Content Platforms" required error={fieldErrors.allowed_platforms}>
+            <Field label={t("wizardPlatforms")} required error={fieldErrors.allowed_platforms}>
               <div className="flex flex-wrap gap-2">
                 {PLATFORMS.map((p) => {
                   const on = form.allowed_platforms.includes(p);
@@ -765,24 +769,24 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               </div>
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Countries">
+              <Field label={t("wizardCountries")}>
                 <input
                   value={form.countries}
                   onChange={(e) => set("countries", e.target.value)}
-                  placeholder="e.g. Rwanda, Kenya, Global"
+                  placeholder={t("wizardPhCountries")}
                   className={inputCls}
                 />
               </Field>
-              <Field label="Languages">
+              <Field label={t("wizardLanguages")}>
                 <input
                   value={form.languages}
                   onChange={(e) => set("languages", e.target.value)}
-                  placeholder="e.g. English, French, Kinyarwanda"
+                  placeholder={t("wizardPhLanguages")}
                   className={inputCls}
                 />
               </Field>
             </div>
-            <Field label="Creator limit">
+            <Field label={t("wizardCreatorLimit")}>
               <input
                 type="number"
                 min={1}
@@ -797,7 +801,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         {step === 4 && (
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Min duration (sec)" required error={fieldErrors.min_duration}>
+              <Field label={t("wizardMinDuration")} required error={fieldErrors.min_duration}>
                 <input
                   type="number"
                   min={1}
@@ -808,7 +812,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                   className={inputCls}
                 />
               </Field>
-              <Field label="Max duration (sec)" required error={fieldErrors.max_duration}>
+              <Field label={t("wizardMaxDuration")} required error={fieldErrors.max_duration}>
                 <input
                   type="number"
                   min={1}
@@ -821,7 +825,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               </Field>
             </div>
             <TagField
-              label="Required hashtags"
+              label={t("wizardHashtags")}
               value={tagInput.hashtag}
               onChange={(v) => setTagInput((p) => ({ ...p, hashtag: v }))}
               onAdd={() => {
@@ -838,7 +842,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               prefix="#"
             />
             <TagField
-              label="Required mentions"
+              label={t("wizardMentions")}
               value={tagInput.mention}
               onChange={(v) => setTagInput((p) => ({ ...p, mention: v }))}
               onAdd={() => {
@@ -855,7 +859,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               prefix="@"
             />
             <TagField
-              label="Required keywords"
+              label={t("wizardKeywords")}
               value={tagInput.keyword}
               onChange={(v) => setTagInput((p) => ({ ...p, keyword: v }))}
               onAdd={() => {
@@ -879,7 +883,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
               />
               Require face on camera
             </label>
-            <Field label="Review flow">
+            <Field label={t("wizardReviewFlow")}>
               <p className="rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-3 py-3 text-[12.5px] text-[#4B5563]">
                 Submissions enter <strong>pending review</strong>. You approve or reject from
                 Campaign Center → Active Campaigns / Submissions before payouts.
@@ -890,7 +894,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
 
         {step === 5 && (
           <div className="space-y-4">
-            <Field label="Cover / Thumbnail">
+            <Field label={t("wizardCover")}>
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-[#E5E7EB] bg-[#F9FAFB] px-4 py-8 text-center hover:border-[#FF5A1F]/50">
                 {uploading ? (
                   <Loader2 className="h-5 w-5 animate-spin text-[#FF5A1F]" />
@@ -917,7 +921,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 />
               ))}
             </Field>
-            <Field label="Attachments / examples">
+            <Field label={t("wizardAttachments")}>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#E5E7EB] px-4 py-2 text-[12.5px] font-semibold text-[#374151] hover:bg-[#F9FAFB]">
                 <Upload className="h-3.5 w-3.5" />
                 Add image or video
@@ -972,31 +976,31 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 Required campaign data is complete. Fund escrow to activate.
               </p>
             )}
-            <ReviewRow label="Type" value={form.campaign_type.replace(/_/g, " ")} />
-            <ReviewRow label="Title" value={form.title.trim() || "—"} />
+            <ReviewRow label={t("reviewType")} value={form.campaign_type.replace(/_/g, " ")} />
+            <ReviewRow label={t("reviewTitle")} value={form.title.trim() || "—"} />
             <ReviewRow
-              label="Reward"
+              label={t("reviewReward")}
               value={
                 form.payment_model === "per_views"
                   ? `$${form.rate_per_1k_views}/1K · Budget $${form.total_budget}`
                   : `$${form.fixed_rate}/post · Budget $${form.total_budget}`
               }
             />
-            <ReviewRow label="Platforms" value={form.allowed_platforms.join(", ") || "—"} />
+            <ReviewRow label={t("reviewPlatforms")} value={form.allowed_platforms.join(", ") || "—"} />
             <ReviewRow
-              label="Duration"
+              label={t("reviewDuration")}
               value={
                 form.min_duration > 0 && form.max_duration > 0 && form.min_duration <= form.max_duration
                   ? `${form.min_duration}–${form.max_duration}s`
                   : "—"
               }
             />
-            <ReviewRow label="Creator limit" value={String(form.creator_limit)} />
+            <ReviewRow label={t("wizardCreatorLimit")} value={String(form.creator_limit)} />
             <ReviewRow
-              label="Hashtags"
+              label={t("wizardHashtags")}
               value={form.required_hashtags.length ? form.required_hashtags.map((t) => `#${t}`).join(" ") : "None"}
             />
-            <ReviewRow label="Assets" value={`${form.media.length} file(s)`} />
+            <ReviewRow label={t("reviewAssetsLabel")} value={t("reviewAssets", { count: form.media.length })} />
             {validateCampaignWizardReady(form).success ? (
               <p className="rounded-xl bg-[#FFF8F5] px-3 py-3 text-[12.5px] text-[#9A3412]">
                 Next step: fund your campaign (minimum RWF 1,000). It stays in{" "}
@@ -1100,6 +1104,7 @@ function TagField({
   onRemove: (i: number) => void;
   prefix?: string;
 }) {
+  const { t } = useLocale();
   return (
     <Field label={label}>
       <div className="flex gap-2">
@@ -1120,7 +1125,7 @@ function TagField({
           onClick={onAdd}
           className="shrink-0 rounded-xl bg-[#111827] px-3 text-[12px] font-bold text-white"
         >
-          Add
+          {t("add")}
         </button>
       </div>
       {tags.length > 0 ? (

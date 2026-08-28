@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireInfluencer, isAdmin } from "@/lib/ugc/platform/auth";
 import { optionalBrandWorkspace, userCanAccessBrand, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "body or attachment_url is required" }, { status: 400 });
   }
 
+  let isDecision = false;
+  if (Boolean(body.is_decision)) {
+    const admin = await isAdmin(user.id);
+    const isBrand = await userCanAccessBrand(db, dispute.brand_id, user.id);
+    let canDecide = admin;
+    if (isBrand) {
+      const perm = await requireBrandPermission(db, dispute.brand_id, user.id, "disputes.manage");
+      canDecide = admin || perm.ok;
+    }
+    if (!canDecide) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    isDecision = true;
+  }
+
   const { data: message, error: iErr } = await db
     .from("ugc_dispute_messages")
     .insert({
@@ -87,7 +103,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       body: messageBody || null,
       attachment_url: typeof body.attachment_url === "string" ? body.attachment_url : null,
       attachment_name: typeof body.attachment_name === "string" ? body.attachment_name : null,
-      is_decision: Boolean(body.is_decision),
+      is_decision: isDecision,
     })
     .select()
     .single();

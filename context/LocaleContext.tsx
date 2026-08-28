@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, type ReactNode } from "r
 import {
   normalizeUgcLocale,
   ugcMessage,
+  UGC_LOCALE_COOKIE,
   type UgcLocale,
   type UgcMessageKey,
 } from "@/lib/ugc/i18n/messages";
@@ -35,6 +36,7 @@ export function LocaleProvider({
     const root = document.documentElement;
     const previous = root.lang;
     root.lang = locale;
+    document.cookie = `${UGC_LOCALE_COOKIE}=${locale}; Path=/; Max-Age=31536000; SameSite=Lax`;
     return () => {
       root.lang = previous || "en";
     };

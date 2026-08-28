@@ -21,6 +21,7 @@ import { useCurrency } from "@/context/CurrencyContext";
 import { cn, relativeTime } from "@/lib/utils";
 import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 import { withBrandQuery } from "@/lib/ugc/client/with-brand-query";
+import { useLocale } from "@/context/LocaleContext";
 
 type FilterStatus = "all" | UGCCampaignStatus;
 
@@ -56,6 +57,7 @@ export function CampaignCenterBoard({
 
   const router = useRouter();
   const { formatMoney } = useCurrency();
+  const { t } = useLocale();
   const [campaigns, setCampaigns] = useState<UGCCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -68,11 +70,11 @@ export function CampaignCenterBoard({
       const json = await res.json();
       setCampaigns(json.data ?? []);
     } catch {
-      toast.error("Could not load campaigns");
+      toast.error(t("couldNotLoadCampaigns"));
     } finally {
       setLoading(false);
     }
-  }, [ugcFetch]);
+  }, [ugcFetch, t]);
 
   useEffect(() => {
     void load();
@@ -126,7 +128,7 @@ export function CampaignCenterBoard({
             className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white shadow-[0_6px_18px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18]"
           >
             <Plus className="h-4 w-4" />
-            Create Campaign
+            {t("createCampaign")}
           </Link>
         ) : null}
       </div>
@@ -139,16 +141,16 @@ export function CampaignCenterBoard({
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-16 text-center">
-          <p className="text-[15px] font-semibold text-[#111827]">No campaigns here yet</p>
+          <p className="text-[15px] font-semibold text-[#111827]">{t("emptyCampaigns")}</p>
           <p className="mt-1 text-[13px] text-[#6B7280]">
-            Launch your first campaign to recruit creators and track performance.
+            {t("brandsPublishHere")}
           </p>
           <Link
             href={withBrandQuery("/ugc/campaign-center/create", brandId)}
             className="mt-5 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white"
           >
             <Plus className="h-4 w-4" />
-            Create Campaign
+            {t("createCampaign")}
           </Link>
         </div>
       ) : (
@@ -196,7 +198,7 @@ export function CampaignCenterBoard({
                       type="button"
                       aria-label="More actions"
                       onClick={() => setMenuId((m) => (m === c.id ? null : c.id))}
-                      className="grid h-9 w-9 place-items-center rounded-full border border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]"
+                      className="grid min-h-11 min-w-11 place-items-center rounded-full border border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]"
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
@@ -212,13 +214,13 @@ export function CampaignCenterBoard({
                         onClick={() => setMenuId(null)}
                       >
                         <Upload className="h-3.5 w-3.5" />
-                        Fund & Activate
+                        {t("fundAndActivate")}
                       </Link>
                     ) : null}
                     {c.status === "active" ? (
                       <MenuItem
                         icon={Pause}
-                        label="Pause"
+                        label={t("pause")}
                         disabled={busy}
                         onClick={() =>
                           void runAction(c.id, async () => {
@@ -231,7 +233,7 @@ export function CampaignCenterBoard({
                     {c.status === "paused" ? (
                       <MenuItem
                         icon={Play}
-                        label="Resume"
+                        label={t("resume")}
                         disabled={busy}
                         onClick={() =>
                           void runAction(c.id, async () => {
@@ -243,13 +245,13 @@ export function CampaignCenterBoard({
                     ) : null}
                     <MenuItem
                       icon={Copy}
-                      label="Duplicate"
+                      label={t("duplicate")}
                       disabled={busy}
                       onClick={() => void duplicate(c)}
                     />
                     <MenuItem
                       icon={Archive}
-                      label="Archive"
+                      label={t("archive")}
                       disabled={busy}
                       onClick={() =>
                         void runAction(c.id, async () => {
@@ -264,11 +266,11 @@ export function CampaignCenterBoard({
                       onClick={() => setMenuId(null)}
                     >
                       <Eye className="h-3.5 w-3.5" />
-                      View public page
+                      {t("viewCampaign")}
                     </Link>
                     <MenuItem
                       icon={Trash2}
-                      label="Delete"
+                      label={t("delete")}
                       danger
                       disabled={busy}
                       onClick={() => {

@@ -8,10 +8,12 @@ import { CampaignDetailSidebar, CampaignDetailMobileCta } from "./CampaignDetail
 import { CampaignDetailSkeleton } from "./CampaignDetailSkeleton";
 import { CampaignDetailError } from "./CampaignDetailError";
 import { useCampaignDetail } from "./use-campaign-detail";
+import { useLocale } from "@/context/LocaleContext";
 
 export function CampaignDetailView() {
   const { id } = useParams<{ id: string }>();
   const { state, retry, toggleBookmark } = useCampaignDetail(id);
+  const { t } = useLocale();
 
   const share = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -46,14 +48,14 @@ export function CampaignDetailView() {
       ? `/ugc/${id}/application`
       : `/ugc/${id}/join`;
   const joinLabel = isJoined
-    ? "Open dashboard"
+    ? t("openDashboard")
     : isPending
-      ? "View application"
+      ? t("viewApplication")
       : campaign.join_mode === "application" || campaign.join_mode === "hybrid"
-        ? "Apply now"
+        ? t("applyNow")
         : campaign.join_mode === "invite_only"
-          ? "Invite only"
-          : "Join campaign";
+          ? t("inviteOnly")
+          : t("joinCampaign");
 
   return (
     <div className="bg-[#FAFAFA] pb-28 lg:pb-10">
