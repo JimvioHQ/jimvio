@@ -8,11 +8,11 @@ import {
   resolveJoinMode,
 } from "@/lib/ugc/join-engine";
 import {
-  countAcceptedParticipants,
   loadCreatorProfile,
   processCampaignJoin,
   type CampaignJoinRow,
 } from "@/lib/ugc/join-service";
+import { emitUgcEvent } from "@/lib/ugc/enterprise/events";
 
 export async function POST(
   req: NextRequest,
@@ -105,6 +105,18 @@ export async function POST(
 
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
+  }
+
+  try {
+    const eventType =
+      result.outcome.status === "accepted" ? "creator.joined" : "creator.applied";
+    await emitUgcEvent(db, campaign.brand_id, eventType, {
+      campaignId: id,
+      participantId: result.outcome.status,
+      creatorUserId: user.id,
+    });
+  } catch {
+    /* additive */
   }
 
   return NextResponse.json(

@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyNowPaymentsSignature } from "@/lib/nowpayments";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { confirmUgcEscrowPayment } from "@/lib/ugc/confirm-escrow-payment";
 import {
   logWebhookEvent,
   markWebhookProcessed,
@@ -82,7 +83,24 @@ export async function POST(req: NextRequest) {
         .from("orders")
         .select("buyer_id, payment_status")
         .eq("id", oid)
-        .single();
+        .maybeSingle();
+
+      if (!ord) {
+        const ugc = await confirmUgcEscrowPayment(supabase, {
+          campaignId: oid,
+          providerTransactionId: txId,
+          paymentRef: oid,
+          amount: payload.price_amount ?? null,
+          currency: payload.price_currency ?? null,
+          provider: "nowpayments",
+        });
+        if (ugc.handled) {
+          if (eventId) await markWebhookProcessed(supabase, eventId, ugc.campaignId);
+          continue;
+        }
+        if (eventId) await markWebhookFailed(supabase, eventId, "Order not found");
+        continue;
+      }
 
       if (ord?.payment_status === "completed") {
         if (eventId) await markWebhookProcessed(supabase, eventId, oid);

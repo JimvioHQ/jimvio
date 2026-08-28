@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
 import { notifyUser } from "@/lib/notifications/notify-user";
 
@@ -25,7 +27,8 @@ export async function PATCH(
     );
   }
 
-  const { db: vendorDb, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const vendorDb = brandWs.db;
   const { db, influencer } = await requireInfluencer(user.id);
 
   const { data: invitation } = await db
@@ -39,7 +42,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invitation is no longer pending" }, { status: 409 });
   }
 
-  const isBrand = Boolean(vendor && vendor.id === invitation.brand_id);
+  const isBrand = Boolean(await resolveBrandRole(db, invitation.brand_id, user.id));
   const isCreator =
     invitation.invitee_user_id === user.id ||
     (influencer != null && invitation.influencer_id === influencer.id);

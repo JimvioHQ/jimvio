@@ -47,6 +47,8 @@ export interface NowPaymentsInvoiceParams {
   payCurrency?: string    // optional crypto currency e.g. 'USDT', 'BTC', 'ETH'
   description: string
   buyerEmail: string
+  successUrl?: string
+  cancelUrl?: string
 }
 
 export async function createNowPaymentsInvoice(params: NowPaymentsInvoiceParams) {
@@ -58,8 +60,8 @@ export async function createNowPaymentsInvoice(params: NowPaymentsInvoiceParams)
       order_id:            params.jimvioOrderId,
       order_description:   params.description,
       ipn_callback_url:    `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/nowpayments`,
-      success_url:         `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?order=${params.jimvioOrderId}`,
-      cancel_url:          `${process.env.NEXT_PUBLIC_APP_URL}/checkout/cancel?order=${params.jimvioOrderId}`,
+      success_url:         params.successUrl ?? `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?order=${params.jimvioOrderId}`,
+      cancel_url:          params.cancelUrl ?? `${process.env.NEXT_PUBLIC_APP_URL}/checkout/cancel?order=${params.jimvioOrderId}`,
       is_fixed_rate:       false,
       is_fee_paid_by_user: false,
       ...(params.payCurrency ? { pay_currency: params.payCurrency.toLowerCase() } : {}),

@@ -6,6 +6,11 @@ import {
   campaignNeedsCompletenessGate,
   campaignWizardErrorPayload,
 } from '@/lib/ugc/campaign-wizard-validation';
+import {
+  canReadCampaign,
+  requireCampaignMember,
+  requireCampaignPermission,
+} from '@/lib/ugc/enterprise/brand-access';
 
 // ─── GET /api/ugc/campaigns/[id] ────────────────────────────────────────────
 export async function GET(
@@ -38,7 +43,16 @@ export async function GET(
     .eq('id', id)
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 404 });
+  if (error || !data) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const readable = await canReadCampaign(db, user?.id ?? null, {
+    status: data.status,
+    brand_id: data.brand_id,
+  });
+  if (!readable) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+
   return NextResponse.json({ campaign: data });
 }
 
@@ -54,28 +68,15 @@ export async function PATCH(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const db = createServiceRoleClient();
+  const access = await requireCampaignPermission(user.id, id, "campaigns.manage");
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
+  const db = access.db;
 
-  // verify ownership OR admin — load the full row so readiness is evaluated
-  // against the resulting campaign, not only the PATCH fields.
   const { data: campaign } = await db
     .from('ugc_campaigns')
-    .select('*, vendors!brand_id(user_id)')
+    .select('*')
     .eq('id', id)
     .single();
-
-  const { data: isAdmin } = await db
-    .from('user_roles')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('role', 'admin')
-    .eq('is_active', true)
-    .maybeSingle();
-
-  const vendor = campaign?.vendors as unknown as { user_id: string } | null;
-  if (!isAdmin && vendor?.user_id !== user.id) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
 
   const body = await req.json();
   const allowed = [
@@ -147,28 +148,13 @@ export async function DELETE(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const db = createServiceRoleClient();
-
-  const { data: isAdmin } = await db
-    .from('user_roles')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('role', 'admin')
-    .eq('is_active', true)
-    .maybeSingle();
-
-  const { data: campaign } = await db
-    .from('ugc_campaigns')
-    .select('brand_id, vendors!brand_id(user_id)')
-    .eq('id', id)
-    .single();
-
-  const vendor = campaign?.vendors as unknown as { user_id: string } | null;
-  if (!isAdmin && vendor?.user_id !== user.id) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const access = await requireCampaignMember(user.id, id);
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
+  if (access.role !== "owner") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { error } = await db.from('ugc_campaigns').delete().eq('id', id);
+  const { error } = await access.db.from('ugc_campaigns').delete().eq('id', id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

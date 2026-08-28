@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import {
+  brandIdFromRequest,
+  requireBrandWorkspace,
+  requireCampaignMember,
+  requireCampaignPermission,
+} from "@/lib/ugc/enterprise/brand-access";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
 import { notifyUser } from "@/lib/notifications/notify-user";
 
@@ -126,8 +132,32 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ data: data ?? [] });
   }
 
-  const { db, vendor } = await requireVendor(user.id);
-  if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
+  if (campaignId) {
+    const access = await requireCampaignMember(user.id, campaignId);
+    if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
+    let query = access.db
+      .from("ugc_creator_invitations")
+      .select(
+        `
+      *,
+      influencer:influencers!influencer_id (
+        id, display_name, profile_image, user_id
+      ),
+      campaign:ugc_campaigns!campaign_id ( id, title, status )
+    `
+      )
+      .eq("campaign_id", campaignId)
+      .eq("brand_id", access.campaign.brand_id)
+      .order("created_at", { ascending: false });
+    if (status) query = query.eq("status", status);
+    const { data, error: qErr } = await query;
+    if (qErr) return NextResponse.json({ error: qErr.message }, { status: 500 });
+    return NextResponse.json({ data: data ?? [] });
+  }
+
+  const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
+  if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+  const { db, vendor } = ws;
 
   let query = db
     .from("ugc_creator_invitations")
@@ -154,21 +184,20 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, vendor } = await requireVendor(user.id);
-  if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
 
   const body = await req.json();
   const campaignId = String(body.campaign_id ?? "").trim();
   if (!campaignId) return NextResponse.json({ error: "campaign_id is required" }, { status: 400 });
 
-  const { data: campaign } = await db
+  const access = await requireCampaignPermission(user.id, campaignId, "creators.invite");
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
+  const { db, campaign } = access;
+  const { data: campaignRow } = await db
     .from("ugc_campaigns")
-    .select("id, title, brand_id")
+    .select("title")
     .eq("id", campaignId)
-    .eq("brand_id", vendor.id)
     .maybeSingle();
-
-  if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  const campaignTitle = campaignRow?.title ?? "a campaign";
 
   const resolved = await resolveInvitee(db, {
     influencer_id: body.influencer_id,
@@ -209,7 +238,7 @@ export async function POST(req: NextRequest) {
     .from("ugc_creator_invitations")
     .insert({
       campaign_id: campaignId,
-      brand_id: vendor.id,
+      brand_id: campaign.brand_id,
       invited_by: user.id,
       influencer_id: influencerId,
       invitee_user_id: inviteeUserId,
@@ -230,8 +259,8 @@ export async function POST(req: NextRequest) {
       type: "influencer",
       title: "Campaign invitation",
       message: message
-        ? `You're invited to "${campaign.title}": ${message}`
-        : `You're invited to join "${campaign.title}".`,
+        ? `You're invited to "${campaignTitle}": ${message}`
+        : `You're invited to join "${campaignTitle}".`,
       actionUrl: `/ugc/${campaignId}`,
       data: {
         campaignId,

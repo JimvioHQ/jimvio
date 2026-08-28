@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +14,8 @@ export async function GET(
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 
   const { data: campaign } = await db
@@ -23,7 +26,7 @@ export async function GET(
 
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
-  const isBrand = Boolean(vendor && vendor.id === campaign.brand_id);
+  const isBrand = Boolean(await resolveBrandRole(db, campaign.brand_id, user.id));
   let isParticipant = false;
   if (influencer) {
     const { data: part } = await db

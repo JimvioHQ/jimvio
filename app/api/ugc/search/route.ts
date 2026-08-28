@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { listAccessibleBrandIds, optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +25,9 @@ export async function GET(req: NextRequest) {
   }
 
   const pattern = likePattern(q);
-  const { vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
   const { influencer } = await requireInfluencer(user.id);
+  const brandIds = await listAccessibleBrandIds(brandWs.db, user.id);
   const limit = 8;
 
   const campaignsPromise = (async () => {
@@ -37,14 +39,18 @@ export async function GET(req: NextRequest) {
       .or(`title.ilike."${pattern}",description.ilike."${pattern}"`)
       .limit(limit);
 
-    if (!vendor) query = query.eq("status", "active");
+    if (brandIds.length) {
+      query = query.or(`status.eq.active,brand_id.in.(${brandIds.join(",")})`);
+    } else {
+      query = query.eq("status", "active");
+    }
 
     const { data } = await query;
     return data ?? [];
   })();
 
   const creatorsPromise = (async () => {
-    if (!vendor) return [];
+    if (!brandIds.length) return [];
     const { data } = await db
       .from("influencers")
       .select("id, display_name, profile_image, user_id, niche, total_followers")
@@ -99,7 +105,7 @@ export async function GET(req: NextRequest) {
   })();
 
   const invitationsPromise = (async () => {
-    if (vendor) {
+    if (brandIds.length) {
       const { data } = await db
         .from("ugc_creator_invitations")
         .select(
@@ -108,7 +114,7 @@ export async function GET(req: NextRequest) {
           campaign:ugc_campaigns!campaign_id(id, title)
         `
         )
-        .eq("brand_id", vendor.id)
+        .in("brand_id", brandIds)
         .or(
           `invitee_username.ilike."${pattern}",invitee_email.ilike."${pattern}",message.ilike."${pattern}"`
         )
@@ -135,11 +141,11 @@ export async function GET(req: NextRequest) {
   })();
 
   const applicationsPromise = (async () => {
-    if (vendor) {
+    if (brandIds.length) {
       const { data: campaignIds } = await db
         .from("ugc_campaigns")
         .select("id")
-        .eq("brand_id", vendor.id);
+        .in("brand_id", brandIds);
       const ids = (campaignIds ?? []).map((c) => c.id);
       if (!ids.length) return [];
       const { data } = await db

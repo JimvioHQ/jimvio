@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Clapperboard, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
@@ -9,7 +9,7 @@ import { UGCHeroHeader } from "./UGCHeroHeader";
 import { UGCFeaturedCarousel } from "./UGCFeaturedCarousel";
 import { UGCPremiumCampaignCard } from "./UGCPremiumCampaignCard";
 import { UGCCampaignRow, UGCCampaignRowItem } from "./UGCCampaignRow";
-import { filterCampaigns, sortCampaigns } from "./ugc-campaign-utils";
+import { useLocale } from "@/context/LocaleContext";
 import type { ContentTypeFilter, PlatformKey, SortKey } from "./ugc-tokens";
 
 const LIMIT = 24;
@@ -44,10 +44,12 @@ function SectionHeader({
   title,
   href,
   count,
+  viewAllLabel,
 }: {
   title: string;
   href?: string;
   count?: string;
+  viewAllLabel: string;
 }) {
   return (
     <div className="mb-2.5 flex items-center justify-between gap-3">
@@ -58,7 +60,7 @@ function SectionHeader({
             href={href}
             className="text-[12px] font-semibold text-[#FF5A1F] transition-colors hover:text-[#E54E18] hover:underline"
           >
-            View all
+            {viewAllLabel}
           </Link>
         ) : count ? (
           <span className="text-[11px] font-medium text-[#9CA3AF]">{count}</span>
@@ -77,6 +79,7 @@ function SectionHeader({
 }
 
 export function UGCDiscoverPage() {
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get("q") ?? "";
   const typeParam = searchParams.get("type");
@@ -97,6 +100,7 @@ export function UGCDiscoverPage() {
   const [sort, setSort] = useState<SortKey>("newest");
   const [search, setSearch] = useState(initialQ);
   const [inputVal, setInputVal] = useState(initialQ);
+  const [featuredCampaigns, setFeaturedCampaigns] = useState<UGCCampaign[]>([]);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -111,8 +115,11 @@ export function UGCDiscoverPage() {
         page: String(pageNum),
         limit: String(LIMIT),
         status: "active",
+        sort,
       });
       if (contentType !== "all") params.set("type", contentType);
+      if (platform !== "all") params.set("platform", platform);
+      if (search.trim()) params.set("q", search.trim());
 
       const res = await fetch(`/api/ugc/campaigns?${params}`);
       if (res.ok) {
@@ -136,20 +143,20 @@ export function UGCDiscoverPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [contentType]);
+  }, [contentType, platform, sort, search]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pagination when filter changes
     setPage(1);
     void fetchPage(1, true);
-  }, [contentType, fetchPage]);
+  }, [contentType, platform, sort, search, fetchPage]);
 
   useEffect(() => {
     if (page > 1) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- pagination driven by intersection observer
       void fetchPage(page, false);
     }
-  }, [page, fetchPage]);
+  }, [page]);
 
   useEffect(() => {
     const node = loadMoreRef.current;
@@ -166,23 +173,27 @@ export function UGCDiscoverPage() {
     return () => obs.disconnect();
   }, [hasMore, loading, loadingMore]);
 
-  const campaigns = useMemo(() => {
-    const filtered = filterCampaigns(rawCampaigns, { search, platform, contentType });
-    return sortCampaigns(filtered, sort);
-  }, [rawCampaigns, search, platform, contentType, sort]);
+  const campaigns = rawCampaigns;
 
-  const featuredCarouselList = useMemo(
-    () => sortCampaigns([...campaigns], "popular").slice(0, 5),
-    [campaigns],
-  );
-
-  const featuredGridList = useMemo(
-    () => sortCampaigns([...campaigns], "popular").slice(0, 6),
-    [campaigns],
-  );
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/ugc/campaigns?status=active&featured=true&limit=6&sort=popular");
+        if (!res.ok) return;
+        const json = await res.json();
+        if (!cancelled) setFeaturedCampaigns((json.data ?? []) as UGCCampaign[]);
+      } catch {
+        if (!cancelled) setFeaturedCampaigns([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const showCarousel =
-    !loading && featuredCarouselList.length > 0 && !search.trim() && platform === "all";
+    !loading && featuredCampaigns.length > 0 && !search.trim() && platform === "all";
 
   const hasFilters = contentType !== "all" || platform !== "all" || !!search.trim();
 
@@ -233,13 +244,13 @@ export function UGCDiscoverPage() {
         </UGCCampaignRow>
       ) : (
         <>
-          {showCarousel && <UGCFeaturedCarousel campaigns={featuredCarouselList} />}
+          {showCarousel && <UGCFeaturedCarousel campaigns={featuredCampaigns.slice(0, 5)} />}
 
-          {featuredGridList.length > 0 && (
+          {featuredCampaigns.length > 0 && !search.trim() && (
             <section className="mb-5">
-              <SectionHeader title="Featured Campaigns" href="/ugc?featured=1" />
+              <SectionHeader title={t("featuredCampaigns")} href="/ugc?featured=1" viewAllLabel={t("viewAll")} />
               <UGCCampaignRow>
-                {featuredGridList.map((c, i) => (
+                {featuredCampaigns.map((c, i) => (
                   <UGCCampaignRowItem key={c.id} featured>
                     <UGCPremiumCampaignCard campaign={c} index={i} featured />
                   </UGCCampaignRowItem>
@@ -250,7 +261,8 @@ export function UGCDiscoverPage() {
 
           <section>
             <SectionHeader
-              title={search ? `Results for “${search}”` : "All Campaigns"}
+              title={search ? `Results for “${search}”` : t("allCampaigns")}
+              viewAllLabel={t("viewAll")}
               count={
                 !search
                   ? `${campaigns.length.toLocaleString()} of ${total.toLocaleString()}`
@@ -262,12 +274,10 @@ export function UGCDiscoverPage() {
               <div className="rounded-[18px] border border-dashed border-[#E5E7EB] bg-white py-16 text-center shadow-[0_1px_3px_rgba(17,24,39,0.03)]">
                 <Clapperboard className="mx-auto mb-3 h-8 w-8 text-[#D1D5DB]" />
                 <p className="text-sm font-bold text-[#111827]">
-                  {hasFilters ? "No campaigns match your filters" : "No live campaigns yet"}
+                  {hasFilters ? t("emptyCampaigns") : t("noLiveCampaigns")}
                 </p>
                 <p className="mt-1 text-[13px] text-[#6B7280]">
-                  {hasFilters
-                    ? "Try adjusting filters or search terms."
-                    : "Brands publish briefs here when campaigns go live."}
+                  {hasFilters ? t("tryAdjustFilters") : t("brandsPublishHere")}
                 </p>
                 {hasFilters && (
                   <button
@@ -275,7 +285,7 @@ export function UGCDiscoverPage() {
                     onClick={resetAll}
                     className="mt-4 text-[12px] font-semibold text-[#FF5A1F] hover:underline"
                   >
-                    Clear all filters
+                    {t("clearFilters")}
                   </button>
                 )}
               </div>
@@ -293,7 +303,7 @@ export function UGCDiscoverPage() {
               {loadingMore && (
                 <div className="flex items-center gap-2 text-[12px] font-medium text-[#6B7280]">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-[#FF5A1F]" />
-                  Loading more…
+                  {t("loadingMore")}
                 </div>
               )}
             </div>

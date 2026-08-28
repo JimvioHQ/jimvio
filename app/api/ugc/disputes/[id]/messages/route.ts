@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer, isAdmin } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer, isAdmin } from "@/lib/ugc/platform/auth";
+import { optionalBrandWorkspace, userCanAccessBrand } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
 
 async function loadAccessibleDispute(
-  db: Awaited<ReturnType<typeof requireVendor>>["db"],
+  db: Awaited<ReturnType<typeof optionalBrandWorkspace>>["db"],
   disputeId: string,
   userId: string,
-  vendorId: string | null,
   influencerId: string | null
 ) {
   const { data: dispute } = await db
@@ -20,7 +20,7 @@ async function loadAccessibleDispute(
   const admin = await isAdmin(userId);
   const allowed =
     admin ||
-    (vendorId && dispute.brand_id === vendorId) ||
+    (await userCanAccessBrand(db, dispute.brand_id, userId)) ||
     dispute.opened_by === userId ||
     (influencerId && dispute.influencer_id === influencerId);
 
@@ -32,14 +32,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 
   const { dispute, allowed } = await loadAccessibleDispute(
     db,
     id,
     user.id,
-    vendor?.id ?? null,
     influencer?.id ?? null
   );
   if (!dispute) return NextResponse.json({ error: "Dispute not found" }, { status: 404 });
@@ -60,14 +60,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 
   const { dispute, allowed } = await loadAccessibleDispute(
     db,
     id,
     user.id,
-    vendor?.id ?? null,
     influencer?.id ?? null
   );
   if (!dispute) return NextResponse.json({ error: "Dispute not found" }, { status: 404 });

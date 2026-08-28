@@ -48,10 +48,6 @@ function statusTone(status: SubmissionRow["status"]) {
   return "neutral";
 }
 
-function noteKey(campaignId: string, submissionId: string) {
-  return `ugc-brand-internal-note:${campaignId}:${submissionId}`;
-}
-
 function chatKey(campaignId: string, submissionId: string) {
   return `ugc-brand-chat-note:${campaignId}:${submissionId}`;
 }
@@ -71,6 +67,7 @@ export default function CampaignSubmissionsPage() {
   const [modalReason, setModalReason] = useState("");
 
   const [internalNotes, setInternalNotes] = useState<Record<string, string>>({});
+  const [noteIds, setNoteIds] = useState<Record<string, string>>({});
   const [chatNotes, setChatNotes] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
@@ -97,24 +94,43 @@ export default function CampaignSubmissionsPage() {
   }, [load]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
     if (!campaignId) return;
-    // hydrate local notes for the current visible set
-    const nextNotes: Record<string, string> = {};
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/ugc/notes?campaign_id=${campaignId}&scope=brand`, { cache: "no-store" });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || cancelled) return;
+        const nextNotes: Record<string, string> = {};
+        const nextIds: Record<string, string> = {};
+        for (const note of json.data ?? []) {
+          const sid = note.submission_id as string | null;
+          if (sid) {
+            nextNotes[sid] = String(note.body ?? "");
+            nextIds[sid] = String(note.id);
+          }
+        }
+        setInternalNotes(nextNotes);
+        setNoteIds(nextIds);
+      } catch {
+        /* keep empty */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [campaignId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !campaignId) return;
     const nextChats: Record<string, string> = {};
     for (const s of submissions) {
-      try {
-        nextNotes[s.id] = localStorage.getItem(noteKey(campaignId, s.id)) ?? "";
-      } catch {
-        nextNotes[s.id] = "";
-      }
       try {
         nextChats[s.id] = localStorage.getItem(chatKey(campaignId, s.id)) ?? "";
       } catch {
         nextChats[s.id] = "";
       }
     }
-    setInternalNotes(nextNotes);
     setChatNotes(nextChats);
   }, [campaignId, submissions]);
 
@@ -345,11 +361,40 @@ export default function CampaignSubmissionsPage() {
                           onChange={(e) => {
                             const v = e.target.value;
                             setInternalNotes((prev) => ({ ...prev, [s.id]: v }));
-                            try {
-                              localStorage.setItem(noteKey(campaignId, s.id), v);
-                            } catch {
-                              /* ignore */
-                            }
+                          }}
+                          onBlur={() => {
+                            const body = (internalNotes[s.id] ?? "").trim();
+                            const existingId = noteIds[s.id];
+                            void (async () => {
+                              try {
+                                if (!body) return;
+                                if (existingId) {
+                                  await fetch("/api/ugc/notes", {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ id: existingId, body }),
+                                  });
+                                  return;
+                                }
+                                if (!body) return;
+                                const res = await fetch("/api/ugc/notes", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    campaign_id: campaignId,
+                                    submission_id: s.id,
+                                    scope: "submission",
+                                    body,
+                                  }),
+                                });
+                                const json = await res.json().catch(() => ({}));
+                                if (json.note?.id) {
+                                  setNoteIds((prev) => ({ ...prev, [s.id]: json.note.id }));
+                                }
+                              } catch {
+                                /* ignore */
+                              }
+                            })();
                           }}
                           rows={3}
                           className="mt-2 w-full rounded-xl border border-[#E5E7EB] bg-white p-3 text-sm"

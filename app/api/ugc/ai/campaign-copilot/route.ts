@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor } from "@/lib/ugc/platform/auth";
+import { requireUser } from "@/lib/ugc/platform/auth";
+import { optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
 import { generateCampaignCopilot } from "@/lib/ugc/enterprise/campaign-copilot";
 
 export const dynamic = "force-dynamic";
@@ -8,7 +9,8 @@ export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db, vendor } = brandWs;
   const body = await req.json().catch(() => ({}));
 
   const input = {

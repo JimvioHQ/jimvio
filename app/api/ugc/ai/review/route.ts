@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
 import { analyzeSubmission } from "@/lib/ugc/platform/ai-review";
+import { requireCampaignPermission } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
 
@@ -95,10 +96,22 @@ export async function POST(req: NextRequest) {
   }
 
   if (submissionId) {
-    await db
+    const { data: sub } = await db
       .from("ugc_submissions")
-      .update({ ai_review: result })
-      .eq("id", submissionId);
+      .select("id, influencer_id, campaign_id, influencers!influencer_id(user_id)")
+      .eq("id", submissionId)
+      .maybeSingle();
+    if (!sub) return NextResponse.json({ result, review: stored });
+    const inf = sub.influencers as unknown as { user_id?: string } | { user_id?: string }[] | null;
+    const ownerId = Array.isArray(inf) ? inf[0]?.user_id : inf?.user_id;
+    let allowed = ownerId === user.id;
+    if (!allowed && sub.campaign_id) {
+      const access = await requireCampaignPermission(user.id, sub.campaign_id, "campaigns.review");
+      allowed = access.ok;
+    }
+    if (allowed) {
+      await db.from("ugc_submissions").update({ ai_review: result }).eq("id", submissionId);
+    }
   }
 
   return NextResponse.json({ result, review: stored });

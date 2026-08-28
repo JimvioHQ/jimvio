@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { requireCampaignPermission } from "@/lib/ugc/enterprise/brand-access";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
 import { notifyUser } from "@/lib/notifications/notify-user";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +14,13 @@ export async function POST(
   const { id } = await params;
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, vendor } = await requireVendor(user.id);
-  if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
 
   const body = await req.json();
   const notes = String(body.notes ?? "").trim();
   if (!notes) return NextResponse.json({ error: "notes is required" }, { status: 400 });
 
-  const { data: submission } = await db
+  const db0 = createServiceRoleClient();
+  const { data: submission } = await db0
     .from("ugc_submissions")
     .select(
       `
@@ -32,14 +33,14 @@ export async function POST(
 
   if (!submission) return NextResponse.json({ error: "Submission not found" }, { status: 404 });
 
+  const access = await requireCampaignPermission(user.id, submission.campaign_id, "campaigns.review");
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
+  const { db } = access;
   const campaign = submission.campaign as unknown as {
     id: string;
     title: string;
     brand_id: string;
   } | null;
-  if (!campaign || campaign.brand_id !== vendor.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const nextRound = Number(submission.revision_round ?? 0) + 1;
   const now = new Date().toISOString();
@@ -85,7 +86,7 @@ export async function POST(
       userId: inf.user_id,
       type: "influencer",
       title: "Revision requested",
-      message: `Brand requested changes on "${campaign.title}": ${notes}`,
+      message: `Brand requested changes on "${campaign?.title ?? "your campaign"}": ${notes}`,
       actionUrl: `/ugc/${submission.campaign_id}/submissions/${id}`,
       data: {
         campaignId: submission.campaign_id,

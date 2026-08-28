@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { listAccessibleBrandIds, optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
 import { matchCampaignsForCreator } from "@/lib/ugc/platform/matching";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +19,9 @@ export async function GET() {
   const { user, db, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
   const { influencer } = await requireInfluencer(user.id);
+  const brandIds = await listAccessibleBrandIds(brandWs.db, user.id);
   const items: SmartNotification[] = [];
   const now = Date.now();
   const in7d = now + 7 * 24 * 3600 * 1000;
@@ -134,11 +136,11 @@ export async function GET() {
   }
 
   // Brand: pending invites they sent that are still open + deadlines
-  if (vendor) {
+  if (brandIds.length) {
     const { data: brandInvites } = await db
       .from("ugc_creator_invitations")
       .select("id, invitee_username, campaign_id, campaign:ugc_campaigns!campaign_id(id, title)")
-      .eq("brand_id", vendor.id)
+      .in("brand_id", brandIds)
       .eq("status", "pending")
       .limit(8);
 
@@ -161,7 +163,7 @@ export async function GET() {
     const { data: brandCampaigns } = await db
       .from("ugc_campaigns")
       .select("id, title, ends_at, status")
-      .eq("brand_id", vendor.id)
+      .in("brand_id", brandIds)
       .eq("status", "active");
 
     for (const c of brandCampaigns ?? []) {

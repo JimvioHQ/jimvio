@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
-import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { requireBrandPermission, resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const db = brandWs.db;
   const { influencer } = await requireInfluencer(user.id);
 
   const { data: contract, error: qErr } = await db
@@ -29,8 +31,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (qErr) return NextResponse.json({ error: qErr.message }, { status: 500 });
   if (!contract) return NextResponse.json({ error: "Contract not found" }, { status: 404 });
 
-  const { vendor } = await requireVendor(user.id);
-  const isBrand = vendor && contract.brand_id === vendor.id;
+  const isBrand = Boolean(await resolveBrandRole(db, contract.brand_id, user.id));
   const isCreator = influencer && contract.influencer_id === influencer.id;
   if (!isBrand && !isCreator) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -44,7 +45,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 
   const { data: existing } = await db
@@ -54,7 +56,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .maybeSingle();
   if (!existing) return NextResponse.json({ error: "Contract not found" }, { status: 404 });
 
-  const isBrand = Boolean(vendor && existing.brand_id === vendor.id);
+  const isBrand = Boolean(await resolveBrandRole(db, existing.brand_id, user.id));
   const isCreator = Boolean(influencer && existing.influencer_id === influencer.id);
   if (!isBrand && !isCreator) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -66,10 +68,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const updates: Record<string, unknown> = { updated_at: now };
 
   if (action === "send") {
-    if (!isBrand || !vendor) {
+    if (!isBrand) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const perm = await requireBrandPermission(db, vendor.id, user.id, "contracts.manage");
+    const perm = await requireBrandPermission(db, existing.brand_id, user.id, "contracts.manage");
     if (!perm.ok) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -93,10 +95,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     updates.status = "declined";
     updates.declined_at = now;
   } else if (action === "void") {
-    if (!isBrand || !vendor) {
+    if (!isBrand) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const perm = await requireBrandPermission(db, vendor.id, user.id, "contracts.manage");
+    const perm = await requireBrandPermission(db, existing.brand_id, user.id, "contracts.manage");
     if (!perm.ok) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -105,10 +107,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
     updates.status = "void";
   } else {
-    if (!isBrand || !vendor) {
+    if (!isBrand) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    const perm = await requireBrandPermission(db, vendor.id, user.id, "contracts.manage");
+    const perm = await requireBrandPermission(db, existing.brand_id, user.id, "contracts.manage");
     if (!perm.ok) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

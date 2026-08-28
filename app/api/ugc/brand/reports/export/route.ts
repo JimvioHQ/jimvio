@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { createClient } from "@/lib/supabase/server";
+import { requireBrandWorkspacePermission } from "@/lib/ugc/enterprise/brand-access";
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
 
@@ -36,13 +36,10 @@ export async function GET(req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const db = createServiceRoleClient();
-  const { data: vendor } = await db
-    .from("vendors")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!vendor?.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const perm = type === "financial" ? "finance.view" : "campaigns.manage";
+  const ws = await requireBrandWorkspacePermission(user.id, perm, sp.get("brandId"));
+  if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+  const { db, vendor } = ws;
 
   if (type === "financial") {
     const { data: campaigns } = await db

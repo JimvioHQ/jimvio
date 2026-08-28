@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { listAccessibleBrandIds, optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -7,11 +9,13 @@ export async function GET(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
   const campaignId = req.nextUrl.searchParams.get("campaign_id") ?? undefined;
+  const brandIds = await listAccessibleBrandIds(db, user.id);
 
-  if (!vendor && !influencer) {
+  if (brandIds.length === 0 && !influencer) {
     return NextResponse.json({ data: [] });
   }
 
@@ -29,10 +33,10 @@ export async function GET(req: NextRequest) {
     )
     .order("last_message_at", { ascending: false, nullsFirst: false });
 
-  if (vendor && influencer) {
-    query = query.or(`brand_id.eq.${vendor.id},influencer_id.eq.${influencer.id}`);
-  } else if (vendor) {
-    query = query.eq("brand_id", vendor.id);
+  if (brandIds.length && influencer) {
+    query = query.or(`brand_id.in.(${brandIds.join(",")}),influencer_id.eq.${influencer.id}`);
+  } else if (brandIds.length) {
+    query = query.in("brand_id", brandIds);
   } else if (influencer) {
     query = query.eq("influencer_id", influencer.id);
   }
@@ -58,7 +62,8 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 
   const { data: campaign } = await db
@@ -68,7 +73,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
-  const isBrand = Boolean(vendor && vendor.id === campaign.brand_id);
+  const isBrand = Boolean(await resolveBrandRole(db, campaign.brand_id, user.id));
   const isCreator = Boolean(influencer && influencer.id === influencerId);
   if (!isBrand && !isCreator) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

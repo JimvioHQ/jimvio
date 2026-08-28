@@ -2,6 +2,7 @@
 
 import { RefreshCw, Sparkles, FolderOpen, Lock, UserRound, Megaphone, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/context/LocaleContext";
 
 export function UGCPageShell({
   title,
@@ -39,6 +40,7 @@ export function UGCPageLoading() {
 }
 
 export function UGCPageError({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  const { t } = useLocale();
   return (
     <div className="rounded-[16px] border border-rose-200 bg-rose-50 p-6 text-center">
       <p className="text-sm font-semibold text-rose-800">{message}</p>
@@ -49,7 +51,7 @@ export function UGCPageError({ message, onRetry }: { message: string; onRetry?: 
           className="mt-3 inline-flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white"
         >
           <RefreshCw className="h-4 w-4" />
-          Retry
+          {t("retry")}
         </button>
       ) : null}
     </div>

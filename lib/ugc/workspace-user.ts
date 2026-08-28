@@ -6,7 +6,7 @@ export const getCachedProfile = cache(async (userId: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("full_name, avatar_url, username")
+    .select("full_name, avatar_url, username, language")
     .eq("id", userId)
     .maybeSingle();
   return data;
@@ -29,6 +29,7 @@ export async function getUGCWorkspaceUser() {
       avatarUrl: profile?.avatar_url ?? authUser.user_metadata?.avatar_url ?? null,
       username: profile?.username ?? null,
       identityHref: profile?.username ? `/u/${profile.username}` : "/identity",
+      language: profile?.language ?? null,
     };
   } catch {
     return undefined;

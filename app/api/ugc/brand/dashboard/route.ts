@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { requireBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
 
@@ -47,17 +47,11 @@ export async function GET(_req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const db = createServiceRoleClient();
-
-  const { data: vendor } = await db
-    .from("vendors")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!vendor) {
+  const ws = await requireBrandWorkspace(user.id);
+  if (!ws.ok) {
     return NextResponse.json({ needsProfile: true } satisfies DashboardStats);
   }
+  const { db, vendor } = ws;
 
   const { data: campaigns } = await db
     .from("ugc_campaigns")

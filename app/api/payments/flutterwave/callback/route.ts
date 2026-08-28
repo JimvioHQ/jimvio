@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { verifyFlutterwaveTransaction, isFlutterwaveSuccessfulStatus } from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { confirmUgcEscrowPayment } from "@/lib/ugc/confirm-escrow-payment";
 import {
     isOrderPaymentComplete,
     paymentAmountsMatch,
@@ -61,13 +62,26 @@ export async function GET(req: NextRequest) {
         // ── Resolve the order via the transactions table (reliable) ───────────
         const { data: txRecord } = await supabase
             .from("transactions")
-            .select("order_id, id")
+            .select("order_id, id, type, reference")
             .eq("provider_transaction_id", txRef)
             .eq("provider", "flutterwave")
             .maybeSingle();
 
         const resolvedOrderId = txRecord?.order_id ?? null;
         if (!resolvedOrderId) {
+            const ugc = await confirmUgcEscrowPayment(supabase, {
+                paymentRef: txRef,
+                providerTransactionId: txRef,
+                campaignId: searchParams.get("campaign"),
+                amount: txData.amount != null ? Number(txData.amount) : null,
+                currency: txData.currency ?? "RWF",
+                provider: "flutterwave",
+            });
+            if (ugc.handled) {
+                return redirect(
+                    `/ugc/campaign-center/${ugc.campaignId}/fund?funded=${ugc.activated ? "1" : "pending"}`,
+                );
+            }
             return redirect(`/checkout/cancel?reason=order_not_found`);
         }
         if (orderId && orderId !== resolvedOrderId) {

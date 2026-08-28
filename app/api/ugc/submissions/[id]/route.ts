@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { createClient } from '@/lib/supabase/server';
 import { creditFixedPayoutIfNeeded } from '@/lib/ugc/credit-fixed-payout';
+import { requireCampaignPermission } from '@/lib/ugc/enterprise/brand-access';
+import { resolveBrandRole } from '@/lib/ugc/enterprise/permissions';
 
 async function assertCanReadSubmission(
   db: ReturnType<typeof createServiceRoleClient>,
@@ -17,13 +19,19 @@ async function assertCanReadSubmission(
   const campaign = Array.isArray(submission.campaign)
     ? submission.campaign[0]
     : submission.campaign;
-  const [{ data: vendor }, { data: adminRole }] = await Promise.all([
-    db.from('vendors').select('id').eq('user_id', userId).maybeSingle(),
-    db.from('user_roles').select('id').eq('user_id', userId).eq('role', 'admin').eq('is_active', true).maybeSingle(),
-  ]);
+  const { data: adminRole } = await db
+    .from('user_roles')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('role', 'admin')
+    .eq('is_active', true)
+    .maybeSingle();
   if (adminRole) return true;
   if (influencer?.user_id === userId) return true;
-  if (vendor && campaign?.brand_id === vendor.id) return true;
+  if (campaign?.brand_id) {
+    const role = await resolveBrandRole(db, campaign.brand_id, userId);
+    if (role) return true;
+  }
   return false;
 }
 
@@ -82,19 +90,11 @@ export async function PATCH(
 
   if (!sub) return NextResponse.json({ error: 'Submission not found' }, { status: 404 });
 
-  const { data: vendor } = await db
-    .from('vendors')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const isAdmin = (await db.from('user_roles').select('id').eq('user_id', user.id).eq('role', 'admin').eq('is_active', true).maybeSingle()).data;
-
   const campaignJoinRaw = sub.campaign as { brand_id?: string } | { brand_id?: string }[] | null;
   const campaignJoin = Array.isArray(campaignJoinRaw) ? campaignJoinRaw[0] : campaignJoinRaw;
-  if (!isAdmin && (!vendor || vendor.id !== campaignJoin?.brand_id)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (!campaignJoin?.brand_id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const access = await requireCampaignPermission(user.id, sub.campaign_id, 'campaigns.review');
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
   if (sub.status === 'approved' && status !== 'approved') {
     return NextResponse.json({ error: 'Approved submissions cannot be changed' }, { status: 409 });

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
+import { requireCampaignPermission } from '@/lib/ugc/enterprise/brand-access';
+import { emitUgcEvent } from '@/lib/ugc/enterprise/events';
 
 // PATCH /api/ugc/submissions/[id]/reject
 export async function PATCH(
@@ -19,7 +21,7 @@ export async function PATCH(
 
   const { data: submission } = await db
     .from('ugc_submissions')
-    .select('id, status, influencer_id, campaign_id, ugc_campaigns!campaign_id(vendors!brand_id(user_id))')
+    .select('id, status, influencer_id, campaign_id, ugc_campaigns!campaign_id(brand_id)')
     .eq('id', id)
     .single();
 
@@ -31,24 +33,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Submission cannot be rejected from this status' }, { status: 409 });
   }
 
-  const campaignJoin = submission.ugc_campaigns as unknown as {
-    vendors: { user_id: string } | { user_id: string }[] | null;
-  };
-  const campaign = {
-    vendors: Array.isArray(campaignJoin?.vendors) ? campaignJoin.vendors[0] : campaignJoin?.vendors,
-  };
-
-  const { data: adminRole } = await db
-    .from('user_roles')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('role', 'admin')
-    .eq('is_active', true)
-    .maybeSingle();
-
-  if (!adminRole && campaign.vendors?.user_id !== user.id) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const campaignJoin = submission.ugc_campaigns as unknown as { brand_id?: string } | { brand_id?: string }[] | null;
+  const brandId = Array.isArray(campaignJoin) ? campaignJoin[0]?.brand_id : campaignJoin?.brand_id;
+  const access = await requireCampaignPermission(user.id, submission.campaign_id, 'campaigns.review');
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
   const { data: updated, error } = await db
     .from('ugc_submissions')
@@ -83,6 +71,17 @@ export async function PATCH(
       message: `Your content submission was rejected. Reason: ${reason}`,
       data: { submission_id: id, reason },
     });
+  }
+
+  try {
+    if (brandId) {
+      await emitUgcEvent(db, brandId, "submission.rejected", {
+        submissionId: id,
+        campaignId: submission.campaign_id,
+      });
+    }
+  } catch {
+    /* additive */
   }
 
   return NextResponse.json({ submission: updated });

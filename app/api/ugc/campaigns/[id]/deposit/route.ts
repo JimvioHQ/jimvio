@@ -7,6 +7,12 @@ import {
   campaignWizardErrorPayload,
 } from "@/lib/ugc/campaign-wizard-validation";
 import { ensureWallet } from "@/lib/wallet-os/ensure";
+import { requireCampaignPermission } from "@/lib/ugc/enterprise/brand-access";
+import { emitUgcEvent } from "@/lib/ugc/enterprise/events";
+import { createFlutterwavePaymentLink } from "@/lib/flutterwave";
+import { generateTxRef } from "@/lib/payments/tx-ref";
+import { createNowPaymentsInvoice } from "@/lib/nowpayments";
+import { orderTotalsForUsdGateway } from "@/lib/money";
 
 const MIN_FUNDING_RWF = 1000;
 
@@ -100,6 +106,117 @@ async function markEscrowHeld(
     .maybeSingle();
 }
 
+async function initiateExternalCheckout(
+  db: ServiceClient,
+  opts: {
+    req: NextRequest;
+    user: { id: string; email?: string | null };
+    campaignId: string;
+    amount: number;
+    paymentMethod: string;
+    phone: string;
+  },
+): Promise<{ ok: true; checkoutUrl: string | null; paymentRef: string } | { ok: false; error: string; status: number }> {
+  const origin =
+    opts.req.headers.get("origin") ??
+    process.env.NEXT_PUBLIC_APP_URL ??
+    "https://www.jimvio.com";
+  const appUrl = origin.replace(/\/$/, "");
+
+  if (opts.paymentMethod === "flutterwave" || opts.paymentMethod === "mobile_money") {
+    const { data: profile } = await db
+      .from("profiles")
+      .select("email, full_name, phone")
+      .eq("id", opts.user.id)
+      .maybeSingle();
+    const txRef = generateTxRef("UGC");
+    try {
+      const checkoutUrl = await createFlutterwavePaymentLink({
+        txRef,
+        amount: opts.amount,
+        currency: "RWF",
+        redirectUrl: `${appUrl}/api/payments/flutterwave/callback?campaign=${opts.campaignId}`,
+        customerEmail: profile?.email || opts.user.email || "ugc@jimvio.com",
+        customerName: profile?.full_name || "Jimvio Brand",
+        customerPhone: opts.phone || profile?.phone || "",
+        orderDescription: `UGC campaign escrow ${opts.campaignId.slice(0, 8)}`,
+        meta: { purpose: "ugc_escrow", campaign_id: opts.campaignId },
+      });
+      await db.from("transactions").insert({
+        user_id: opts.user.id,
+        type: "ugc_escrow",
+        amount: opts.amount,
+        currency: "RWF",
+        status: "pending",
+        direction: "debit",
+        provider: "flutterwave",
+        provider_transaction_id: txRef,
+        reference: opts.campaignId,
+        description: `UGC campaign escrow ${opts.campaignId}`,
+        metadata: { purpose: "ugc_escrow", campaign_id: opts.campaignId },
+      });
+      return { ok: true, checkoutUrl, paymentRef: txRef };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : "Could not start Flutterwave checkout",
+        status: 502,
+      };
+    }
+  }
+
+  if (opts.paymentMethod === "crypto") {
+    const { data: profile } = await db
+      .from("profiles")
+      .select("email")
+      .eq("id", opts.user.id)
+      .maybeSingle();
+    const invoiceTotals = orderTotalsForUsdGateway(opts.amount, "RWF");
+    try {
+      const invoice = await createNowPaymentsInvoice({
+        jimvioOrderId: opts.campaignId,
+        amount: invoiceTotals.amount,
+        currency: invoiceTotals.currency,
+        description: `UGC campaign escrow ${opts.campaignId.slice(0, 8)}`,
+        buyerEmail: profile?.email || opts.user.email || "",
+        successUrl: `${appUrl}/ugc/campaign-center/${opts.campaignId}/fund?crypto=pending`,
+        cancelUrl: `${appUrl}/ugc/campaign-center/${opts.campaignId}/fund?crypto=cancel`,
+      });
+      await db.from("transactions").insert({
+        user_id: opts.user.id,
+        type: "ugc_escrow",
+        amount: opts.amount,
+        currency: "RWF",
+        status: "pending",
+        direction: "debit",
+        provider: "nowpayments",
+        provider_transaction_id: invoice.invoiceId || opts.campaignId,
+        reference: opts.campaignId,
+        description: `UGC campaign escrow ${opts.campaignId}`,
+        metadata: {
+          purpose: "ugc_escrow",
+          campaign_id: opts.campaignId,
+          invoice_amount: invoiceTotals.amount,
+          invoice_currency: invoiceTotals.currency,
+        },
+      });
+      return {
+        ok: true,
+        checkoutUrl: invoice.invoiceUrl,
+        paymentRef: invoice.invoiceId || `NOWP_${opts.campaignId}`,
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : "Could not start crypto checkout",
+        status: 502,
+      };
+    }
+  }
+
+  return { ok: true, checkoutUrl: null, paymentRef: `PENDING_${opts.paymentMethod}_${randomUUID()}` };
+}
+
 async function recordEscrowTransaction(
   db: ServiceClient,
   userId: string,
@@ -162,24 +279,18 @@ export async function POST(
     );
   }
 
-  const db = createServiceRoleClient();
+  const access = await requireCampaignPermission(user.id, id, "finance.payout");
+  if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
+  const db = access.db;
 
   const { data: campaign } = await db
     .from("ugc_campaigns")
-    .select("*, vendors!brand_id(user_id)")
+    .select("*")
     .eq("id", id)
     .single();
 
   if (!campaign) {
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
-  }
-
-  const vendor = campaign.vendors as unknown as { user_id: string };
-  if (vendor.user_id !== user.id) {
-    return NextResponse.json(
-      { error: "Forbidden - User does not own this campaign" },
-      { status: 403 },
-    );
   }
 
   if (campaign.status === "draft") {
@@ -273,6 +384,15 @@ export async function POST(
 
     await db.from("ugc_campaigns").update({ status: "active" }).eq("id", id);
     await recordEscrowTransaction(db, user.id, id, amount);
+    try {
+      await emitUgcEvent(db, campaign.brand_id, "campaign.funded", {
+        campaignId: id,
+        amount,
+        currency: "RWF",
+      });
+    } catch {
+      /* additive */
+    }
 
     return NextResponse.json({
       success: true,
@@ -286,12 +406,30 @@ export async function POST(
     });
   }
 
+  const checkout = await initiateExternalCheckout(db, {
+    req,
+    user,
+    campaignId: id,
+    amount,
+    paymentMethod: payment_method,
+    phone,
+  });
+  if (!checkout.ok) {
+    return NextResponse.json({ error: checkout.error }, { status: checkout.status });
+  }
+
   if (pendingEscrow) {
+    await db
+      .from("ugc_campaign_escrow")
+      .update({ payment_ref: checkout.paymentRef, payment_method })
+      .eq("id", pendingEscrow.id)
+      .eq("status", "pending");
     return NextResponse.json({
       success: true,
       funded: false,
       activated: false,
       pending: true,
+      checkout_url: checkout.checkoutUrl,
       amount: pendingEscrow.amount,
       currency: "RWF",
       payment_method,
@@ -306,7 +444,7 @@ export async function POST(
     currency: "RWF",
     status: "pending",
     payment_method,
-    payment_ref: `PENDING_${payment_method}_${randomUUID()}`,
+    payment_ref: checkout.paymentRef,
   });
 
   if (escrowInsert.error) {
@@ -333,6 +471,7 @@ export async function POST(
         funded: false,
         activated: false,
         pending: true,
+        checkout_url: checkout.checkoutUrl,
         amount: existing?.amount ?? amount,
         currency: "RWF",
         payment_method,
@@ -347,6 +486,7 @@ export async function POST(
     funded: false,
     activated: false,
     pending: true,
+    checkout_url: checkout.checkoutUrl,
     amount,
     currency: "RWF",
     payment_method,

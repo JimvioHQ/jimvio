@@ -66,7 +66,7 @@ assert.match(approve, /\.in\('status', REVIEWABLE\)/);
 assert.match(patchSub, /creditFixedPayoutIfNeeded/);
 assert.match(patchSub, /assertCanReadSubmission/);
 assert.match(patchSub, /Approved submissions cannot be changed/);
-assert.match(listSub, /\.eq\('brand_id', vendor\.id\)/);
+assert.match(listSub, /listAccessibleBrandIds/);
 assert.match(listSub, /isUgcSubmitPlatform/);
 assert.match(listSub, /normalizePostUrl/);
 assert.match(reject, /Approved submissions cannot be rejected/);

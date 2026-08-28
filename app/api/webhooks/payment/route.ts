@@ -43,6 +43,7 @@ import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { finalizeCommunityPayment } from "@/lib/payments/community-payment-finalizer";
 import { verifyPesapalTransaction } from "@/lib/pesapal";
 import { verifyFlutterwaveTransaction, isFlutterwaveSuccessfulStatus } from "@/lib/flutterwave";
+import { confirmUgcEscrowFromProviderEvent } from "@/lib/ugc/confirm-escrow-payment";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
@@ -164,8 +165,20 @@ async function handleWebhook(req: NextRequest, method: "GET" | "POST") {
     return NextResponse.json({ received: true });
   }
 
-  // 11. Process marketplace order
+  // 11. Process marketplace order, or UGC escrow if this payment is not an order
   if (!resolvedOrderId) {
+    const ugc = await confirmUgcEscrowFromProviderEvent(db, {
+      provider: event.provider,
+      providerTransactionId: event.providerTransactionId,
+      campaignId: event.jimvioOrderId,
+      amount: event.amount,
+      currency: event.currency,
+      rawBody: event.rawBody,
+    });
+    if (ugc.handled) {
+      if (eventId) await markWebhookProcessed(db, eventId, ugc.campaignId);
+      return NextResponse.json({ received: true, ugc: true, campaignId: ugc.campaignId });
+    }
     console.warn(`[webhook/payment][${event.provider}] Order not found`, event.idempotencyKey);
     if (eventId) await markWebhookFailed(db, eventId, "Order not found");
     return NextResponse.json({ received: true });

@@ -4,7 +4,11 @@ import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import type { CreateCampaignPayload } from '@/types/ugc';
 import { recordUgcActivity } from '@/lib/ugc/platform/activity';
 import { computeCampaignQuality } from '@/lib/ugc/enterprise/quality-engine';
-import { emitUgcWebhook } from '@/lib/ugc/enterprise/webhooks';
+import { emitUgcEvent } from '@/lib/ugc/enterprise/events';
+import {
+  listAccessibleBrandIds,
+  requireBrandWorkspacePermission,
+} from '@/lib/ugc/enterprise/brand-access';
 import {
   assertCampaignReadyForFunding,
   campaignWizardErrorPayload,
@@ -17,10 +21,20 @@ export async function GET(req: NextRequest) {
   const limit  = Math.min(50, Number(searchParams.get('limit') ?? 20));
   const offset = (page - 1) * limit;
   const type   = searchParams.get('type')   ?? undefined;
-  const status = searchParams.get('status') ?? 'active';
+  const statusParam = searchParams.get('status');
   const mine   = searchParams.get('mine') === 'true';
+  const q      = (searchParams.get('q') ?? '').trim().slice(0, 80);
+  const platform = searchParams.get('platform') ?? undefined;
+  const sort   = searchParams.get('sort') ?? 'newest';
+  const featured = searchParams.get('featured') === 'true' || searchParams.get('featured') === '1';
 
   const db = createServiceRoleClient();
+
+  const sortCol =
+    sort === 'budget' ? 'total_budget' :
+    sort === 'payout' ? 'rate_per_1k_views' :
+    sort === 'popular' || featured ? 'submission_count' :
+    'created_at';
 
   let query = db
     .from('ugc_campaigns')
@@ -36,23 +50,35 @@ export async function GET(req: NextRequest) {
     `,
       { count: 'exact' }
     )
-    .order('created_at', { ascending: false })
+    .order(sortCol, { ascending: false, nullsFirst: false })
     .range(offset, offset + limit - 1);
-
-  if (status !== 'all') query = query.eq('status', status);
-  if (type)             query = query.eq('campaign_type', type);
 
   if (mine) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const { data: vendor } = await db.from('vendors').select('id').eq('user_id', user.id).single();
-    if (vendor) {
-      query = query.eq('brand_id', vendor.id);
-    } else {
+    const brandIds = await listAccessibleBrandIds(db, user.id);
+    if (brandIds.length === 0) {
       return NextResponse.json({ data: [], total: 0, page, limit });
     }
+    query = query.in('brand_id', brandIds);
+    if (statusParam && statusParam !== 'all') query = query.eq('status', statusParam);
+  } else {
+    query = query.eq('status', 'active');
   }
+
+  if (type) query = query.eq('campaign_type', type);
+  if (platform && platform !== 'all') {
+    query = query.contains('allowed_platforms', [platform]);
+  }
+  if (q) {
+    const safe = q.replace(/[%_,.()"'\\]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (safe) query = query.or(`title.ilike.%${safe}%,description.ilike.%${safe}%`);
+  }
+  const minBudget = Number(searchParams.get('min_budget'));
+  const maxBudget = Number(searchParams.get('max_budget'));
+  if (Number.isFinite(minBudget) && minBudget > 0) query = query.gte('total_budget', minBudget);
+  if (Number.isFinite(maxBudget) && maxBudget > 0) query = query.lte('total_budget', maxBudget);
 
   const { data, count, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -67,39 +93,48 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const db = createServiceRoleClient();
-  let vendorId;
+  const body: CreateCampaignPayload & { readyForFunding?: boolean; brand_id?: string } = await req.json();
+  const requestedBrandId = typeof body.brand_id === "string" ? body.brand_id.trim() : null;
 
-  const { data: vendor } = await db
-    .from('vendors')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (vendor) {
-    vendorId = vendor.id;
+  let vendorId: string | undefined;
+  const managed = await requireBrandWorkspacePermission(user.id, "campaigns.manage", requestedBrandId);
+  if (managed.ok) {
+    vendorId = managed.brandId;
+  } else if (requestedBrandId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   } else {
-    // Intercept and create a "personal" vendor profile to allow any user to create a campaign
-    const { data: profile } = await db.from('profiles').select('full_name, email').eq('id', user.id).single();
-    const fallbackName = profile?.full_name || profile?.email?.split('@')[0] || 'User';
-    const slug = `${fallbackName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()}-${Math.random().toString(36).substring(2, 8)}`;
-    
-    const { data: newVendor, error: vErr } = await db.from('vendors').insert({
-      user_id: user.id,
-      business_name: fallbackName,
-      business_slug: slug,
-    }).select('id').single();
+    const { data: vendor } = await db
+      .from("vendors")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
-    if (vErr) {
-      return NextResponse.json({ error: 'Failed to initialize personal brand account' }, { status: 500 });
+    if (vendor) {
+      vendorId = vendor.id;
+    } else {
+      const { data: profile } = await db.from("profiles").select("full_name, email").eq("id", user.id).single();
+      const fallbackName = profile?.full_name || profile?.email?.split("@")[0] || "User";
+      const slug = `${fallbackName.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()}-${Math.random().toString(36).substring(2, 8)}`;
+
+      const { data: newVendor, error: vErr } = await db.from("vendors").insert({
+        user_id: user.id,
+        business_name: fallbackName,
+        business_slug: slug,
+      }).select("id").single();
+
+      if (vErr) {
+        return NextResponse.json({ error: "Failed to initialize personal brand account" }, { status: 500 });
+      }
+
+      await db.from("user_roles").insert({ user_id: user.id, role: "vendor" }).select("id").maybeSingle();
+      vendorId = newVendor.id;
     }
-    
-    // Attempt to safely attach the vendor role if they don't have it
-    await db.from('user_roles').insert({ user_id: user.id, role: 'vendor' }).select('id').maybeSingle();
-    
-    vendorId = newVendor.id;
   }
 
-  const body: CreateCampaignPayload & { readyForFunding?: boolean } = await req.json();
+  if (!vendorId) {
+    return NextResponse.json({ error: "Brand account required" }, { status: 403 });
+  }
+
   const {
     title, description, campaign_type, rate_per_1k_views, total_budget,
     max_payout_per_sub, allowed_platforms, 
@@ -194,8 +229,8 @@ export async function POST(req: NextRequest) {
   // Additive V2 hooks — never fail campaign creation
   try {
     await computeCampaignQuality(db, campaign.id);
-    await emitUgcWebhook(db, vendorId, 'campaign.created', {
-      campaign_id: campaign.id,
+    await emitUgcEvent(db, vendorId, "campaign.created", {
+      campaignId: campaign.id,
       title: campaign.title,
       status: campaign.status,
       brand_id: vendorId,

@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor } from "@/lib/ugc/platform/auth";
+import { requireUser } from "@/lib/ugc/platform/auth";
+import {
+  brandIdFromRequest,
+  requireBrandWorkspace,
+} from "@/lib/ugc/enterprise/brand-access";
 import {
   defaultPermissions,
   requireBrandPermission,
@@ -15,8 +19,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
-  if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
+  const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
+  if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+  const { db, vendor } = ws;
   const perm = await requireBrandPermission(db, vendor.id, user.id, "team.manage");
   if (!perm.ok) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -70,13 +75,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   return NextResponse.json({ member });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
-  if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
+  const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
+  if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+  const { db, vendor } = ws;
   const perm = await requireBrandPermission(db, vendor.id, user.id, "team.manage");
   if (!perm.ok) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

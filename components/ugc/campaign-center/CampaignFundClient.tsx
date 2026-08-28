@@ -24,6 +24,7 @@ import {
   campaignWizardIncompleteSteps,
   toCampaignWizardDraft,
 } from "@/lib/ugc/campaign-wizard-validation";
+import { useLocale } from "@/context/LocaleContext";
 
 const MIN_FUNDING_RWF = 1000;
 
@@ -59,6 +60,7 @@ export function CampaignFundClient() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { formatMoney } = useCurrency();
+  const { t } = useLocale();
   const [campaign, setCampaign] = useState<UGCCampaign | null>(null);
   const [loading, setLoading] = useState(true);
   const [method, setMethod] = useState<PayMethod>("flutterwave");
@@ -157,15 +159,20 @@ export function CampaignFundClient() {
       const activated = Boolean(json.activated || json.already_funded);
       if (activated) {
         setOutcome("activated");
-        toast.success("Campaign funded and activated");
+        toast.success(t("campaignActivated"));
         window.setTimeout(() => {
           router.push("/ugc/campaign-center/active");
         }, 1800);
         return;
       }
 
+      if (typeof json.checkout_url === "string" && json.checkout_url) {
+        window.location.assign(json.checkout_url);
+        return;
+      }
+
       setOutcome("pending");
-      toast.message(json.message || "Funding submitted. Waiting for payment confirmation.");
+      toast.message(json.message || t("escrowPending"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Funding failed");
     } finally {
@@ -230,7 +237,7 @@ export function CampaignFundClient() {
           Campaign Center
         </p>
         <h1 className="mt-1 text-[24px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
-          Fund Campaign
+          {t("fundCampaign")}
         </h1>
         <p className="mt-1 max-w-xl text-[13px] text-[#6B7280]">
           Your campaign must be funded before it becomes active.
@@ -298,12 +305,12 @@ export function CampaignFundClient() {
               <Check className="h-8 w-8" strokeWidth={2.5} />
             </motion.div>
             <h2 className="mt-5 text-[22px] font-bold text-[#111827]">
-              {outcome === "activated" ? "Campaign activated" : "Funding submitted"}
+              {outcome === "activated" ? t("campaignActivated") : t("fundingPending")}
             </h2>
             <p className="mt-2 text-[13px] text-[#6B7280]">
               {outcome === "activated"
                 ? `Escrow locked · Creators can now discover and join “${campaign.title}”.`
-                : "Escrow is pending payment confirmation. The campaign stays inactive until funds clear."}
+                : t("escrowPending")}
             </p>
             {outcome === "pending" ? (
               <Link

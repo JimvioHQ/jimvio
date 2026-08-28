@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncAllApprovedSubmissions } from '@/lib/ugc/syncViews';
+import { releasePendingPayouts } from '@/lib/ugc/clearPendingPayouts';
 import { assertCronAuthorized } from "@/lib/ops/cron-auth";
 
 // POST /api/ugc/views/sync
@@ -14,9 +15,18 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await syncAllApprovedSubmissions();
+    let payoutRelease: { released: number; errors: string[] } | null = null;
+    try {
+      payoutRelease = await releasePendingPayouts();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[Cron] UGC pending payout release failed:", message);
+      payoutRelease = { released: 0, errors: [message] };
+    }
     return NextResponse.json({
       success: true,
       ...result,
+      payoutRelease,
       message: `Sync complete: ${result.processed} processed, ${result.skipped} skipped, ${result.errors.length} errors`,
     });
   } catch (err: unknown) {

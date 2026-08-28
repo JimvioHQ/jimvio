@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor } from "@/lib/ugc/platform/auth";
+import { requireUser } from "@/lib/ugc/platform/auth";
+import { requireBrandWorkspace, optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export async function GET() {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db, vendor } = brandWs;
   if (!vendor) return NextResponse.json({ data: [] });
 
   const { data, error: qErr } = await db
@@ -21,8 +24,11 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, vendor } = await requireVendor(user.id);
-  if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
+  const ws = await requireBrandWorkspace(user.id);
+  if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+  const { db, vendor } = ws;
+  const perm = await requireBrandPermission(db, vendor.id, user.id, "campaigns.manage");
+  if (!perm.ok) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const name = String(body.name ?? "").trim();

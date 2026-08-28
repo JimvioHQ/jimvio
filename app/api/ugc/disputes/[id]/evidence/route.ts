@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer, isAdmin } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer, isAdmin } from "@/lib/ugc/platform/auth";
+import { optionalBrandWorkspace, userCanAccessBrand } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 
   const { data: dispute } = await db
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const admin = await isAdmin(user.id);
   const allowed =
     admin ||
-    (vendor && dispute.brand_id === vendor.id) ||
+    (await userCanAccessBrand(db, dispute.brand_id, user.id)) ||
     dispute.opened_by === user.id ||
     (influencer && dispute.influencer_id === influencer.id);
 

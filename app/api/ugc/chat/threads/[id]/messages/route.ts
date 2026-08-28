@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { optionalBrandWorkspace, userCanAccessBrand } from "@/lib/ugc/enterprise/brand-access";
+import { resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
 import { notifyUser } from "@/lib/notifications/notify-user";
 
@@ -9,7 +11,8 @@ async function assertThreadAccess(
   userId: string,
   threadId: string
 ) {
-  const { db, vendor } = await requireVendor(userId);
+  const brandWs = await optionalBrandWorkspace(userId);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(userId);
 
   const { data: thread } = await db
@@ -18,13 +21,13 @@ async function assertThreadAccess(
     .eq("id", threadId)
     .maybeSingle();
 
-  if (!thread) return { db, thread: null, allowed: false as const };
+  if (!thread) return { db, thread: null, allowed: false as const, isBrand: false };
 
+  const isBrand = await userCanAccessBrand(db, thread.brand_id, userId);
   const allowed =
-    (vendor != null && vendor.id === thread.brand_id) ||
-    (influencer != null && influencer.id === thread.influencer_id);
+    isBrand || (influencer != null && influencer.id === thread.influencer_id);
 
-  return { db, thread, allowed, vendor, influencer };
+  return { db, thread, allowed, isBrand, influencer };
 }
 
 export async function GET(
@@ -67,6 +70,12 @@ export async function POST(
   const access = await assertThreadAccess(user.id, id);
   if (!access.thread) return NextResponse.json({ error: "Thread not found" }, { status: 404 });
   if (!access.allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (access.isBrand) {
+    const role = await resolveBrandRole(access.db, access.thread.brand_id, user.id);
+    if (role === "viewer") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
 
   const body = await req.json();
   const text = typeof body.body === "string" ? body.body.trim() : "";
@@ -126,7 +135,7 @@ export async function POST(
 
   // Notify the other party
   let recipientUserId: string | null = null;
-  if (access.vendor && access.vendor.id === access.thread.brand_id) {
+  if (access.isBrand) {
     const { data: inf } = await access.db
       .from("influencers")
       .select("user_id")

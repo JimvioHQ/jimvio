@@ -133,9 +133,27 @@ export function ActiveProjectSections({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    setNotes(getProjectNotes(campaignId));
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/ugc/notes?campaign_id=${campaignId}&scope=creator`, { cache: "no-store" });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || cancelled) return;
+        const loaded: ProjectNote[] = (json.data ?? []).map((n: { id: string; body: string; updated_at?: string }) => ({
+          id: n.id,
+          content: n.body,
+          updatedAt: n.updated_at ?? new Date().toISOString(),
+        }));
+        setNotes(loaded);
+      } catch {
+        if (!cancelled) setNotes(getProjectNotes(campaignId));
+      }
+    })();
     setFiles(getProjectFiles(campaignId));
     setMessages(getProjectMessages(campaignId));
+    return () => {
+      cancelled = true;
+    };
   }, [campaignId]);
 
   const filteredTasks = useMemo(() => {
@@ -181,13 +199,33 @@ export function ActiveProjectSections({
 
   const saveNote = useCallback(() => {
     if (!noteDraft.trim()) return;
-    const next: ProjectNote[] = [
-      { id: crypto.randomUUID(), content: noteDraft.trim(), updatedAt: new Date().toISOString() },
-      ...notes,
-    ];
-    saveProjectNotes(campaignId, next);
-    setNotes(next);
+    const content = noteDraft.trim();
     setNoteDraft("");
+    void (async () => {
+      try {
+        const res = await fetch("/api/ugc/notes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ campaign_id: campaignId, scope: "creator", body: content }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (json.note) {
+          setNotes((prev) => [
+            { id: json.note.id, content: json.note.body, updatedAt: json.note.updated_at ?? new Date().toISOString() },
+            ...prev,
+          ]);
+          return;
+        }
+      } catch {
+        /* fall back */
+      }
+      const next: ProjectNote[] = [
+        { id: crypto.randomUUID(), content, updatedAt: new Date().toISOString() },
+        ...notes,
+      ];
+      saveProjectNotes(campaignId, next);
+      setNotes(next);
+    })();
   }, [campaignId, noteDraft, notes]);
 
   const sendMessage = useCallback(() => {

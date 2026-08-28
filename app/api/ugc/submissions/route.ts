@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import type { CreateSubmissionPayload } from '@/types/ugc';
 import { isUgcSubmitPlatform, normalizePostUrl } from '@/lib/ugc/normalize-post-url';
+import { listAccessibleBrandIds } from '@/lib/ugc/enterprise/brand-access';
+import { emitUgcEvent } from '@/lib/ugc/enterprise/events';
 
 // ─── GET /api/ugc/submissions ────────────────────────────────────────────────
 // Influencer sees own; vendor sees their campaign subs; admin sees all
@@ -20,11 +22,11 @@ export async function GET(req: NextRequest) {
   const status     = searchParams.get('status') ?? undefined;
 
   // Resolve roles
-  const [{ data: influencer }, { data: vendor }, { data: adminRole }] = await Promise.all([
+  const [{ data: influencer }, { data: adminRole }] = await Promise.all([
     db.from('influencers').select('id').eq('user_id', user.id).maybeSingle(),
-    db.from('vendors').select('id').eq('user_id', user.id).maybeSingle(),
     db.from('user_roles').select('id').eq('user_id', user.id).eq('role', 'admin').eq('is_active', true).maybeSingle(),
   ]);
+  const brandIds = await listAccessibleBrandIds(db, user.id);
 
   let query = db
     .from('ugc_submissions')
@@ -42,27 +44,26 @@ export async function GET(req: NextRequest) {
 
   if (adminRole) {
     // admin sees all
-  } else if (vendor && campaignId) {
+  } else if (brandIds.length > 0 && campaignId) {
     const { data: owned } = await db
       .from('ugc_campaigns')
       .select('id')
       .eq('id', campaignId)
-      .eq('brand_id', vendor.id)
+      .in('brand_id', brandIds)
       .maybeSingle();
     if (!owned) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     query = query.eq('campaign_id', campaignId);
-  } else if (vendor) {
-    // vendor: all their campaign submissions
-    const { data: myCampaigns } = await db
-      .from('ugc_campaigns')
-      .select('id')
-      .eq('brand_id', vendor.id);
-    const ids = (myCampaigns ?? []).map((c: { id: string }) => c.id);
-    if (ids.length === 0) return NextResponse.json({ data: [], total: 0, page, limit });
-    query = query.in('campaign_id', ids);
   } else if (influencer) {
     query = query.eq('influencer_id', influencer.id);
     if (campaignId) query = query.eq('campaign_id', campaignId);
+  } else if (brandIds.length > 0) {
+    const { data: myCampaigns } = await db
+      .from('ugc_campaigns')
+      .select('id')
+      .in('brand_id', brandIds);
+    const ids = (myCampaigns ?? []).map((c: { id: string }) => c.id);
+    if (ids.length === 0) return NextResponse.json({ data: [], total: 0, page, limit });
+    query = query.in('campaign_id', ids);
   } else {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -111,7 +112,7 @@ export async function POST(req: NextRequest) {
   // Verify campaign exists and is active
   const { data: campaign } = await db
     .from('ugc_campaigns')
-    .select('status, allowed_platforms, ends_at')
+    .select('status, allowed_platforms, ends_at, brand_id')
     .eq('id', campaign_id)
     .single();
 
@@ -164,6 +165,16 @@ export async function POST(req: NextRequest) {
       );
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  try {
+    await emitUgcEvent(db, campaign.brand_id, "submission.created", {
+      campaignId: campaign_id,
+      submissionId: submission.id,
+      creatorUserId: user.id,
+    });
+  } catch {
+    /* additive */
   }
 
   return NextResponse.json({ submission }, { status: 201 });

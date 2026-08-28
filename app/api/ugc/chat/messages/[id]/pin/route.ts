@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { optionalBrandWorkspace, userCanAccessBrand } from "@/lib/ugc/enterprise/brand-access";
+import { resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,8 @@ export async function PATCH(
     return NextResponse.json({ error: "is_pinned boolean required" }, { status: 400 });
   }
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 
   const { data: message } = await db
@@ -28,9 +31,15 @@ export async function PATCH(
   if (!message) return NextResponse.json({ error: "Message not found" }, { status: 404 });
 
   const thread = message.thread as { brand_id: string; influencer_id: string } | null;
+  const isBrand = thread ? await userCanAccessBrand(db, thread.brand_id, user.id) : false;
+  if (isBrand) {
+    const role = await resolveBrandRole(db, thread!.brand_id, user.id);
+    if (role === "viewer") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
   const allowed =
-    (vendor != null && thread?.brand_id === vendor.id) ||
-    (influencer != null && thread?.influencer_id === influencer.id);
+    isBrand || (influencer != null && thread?.influencer_id === influencer.id);
 
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 

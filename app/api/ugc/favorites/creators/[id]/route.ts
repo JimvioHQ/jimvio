@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor } from "@/lib/ugc/platform/auth";
+import { requireUser } from "@/lib/ugc/platform/auth";
+import { requireBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +11,9 @@ export async function PATCH(
   const { id } = await params;
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, vendor } = await requireVendor(user.id);
-  if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
+  const ws = await requireBrandWorkspace(user.id);
+  if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+  const { db, vendor } = ws;
 
   const body = await req.json();
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };

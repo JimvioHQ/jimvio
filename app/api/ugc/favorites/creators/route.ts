@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor } from "@/lib/ugc/platform/auth";
+import { requireUser } from "@/lib/ugc/platform/auth";
+import { requireBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, vendor } = await requireVendor(user.id);
-  if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
+  const ws = await requireBrandWorkspace(user.id);
+  if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+  const { db, vendor } = ws;
 
   const { data, error: qErr } = await db
     .from("ugc_favorite_creators")
@@ -30,8 +32,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, vendor } = await requireVendor(user.id);
-  if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
+  const ws = await requireBrandWorkspace(user.id);
+  if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+  const { db, vendor } = ws;
 
   const body = await req.json();
   const influencerId = String(body.influencer_id ?? "").trim();
@@ -81,8 +84,9 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, vendor } = await requireVendor(user.id);
-  if (!vendor) return NextResponse.json({ error: "Brand account required" }, { status: 403 });
+  const ws = await requireBrandWorkspace(user.id);
+  if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+  const { db, vendor } = ws;
 
   const influencerId = req.nextUrl.searchParams.get("influencer_id")?.trim();
   if (!influencerId) {

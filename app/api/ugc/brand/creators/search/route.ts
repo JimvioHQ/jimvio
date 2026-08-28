@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { requireUser } from "@/lib/ugc/platform/auth";
+import { requireBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,12 @@ export async function GET(req: NextRequest) {
     ? Number(sp.get("minCompletedCampaigns"))
     : null;
 
-  const db = createServiceRoleClient();
+  const { user, error } = await requireUser();
+  if (!user) return NextResponse.json({ error }, { status: 401 });
+  const ws = await requireBrandWorkspace(user.id);
+  if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+
+  const db = ws.db;
 
   const pattern = q ? `%${q.replace(/%/g, "\\%")}%` : "%";
 

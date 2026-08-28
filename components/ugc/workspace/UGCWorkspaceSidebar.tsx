@@ -42,30 +42,33 @@ import {
 } from "lucide-react";
 import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/context/LocaleContext";
+import type { UgcMessageKey } from "@/lib/ugc/i18n/messages";
 
 const PRIMARY_NAV: {
   id: string;
   label: string;
   href: string;
   icon: typeof LayoutDashboard;
+  i18n?: UgcMessageKey;
 }[] = [
-  { id: "dashboard", label: "Dashboard", href: "/ugc/dashboard", icon: LayoutDashboard },
-  { id: "discover", label: "Discover Campaigns", href: "/ugc", icon: Compass },
-  { id: "applications", label: "My Applications", href: "/ugc/applications", icon: FileVideo },
-  { id: "projects", label: "Active Projects", href: "/ugc/campaigns", icon: Clapperboard },
-  { id: "submissions", label: "Submissions", href: "/ugc/submissions", icon: FileVideo },
-  { id: "library", label: "Library", href: "/ugc/library", icon: FolderOpen },
-  { id: "saved", label: "Saved", href: "/ugc/saved", icon: Bookmark },
-  { id: "calendar", label: "Calendar", href: "/ugc/calendar", icon: Calendar },
-  { id: "matches", label: "Matches", href: "/ugc/matches", icon: Sparkles },
-  { id: "creator-copilot", label: "Creator Copilot", href: "/ugc/creator-copilot", icon: Bot },
-  { id: "achievements", label: "Achievements", href: "/ugc/achievements", icon: Trophy },
-  { id: "analytics", label: "Analytics", href: "/ugc/analytics", icon: BarChart3 },
-  { id: "insights", label: "Insights", href: "/ugc/insights", icon: LineChart },
-  { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign },
-  { id: "payouts", label: "Payouts", href: "/ugc/payouts", icon: Wallet },
-  { id: "referrals", label: "Referrals", href: "/ugc/referrals", icon: Gift },
-  { id: "deals", label: "Brand Deals", href: "/ugc/brand-deals", icon: Handshake },
+  { id: "dashboard", label: "Dashboard", href: "/ugc/dashboard", icon: LayoutDashboard, i18n: "dashboard" },
+  { id: "discover", label: "Discover Campaigns", href: "/ugc", icon: Compass, i18n: "discover" },
+  { id: "applications", label: "My Applications", href: "/ugc/applications", icon: FileVideo, i18n: "applications" },
+  { id: "projects", label: "Active Projects", href: "/ugc/campaigns", icon: Clapperboard, i18n: "projects" },
+  { id: "submissions", label: "Submissions", href: "/ugc/submissions", icon: FileVideo, i18n: "submissions" },
+  { id: "library", label: "Library", href: "/ugc/library", icon: FolderOpen, i18n: "library" },
+  { id: "saved", label: "Saved", href: "/ugc/saved", icon: Bookmark, i18n: "saved" },
+  { id: "calendar", label: "Calendar", href: "/ugc/calendar", icon: Calendar, i18n: "calendar" },
+  { id: "matches", label: "Matches", href: "/ugc/matches", icon: Sparkles, i18n: "matches" },
+  { id: "creator-copilot", label: "Creator Copilot", href: "/ugc/creator-copilot", icon: Bot, i18n: "creatorCopilot" },
+  { id: "achievements", label: "Achievements", href: "/ugc/achievements", icon: Trophy, i18n: "achievements" },
+  { id: "analytics", label: "Analytics", href: "/ugc/analytics", icon: BarChart3, i18n: "analytics" },
+  { id: "insights", label: "Insights", href: "/ugc/insights", icon: LineChart, i18n: "insights" },
+  { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign, i18n: "earnings" },
+  { id: "payouts", label: "Payouts", href: "/ugc/payouts", icon: Wallet, i18n: "payouts" },
+  { id: "referrals", label: "Referrals", href: "/ugc/referrals", icon: Gift, i18n: "referrals" },
+  { id: "deals", label: "Brand Deals", href: "/ugc/brand-deals", icon: Handshake, i18n: "deals" },
 ];
 
 const CAMPAIGN_CENTER_MORE: {
@@ -73,27 +76,28 @@ const CAMPAIGN_CENTER_MORE: {
   label: string;
   href: string;
   icon: typeof LayoutDashboard;
+  i18n?: UgcMessageKey;
 }[] = [
-  { id: "cc-mine", label: "My Campaigns", href: "/ugc/campaign-center", icon: Megaphone },
-  { id: "cc-drafts", label: "Drafts", href: "/ugc/campaign-center/drafts", icon: FileStack },
-  { id: "cc-active", label: "Active Campaigns", href: "/ugc/campaign-center/active", icon: FolderOpen },
-  { id: "cc-completed", label: "Completed Campaigns", href: "/ugc/campaign-center/completed", icon: Copy },
-  { id: "cc-templates", label: "Templates", href: "/ugc/campaign-center/templates", icon: FileStack },
-  { id: "cc-favorites", label: "Favorites", href: "/ugc/campaign-center/favorites", icon: Star },
-  { id: "cc-invitations", label: "Invitations", href: "/ugc/campaign-center/invitations", icon: Mail },
-  { id: "cc-search", label: "Search", href: "/ugc/search", icon: Search },
-  { id: "cc-analytics", label: "Analytics", href: "/ugc/campaign-center/analytics", icon: BarChart3 },
-  { id: "cc-recruit", label: "Creator Recruitment", href: "/ugc/campaign-center/recruitment", icon: Users },
-  { id: "cc-assets", label: "Campaign Assets", href: "/ugc/campaign-center/assets", icon: ImageIcon },
-  { id: "cc-copilot", label: "Copilot", href: "/ugc/campaign-center/copilot", icon: Bot },
-  { id: "cc-team", label: "Team", href: "/ugc/campaign-center/team", icon: Users },
-  { id: "cc-crm", label: "CRM", href: "/ugc/campaign-center/crm", icon: Handshake },
-  { id: "cc-contracts", label: "Contracts", href: "/ugc/campaign-center/contracts", icon: FileSignature },
-  { id: "cc-escrow", label: "Escrow", href: "/ugc/campaign-center/escrow", icon: Shield },
-  { id: "cc-disputes", label: "Disputes", href: "/ugc/campaign-center/disputes", icon: Scale },
-  { id: "cc-automations", label: "Automations", href: "/ugc/campaign-center/automations", icon: Zap },
-  { id: "cc-workflows", label: "Workflows", href: "/ugc/campaign-center/workflows", icon: Workflow },
-  { id: "cc-webhooks", label: "Webhooks", href: "/ugc/campaign-center/webhooks", icon: Webhook },
+  { id: "cc-mine", label: "My Campaigns", href: "/ugc/campaign-center", icon: Megaphone, i18n: "myCampaigns" },
+  { id: "cc-drafts", label: "Drafts", href: "/ugc/campaign-center/drafts", icon: FileStack, i18n: "drafts" },
+  { id: "cc-active", label: "Active Campaigns", href: "/ugc/campaign-center/active", icon: FolderOpen, i18n: "activeCampaigns" },
+  { id: "cc-completed", label: "Completed Campaigns", href: "/ugc/campaign-center/completed", icon: Copy, i18n: "completedCampaigns" },
+  { id: "cc-templates", label: "Templates", href: "/ugc/campaign-center/templates", icon: FileStack, i18n: "templates" },
+  { id: "cc-favorites", label: "Favorites", href: "/ugc/campaign-center/favorites", icon: Star, i18n: "favorites" },
+  { id: "cc-invitations", label: "Invitations", href: "/ugc/campaign-center/invitations", icon: Mail, i18n: "invitations" },
+  { id: "cc-search", label: "Search", href: "/ugc/search", icon: Search, i18n: "search" },
+  { id: "cc-analytics", label: "Analytics", href: "/ugc/campaign-center/analytics", icon: BarChart3, i18n: "analytics" },
+  { id: "cc-recruit", label: "Creator Recruitment", href: "/ugc/campaign-center/recruitment", icon: Users, i18n: "creatorRecruitment" },
+  { id: "cc-assets", label: "Campaign Assets", href: "/ugc/campaign-center/assets", icon: ImageIcon, i18n: "campaignAssets" },
+  { id: "cc-copilot", label: "Copilot", href: "/ugc/campaign-center/copilot", icon: Bot, i18n: "copilot" },
+  { id: "cc-team", label: "Team", href: "/ugc/campaign-center/team", icon: Users, i18n: "team" },
+  { id: "cc-crm", label: "CRM", href: "/ugc/campaign-center/crm", icon: Handshake, i18n: "crm" },
+  { id: "cc-contracts", label: "Contracts", href: "/ugc/campaign-center/contracts", icon: FileSignature, i18n: "contracts" },
+  { id: "cc-escrow", label: "Escrow", href: "/ugc/campaign-center/escrow", icon: Shield, i18n: "escrow" },
+  { id: "cc-disputes", label: "Disputes", href: "/ugc/campaign-center/disputes", icon: Scale, i18n: "disputes" },
+  { id: "cc-automations", label: "Automations", href: "/ugc/campaign-center/automations", icon: Zap, i18n: "automations" },
+  { id: "cc-workflows", label: "Workflows", href: "/ugc/campaign-center/workflows", icon: Workflow, i18n: "workflows" },
+  { id: "cc-webhooks", label: "Webhooks", href: "/ugc/campaign-center/webhooks", icon: Webhook, i18n: "webhooks" },
 ];
 
 const CC_MORE_STORAGE_KEY = "jimvio-ugc-cc-more-expanded";
@@ -190,6 +194,7 @@ type UGCWorkspaceSidebarProps = {
 
 export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
   const pathname = usePathname();
+  const { t } = useLocale();
   const activeId = resolveActive(pathname);
   const openAssistant = useAIStore((s) => s.openAssistant);
   const moreItemActive = CAMPAIGN_CENTER_MORE.some((i) => i.id === activeId);
@@ -241,7 +246,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
           )}
         >
           <LayoutDashboard className="h-3 w-3" strokeWidth={2.25} />
-          Home
+          {t("home")}
         </Link>
       </div>
 
@@ -249,14 +254,18 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
         <ul className="space-y-[2px]">
           {PRIMARY_NAV.map((item) => (
             <li key={item.id}>
-              <NavLink item={item} active={item.id === activeId} onNavigate={onNavigate} />
+              <NavLink
+                item={{ ...item, label: item.i18n ? t(item.i18n) : item.label }}
+                active={item.id === activeId}
+                onNavigate={onNavigate}
+              />
             </li>
           ))}
         </ul>
 
         <div className="mt-4 px-2.5 pb-1">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#9CA3AF]">
-            Campaign Center
+            {t("campaignCenter")}
           </p>
         </div>
         <ul className="space-y-[2px]">
@@ -264,7 +273,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
             <NavLink
               item={{
                 id: "cc-create",
-                label: "Create Campaign",
+                label: t("createCampaign"),
                 href: "/ugc/campaign-center/create",
                 icon: PlusCircle,
               }}
@@ -291,7 +300,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
                 )}
                 strokeWidth={2.2}
               />
-              <span className="truncate font-semibold">More</span>
+              <span className="truncate font-semibold">{t("more")}</span>
             </button>
             <AnimatePresence initial={false}>
               {moreOpen ? (
@@ -307,7 +316,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
                     {CAMPAIGN_CENTER_MORE.map((item) => (
                       <li key={item.id}>
                         <NavLink
-                          item={item}
+                          item={{ ...item, label: item.i18n ? t(item.i18n) : item.label }}
                           active={item.id === activeId}
                           onNavigate={onNavigate}
                         />

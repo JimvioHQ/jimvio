@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer } from "@/lib/ugc/platform/auth";
-import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
+import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { listAccessibleBrandIds, optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { requireBrandPermission, resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -8,9 +9,11 @@ export async function GET(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
   const status = req.nextUrl.searchParams.get("status");
+  const brandIds = await listAccessibleBrandIds(db, user.id);
 
   let query = db
     .from("ugc_disputes")
@@ -23,8 +26,8 @@ export async function GET(req: NextRequest) {
     )
     .order("created_at", { ascending: false });
 
-  if (vendor) {
-    query = query.eq("brand_id", vendor.id);
+  if (brandIds.length) {
+    query = query.in("brand_id", brandIds);
   } else if (influencer) {
     query = query.or(`opened_by.eq.${user.id},influencer_id.eq.${influencer.id}`);
   } else {
@@ -42,7 +45,8 @@ export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 
   const body = await req.json().catch(() => ({}));
@@ -58,7 +62,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
-  const isBrand = Boolean(vendor && campaign.brand_id === vendor.id);
+  const isBrand = Boolean(await resolveBrandRole(db, campaign.brand_id, user.id));
   let isParticipant = false;
   if (influencer) {
     const { data: part } = await db
@@ -74,8 +78,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (isBrand && vendor) {
-    const perm = await requireBrandPermission(db, vendor.id, user.id, "disputes.manage");
+  if (isBrand) {
+    const perm = await requireBrandPermission(db, campaign.brand_id, user.id, "disputes.manage");
     if (!perm.ok) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

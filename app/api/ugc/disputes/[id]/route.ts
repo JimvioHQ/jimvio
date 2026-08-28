@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireVendor, requireInfluencer, isAdmin } from "@/lib/ugc/platform/auth";
+import { requireUser, requireInfluencer, isAdmin } from "@/lib/ugc/platform/auth";
+import { optionalBrandWorkspace, userCanAccessBrand } from "@/lib/ugc/enterprise/brand-access";
 import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
 async function canAccessDispute(
+  db: Awaited<ReturnType<typeof optionalBrandWorkspace>>["db"],
   userId: string,
   dispute: { brand_id: string; opened_by: string; influencer_id: string | null },
-  vendorId: string | null,
   influencerId: string | null
 ) {
-  if (vendorId && dispute.brand_id === vendorId) return true;
+  if (await userCanAccessBrand(db, dispute.brand_id, userId)) return true;
   if (dispute.opened_by === userId) return true;
   if (influencerId && dispute.influencer_id === influencerId) return true;
   return isAdmin(userId);
@@ -21,7 +22,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 
   const { data: dispute, error: qErr } = await db
@@ -41,9 +43,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!dispute) return NextResponse.json({ error: "Dispute not found" }, { status: 404 });
 
   const allowed = await canAccessDispute(
+    db,
     user.id,
     dispute,
-    vendor?.id ?? null,
     influencer?.id ?? null
   );
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -56,7 +58,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, vendor } = await requireVendor(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id);
+  const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
   const admin = await isAdmin(user.id);
 
@@ -68,9 +71,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!existing) return NextResponse.json({ error: "Dispute not found" }, { status: 404 });
 
   const allowed = await canAccessDispute(
+    db,
     user.id,
     existing,
-    vendor?.id ?? null,
     influencer?.id ?? null
   );
   if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -85,10 +88,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
-    const isBrand = Boolean(vendor && existing.brand_id === vendor.id);
+    const isBrand = await userCanAccessBrand(db, existing.brand_id, user.id);
     let canResolve = admin;
-    if (isBrand && vendor) {
-      const perm = await requireBrandPermission(db, vendor.id, user.id, "disputes.manage");
+    if (isBrand) {
+      const perm = await requireBrandPermission(db, existing.brand_id, user.id, "disputes.manage");
       canResolve = admin || perm.ok;
     }
 
