@@ -82,7 +82,8 @@ assert.match(deposit, /pending: true/);
 assert.match(deposit, /Insufficient wallet balance/);
 assert.match(deposit, /\.eq\("available_balance", available\)/);
 
-assert.match(fund, /json.activated \|\| json.already_funded/);
+assert.match(fund, /Boolean\(json.activated\)/);
+assert.doesNotMatch(fund, /json.activated \|\| json.already_funded/);
 assert.match(fund, /setOutcome\("pending"\)/);
 assert.match(fund, /\/api\/identity\/wallet/);
 assert.doesNotMatch(fund, /phone \|\| "250700000000"/);

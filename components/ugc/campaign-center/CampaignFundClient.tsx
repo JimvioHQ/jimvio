@@ -156,7 +156,7 @@ export function CampaignFundClient() {
         throw new Error(missing || json.error || "Funding failed");
       }
 
-      const activated = Boolean(json.activated || json.already_funded);
+      const activated = Boolean(json.activated);
       if (activated) {
         setOutcome("activated");
         toast.success(t("campaignActivated"));

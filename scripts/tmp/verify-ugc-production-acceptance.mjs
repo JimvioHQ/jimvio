@@ -109,6 +109,14 @@ assert.match(nowpWebhook, /confirmUgcEscrowPayment/);
 assert.match(nowpWebhook, /status: 401/);
 assert.doesNotMatch(nowpWebhook, /Invalid signature[\s\S]*status: 400/);
 
+const nowpIpn = read("app/api/nowpayments/ipn/route.ts");
+const nowpPay = read("app/api/payments/nowpayments/route.ts");
+const fund = read("components/ugc/campaign-center/CampaignFundClient.tsx");
+assert.match(nowpIpn, /confirmUgcEscrowPayment/);
+assert.match(nowpPay, /confirmUgcEscrowPayment/);
+assert.match(fund, /Boolean\(json.activated\)/);
+assert.doesNotMatch(fund, /json.activated \|\| json.already_funded/);
+
 assert.match(invitationsId, /creators\.invite/);
 assert.doesNotMatch(invitationsId, /BRAND_STATUSES\.has\(status\) && !isBrand/);
 

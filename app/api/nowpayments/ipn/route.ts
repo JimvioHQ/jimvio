@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { validateIPNSignature } from "@/services/nowpayments";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { confirmUgcEscrowPayment } from "@/lib/ugc/confirm-escrow-payment";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export async function POST(req: NextRequest) {
@@ -24,6 +25,8 @@ export async function POST(req: NextRequest) {
       payment_id: number;
       payment_status: string;
       order_id: string;
+      price_amount?: number;
+      price_currency?: string;
     };
 
     const { payment_status, order_id, payment_id } = payload;
@@ -48,7 +51,18 @@ export async function POST(req: NextRequest) {
     const refStr = String(payment_id);
 
     for (const oid of orderIds) {
-      const { data: ord } = await supabase.from("orders").select("buyer_id").eq("id", oid).single();
+      const { data: ord } = await supabase.from("orders").select("buyer_id").eq("id", oid).maybeSingle();
+      if (!ord) {
+        await confirmUgcEscrowPayment(supabase, {
+          campaignId: oid,
+          providerTransactionId: refStr,
+          paymentRef: oid,
+          amount: payload.price_amount ?? null,
+          currency: payload.price_currency ?? null,
+          provider: "nowpayments",
+        });
+        continue;
+      }
       try {
         await finalizeOrderPayment(supabase, oid, {
           providerTransactionId: refStr,
