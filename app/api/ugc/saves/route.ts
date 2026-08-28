@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
+import { canReadCampaign } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
+
+type SavedCampaignJoin = {
+  id: string;
+  status: string;
+  brand_id: string;
+};
 
 export async function GET(req: NextRequest) {
   const { user, db, error } = await requireUser();
@@ -16,7 +23,7 @@ export async function GET(req: NextRequest) {
       *,
       collection:ugc_saved_collections!collection_id ( id, name ),
       campaign:ugc_campaigns!campaign_id (
-        id, title, description, status, campaign_type, ends_at,
+        id, title, description, status, campaign_type, brand_id, ends_at,
         payment_model, fixed_rate, rate_per_1k_views, total_budget,
         media:ugc_campaign_media(*),
         vendor:vendors!brand_id ( business_name, business_logo, business_slug )
@@ -30,7 +37,16 @@ export async function GET(req: NextRequest) {
 
   const { data, error: qErr } = await query;
   if (qErr) return NextResponse.json({ error: qErr.message }, { status: 500 });
-  return NextResponse.json({ data: data ?? [] });
+
+  const visible: typeof data = [];
+  for (const row of data ?? []) {
+    const raw = (row as { campaign?: SavedCampaignJoin | SavedCampaignJoin[] | null }).campaign;
+    const campaign = Array.isArray(raw) ? raw[0] : raw;
+    if (!campaign) continue;
+    if (await canReadCampaign(db, user.id, campaign)) visible.push(row);
+  }
+
+  return NextResponse.json({ data: visible });
 }
 
 export async function POST(req: NextRequest) {
@@ -45,10 +61,13 @@ export async function POST(req: NextRequest) {
 
   const { data: campaign } = await db
     .from("ugc_campaigns")
-    .select("id")
+    .select("id, status, brand_id")
     .eq("id", campaignId)
     .maybeSingle();
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  if (!(await canReadCampaign(db, user.id, campaign))) {
+    return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+  }
 
   const collectionId: string | null =
     typeof body.collection_id === "string" && body.collection_id.trim()

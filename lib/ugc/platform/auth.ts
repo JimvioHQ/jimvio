@@ -83,5 +83,14 @@ export async function isAdmin(userId: string) {
   return Boolean(data);
 }
 
+export function creatorProfileRequiredPayload(completion: CreatorProfileCompletion) {
+  return {
+    error: "Complete your creator profile first.",
+    needsProfile: true as const,
+    complete: false as const,
+    missing: completion.missing,
+  };
+}
+
 export { evaluateCreatorProfileCompletion, isCreatorWorkspaceReady };
 export type { CreatorProfileCompletion };

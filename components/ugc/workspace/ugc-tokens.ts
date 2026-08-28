@@ -22,12 +22,7 @@ export type PlatformKey =
   | "tiktok"
   | "instagram"
   | "youtube"
-  | "x"
-  | "facebook"
-  | "pinterest"
-  | "linkedin"
-  | "snapchat"
-  | "twitch";
+  | "x";
 
 export type SortKey = "newest" | "budget" | "payout" | "popular";
 
@@ -37,25 +32,19 @@ export const CONTENT_TYPES: { value: ContentTypeFilter; label: string }[] = [
   { value: "ugc", label: "UGC" },
 ];
 
-/** Reference filter row — platform icon buttons */
+/** Reference filter row — supported UGC submit platforms only */
 export const PLATFORM_FILTERS: { key: PlatformKey; label: string }[] = [
   { key: "youtube", label: "YouTube" },
   { key: "tiktok", label: "TikTok" },
   { key: "instagram", label: "Instagram" },
   { key: "x", label: "X" },
-  { key: "facebook", label: "Facebook" },
 ];
 
 export const PLATFORMS: { key: PlatformKey; label: string; apiKey?: string }[] = [
   { key: "tiktok", label: "TikTok", apiKey: "tiktok" },
   { key: "instagram", label: "Instagram", apiKey: "instagram" },
   { key: "youtube", label: "YouTube", apiKey: "youtube" },
-  { key: "facebook", label: "Facebook" },
   { key: "x", label: "X", apiKey: "x" },
-  { key: "pinterest", label: "Pinterest" },
-  { key: "linkedin", label: "LinkedIn" },
-  { key: "snapchat", label: "Snapchat" },
-  { key: "twitch", label: "Twitch" },
 ];
 
 export const SORT_OPTIONS: { value: SortKey; label: string }[] = [

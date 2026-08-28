@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { creatorProfileRequiredPayload, requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
 import {
   requireCampaignMember,
   requireCampaignPermission,
@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
 
   if (scope === "creator") {
     const inf = await requireInfluencer(user.id);
-    if (!inf.influencer) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!inf.ready || !inf.influencer) {
+      return NextResponse.json(creatorProfileRequiredPayload(inf.completion), { status: 403 });
+    }
     const { data: part } = await inf.db
       .from("ugc_campaign_participants")
       .select("id")
@@ -66,7 +68,9 @@ export async function POST(req: NextRequest) {
 
   if (scope === "creator") {
     const inf = await requireInfluencer(user.id);
-    if (!inf.influencer) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!inf.ready || !inf.influencer) {
+      return NextResponse.json(creatorProfileRequiredPayload(inf.completion), { status: 403 });
+    }
     const { data: campaign } = await inf.db
       .from("ugc_campaigns")
       .select("id, brand_id")

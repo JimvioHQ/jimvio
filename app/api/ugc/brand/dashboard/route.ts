@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { requireBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { brandIdFromRequest, requireBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { memberCan } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ type DashboardStats = {
     activeCampaigns: number;
     draftCampaigns: number;
     pendingFunding: number;
-    totalSpend: number;
+    totalSpend: number | null;
     totalViews: number;
     totalCreators: number;
     activeApplications: number;
@@ -22,7 +23,7 @@ type DashboardStats = {
       title: string;
       status: string;
       views: number;
-      spend: number;
+      spend: number | null;
       submissions: number;
       approvals: number;
     }>;
@@ -40,18 +41,19 @@ type DashboardStats = {
   drafts?: Array<{ id: string; title: string }>;
 };
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const ws = await requireBrandWorkspace(user.id);
+  const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
   if (!ws.ok) {
     return NextResponse.json({ needsProfile: true } satisfies DashboardStats);
   }
-  const { db, vendor } = ws;
+  const { db, vendor, role } = ws;
+  const showFinance = memberCan(role, "finance.view");
 
   const { data: campaigns } = await db
     .from("ugc_campaigns")
@@ -125,7 +127,7 @@ export async function GET(_req: NextRequest) {
       title: c.title,
       status: c.status,
       views: Number(c.total_views_tracked ?? 0),
-      spend: Number(c.spent_budget ?? 0),
+      spend: showFinance ? Number(c.spent_budget ?? 0) : null,
       submissions: Number(c.submission_count ?? 0),
       approvals: Number(c.approved_count ?? 0),
     }));
@@ -146,7 +148,7 @@ export async function GET(_req: NextRequest) {
       activeCampaigns: byStatus.active.length,
       draftCampaigns: byStatus.draft.length,
       pendingFunding: byStatus.draft.length,
-      totalSpend,
+      totalSpend: showFinance ? totalSpend : null,
       totalViews,
       totalCreators,
       activeApplications,

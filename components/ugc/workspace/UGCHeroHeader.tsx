@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CONTENT_TYPES,
-  PLATFORMS,
+  PLATFORM_FILTERS,
   SORT_OPTIONS,
   type ContentTypeFilter,
   type PlatformKey,
@@ -137,7 +137,7 @@ export function UGCHeroHeader({
               value={platform}
               options={[
                 { value: "all", label: "All" },
-                ...PLATFORMS.slice(0, 5).map((p) => ({ value: p.key, label: p.label })),
+                ...PLATFORM_FILTERS.map((p) => ({ value: p.key, label: p.label })),
               ]}
               onChange={(v) => onPlatformChange(v as PlatformKey)}
             />

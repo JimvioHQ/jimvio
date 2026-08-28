@@ -12,6 +12,7 @@ import {
 import {
   assertCampaignReadyForFunding,
   campaignWizardErrorPayload,
+  CAMPAIGN_PLATFORMS,
 } from '@/lib/ugc/campaign-wizard-validation';
 
 // ─── GET /api/ugc/campaigns ─────────────────────────────────────────────────
@@ -69,6 +70,9 @@ export async function GET(req: NextRequest) {
 
   if (type) query = query.eq('campaign_type', type);
   if (platform && platform !== 'all') {
+    if (!(CAMPAIGN_PLATFORMS as readonly string[]).includes(platform)) {
+      return NextResponse.json({ data: [], total: 0, page, limit });
+    }
     query = query.contains('allowed_platforms', [platform]);
   }
   if (q) {

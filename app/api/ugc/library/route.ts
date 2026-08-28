@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { creatorProfileRequiredPayload, requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const { user, db, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { influencer } = await requireInfluencer(user.id);
+  const { influencer, ready, completion } = await requireInfluencer(user.id);
+  if (!ready || !influencer) {
+    return NextResponse.json(creatorProfileRequiredPayload(completion), { status: 403 });
+  }
 
   const body = await req.json();
   const fileUrl = String(body.file_url ?? "").trim();

@@ -14,12 +14,12 @@ type LiveMetrics = {
   activeCreators: number;
   pendingSubmissions: number;
   revisionRequested: number;
-  budgetRemaining: number;
+  budgetRemaining: number | null;
   views: number;
-  earningsSum: number;
+  earningsSum: number | null;
   approvalQueueSize?: number;
-  totalBudget?: number;
-  spentBudget?: number;
+  totalBudget?: number | null;
+  spentBudget?: number | null;
 };
 
 export function CampaignLiveDashboard({ campaignId }: { campaignId: string }) {
@@ -79,17 +79,21 @@ export function CampaignLiveDashboard({ campaignId }: { campaignId: string }) {
           <MetricCard label="Active creators" value={metrics.activeCreators} />
           <MetricCard label="Submissions" value={metrics.pendingSubmissions} hint="Pending review" />
           <MetricCard label="Revisions" value={metrics.revisionRequested} />
-          <MetricCard
-            label="Budget remaining"
-            value={Number(metrics.budgetRemaining).toLocaleString()}
-            hint={
-              metrics.totalBudget != null
-                ? `of ${Number(metrics.totalBudget).toLocaleString()} total`
-                : undefined
-            }
-          />
+          {metrics.budgetRemaining != null ? (
+            <MetricCard
+              label="Budget remaining"
+              value={Number(metrics.budgetRemaining).toLocaleString()}
+              hint={
+                metrics.totalBudget != null
+                  ? `of ${Number(metrics.totalBudget).toLocaleString()} total`
+                  : undefined
+              }
+            />
+          ) : null}
           <MetricCard label="Views" value={Number(metrics.views).toLocaleString()} />
-          <MetricCard label="Earnings" value={Number(metrics.earningsSum).toLocaleString()} />
+          {metrics.earningsSum != null ? (
+            <MetricCard label="Earnings" value={Number(metrics.earningsSum).toLocaleString()} />
+          ) : null}
         </div>
       ) : null}
     </UGCPageShell>

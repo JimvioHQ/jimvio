@@ -46,7 +46,6 @@ const PLATFORM_OPTIONS = [
   { value: "instagram", label: "Instagram" },
   { value: "youtube", label: "YouTube" },
   { value: "x", label: "X" },
-  { value: "facebook", label: "Facebook" },
 ];
 
 function initialsFromName(name: string) {

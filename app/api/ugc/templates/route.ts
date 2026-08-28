@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
-import { requireBrandWorkspace, optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { brandIdFromRequest, requireBrandWorkspace, optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
 import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const { db, vendor } = brandWs;
   if (!vendor) return NextResponse.json({ data: [] });
 
@@ -24,7 +24,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const ws = await requireBrandWorkspace(user.id);
+  const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
   const { db, vendor } = ws;
   const perm = await requireBrandPermission(db, vendor.id, user.id, "campaigns.manage");

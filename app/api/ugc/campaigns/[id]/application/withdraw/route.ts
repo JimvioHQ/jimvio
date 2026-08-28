@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { creatorProfileRequiredPayload, requireInfluencer, requireUser } from "@/lib/ugc/platform/auth";
 import { logJoinAudit } from "@/lib/ugc/join-audit";
 
 export async function POST(
@@ -8,18 +7,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { user, error } = await requireUser();
+  if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const db = createServiceRoleClient();
-  const { data: influencer } = await db
-    .from("influencers")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!influencer) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { db, influencer, ready, completion } = await requireInfluencer(user.id);
+  if (!ready || !influencer) {
+    return NextResponse.json(creatorProfileRequiredPayload(completion), { status: 403 });
+  }
 
   const { data: participant } = await db
     .from("ugc_campaign_participants")
@@ -41,12 +35,12 @@ export async function POST(
   }
 
   const now = new Date().toISOString();
-  const { error } = await db
+  const { error: updateErr } = await db
     .from("ugc_campaign_participants")
     .update({ status: "withdrawn", withdrawn_at: now })
     .eq("id", participant.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
 
   await logJoinAudit(db, {
     campaignId: id,

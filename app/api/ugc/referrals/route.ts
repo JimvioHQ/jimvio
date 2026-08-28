@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
-import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { creatorProfileRequiredPayload, requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +69,10 @@ export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const { db, influencer } = await requireInfluencer(user.id);
+  const { db, influencer, ready, completion } = await requireInfluencer(user.id);
+  if (!ready || !influencer) {
+    return NextResponse.json(creatorProfileRequiredPayload(completion), { status: 403 });
+  }
   const body = await req.json().catch(() => ({}));
 
   const { data: existing } = await db
@@ -98,8 +101,8 @@ export async function POST(req: NextRequest) {
       owner_user_id: user.id,
       influencer_id: influencer?.id ?? null,
       code: codeValue,
-      reward_amount: body.reward_amount != null ? Number(body.reward_amount) : 5,
-      reward_currency: typeof body.reward_currency === "string" ? body.reward_currency : "USD",
+      reward_amount: 5,
+      reward_currency: "USD",
       is_active: true,
     })
     .select()

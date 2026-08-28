@@ -5,6 +5,7 @@ import type { CreateSubmissionPayload } from '@/types/ugc';
 import { isUgcSubmitPlatform, normalizePostUrl } from '@/lib/ugc/normalize-post-url';
 import { listAccessibleBrandIds } from '@/lib/ugc/enterprise/brand-access';
 import { emitUgcEvent } from '@/lib/ugc/enterprise/events';
+import { creatorProfileRequiredPayload, requireInfluencer } from '@/lib/ugc/platform/auth';
 
 // ─── GET /api/ugc/submissions ────────────────────────────────────────────────
 // Influencer sees own; vendor sees their campaign subs; admin sees all
@@ -84,16 +85,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const db = createServiceRoleClient();
-
-  const { data: influencer } = await db
-    .from('influencers')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (!influencer) {
-    return NextResponse.json({ error: 'Only influencers can submit content' }, { status: 403 });
+  const { db, influencer, ready, completion } = await requireInfluencer(user.id);
+  if (!ready || !influencer) {
+    return NextResponse.json(creatorProfileRequiredPayload(completion), { status: 403 });
   }
 
   const body: CreateSubmissionPayload = await req.json();

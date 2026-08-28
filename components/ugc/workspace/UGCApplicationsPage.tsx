@@ -347,14 +347,14 @@ export function UGCApplicationsPage() {
 
       {!loading && !error && filtered.length > 0 ? (
         <div className="-mx-1 overflow-x-auto pb-2">
-          <div className="flex min-w-max gap-3 px-1">
+          <div className="flex flex-col gap-3 px-1 md:min-w-max md:flex-row">
             {COLUMNS.map((col) => {
               const items = grouped[col.id];
               return (
                 <section
                   key={col.id}
                   className={cn(
-                    "flex w-[260px] shrink-0 flex-col rounded-2xl border p-2.5",
+                    "flex w-full shrink-0 flex-col rounded-2xl border p-2.5 md:w-[260px]",
                     col.tone,
                   )}
                 >

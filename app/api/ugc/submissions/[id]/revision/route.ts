@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
+import { creatorProfileRequiredPayload, requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
 import { requireCampaignPermission } from "@/lib/ugc/enterprise/brand-access";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
 import { notifyUser } from "@/lib/notifications/notify-user";
@@ -118,9 +118,9 @@ export async function PATCH(
   const { id } = await params;
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const { db, influencer } = await requireInfluencer(user.id);
-  if (!influencer) {
-    return NextResponse.json({ error: "Influencer profile required" }, { status: 403 });
+  const { db, influencer, ready, completion } = await requireInfluencer(user.id);
+  if (!ready || !influencer) {
+    return NextResponse.json(creatorProfileRequiredPayload(completion), { status: 403 });
   }
 
   const body = await req.json();

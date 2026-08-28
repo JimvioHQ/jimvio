@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
 import { requireCampaignMember } from "@/lib/ugc/enterprise/brand-access";
+import { memberCan } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const access = await requireCampaignMember(user.id, id);
   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
-  const { db } = access;
+  const { db, role } = access;
+  const showFinance = memberCan(role, "finance.view");
 
   const { data: campaign } = await db
     .from("ugc_campaigns")
@@ -69,11 +71,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       activeCreators: activeCreatorsRes.count ?? 0,
       pendingSubmissions: pendingSubsRes.count ?? 0,
       revisionRequested: revisionRes.count ?? 0,
-      budgetRemaining: Math.max(0, totalBudget - spentBudget),
-      totalBudget,
-      spentBudget,
+      budgetRemaining: showFinance ? Math.max(0, totalBudget - spentBudget) : null,
+      totalBudget: showFinance ? totalBudget : null,
+      spentBudget: showFinance ? spentBudget : null,
       views: Number(campaign.total_views_tracked ?? 0),
-      earningsSum,
+      earningsSum: showFinance ? earningsSum : null,
       approvalQueueSize: approvalQueueRes.count ?? 0,
     },
   });

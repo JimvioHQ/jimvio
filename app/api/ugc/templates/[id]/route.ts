@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
-import { requireBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import {
+  brandIdFromRequest,
+  requireBrandWorkspacePermission,
+} from "@/lib/ugc/enterprise/brand-access";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
 
 export async function PATCH(
@@ -10,7 +13,11 @@ export async function PATCH(
   const { id } = await params;
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const ws = await requireBrandWorkspace(user.id);
+  const ws = await requireBrandWorkspacePermission(
+    user.id,
+    "campaigns.manage",
+    brandIdFromRequest(req),
+  );
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
   const { db, vendor } = ws;
 
@@ -34,13 +41,17 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const ws = await requireBrandWorkspace(user.id);
+  const ws = await requireBrandWorkspacePermission(
+    user.id,
+    "campaigns.manage",
+    brandIdFromRequest(req),
+  );
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
   const { db, vendor } = ws;
 
@@ -56,13 +67,17 @@ export async function DELETE(
 
 /** Create a draft campaign from a template and return create-wizard redirect. */
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
-  const ws = await requireBrandWorkspace(user.id);
+  const ws = await requireBrandWorkspacePermission(
+    user.id,
+    "campaigns.manage",
+    brandIdFromRequest(req),
+  );
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
   const { db, vendor } = ws;
 

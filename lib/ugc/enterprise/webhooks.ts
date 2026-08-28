@@ -33,7 +33,14 @@ export async function emitUgcWebhook(
       .slice(0, 32);
     const signature = signUgcWebhookBody(sub.secret, body);
 
-    const { data: delivery } = await db
+    const { data: existingDelivery } = await db
+      .from("ugc_webhook_deliveries")
+      .select("id")
+      .eq("idempotency_key", idempotencyKey)
+      .maybeSingle();
+    if (existingDelivery) continue;
+
+    const { data: delivery, error: insertErr } = await db
       .from("ugc_webhook_deliveries")
       .insert({
         subscription_id: sub.id,
@@ -45,6 +52,7 @@ export async function emitUgcWebhook(
       })
       .select("id")
       .single();
+    if (insertErr?.code === "23505") continue;
 
     try {
       const res = await fetch(sub.url, {

@@ -15,7 +15,7 @@ type DashboardStats = {
     activeCampaigns: number;
     draftCampaigns: number;
     pendingFunding: number;
-    totalSpend: number;
+    totalSpend: number | null;
     totalViews: number;
     totalCreators: number;
     activeApplications: number;
@@ -27,7 +27,7 @@ type DashboardStats = {
       title: string;
       status: string;
       views: number;
-      spend: number;
+      spend: number | null;
       submissions: number;
       approvals: number;
     }>;
@@ -155,7 +155,7 @@ export default function BrandDashboardClient() {
           <MetricTile label="Pending Funding" value={String(s.pendingFunding)} />
           <MetricTile
             label="Total Spend"
-            value={formatMoney(s.totalSpend, "USD")}
+            value={s.totalSpend == null ? "—" : formatMoney(s.totalSpend, "USD")}
             sub="Across owned campaigns"
           />
           <MetricTile
@@ -290,7 +290,9 @@ export default function BrandDashboardClient() {
                           {c.views.toLocaleString()} views · {c.submissions} submissions · {c.approvals} approvals
                         </p>
                       </div>
-                      <div className="text-right">{formatMoney(c.spend, "USD")}</div>
+                      <div className="text-right">
+                        {c.spend == null ? "—" : formatMoney(c.spend, "USD")}
+                      </div>
                     </div>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       {formatStatusPill(c.status)}

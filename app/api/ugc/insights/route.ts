@@ -110,6 +110,11 @@ export async function GET() {
     topBrandsBySpend: showEarnings
       ? topBrandsBySpend
       : topBrandsBySpend.map((b) => ({ ...b, spend: null })),
-    trendingCampaigns: trendingRes.data ?? [],
+    trendingCampaigns: (trendingRes.data ?? []).map((row) => {
+      const campaign = row as Record<string, unknown>;
+      if (showEarnings) return campaign;
+      const { total_budget: _tb, spent_budget: _sb, ...rest } = campaign;
+      return rest;
+    }),
   });
 }
