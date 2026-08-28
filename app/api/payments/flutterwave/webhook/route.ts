@@ -16,6 +16,7 @@ import {
   logWebhookEvent,
 } from "@/lib/payments/webhook-logger";
 import { notifyUser } from "@/lib/notifications/notify-user";
+import { confirmUgcEscrowFromProviderEvent } from "@/lib/ugc/confirm-escrow-payment";
 
 import { getSupabaseSecretKey } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
@@ -379,9 +380,21 @@ export async function POST(req: NextRequest) {
     console.warn("[Flutterwave webhook] No numeric txId — skipping secondary verify", { txRef });
   }
 
-  // 9. Resolve order
+  // 9. Resolve order. UGC escrow rows have no order_id — confirm via shared helper.
   const resolved = await resolveByTxRef(supabase, txRef);
   if (!resolved) {
+    const ugc = await confirmUgcEscrowFromProviderEvent(supabase, {
+      provider: "flutterwave",
+      providerTransactionId: txId != null ? String(txId) : txRef,
+      txRef,
+      amount,
+      currency,
+      rawBody,
+    });
+    if (ugc.handled) {
+      if (eventId) await markWebhookProcessed(supabase, eventId, ugc.campaignId);
+      return NextResponse.json({ received: true, ugc: true, campaignId: ugc.campaignId });
+    }
     console.warn("[Flutterwave webhook] No transaction row for tx_ref", { txRef });
     if (eventId) await markWebhookFailed(supabase, eventId, "Transaction record not found");
     return NextResponse.json({ received: true });

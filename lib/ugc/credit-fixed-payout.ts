@@ -4,6 +4,64 @@ type CreditResult =
   | { ok: true; credited: boolean; amount: number }
   | { ok: false; error: string; status: number };
 
+async function casCreditCreatorBalances(
+  db: SupabaseClient,
+  opts: { influencerId: string; userId: string; amount: number },
+): Promise<boolean> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data: inf } = await db
+      .from("influencers")
+      .select("id, total_earnings, available_balance")
+      .eq("id", opts.influencerId)
+      .maybeSingle();
+    if (!inf) return false;
+
+    const infAvail = Number(inf.available_balance ?? 0);
+    const infEarned = Number(inf.total_earnings ?? 0);
+    const { data: infRow } = await db
+      .from("influencers")
+      .update({
+        total_earnings: infEarned + opts.amount,
+        available_balance: infAvail + opts.amount,
+      })
+      .eq("id", inf.id)
+      .eq("available_balance", infAvail)
+      .select("id")
+      .maybeSingle();
+    if (!infRow) continue;
+
+    const { data: wallet } = await db
+      .from("wallets")
+      .select("available_balance, total_earned")
+      .eq("user_id", opts.userId)
+      .maybeSingle();
+    if (!wallet) return true;
+
+    const wAvail = Number(wallet.available_balance ?? 0);
+    const { data: wRow } = await db
+      .from("wallets")
+      .update({
+        available_balance: wAvail + opts.amount,
+        total_earned: Number(wallet.total_earned ?? 0) + opts.amount,
+      })
+      .eq("user_id", opts.userId)
+      .eq("available_balance", wAvail)
+      .select("user_id")
+      .maybeSingle();
+    if (wRow) return true;
+
+    await db
+      .from("influencers")
+      .update({
+        total_earnings: infEarned,
+        available_balance: infAvail,
+      })
+      .eq("id", inf.id)
+      .eq("available_balance", infAvail + opts.amount);
+  }
+  return false;
+}
+
 /**
  * Credits a fixed-rate UGC payout exactly once per submission.
  * Per-views campaigns are skipped (view-sync owns those earnings).
@@ -80,7 +138,7 @@ export async function creditFixedPayoutIfNeeded(
 
   const { data: infData } = await db
     .from("influencers")
-    .select("id, user_id, total_earnings, available_balance")
+    .select("id, user_id")
     .eq("id", opts.influencerId)
     .maybeSingle();
 
@@ -89,46 +147,38 @@ export async function creditFixedPayoutIfNeeded(
     return { ok: false, error: "Creator account not found", status: 404 };
   }
 
-  const { error: ugcPayErr } = await db.from("ugc_payouts").insert({
-    influencer_id: opts.influencerId,
-    submission_id: opts.submissionId,
-    amount: payout,
-    status: "paid",
-    paid_at: new Date().toISOString(),
-  });
+  const { data: ugcPay, error: ugcPayErr } = await db
+    .from("ugc_payouts")
+    .insert({
+      influencer_id: opts.influencerId,
+      submission_id: opts.submissionId,
+      amount: payout,
+      status: "paid",
+      paid_at: new Date().toISOString(),
+    })
+    .select("id")
+    .maybeSingle();
 
-  if (ugcPayErr) {
+  if (ugcPayErr || !ugcPay) {
     await revertBudget();
-    if (ugcPayErr.code === "23505") {
+    if (ugcPayErr?.code === "23505") {
       return { ok: true, credited: false, amount: payout };
     }
-    return { ok: false, error: ugcPayErr.message, status: 500 };
+    return { ok: false, error: ugcPayErr?.message ?? "Payout insert failed", status: 500 };
   }
 
   await db.from("ugc_submissions").update({ total_earnings: payout }).eq("id", opts.submissionId);
 
-  await db
-    .from("influencers")
-    .update({
-      total_earnings: (infData.total_earnings ?? 0) + payout,
-      available_balance: (infData.available_balance ?? 0) + payout,
-    })
-    .eq("id", infData.id);
-
-  const { data: wallet } = await db
-    .from("wallets")
-    .select("available_balance, total_earned")
-    .eq("user_id", infData.user_id)
-    .maybeSingle();
-
-  if (wallet) {
-    await db
-      .from("wallets")
-      .update({
-        available_balance: (wallet.available_balance ?? 0) + payout,
-        total_earned: (wallet.total_earned ?? 0) + payout,
-      })
-      .eq("user_id", infData.user_id);
+  const creditedBalances = await casCreditCreatorBalances(db, {
+    influencerId: infData.id,
+    userId: infData.user_id,
+    amount: payout,
+  });
+  if (!creditedBalances) {
+    await revertBudget();
+    await db.from("ugc_payouts").delete().eq("id", ugcPay.id);
+    await db.from("ugc_submissions").update({ total_earnings: 0 }).eq("id", opts.submissionId);
+    return { ok: false, error: "Could not credit creator wallet", status: 409 };
   }
 
   const { data: payoutRow } = await db

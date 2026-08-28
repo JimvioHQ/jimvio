@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     if (!verifyNowPaymentsSignature(rawBody, signature)) {
       console.error("[webhooks/nowpayments] Invalid signature");
-      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     const payload = JSON.parse(rawBody) as {

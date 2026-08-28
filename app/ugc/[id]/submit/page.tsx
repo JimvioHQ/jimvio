@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useLocale } from '@/context/LocaleContext';
 
 const PLATFORMS = [
   { id: 'tiktok', name: 'TikTok', icon: Video, hostHint: 'tiktok.com' },
@@ -53,6 +54,7 @@ function validateUrl(platform: string, url: string): string | null {
 export default function PublicUGCSubmitPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useLocale();
 
   const [platform, setPlatform] = useState<string>('');
   const [postUrl, setPostUrl] = useState('');
@@ -193,7 +195,7 @@ export default function PublicUGCSubmitPage() {
         <div className="border-b border-[#F3F4F6] bg-gradient-to-r from-[#FFF8F5] to-white px-6 py-5 sm:px-8">
           <h1 className="text-2xl font-bold text-[#111827]">Submit your content</h1>
           <p className="mt-1 text-sm text-[#6B7280]">
-            Paste a live TikTok, Instagram, YouTube, Facebook, or X URL. We validate before review.
+            {t("submitUrlHint")}
           </p>
         </div>
 

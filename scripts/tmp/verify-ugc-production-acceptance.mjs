@@ -67,6 +67,11 @@ async function loadTs(rel) {
 const deposit = read("app/api/ugc/campaigns/[id]/deposit/route.ts");
 const credit = read("lib/ugc/credit-fixed-payout.ts");
 const confirm = read("lib/ugc/confirm-escrow-payment.ts");
+const flwWebhook = read("app/api/payments/flutterwave/webhook/route.ts");
+const nowpWebhook = read("app/api/webhooks/nowpayments/route.ts");
+const invitationsId = read("app/api/ugc/invitations/[id]/route.ts");
+const insights = read("app/api/ugc/insights/route.ts");
+const submitPage = read("app/ugc/[id]/submit/page.tsx");
 const disputes = read("app/api/ugc/disputes/[id]/route.ts");
 const disputeMsgs = read("app/api/ugc/disputes/[id]/messages/route.ts");
 const crmPost = read("app/api/ugc/crm/lists/route.ts");
@@ -92,7 +97,30 @@ assert.match(deposit, /pending: true/);
 
 assert.match(credit, /\.eq\("spent_budget", spent\)/);
 assert.match(credit, /revertBudget/);
+assert.match(credit, /casCreditCreatorBalances/);
+assert.match(credit, /\.eq\("available_balance", infAvail\)/);
+assert.match(credit, /\.eq\("available_balance", wAvail\)/);
+assert.match(credit, /\.delete\(\)\.eq\("id", ugcPay\.id\)/);
 assert.doesNotMatch(credit, /UNIQUE.*submission_id/);
+
+assert.match(flwWebhook, /confirmUgcEscrowFromProviderEvent/);
+assert.match(flwWebhook, /status: 401/);
+assert.match(nowpWebhook, /confirmUgcEscrowPayment/);
+assert.match(nowpWebhook, /status: 401/);
+assert.doesNotMatch(nowpWebhook, /Invalid signature[\s\S]*status: 400/);
+
+assert.match(invitationsId, /creators\.invite/);
+assert.doesNotMatch(invitationsId, /BRAND_STATUSES\.has\(status\) && !isBrand/);
+
+assert.match(insights, /showEarnings/);
+assert.match(insights, /order\("display_name"/);
+assert.doesNotMatch(
+  insights,
+  /\.order\("total_earnings"[\s\S]*showEarnings = Boolean/,
+);
+
+assert.match(submitPage, /t\("submitUrlHint"\)/);
+assert.doesNotMatch(submitPage, /Facebook/);
 
 assert.match(confirm, /paidAmountCoversEscrow/);
 assert.match(confirm, /MIN_FUNDING_RWF/);
@@ -186,6 +214,9 @@ assert.equal(
 const i18n = await loadTs("lib/ugc/i18n/messages.ts");
 assert.notEqual(i18n.ugcMessage("en", "joinCampaign"), i18n.ugcMessage("fr", "joinCampaign"));
 assert.ok(i18n.ugcMessage("rw", "approveAction").length > 0);
+assert.ok(i18n.ugcMessage("en", "submitUrlHint").includes("TikTok"));
+assert.doesNotMatch(i18n.ugcMessage("en", "submitUrlHint"), /Facebook/);
+assert.notEqual(i18n.ugcMessage("en", "submitUrlHint"), i18n.ugcMessage("fr", "submitUrlHint"));
 assert.equal(i18n.normalizeUgcLocale("fr-FR"), "fr");
 assert.equal(i18n.UGC_LOCALE_COOKIE, "jimvio-ugc-locale");
 

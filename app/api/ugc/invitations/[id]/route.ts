@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
 import { optionalBrandWorkspace, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
-import { resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
 import { notifyUser } from "@/lib/notifications/notify-user";
 
@@ -42,7 +42,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Invitation is no longer pending" }, { status: 409 });
   }
 
-  const isBrand = Boolean(await resolveBrandRole(db, invitation.brand_id, user.id));
   const isCreator =
     invitation.invitee_user_id === user.id ||
     (influencer != null && invitation.influencer_id === influencer.id);
@@ -50,8 +49,11 @@ export async function PATCH(
   if (CREATOR_STATUSES.has(status) && !isCreator) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (BRAND_STATUSES.has(status) && !isBrand) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (BRAND_STATUSES.has(status)) {
+    const perm = await requireBrandPermission(db, invitation.brand_id, user.id, "creators.invite");
+    if (!perm.ok) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const now = new Date().toISOString();

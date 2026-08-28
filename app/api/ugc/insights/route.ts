@@ -19,6 +19,15 @@ export async function GET() {
   const { user, db, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
+  const { data: adminRole } = await db
+    .from("user_roles")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .eq("is_active", true)
+    .maybeSingle();
+  const showEarnings = Boolean(adminRole);
+
   const [
     profilesRes,
     vendorsRes,
@@ -30,16 +39,28 @@ export async function GET() {
     db.from("profiles").select("country").not("country", "is", null).limit(2000),
     db.from("vendors").select("business_country").not("business_country", "is", null).limit(2000),
     db.from("ugc_campaigns").select("campaign_type, status").limit(2000),
-    db
-      .from("influencers")
-      .select("id, display_name, profile_image, total_earnings, niche, is_verified")
-      .order("total_earnings", { ascending: false })
-      .limit(10),
-    db
-      .from("ugc_campaigns")
-      .select("brand_id, spent_budget, vendors!brand_id(id, business_name, business_logo)")
-      .order("spent_budget", { ascending: false })
-      .limit(200),
+    showEarnings
+      ? db
+          .from("influencers")
+          .select("id, display_name, profile_image, total_earnings, niche, is_verified")
+          .order("total_earnings", { ascending: false })
+          .limit(10)
+      : db
+          .from("influencers")
+          .select("id, display_name, profile_image, total_earnings, niche, is_verified")
+          .order("display_name", { ascending: true })
+          .limit(10),
+    showEarnings
+      ? db
+          .from("ugc_campaigns")
+          .select("brand_id, spent_budget, vendors!brand_id(id, business_name, business_logo)")
+          .order("spent_budget", { ascending: false })
+          .limit(200)
+      : db
+          .from("ugc_campaigns")
+          .select("brand_id, spent_budget, vendors!brand_id(id, business_name, business_logo)")
+          .order("created_at", { ascending: false })
+          .limit(200),
     db
       .from("ugc_campaigns")
       .select(
@@ -84,17 +105,12 @@ export async function GET() {
     });
   }
   const topBrandsBySpend = Array.from(brandSpendMap.values())
-    .sort((a, b) => b.spend - a.spend)
+    .sort((a, b) =>
+      showEarnings
+        ? b.spend - a.spend
+        : String(a.business_name ?? "").localeCompare(String(b.business_name ?? "")),
+    )
     .slice(0, 10);
-
-  const { data: adminRole } = await db
-    .from("user_roles")
-    .select("id")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .eq("is_active", true)
-    .maybeSingle();
-  const showEarnings = Boolean(adminRole);
 
   return NextResponse.json({
     topCountries,
