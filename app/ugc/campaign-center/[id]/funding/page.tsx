@@ -50,7 +50,7 @@ export default function CampaignFundingPage() {
 
   if (loading) {
     return (
-      <UGCPageShell title="Funding History" subtitle="Loading escrow ledger…">
+      <UGCPageShell titleKey="fundingHistory" subtitle="Loading escrow ledger…">
         <UGCPageLoading />
       </UGCPageShell>
     );
@@ -62,7 +62,7 @@ export default function CampaignFundingPage() {
 
   return (
     <UGCPageShell
-      title="Funding History"
+      titleKey="fundingHistory"
       subtitle="Escrow deposits associated with your campaigns."
       actions={
         <Button asChild size="sm" variant="outline" className="rounded-xl">

@@ -95,8 +95,7 @@ export function ReferralsPage() {
 
   return (
     <UGCPageShell
-      title="Referrals"
-      subtitle="Share your code, track attributions, and climb the leaderboard."
+      titleKey="referrals"
       actions={
         <EnterprisePrimaryButton onClick={() => void ensureCode()} disabled={busy}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}

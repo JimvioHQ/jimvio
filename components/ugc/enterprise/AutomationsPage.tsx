@@ -16,6 +16,7 @@ import {
   cardClass,
   fieldClass,
 } from "./enterprise-ui";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 
 type Automation = {
   id: string;
@@ -35,6 +36,8 @@ const TRIGGERS = [
 ];
 
 export function AutomationsPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const [rows, setRows] = useState<Automation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +50,7 @@ export function AutomationsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/automations", { cache: "no-store" });
+      const res = await ugcFetch("/api/ugc/automations", { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
       if (res.status === 403) {
         setError("Brand account required for automations.");
@@ -60,7 +63,7 @@ export function AutomationsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -73,7 +76,7 @@ export function AutomationsPage() {
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/ugc/automations", {
+      const res = await ugcFetch("/api/ugc/automations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -98,7 +101,7 @@ export function AutomationsPage() {
   const toggle = async (row: Automation) => {
     setBusy(true);
     try {
-      const res = await fetch(`/api/ugc/automations/${row.id}`, {
+      const res = await ugcFetch(`/api/ugc/automations/${row.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_enabled: !row.is_enabled }),
@@ -117,7 +120,7 @@ export function AutomationsPage() {
     if (!confirm("Delete this automation?")) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/ugc/automations/${id}`, { method: "DELETE" });
+      const res = await ugcFetch(`/api/ugc/automations/${id}`, { method: "DELETE" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Delete failed");
       toast.success("Deleted");
@@ -130,7 +133,7 @@ export function AutomationsPage() {
   };
 
   return (
-    <UGCPageShell title="Automations" subtitle="Trigger actions when campaign events fire.">
+    <UGCPageShell titleKey="automations" subtitleKey="automationsSubtitle">
       <div className={`${cardClass} grid gap-3 sm:grid-cols-2 lg:grid-cols-4`}>
         <label className="text-[12px] font-semibold text-[#374151]">
           Name

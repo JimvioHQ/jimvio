@@ -12,6 +12,7 @@ import {
   UGCPageShell,
   UGCStatusPill,
 } from "./UGCPageShell";
+import { useUgcBrandWorkspace } from "./UgcBrandWorkspaceProvider";
 
 type Invitation = {
   id: string;
@@ -27,6 +28,8 @@ type Invitation = {
 type CampaignOption = { id: string; title: string };
 
 export function UGCInvitationsPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const [rows, setRows] = useState<Invitation[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,8 +46,8 @@ export function UGCInvitationsPage() {
     setError(null);
     try {
       const [iRes, cRes] = await Promise.all([
-        fetch("/api/ugc/invitations", { cache: "no-store" }),
-        fetch("/api/ugc/campaigns?status=all&mine=1&limit=100", { cache: "no-store" }),
+        ugcFetch("/api/ugc/invitations", { cache: "no-store" }),
+        ugcFetch("/api/ugc/campaigns?status=all&mine=1&limit=100", { cache: "no-store" }),
       ]);
       if (iRes.status === 403) {
         setError("Brand account required to manage invitations.");
@@ -65,12 +68,12 @@ export function UGCInvitationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [campaignId]);
+  }, [campaignId, ugcFetch]);
 
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ugcFetch]);
 
   const sendInvite = async () => {
     if (!campaignId) {
@@ -83,7 +86,7 @@ export function UGCInvitationsPage() {
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/ugc/invitations", {
+      const res = await ugcFetch("/api/ugc/invitations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -119,8 +122,8 @@ export function UGCInvitationsPage() {
 
   return (
     <UGCPageShell
-      title="Creator Invitations"
-      subtitle="Invite creators by username or email and track invitation status."
+      titleKey="invitations"
+      subtitleKey="invitationsSubtitle"
     >
       <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-4">
         <h2 className="text-[14px] font-bold text-[#111827]">Send invitation</h2>

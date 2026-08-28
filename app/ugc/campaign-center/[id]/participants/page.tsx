@@ -135,11 +135,11 @@ export default function CampaignParticipantsPage() {
     return { pending, waitlisted };
   }, [rows]);
 
-  if (loading) return <UGCPageShell title="Applications" subtitle="Loading review queue..."><UGCPageLoading /></UGCPageShell>;
+  if (loading) return <UGCPageShell titleKey="applications" subtitle="Loading review queue..."><UGCPageLoading /></UGCPageShell>;
 
   return (
     <UGCPageShell
-      title="Campaign Application Review"
+      titleKey="applications"
       subtitle="Review creator applications, approve or reject, and message your decision."
       actions={
         <Button asChild size="sm" variant="outline" className="rounded-xl">

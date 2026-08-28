@@ -127,8 +127,8 @@ export function UGCDashboardPage() {
 
   return (
     <UGCPageShell
-      title="Dashboard"
-      subtitle="Earnings, performance, and your next creator moves."
+      titleKey="dashboard"
+      subtitleKey="dashboardSubtitle"
       actions={
         <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
           <Link href="/ugc">Discover campaigns</Link>

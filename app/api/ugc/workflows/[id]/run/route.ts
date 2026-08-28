@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
-import { requireBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { requireBrandWorkspace, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
 import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 import { emitUgcWebhook } from "@/lib/ugc/enterprise/webhooks";
 import { notifyUser } from "@/lib/notifications/notify-user";
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const ws = await requireBrandWorkspace(user.id);
+  const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
   const { db, vendor } = ws;
   const perm = await requireBrandPermission(db, vendor.id, user.id, "automations.manage");
@@ -95,6 +95,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         blocker: skipped.length
           ? "Wait/delay/status nodes require a job queue and were skipped."
           : null,
+        execution_status: skipped.length ? "completed_with_skipped" : "completed",
         input: body.context && typeof body.context === "object" ? body.context : {},
       },
       started_at: now,
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         workflow: workflow.name,
         nodesProcessed: completed.length,
         skipped,
-        status: "completed",
+        status: skipped.length ? "completed_with_skipped" : "completed",
       },
     },
     { status: 201 }

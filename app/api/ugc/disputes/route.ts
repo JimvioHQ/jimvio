@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
-import { listAccessibleBrandIds, optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { listAccessibleBrandIds, optionalBrandWorkspace, brandIdFromRequest, userCanAccessBrand } from "@/lib/ugc/enterprise/brand-access";
 import { requireBrandPermission, resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
@@ -9,11 +9,12 @@ export async function GET(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
   const status = req.nextUrl.searchParams.get("status");
   const brandIds = await listAccessibleBrandIds(db, user.id);
+  const requestedBrandId = brandIdFromRequest(req);
 
   let query = db
     .from("ugc_disputes")
@@ -26,7 +27,12 @@ export async function GET(req: NextRequest) {
     )
     .order("created_at", { ascending: false });
 
-  if (brandIds.length) {
+  if (requestedBrandId) {
+    if (!(await userCanAccessBrand(db, requestedBrandId, user.id))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    query = query.eq("brand_id", requestedBrandId);
+  } else if (brandIds.length) {
     query = query.in("brand_id", brandIds);
   } else if (influencer) {
     query = query.or(`opened_by.eq.${user.id},influencer_id.eq.${influencer.id}`);
@@ -45,7 +51,7 @@ export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 

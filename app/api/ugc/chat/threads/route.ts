@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
-import { listAccessibleBrandIds, optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { listAccessibleBrandIds, optionalBrandWorkspace, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
 import { resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
   const campaignId = req.nextUrl.searchParams.get("campaign_id") ?? undefined;
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
-import { optionalBrandWorkspace, userCanAccessBrand } from "@/lib/ugc/enterprise/brand-access";
+import { optionalBrandWorkspace, userCanAccessBrand, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
 import { resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export async function PATCH(
     return NextResponse.json({ error: "is_pinned boolean required" }, { status: 400 });
   }
 
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 

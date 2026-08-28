@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
-import { optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { optionalBrandWorkspace, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
 import { resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
 import { notifyUser } from "@/lib/notifications/notify-user";
@@ -27,7 +27,7 @@ export async function PATCH(
     );
   }
 
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const vendorDb = brandWs.db;
   const { db, influencer } = await requireInfluencer(user.id);
 

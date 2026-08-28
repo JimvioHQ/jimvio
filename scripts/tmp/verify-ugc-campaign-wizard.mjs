@@ -58,7 +58,7 @@ assert.match(wizard, /readyForFunding: true/);
 assert.match(wizard, /serverDraftPatch\(\{ readyForFunding: true \}\)/);
 assert.match(wizard, /label="Min duration \(sec\)" required/);
 assert.match(wizard, /label="Max duration \(sec\)" required/);
-assert.match(wizard, /Save Draft/);
+assert.match(wizard, /t\("saveDraft"\)/);
 assert.match(wizard, /validateCampaignStep\("basics", form\)/);
 assert.match(wizard, /validateCampaignStep\("rewards", form\)/);
 assert.match(wizard, /This campaign is not ready for funding/);

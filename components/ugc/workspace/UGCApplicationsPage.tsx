@@ -292,8 +292,8 @@ export function UGCApplicationsPage() {
 
   return (
     <UGCPageShell
-      title="My Applications"
-      subtitle="Kanban board — track every campaign from apply to completion."
+      titleKey="applications"
+      subtitleKey="applicationsSubtitle"
       actions={
         <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
           <Link href="/ugc">Discover campaigns</Link>

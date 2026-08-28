@@ -44,6 +44,9 @@ import { useAIStore } from "@/lib/store/use-ai-store";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/context/LocaleContext";
 import type { UgcMessageKey } from "@/lib/ugc/i18n/messages";
+import { UgcWorkspaceSwitcher } from "./UgcWorkspaceSwitcher";
+import { useUgcBrandWorkspace } from "./UgcBrandWorkspaceProvider";
+import { withBrandQuery } from "@/lib/ugc/client/with-brand-query";
 
 const PRIMARY_NAV: {
   id: string;
@@ -158,11 +161,15 @@ function NavLink({
   active: boolean;
   onNavigate?: () => void;
 }) {
+  const { brandId } = useUgcBrandWorkspace();
+  const href =
+    item.href.startsWith("/ugc/campaign-center") ? withBrandQuery(item.href, brandId) : item.href;
   const Icon = item.icon;
   return (
     <Link
-      href={item.href}
+      href={href}
       onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
       className={cn(
         "group relative flex items-center gap-2.5 rounded-[10px] px-2.5 py-[8px] text-[12px] font-medium transition-all duration-150",
         active
@@ -234,7 +241,8 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
   return (
     <div className="flex h-full w-[220px] flex-col bg-white xl:w-[236px]">
       <div className="px-3.5 pb-2 pt-4">
-        <h2 className="text-[12px] font-bold tracking-tight text-[#111827]">UGC &amp; Clipping</h2>
+        <h2 className="text-[12px] font-bold tracking-tight text-[#111827]">{t("ugcClipping")}</h2>
+        <UgcWorkspaceSwitcher />
         <Link
           href="/dashboard"
           onClick={onNavigate}
@@ -286,6 +294,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
               type="button"
               onClick={toggleMore}
               aria-expanded={moreOpen}
+              aria-label={t("more")}
               className={cn(
                 "group flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-[8px] text-[12px] font-medium transition-all duration-150",
                 moreOpen || moreItemActive
@@ -360,7 +369,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
                 <span className="text-[13.5px] font-bold tracking-tight text-white">Jimvio AI</span>
               </div>
               <p className="text-[10.5px] leading-[1.4] text-white/93">
-                Your intelligent assistant for winning campaigns.
+                {t("aiBlurb")}
               </p>
 
               <button
@@ -371,9 +380,9 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
                   );
                   onNavigate?.();
                 }}
-                className="mt-3.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-white px-3 text-[11.5px] font-bold text-[#FF5A1F] shadow-[0_6px_18px_rgba(17,24,39,0.18)] transition-all duration-150 hover:bg-[#FFFAF7] hover:shadow-[0_8px_22px_rgba(17,24,39,0.22)]"
+                className="mt-3.5 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-white px-3 text-[11.5px] font-bold text-[#FF5A1F] shadow-[0_6px_18px_rgba(17,24,39,0.18)] transition-all duration-150 hover:bg-[#FFFAF7] hover:shadow-[0_8px_22px_rgba(17,24,39,0.22)]"
               >
-                Ask AI Anything
+                {t("askAi")}
                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />
               </button>
 

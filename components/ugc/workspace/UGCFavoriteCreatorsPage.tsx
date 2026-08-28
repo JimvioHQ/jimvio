@@ -11,6 +11,7 @@ import {
   UGCPageLoading,
   UGCPageShell,
 } from "./UGCPageShell";
+import { useUgcBrandWorkspace } from "./UgcBrandWorkspaceProvider";
 
 type Favorite = {
   id: string;
@@ -28,6 +29,8 @@ type Favorite = {
 type CampaignOption = { id: string; title: string };
 
 export function UGCFavoriteCreatorsPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const [rows, setRows] = useState<Favorite[]>([]);
   const [campaigns, setCampaigns] = useState<CampaignOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,8 +45,8 @@ export function UGCFavoriteCreatorsPage() {
     setError(null);
     try {
       const [fRes, cRes] = await Promise.all([
-        fetch("/api/ugc/favorites/creators", { cache: "no-store" }),
-        fetch("/api/ugc/campaigns?status=all&mine=1&limit=100", { cache: "no-store" }),
+        ugcFetch("/api/ugc/favorites/creators", { cache: "no-store" }),
+        ugcFetch("/api/ugc/campaigns?status=all&mine=1&limit=100", { cache: "no-store" }),
       ]);
       if (fRes.status === 403) {
         setError("Brand account required to manage favorite creators.");
@@ -71,7 +74,7 @@ export function UGCFavoriteCreatorsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -80,7 +83,7 @@ export function UGCFavoriteCreatorsPage() {
   const saveNotes = async (fav: Favorite) => {
     setBusyId(fav.id);
     try {
-      const res = await fetch(`/api/ugc/favorites/creators/${fav.id}`, {
+      const res = await ugcFetch(`/api/ugc/favorites/creators/${fav.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes: notesDraft[fav.id] ?? "" }),
@@ -122,7 +125,7 @@ export function UGCFavoriteCreatorsPage() {
     }
     setBusyId(fav.id);
     try {
-      const res = await fetch("/api/ugc/invitations", {
+      const res = await ugcFetch("/api/ugc/invitations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -151,8 +154,8 @@ export function UGCFavoriteCreatorsPage() {
 
   return (
     <UGCPageShell
-      title="Favorite Creators"
-      subtitle="Bookmarked creators for quick invites and notes."
+      titleKey="favorites"
+      subtitleKey="favoritesSubtitle"
     >
       <UGCFilterBar search={search} onSearchChange={setSearch} />
 

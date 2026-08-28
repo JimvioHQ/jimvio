@@ -224,8 +224,8 @@ export function CampaignChatPage({ campaignId }: { campaignId: string }) {
 
   return (
     <UGCPageShell
-      title="Campaign Chat"
-      subtitle="Message the brand or creator about this campaign."
+      titleKey="campaignChat"
+      subtitleKey="chatSubtitle"
       actions={
         <Button asChild size="sm" variant="outline" className="rounded-xl">
           <Link href={`/ugc/${campaignId}`}>Campaign page</Link>

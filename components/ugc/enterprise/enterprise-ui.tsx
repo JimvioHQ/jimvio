@@ -33,7 +33,7 @@ export function EnterprisePrimaryButton({
     <button
       type="button"
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl bg-[#FF5A1F] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#E54E18] disabled:opacity-50",
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#FF5A1F] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#E54E18] disabled:opacity-50",
         className,
       )}
       {...props}
@@ -49,7 +49,7 @@ export function EnterpriseOutlineButton({
     <button
       type="button"
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#374151] transition hover:border-[#FF5A1F]/40 hover:text-[#FF5A1F] disabled:opacity-50",
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-4 py-2 text-sm font-semibold text-[#374151] transition hover:border-[#FF5A1F]/40 hover:text-[#FF5A1F] disabled:opacity-50",
         className,
       )}
       {...props}

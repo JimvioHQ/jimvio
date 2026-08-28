@@ -65,7 +65,7 @@ export default function CampaignReportsPage() {
 
   return (
     <UGCPageShell
-      title="Export Reports"
+      titleKey="exportReports"
       subtitle="Download campaign, creator, and financial reports (PDF, CSV, Excel)."
       actions={
         <Button asChild size="sm" variant="outline" className="rounded-xl">

@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { UGCWorkspaceShell } from "./UGCWorkspaceShell";
+import { UgcBrandWorkspaceProvider } from "./UgcBrandWorkspaceProvider";
 
 type UGCWorkspaceLayoutClientProps = {
   children: React.ReactNode;
@@ -25,9 +26,11 @@ function ShellFallback() {
 export function UGCWorkspaceLayoutClient({ children, user }: UGCWorkspaceLayoutClientProps) {
   return (
     <Suspense fallback={<ShellFallback />}>
-      <UGCWorkspaceShell user={user}>
-        <div className="px-3.5 py-3 sm:px-5 lg:px-6 lg:py-4">{children}</div>
-      </UGCWorkspaceShell>
+      <UgcBrandWorkspaceProvider>
+        <UGCWorkspaceShell user={user}>
+          <div className="px-3.5 py-3 sm:px-5 lg:px-6 lg:py-4">{children}</div>
+        </UGCWorkspaceShell>
+      </UgcBrandWorkspaceProvider>
     </Suspense>
   );
 }

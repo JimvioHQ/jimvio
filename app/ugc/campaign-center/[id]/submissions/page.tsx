@@ -207,7 +207,7 @@ export default function CampaignSubmissionsPage() {
 
   if (loading) {
     return (
-      <UGCPageShell title="Submission Review" subtitle="Loading review queue…">
+      <UGCPageShell titleKey="submissionReview" subtitle="Loading review queue…">
         <UGCPageLoading />
       </UGCPageShell>
     );
@@ -226,7 +226,7 @@ export default function CampaignSubmissionsPage() {
 
   return (
     <UGCPageShell
-      title="Submission Review"
+      titleKey="submissionReview"
       subtitle="Preview creator content, approve, reject, or request revisions."
       actions={
         <Button asChild size="sm" variant="outline" className="rounded-xl">

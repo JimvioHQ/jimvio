@@ -47,8 +47,8 @@ export function CampaignTimelinePage({ campaignId }: { campaignId: string }) {
 
   return (
     <UGCPageShell
-      title="Campaign Timeline"
-      subtitle="Activity history for this campaign — applications, reviews, payments, and more."
+      titleKey="campaignTimeline"
+      subtitleKey="timelineSubtitle"
       actions={
         <div className="flex gap-2">
           <Button asChild size="sm" variant="outline" className="rounded-xl">

@@ -50,8 +50,8 @@ export function UGCBrandDealsPage() {
 
   return (
     <UGCPageShell
-      title="Brand Deals"
-      subtitle="Direct brand offers, promotions, and partnership opportunities."
+      titleKey="deals"
+      subtitleKey="dealsSubtitle"
     >
       <UGCFilterBar search={search} onSearchChange={setSearch} />
 

@@ -8,6 +8,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/context/LocaleContext";
 import {
   CONTENT_TYPES,
   PLATFORM_FILTERS,
@@ -46,6 +47,7 @@ export function UGCHeroHeader({
   onClearAll,
   hasFilters,
 }: UGCHeroHeaderProps) {
+  const { t } = useLocale();
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -61,10 +63,10 @@ export function UGCHeroHeader({
     <header className="mb-3.5 lg:mb-4">
       <div className="min-w-0">
         <h1 className="text-[clamp(1.3rem,2.3vw,1.7rem)] font-bold leading-[1.12] tracking-[-0.025em] text-[#111827]">
-          Discover UGC &amp; Clipping Campaigns
+          {t("discover")}
         </h1>
         <p className="mt-1.5 max-w-2xl text-[13px] leading-snug text-[#6B7280]">
-          Find the best brands. Create authentic content. Earn real rewards.
+          {t("discoverBlurb")}
         </p>
       </div>
 
@@ -80,10 +82,10 @@ export function UGCHeroHeader({
             type="search"
             value={inputVal}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search campaigns, brands or niches…"
-            aria-label="Search campaigns"
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchPlaceholder")}
             className={cn(
-              "h-10 w-full rounded-[12px] border border-[#E5E7EB] bg-white pl-10 pr-[4.5rem] text-[13px] text-[#111827]",
+              "min-h-11 h-11 w-full rounded-[12px] border border-[#E5E7EB] bg-white pl-10 pr-[4.5rem] text-[13px] text-[#111827]",
               "shadow-[0_1px_2px_rgba(17,24,39,0.03)] outline-none transition-all duration-150",
               "placeholder:text-[#9CA3AF]",
               "hover:border-[#D1D5DB]",
@@ -95,8 +97,8 @@ export function UGCHeroHeader({
               <button
                 type="button"
                 onClick={onClearSearch}
-                aria-label="Clear search"
-                className="rounded-full p-1 text-[#9CA3AF] transition-colors hover:bg-[#F3F4F6] hover:text-[#111827]"
+                aria-label={t("clearFilters")}
+                className="grid h-11 w-11 place-items-center rounded-full text-[#9CA3AF] transition-colors hover:bg-[#F3F4F6] hover:text-[#111827]"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -166,23 +168,23 @@ export function UGCHeroHeader({
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              className="inline-flex h-8 items-center gap-1.5 rounded-[10px] border border-[#E5E7EB] bg-white px-2.5 text-[11px] font-semibold text-[#374151] shadow-[0_1px_2px_rgba(17,24,39,0.03)] transition-all hover:border-[#D1D5DB] hover:bg-[#F8FAFC]"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-[#E5E7EB] bg-white px-2.5 text-[11px] font-semibold text-[#374151] shadow-[0_1px_2px_rgba(17,24,39,0.03)] transition-all hover:border-[#D1D5DB] hover:bg-[#F8FAFC]"
             >
               <SlidersHorizontal className="h-3 w-3" strokeWidth={2} />
-              Filters
+              {t("filters")}
             </button>
             <button
               type="button"
               onClick={onClearAll}
               disabled={!hasFilters}
               className={cn(
-                "text-[11px] font-semibold transition-colors",
+                "min-h-11 text-[11px] font-semibold transition-colors",
                 hasFilters
                   ? "text-[#FF5A1F] hover:text-[#E54E18] hover:underline"
                   : "cursor-default text-[#D1D5DB]",
               )}
             >
-              Reset
+              {t("clearFilters")}
             </button>
           </div>
         </div>
@@ -212,7 +214,7 @@ function FilterSelect({
         onChange={(e) => onChange(e.target.value)}
         aria-label={label}
         className={cn(
-          "h-8 appearance-none rounded-[10px] border border-[#E5E7EB] bg-white pl-2.5 pr-7",
+          "min-h-11 h-11 appearance-none rounded-[10px] border border-[#E5E7EB] bg-white pl-2.5 pr-7",
           "text-[11px] font-semibold text-[#374151] outline-none transition-all duration-150",
           "shadow-[0_1px_2px_rgba(17,24,39,0.03)]",
           "hover:border-[#D1D5DB] hover:bg-[#F8FAFC]",

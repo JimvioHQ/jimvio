@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireInfluencer, isAdmin } from "@/lib/ugc/platform/auth";
-import { optionalBrandWorkspace, userCanAccessBrand } from "@/lib/ugc/enterprise/brand-access";
+import { optionalBrandWorkspace, userCanAccessBrand, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
 import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
@@ -17,12 +17,12 @@ async function canAccessDispute(
   return isAdmin(userId);
 }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 
@@ -58,7 +58,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
   const admin = await isAdmin(user.id);

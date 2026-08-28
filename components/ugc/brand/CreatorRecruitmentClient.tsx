@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { UGCPageEmpty, UGCPageError, UGCPageLoading, UGCPageShell } from "@/components/ugc/workspace/UGCPageShell";
 import { Pill, SectionCard } from "@/components/ugc/campaign-detail/campaign-detail-ui";
 import { cn } from "@/lib/utils";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 
 type CreatorRow = {
   influencerId: string;
@@ -62,6 +63,8 @@ function formatFollowers(n: number) {
 }
 
 export default function CreatorRecruitmentClient() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const [campaigns, setCampaigns] = useState<CampaignRow[]>([]);
   const [campaignId, setCampaignId] = useState<string>("");
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
@@ -89,7 +92,7 @@ export default function CreatorRecruitmentClient() {
     setLoadingCampaigns(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/campaigns?status=all&limit=50&mine=true", { cache: "no-store" });
+      const res = await ugcFetch("/api/ugc/campaigns?status=all&limit=50&mine=true", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load campaigns");
       const json = await res.json();
       const list = (json.data ?? []) as CampaignRow[];
@@ -101,7 +104,7 @@ export default function CreatorRecruitmentClient() {
     } finally {
       setLoadingCampaigns(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void loadCampaigns();
@@ -113,7 +116,7 @@ export default function CreatorRecruitmentClient() {
       return;
     }
     try {
-      const res = await fetch(`/api/ugc/campaigns/${campaignId}/participants`, { cache: "no-store" });
+      const res = await ugcFetch(`/api/ugc/campaigns/${campaignId}/participants`, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load campaign participants");
       const json = await res.json();
       const rows = (json.data ?? json ?? []) as any[];
@@ -131,7 +134,7 @@ export default function CreatorRecruitmentClient() {
     } catch {
       setInviteMap(new Map());
     }
-  }, [campaignId]);
+  }, [campaignId, ugcFetch]);
 
   useEffect(() => {
     void loadInviteMap();
@@ -153,7 +156,7 @@ export default function CreatorRecruitmentClient() {
       if (niche.trim()) sp.set("niche", niche.trim());
       if (minCompletedCampaigns != null) sp.set("minCompletedCampaigns", String(minCompletedCampaigns));
 
-      const res = await fetch(`/api/ugc/brand/creators/search?${sp.toString()}`, { cache: "no-store" });
+      const res = await ugcFetch(`/api/ugc/brand/creators/search?${sp.toString()}`, { cache: "no-store" });
       if (!res.ok) throw new Error("Search failed");
       const json = await res.json();
       setCreators((json.data ?? []) as CreatorRow[]);
@@ -162,7 +165,7 @@ export default function CreatorRecruitmentClient() {
     } finally {
       setLoadingCreators(false);
     }
-  }, [country, language, maxFollowers, minCompletedCampaigns, minEngagement, minFollowers, niche, platform, q, verified]);
+  }, [country, language, maxFollowers, minCompletedCampaigns, minEngagement, minFollowers, niche, platform, q, verified, ugcFetch]);
 
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
@@ -180,7 +183,7 @@ export default function CreatorRecruitmentClient() {
       const participant = inviteMap.get(creator.influencerId);
       if (!participant) return;
       try {
-        const res = await fetch(`/api/ugc/campaigns/${campaignId}/participants`, {
+        const res = await ugcFetch(`/api/ugc/campaigns/${campaignId}/participants`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ participantId: participant.id, action: "invite" }),
@@ -191,7 +194,7 @@ export default function CreatorRecruitmentClient() {
         setError(e instanceof Error ? e.message : "Invite failed");
       }
     },
-    [campaignId, inviteMap, loadInviteMap],
+    [campaignId, inviteMap, loadInviteMap, ugcFetch],
   );
 
   const selectedCampaign = useMemo(
@@ -201,8 +204,8 @@ export default function CreatorRecruitmentClient() {
 
   return (
     <UGCPageShell
-      title="Creator Recruitment"
-      subtitle="Search creators and invite the best fit — filtered by performance and fit."
+      titleKey="creatorRecruitment"
+      subtitleKey="recruitmentSubtitle"
       actions={
         <Button asChild size="sm" variant="outline" className="rounded-xl">
           <Link href="/ugc/campaign-center/create">Create Campaign</Link>

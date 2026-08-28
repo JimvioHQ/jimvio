@@ -17,6 +17,7 @@ import {
   UGCPageLoading,
   UGCPageShell,
 } from "./UGCPageShell";
+import { useUgcBrandWorkspace } from "./UgcBrandWorkspaceProvider";
 
 type CampaignTemplate = {
   id: string;
@@ -29,6 +30,8 @@ type CampaignTemplate = {
 };
 
 export function UGCTemplatesPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const router = useRouter();
   const [templates, setTemplates] = useState<CampaignTemplate[]>([]);
   const [legacy, setLegacy] = useState<UGCTemplate[]>([]);
@@ -42,7 +45,7 @@ export function UGCTemplatesPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/templates", { cache: "no-store" });
+      const res = await ugcFetch("/api/ugc/templates", { cache: "no-store" });
       if (!res.ok) throw new Error("load failed");
       const json = await res.json();
       setTemplates(json.data ?? []);
@@ -52,7 +55,7 @@ export function UGCTemplatesPage() {
       setLoading(false);
       setLegacy(getTemplates());
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -73,7 +76,7 @@ export function UGCTemplatesPage() {
   const toggleFavorite = async (t: CampaignTemplate) => {
     setBusyId(t.id);
     try {
-      const res = await fetch(`/api/ugc/templates/${t.id}`, {
+      const res = await ugcFetch(`/api/ugc/templates/${t.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_favorite: !t.is_favorite }),
@@ -92,7 +95,7 @@ export function UGCTemplatesPage() {
     if (!confirm("Delete this template?")) return;
     setBusyId(id);
     try {
-      const res = await fetch(`/api/ugc/templates/${id}`, { method: "DELETE" });
+      const res = await ugcFetch(`/api/ugc/templates/${id}`, { method: "DELETE" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Delete failed");
       toast.success("Template deleted");
@@ -107,7 +110,7 @@ export function UGCTemplatesPage() {
   const applyTemplate = async (id: string) => {
     setBusyId(id);
     try {
-      const res = await fetch(`/api/ugc/templates/${id}`, { method: "POST" });
+      const res = await ugcFetch(`/api/ugc/templates/${id}`, { method: "POST" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Could not use template");
       toast.success("Draft created from template");
@@ -121,8 +124,8 @@ export function UGCTemplatesPage() {
 
   return (
     <UGCPageShell
-      title="Campaign Templates"
-      subtitle="Reusable campaign setups. Use a template to create a draft instantly."
+      titleKey="templates"
+      subtitleKey="templatesSubtitle"
     >
       <UGCFilterBar search={search} onSearchChange={setSearch}>
         <button

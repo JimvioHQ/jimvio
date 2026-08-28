@@ -9,6 +9,7 @@ import {
   UGCPageShell,
 } from "@/components/ugc/workspace/UGCPageShell";
 import { EnterpriseOutlineButton, MetricCard } from "./enterprise-ui";
+import { useLocale } from "@/context/LocaleContext";
 
 type LiveMetrics = {
   activeCreators: number;
@@ -23,6 +24,7 @@ type LiveMetrics = {
 };
 
 export function CampaignLiveDashboard({ campaignId }: { campaignId: string }) {
+  const { t } = useLocale();
   const [metrics, setMetrics] = useState<LiveMetrics | null>(null);
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState("");
@@ -49,19 +51,20 @@ export function CampaignLiveDashboard({ campaignId }: { campaignId: string }) {
 
   useEffect(() => {
     void load();
-    const t = window.setInterval(() => void load(), 8000);
-    return () => window.clearInterval(t);
+    const interval = window.setInterval(() => void load(), 8000);
+    return () => window.clearInterval(interval);
   }, [load]);
 
   return (
     <UGCPageShell
-      title={title || "Live Dashboard"}
+      title={title || undefined}
+      titleKey={title ? undefined : "liveDashboard"}
       subtitle={`Real-time campaign health${status ? ` · ${status}` : ""}${updatedAt ? ` · updated ${updatedAt}` : ""}`}
       actions={
         <>
           <EnterpriseOutlineButton onClick={() => void load()}>
             <RefreshCw className="h-4 w-4" />
-            Refresh
+            {t("refresh")}
           </EnterpriseOutlineButton>
           <Link
             href={`/ugc/${campaignId}`}

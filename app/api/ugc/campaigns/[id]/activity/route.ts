@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
-import { optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { optionalBrandWorkspace, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
 import { resolveBrandRole } from "@/lib/ugc/enterprise/permissions";
 import { recordUgcActivity } from "@/lib/ugc/platform/activity";
 
@@ -14,7 +14,7 @@ export async function GET(
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const { db } = brandWs;
   const { influencer } = await requireInfluencer(user.id);
 

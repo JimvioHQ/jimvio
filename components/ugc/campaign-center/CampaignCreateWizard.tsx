@@ -29,8 +29,9 @@ import {
   validateCampaignStep,
   validateCampaignWizardReady,
 } from "@/lib/ugc/campaign-wizard-validation";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
+import { useLocale } from "@/context/LocaleContext";
 
-const STEPS = CAMPAIGN_WIZARD_STEPS.map((s) => s.label);
 const STEP_KEY = "jimvio-campaign-center-step-v1";
 
 const TYPES: { value: UGCCampaignType; label: string; desc: string }[] = [
@@ -103,6 +104,18 @@ type CampaignCreateWizardProps = {
 };
 
 export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
+  const { ugcFetch, brandId } = useUgcBrandWorkspace();
+  const { t } = useLocale();
+  const STEPS = [
+    t("wizardStepType"),
+    t("wizardStepBasics"),
+    t("wizardStepRewards"),
+    t("wizardStepTargeting"),
+    t("wizardStepRequirements"),
+    t("wizardStepAssets"),
+    t("wizardStepReview"),
+  ];
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const duplicateId = searchParams.get("duplicate");
@@ -188,7 +201,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     (async () => {
       if (sourceId) {
         try {
-          const res = await fetch(`/api/ugc/campaigns/${sourceId}`);
+          const res = await ugcFetch(`/api/ugc/campaigns/${sourceId}`);
           const json = await res.json();
           const c = json.campaign;
           if (!c || cancelled) return;
@@ -222,7 +235,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     return () => {
       cancelled = true;
     };
-  }, [sourceId, applyCampaign, stepParam]);
+  }, [sourceId, applyCampaign, stepParam, ugcFetch]);
 
   // Autosave to localStorage
   useEffect(() => {
@@ -331,8 +344,9 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
       promotion_target: form.promotion_target || undefined,
       promotion_target_url: form.promotion_target_url || undefined,
       media: form.media,
+      brand_id: brandId || undefined,
     };
-  }, [form]);
+  }, [form, brandId]);
 
   const serverDraftPatch = (extra: Record<string, unknown> = {}) => ({
     title: payload.title,
@@ -356,7 +370,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
 
   const persistServerDraft = async (): Promise<boolean> => {
     if (!activeCampaignId) return true;
-    const res = await fetch(`/api/ugc/campaigns/${activeCampaignId}`, {
+    const res = await ugcFetch(`/api/ugc/campaigns/${activeCampaignId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(serverDraftPatch()),
@@ -437,7 +451,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     setError("");
     try {
       if (activeCampaignId) {
-        const res = await fetch(`/api/ugc/campaigns/${activeCampaignId}`, {
+        const res = await ugcFetch(`/api/ugc/campaigns/${activeCampaignId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(serverDraftPatch()),
@@ -449,7 +463,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         return;
       }
 
-      const res = await fetch("/api/ugc/campaigns", {
+      const res = await ugcFetch("/api/ugc/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -478,7 +492,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
     try {
       let id = activeCampaignId;
       if (!id) {
-        const res = await fetch("/api/ugc/campaigns", {
+        const res = await ugcFetch("/api/ugc/campaigns", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ...payload, readyForFunding: true }),
@@ -493,7 +507,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
         id = json.campaign?.id as string;
         localStorage.removeItem(DRAFT_KEY);
       } else {
-        const res = await fetch(`/api/ugc/campaigns/${id}`, {
+        const res = await ugcFetch(`/api/ugc/campaigns/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(serverDraftPatch({ readyForFunding: true })),
@@ -539,8 +553,8 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
           </p>
           <h1 className="mt-1 text-[24px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
             {activeCampaignId && !duplicateId && !templateId
-              ? "Edit Campaign"
-              : "Create Campaign"}
+              ? t("createCampaign")
+              : t("createCampaign")}
           </h1>
           <p className="mt-1 text-[13px] text-[#6B7280]">
             Professional multi-step setup with autosave and validation.
@@ -1000,29 +1014,29 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
             type="button"
             onClick={back}
             disabled={step === 0 || loading}
-            className="inline-flex h-10 items-center gap-1.5 rounded-full border border-[#E5E7EB] px-4 text-[13px] font-semibold text-[#374151] disabled:opacity-40"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#E5E7EB] px-4 text-[13px] font-semibold text-[#374151] disabled:opacity-40"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back
+            {t("back")}
           </button>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => void saveDraft()}
               disabled={loading}
-              className="inline-flex h-10 items-center gap-1.5 rounded-full border border-[#E5E7EB] px-4 text-[13px] font-semibold text-[#374151] disabled:opacity-50"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-[#E5E7EB] px-4 text-[13px] font-semibold text-[#374151] disabled:opacity-50"
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              Save Draft
+              {t("saveDraft")}
             </button>
             {step < STEPS.length - 1 ? (
               <button
                 type="button"
                 onClick={() => void next()}
                 disabled={loading}
-                className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white"
               >
-                Continue
+                {t("continue")}
                 <ArrowRight className="h-3.5 w-3.5" />
               </button>
             ) : (
@@ -1030,10 +1044,10 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
                 type="button"
                 onClick={() => void continueToFunding()}
                 disabled={loading || !validateCampaignWizardReady(form).success}
-                className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white disabled:opacity-50"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white disabled:opacity-50"
               >
                 {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-                Continue to Funding
+                {t("continueToFunding")}
               </button>
             )}
           </div>

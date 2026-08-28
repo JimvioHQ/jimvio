@@ -16,6 +16,8 @@ import {
   cardClass,
   fieldClass,
 } from "./enterprise-ui";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
+import { useLocale } from "@/context/LocaleContext";
 
 type Member = {
   id: string;
@@ -31,6 +33,9 @@ type Member = {
 const ROLES = ["manager", "reviewer", "finance", "viewer"] as const;
 
 export function BrandTeamPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+  const { t } = useLocale();
+
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +47,7 @@ export function BrandTeamPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/team", { cache: "no-store" });
+      const res = await ugcFetch("/api/ugc/team", { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
       if (res.status === 403) {
         setError("Brand account required to manage team.");
@@ -56,7 +61,7 @@ export function BrandTeamPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -69,7 +74,7 @@ export function BrandTeamPage() {
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/ugc/team", {
+      const res = await ugcFetch("/api/ugc/team", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim(), role }),
@@ -90,7 +95,7 @@ export function BrandTeamPage() {
     if (!confirm("Revoke this member?")) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/ugc/team/${id}`, { method: "DELETE" });
+      const res = await ugcFetch(`/api/ugc/team/${id}`, { method: "DELETE" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Revoke failed");
       toast.success("Member revoked");
@@ -104,8 +109,8 @@ export function BrandTeamPage() {
 
   return (
     <UGCPageShell
-      title="Brand Team"
-      subtitle="Invite collaborators and manage roles for your campaign center."
+      titleKey="team"
+      subtitleKey="teamSubtitle"
     >
       <div className={`${cardClass} grid gap-3 sm:grid-cols-[1fr_160px_auto]`}>
         <label className="text-[12px] font-semibold text-[#374151]">
@@ -136,7 +141,7 @@ export function BrandTeamPage() {
       {loading ? <UGCPageLoading /> : null}
       {!loading && error ? <UGCPageError message={error} onRetry={load} /> : null}
       {!loading && !error && members.length === 0 ? (
-        <UGCPageEmpty title="No team members" description="Invite managers, reviewers, or finance partners." />
+        <UGCPageEmpty title={t("emptyTeam")} description={t("inviteMember")} />
       ) : null}
 
       {!loading && !error && members.length > 0 ? (

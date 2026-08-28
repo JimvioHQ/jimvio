@@ -70,8 +70,8 @@ export function UGCGlobalSearchPage() {
 
   return (
     <UGCPageShell
-      title="Search"
-      subtitle="Find campaigns, creators, brands, library items, and invitations."
+      titleKey="search"
+      subtitleKey="searchSubtitle"
     >
       <UGCFilterBar
         search={q}

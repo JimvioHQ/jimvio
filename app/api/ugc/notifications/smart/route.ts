@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
-import { listAccessibleBrandIds, optionalBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { listAccessibleBrandIds, optionalBrandWorkspace, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
 import { matchCampaignsForCreator } from "@/lib/ugc/platform/matching";
 
 export const dynamic = "force-dynamic";
@@ -15,11 +15,11 @@ type SmartNotification = {
   meta?: Record<string, unknown>;
 };
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const { user, db, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const brandWs = await optionalBrandWorkspace(user.id);
+  const brandWs = await optionalBrandWorkspace(user.id, brandIdFromRequest(req));
   const { influencer } = await requireInfluencer(user.id);
   const brandIds = await listAccessibleBrandIds(brandWs.db, user.id);
   const items: SmartNotification[] = [];

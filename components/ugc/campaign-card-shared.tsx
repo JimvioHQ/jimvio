@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { cn, timeAgo as formatTimeAgo } from "@/lib/utils";
 import { useCurrency } from "@/context/CurrencyContext";
+import { useLocale } from "@/context/LocaleContext";
 
 const PLATFORM_ICONS: Record<string, React.ElementType> = {
   tiktok: Play,
@@ -48,6 +49,7 @@ export type SharedCampaignRow = {
 
 export function SharedCampaignCard({ c }: { c: SharedCampaignRow }) {
   const { formatMoney } = useCurrency();
+  const { t } = useLocale();
 
   const budgetPct = Math.min(100, ((c.spent_budget ?? 0) / (c.total_budget || 1)) * 100);
   const banner = c.media?.find((m) => m.usage === "banner")?.url;
@@ -143,7 +145,7 @@ export function SharedCampaignCard({ c }: { c: SharedCampaignRow }) {
         <div className="mt-2.5 flex items-end justify-between gap-2 border-t border-[var(--color-border)] pt-2.5">
           <div>
             <p className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-              Payout
+              {t("payoutLabel")}
             </p>
             <p className="text-[14px] font-bold tabular-nums text-[var(--color-text-primary)]">
               {payRate}
@@ -154,7 +156,7 @@ export function SharedCampaignCard({ c }: { c: SharedCampaignRow }) {
           </div>
           <div className="text-right">
             <p className="text-[9px] font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
-              Left
+              {t("leftLabel")}
             </p>
             <p
               className={cn(
@@ -171,9 +173,9 @@ export function SharedCampaignCard({ c }: { c: SharedCampaignRow }) {
           <div className="flex items-center justify-between text-[10px] text-[var(--color-text-muted)]">
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" />
-              {c.submission_count ?? 0} joined
+              {t("joinedCount", { count: c.submission_count ?? 0 })}
             </span>
-            <span>{Math.round(budgetPct)}% used</span>
+            <span>{t("usedPct", { pct: Math.round(budgetPct) })}</span>
           </div>
           <div className="h-1 overflow-hidden rounded-full bg-[var(--color-border)]">
             <div
@@ -189,10 +191,10 @@ export function SharedCampaignCard({ c }: { c: SharedCampaignRow }) {
         <div className="mt-2.5 flex items-center justify-between">
           <span className="flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
             <span className="h-1.5 w-1.5 rounded-full bg-current" />
-            Active
+            {t("statusActive")}
           </span>
           <span className="text-[11px] font-semibold text-[var(--color-accent)]">
-            View →
+            {t("viewArrow")}
           </span>
         </div>
       </div>

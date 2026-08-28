@@ -52,7 +52,7 @@ export default function CampaignPaymentsPage() {
 
   if (loading) {
     return (
-      <UGCPageShell title="Payment History" subtitle="Loading payout ledger…">
+      <UGCPageShell titleKey="paymentHistory" subtitle="Loading payout ledger…">
         <UGCPageLoading />
       </UGCPageShell>
     );
@@ -64,7 +64,7 @@ export default function CampaignPaymentsPage() {
 
   return (
     <UGCPageShell
-      title="Payment History"
+      titleKey="paymentHistory"
       subtitle="Payout lifecycle for approved submissions: Pending → Processing → Paid."
       actions={
         <Button asChild size="sm" variant="outline" className="rounded-xl">

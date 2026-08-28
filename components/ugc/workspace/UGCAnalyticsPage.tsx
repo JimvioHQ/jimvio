@@ -204,8 +204,8 @@ export function UGCAnalyticsPage() {
 
   return (
     <UGCPageShell
-      title="Analytics"
-      subtitle="Views, revenue, approvals, platforms, and monthly earnings."
+      titleKey="analytics"
+      subtitleKey="analyticsSubtitle"
     >
       {loading ? <UGCPageLoading /> : null}
       {!loading && error ? <UGCPageError message={error} onRetry={load} /> : null}

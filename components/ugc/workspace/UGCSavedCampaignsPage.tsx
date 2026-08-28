@@ -127,8 +127,8 @@ export function UGCSavedCampaignsPage() {
 
   return (
     <UGCPageShell
-      title="Saved Campaigns"
-      subtitle="Bookmarks and collections for campaigns you want to revisit."
+      titleKey="saved"
+      subtitleKey="savedSubtitle"
     >
       <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-4">
         <h2 className="text-[14px] font-bold text-[#111827]">Collections</h2>

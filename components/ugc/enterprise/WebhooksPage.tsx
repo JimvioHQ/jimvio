@@ -16,6 +16,7 @@ import {
   cardClass,
   fieldClass,
 } from "./enterprise-ui";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 
 type Webhook = {
   id: string;
@@ -42,6 +43,8 @@ const DEFAULT_EVENTS = [
 ];
 
 export function WebhooksPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const [rows, setRows] = useState<Webhook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export function WebhooksPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/webhooks", { cache: "no-store" });
+      const res = await ugcFetch("/api/ugc/webhooks", { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
       if (res.status === 403) {
         setError("Brand account required for webhooks.");
@@ -68,7 +71,7 @@ export function WebhooksPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -81,7 +84,7 @@ export function WebhooksPage() {
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/ugc/webhooks", {
+      const res = await ugcFetch("/api/ugc/webhooks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -113,7 +116,7 @@ export function WebhooksPage() {
     if (!confirm("Delete webhook?")) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/ugc/webhooks/${id}`, { method: "DELETE" });
+      const res = await ugcFetch(`/api/ugc/webhooks/${id}`, { method: "DELETE" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Delete failed");
       toast.success("Deleted");
@@ -132,7 +135,7 @@ export function WebhooksPage() {
   const loadDeliveries = async (id: string) => {
     setActiveId(id);
     try {
-      const res = await fetch(`/api/ugc/webhooks/${id}/deliveries`, { cache: "no-store" });
+      const res = await ugcFetch(`/api/ugc/webhooks/${id}/deliveries`, { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Failed to load deliveries");
       setDeliveries(json.data ?? json.deliveries ?? []);
@@ -142,7 +145,7 @@ export function WebhooksPage() {
   };
 
   return (
-    <UGCPageShell title="Webhooks" subtitle="Subscribe to campaign events and inspect delivery history.">
+    <UGCPageShell titleKey="webhooks" subtitleKey="webhooksSubtitle">
       <div className={`${cardClass} space-y-3`}>
         <label className="block text-[12px] font-semibold text-[#374151]">
           Endpoint URL

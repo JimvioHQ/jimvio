@@ -56,8 +56,8 @@ export function UGCMatchesPage() {
 
   return (
     <UGCPageShell
-      title="AI Matches"
-      subtitle="Scored campaigns that fit your niche, platforms, and performance."
+      titleKey="matches"
+      subtitleKey="matchesSubtitle"
       actions={
         <Button variant="outline" className="rounded-xl" onClick={() => void load()}>
           <Sparkles className="mr-2 h-4 w-4" />

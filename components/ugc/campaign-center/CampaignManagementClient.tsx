@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Pill, SectionCard } from "@/components/ugc/campaign-detail/campaign-detail-ui";
 import type { UGCCampaign } from "@/types/ugc";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 
 type Props = {
   campaignId: string;
@@ -31,6 +32,8 @@ type QualityScores = {
 };
 
 export default function CampaignManagementClient({ campaignId }: Props) {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const router = useRouter();
   const [campaign, setCampaign] = useState<UGCCampaign | null>(null);
   const [quality, setQuality] = useState<QualityScores | null>(null);
@@ -42,12 +45,12 @@ export default function CampaignManagementClient({ campaignId }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/ugc/campaigns/${campaignId}`, { cache: "no-store" });
+      const res = await ugcFetch(`/api/ugc/campaigns/${campaignId}`, { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Failed to load campaign");
       setCampaign(json.campaign ?? null);
 
-      const qRes = await fetch(`/api/ugc/campaigns/${campaignId}/quality`, { cache: "no-store" });
+      const qRes = await ugcFetch(`/api/ugc/campaigns/${campaignId}/quality`, { cache: "no-store" });
       if (qRes.ok) {
         const qJson = await qRes.json().catch(() => ({}));
         setQuality((qJson.quality ?? null) as QualityScores | null);
@@ -59,7 +62,7 @@ export default function CampaignManagementClient({ campaignId }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [campaignId]);
+  }, [campaignId, ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -69,7 +72,7 @@ export default function CampaignManagementClient({ campaignId }: Props) {
     async (body: Record<string, unknown>) => {
       setBusy("patch");
       try {
-        const res = await fetch(`/api/ugc/campaigns/${campaignId}`, {
+        const res = await ugcFetch(`/api/ugc/campaigns/${campaignId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -91,7 +94,7 @@ export default function CampaignManagementClient({ campaignId }: Props) {
     if (!campaign) return;
     setBusy("duplicate");
     try {
-      const res = await fetch(`/api/ugc/campaigns/${campaignId}/duplicate`, {
+      const res = await ugcFetch(`/api/ugc/campaigns/${campaignId}/duplicate`, {
         method: "POST",
       });
       const json = await res.json().catch(() => ({}));
@@ -111,7 +114,7 @@ export default function CampaignManagementClient({ campaignId }: Props) {
     if (!name?.trim()) return;
     setBusy("template");
     try {
-      const res = await fetch("/api/ugc/templates", {
+      const res = await ugcFetch("/api/ugc/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

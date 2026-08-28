@@ -6,8 +6,10 @@ import { recordUgcActivity } from '@/lib/ugc/platform/activity';
 import { computeCampaignQuality } from '@/lib/ugc/enterprise/quality-engine';
 import { emitUgcEvent } from '@/lib/ugc/enterprise/events';
 import {
+  brandIdFromRequest,
   listAccessibleBrandIds,
   requireBrandWorkspacePermission,
+  userCanAccessBrand,
 } from '@/lib/ugc/enterprise/brand-access';
 import {
   assertCampaignReadyForFunding,
@@ -23,7 +25,7 @@ export async function GET(req: NextRequest) {
   const offset = (page - 1) * limit;
   const type   = searchParams.get('type')   ?? undefined;
   const statusParam = searchParams.get('status');
-  const mine   = searchParams.get('mine') === 'true';
+  const mine   = searchParams.get('mine') === 'true' || searchParams.get('mine') === '1';
   const q      = (searchParams.get('q') ?? '').trim().slice(0, 80);
   const platform = searchParams.get('platform') ?? undefined;
   const sort   = searchParams.get('sort') ?? 'newest';
@@ -62,7 +64,15 @@ export async function GET(req: NextRequest) {
     if (brandIds.length === 0) {
       return NextResponse.json({ data: [], total: 0, page, limit });
     }
-    query = query.in('brand_id', brandIds);
+    const requestedBrandId = brandIdFromRequest(req);
+    if (requestedBrandId) {
+      if (!(await userCanAccessBrand(db, requestedBrandId, user.id))) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      query = query.eq('brand_id', requestedBrandId);
+    } else {
+      query = query.in('brand_id', brandIds);
+    }
     if (statusParam && statusParam !== 'all') query = query.eq('status', statusParam);
   } else {
     query = query.eq('status', 'active');
@@ -98,7 +108,9 @@ export async function POST(req: NextRequest) {
 
   const db = createServiceRoleClient();
   const body: CreateCampaignPayload & { readyForFunding?: boolean; brand_id?: string } = await req.json();
-  const requestedBrandId = typeof body.brand_id === "string" ? body.brand_id.trim() : null;
+  const requestedBrandId =
+    brandIdFromRequest(req) ||
+    (typeof body.brand_id === "string" ? body.brand_id.trim() : null);
 
   let vendorId: string | undefined;
   const managed = await requireBrandWorkspacePermission(user.id, "campaigns.manage", requestedBrandId);

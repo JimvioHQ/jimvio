@@ -10,6 +10,7 @@ import {
   UGCStatusPill,
 } from "@/components/ugc/workspace/UGCPageShell";
 import { EnterpriseOutlineButton, MetricCard, cardClass } from "./enterprise-ui";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 
 type LedgerEntry = {
   id: string;
@@ -31,6 +32,8 @@ type EscrowRow = {
 };
 
 export function EscrowDashboardPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [escrows, setEscrows] = useState<EscrowRow[]>([]);
@@ -41,7 +44,7 @@ export function EscrowDashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/escrow/dashboard", { cache: "no-store" });
+      const res = await ugcFetch("/api/ugc/escrow/dashboard", { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
       if (res.status === 403) {
         setError("Brand account required for escrow dashboard.");
@@ -62,7 +65,7 @@ export function EscrowDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -70,8 +73,8 @@ export function EscrowDashboardPage() {
 
   return (
     <UGCPageShell
-      title="Escrow Dashboard"
-      subtitle="Track held, locked, released, and refunded campaign funds."
+      titleKey="escrow"
+      subtitleKey="escrowSubtitle"
       actions={
         <EnterpriseOutlineButton onClick={() => void load()}>
           <RefreshCw className="h-4 w-4" />

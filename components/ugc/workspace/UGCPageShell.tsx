@@ -3,24 +3,32 @@
 import { RefreshCw, Sparkles, FolderOpen, Lock, UserRound, Megaphone, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/context/LocaleContext";
+import { ugcStatusLabel, type UgcMessageKey } from "@/lib/ugc/i18n/messages";
 
 export function UGCPageShell({
   title,
   subtitle,
+  titleKey,
+  subtitleKey,
   actions,
   children,
 }: {
-  title: string;
+  title?: string;
   subtitle?: string;
+  titleKey?: UgcMessageKey;
+  subtitleKey?: UgcMessageKey;
   actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { t } = useLocale();
+  const heading = titleKey ? t(titleKey) : title ?? "";
+  const sub = subtitleKey ? t(subtitleKey) : subtitle;
   return (
     <div className="mx-auto max-w-6xl space-y-4 pb-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#111827] sm:text-2xl">{title}</h1>
-          {subtitle ? <p className="mt-1 text-[13px] text-[#6B7280]">{subtitle}</p> : null}
+          <h1 className="text-xl font-bold text-[#111827] sm:text-2xl">{heading}</h1>
+          {sub ? <p className="mt-1 text-[13px] text-[#6B7280]">{sub}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       </div>
@@ -141,14 +149,17 @@ export function UGCFilterBar({
   onSearchChange: (v: string) => void;
   children?: React.ReactNode;
 }) {
+  const { t } = useLocale();
+  const placeholder = t("searchPlaceholder");
   return (
     <div className="flex flex-col gap-2 rounded-[16px] border border-[#EEF0F2] bg-white p-3 sm:flex-row sm:items-center">
       <input
         type="search"
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="Search…"
-        className="flex-1 rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm"
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="min-h-11 flex-1 rounded-xl border border-[#E5E7EB] px-3 py-2 text-sm"
       />
       {children}
     </div>
@@ -160,6 +171,7 @@ export function UGCStatusPill({
 }: {
   status: string;
 }) {
+  const { locale } = useLocale();
   const tone =
     status === "accepted" || status === "approved" || status === "completed"
       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -179,7 +191,7 @@ export function UGCStatusPill({
         tone,
       )}
     >
-      {status.replace("_", " ")}
+      {ugcStatusLabel(locale, status)}
     </span>
   );
 }

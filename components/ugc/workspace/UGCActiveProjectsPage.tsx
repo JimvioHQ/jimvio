@@ -62,8 +62,7 @@ export function UGCActiveProjectsPage() {
 
   return (
     <UGCPageShell
-      title="Active Projects"
-      subtitle="Your approved campaign workspaces — create, submit, and track progress."
+      titleKey="projects"
       actions={
         <Button asChild variant="outline" className="rounded-xl">
           <Link href="/ugc/creator-copilot">Creator Copilot</Link>

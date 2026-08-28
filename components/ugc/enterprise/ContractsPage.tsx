@@ -16,6 +16,7 @@ import {
   cardClass,
   fieldClass,
 } from "./enterprise-ui";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 
 type Contract = {
   id: string;
@@ -28,6 +29,8 @@ type Contract = {
 };
 
 export function ContractsPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const [rows, setRows] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +42,7 @@ export function ContractsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/contracts", { cache: "no-store" });
+      const res = await ugcFetch("/api/ugc/contracts", { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
       if (res.status === 403) {
         setError("Brand account required for contracts.");
@@ -52,7 +55,7 @@ export function ContractsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -65,7 +68,7 @@ export function ContractsPage() {
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/ugc/contracts", {
+      const res = await ugcFetch("/api/ugc/contracts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: title.trim(), body: body.trim() }),
@@ -86,7 +89,7 @@ export function ContractsPage() {
   const patch = async (id: string, action: "send" | "accept" | "decline" | "void") => {
     setBusy(true);
     try {
-      const res = await fetch(`/api/ugc/contracts/${id}`, {
+      const res = await ugcFetch(`/api/ugc/contracts/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
@@ -103,7 +106,7 @@ export function ContractsPage() {
   };
 
   return (
-    <UGCPageShell title="Contracts" subtitle="Draft, send, and track creator agreements.">
+    <UGCPageShell titleKey="contracts" subtitleKey="contractsSubtitle">
       <div className={`${cardClass} space-y-3`}>
         <label className="block text-[12px] font-semibold text-[#374151]">
           Title

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { UGCPageEmpty, UGCPageError, UGCPageLoading, UGCPageShell } from "@/components/ugc/workspace/UGCPageShell";
 import { MetricTile, Pill, SectionCard } from "@/components/ugc/campaign-detail/campaign-detail-ui";
 import { cn } from "@/lib/utils";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 
 type DashboardStats = {
   needsProfile?: boolean;
@@ -55,6 +56,8 @@ function formatStatusPill(status: string) {
 }
 
 export default function BrandDashboardClient() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const { formatMoney } = useCurrency();
   const [data, setData] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +67,7 @@ export default function BrandDashboardClient() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/brand/dashboard", { cache: "no-store" });
+      const res = await ugcFetch("/api/ugc/brand/dashboard", { cache: "no-store" });
       if (!res.ok) throw new Error("load failed");
       setData(await res.json());
     } catch (e) {
@@ -72,7 +75,7 @@ export default function BrandDashboardClient() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -104,8 +107,8 @@ export default function BrandDashboardClient() {
 
   return (
     <UGCPageShell
-      title="Brand Dashboard"
-      subtitle="Active campaigns, creator pipeline, and conversion performance."
+      titleKey="brandDashboard"
+      subtitleKey="brandDashboardSubtitle"
       actions={
         <>
           <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">

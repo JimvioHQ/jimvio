@@ -78,8 +78,8 @@ export function UGCAchievementsPage() {
 
   return (
     <UGCPageShell
-      title="Achievements"
-      subtitle="XP, level, badges, and milestones earned from campaign performance."
+      titleKey="achievements"
+      subtitleKey="achievementsSubtitle"
     >
       {loading ? <UGCPageLoading /> : null}
       {!loading && error ? <UGCPageError message={error} onRetry={load} /> : null}

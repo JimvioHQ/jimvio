@@ -15,6 +15,8 @@ import {
   cardClass,
   fieldClass,
 } from "./enterprise-ui";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
+import { useLocale } from "@/context/LocaleContext";
 
 type NodeType = "trigger" | "action" | "wait";
 
@@ -48,6 +50,9 @@ function newNode(type: NodeType): WorkflowNode {
 }
 
 export function WorkflowBuilderPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+  const { t } = useLocale();
+
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [name, setName] = useState("New workflow");
@@ -76,7 +81,7 @@ export function WorkflowBuilderPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/workflows", { cache: "no-store" });
+      const res = await ugcFetch("/api/ugc/workflows", { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
       if (res.status === 403) {
         setError("Brand account required for workflows.");
@@ -90,7 +95,7 @@ export function WorkflowBuilderPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -135,7 +140,7 @@ export function WorkflowBuilderPage() {
     if (!confirm("Delete workflow?")) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/ugc/workflows/${id}`, { method: "DELETE" });
+      const res = await ugcFetch(`/api/ugc/workflows/${id}`, { method: "DELETE" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Delete failed");
       if (selectedId === id) {
@@ -153,12 +158,12 @@ export function WorkflowBuilderPage() {
 
   return (
     <UGCPageShell
-      title="Workflow Builder"
-      subtitle="Simple step editor — trigger, actions, and waits saved as graph JSON."
+      titleKey="workflows"
+      subtitleKey="workflowsSubtitle"
       actions={
         <EnterprisePrimaryButton onClick={() => void save()} disabled={busy}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save graph
+          {t("saveGraph")}
         </EnterprisePrimaryButton>
       }
     >
@@ -166,6 +171,13 @@ export function WorkflowBuilderPage() {
       {!loading && error ? <UGCPageError message={error} onRetry={load} /> : null}
 
       {!loading && !error ? (
+        <div className="space-y-4">
+          <p
+            role="status"
+            className="rounded-[14px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12.5px] leading-relaxed text-amber-900"
+          >
+            {t("workflowWaitNote")}
+          </p>
         <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
           <div className="space-y-2">
             <EnterpriseOutlineButton
@@ -177,10 +189,10 @@ export function WorkflowBuilderPage() {
               }}
             >
               <Plus className="h-4 w-4" />
-              New
+              {t("newWorkflow")}
             </EnterpriseOutlineButton>
             {workflows.length === 0 ? (
-              <UGCPageEmpty title="No workflows" description="Build your first automation graph." />
+              <UGCPageEmpty title={t("emptyWorkflows")} description={t("emptyWorkflowsHint")} />
             ) : (
               workflows.map((w) => (
                 <button
@@ -200,7 +212,7 @@ export function WorkflowBuilderPage() {
 
           <div className="space-y-3">
             <label className="block text-[12px] font-semibold text-[#374151]">
-              Workflow name
+              {t("workflowName")}
               <input className={fieldClass} value={name} onChange={(e) => setName(e.target.value)} />
             </label>
 
@@ -219,15 +231,22 @@ export function WorkflowBuilderPage() {
                   <span className="rounded-full bg-[#FFF0E8] px-2 py-1 text-center text-[11px] font-bold uppercase text-[#FF5A1F]">
                     {idx + 1}. {node.type}
                   </span>
-                  <input
-                    className={fieldClass}
-                    value={node.label}
-                    onChange={(e) =>
-                      setNodes((prev) =>
-                        prev.map((n) => (n.id === node.id ? { ...n, label: e.target.value } : n)),
-                      )
-                    }
-                  />
+                  <div>
+                    <input
+                      className={fieldClass}
+                      value={node.label}
+                      onChange={(e) =>
+                        setNodes((prev) =>
+                          prev.map((n) => (n.id === node.id ? { ...n, label: e.target.value } : n)),
+                        )
+                      }
+                    />
+                    {node.type === "wait" ? (
+                      <p className="mt-1 text-[11px] font-semibold text-amber-800">
+                        {t("workflowSkippedUnsupported")}
+                      </p>
+                    ) : null}
+                  </div>
                   <EnterpriseOutlineButton
                     onClick={() => setNodes((prev) => prev.filter((n) => n.id !== node.id))}
                     disabled={nodes.length <= 1}
@@ -248,10 +267,11 @@ export function WorkflowBuilderPage() {
             {selectedId ? (
               <EnterpriseOutlineButton onClick={() => void remove(selectedId)} disabled={busy}>
                 <Trash2 className="h-4 w-4" />
-                Delete workflow
+                {t("deleteWorkflow")}
               </EnterpriseOutlineButton>
             ) : null}
           </div>
+        </div>
         </div>
       ) : null}
     </UGCPageShell>

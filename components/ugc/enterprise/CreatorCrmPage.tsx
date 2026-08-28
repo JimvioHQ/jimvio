@@ -16,6 +16,7 @@ import {
   cardClass,
   fieldClass,
 } from "./enterprise-ui";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 
 type CrmList = {
   id: string;
@@ -33,6 +34,8 @@ type Overview = {
 };
 
 export function CreatorCrmPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const [lists, setLists] = useState<CrmList[]>([]);
   const [overview, setOverview] = useState<Overview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,8 +49,8 @@ export function CreatorCrmPage() {
     setError(null);
     try {
       const [listRes, ovRes] = await Promise.all([
-        fetch("/api/ugc/crm/lists", { cache: "no-store" }),
-        fetch("/api/ugc/crm/overview", { cache: "no-store" }),
+        ugcFetch("/api/ugc/crm/lists", { cache: "no-store" }),
+        ugcFetch("/api/ugc/crm/overview", { cache: "no-store" }),
       ]);
       const listJson = await listRes.json().catch(() => ({}));
       const ovJson = await ovRes.json().catch(() => ({}));
@@ -63,7 +66,7 @@ export function CreatorCrmPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -76,7 +79,7 @@ export function CreatorCrmPage() {
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/ugc/crm/lists", {
+      const res = await ugcFetch("/api/ugc/crm/lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined }),
@@ -98,7 +101,7 @@ export function CreatorCrmPage() {
     if (!confirm("Delete this list?")) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/ugc/crm/lists/${id}`, { method: "DELETE" });
+      const res = await ugcFetch(`/api/ugc/crm/lists/${id}`, { method: "DELETE" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Delete failed");
       toast.success("List deleted");
@@ -115,8 +118,8 @@ export function CreatorCrmPage() {
 
   return (
     <UGCPageShell
-      title="Creator CRM"
-      subtitle="Organize favorite creators into lists and track outreach."
+      titleKey="crm"
+      subtitleKey="crmSubtitle"
     >
       <div className="grid gap-3 sm:grid-cols-3">
         <MetricCard label="Favorites" value={favoritesCount} />

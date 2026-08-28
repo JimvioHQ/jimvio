@@ -59,8 +59,8 @@ export function CreatorCopilotPage() {
 
   return (
     <UGCPageShell
-      title="Creator Copilot"
-      subtitle="Scripts, hooks, captions, and scores for your next submission."
+      titleKey="creatorCopilot"
+      subtitleKey="creatorCopilotSubtitle"
       actions={
         <EnterprisePrimaryButton onClick={() => void generate()} disabled={busy}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}

@@ -82,8 +82,8 @@ export function UGCClippingHubPage() {
 
   return (
     <UGCPageShell
-      title="Clipping Hub"
-      subtitle="Clipping campaigns, brand assets, scripts, and downloadable resources."
+      titleKey="clippingHub"
+      subtitleKey="clippingSubtitle"
     >
       <UGCFilterBar search={search} onSearchChange={setSearch} />
 

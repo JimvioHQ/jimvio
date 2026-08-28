@@ -88,8 +88,8 @@ export function CampaignCopilotPage() {
 
   return (
     <UGCPageShell
-      title="Campaign Copilot"
-      subtitle="Generate a brief, objectives, and create-ready draft from your product inputs."
+      titleKey="copilot"
+      subtitleKey="copilotSubtitle"
       actions={
         <EnterprisePrimaryButton onClick={() => void generate()} disabled={busy}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}

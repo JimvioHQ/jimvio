@@ -16,6 +16,7 @@ import {
   cardClass,
   fieldClass,
 } from "./enterprise-ui";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
 
 type Dispute = {
   id: string;
@@ -35,6 +36,8 @@ type DisputeMessage = {
 };
 
 export function DisputesPage() {
+  const { ugcFetch } = useUgcBrandWorkspace();
+
   const [rows, setRows] = useState<Dispute[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export function DisputesPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/ugc/disputes", { cache: "no-store" });
+      const res = await ugcFetch("/api/ugc/disputes", { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Failed to load disputes");
       setRows(json.data ?? json.disputes ?? []);
@@ -59,7 +62,7 @@ export function DisputesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -72,7 +75,7 @@ export function DisputesPage() {
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/ugc/disputes", {
+      const res = await ugcFetch("/api/ugc/disputes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -96,7 +99,7 @@ export function DisputesPage() {
   const loadMessages = async (id: string) => {
     setActiveId(id);
     try {
-      const res = await fetch(`/api/ugc/disputes/${id}/messages`, { cache: "no-store" });
+      const res = await ugcFetch(`/api/ugc/disputes/${id}/messages`, { cache: "no-store" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error ?? "Failed to load messages");
       setMessages(json.data ?? json.messages ?? []);
@@ -109,7 +112,7 @@ export function DisputesPage() {
     if (!activeId || !messageBody.trim()) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/ugc/disputes/${activeId}/messages`, {
+      const res = await ugcFetch(`/api/ugc/disputes/${activeId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body: messageBody.trim() }),
@@ -126,7 +129,7 @@ export function DisputesPage() {
   };
 
   return (
-    <UGCPageShell title="Disputes" subtitle="Open cases, track status, and message through resolution.">
+    <UGCPageShell titleKey="disputes" subtitleKey="disputesSubtitle">
       <div className={`${cardClass} grid gap-3 sm:grid-cols-2`}>
         <label className="text-[12px] font-semibold text-[#374151]">
           Campaign ID

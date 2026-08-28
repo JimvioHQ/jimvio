@@ -109,8 +109,8 @@ export function UGCLibraryPage() {
 
   return (
     <UGCPageShell
-      title="Content Library"
-      subtitle="Store and reuse clips, images, and assets across campaigns."
+      titleKey="library"
+      subtitleKey="librarySubtitle"
     >
       <div className="rounded-[16px] border border-[#EEF0F2] bg-white p-4">
         <h2 className="text-[14px] font-bold text-[#111827]">Upload by URL</h2>

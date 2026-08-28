@@ -19,6 +19,8 @@ import { toast } from "sonner";
 import type { UGCCampaign, UGCCampaignStatus } from "@/types/ugc";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn, relativeTime } from "@/lib/utils";
+import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspaceProvider";
+import { withBrandQuery } from "@/lib/ugc/client/with-brand-query";
 
 type FilterStatus = "all" | UGCCampaignStatus;
 
@@ -29,8 +31,12 @@ type CampaignCenterBoardProps = {
   showCreateCta?: boolean;
 };
 
-async function patchCampaign(id: string, body: Record<string, unknown>) {
-  const res = await fetch(`/api/ugc/campaigns/${id}`, {
+async function patchCampaign(
+  id: string,
+  body: Record<string, unknown>,
+  request: (input: string, init?: RequestInit) => Promise<Response>,
+) {
+  const res = await request(`/api/ugc/campaigns/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -46,6 +52,8 @@ export function CampaignCenterBoard({
   initialStatus = "all",
   showCreateCta = true,
 }: CampaignCenterBoardProps) {
+  const { ugcFetch, brandId } = useUgcBrandWorkspace();
+
   const router = useRouter();
   const { formatMoney } = useCurrency();
   const [campaigns, setCampaigns] = useState<UGCCampaign[]>([]);
@@ -56,7 +64,7 @@ export function CampaignCenterBoard({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/ugc/campaigns?status=all&limit=50&mine=true");
+      const res = await ugcFetch("/api/ugc/campaigns?status=all&limit=50&mine=true");
       const json = await res.json();
       setCampaigns(json.data ?? []);
     } catch {
@@ -64,7 +72,7 @@ export function CampaignCenterBoard({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [ugcFetch]);
 
   useEffect(() => {
     void load();
@@ -90,7 +98,7 @@ export function CampaignCenterBoard({
 
   const duplicate = async (c: UGCCampaign) => {
     await runAction(c.id, async () => {
-      const res = await fetch(`/api/ugc/campaigns/${c.id}/duplicate`, {
+      const res = await ugcFetch(`/api/ugc/campaigns/${c.id}/duplicate`, {
         method: "POST",
       });
       const json = await res.json().catch(() => ({}));
@@ -114,8 +122,8 @@ export function CampaignCenterBoard({
         </div>
         {showCreateCta ? (
           <Link
-            href="/ugc/campaign-center/create"
-            className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white shadow-[0_6px_18px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18]"
+            href={withBrandQuery("/ugc/campaign-center/create", brandId)}
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white shadow-[0_6px_18px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18]"
           >
             <Plus className="h-4 w-4" />
             Create Campaign
@@ -136,8 +144,8 @@ export function CampaignCenterBoard({
             Launch your first campaign to recruit creators and track performance.
           </p>
           <Link
-            href="/ugc/campaign-center/create"
-            className="mt-5 inline-flex h-10 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white"
+            href={withBrandQuery("/ugc/campaign-center/create", brandId)}
+            className="mt-5 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-[#FF5A1F] px-4 text-[13px] font-bold text-white"
           >
             <Plus className="h-4 w-4" />
             Create Campaign
@@ -214,7 +222,7 @@ export function CampaignCenterBoard({
                         disabled={busy}
                         onClick={() =>
                           void runAction(c.id, async () => {
-                            await patchCampaign(c.id, { status: "paused" });
+                            await patchCampaign(c.id, { status: "paused" }, ugcFetch);
                             toast.success("Campaign paused");
                           })
                         }
@@ -227,7 +235,7 @@ export function CampaignCenterBoard({
                         disabled={busy}
                         onClick={() =>
                           void runAction(c.id, async () => {
-                            await patchCampaign(c.id, { status: "active" });
+                            await patchCampaign(c.id, { status: "active" }, ugcFetch);
                             toast.success("Campaign resumed");
                           })
                         }
@@ -245,7 +253,7 @@ export function CampaignCenterBoard({
                       disabled={busy}
                       onClick={() =>
                         void runAction(c.id, async () => {
-                          await patchCampaign(c.id, { status: "cancelled" });
+                          await patchCampaign(c.id, { status: "cancelled" }, ugcFetch);
                           toast.success("Campaign archived");
                         })
                       }
@@ -266,7 +274,7 @@ export function CampaignCenterBoard({
                       onClick={() => {
                         if (!confirm(`Delete "${c.title}"? This cannot be undone.`)) return;
                         void runAction(c.id, async () => {
-                          const res = await fetch(`/api/ugc/campaigns/${c.id}`, {
+                          const res = await ugcFetch(`/api/ugc/campaigns/${c.id}`, {
                             method: "DELETE",
                           });
                           const json = await res.json().catch(() => ({}));

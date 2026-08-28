@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 import {
   normalizeUgcLocale,
   ugcMessage,
@@ -10,7 +10,7 @@ import {
 
 type LocaleContextValue = {
   locale: UgcLocale;
-  t: (key: UgcMessageKey) => string;
+  t: (key: UgcMessageKey, vars?: Record<string, string | number>) => string;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -26,10 +26,19 @@ export function LocaleProvider({
   const value = useMemo<LocaleContextValue>(
     () => ({
       locale,
-      t: (key) => ugcMessage(locale, key),
+      t: (key, vars) => ugcMessage(locale, key, vars),
     }),
     [locale],
   );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.lang;
+    root.lang = locale;
+    return () => {
+      root.lang = previous || "en";
+    };
+  }, [locale]);
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
 
@@ -38,7 +47,7 @@ export function useLocale() {
   if (!ctx) {
     return {
       locale: "en" as UgcLocale,
-      t: (key: UgcMessageKey) => ugcMessage("en", key),
+      t: (key: UgcMessageKey, vars?: Record<string, string | number>) => ugcMessage("en", key, vars),
     };
   }
   return ctx;

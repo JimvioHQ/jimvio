@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
-import { requireBrandWorkspace } from "@/lib/ugc/enterprise/brand-access";
+import { requireBrandWorkspace, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
 import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const ws = await requireBrandWorkspace(user.id);
+  const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
   const { db, vendor } = ws;
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   const { user, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
 
-  const ws = await requireBrandWorkspace(user.id);
+  const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
   const { db, vendor } = ws;
   const perm = await requireBrandPermission(db, vendor.id, user.id, "contracts.manage");

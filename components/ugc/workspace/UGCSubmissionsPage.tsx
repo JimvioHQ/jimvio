@@ -70,8 +70,8 @@ export function UGCSubmissionsPage() {
 
   return (
     <UGCPageShell
-      title="Submissions"
-      subtitle="Track draft, submitted, under review, approved, and rejected content."
+      titleKey="submissions"
+      subtitleKey="submissionsSubtitle"
     >
       <UGCFilterBar search={search} onSearchChange={setSearch}>
         <select

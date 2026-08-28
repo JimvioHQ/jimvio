@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { AppTopNav } from "@/components/shell/AppTopNav";
 import { UGCWorkspaceSidebar } from "./UGCWorkspaceSidebar";
+import { useLocale } from "@/context/LocaleContext";
 
 type UGCWorkspaceShellProps = {
   children: React.ReactNode;
@@ -19,6 +20,16 @@ type UGCWorkspaceShellProps = {
 
 export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
   const [mobileNav, setMobileNav] = useState(false);
+  const { t } = useLocale();
+
+  useEffect(() => {
+    if (!mobileNav) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileNav(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileNav]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#F8FAFC]">
@@ -35,14 +46,25 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
           <div className="fixed inset-0 z-50 lg:hidden">
             <button
               type="button"
-              aria-label="Close navigation"
+              aria-label={t("closeNav")}
               className="absolute inset-0 bg-black/40"
               onClick={() => setMobileNav(false)}
             />
-            <aside className="relative h-full w-[min(280px,88vw)] bg-white shadow-2xl">
+            <aside
+              id="ugc-mobile-nav"
+              className="relative h-full w-[min(280px,88vw)] bg-white shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("ugcClipping")}
+            >
               <div className="flex items-center justify-between border-b border-[#F0F0F0] px-4 py-3">
-                <span className="text-sm font-semibold text-[#111827]">UGC &amp; Clipping</span>
-                <button type="button" onClick={() => setMobileNav(false)} aria-label="Close">
+                <span className="text-sm font-semibold text-[#111827]">{t("ugcClipping")}</span>
+                <button
+                  type="button"
+                  onClick={() => setMobileNav(false)}
+                  aria-label={t("closeNav")}
+                  className="grid h-11 w-11 place-items-center rounded-xl"
+                >
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -58,14 +80,16 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
             <button
               type="button"
               onClick={() => setMobileNav(true)}
-              className="grid h-9 w-9 place-items-center rounded-xl border border-[#E8EAED] bg-white shadow-[0_1px_2px_rgba(17,24,39,0.04)]"
-              aria-label="Open navigation"
+              className="grid h-11 w-11 place-items-center rounded-xl border border-[#E8EAED] bg-white shadow-[0_1px_2px_rgba(17,24,39,0.04)]"
+              aria-label={t("openNav")}
+              aria-expanded={mobileNav}
+              aria-controls="ugc-mobile-nav"
             >
               <Menu className="h-4 w-4" />
             </button>
-            <span className="text-sm font-semibold text-[#111827]">UGC &amp; Clipping</span>
-            <Link href="/dashboard" className="ml-auto text-xs font-semibold text-[#FF5A1F]">
-              Open Creator OS
+            <span className="text-sm font-semibold text-[#111827]">{t("ugcClipping")}</span>
+            <Link href="/dashboard" className="ml-auto inline-flex min-h-11 items-center text-xs font-semibold text-[#FF5A1F]">
+              {t("openCreatorOs")}
             </Link>
           </div>
           {children}

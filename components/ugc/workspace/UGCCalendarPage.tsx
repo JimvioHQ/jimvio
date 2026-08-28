@@ -83,8 +83,8 @@ export function UGCCalendarPage() {
 
   return (
     <UGCPageShell
-      title="Calendar"
-      subtitle="Deadlines, submissions, payouts, and invitations in one view."
+      titleKey="calendar"
+      subtitleKey="calendarSubtitle"
       actions={
         <div className="flex gap-2">
           <button

@@ -49,8 +49,8 @@ export function GlobalInsightsPage() {
 
   return (
     <UGCPageShell
-      title="Insights"
-      subtitle="Platform-wide campaign, creator, and brand performance signals."
+      titleKey="insights"
+      subtitleKey="insightsSubtitle"
       actions={
         <EnterpriseOutlineButton onClick={() => void load()}>
           <RefreshCw className="h-4 w-4" />
