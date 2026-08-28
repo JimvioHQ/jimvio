@@ -76,7 +76,7 @@ assert.match(depositApi, /assertCampaignReadyForFunding/);
 assert.match(depositApi, /if \(!ready\.success\)/);
 assert.doesNotMatch(depositApi, /if \(campaign\.status === "draft"\)/);
 assert.match(fundClient, /assertCampaignReadyForFunding/);
-assert.match(fundClient, /This campaign is not ready to fund/);
+assert.match(fundClient, /t\("campaignNotReadyToFund"\)/);
 
 assert.match(duplicate, /status: "draft"/);
 assert.doesNotMatch(duplicate, /status: "active"/);

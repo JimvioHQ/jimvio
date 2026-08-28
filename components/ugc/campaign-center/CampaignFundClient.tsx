@@ -30,32 +30,6 @@ const MIN_FUNDING_RWF = 1000;
 
 type PayMethod = "flutterwave" | "wallet" | "crypto";
 
-const METHODS: {
-  id: PayMethod;
-  label: string;
-  desc: string;
-  icon: typeof Wallet;
-}[] = [
-  {
-    id: "flutterwave",
-    label: "Flutterwave",
-    desc: "Cards & mobile money",
-    icon: CreditCard,
-  },
-  {
-    id: "wallet",
-    label: "Jimvio Wallet",
-    desc: "Instant escrow from balance",
-    icon: Wallet,
-  },
-  {
-    id: "crypto",
-    label: "Crypto",
-    desc: "USDC / stablecoin (when available)",
-    icon: Bitcoin,
-  },
-];
-
 export function CampaignFundClient() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -125,15 +99,15 @@ export function CampaignFundClient() {
       return;
     }
     if (amountToFund < MIN_FUNDING_RWF) {
-      setError(`Minimum funding is RWF ${MIN_FUNDING_RWF.toLocaleString()}`);
+      setError(t("minFundingIs", { amount: MIN_FUNDING_RWF.toLocaleString() }));
       return;
     }
     if (method === "flutterwave" && !phone.trim()) {
-      setError("A valid funding phone number is required.");
+      setError(t("phoneRequired"));
       return;
     }
     if (method === "wallet" && walletBalance < amountToFund) {
-      setError("Insufficient wallet balance for this escrow amount.");
+      setError(t("insufficientWalletEscrow"));
       return;
     }
     setFunding(true);
@@ -153,7 +127,7 @@ export function CampaignFundClient() {
         const missing = Array.isArray(json.missing)
           ? (json.missing as { message?: string }[]).map((m) => m.message).filter(Boolean).join(" · ")
           : "";
-        throw new Error(missing || json.error || "Funding failed");
+        throw new Error(missing || json.error || t("fundingFailed"));
       }
 
       const activated = Boolean(json.activated);
@@ -174,7 +148,7 @@ export function CampaignFundClient() {
       setOutcome("pending");
       toast.message(json.message || t("escrowPending"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Funding failed");
+      setError(e instanceof Error ? e.message : t("fundingFailed"));
     } finally {
       setFunding(false);
     }
@@ -191,12 +165,12 @@ export function CampaignFundClient() {
   if (!campaign) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <p className="text-[15px] font-semibold text-[#111827]">Campaign not found</p>
+        <p className="text-[15px] font-semibold text-[#111827]">{t("campaignNotFound")}</p>
         <Link
           href="/ugc/campaign-center"
           className="mt-4 inline-flex text-[13px] font-semibold text-[#FF5A1F]"
         >
-          Back to Campaign Center
+          {t("backToCampaignCenter")}
         </Link>
       </div>
     );
@@ -208,45 +182,56 @@ export function CampaignFundClient() {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[#ECFDF5]">
           <Check className="h-7 w-7 text-[#059669]" />
         </div>
-        <h1 className="mt-4 text-[22px] font-bold text-[#111827]">Already active</h1>
+        <h1 className="mt-4 text-[22px] font-bold text-[#111827]">{t("alreadyActive")}</h1>
         <p className="mt-2 text-[13px] text-[#6B7280]">
-          “{campaign.title}” is funded and live.
+          {t("alreadyActiveDetail", { title: campaign.title })}
         </p>
         <Link
           href="/ugc/campaign-center/active"
           className="mt-6 inline-flex h-10 items-center rounded-full bg-[#FF5A1F] px-5 text-[13px] font-bold text-white"
         >
-          View active campaigns
+          {t("viewActiveCampaigns")}
         </Link>
       </div>
     );
   }
 
+  const methods: {
+    id: PayMethod;
+    label: string;
+    desc: string;
+    icon: typeof Wallet;
+  }[] = [
+    { id: "flutterwave", label: t("methodFlutterwave"), desc: t("methodFlutterwaveDesc"), icon: CreditCard },
+    { id: "wallet", label: t("methodWallet"), desc: t("methodWalletDesc"), icon: Wallet },
+    { id: "crypto", label: t("methodCrypto"), desc: t("methodCryptoDesc"), icon: Bitcoin },
+  ];
+
   return (
-    <div className="mx-auto w-full max-w-[920px] px-4 py-6 sm:px-6">
+    <div className="mx-auto w-full min-w-0 max-w-[920px] px-4 py-6 sm:px-6">
       <Link
         href="/ugc/campaign-center"
         className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#6B7280] hover:text-[#FF5A1F]"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Back to Campaign Center
+        {t("backToCampaignCenter")}
       </Link>
 
-      <div className="mt-4">
+      <div className="mt-4 min-w-0">
         <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#FF5A1F]">
-          Campaign Center
+          {t("campaignCenter")}
         </p>
-        <h1 className="mt-1 text-[24px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
+        <h1 className="mt-1 break-words text-[24px] font-bold tracking-tight text-[#111827] sm:text-[28px]">
           {t("fundCampaign")}
         </h1>
         <p className="mt-1 max-w-xl text-[13px] text-[#6B7280]">
-          Your campaign must be funded before it becomes active.
+          {t("fundMustBeFunded")}
         </p>
       </div>
 
       {readiness && !readiness.success ? (
-        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800">
-          <p className="font-semibold">This campaign is not ready to fund.</p>
+        <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-[13px] text-red-800" role="alert">
+          <p className="font-semibold">{t("campaignNotReadyToFund")}</p>
           <ul className="mt-2 list-disc space-y-1 pl-4">
             {incompleteSteps.map((s) => (
               <li key={s.id}>
@@ -258,27 +243,27 @@ export function CampaignFundClient() {
             href={`/ugc/campaign-center/${campaign.id}/edit`}
             className="mt-3 inline-flex text-[13px] font-semibold text-[#FF5A1F]"
           >
-            Complete required fields
+            {t("completeRequiredFields")}
           </Link>
         </div>
       ) : null}
 
-      {/* Status stepper */}
       <ol className="mt-5 flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-wide">
         {[
-          { label: "Draft", done: true },
-          { label: "Pending Funding", done: true, current: true },
-          { label: "Active", done: outcome === "activated" },
+          { id: "draft", label: t("statusDraft"), done: true, current: false },
+          { id: "pending", label: t("pendingFundingLabel"), done: true, current: true },
+          { id: "active", label: t("statusActive"), done: outcome === "activated", current: false },
         ].map((s, i) => (
-          <li key={s.label} className="flex items-center gap-2">
-            {i > 0 ? <span className="text-[#D1D5DB]">→</span> : null}
+          <li key={s.id} className="flex items-center gap-2">
+            {i > 0 ? <span className="text-[#D1D5DB]" aria-hidden="true">→</span> : null}
             <span
+              aria-current={s.current && outcome !== "activated" ? "step" : undefined}
               className={cn(
                 "rounded-full px-2.5 py-1",
                 s.done && !s.current && "bg-[#ECFDF5] text-[#059669]",
                 s.current && outcome === "idle" && "bg-[#FFF0E8] text-[#FF5A1F]",
-                outcome === "activated" && s.label === "Active" && "bg-[#ECFDF5] text-[#059669]",
-                outcome === "pending" && s.label === "Pending Funding" && "bg-[#FFF0E8] text-[#FF5A1F]",
+                outcome === "activated" && s.id === "active" && "bg-[#ECFDF5] text-[#059669]",
+                outcome === "pending" && s.id === "pending" && "bg-[#FFF0E8] text-[#FF5A1F]",
                 !s.done && !s.current && "bg-[#F3F4F6] text-[#9CA3AF]",
               )}
             >
@@ -295,12 +280,15 @@ export function CampaignFundClient() {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             className="mt-8 rounded-3xl border border-[#BBF7D0] bg-gradient-to-br from-[#ECFDF5] to-white p-10 text-center shadow-lg"
+            role="status"
+            aria-live="polite"
           >
             <motion.div
               initial={{ scale: 0.6 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 320, damping: 18 }}
               className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#059669] text-white shadow-[0_10px_30px_rgba(5,150,105,0.35)]"
+              aria-hidden="true"
             >
               <Check className="h-8 w-8" strokeWidth={2.5} />
             </motion.div>
@@ -309,7 +297,7 @@ export function CampaignFundClient() {
             </h2>
             <p className="mt-2 text-[13px] text-[#6B7280]">
               {outcome === "activated"
-                ? `Escrow locked · Creators can now discover and join “${campaign.title}”.`
+                ? t("escrowLockedCreatorsCanJoin", { title: campaign.title })
                 : t("escrowPending")}
             </p>
             {outcome === "pending" ? (
@@ -317,7 +305,7 @@ export function CampaignFundClient() {
                 href="/ugc/campaign-center"
                 className="mt-6 inline-flex h-10 items-center rounded-full bg-[#FF5A1F] px-5 text-[13px] font-bold text-white"
               >
-                Back to Campaign Center
+                {t("backToCampaignCenter")}
               </Link>
             ) : null}
           </motion.div>
@@ -326,24 +314,24 @@ export function CampaignFundClient() {
             key="form"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 grid gap-5 lg:grid-cols-[1.05fr_0.95fr]"
+            className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[1.05fr_0.95fr]"
           >
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4">
               <div className="rounded-2xl border border-[#EEF0F2] bg-white p-5 shadow-sm">
-                <h2 className="text-[14px] font-bold text-[#111827]">Campaign summary</h2>
-                <p className="mt-2 text-[16px] font-bold text-[#111827]">{campaign.title}</p>
+                <h2 className="text-[14px] font-bold text-[#111827]">{t("campaignSummary")}</h2>
+                <p className="mt-2 break-words text-[16px] font-bold text-[#111827]">{campaign.title}</p>
                 <p className="mt-1 line-clamp-3 text-[12.5px] text-[#6B7280]">
-                  {campaign.description || "No description"}
+                  {campaign.description || t("noDescription")}
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-3 text-[12px]">
-                  <div className="rounded-xl bg-[#F9FAFB] px-3 py-2.5">
-                    <p className="text-[#9CA3AF]">Type</p>
-                    <p className="mt-0.5 font-semibold capitalize text-[#111827]">
+                  <div className="min-w-0 rounded-xl bg-[#F9FAFB] px-3 py-2.5">
+                    <p className="text-[#9CA3AF]">{t("reviewType")}</p>
+                    <p className="mt-0.5 break-words font-semibold capitalize text-[#111827]">
                       {campaign.campaign_type.replace(/_/g, " ")}
                     </p>
                   </div>
-                  <div className="rounded-xl bg-[#F9FAFB] px-3 py-2.5">
-                    <p className="text-[#9CA3AF]">Budget</p>
+                  <div className="min-w-0 rounded-xl bg-[#F9FAFB] px-3 py-2.5">
+                    <p className="text-[#9CA3AF]">{t("wizardTotalBudget")}</p>
                     <p className="mt-0.5 font-semibold text-[#111827]">
                       {formatMoney(campaign.total_budget ?? 0, "USD")}
                     </p>
@@ -351,17 +339,17 @@ export function CampaignFundClient() {
                 </div>
                 <div className="mt-4 rounded-xl border border-[#FFE4D6] bg-[#FFF8F5] px-3 py-3">
                   <div className="flex items-center gap-2 text-[12px] font-semibold text-[#9A3412]">
-                    <Sparkles className="h-3.5 w-3.5 text-[#FF5A1F]" />
-                    Estimated creator reach
+                    <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#FF5A1F]" />
+                    {t("estimatedCreatorReach")}
                   </div>
                   <p className="mt-1 text-[18px] font-bold tabular-nums text-[#FF5A1F]">
-                    ~{estimatedReach.toLocaleString()} views
+                    {t("viewsApprox", { count: estimatedReach.toLocaleString() })}
                   </p>
                 </div>
               </div>
 
               <div className="rounded-2xl border border-[#EEF0F2] bg-white p-5 shadow-sm">
-                <h2 className="text-[14px] font-bold text-[#111827]">Funding progress</h2>
+                <h2 className="text-[14px] font-bold text-[#111827]">{t("fundingProgress")}</h2>
                 <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#F3F4F6]">
                   <div
                     className="h-full rounded-full bg-[#FF5A1F] transition-all"
@@ -369,18 +357,18 @@ export function CampaignFundClient() {
                   />
                 </div>
                 <p className="mt-2 text-[12px] text-[#6B7280]">
-                  Escrow empty · Fund to unlock activation
+                  {t("escrowEmptyFund")}
                 </p>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#FFE4D6] bg-white p-5 shadow-[0_8px_28px_rgba(255,90,31,0.08)]">
+            <div className="min-w-0 rounded-2xl border border-[#FFE4D6] bg-white p-5 shadow-[0_8px_28px_rgba(255,90,31,0.08)]">
               <div className="flex items-start gap-2">
-                <Lock className="mt-0.5 h-4 w-4 text-[#FF5A1F]" />
-                <div>
-                  <h2 className="text-[14px] font-bold text-[#111827]">Secure funding</h2>
+                <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#FF5A1F]" />
+                <div className="min-w-0">
+                  <h2 className="text-[14px] font-bold text-[#111827]">{t("secureFunding")}</h2>
                   <p className="mt-1 text-[12.5px] leading-relaxed text-[#6B7280]">
-                    Funds are locked in escrow until submissions are approved. Minimum funding:{" "}
+                    {t("fundsLockedUntilApproved")}{" "}
                     <strong className="text-[#111827]">
                       RWF {MIN_FUNDING_RWF.toLocaleString()}
                     </strong>
@@ -390,32 +378,35 @@ export function CampaignFundClient() {
               </div>
 
               <div className="mt-5 space-y-2.5">
-                <Row label="Current balance" value={`RWF ${walletBalance.toLocaleString()}`} />
+                <Row label={t("currentBalance")} value={`RWF ${walletBalance.toLocaleString()}`} />
                 <Row
-                  label="Minimum required"
+                  label={t("minimumRequired")}
                   value={`RWF ${MIN_FUNDING_RWF.toLocaleString()}`}
                 />
                 <Row
-                  label="Amount to fund"
+                  label={t("amountToFund")}
                   value={`RWF ${amountToFund.toLocaleString()}`}
                   strong
                 />
               </div>
 
               <p className="mt-5 text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-                Payment method
+                {t("paymentMethod")}
               </p>
-              <div className="mt-2 space-y-2">
-                {METHODS.map((m) => {
+              <div className="mt-2 space-y-2" role="radiogroup" aria-label={t("paymentMethod")}>
+                {methods.map((m) => {
                   const Icon = m.icon;
                   const on = method === m.id;
                   return (
                     <button
                       key={m.id}
                       type="button"
+                      role="radio"
+                      aria-checked={on}
+                      aria-pressed={on}
                       onClick={() => setMethod(m.id)}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition",
+                        "flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
                         on
                           ? "border-[#FF5A1F] bg-[#FFF8F5] shadow-[0_0_0_3px_rgba(255,90,31,0.1)]"
                           : "border-[#E5E7EB] hover:border-[#FF5A1F]/40",
@@ -423,13 +414,13 @@ export function CampaignFundClient() {
                     >
                       <span
                         className={cn(
-                          "grid h-9 w-9 place-items-center rounded-lg",
+                          "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
                           on ? "bg-[#FF5A1F] text-white" : "bg-[#F3F4F6] text-[#6B7280]",
                         )}
                       >
                         <Icon className="h-4 w-4" />
                       </span>
-                      <span>
+                      <span className="min-w-0">
                         <span className="block text-[13px] font-bold text-[#111827]">
                           {m.label}
                         </span>
@@ -442,13 +433,17 @@ export function CampaignFundClient() {
 
               {method === "flutterwave" ? (
                 <div className="mt-3">
-                  <label className="mb-1 block text-[11px] font-semibold text-[#6B7280]">
-                    Phone (mobile money)
+                  <label htmlFor="ugc-fund-phone" className="mb-1 block text-[11px] font-semibold text-[#6B7280]">
+                    {t("phoneMobileMoney")}
                   </label>
                   <input
+                    id="ugc-fund-phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="2507…"
+                    autoComplete="tel"
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? "ugc-fund-error" : undefined}
                     className="w-full rounded-xl border border-[#E5E7EB] px-3 py-2.5 text-[13px] outline-none focus:border-[#FF5A1F] focus:ring-2 focus:ring-[#FF5A1F]/15"
                   />
                 </div>
@@ -459,12 +454,12 @@ export function CampaignFundClient() {
                   <ShieldCheck className="h-3 w-3" /> {t("escrowProtected")}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#EEF2FF] px-2 py-1 text-[#4338CA]">
-                  <Lock className="h-3 w-3" /> PCI-ready checkout
+                  <Lock className="h-3 w-3" /> {t("pciReadyCheckout")}
                 </span>
               </div>
 
               {error ? (
-                <p className="mt-3 text-[12.5px] font-medium text-red-600">{error}</p>
+                <p id="ugc-fund-error" role="alert" className="mt-3 text-[12.5px] font-medium text-red-600">{error}</p>
               ) : null}
 
               <button
@@ -475,7 +470,8 @@ export function CampaignFundClient() {
                   (method === "wallet" && walletBalance < amountToFund)
                 }
                 onClick={() => void fund()}
-                className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white shadow-[0_8px_24px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18] disabled:opacity-60"
+                aria-describedby={error ? "ugc-fund-error" : undefined}
+                className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#FF5A1F] text-[13px] font-bold text-white shadow-[0_8px_24px_rgba(255,90,31,0.35)] transition hover:bg-[#E54E18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/50 disabled:opacity-60"
               >
                 {funding ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

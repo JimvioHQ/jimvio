@@ -136,6 +136,16 @@ export async function creditFixedPayoutIfNeeded(
       .eq("spent_budget", nextSpent);
   };
 
+  const { data: racedRows } = await db
+    .from("ugc_payouts")
+    .select("id, amount")
+    .eq("submission_id", opts.submissionId)
+    .limit(1);
+  if (racedRows?.length) {
+    await revertBudget();
+    return { ok: true, credited: false, amount: Number(racedRows[0].amount ?? 0) };
+  }
+
   const { data: infData } = await db
     .from("influencers")
     .select("id, user_id")
@@ -165,6 +175,17 @@ export async function creditFixedPayoutIfNeeded(
       return { ok: true, credited: false, amount: payout };
     }
     return { ok: false, error: ugcPayErr?.message ?? "Payout insert failed", status: 500 };
+  }
+
+  const { data: siblings } = await db
+    .from("ugc_payouts")
+    .select("id")
+    .eq("submission_id", opts.submissionId)
+    .order("created_at", { ascending: true });
+  if ((siblings?.length ?? 0) > 1 && siblings?.[0]?.id !== ugcPay.id) {
+    await db.from("ugc_payouts").delete().eq("id", ugcPay.id);
+    await revertBudget();
+    return { ok: true, credited: false, amount: payout };
   }
 
   await db.from("ugc_submissions").update({ total_earnings: payout }).eq("id", opts.submissionId);

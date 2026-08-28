@@ -541,7 +541,7 @@ export function CampaignCreateWizard({ editId }: CampaignCreateWizardProps) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[920px] px-4 py-6 sm:px-6">
+    <div className="mx-auto w-full min-w-0 max-w-[920px] px-4 py-6 sm:px-6">
       <Link
         href="/ugc/campaign-center"
         className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#6B7280] hover:text-[#FF5A1F]"

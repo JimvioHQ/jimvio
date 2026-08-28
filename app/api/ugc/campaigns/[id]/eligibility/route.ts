@@ -4,6 +4,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { evaluateJoinEligibility } from "@/lib/ugc/join-engine";
 import { resolveJoinConfig, resolveJoinMode } from "@/lib/ugc/join-engine";
 import { countAcceptedParticipants, loadCreatorProfile, type CampaignJoinRow } from "@/lib/ugc/join-service";
+import { canAccessCampaignJoinSurfaces } from "@/lib/ugc/enterprise/brand-access";
 
 export async function GET(
   _req: NextRequest,
@@ -19,6 +20,13 @@ export async function GET(
   const db = createServiceRoleClient();
   const { data: campaign } = await db.from("ugc_campaigns").select("*").eq("id", id).maybeSingle();
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+
+  const allowed = await canAccessCampaignJoinSurfaces(db, user?.id ?? null, {
+    id: campaign.id,
+    status: campaign.status,
+    brand_id: campaign.brand_id,
+  });
+  if (!allowed) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
   const participantCount = await countAcceptedParticipants(db, id);
   let profile = null;

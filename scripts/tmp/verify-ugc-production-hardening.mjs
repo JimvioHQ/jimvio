@@ -87,7 +87,7 @@ assert.doesNotMatch(fund, /json.activated \|\| json.already_funded/);
 assert.match(fund, /setOutcome\("pending"\)/);
 assert.match(fund, /\/api\/identity\/wallet/);
 assert.doesNotMatch(fund, /phone \|\| "250700000000"/);
-assert.match(fund, /Insufficient wallet balance/);
+assert.match(fund, /t\("insufficientWalletEscrow"\)/);
 
 assert.match(createApi, /fixed_rate must be > 0/);
 assert.match(createApi, /model === 'fixed_per_content'/);

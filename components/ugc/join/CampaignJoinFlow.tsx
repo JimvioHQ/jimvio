@@ -87,7 +87,7 @@ export function CampaignJoinFlow() {
         }
       }
     } catch {
-      toast.error("Failed to load campaign");
+      toast.error(t("failedToLoadCampaign"));
     } finally {
       setLoading(false);
     }
@@ -130,17 +130,17 @@ export function CampaignJoinFlow() {
       });
       const json = await res.json();
       if (!res.ok) {
-        toast.error(json.error ?? "Could not join campaign");
+        toast.error(json.error ?? t("couldNotJoinCampaign"));
         return;
       }
       setConfirmOpen(false);
       setSuccess(true);
-      toast.success(json.message ?? "Application submitted");
+      toast.success(json.message ?? t("applicationSubmitted"));
       window.setTimeout(() => {
         router.push("/ugc/applications");
       }, 1600);
     } catch {
-      toast.error("Network error. Please retry.");
+      toast.error(t("networkRetry"));
     } finally {
       setSubmitting(false);
     }
@@ -158,9 +158,9 @@ export function CampaignJoinFlow() {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-4 text-center">
         <AlertCircle className="h-8 w-8 text-[#9CA3AF]" />
-        <p className="font-semibold text-[#111827]">Campaign unavailable</p>
+        <p className="font-semibold text-[#111827]">{t("campaignUnavailable")}</p>
         <Link href="/ugc" className="text-sm font-semibold text-[#FF5A1F]">
-          Back to discover
+          {t("backToDiscover")}
         </Link>
       </div>
     );
@@ -168,12 +168,12 @@ export function CampaignJoinFlow() {
 
   const modeLabel =
     ctx.joinMode === "instant"
-      ? "Instant join"
+      ? t("instantJoin")
       : ctx.joinMode === "invite_only"
-        ? "Invite only"
+        ? t("inviteOnly")
         : ctx.joinMode === "hybrid"
-          ? "Smart apply"
-          : "Application required";
+          ? t("smartApply")
+          : t("applicationRequired");
 
   const reqLines = [
     campaign.min_duration || campaign.max_duration
@@ -229,10 +229,10 @@ export function CampaignJoinFlow() {
             key="form"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mx-auto max-w-3xl space-y-5 px-4 py-6"
+            className="mx-auto max-w-3xl min-w-0 space-y-5 px-4 py-6"
           >
             <div className="rounded-[18px] border border-[#EEF0F2] bg-white p-5 shadow-sm">
-              <h1 className="text-xl font-bold text-[#111827]">{campaign.title}</h1>
+              <h1 className="break-words text-xl font-bold text-[#111827]">{campaign.title}</h1>
               <p className="mt-1 text-sm text-[#6B7280]">
                 {getCampaignRewardLine(campaign, formatMoney)} ·{" "}
                 {campaign.vendor?.business_name}
@@ -262,10 +262,10 @@ export function CampaignJoinFlow() {
                 <ProgressBar value={ctx.eligibility.score} />
               </div>
               {ctx.eligibility.blocked ? (
-                <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-[12px] text-rose-700">
+                <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-[12px] text-rose-700" role="alert">
                   {ctx.eligibility.blockReason ??
                     ctx.eligibility.reasons?.find((r) => !r.met)?.label ??
-                    "You are not eligible for this campaign."}
+                    t("notEligible")}
                 </p>
               ) : null}
             </div>

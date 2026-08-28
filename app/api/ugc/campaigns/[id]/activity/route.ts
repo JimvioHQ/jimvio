@@ -44,6 +44,13 @@ export async function GET(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const mine = influencer?.id ?? null;
+  const scopeRows = <T extends { influencer_id?: string | null }>(rows: T[] | null | undefined): T[] => {
+    const list = rows ?? [];
+    if (isBrand) return list;
+    return list.filter((row) => !row.influencer_id || row.influencer_id === mine);
+  };
+
   const backfill = req.nextUrl.searchParams.get("backfill") !== "false";
 
   const { data: existing, error: qErr } = await db
@@ -56,7 +63,7 @@ export async function GET(
   if (qErr) return NextResponse.json({ error: qErr.message }, { status: 500 });
 
   if ((existing ?? []).length > 0) {
-    return NextResponse.json({ data: existing });
+    return NextResponse.json({ data: scopeRows(existing) });
   }
 
   // Derive timeline from campaign + participants + submissions
@@ -98,12 +105,15 @@ export async function GET(
     });
   }
 
-  const { data: participants } = await db
+  const participantsQuery = db
     .from("ugc_campaign_participants")
     .select("influencer_id, status, joined_at, application_message")
     .eq("campaign_id", campaignId)
     .order("joined_at", { ascending: true })
     .limit(50);
+  const { data: participants } = !isBrand && mine
+    ? await participantsQuery.eq("influencer_id", mine)
+    : await participantsQuery;
 
   for (const p of participants ?? []) {
     const eventType =
@@ -129,12 +139,15 @@ export async function GET(
     });
   }
 
-  const { data: submissions } = await db
+  const submissionsQuery = db
     .from("ugc_submissions")
     .select("id, influencer_id, status, created_at, reviewed_at")
     .eq("campaign_id", campaignId)
     .order("created_at", { ascending: true })
     .limit(50);
+  const { data: submissions } = !isBrand && mine
+    ? await submissionsQuery.eq("influencer_id", mine)
+    : await submissionsQuery;
 
   for (const s of submissions ?? []) {
     derived.push({
@@ -214,14 +227,16 @@ export async function GET(
       .order("created_at", { ascending: false })
       .limit(100);
 
-    return NextResponse.json({ data: filled ?? derived, derived: true });
+    return NextResponse.json({ data: scopeRows(filled ?? derived), derived: true });
   }
 
   return NextResponse.json({
-    data: derived.map((d, i) => ({
-      id: `derived-${i}`,
-      ...d,
-    })),
+    data: scopeRows(
+      derived.map((d, i) => ({
+        id: `derived-${i}`,
+        ...d,
+      })),
+    ),
     derived: true,
   });
 }

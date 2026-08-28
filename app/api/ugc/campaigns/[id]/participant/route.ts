@@ -9,6 +9,7 @@ import {
   resolveJoinMode,
 } from "@/lib/ugc/join-engine";
 import type { CampaignJoinRow } from "@/lib/ugc/join-service";
+import { canAccessCampaignJoinSurfaces } from "@/lib/ugc/enterprise/brand-access";
 
 export async function GET(
   _req: NextRequest,
@@ -26,6 +27,13 @@ export async function GET(
 
   const { data: campaign } = await db.from("ugc_campaigns").select("*").eq("id", id).maybeSingle();
   if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+
+  const allowed = await canAccessCampaignJoinSurfaces(db, user.id, {
+    id: campaign.id,
+    status: campaign.status,
+    brand_id: campaign.brand_id,
+  });
+  if (!allowed) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
   const { data: influencer } = await db
     .from("influencers")

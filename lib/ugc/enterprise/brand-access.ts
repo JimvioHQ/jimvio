@@ -147,6 +147,33 @@ export async function canReadCampaign(
   return role != null;
 }
 
+/**
+ * Public join/eligibility surfaces: active campaigns, brand members, or the
+ * caller's own participant row (invited creators on a draft). Never leak
+ * draft join config to anonymous or unrelated users.
+ */
+export async function canAccessCampaignJoinSurfaces(
+  db: SupabaseClient,
+  userId: string | null,
+  campaign: { id: string; status: string; brand_id: string },
+): Promise<boolean> {
+  if (await canReadCampaign(db, userId, campaign)) return true;
+  if (!userId) return false;
+  const { data: inf } = await db
+    .from("influencers")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!inf?.id) return false;
+  const { data: part } = await db
+    .from("ugc_campaign_participants")
+    .select("id")
+    .eq("campaign_id", campaign.id)
+    .eq("influencer_id", inf.id)
+    .maybeSingle();
+  return Boolean(part);
+}
+
 export function brandIdFromRequest(req: { nextUrl: { searchParams: URLSearchParams } }) {
   return req.nextUrl.searchParams.get("brandId") ?? req.nextUrl.searchParams.get("brand_id");
 }
