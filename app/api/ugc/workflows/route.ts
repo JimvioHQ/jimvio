@@ -12,6 +12,10 @@ export async function GET(req: NextRequest) {
   const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
   const { db, vendor } = ws;
+  const perm = await requireBrandPermission(db, vendor.id, user.id, "automations.manage");
+  if (!perm.ok) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { data, error: qErr } = await db
     .from("ugc_workflows")

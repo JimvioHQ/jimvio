@@ -9,6 +9,10 @@ const STATUSES = new Set(["uploaded", "draft", "approved", "rejected", "archived
 export async function GET(req: NextRequest) {
   const { user, db, error } = await requireUser();
   if (!user) return NextResponse.json({ error }, { status: 401 });
+  const { ready, completion } = await requireInfluencer(user.id);
+  if (!ready) {
+    return NextResponse.json(creatorProfileRequiredPayload(completion), { status: 403 });
+  }
 
   const sp = req.nextUrl.searchParams;
   const q = (sp.get("q") ?? "").trim();

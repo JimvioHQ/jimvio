@@ -141,7 +141,7 @@ export async function GET(req: NextRequest) {
         `
       *,
       influencer:influencers!influencer_id (
-        id, display_name, profile_image, user_id
+        id, display_name, profile_image
       ),
       campaign:ugc_campaigns!campaign_id ( id, title, status )
     `
@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
       `
       *,
       influencer:influencers!influencer_id (
-        id, display_name, profile_image, user_id
+        id, display_name, profile_image
       ),
       campaign:ugc_campaigns!campaign_id ( id, title, status )
     `

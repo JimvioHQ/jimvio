@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       *,
       campaign:ugc_campaigns!campaign_id ( id, title, status ),
       influencer:influencers!influencer_id (
-        id, display_name, profile_image, user_id
+        id, display_name, profile_image
       ),
       brand:vendors!brand_id ( id, business_name, business_logo, business_slug )
     `

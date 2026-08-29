@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
 import { analyzeSubmission } from "@/lib/ugc/platform/ai-review";
-import { requireCampaignPermission } from "@/lib/ugc/enterprise/brand-access";
+import { canReadCampaign, requireCampaignPermission } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
 
@@ -39,11 +39,18 @@ export async function POST(req: NextRequest) {
     const { data: campaign } = await db
       .from("ugc_campaigns")
       .select(
-        "id, title, required_hashtags, required_mentions, min_duration, max_duration, content_guidelines, allowed_platforms"
+        "id, title, status, brand_id, required_hashtags, required_mentions, min_duration, max_duration, content_guidelines, allowed_platforms"
       )
       .eq("id", campaignId)
       .maybeSingle();
     if (campaign) {
+      const readable = await canReadCampaign(db, user.id, {
+        status: campaign.status,
+        brand_id: campaign.brand_id,
+      });
+      if (!readable) {
+        return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+      }
       requiredHashtags = requiredHashtags.length
         ? requiredHashtags
         : campaign.required_hashtags ?? [];

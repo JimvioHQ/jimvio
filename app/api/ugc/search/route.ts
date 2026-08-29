@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
       if (seen.has(row.id)) return false;
       seen.add(row.id);
       return true;
-    }).slice(0, limit);
+    }).slice(0, limit).map(({ user_id: _uid, ...rest }) => rest);
   })();
 
   const brandsPromise = (async () => {

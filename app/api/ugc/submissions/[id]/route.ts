@@ -3,7 +3,7 @@ import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import { createClient } from '@/lib/supabase/server';
 import { creditFixedPayoutIfNeeded } from '@/lib/ugc/credit-fixed-payout';
 import { requireCampaignPermission } from '@/lib/ugc/enterprise/brand-access';
-import { resolveBrandRole } from '@/lib/ugc/enterprise/permissions';
+import { memberCan, resolveBrandRole } from '@/lib/ugc/enterprise/permissions';
 
 async function assertCanReadSubmission(
   db: ReturnType<typeof createServiceRoleClient>,
@@ -30,7 +30,7 @@ async function assertCanReadSubmission(
   if (influencer?.user_id === userId) return true;
   if (campaign?.brand_id) {
     const role = await resolveBrandRole(db, campaign.brand_id, userId);
-    if (role) return true;
+    if (memberCan(role, 'campaigns.review')) return true;
   }
   return false;
 }
@@ -62,7 +62,15 @@ export async function GET(
   const allowed = await assertCanReadSubmission(db, user.id, data);
   if (!allowed) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  return NextResponse.json({ submission: data });
+  const rawInf = Array.isArray(data.influencer) ? data.influencer[0] : data.influencer;
+  const publicInfluencer = rawInf
+    ? Object.fromEntries(
+        Object.entries(rawInf as Record<string, unknown>).filter(([key]) => key !== "user_id"),
+      )
+    : data.influencer;
+  return NextResponse.json({
+    submission: { ...data, influencer: publicInfluencer },
+  });
 }
 
 export async function PATCH(

@@ -4,6 +4,11 @@ import { getNowPaymentsIpnSecret } from "@/lib/nowpayments";
 import { validateIPNSignature } from "@/services/nowpayments";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { confirmUgcEscrowPayment } from "@/lib/ugc/confirm-escrow-payment";
+import {
+  logWebhookEvent,
+  markWebhookProcessed,
+  markWebhookFailed,
+} from "@/lib/payments/webhook-logger";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export async function POST(req: NextRequest) {
@@ -52,9 +57,18 @@ export async function POST(req: NextRequest) {
     const refStr = String(payment_id);
 
     for (const oid of orderIds) {
+      const idempotencyKey = `nowp-${refStr}-${payment_status}`;
+      const { isDuplicate, eventId } = await logWebhookEvent(supabase, {
+        provider: "nowpayments",
+        idempotencyKey,
+        payload,
+        orderId: oid,
+      });
+      if (isDuplicate) continue;
+
       const { data: ord } = await supabase.from("orders").select("buyer_id").eq("id", oid).maybeSingle();
       if (!ord) {
-        await confirmUgcEscrowPayment(supabase, {
+        const ugc = await confirmUgcEscrowPayment(supabase, {
           campaignId: oid,
           providerTransactionId: refStr,
           paymentRef: oid,
@@ -62,6 +76,11 @@ export async function POST(req: NextRequest) {
           currency: payload.price_currency ?? null,
           provider: "nowpayments",
         });
+        if (ugc.handled) {
+          if (eventId) await markWebhookProcessed(supabase, eventId, ugc.campaignId);
+        } else if (eventId) {
+          await markWebhookFailed(supabase, eventId, "Order not found");
+        }
         continue;
       }
       try {
@@ -73,8 +92,10 @@ export async function POST(req: NextRequest) {
           nowpaymentsPaymentId: payment_id,
           webhookReference: refStr,
         });
+        if (eventId) await markWebhookProcessed(supabase, eventId, oid);
       } catch (e) {
         console.error("NowPayments finalize error", oid, e);
+        if (eventId) await markWebhookFailed(supabase, eventId, "Finalize failed");
       }
     }
 

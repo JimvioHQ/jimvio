@@ -37,7 +37,7 @@ export async function PATCH(
       `
       *,
       influencer:influencers!influencer_id (
-        id, user_id, display_name, profile_image
+        id, display_name, profile_image
       )
     `
     )

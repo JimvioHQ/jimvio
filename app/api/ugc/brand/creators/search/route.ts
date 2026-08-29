@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/ugc/platform/auth";
 import { requireBrandWorkspace, brandIdFromRequest } from "@/lib/ugc/enterprise/brand-access";
+import { requireBrandPermission } from "@/lib/ugc/enterprise/permissions";
 
 export const dynamic = "force-dynamic";
 
 type CreatorCardRow = {
   influencerId: string;
-  userId: string;
+  username: string | null;
   displayName: string;
   avatarUrl: string | null;
   isVerified: boolean;
@@ -49,6 +50,10 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error }, { status: 401 });
   const ws = await requireBrandWorkspace(user.id, brandIdFromRequest(req));
   if (!ws.ok) return NextResponse.json({ error: ws.error }, { status: ws.status });
+  const perm = await requireBrandPermission(ws.db, ws.vendor.id, user.id, "creators.invite");
+  if (!perm.ok) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const db = ws.db;
 
@@ -72,12 +77,16 @@ export async function GET(req: NextRequest) {
   const userIds = infList.map((i) => String(i.user_id));
   const { data: profiles } = await db
     .from("profiles")
-    .select("id, country, language")
+    .select("id, country, language, username")
     .in("id", userIds);
 
-  const profileById = new Map<string, { country: string | null; language: string | null }>();
+  const profileById = new Map<string, { country: string | null; language: string | null; username: string | null }>();
   for (const p of profiles ?? []) {
-    profileById.set(String(p.id), { country: p.country ?? null, language: p.language ?? null });
+    profileById.set(String(p.id), {
+      country: p.country ?? null,
+      language: p.language ?? null,
+      username: p.username ?? null,
+    });
   }
 
   const filtered = infList.filter((inf) => {
@@ -200,7 +209,7 @@ export async function GET(req: NextRequest) {
 
     return {
       influencerId: iid,
-      userId: String(inf.user_id),
+      username: typeof prof?.username === "string" ? prof.username : null,
       displayName: inf.display_name ?? "Creator",
       avatarUrl: inf.profile_image ?? null,
       isVerified: Boolean(inf.is_verified),

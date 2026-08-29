@@ -317,6 +317,28 @@ assert.match(credit, /siblings/);
 assert.doesNotMatch(payoutsSchema, /UNIQUE \(submission_id\)/);
 
 assert.match(notes, /\.eq\("author_user_id", user\.id\)/);
+assert.match(notes, /requireCampaignPermission/);
+assert.match(notes, /campaigns\.review/);
+
+const submissionsList = read("app/api/ugc/submissions/route.ts");
+const submissionGet = read("app/api/ugc/submissions/[id]/route.ts");
+const aiReview = read("app/api/ugc/ai/review/route.ts");
+const workflowsList = read("app/api/ugc/workflows/route.ts");
+const library = read("app/api/ugc/library/route.ts");
+const brandCreatorSearch = read("app/api/ugc/brand/creators/search/route.ts");
+const envVerify = read("scripts/release/verify-env.mjs");
+assert.match(submissionsList, /filterBrandIdsByPermission/);
+assert.match(submissionsList, /campaigns\.review/);
+assert.match(submissionGet, /memberCan\(role, 'campaigns\.review'\)/);
+assert.match(aiReview, /canReadCampaign/);
+assert.match(workflowsList, /automations\.manage/);
+assert.match(library, /creatorProfileRequiredPayload/);
+assert.match(brandCreatorSearch, /creators\.invite/);
+assert.doesNotMatch(brandCreatorSearch, /userId: String\(inf\.user_id\)/);
+assert.match(nowpLib, /status === 'finished' \|\| status === 'confirmed'/);
+assert.match(nowpIpn, /logWebhookEvent/);
+assert.match(envVerify, /NOWPAYMENTS_IPN_SECRET/);
+assert.match(envVerify, /FLW_WEBHOOK_SECRET/);
 assert.doesNotMatch(referrals, /body\.reward_amount/);
 assert.match(referrals, /reward_amount: 5/);
 assert.match(insights, /showEarnings/);
@@ -418,6 +440,7 @@ assert.equal(perms.roleCan("viewer", "campaigns.manage"), false);
 assert.equal(perms.roleCan("viewer", "finance.payout"), false);
 assert.equal(perms.roleCan("viewer", "team.manage"), false);
 assert.equal(perms.roleCan("viewer", "creators.invite"), false);
+assert.equal(typeof perms.filterBrandIdsByPermission, "function");
 
 const amount = await loadEscrowAmount();
 assert.equal(

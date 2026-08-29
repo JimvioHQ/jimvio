@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 import type { CreateSubmissionPayload } from '@/types/ugc';
 import { isUgcSubmitPlatform, normalizePostUrl } from '@/lib/ugc/normalize-post-url';
-import { listAccessibleBrandIds } from '@/lib/ugc/enterprise/brand-access';
+import { listAccessibleBrandIds, requireCampaignPermission } from '@/lib/ugc/enterprise/brand-access';
+import { filterBrandIdsByPermission } from '@/lib/ugc/enterprise/permissions';
 import { emitUgcEvent } from '@/lib/ugc/enterprise/events';
 import { creatorProfileRequiredPayload, requireInfluencer } from '@/lib/ugc/platform/auth';
 
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
     db.from('user_roles').select('id').eq('user_id', user.id).eq('role', 'admin').eq('is_active', true).maybeSingle(),
   ]);
   const brandIds = await listAccessibleBrandIds(db, user.id);
+  const reviewBrandIds = await filterBrandIdsByPermission(db, user.id, brandIds, 'campaigns.review');
 
   let query = db
     .from('ugc_submissions')
@@ -36,7 +38,7 @@ export async function GET(req: NextRequest) {
       *,
       media:ugc_submission_media(*),
       campaign:ugc_campaigns!campaign_id (id, title, rate_per_1k_views, status),
-      influencer:influencers!influencer_id (id, display_name, profile_image, user_id)
+      influencer:influencers!influencer_id (id, display_name, profile_image)
     `,
       { count: 'exact' }
     )
@@ -45,26 +47,25 @@ export async function GET(req: NextRequest) {
 
   if (adminRole) {
     // admin sees all
-  } else if (brandIds.length > 0 && campaignId) {
-    const { data: owned } = await db
-      .from('ugc_campaigns')
-      .select('id')
-      .eq('id', campaignId)
-      .in('brand_id', brandIds)
-      .maybeSingle();
-    if (!owned) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    query = query.eq('campaign_id', campaignId);
-  } else if (influencer) {
-    query = query.eq('influencer_id', influencer.id);
-    if (campaignId) query = query.eq('campaign_id', campaignId);
-  } else if (brandIds.length > 0) {
+  } else if (campaignId) {
+    const access = await requireCampaignPermission(user.id, campaignId, 'campaigns.review');
+    if (access.ok) {
+      query = query.eq('campaign_id', campaignId);
+    } else if (influencer) {
+      query = query.eq('influencer_id', influencer.id).eq('campaign_id', campaignId);
+    } else {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  } else if (reviewBrandIds.length > 0) {
     const { data: myCampaigns } = await db
       .from('ugc_campaigns')
       .select('id')
-      .in('brand_id', brandIds);
+      .in('brand_id', reviewBrandIds);
     const ids = (myCampaigns ?? []).map((c: { id: string }) => c.id);
     if (ids.length === 0) return NextResponse.json({ data: [], total: 0, page, limit });
     query = query.in('campaign_id', ids);
+  } else if (influencer) {
+    query = query.eq('influencer_id', influencer.id);
   } else {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

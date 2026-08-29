@@ -11,7 +11,7 @@ import { useUgcBrandWorkspace } from "@/components/ugc/workspace/UgcBrandWorkspa
 
 type CreatorRow = {
   influencerId: string;
-  userId: string;
+  username: string | null;
   displayName: string;
   avatarUrl: string | null;
   isVerified: boolean;
@@ -516,7 +516,7 @@ export default function CreatorRecruitmentClient() {
                           {inviteable ? "Invite creator" : participant ? "Invited/Approved" : "Not applied"}
                         </Button>
                         <Link
-                          href={`/influencers/u/${c.userId}`}
+                          href={c.username ? `/influencers/${c.username}` : `/influencers/${c.influencerId}`}
                           className="h-10 w-10 rounded-xl border border-[#E5E7EB] bg-white text-[#374151] grid place-items-center hover:bg-[#F9FAFB]"
                           aria-label="View creator"
                         >

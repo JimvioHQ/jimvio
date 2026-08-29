@@ -75,6 +75,21 @@ export async function requireBrandPermission(
   return { ok: true, role };
 }
 
+/** Filter already-accessible brand IDs down to those with a server-derived permission. */
+export async function filterBrandIdsByPermission(
+  db: SupabaseClient,
+  userId: string,
+  brandIds: string[],
+  permission: string,
+): Promise<string[]> {
+  const allowed: string[] = [];
+  for (const brandId of brandIds) {
+    const role = await resolveBrandRole(db, brandId, userId);
+    if (memberCan(role, permission)) allowed.push(brandId);
+  }
+  return allowed;
+}
+
 export function defaultPermissions(role: BrandRole) {
   return Array.from(ROLE_PERMS[role] ?? []);
 }

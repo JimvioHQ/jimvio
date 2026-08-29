@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { creatorProfileRequiredPayload, requireUser, requireInfluencer } from "@/lib/ugc/platform/auth";
-import {
-  requireCampaignMember,
-  requireCampaignPermission,
-} from "@/lib/ugc/enterprise/brand-access";
+import { requireCampaignPermission } from "@/lib/ugc/enterprise/brand-access";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +36,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ data: data ?? [] });
   }
 
-  const access = await requireCampaignMember(user.id, campaignId);
+  const access = await requireCampaignPermission(user.id, campaignId, "campaigns.review");
   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
   let query = access.db

@@ -151,7 +151,7 @@ export function verifyNowPaymentsSignature(
 // waiting → confirming → confirmed → sending → partially_paid
 // → finished (✓ success) → failed → refunded → expired
 export function isPaymentComplete(status: string): boolean {
-  return status === 'finished'
+  return status === 'finished' || status === 'confirmed'
 }
 
 export function isPaymentFailed(status: string): boolean {
