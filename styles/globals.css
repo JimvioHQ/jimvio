@@ -43,7 +43,7 @@
    * Soft ambient only; keep contrast high behind message text.
    */
   .discussion-chat-canvas {
-    background-color: #f8f9fb;
+    background-color: var(--color-surface-secondary, #f8f9fb);
     background-image:
       radial-gradient(ellipse 36% 28% at 10% 12%, rgba(253, 80, 0, 0.028), transparent 72%),
       radial-gradient(ellipse 30% 24% at 92% 88%, rgba(59, 130, 246, 0.02), transparent 70%),
@@ -51,6 +51,15 @@
       radial-gradient(rgba(17, 24, 39, 0.022) 0.55px, transparent 0.65px);
     background-size: auto, auto, 200px 140px, 20px 20px;
     background-repeat: no-repeat, no-repeat, repeat, repeat;
+  }
+
+  html.dark .discussion-chat-canvas {
+    background-color: var(--color-bg);
+    background-image:
+      radial-gradient(ellipse 36% 28% at 10% 12%, rgba(253, 80, 0, 0.08), transparent 72%),
+      radial-gradient(ellipse 30% 24% at 92% 88%, rgba(59, 130, 246, 0.04), transparent 70%),
+      radial-gradient(rgba(255, 255, 255, 0.03) 0.55px, transparent 0.65px);
+    background-size: auto, auto, 20px 20px;
   }
 }
 
@@ -186,6 +195,11 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
@@ -238,8 +252,16 @@
     border-radius: 99px;
   }
 
+  html.dark ::-webkit-scrollbar-thumb {
+    background: #333;
+  }
+
   ::-webkit-scrollbar-thumb:hover {
     background: #bbb;
+  }
+
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background: #444;
   }
 
   ::selection {
@@ -1240,4 +1262,121 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/*
+ * Global dark chrome remap.
+ * next-themes already sets html.dark and the token block above.
+ * Home/Marketplace use tokens or explicit dark: variants — those win via
+ * :not([class*="dark:…"]). Product surfaces that hardcoded light hexes
+ * (UGC, Identity, Communities shells, cards) inherit the existing tokens.
+ * Brand / status / payment colors are not remapped.
+ */
+html.dark .bg-white:not([class*="dark:bg-"]):not([data-slot="switch-thumb"]),
+html.dark .bg-\[\#fff\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#FFF\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#ffffff\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#FFFFFF\]:not([class*="dark:bg-"]) {
+  background-color: var(--color-surface);
+}
+
+html.dark .bg-white\/80:not([class*="dark:bg-"]),
+html.dark .bg-white\/85:not([class*="dark:bg-"]),
+html.dark .bg-white\/90:not([class*="dark:bg-"]),
+html.dark .bg-white\/92:not([class*="dark:bg-"]) {
+  background-color: color-mix(in srgb, var(--color-surface) 88%, transparent);
+}
+
+html.dark .bg-gray-50:not([class*="dark:bg-"]),
+html.dark .bg-gray-50\/90:not([class*="dark:bg-"]),
+html.dark .bg-slate-50:not([class*="dark:bg-"]),
+html.dark .bg-stone-50:not([class*="dark:bg-"]),
+html.dark .bg-zinc-50:not([class*="dark:bg-"]),
+html.dark .bg-\[\#FAFAFA\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#fafafa\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#F8FAFC\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#f8fafc\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#F8FAFC\]\/92:not([class*="dark:bg-"]),
+html.dark .bg-\[\#F7F7F8\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#f7f7f8\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#F4F4F5\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#f4f4f5\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#FBFAF8\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#fbfaf8\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#F9F9F9\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#F3F4F6\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#f3f4f6\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#F8F9FB\]:not([class*="dark:bg-"]) {
+  background-color: var(--color-surface-secondary);
+}
+
+html.dark .bg-\[\#FFF4EF\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#FFF8F5\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#FFF0E8\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#FFFAF7\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#FFF1EA\]:not([class*="dark:bg-"]),
+html.dark .bg-orange-50:not([class*="dark:bg-"]) {
+  background-color: var(--color-accent-light);
+}
+
+html.dark .hover\:bg-white:hover:not([class*="dark:hover:bg-"]),
+html.dark .hover\:bg-gray-50:hover:not([class*="dark:hover:bg-"]),
+html.dark .hover\:bg-stone-50:hover:not([class*="dark:hover:bg-"]),
+html.dark .hover\:bg-slate-50:hover:not([class*="dark:hover:bg-"]),
+html.dark .hover\:bg-\[\#F8FAFC\]:hover:not([class*="dark:hover:bg-"]),
+html.dark .hover\:bg-\[\#FAFAFA\]:hover:not([class*="dark:hover:bg-"]) {
+  background-color: var(--color-surface-secondary);
+}
+
+html.dark .border-gray-100:not([class*="dark:border-"]),
+html.dark .border-gray-200:not([class*="dark:border-"]),
+html.dark .border-gray-200\/90:not([class*="dark:border-"]),
+html.dark .border-slate-200:not([class*="dark:border-"]),
+html.dark .border-stone-200:not([class*="dark:border-"]),
+html.dark .border-zinc-200:not([class*="dark:border-"]),
+html.dark .border-\[\#EEF0F2\]:not([class*="dark:border-"]),
+html.dark .border-\[\#E5E7EB\]:not([class*="dark:border-"]),
+html.dark .border-\[\#E8EAED\]:not([class*="dark:border-"]),
+html.dark .border-\[\#F0F0F0\]:not([class*="dark:border-"]),
+html.dark .border-\[\#eee\]:not([class*="dark:border-"]) {
+  border-color: var(--color-border);
+}
+
+html.dark .hover\:border-gray-300:hover:not([class*="dark:hover:border-"]) {
+  border-color: var(--color-border-strong);
+}
+
+html.dark .text-\[\#111827\]:not([class*="dark:text-"]),
+html.dark .text-\[\#1C1B19\]:not([class*="dark:text-"]),
+html.dark .text-\[\#161512\]:not([class*="dark:text-"]),
+html.dark .text-gray-900:not([class*="dark:text-"]),
+html.dark .hover\:text-gray-900:hover:not([class*="dark:hover:text-"]) {
+  color: var(--color-text-primary);
+}
+
+html.dark .text-\[\#374151\]:not([class*="dark:text-"]),
+html.dark .text-\[\#4B5563\]:not([class*="dark:text-"]),
+html.dark .text-gray-700:not([class*="dark:text-"]),
+html.dark .text-gray-600:not([class*="dark:text-"]),
+html.dark .hover\:text-gray-700:hover:not([class*="dark:hover:text-"]) {
+  color: var(--color-text-secondary);
+}
+
+html.dark .text-\[\#6B7280\]:not([class*="dark:text-"]),
+html.dark .text-\[\#9CA3AF\]:not([class*="dark:text-"]),
+html.dark .text-gray-500:not([class*="dark:text-"]),
+html.dark .text-gray-400:not([class*="dark:text-"]) {
+  color: var(--color-text-muted);
+}
+
+html.dark .from-white:not([class*="dark:from-"]) {
+  --tw-gradient-from: var(--color-surface) var(--tw-gradient-from-position);
+}
+
+html.dark .to-\[\#FAFAFA\]:not([class*="dark:to-"]) {
+  --tw-gradient-to: var(--color-surface-secondary) var(--tw-gradient-to-position);
+}
+
+html.dark .identity-scope {
+  color: var(--color-text-primary);
 }

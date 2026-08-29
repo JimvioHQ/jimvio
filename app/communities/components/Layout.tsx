@@ -273,7 +273,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
     // Next.js DefaultGlobalError ("This page couldn't load").
     if (isLiveStudio) {
         return (
-            <div className="min-h-screen bg-[#f7f7f8] text-[var(--color-text-primary,#18181b)]">
+            <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
                 {children}
             </div>
         );
@@ -497,7 +497,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 )}
 
                 {/* Page content */}
-                <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isLiveStudio && "bg-[#f7f7f8]")}>
+                <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isLiveStudio && "bg-[var(--color-bg)]")}>
                     {/* Mobile page title bar */}
                     {!isLiveStudio && (
                     <div className="flex h-11 items-center border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-4 lg:hidden">

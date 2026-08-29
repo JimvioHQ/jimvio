@@ -15,16 +15,16 @@ export function StatCard({ icon, value, label, delta, className }: StatCardProps
   return (
     <div
       className={cn(
-        "rounded-xl border border-gray-200 bg-white p-4",
+        "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4",
         className
       )}
     >
-      <div className="mb-2 flex items-center gap-1.5 text-gray-500">
+      <div className="mb-2 flex items-center gap-1.5 text-[var(--color-text-muted)]">
         <span className="[&>svg]:h-3.5 [&>svg]:w-3.5">{icon}</span>
       </div>
-      <p className="text-xl font-semibold tabular-nums text-gray-900">{value}</p>
+      <p className="text-xl font-semibold tabular-nums text-[var(--color-text-primary)]">{value}</p>
       <div className="mt-0.5 flex items-center justify-between gap-2">
-        <p className="text-xs text-gray-500">{label}</p>
+        <p className="text-xs text-[var(--color-text-muted)]">{label}</p>
         {delta && (
           <span
             className={cn(

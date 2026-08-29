@@ -32,12 +32,12 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
   }, [mobileNav]);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#F8FAFC]">
+    <div className="flex min-h-dvh flex-col bg-[var(--color-bg)]">
       <AppTopNav showUtilityBar activeNav="UGC & Clipping" user={user} />
 
       <div className="flex flex-1 overflow-hidden">
-        <aside className="hidden shrink-0 border-r border-[#EEF0F2] bg-white lg:block">
-          <Suspense fallback={<div className="h-full w-[220px] animate-pulse bg-[#F8FAFC]" />}>
+        <aside className="hidden shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] lg:block">
+          <Suspense fallback={<div className="h-full w-[220px] animate-pulse bg-[var(--color-surface-secondary)]" />}>
             <UGCWorkspaceSidebar />
           </Suspense>
         </aside>
@@ -52,13 +52,13 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
             />
             <aside
               id="ugc-mobile-nav"
-              className="relative h-full w-[min(280px,88vw)] bg-white shadow-2xl"
+              className="relative h-full w-[min(280px,88vw)] bg-[var(--color-surface)] shadow-2xl"
               role="dialog"
               aria-modal="true"
               aria-label={t("ugcClipping")}
             >
-              <div className="flex items-center justify-between border-b border-[#F0F0F0] px-4 py-3">
-                <span className="text-sm font-semibold text-[#111827]">{t("ugcClipping")}</span>
+              <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-3">
+                <span className="text-sm font-semibold text-[var(--color-text-primary)]">{t("ugcClipping")}</span>
                 <button
                   type="button"
                   onClick={() => setMobileNav(false)}
@@ -75,12 +75,12 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
           </div>
         )}
 
-        <main className="min-w-0 flex-1 overflow-y-auto bg-[#F8FAFC]">
-          <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[#EEF0F2] bg-[#F8FAFC]/92 px-4 py-2.5 backdrop-blur-md lg:hidden">
+        <main className="min-w-0 flex-1 overflow-y-auto bg-[var(--color-bg)]">
+          <div className="sticky top-0 z-20 flex items-center gap-2 border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-bg)_92%,transparent)] px-4 py-2.5 backdrop-blur-md lg:hidden">
             <button
               type="button"
               onClick={() => setMobileNav(true)}
-              className="grid h-11 w-11 place-items-center rounded-xl border border-[#E8EAED] bg-white shadow-[0_1px_2px_rgba(17,24,39,0.04)]"
+              className="grid h-11 w-11 place-items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(17,24,39,0.04)]"
               aria-label={t("openNav")}
               aria-expanded={mobileNav}
               aria-controls="ugc-mobile-nav"

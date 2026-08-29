@@ -24,7 +24,7 @@ export function IdentityAtmosphere({ contained = false }: { contained?: boolean 
     <div
       aria-hidden
       className={cn(
-        "pointer-events-none -z-10 overflow-hidden bg-[#FBFAF8]",
+        "pointer-events-none -z-10 overflow-hidden bg-[#FBFAF8] dark:bg-[var(--color-bg)]",
         contained ? "absolute inset-0" : "fixed inset-0",
       )}
     >
@@ -57,7 +57,7 @@ export function IdentityShell({
   return (
     <div
       className={cn(
-        "identity-scope relative isolate font-[var(--font-identity-sans)] text-[#1C1B19]",
+        "identity-scope relative isolate font-[var(--font-identity-sans)] text-[#1C1B19] dark:text-[var(--color-text-primary)]",
         contained ? "min-h-full" : "min-h-screen",
         className,
       )}
@@ -77,7 +77,7 @@ export const IdentityCard = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-[22px] border border-black/[0.06] bg-white/80 shadow-[0_1px_2px_rgba(20,18,15,0.04),0_12px_32px_-16px_rgba(20,18,15,0.10)] backdrop-blur-sm",
+      "rounded-[22px] border border-black/[0.06] bg-white/80 shadow-[0_1px_2px_rgba(20,18,15,0.04),0_12px_32px_-16px_rgba(20,18,15,0.10)] backdrop-blur-sm dark:border-[var(--color-border)] dark:bg-[var(--color-surface)]",
       interactive &&
         "transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0_1px_2px_rgba(20,18,15,0.05),0_20px_40px_-16px_rgba(20,18,15,0.16)]",
       className,

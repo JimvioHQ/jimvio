@@ -363,13 +363,13 @@ export function CommunitySidebar({
           onClick={onMobileClose}
           aria-hidden
         />
-        <aside className="fixed inset-y-0 left-0 z-[100] flex w-[min(288px,86vw)] flex-col bg-white shadow-xl lg:hidden">
+        <aside className="fixed inset-y-0 left-0 z-[100] flex w-[min(288px,86vw)] flex-col bg-[var(--color-surface)] shadow-xl lg:hidden">
           <div className="flex items-center justify-end px-3 pt-3">
             <button
               type="button"
               aria-label="Close community menu"
               onClick={onMobileClose}
-              className="rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+              className="rounded-lg p-2 text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
             >
               <X className="h-4 w-4" />
             </button>
@@ -381,7 +381,7 @@ export function CommunitySidebar({
   }
 
   return (
-    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-gray-100 bg-white">
+    <aside className="flex h-full w-[260px] shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]">
       <SidebarBody {...bodyProps} />
     </aside>
   );

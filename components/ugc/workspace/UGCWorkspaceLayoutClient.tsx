@@ -17,7 +17,7 @@ type UGCWorkspaceLayoutClientProps = {
 
 function ShellFallback() {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[#FAFAFA]">
+    <div className="flex min-h-dvh items-center justify-center bg-[var(--color-bg)]">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#F3F4F6] border-t-[#FF5A1F]" />
     </div>
   );

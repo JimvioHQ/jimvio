@@ -11,7 +11,7 @@ export default function CreateLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#f4f4f5]">
+    <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:py-10">{children}</div>
     </div>
   );

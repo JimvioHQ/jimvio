@@ -86,8 +86,8 @@ function UtilityIconLink({
       className={cn(
         "relative grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors",
         active
-          ? "bg-orange-50 text-[#FF5A1F]"
-          : "text-gray-500 hover:bg-gray-50 hover:text-gray-900",
+          ? "bg-[var(--color-accent-light)] text-[#FF5A1F]"
+          : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
       )}
     >
       {children}
@@ -109,7 +109,7 @@ export function AppTopNav({
   const isAuthenticated = Boolean(user);
 
   return (
-    <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-gray-200 bg-white px-3 sm:gap-x-4 sm:px-5 lg:px-6">
+    <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] px-3 sm:gap-x-4 sm:px-5 lg:px-6">
       <div className="flex shrink-0 items-center">
         <Link href="/" aria-label="Jimvio home">
           <JimvioLogo href={undefined} size="md" />
@@ -133,7 +133,7 @@ export function AppTopNav({
                 "relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors",
                 active
                   ? "text-[#FF5A1F] after:absolute after:bottom-0 after:left-2.5 after:right-2.5 after:h-0.5 after:rounded-full after:bg-[#FF5A1F]"
-                  : "text-gray-600 hover:text-gray-900",
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
               )}
             >
               <Icon className="h-3.5 w-3.5 shrink-0" />
@@ -148,12 +148,12 @@ export function AppTopNav({
         <button
           type="button"
           onClick={() => openCommandCenter()}
-          className="hidden h-9 w-[148px] items-center gap-1.5 rounded-full border border-gray-200/90 bg-gray-50/90 px-2.5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm transition-all hover:border-gray-300 hover:bg-white min-[1060px]:flex xl:w-[180px]"
+          className="hidden h-9 w-[148px] items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm transition-all hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface)] min-[1060px]:flex xl:w-[180px]"
           aria-label="Search everything or run a command"
         >
-          <Search className="h-3.5 w-3.5 shrink-0 text-gray-400" />
-          <span className="min-w-0 flex-1 truncate text-[12px] text-gray-400">Search...</span>
-          <kbd className="hidden shrink-0 rounded border border-gray-200 bg-white px-1 py-px text-[9px] font-medium text-gray-400 2xl:inline">
+          <Search className="h-3.5 w-3.5 shrink-0 text-[var(--color-text-muted)]" />
+          <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--color-text-muted)]">Search...</span>
+          <kbd className="hidden shrink-0 rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1 py-px text-[9px] font-medium text-[var(--color-text-muted)] 2xl:inline">
             ⌘K
           </kbd>
         </button>
@@ -162,7 +162,7 @@ export function AppTopNav({
           type="button"
           onClick={() => openCommandCenter()}
           aria-label="Search"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900 min-[1060px]:hidden"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] min-[1060px]:hidden"
         >
           <Search className="h-[17px] w-[17px]" />
         </button>
@@ -179,7 +179,7 @@ export function AppTopNav({
         <Link
           href="/dashboard/notifications"
           aria-label="Notifications"
-          className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
+          className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
         >
           <Bell className="h-[17px] w-[17px]" />
           {notificationCount > 0 && (
@@ -203,7 +203,7 @@ export function AppTopNav({
         <Link
           href="/cart"
           aria-label="Cart"
-          className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-gray-500 transition-colors hover:bg-gray-50 hover:text-gray-900"
+          className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
         >
           <ShoppingCart className="h-[17px] w-[17px]" />
           {cartCount > 0 && (

@@ -242,9 +242,9 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
   };
 
   return (
-    <div className="flex h-full w-[220px] flex-col bg-white xl:w-[236px]">
+    <div className="flex h-full w-[220px] flex-col bg-[var(--color-surface)] xl:w-[236px]">
       <div className="px-3.5 pb-2 pt-4">
-        <h2 className="text-[12px] font-bold tracking-tight text-[#111827]">{t("ugcClipping")}</h2>
+        <h2 className="text-[12px] font-bold tracking-tight text-[var(--color-text-primary)]">{t("ugcClipping")}</h2>
         <UgcWorkspaceSwitcher />
         <Link
           href="/dashboard"
@@ -383,7 +383,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
                   );
                   onNavigate?.();
                 }}
-                className="mt-3.5 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-white px-3 text-[11.5px] font-bold text-[#FF5A1F] shadow-[0_6px_18px_rgba(17,24,39,0.18)] transition-all duration-150 hover:bg-[#FFFAF7] hover:shadow-[0_8px_22px_rgba(17,24,39,0.22)]"
+                className="mt-3.5 flex h-11 w-full items-center justify-center gap-1.5 rounded-full bg-white px-3 text-[11.5px] font-bold text-[#FF5A1F] shadow-[0_6px_18px_rgba(17,24,39,0.18)] transition-all duration-150 hover:bg-[#FFFAF7] hover:shadow-[0_8px_22px_rgba(17,24,39,0.22)] dark:bg-white dark:hover:bg-white"
               >
                 {t("askAi")}
                 <ArrowRight className="h-3.5 w-3.5" strokeWidth={2.5} />

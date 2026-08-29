@@ -255,12 +255,12 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
   const isGuest = !isAuthenticated && !userProp;
 
   return (
-    <aside className={cn("flex h-full w-[240px] shrink-0 flex-col border-r border-gray-200 bg-white", className)}>
+    <aside className={cn("flex h-full w-[240px] shrink-0 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)]", className)}>
       <div className="flex-1 overflow-y-auto">
-        <div className="border-b border-gray-200 p-4">
+        <div className="border-b border-[var(--color-border)] p-4">
           <Link
             href={isGuest ? "/login?next=/communities" : "/identity"}
-            className="flex items-center gap-3 rounded-lg transition hover:bg-gray-50"
+            className="flex items-center gap-3 rounded-lg transition hover:bg-[var(--color-surface-secondary)]"
             aria-label={isGuest ? "Sign in" : "Open Jimvio Identity"}
           >
             {profile.avatarUrl ? (
