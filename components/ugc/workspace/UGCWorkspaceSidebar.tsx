@@ -31,6 +31,7 @@ import {
   Sparkles,
   Star,
   Trophy,
+  UserRound,
   Users,
   Wallet,
   Webhook,
@@ -58,6 +59,7 @@ const PRIMARY_NAV: {
   { id: "dashboard", label: "Dashboard", href: "/ugc/dashboard", icon: LayoutDashboard, i18n: "dashboard" },
   { id: "discover", label: "Discover Campaigns", href: "/ugc", icon: Compass, i18n: "discover" },
   { id: "applications", label: "My Applications", href: "/ugc/applications", icon: FileVideo, i18n: "applications" },
+  { id: "creator-profile", label: "Creator Profile", href: "/identity/edit", icon: UserRound, i18n: "creatorProfileNav" },
   { id: "projects", label: "Active Projects", href: "/ugc/campaigns", icon: Clapperboard, i18n: "projects" },
   { id: "submissions", label: "Submissions", href: "/ugc/submissions", icon: FileVideo, i18n: "submissions" },
   { id: "library", label: "Library", href: "/ugc/library", icon: FolderOpen, i18n: "library" },
@@ -131,6 +133,7 @@ function resolveActive(pathname: string): string {
   if (pathname === "/ugc/dashboard" || pathname === "/ugc/dashboard/") return "dashboard";
   if (/^\/ugc\/[^/]+\/dashboard\/?$/.test(pathname)) return "projects";
   if (pathname.startsWith("/ugc/applications")) return "applications";
+  if (pathname.startsWith("/identity")) return "creator-profile";
   if (pathname.startsWith("/ugc/campaigns")) return "projects";
   if (pathname.startsWith("/ugc/submissions")) return "submissions";
   if (pathname.startsWith("/ugc/library")) return "library";
@@ -171,7 +174,7 @@ function NavLink({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative flex items-center gap-2.5 rounded-[10px] px-2.5 py-[8px] text-[12px] font-medium transition-all duration-150",
+        "group relative flex items-center gap-2.5 rounded-[10px] px-2.5 py-[8px] text-[12px] font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
         active
           ? "bg-[#FFF0E8] font-semibold text-[#FF5A1F]"
           : "text-[#4B5563] hover:bg-[#F8FAFC] hover:text-[#111827]",

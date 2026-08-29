@@ -75,10 +75,14 @@ assert.match(eligibility, /loadCreatorProfile/);
 assert.match(match, /requireInfluencer/);
 assert.match(match, /needsProfile: true/);
 
-assert.match(applications, /t\("creatorProfileRequired"\)/);
 assert.match(applications, /json\.needsProfile === true/);
 assert.match(applications, /href="\/identity\/edit"/);
+assert.match(applications, /t\("createCreatorProfile"\)/);
+assert.match(applications, /t\("noApplicationsYet"\)/);
+assert.match(applications, /t\("noApplicationsUnlockDesc"\)/);
+assert.match(applications, /t\("discoverCampaignsCta"\)/);
 assert.match(applications, /usePathname/);
+assert.doesNotMatch(applications, /t\("creatorProfileRequired"\)/);
 
 assert.match(identityEdit, /Creator Profile Saved/);
 assert.match(identityEdit, /Your creator profile is ready/);

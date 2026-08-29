@@ -311,7 +311,11 @@ const EN = {
   completeRemainingIdentity: "Complete these remaining items: {fields}.",
   completeCreatorProfileToApply: "Complete your creator profile to apply to campaigns.",
   setUpProfile: "Set up profile",
+  createCreatorProfile: "Create Creator Profile",
+  creatorProfileNav: "Creator Profile",
   noApplicationsYet: "No applications yet",
+  noApplicationsUnlockDesc:
+    "Complete your creator profile to unlock campaign applications and earning opportunities.",
   noApplicationsYetDesc:
     "Discover campaigns and submit your first application. Your board will light up here.",
   signInRequired: "Sign in required",
@@ -668,7 +672,11 @@ const FR: typeof EN = {
   completeCreatorProfileToApply:
     "Complétez votre profil créateur pour postuler aux campagnes.",
   setUpProfile: "Configurer le profil",
+  createCreatorProfile: "Créer le profil créateur",
+  creatorProfileNav: "Profil créateur",
   noApplicationsYet: "Aucune candidature pour le moment",
+  noApplicationsUnlockDesc:
+    "Complétez votre profil créateur pour débloquer les candidatures et les opportunités de gain.",
   noApplicationsYetDesc:
     "Découvrez des campagnes et envoyez votre première candidature. Votre tableau s’affichera ici.",
   signInRequired: "Connexion requise",
@@ -1026,7 +1034,11 @@ const RW: typeof EN = {
   completeCreatorProfileToApply:
     "Uzuza umwirondoro wawe w’umuremyi kugira ngo usabe kampanye.",
   setUpProfile: "Shiraho umwirondoro",
+  createCreatorProfile: "Kora umwirondoro w’umuremyi",
+  creatorProfileNav: "Umwirondoro w’umuremyi",
   noApplicationsYet: "Nta busabe burahari",
+  noApplicationsUnlockDesc:
+    "Uzuza umwirondoro wawe w’umuremyi kugira ngo ushobore gusaba kampanye no kubona amahirwe yo kongera.",
   noApplicationsYetDesc:
     "Shakisha kampanye uhitemo gusaba. Ikibaho cyawe kizagaragara hano.",
   signInRequired: "Kwinjira birakenewe",

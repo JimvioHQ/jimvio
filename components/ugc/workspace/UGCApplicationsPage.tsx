@@ -296,17 +296,34 @@ export function UGCApplicationsPage() {
     return buckets;
   }, [filtered, byCampaign]);
 
+  const incompleteProfileDesc =
+    missingFields.length > 0
+      ? `${t("noApplicationsUnlockDesc")} ${t("completeRemainingIdentity", { fields: missingFields.join(", ") })}`
+      : t("noApplicationsUnlockDesc");
+
   return (
     <UGCPageShell
       titleKey="applications"
       subtitleKey="applicationsSubtitle"
       actions={
-        <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
-          <Link href="/ugc">{t("discoverCampaignsCta")}</Link>
-        </Button>
+        loading || error === "sign_in" ? undefined : needsProfile ? (
+          <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
+            <Link href="/identity/edit" aria-label={t("createCreatorProfile")}>
+              {t("createCreatorProfile")}
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
+            <Link href="/ugc" aria-label={t("discoverCampaignsCta")}>
+              {t("discoverCampaignsCta")}
+            </Link>
+          </Button>
+        )
       }
     >
-      <UGCFilterBar search={search} onSearchChange={setSearch} />
+      {loading || needsProfile || error === "sign_in" ? null : (
+        <UGCFilterBar search={search} onSearchChange={setSearch} />
+      )}
 
       {loading ? <UGCPageLoading /> : null}
       {!loading && error === "sign_in" ? (
@@ -316,7 +333,9 @@ export function UGCApplicationsPage() {
           illustration="lock"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/login?redirect=/ugc/applications">{t("signIn")}</Link>
+              <Link href="/login?redirect=/ugc/applications" aria-label={t("signIn")}>
+                {t("signIn")}
+              </Link>
             </Button>
           }
         />
@@ -324,16 +343,14 @@ export function UGCApplicationsPage() {
       {!loading && error && error !== "sign_in" ? <UGCPageError message={error} onRetry={load} /> : null}
       {!loading && !error && needsProfile ? (
         <UGCPageEmpty
-          title={t("creatorProfileRequired")}
-          description={
-            missingFields.length > 0
-              ? t("completeRemainingIdentity", { fields: missingFields.join(", ") })
-              : t("completeCreatorProfileToApply")
-          }
+          title={t("noApplicationsYet")}
+          description={incompleteProfileDesc}
           illustration="profile"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/identity/edit">{t("setUpProfile")}</Link>
+              <Link href="/identity/edit" aria-label={t("createCreatorProfile")}>
+                {t("createCreatorProfile")}
+              </Link>
             </Button>
           }
         />
@@ -345,7 +362,9 @@ export function UGCApplicationsPage() {
           illustration="campaigns"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/ugc">{t("discoverCampaignsCta")}</Link>
+              <Link href="/ugc" aria-label={t("discoverCampaignsCta")}>
+                {t("discoverCampaignsCta")}
+              </Link>
             </Button>
           }
         />
