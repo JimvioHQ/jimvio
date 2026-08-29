@@ -16,7 +16,9 @@ import { validatePayPalWebhook } from "@/lib/paypal";
 import {
   validateFlutterwaveWebhookRequest,
   isFlutterwaveSuccessfulStatus,
+  flutterwaveWebhookSecretConfigured,
 } from "@/lib/flutterwave";
+import { getNowPaymentsIpnSecret } from "@/lib/nowpayments";
 
 // ---------------------------------------------------------------------------
 // Shared types
@@ -121,18 +123,22 @@ function parseFlutterwavePayload(rawBody: string): {
 }
 
 export const verifyFlutterwave: ProviderVerifier = async (headers, rawBody) => {
+  if (!flutterwaveWebhookSecretConfigured()) {
+    return { ok: false, reason: "Flutterwave webhook secret not configured", status: 500 };
+  }
   if (!validateFlutterwaveWebhookRequest(headers, rawBody)) {
     return { ok: false, reason: "Invalid Flutterwave signature", status: 401 };
   }
 
   const txData = parseFlutterwavePayload(rawBody);
   if (!txData?.txRef) {
+    const noopKey = crypto.createHash("sha256").update(rawBody || "empty").digest("hex").slice(0, 32);
     return {
       ok: true,
       event: {
         provider: "flutterwave",
         providerTransactionId: "unknown",
-        idempotencyKey: `flw-noop-${Date.now()}`,
+        idempotencyKey: `flw-noop-${noopKey}`,
         status: "ignored",
         rawBody,
       },
@@ -238,7 +244,7 @@ export const verifyPayPal: ProviderVerifier = async (headers, rawBody) => {
 
 export const verifyNowPayments: ProviderVerifier = async (headers, rawBody) => {
   const signature = headers.get("x-nowpayments-sig") ?? "";
-  const secret = process.env.NOWPAYMENTS_IPN_SECRET ?? "";
+  const secret = getNowPaymentsIpnSecret() ?? "";
 
   if (!secret) {
     return { ok: false, reason: "NOWPAYMENTS_IPN_SECRET not configured", status: 500 };

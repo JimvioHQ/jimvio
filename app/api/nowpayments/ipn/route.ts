@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getNowPaymentsIpnSecret } from "@/lib/nowpayments";
 import { validateIPNSignature } from "@/services/nowpayments";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import { confirmUgcEscrowPayment } from "@/lib/ugc/confirm-escrow-payment";
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
     const signature = req.headers.get("x-nowpayments-sig");
-    const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
+    const ipnSecret = getNowPaymentsIpnSecret();
 
     if (!ipnSecret) {
       console.error("NOWPAYMENTS_IPN_SECRET not configured");

@@ -107,10 +107,19 @@ export async function createNowPaymentsInvoice(params: NowPaymentsInvoiceParams)
   }
 }
 
+/** IPN HMAC secret. Never invent one; missing/blank means fail-closed. */
+export function getNowPaymentsIpnSecret(): string | null {
+  const secret = normalizeNowPaymentsCredential(process.env.NOWPAYMENTS_IPN_SECRET)
+  return secret || null
+}
+
 export function verifyNowPaymentsSignature(
   rawBody: string,
   receivedSignature: string
 ): boolean {
+  const secret = getNowPaymentsIpnSecret()
+  if (!secret || !receivedSignature) return false
+
   try {
     const parsed = JSON.parse(rawBody)
 
@@ -125,7 +134,7 @@ export function verifyNowPaymentsSignature(
     )
 
     const expected = crypto
-      .createHmac('sha512', process.env.NOWPAYMENTS_IPN_SECRET!)
+      .createHmac('sha512', secret)
       .update(sortedString)
       .digest('hex')
 

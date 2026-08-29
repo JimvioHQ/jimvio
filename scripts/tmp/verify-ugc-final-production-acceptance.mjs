@@ -224,8 +224,16 @@ const campaigns = read("app/api/ugc/campaigns/route.ts");
 const nowp = read("app/api/webhooks/nowpayments/route.ts");
 const nowpIpn = read("app/api/nowpayments/ipn/route.ts");
 const nowpPay = read("app/api/payments/nowpayments/route.ts");
+const nowpLib = read("lib/nowpayments.ts");
 const flw = read("app/api/payments/flutterwave/webhook/route.ts");
+const flwLib = read("lib/flutterwave.ts");
 const unified = read("app/api/webhooks/payment/route.ts");
+const verifiers = read("lib/payments/provider-verifiers.ts");
+const identityUpdate = read("app/api/identity/update/route.ts");
+const identitySync = read("lib/identity/sync.ts");
+const inviteCancel = read("app/api/ugc/invitations/[id]/route.ts");
+const reputation = read("app/api/ugc/reputation/creator/[id]/route.ts");
+const teamRoute = read("app/api/ugc/team/route.ts");
 const fund = read("components/ugc/campaign-center/CampaignFundClient.tsx");
 const joinFlow = read("components/ugc/join/CampaignJoinFlow.tsx");
 const wizardUi = read("components/ugc/campaign-center/CampaignCreateWizard.tsx");
@@ -265,19 +273,43 @@ assert.match(fund, /role="alert"/);
 assert.match(fund, /aria-pressed/);
 assert.match(fund, /min-w-0/);
 
+assert.match(nowpLib, /export function getNowPaymentsIpnSecret/);
+assert.match(nowpLib, /if \(!secret \|\| !receivedSignature\) return false/);
+assert.doesNotMatch(nowpLib, /createHmac\('sha512', process\.env\.NOWPAYMENTS_IPN_SECRET!\)/);
+assert.match(nowp, /getNowPaymentsIpnSecret/);
 assert.match(nowp, /NOWPAYMENTS_IPN_SECRET not configured/);
 assert.match(nowp, /status: 500/);
 assert.match(nowp, /status: 401/);
 assert.match(nowp, /confirmUgcEscrowPayment/);
+assert.match(nowpIpn, /getNowPaymentsIpnSecret/);
 assert.match(nowpIpn, /confirmUgcEscrowPayment/);
+assert.match(nowpIpn, /status: 500/);
+assert.match(nowpIpn, /status: 401/);
+assert.match(nowpPay, /getNowPaymentsIpnSecret/);
 assert.match(nowpPay, /NOWPAYMENTS_IPN_SECRET not configured/);
 assert.match(nowpPay, /status: 500/);
 assert.match(nowpPay, /status: 401/);
 assert.match(nowpPay, /confirmUgcEscrowPayment/);
+assert.match(flw, /flutterwaveWebhookSecretConfigured/);
 assert.match(flw, /confirmUgcEscrowFromProviderEvent/);
+assert.match(flw, /status: 500/);
 assert.match(flw, /status: 401/);
+assert.match(flwLib, /export function flutterwaveWebhookSecretConfigured/);
+assert.match(verifiers, /flutterwaveWebhookSecretConfigured/);
+assert.match(verifiers, /getNowPaymentsIpnSecret/);
+assert.doesNotMatch(verifiers, /flw-noop-\$\{Date\.now\(\)\}/);
 assert.match(unified, /confirmUgcEscrowFromProviderEvent/);
 assert.match(unified, /isDuplicate/);
+assert.match(identityUpdate, /profile-update-zero-rows/);
+assert.match(identityUpdate, /ensureInfluencerMirror/);
+assert.match(identitySync, /update-zero-rows/);
+assert.match(identitySync, /reason: "incomplete"/);
+assert.match(inviteCancel, /creators\.invite/);
+assert.match(reputation, /total_earnings: null/);
+assert.match(reputation, /function publicCreator/);
+assert.doesNotMatch(reputation, /return \{\s*id: influencer\.id,\s*user_id/);
+assert.match(teamRoute, /team\.manage/);
+assert.match(applications, /t\("withdrawFailed"\)/);
 
 assert.match(approve, /\.in\('status', REVIEWABLE\)/);
 assert.match(credit, /racedRows/);
@@ -328,6 +360,31 @@ assert.equal(
   false,
 );
 assert.equal(
+  wizard.validateCampaignStep("requirements", {
+    title: "Ready",
+    campaign_type: "ugc",
+    payment_model: "fixed_per_content",
+    total_budget: 5000,
+    fixed_rate: 50,
+    allowed_platforms: ["tiktok"],
+  }).success,
+  false,
+  "empty requirements block Continue",
+);
+assert.equal(
+  wizard.isCampaignStepComplete({ title: "Visited only" }, "rewards"),
+  false,
+  "visited step is not completion",
+);
+assert.equal(
+  wizard.assertCampaignReadyForFunding({
+    id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    title: "Draft only",
+  }).success,
+  false,
+  "draft ID is not completion",
+);
+assert.equal(
   wizard.validateCampaignStep("targeting", { allowed_platforms: ["facebook"] }).success,
   false,
 );
@@ -350,11 +407,16 @@ assert.equal(perms.roleCan("owner", "team.manage"), true);
 assert.equal(perms.roleCan("manager", "finance.payout"), false);
 assert.equal(perms.roleCan("manager", "team.manage"), false);
 assert.equal(perms.roleCan("reviewer", "finance.payout"), false);
+assert.equal(perms.roleCan("reviewer", "campaigns.manage"), false);
 assert.equal(perms.roleCan("reviewer", "campaigns.review"), true);
+assert.equal(perms.roleCan("reviewer", "team.manage"), false);
 assert.equal(perms.roleCan("finance", "campaigns.manage"), false);
+assert.equal(perms.roleCan("finance", "team.manage"), false);
 assert.equal(perms.roleCan("finance", "finance.payout"), true);
 assert.equal(perms.roleCan("viewer", "finance.view"), true);
 assert.equal(perms.roleCan("viewer", "campaigns.manage"), false);
+assert.equal(perms.roleCan("viewer", "finance.payout"), false);
+assert.equal(perms.roleCan("viewer", "team.manage"), false);
 assert.equal(perms.roleCan("viewer", "creators.invite"), false);
 
 const amount = await loadEscrowAmount();
@@ -423,7 +485,25 @@ const i18n = await loadTs("lib/ugc/i18n/messages.ts");
 assert.notEqual(i18n.ugcMessage("en", "fundCampaign"), i18n.ugcMessage("fr", "fundCampaign"));
 assert.ok(i18n.ugcMessage("rw", "insufficientWalletEscrow").length > 0);
 assert.ok(i18n.ugcMessage("en", "notEligible").includes("eligible"));
+assert.ok(i18n.ugcMessage("en", "withdrawFailed").length > 0);
+assert.notEqual(i18n.ugcMessage("en", "withdrawFailed"), i18n.ugcMessage("fr", "withdrawFailed"));
 assert.doesNotMatch(i18n.ugcMessage("en", "submitUrlHint"), /Facebook/);
+
+const nowpMod = await loadTs("lib/nowpayments.ts");
+const prevIpn = process.env.NOWPAYMENTS_IPN_SECRET;
+delete process.env.NOWPAYMENTS_IPN_SECRET;
+assert.equal(nowpMod.getNowPaymentsIpnSecret(), null);
+assert.equal(nowpMod.verifyNowPaymentsSignature(JSON.stringify({ a: 1 }), "00"), false);
+process.env.NOWPAYMENTS_IPN_SECRET = "test-ipn-secret-not-production";
+assert.equal(nowpMod.getNowPaymentsIpnSecret(), "test-ipn-secret-not-production");
+assert.equal(nowpMod.verifyNowPaymentsSignature(JSON.stringify({ a: 1 }), "00"), false);
+const { createHmac } = await import("node:crypto");
+const validSig = createHmac("sha512", "test-ipn-secret-not-production")
+  .update(JSON.stringify({ a: 1 }))
+  .digest("hex");
+assert.equal(nowpMod.verifyNowPaymentsSignature(JSON.stringify({ a: 1 }), validSig), true);
+if (prevIpn == null) delete process.env.NOWPAYMENTS_IPN_SECRET;
+else process.env.NOWPAYMENTS_IPN_SECRET = prevIpn;
 
 const creditMod = await loadTs("lib/ugc/credit-fixed-payout.ts");
 

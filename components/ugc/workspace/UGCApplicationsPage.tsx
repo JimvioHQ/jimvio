@@ -122,7 +122,7 @@ function KanbanCard({
       });
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        throw new Error(json.error || "Withdraw failed");
+        throw new Error(json.error || t("withdrawFailed"));
       }
       onWithdraw?.();
     } finally {

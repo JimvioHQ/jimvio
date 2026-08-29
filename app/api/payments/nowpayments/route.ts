@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import {
+  getNowPaymentsIpnSecret,
   verifyNowPaymentsSignature,
   isPaymentComplete,
   isPaymentFailed,
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
     const signature = req.headers.get("x-nowpayments-sig") || "";
-    const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
+    const ipnSecret = getNowPaymentsIpnSecret();
 
     if (!ipnSecret) {
       console.error("[NowPayments IPN] NOWPAYMENTS_IPN_SECRET not configured");

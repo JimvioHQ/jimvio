@@ -25,6 +25,10 @@ function getWebhookSecretOrNull(): string | null {
   return secret.trim().replace(/^["']|["']$/g, "");
 }
 
+export function flutterwaveWebhookSecretConfigured(): boolean {
+  return getWebhookSecretOrNull() != null;
+}
+
 function timingSafeStringEqual(a: string, b: string): boolean {
   const aBuf = Buffer.from(a, "utf8");
   const bBuf = Buffer.from(b, "utf8");

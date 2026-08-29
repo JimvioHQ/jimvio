@@ -4,6 +4,7 @@ import {
   verifyFlutterwaveTransaction,
   validateFlutterwaveWebhookRequest,
   isFlutterwaveSuccessfulStatus,
+  flutterwaveWebhookSecretConfigured,
 } from "@/lib/flutterwave";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
 import {
@@ -208,6 +209,11 @@ export async function POST(req: NextRequest) {
     ),
     contentType: req.headers.get("content-type"),
   });
+
+  if (!flutterwaveWebhookSecretConfigured()) {
+    console.error("[Flutterwave webhook] webhook secret not configured");
+    return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+  }
 
   // 3. Signature validation
   if (!validateFlutterwaveWebhookRequest(req.headers, rawBody)) {
