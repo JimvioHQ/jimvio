@@ -18,6 +18,8 @@ import {
   UGCStatusPill,
 } from "./UGCPageShell";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/context/LocaleContext";
+import type { UgcMessageKey } from "@/lib/ugc/i18n/messages";
 
 type ParticipantRow = {
   id: string;
@@ -52,17 +54,17 @@ type KanbanColumnId =
   | "completed"
   | "rejected";
 
-const COLUMNS: {
+const COLUMN_META: {
   id: KanbanColumnId;
-  label: string;
+  labelKey: UgcMessageKey;
   tone: string;
 }[] = [
-  { id: "applied", label: "Applied", tone: "border-amber-200 bg-amber-50/40" },
-  { id: "approved", label: "Approved", tone: "border-sky-200 bg-sky-50/40" },
-  { id: "in_progress", label: "In Progress", tone: "border-orange-200 bg-orange-50/40" },
-  { id: "submitted", label: "Submitted", tone: "border-violet-200 bg-violet-50/40" },
-  { id: "completed", label: "Completed", tone: "border-emerald-200 bg-emerald-50/40" },
-  { id: "rejected", label: "Rejected", tone: "border-rose-200 bg-rose-50/40" },
+  { id: "applied", labelKey: "kanbanApplied", tone: "border-amber-200 bg-amber-50/40" },
+  { id: "approved", labelKey: "kanbanApproved", tone: "border-sky-200 bg-sky-50/40" },
+  { id: "in_progress", labelKey: "kanbanInProgress", tone: "border-orange-200 bg-orange-50/40" },
+  { id: "submitted", labelKey: "kanbanSubmitted", tone: "border-violet-200 bg-violet-50/40" },
+  { id: "completed", labelKey: "kanbanCompleted", tone: "border-emerald-200 bg-emerald-50/40" },
+  { id: "rejected", labelKey: "kanbanRejected", tone: "border-rose-200 bg-rose-50/40" },
 ];
 
 function columnFor(
@@ -101,6 +103,7 @@ function KanbanCard({
   formatMoney: (n: number, c?: string) => string;
   onWithdraw?: () => void;
 }) {
+  const { t } = useLocale();
   const campaign = row.campaign;
   const reward = campaign
     ? getCampaignRewardLine(campaign as UGCCampaign, formatMoney)
@@ -130,10 +133,10 @@ function KanbanCard({
   return (
     <div className="rounded-2xl border border-[#EEF0F2] bg-white p-3.5 shadow-[0_4px_16px_rgba(17,24,39,0.04)] transition hover:border-[#FFE4D6] hover:shadow-[0_8px_24px_rgba(255,90,31,0.08)]">
       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-        {campaign?.vendor?.business_name ?? "Brand"}
+        {campaign?.vendor?.business_name ?? t("brandLabel")}
       </p>
       <h3 className="mt-0.5 line-clamp-2 text-[13px] font-bold leading-snug text-[#111827]">
-        {campaign?.title ?? "Campaign"}
+        {campaign?.title ?? t("campaignLabel")}
       </h3>
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         <span className="rounded-lg bg-[#FFF4EF] px-2 py-0.5 text-[11px] font-bold text-[#FF5A1F]">
@@ -142,22 +145,24 @@ function KanbanCard({
         <UGCStatusPill status={column === "completed" ? "completed" : row.status} />
       </div>
       {deadline ? (
-        <p className="mt-2 text-[11px] text-[#6B7280]">Deadline · {deadline}</p>
+        <p className="mt-2 text-[11px] text-[#6B7280]">
+          {t("deadlineWithDate", { date: deadline })}
+        </p>
       ) : (
-        <p className="mt-2 text-[11px] text-[#9CA3AF]">No deadline set</p>
+        <p className="mt-2 text-[11px] text-[#9CA3AF]">{t("noDeadlineSet")}</p>
       )}
       <div className="mt-3 flex flex-wrap gap-1.5">
         {column === "approved" || column === "in_progress" || column === "submitted"
           ? campaign?.id ? (
               <Button asChild size="sm" className="h-8 rounded-lg bg-[#FF5A1F] px-2.5 text-[11px]">
-                <Link href={`/ugc/${campaign.id}/dashboard`}>Open project</Link>
+                <Link href={`/ugc/${campaign.id}/dashboard`}>{t("openProject")}</Link>
               </Button>
             ) : null
           : null}
         {column === "applied" && campaign?.id ? (
           <>
             <Button asChild size="sm" variant="outline" className="h-8 rounded-lg px-2.5 text-[11px]">
-              <Link href={`/ugc/${campaign.id}/application`}>View status</Link>
+              <Link href={`/ugc/${campaign.id}/application`}>{t("viewStatus")}</Link>
             </Button>
             <Button
               size="sm"
@@ -166,23 +171,23 @@ function KanbanCard({
               disabled={withdrawing}
               onClick={() => void withdraw()}
             >
-              {withdrawing ? "Withdrawing…" : "Withdraw"}
+              {withdrawing ? t("withdrawing") : t("withdraw")}
             </Button>
           </>
         ) : null}
         {column === "submitted" && campaign?.id ? (
           <Button asChild size="sm" variant="outline" className="h-8 rounded-lg px-2.5 text-[11px]">
-            <Link href={`/ugc/${campaign.id}/submit`}>Add content</Link>
+            <Link href={`/ugc/${campaign.id}/submit`}>{t("addContent")}</Link>
           </Button>
         ) : null}
         {column === "rejected" && campaign?.id ? (
           <Button asChild size="sm" variant="outline" className="h-8 rounded-lg px-2.5 text-[11px]">
-            <Link href={`/ugc/${campaign.id}`}>Browse similar</Link>
+            <Link href={`/ugc/${campaign.id}`}>{t("browseSimilar")}</Link>
           </Button>
         ) : null}
         {campaign?.id ? (
           <Button asChild size="sm" variant="ghost" className="h-8 rounded-lg px-2 text-[11px]">
-            <Link href={`/ugc/${campaign.id}`}>Brief</Link>
+            <Link href={`/ugc/${campaign.id}`}>{t("brief")}</Link>
           </Button>
         ) : null}
       </div>
@@ -192,6 +197,7 @@ function KanbanCard({
 
 export function UGCApplicationsPage() {
   const { formatMoney } = useCurrency();
+  const { t } = useLocale();
   const pathname = usePathname();
   const [rows, setRows] = useState<ParticipantRow[]>([]);
   const [subs, setSubs] = useState<SubmissionLite[]>([]);
@@ -214,7 +220,7 @@ export function UGCApplicationsPage() {
         setRows([]);
         return;
       }
-      if (!pRes.ok) throw new Error("Failed to load applications");
+      if (!pRes.ok) throw new Error(t("failedToLoadApplications"));
       const json = await pRes.json();
       if (json.needsProfile === true) {
         setNeedsProfile(true);
@@ -244,11 +250,11 @@ export function UGCApplicationsPage() {
         );
       }
     } catch {
-      setError("Could not load your applications. Check your connection and retry.");
+      setError(t("failedToLoadApplications"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void load();
@@ -296,7 +302,7 @@ export function UGCApplicationsPage() {
       subtitleKey="applicationsSubtitle"
       actions={
         <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
-          <Link href="/ugc">Discover campaigns</Link>
+          <Link href="/ugc">{t("discoverCampaignsCta")}</Link>
         </Button>
       }
     >
@@ -305,12 +311,12 @@ export function UGCApplicationsPage() {
       {loading ? <UGCPageLoading /> : null}
       {!loading && error === "sign_in" ? (
         <UGCPageEmpty
-          title="Sign in required"
-          description="Log in to view your campaign applications."
+          title={t("signInRequired")}
+          description={t("signInToViewApplications")}
           illustration="lock"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/login?redirect=/ugc/applications">Sign in</Link>
+              <Link href="/login?redirect=/ugc/applications">{t("signIn")}</Link>
             </Button>
           }
         />
@@ -318,28 +324,28 @@ export function UGCApplicationsPage() {
       {!loading && error && error !== "sign_in" ? <UGCPageError message={error} onRetry={load} /> : null}
       {!loading && !error && needsProfile ? (
         <UGCPageEmpty
-          title="Creator profile required"
+          title={t("creatorProfileRequired")}
           description={
             missingFields.length > 0
-              ? `Complete these remaining items: ${missingFields.join(", ")}.`
-              : "Complete your creator profile to apply to campaigns."
+              ? t("completeRemainingIdentity", { fields: missingFields.join(", ") })
+              : t("completeCreatorProfileToApply")
           }
           illustration="profile"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/identity/edit">Set up profile</Link>
+              <Link href="/identity/edit">{t("setUpProfile")}</Link>
             </Button>
           }
         />
       ) : null}
       {!loading && !error && !needsProfile && filtered.length === 0 ? (
         <UGCPageEmpty
-          title="No applications yet"
-          description="Discover campaigns and submit your first application. Your board will light up here."
+          title={t("noApplicationsYet")}
+          description={t("noApplicationsYetDesc")}
           illustration="campaigns"
           action={
             <Button asChild className="rounded-xl bg-[#FF5A1F]">
-              <Link href="/ugc">Discover campaigns</Link>
+              <Link href="/ugc">{t("discoverCampaignsCta")}</Link>
             </Button>
           }
         />
@@ -348,7 +354,7 @@ export function UGCApplicationsPage() {
       {!loading && !error && filtered.length > 0 ? (
         <div className="-mx-1 overflow-x-auto pb-2">
           <div className="flex flex-col gap-3 px-1 md:min-w-max md:flex-row">
-            {COLUMNS.map((col) => {
+            {COLUMN_META.map((col) => {
               const items = grouped[col.id];
               return (
                 <section
@@ -360,7 +366,7 @@ export function UGCApplicationsPage() {
                 >
                   <header className="mb-2 flex items-center justify-between px-1">
                     <h2 className="text-[12px] font-bold uppercase tracking-wide text-[#374151]">
-                      {col.label}
+                      {t(col.labelKey)}
                     </h2>
                     <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold tabular-nums text-[#6B7280]">
                       {items.length}
@@ -369,7 +375,7 @@ export function UGCApplicationsPage() {
                   <div className="flex flex-1 flex-col gap-2.5">
                     {items.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-[#E5E7EB] bg-white/50 px-3 py-6 text-center text-[11px] text-[#9CA3AF]">
-                        Empty
+                        {t("kanbanEmpty")}
                       </div>
                     ) : (
                       items.map((row) => (

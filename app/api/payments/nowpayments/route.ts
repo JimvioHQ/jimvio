@@ -30,6 +30,12 @@ export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.text();
     const signature = req.headers.get("x-nowpayments-sig") || "";
+    const ipnSecret = process.env.NOWPAYMENTS_IPN_SECRET;
+
+    if (!ipnSecret) {
+      console.error("[NowPayments IPN] NOWPAYMENTS_IPN_SECRET not configured");
+      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 });
+    }
 
     if (!verifyNowPaymentsSignature(rawBody, signature)) {
       console.warn("[NowPayments IPN] Invalid signature");

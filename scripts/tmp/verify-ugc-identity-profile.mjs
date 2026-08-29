@@ -75,7 +75,7 @@ assert.match(eligibility, /loadCreatorProfile/);
 assert.match(match, /requireInfluencer/);
 assert.match(match, /needsProfile: true/);
 
-assert.match(applications, /title="Creator profile required"/);
+assert.match(applications, /t\("creatorProfileRequired"\)/);
 assert.match(applications, /json\.needsProfile === true/);
 assert.match(applications, /href="\/identity\/edit"/);
 assert.match(applications, /usePathname/);

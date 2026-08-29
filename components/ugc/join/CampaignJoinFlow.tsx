@@ -91,14 +91,23 @@ export function CampaignJoinFlow() {
     } finally {
       setLoading(false);
     }
-  }, [id, router]);
+  }, [id, router, t]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!confirmOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !submitting) setConfirmOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmOpen, submitting]);
+
   const terms = ctx?.joinConfig?.terms ?? DEFAULT_TERMS;
-  const allTermsAccepted = terms.every((t) => termsAccepted[t]);
+  const allTermsAccepted = terms.every((term) => termsAccepted[term]);
   const fields = ctx?.joinConfig?.applicationFields ?? [];
   const needsApplication =
     ctx?.joinMode === "application" || ctx?.joinMode === "hybrid";
@@ -177,14 +186,24 @@ export function CampaignJoinFlow() {
 
   const reqLines = [
     campaign.min_duration || campaign.max_duration
-      ? `Duration ${campaign.min_duration ?? 0}s–${campaign.max_duration ?? "∞"}s`
-      : "Flexible duration",
-    (campaign.allowed_platforms ?? []).join(", ") || "Any platform",
-    campaign.requires_face ? "On-camera required" : "Face optional",
+      ? t("durationRange", {
+          min: campaign.min_duration ?? 0,
+          max: campaign.max_duration ?? "∞",
+        })
+      : t("flexibleDuration"),
+    (campaign.allowed_platforms ?? []).join(", ") || t("anyPlatform"),
+    campaign.requires_face ? t("onCameraRequired") : t("faceOptional"),
     campaign.ends_at
-      ? `Complete by ${new Date(campaign.ends_at).toLocaleDateString()}`
-      : "Flexible timeline",
+      ? t("completeBy", { date: new Date(campaign.ends_at).toLocaleDateString() })
+      : t("flexibleTimeline"),
   ];
+
+  const eligibilityLabel =
+    ctx.eligibility.level === "eligible"
+      ? t("eligibilityEligible")
+      : ctx.eligibility.level === "almost"
+        ? t("eligibilityAlmost")
+        : t("eligibilityNotEligible");
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] pb-20">
@@ -195,7 +214,7 @@ export function CampaignJoinFlow() {
             className="inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280]"
           >
             <ArrowLeft className="h-4 w-4" />
-            Campaign
+            {t("campaignLabel")}
           </Link>
           <span className="rounded-full bg-[#FFF4EF] px-2.5 py-1 text-[11px] font-bold text-[#FF5A1F]">
             {modeLabel}
@@ -219,9 +238,9 @@ export function CampaignJoinFlow() {
             >
               <Check className="h-8 w-8" strokeWidth={2.5} />
             </motion.div>
-            <h1 className="mt-5 text-[24px] font-bold text-[#111827]">You&apos;re in</h1>
+            <h1 className="mt-5 text-[24px] font-bold text-[#111827]">{t("youreIn")}</h1>
             <p className="mt-2 text-[14px] text-[#6B7280]">
-              Taking you to My Applications…
+              {t("takingYouToApplications")}
             </p>
           </motion.div>
         ) : (
@@ -240,7 +259,7 @@ export function CampaignJoinFlow() {
             </div>
 
             <div className="rounded-[18px] border border-[#EEF0F2] bg-white p-5 shadow-sm">
-              <h2 className="text-[15px] font-bold text-[#111827]">Eligibility</h2>
+              <h2 className="text-[15px] font-bold text-[#111827]">{t("eligibilityHeading")}</h2>
               <div className="mt-3 flex items-center gap-3">
                 <span className="text-2xl font-bold text-[#FF5A1F]">
                   {ctx.eligibility.score}%
@@ -255,7 +274,7 @@ export function CampaignJoinFlow() {
                         : "bg-rose-50 text-rose-700",
                   )}
                 >
-                  {ctx.eligibility.level.replace("_", " ")}
+                  {eligibilityLabel}
                 </span>
               </div>
               <div className="mt-3">
@@ -272,7 +291,7 @@ export function CampaignJoinFlow() {
 
             {needsApplication && fields.length > 0 ? (
               <div className="rounded-[18px] border border-[#EEF0F2] bg-white p-5 shadow-sm space-y-3">
-                <h2 className="text-[15px] font-bold text-[#111827]">Application</h2>
+                <h2 className="text-[15px] font-bold text-[#111827]">{t("applicationHeading")}</h2>
                 {fields.map((f: ApplicationField) => (
                   <label key={f.id} className="block">
                     <span className="text-[12px] font-semibold text-[#6B7280]">
@@ -303,31 +322,31 @@ export function CampaignJoinFlow() {
             ) : null}
 
             <div className="rounded-[18px] border border-[#EEF0F2] bg-white p-5 shadow-sm">
-              <h2 className="text-[15px] font-bold text-[#111827]">Terms</h2>
+              <h2 className="text-[15px] font-bold text-[#111827]">{t("joinTerms")}</h2>
               <div className="mt-3 space-y-2">
-                {terms.map((t) => (
+                {terms.map((term) => (
                   <label
-                    key={t}
+                    key={term}
                     className="flex cursor-pointer items-start gap-2 rounded-xl border border-[#EEF0F2] px-3 py-2.5"
                   >
                     <input
                       type="checkbox"
-                      checked={Boolean(termsAccepted[t])}
+                      checked={Boolean(termsAccepted[term])}
                       onChange={(e) =>
-                        setTermsAccepted((p) => ({ ...p, [t]: e.target.checked }))
+                        setTermsAccepted((p) => ({ ...p, [term]: e.target.checked }))
                       }
                       className="mt-0.5 rounded border-[#D1D5DB]"
                     />
-                    <span className="text-[13px] text-[#374151]">{t}</span>
+                    <span className="text-[13px] text-[#374151]">{term}</span>
                   </label>
                 ))}
               </div>
             </div>
 
             <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
               <p className="text-[12px] leading-relaxed text-emerald-800">
-                Escrow protects payouts. Review the campaign brief carefully before joining.
+                {t("escrowProtectsJoin")}
               </p>
             </div>
 
@@ -355,6 +374,7 @@ export function CampaignJoinFlow() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center"
             onClick={() => !submitting && setConfirmOpen(false)}
+            role="presentation"
           >
             <motion.div
               initial={{ y: 24, opacity: 0 }}
@@ -362,18 +382,23 @@ export function CampaignJoinFlow() {
               exit={{ y: 16, opacity: 0 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md overflow-hidden rounded-3xl border border-[#EEF0F2] bg-white shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="ugc-join-confirm-title"
+              className="w-full max-w-md min-w-0 overflow-hidden rounded-3xl border border-[#EEF0F2] bg-white shadow-2xl"
             >
               <div className="border-b border-[#F3F4F6] px-5 py-4">
-                <h2 className="text-[17px] font-bold text-[#111827]">Confirm join</h2>
+                <h2 id="ugc-join-confirm-title" className="text-[17px] font-bold text-[#111827]">
+                  {t("confirmJoin")}
+                </h2>
                 <p className="mt-1 text-[12.5px] text-[#6B7280]">
-                  Review the campaign before you apply.
+                  {t("reviewBeforeApply")}
                 </p>
               </div>
               <div className="space-y-4 px-5 py-4">
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-                    Campaign
+                    {t("campaignLabel")}
                   </p>
                   <p className="mt-0.5 text-[15px] font-bold text-[#111827]">
                     {campaign.title}
@@ -384,7 +409,7 @@ export function CampaignJoinFlow() {
                 </div>
                 <div className="rounded-2xl bg-[#FFF8F5] px-3 py-3">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-[#FF5A1F]">
-                    Reward
+                    {t("rewardLabel")}
                   </p>
                   <p className="mt-0.5 text-[18px] font-bold text-[#111827]">
                     {getCampaignRewardLine(campaign, formatMoney)}
@@ -392,7 +417,7 @@ export function CampaignJoinFlow() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-                    Requirements
+                    {t("requirementsLabel")}
                   </p>
                   <ul className="mt-1.5 space-y-1">
                     {reqLines.map((line) => (
@@ -408,12 +433,12 @@ export function CampaignJoinFlow() {
                 </div>
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-wide text-[#9CA3AF]">
-                    Expected completion
+                    {t("expectedCompletion")}
                   </p>
                   <p className="mt-1 text-[13px] text-[#374151]">
                     {campaign.ends_at
                       ? new Date(campaign.ends_at).toLocaleString()
-                      : "As agreed in the brief after approval"}
+                      : t("asAgreedInBrief")}
                   </p>
                 </div>
                 <label className="flex cursor-pointer items-start gap-2.5 rounded-2xl border border-[#E5E7EB] bg-[#FAFAFA] px-3 py-3">
@@ -424,7 +449,7 @@ export function CampaignJoinFlow() {
                     className="mt-0.5 rounded border-[#D1D5DB]"
                   />
                   <span className="text-[13px] font-medium text-[#111827]">
-                    I understand the campaign requirements.
+                    {t("iUnderstandRequirements")}
                   </span>
                 </label>
               </div>
@@ -435,7 +460,7 @@ export function CampaignJoinFlow() {
                   onClick={() => setConfirmOpen(false)}
                   className="h-11 flex-1 rounded-full border border-[#E5E7EB] text-[13px] font-semibold text-[#374151]"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="button"
@@ -448,7 +473,7 @@ export function CampaignJoinFlow() {
                   ) : (
                     <Check className="h-4 w-4" />
                   )}
-                  Join campaign
+                  {t("joinCampaignTitle")}
                 </button>
               </div>
             </motion.div>
