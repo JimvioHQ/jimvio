@@ -329,7 +329,12 @@ export function CommunitiesDiscovery({
       if (!res.ok) throw new Error(json.error || "Failed to load");
       const raw = json.communities ?? [];
       setLoadError(false);
-      setItems((prev) => (append ? [...prev, ...raw] : raw));
+      setItems((prev) => {
+        if (!append) return raw;
+        const seen = new Set(prev.map((row) => row.id));
+        const next = raw.filter((row) => !seen.has(row.id));
+        return next.length ? [...prev, ...next] : prev;
+      });
       setTotal(json.total ?? 0);
     },
     [debounced, category, sort]
@@ -363,7 +368,8 @@ export function CommunitiesDiscovery({
       .finally(() => setLoading(false));
   }, [debounced, category, sort, fetchPage, initialCommunities, initialTotal]);
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
+    if (loadingMore) return;
     const next = page + 1;
     setLoadingMore(true);
     try {
@@ -372,7 +378,7 @@ export function CommunitiesDiscovery({
     } finally {
       setLoadingMore(false);
     }
-  };
+  }, [fetchPage, loadingMore, page]);
 
   const visibleItems = useMemo(
     () => {
@@ -386,6 +392,23 @@ export function CommunitiesDiscovery({
   const showHero = !debounced && visibleItems.length > 0;
   const heroCommunity = showHero ? visibleItems[0] : null;
   const gridItems = showHero ? visibleItems.slice(1) : visibleItems;
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!hasMore || loading || loadingMore) return;
+    const node = loadMoreRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMore();
+        }
+      },
+      { rootMargin: "240px 0px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, loadMore]);
 
   const hasFilter =
     category !== "All" ||
@@ -628,23 +651,32 @@ export function CommunitiesDiscovery({
             </div>
 
             {hasMore && (
-              <div className="mt-10 flex justify-center">
+              <div ref={loadMoreRef} className="mt-10 flex justify-center">
                 <button
                   type="button"
                   onClick={loadMore}
                   disabled={loadingMore}
-                  className="inline-flex h-10 items-center gap-2 rounded-lg border border-[var(--color-border)] px-6 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-busy={loadingMore}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[var(--color-border)] px-6 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loadingMore ? (
                     <>
-                      <Loader2 size={14} className="animate-spin" />
+                      <Loader2 size={14} className="animate-spin" aria-hidden />
                       Loading
                     </>
                   ) : (
-                    "Load more"
+                    "Load more communities"
                   )}
                 </button>
               </div>
+            )}
+            {!loading && !hasMore && items.length > 0 && (
+              <p
+                className="mt-8 text-center text-[12px] text-[var(--color-text-muted)]"
+                role="status"
+              >
+                You&apos;ve reached the end of discoverable communities.
+              </p>
             )}
           </>
         )}

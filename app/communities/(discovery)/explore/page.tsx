@@ -1,13 +1,19 @@
-import { getPublicCommunities } from "@/services/db";
+import { getPublicCommunities, getPublicCommunitiesTotal } from "@/services/db";
 import { CommunitiesDiscovery } from "@/components/community/communities-discovery";
 
 export const revalidate = 120;
 
 export default async function CommunitiesExplorePage() {
   let initialCommunities: Awaited<ReturnType<typeof getPublicCommunities>> = [];
+  let initialTotal = 0;
   let initialError = false;
   try {
-    initialCommunities = await getPublicCommunities(20);
+    const [communities, total] = await Promise.all([
+      getPublicCommunities(20),
+      getPublicCommunitiesTotal(),
+    ]);
+    initialCommunities = communities;
+    initialTotal = total;
   } catch (err) {
     console.error("[communities/explore] initial load failed:", err);
     initialError = true;
@@ -15,7 +21,7 @@ export default async function CommunitiesExplorePage() {
   return (
     <CommunitiesDiscovery
       initialCommunities={initialCommunities as never}
-      initialTotal={initialCommunities.length}
+      initialTotal={initialTotal}
       initialError={initialError}
     />
   );

@@ -3,69 +3,30 @@
  * Used by the idempotent seeder. Not a second community system.
  */
 
-import type { JimvioContentOrigin } from "./editorial-origin";
+import { ECOSYSTEM_CATALOG, ECOSYSTEM_COMMUNITY_SLUGS } from "./editorial-ecosystem";
+import type { EditorialCommunitySpec, EditorialRoomSpec } from "./editorial-types";
 
-export type EditorialCommentSpec = {
-  key: string;
-  body: string;
-  daysAgo: number;
-  hour?: number;
-};
+export type {
+  EditorialCommentSpec,
+  EditorialCommunitySpec,
+  EditorialMessageSpec,
+  EditorialPostSpec,
+  EditorialRoomSpec,
+} from "./editorial-types";
 
-export type EditorialPostSpec = {
-  key: string;
-  title: string;
-  body: string;
-  postType: "discussion" | "poll";
-  origin: JimvioContentOrigin;
-  daysAgo: number;
-  hour?: number;
-  pinned?: boolean;
-  href?: string;
-  pollOptions?: string[];
-  comments?: EditorialCommentSpec[];
-};
-
-export type EditorialMessageSpec = {
-  key: string;
-  body: string;
-  daysAgo: number;
-  hour?: number;
-  pinned?: boolean;
-};
-
-export type EditorialRoomSpec = {
-  slug: string;
-  name: string;
-  description: string;
-  welcomeMessage: string;
-  messages: EditorialMessageSpec[];
-};
-
-export type EditorialCommunitySpec = {
-  slug: string;
-  name: string;
-  tagline: string;
-  description: string;
-  longDescription: string;
-  category: string;
-  tags: string[];
-  createdAt: string;
-  welcomeTitle: string;
-  welcomeMessage: string;
-  rules: string;
-  extraRoom: EditorialRoomSpec;
-  posts: EditorialPostSpec[];
-};
-
-export const EDITORIAL_COMMUNITY_SLUGS = [
+export const CORE_EDITORIAL_COMMUNITY_SLUGS = [
   "news-desk",
   "entertainment-circle",
   "sports-room",
   "faith-and-inspiration",
 ] as const;
 
-export const EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
+export const EDITORIAL_COMMUNITY_SLUGS = [
+  ...CORE_EDITORIAL_COMMUNITY_SLUGS,
+  ...ECOSYSTEM_COMMUNITY_SLUGS,
+] as const;
+
+const CORE_EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
   {
     slug: "news-desk",
     name: "News Desk",
@@ -77,6 +38,11 @@ export const EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
     category: "News",
     tags: ["news", "media", "technology", "business", "civic"],
     createdAt: "2026-06-08T09:20:00.000Z",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=400&h=400&q=80",
+    coverImage:
+      "https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1200&h=480&q=80",
+    featured: true,
     welcomeTitle: "How this desk works",
     welcomeMessage:
       "Read first, then add a source or a question. Opinion is welcome when it is labeled as opinion.",
@@ -292,6 +258,11 @@ export const EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
     category: "Entertainment",
     tags: ["music", "movies", "culture", "reviews", "fans"],
     createdAt: "2026-06-14T11:05:00.000Z",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=400&h=400&q=80",
+    coverImage:
+      "https://images.unsplash.com/photo-1489599849927-2ee91cede3dd?auto=format&fit=crop&w=1200&h=480&q=80",
+    featured: true,
     welcomeTitle: "Talk like you finished the work",
     welcomeMessage:
       "Spoilers get a warning. Opinions get a reason. Celebrity gossip that cannot be sourced stays out.",
@@ -493,6 +464,11 @@ export const EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
     category: "Sports",
     tags: ["football", "basketball", "predictions", "tactics"],
     createdAt: "2026-06-18T08:40:00.000Z",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=400&h=400&q=80",
+    coverImage:
+      "https://images.unsplash.com/photo-1461896836934-ffe607ba6851?auto=format&fit=crop&w=1200&h=480&q=80",
+    featured: true,
     welcomeTitle: "Opinions welcome. Fake scores are not.",
     welcomeMessage:
       "Write like a fan who watched, or like a fan who is asking. Do not invent a result to win an argument.",
@@ -694,6 +670,11 @@ export const EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
     category: "Faith",
     tags: ["gospel", "faith", "inspiration", "music", "reflection"],
     createdAt: "2026-06-22T07:15:00.000Z",
+    avatarUrl:
+      "https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=400&h=400&q=80",
+    coverImage:
+      "https://images.unsplash.com/photo-1438232992991-995b7058bbb3?auto=format&fit=crop&w=1200&h=480&q=80",
+    featured: true,
     welcomeTitle: "A quiet room on purpose",
     welcomeMessage:
       "Come as you are. Leave people more whole than you found them. Do not invent a testimony to make a point.",
@@ -886,6 +867,15 @@ export const EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
   },
 ];
 
+export const EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
+  ...CORE_EDITORIAL_CATALOG,
+  ...ECOSYSTEM_CATALOG,
+];
+
+export function editorialRoomsFor(spec: EditorialCommunitySpec): EditorialRoomSpec[] {
+  return [spec.extraRoom, ...(spec.extraRooms ?? [])];
+}
+
 export function editorialCatalogStats() {
   return EDITORIAL_CATALOG.map((community) => ({
     slug: community.slug,
@@ -898,6 +888,10 @@ export function editorialCatalogStats() {
       (sum, post) => sum + (post.comments?.length ?? 0),
       0
     ),
-    chatMessages: community.extraRoom.messages.length,
+    rooms: editorialRoomsFor(community).length,
+    chatMessages: editorialRoomsFor(community).reduce(
+      (sum, room) => sum + room.messages.length,
+      0
+    ),
   }));
 }

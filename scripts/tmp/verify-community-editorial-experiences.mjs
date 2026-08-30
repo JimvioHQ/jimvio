@@ -54,6 +54,23 @@ assert.doesNotMatch(catalog, /Nice post/);
 assert.doesNotMatch(catalog, /fake user|bot account|seed script|demo database/i);
 assert.doesNotMatch(catalog, /guaranteed payout|easy money|members are making/i);
 
+const ecosystem = read("lib/community/editorial-ecosystem.ts");
+assert.match(ecosystem, /ECOSYSTEM_BLUEPRINTS/);
+assert.match(ecosystem, /slug: "tech-and-developers"/);
+assert.match(ecosystem, /slug: "content-creators"/);
+assert.match(ecosystem, /slug: "rwanda-community"/);
+assert.match(ecosystem, /slug: "africa-creators"/);
+assert.match(ecosystem, /From Jimvio/);
+assert.ok(
+  (ecosystem.match(/slug: "/g) || []).length >= 30,
+  "ecosystem should define a substantial community set"
+);
+
+const personas = read("lib/community/editorial-personas.ts");
+assert.match(personas, /editorial\+/);
+assert.match(personas, /jimvio\.com/);
+assert.doesNotMatch(personas, /Bot 1|Demo User|Seed User|Fake Member/i);
+
 assert.match(seed, /ensureDefaultCommunityWorkspace/);
 assert.match(seed, /communityEditorialSettings/);
 assert.match(seed, /editorialPostAttachments/);
@@ -61,9 +78,14 @@ assert.match(seed, /from\("communities"\)/);
 assert.match(seed, /from\("community_posts"\)/);
 assert.match(seed, /from\("community_post_comments"\)/);
 assert.match(seed, /from\("community_messages"\)/);
-assert.match(seed, /Refusing to create fake users/);
-assert.doesNotMatch(seed, /auth\.admin\.createUser/);
+assert.match(seed, /forex-hub/);
+assert.match(seed, /gcs-unity/);
+assert.match(seed, /ensureEditorialPersonas/);
+assert.match(seed, /editorial\+/);
+assert.match(seed, /auth\.admin\.createUser/);
+assert.match(seed, /jimvio_editorial|origin: "editorial"/);
 assert.doesNotMatch(seed, /DISABLE ROW LEVEL SECURITY/);
+assert.doesNotMatch(seed, /Bot 1|Demo User 2|Fake Member/i);
 
 assert.match(settingsPatch, /mergeCommunitySettingsPreservingProvenance/);
 assert.match(settingsForm, /Jimvio editorial community/);
@@ -79,6 +101,15 @@ assert.match(feedCard, /jimvioPromotionLabel/);
 
 assert.match(platform, /order\("is_featured"/);
 assert.match(platform, /homepage-communities-v6/);
+assert.match(platform, /getPublicCommunitiesTotal/);
+
+const explore = read("app/communities/(discovery)/explore/page.tsx");
+assert.match(explore, /getPublicCommunitiesTotal/);
+
+const discovery = read("components/community/communities-discovery.tsx");
+assert.match(discovery, /IntersectionObserver/);
+assert.match(discovery, /Load more communities/);
+assert.match(discovery, /reached the end of discoverable communities/);
 
 const migrations = fs
   .readdirSync(path.join(root, "supabase", "migrations"))

@@ -167,3 +167,26 @@ export async function getHomepageCommunities(limit = 8) {
     { revalidate: 120 },
   )();
 }
+
+async function fetchPublicCommunitiesTotalUncached(): Promise<number> {
+  const admin = getAdminDB();
+  const { count, error } = await admin
+    .from("communities")
+    .select("id", { count: "exact", head: true })
+    .eq("is_active", true)
+    .or("is_private.eq.false,is_private.is.null");
+  if (error) {
+    console.error("Error counting public communities:", error);
+    throw error;
+  }
+  return count ?? 0;
+}
+
+/** Exact discoverable public community count for Explore pagination. */
+export async function getPublicCommunitiesTotal() {
+  return unstable_cache(
+    () => fetchPublicCommunitiesTotalUncached(),
+    ["public-communities-total-v1"],
+    { revalidate: 120 },
+  )();
+}
