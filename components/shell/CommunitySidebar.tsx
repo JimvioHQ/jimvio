@@ -137,11 +137,11 @@ function SidebarBody({
 
   return (
     <>
-      <div className="border-b border-gray-100/90 px-4 pb-3.5 pt-3.5">
+      <div className="border-b border-[var(--color-border)] px-4 pb-3.5 pt-3.5">
         <Link
           href="/communities"
           onClick={onNavigate}
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-gray-400 transition-colors hover:text-gray-700"
+          className="inline-flex min-h-11 items-center gap-1.5 text-[12px] font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to Feed
@@ -153,11 +153,12 @@ function SidebarBody({
           <Link
             href={base}
             onClick={onNavigate}
+            aria-current={onHome && !onSpacesRoute ? "page" : undefined}
             className={cn(
-              "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-150",
+              "flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
               onHome && !onSpacesRoute
-                ? "bg-orange-50 font-semibold text-[#fd5000] shadow-[inset_3px_0_0_0_#fd5000]"
-                : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                ? "bg-[var(--color-accent-light)] font-semibold text-[#fd5000] shadow-[inset_3px_0_0_0_#fd5000]"
+                : "font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
             )}
           >
             <Home className="h-4 w-4 shrink-0" />
@@ -167,10 +168,10 @@ function SidebarBody({
             href={`${base}/spaces`}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-150",
+              "flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
               onSpacesRoute
-                ? "bg-orange-50 font-semibold text-[#fd5000] shadow-[inset_3px_0_0_0_#fd5000]"
-                : "font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                ? "bg-[var(--color-accent-light)] font-semibold text-[#fd5000] shadow-[inset_3px_0_0_0_#fd5000]"
+                : "font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
             )}
             aria-current={onSpacesIndex ? "page" : undefined}
           >
@@ -182,7 +183,7 @@ function SidebarBody({
                   "rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
                   onSpacesRoute
                     ? "bg-[#fd5000]/15 text-[#fd5000]"
-                    : "bg-gray-100 text-gray-500"
+                    : "bg-[var(--color-surface-secondary)] text-[var(--color-text-muted)]"
                 )}
               >
                 {spaces.length}
@@ -192,7 +193,7 @@ function SidebarBody({
         </nav>
 
         <div className="mb-2 flex items-center justify-between px-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
             Spaces
           </p>
           {canManage && communityId ? (
@@ -200,7 +201,7 @@ function SidebarBody({
               type="button"
               aria-label="Create space"
               onClick={() => setCreateSpaceOpen(true)}
-              className="rounded-md p-1 text-gray-400 transition-colors hover:bg-orange-50 hover:text-[#fd5000]"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-accent-light)] hover:text-[#fd5000] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
@@ -212,13 +213,13 @@ function SidebarBody({
               <button
                 type="button"
                 onClick={() => setCreateSpaceOpen(true)}
-                className="mx-1 flex w-[calc(100%-0.5rem)] items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-[#fd5000]"
+                className="mx-1 flex min-h-11 w-[calc(100%-0.5rem)] items-center gap-2 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-accent-light)] hover:text-[#fd5000] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
               >
                 <Plus className="h-4 w-4 shrink-0" />
                 Create First Space
               </button>
             ) : (
-              <p className="px-3 py-2 text-[12px] leading-relaxed text-gray-400">
+              <p className="px-3 py-2 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
                 No spaces available yet.
               </p>
             )
@@ -235,11 +236,12 @@ function SidebarBody({
                   key={space.id}
                   href={`${base}${space.href}`}
                   onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all duration-150",
+                    "flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
                     active
-                      ? "bg-orange-50 shadow-[inset_3px_0_0_0_#fd5000]"
-                      : "hover:bg-gray-50"
+                      ? "bg-[var(--color-accent-light)] shadow-[inset_3px_0_0_0_#fd5000]"
+                      : "hover:bg-[var(--color-surface-secondary)]"
                   )}
                 >
                   <span
@@ -266,12 +268,12 @@ function SidebarBody({
                         "block truncate text-[13px]",
                         active
                           ? "font-semibold text-[#fd5000]"
-                          : "font-medium text-gray-800"
+                          : "font-medium text-[var(--color-text-primary)]"
                       )}
                     >
                       {space.label}
                     </span>
-                    <span className="block text-[11px] text-gray-400">
+                    <span className="block text-[11px] text-[var(--color-text-muted)]">
                       {formatMemberCount(count)} members
                     </span>
                   </span>
@@ -282,15 +284,15 @@ function SidebarBody({
         </nav>
 
         <div className="mt-auto px-1 pb-2">
-          <div className="rounded-2xl border border-orange-100/80 bg-gradient-to-br from-[#fff7ed] to-white px-3.5 py-4 shadow-[0_4px_16px_rgba(253,80,0,0.04)]">
-            <p className="text-[13px] font-bold text-gray-900">Go Premium</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-gray-500">
+          <div className="rounded-2xl border border-[var(--color-accent)]/20 bg-gradient-to-br from-[var(--color-accent-light)] to-[var(--color-surface)] px-3.5 py-4">
+            <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Go Premium</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--color-text-muted)]">
               Unlock exclusive Spaces and live sessions.
             </p>
             <Link
               href={`${base}/subscribe`}
               onClick={onNavigate}
-              className="mt-2.5 inline-flex text-[12px] font-semibold text-[#fd5000] transition-colors hover:text-[#e04700]"
+              className="mt-2.5 inline-flex min-h-11 items-center text-[12px] font-semibold text-[#fd5000] transition-colors hover:text-[#e04700] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
             >
               Upgrade now →
             </Link>

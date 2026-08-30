@@ -344,9 +344,9 @@ export function PostComposer({
   return (
     <div
       className={cn(
-        "rounded-2xl bg-white p-4 shadow-[0_0_0_1px_rgba(0,0,0,0.06)] transition-shadow",
+        "rounded-2xl bg-[var(--color-surface)] p-4 shadow-[0_0_0_1px_rgba(0,0,0,0.06)] transition-shadow ring-1 ring-[var(--color-border)]",
         isPage && "p-5 sm:p-6",
-        dragOver && "ring-2 ring-[#fd5000]/40"
+        dragOver && "ring-2 ring-[var(--color-accent)]/40"
       )}
       onDragOver={(e) => {
         e.preventDefault();
@@ -366,21 +366,21 @@ export function PostComposer({
       }}
     >
       {isPage && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">Upload Post</h1>
-            <p className="text-[13px] text-gray-500">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] pb-4">
+          <div className="min-w-0">
+            <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">Upload Post</h1>
+            <p className="text-[13px] text-[var(--color-text-muted)]">
               Text, photo, video, carousel, or poll
             </p>
           </div>
           <div className="flex items-center gap-2">
             {communities.length > 0 && (
-              <label className="flex items-center gap-2 text-[12px] text-gray-600">
+              <label className="flex min-w-0 items-center gap-2 text-[12px] text-[var(--color-text-secondary)]">
                 Community
                 <select
                   value={communityId ?? ""}
                   onChange={(e) => setCommunityId(e.target.value || null)}
-                  className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-[12px] font-medium text-gray-900 outline-none focus:border-[#fd5000]"
+                  className="max-w-[12rem] truncate rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30"
                 >
                   {communities.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -525,13 +525,13 @@ export function PostComposer({
                 }}
                 placeholder={`What's on your mind, ${displayName}?`}
                 rows={isPage ? 6 : 4}
-                className="w-full resize-none rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none placeholder:text-gray-400 focus:bg-gray-100/80"
+                className="w-full resize-none break-words rounded-xl bg-[var(--color-surface-secondary)] px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] focus:bg-[var(--color-surface-secondary)] focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/30"
               />
             ) : (
               <button
                 type="button"
                 onClick={() => openComposer()}
-                className="w-full rounded-full bg-gray-50 px-4 py-2.5 text-left text-sm text-gray-400 transition-colors hover:bg-gray-100/80"
+                className="w-full min-h-11 rounded-full bg-[var(--color-surface-secondary)] px-4 py-2.5 text-left text-sm text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35"
               >
                 What&apos;s on your mind, {displayName}?
               </button>
@@ -543,7 +543,7 @@ export function PostComposer({
                   ? `/create/post${initialCommunitySlug ? `?community=${encodeURIComponent(initialCommunitySlug)}` : ""}`
                   : "/communities",
               )}
-              className="block min-w-0 flex-1 rounded-full bg-gray-50 px-4 py-2.5 text-sm text-gray-500 transition-colors hover:bg-gray-100"
+              className="block min-h-11 min-w-0 flex-1 rounded-full bg-[var(--color-surface-secondary)] px-4 py-2.5 text-sm text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)]"
             >
               Sign in to share what&apos;s on your mind…
             </Link>

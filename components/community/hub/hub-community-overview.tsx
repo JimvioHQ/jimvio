@@ -265,7 +265,7 @@ export function HubCommunityOverview() {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[linear-gradient(180deg,#f8fafc_0%,#f3f4f6_42%,#f9fafb_100%)]">
+    <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-[var(--color-bg)]">
       {canCreateSpace && communityId ? (
         <CreateSpaceDialog
           open={createSpaceOpen}
@@ -277,12 +277,12 @@ export function HubCommunityOverview() {
 
       <div className="mx-auto w-full max-w-[1400px] px-4 pb-16 pt-5 sm:px-6 lg:px-8">
         {/* Premium community hero */}
-        <section className="overflow-hidden rounded-[1.5rem] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100/90">
-          <div className="relative overflow-hidden border-b border-gray-100/80 bg-[radial-gradient(120%_80%_at_0%_0%,rgba(253,80,0,0.08),transparent_55%),linear-gradient(180deg,#ffffff_0%,#fffaf7_100%)]">
+        <section className="overflow-hidden rounded-[1.5rem] bg-[var(--color-surface)] shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-[var(--color-border)]">
+          <div className="relative overflow-hidden border-b border-[var(--color-border)] bg-[radial-gradient(120%_80%_at_0%_0%,rgba(253,80,0,0.08),transparent_55%),linear-gradient(180deg,var(--color-surface)_0%,var(--color-accent-light)_100%)]">
             <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[#fd5000]/[0.06] blur-3xl" />
             <div className="relative flex flex-col gap-6 px-5 py-7 sm:flex-row sm:items-center sm:justify-between sm:gap-8 sm:px-8 sm:py-8 lg:px-9">
               <div className="flex min-w-0 items-center gap-4 sm:gap-5">
-                <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden rounded-[1.35rem] bg-[#fd5000] shadow-[0_12px_28px_rgba(253,80,0,0.22)] ring-[3px] ring-white sm:h-[96px] sm:w-[96px]">
+                <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden rounded-[1.35rem] bg-[#fd5000] shadow-[0_12px_28px_rgba(253,80,0,0.22)] ring-[3px] ring-[var(--color-surface)] sm:h-[96px] sm:w-[96px]">
                   {logo ? (
                     <Image
                       src={logo}
@@ -300,7 +300,7 @@ export function HubCommunityOverview() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="truncate text-[1.55rem] font-semibold tracking-tight text-gray-900 sm:text-[1.85rem]">
+                    <h1 className="min-w-0 break-words text-[1.55rem] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[1.85rem]">
                       {communityName}
                     </h1>
                     {verified ? (
@@ -313,16 +313,16 @@ export function HubCommunityOverview() {
                     ) : null}
                   </div>
                   {communityTagline ? (
-                    <p className="mt-1.5 line-clamp-2 max-w-xl text-[13px] leading-relaxed text-gray-500 sm:text-[14px]">
+                    <p className="mt-1.5 min-w-0 max-w-xl break-words text-[13px] leading-relaxed text-[var(--color-text-muted)] sm:text-[14px]">
                       {communityTagline}
                     </p>
                   ) : null}
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-600 ring-1 ring-gray-200/80">
+                    <span className="inline-flex items-center rounded-full bg-[var(--color-surface-secondary)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-text-secondary)] ring-1 ring-[var(--color-border)]">
                       {visibilityLabel}
                     </span>
                     {createdLabel ? (
-                      <span className="inline-flex items-center rounded-full bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-500 ring-1 ring-gray-200/80">
+                      <span className="inline-flex items-center rounded-full bg-[var(--color-surface-secondary)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]">
                         Created {createdLabel}
                       </span>
                     ) : null}
@@ -344,8 +344,9 @@ export function HubCommunityOverview() {
                         setMoreOpen(false);
                       }}
                       disabled={leaving}
-                      className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-4 text-[13px] font-semibold text-emerald-700 ring-1 ring-emerald-200/80 transition-all duration-150 hover:bg-emerald-100"
+                      className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 px-4 text-[13px] font-semibold text-emerald-700 ring-1 ring-emerald-200/80 transition-all duration-150 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                       aria-expanded={joinedMenuOpen}
+                      aria-haspopup="menu"
                     >
                       {leaving ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -356,10 +357,11 @@ export function HubCommunityOverview() {
                       <ChevronDown className="h-3.5 w-3.5 opacity-70" />
                     </button>
                     {joinedMenuOpen ? (
-                      <div className="absolute right-0 z-20 mt-1.5 min-w-[200px] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                      <div className="absolute right-0 z-20 mt-1.5 min-w-[200px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg" role="menu">
                         <button
                           type="button"
-                          className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                          role="menuitem"
+                          className="flex min-h-11 w-full items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                           onClick={() => {
                             const next = !muted;
                             const previous = muted;
@@ -398,7 +400,8 @@ export function HubCommunityOverview() {
                         </button>
                         <Link
                           href={`${base}/settings`}
-                          className="flex items-center gap-2 px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                          role="menuitem"
+                          className="flex min-h-11 items-center gap-2 px-3.5 py-2.5 text-[13px] font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                           onClick={() => setJoinedMenuOpen(false)}
                         >
                           <Bell className="h-4 w-4" />
@@ -422,7 +425,8 @@ export function HubCommunityOverview() {
                     type="button"
                     onClick={() => void handleJoin()}
                     disabled={joining}
-                    className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-[#fd5000] px-5 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(253,80,0,0.25)] transition-all duration-150 hover:bg-[#e04700] disabled:opacity-70"
+                    aria-busy={joining}
+                    className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-[#fd5000] px-5 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(253,80,0,0.25)] transition-all duration-150 hover:bg-[#e04700] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 disabled:opacity-70"
                   >
                     {joining ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -432,7 +436,7 @@ export function HubCommunityOverview() {
                 )}
                 <Link
                   href={`${base}/members`}
-                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3.5 text-[13px] font-semibold text-gray-700 transition-all duration-150 hover:border-gray-300 hover:bg-gray-50"
+                  className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-[13px] font-semibold text-[var(--color-text-secondary)] transition-all duration-150 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                 >
                   <UserPlus className="h-4 w-4" />
                   Invite
@@ -440,7 +444,7 @@ export function HubCommunityOverview() {
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-all duration-150 hover:border-gray-300 hover:bg-gray-50"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] transition-all duration-150 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                   aria-label={shareLabel}
                   title={shareLabel}
                 >
@@ -453,18 +457,20 @@ export function HubCommunityOverview() {
                       setMoreOpen((v) => !v);
                       setJoinedMenuOpen(false);
                     }}
-                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 transition-all duration-150 hover:border-gray-300 hover:bg-gray-50"
-                    aria-label="More"
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] transition-all duration-150 hover:border-[var(--color-border-strong)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+                    aria-label="More community actions"
+                    aria-haspopup="menu"
                     aria-expanded={moreOpen}
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
                   {moreOpen ? (
-                    <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg">
+                    <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg" role="menu">
                       {canManage ? (
                         <Link
                           href={`/dashboard/communities/${encodeURIComponent(slug)}`}
-                          className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                          role="menuitem"
+                          className="block min-h-11 px-3.5 py-2.5 text-[13px] font-medium leading-[28px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                           onClick={() => setMoreOpen(false)}
                         >
                           Owner Console
@@ -472,14 +478,16 @@ export function HubCommunityOverview() {
                       ) : null}
                       <Link
                         href={`${base}/about`}
-                        className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                        role="menuitem"
+                        className="block min-h-11 px-3.5 py-2.5 text-[13px] font-medium leading-[28px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                         onClick={() => setMoreOpen(false)}
                       >
                         About
                       </Link>
                       <Link
                         href={`${base}/members`}
-                        className="block px-3.5 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                        role="menuitem"
+                        className="block min-h-11 px-3.5 py-2.5 text-[13px] font-medium leading-[28px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                         onClick={() => setMoreOpen(false)}
                       >
                         Members
@@ -505,7 +513,7 @@ export function HubCommunityOverview() {
                     ? !onSpacesRoute && activeTab === "overview"
                     : !onSpacesRoute && activeTab === item.id;
               const className = cn(
-                "relative flex shrink-0 items-center gap-1.5 px-3.5 py-3.5 text-[13px] transition-colors duration-150",
+                "relative flex min-h-11 shrink-0 items-center gap-1.5 px-3.5 py-3.5 text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
                 isActive
                   ? "font-semibold text-[#fd5000]"
                   : "font-medium text-gray-500 hover:text-gray-800"
@@ -538,6 +546,7 @@ export function HubCommunityOverview() {
                     key={item.id}
                     href={item.href}
                     className={className}
+                    aria-current={isActive ? "page" : undefined}
                     onClick={() => {
                       if (item.id === "overview") setActiveTab("overview");
                     }}
@@ -552,6 +561,7 @@ export function HubCommunityOverview() {
                   key={item.id}
                   type="button"
                   onClick={() => setActiveTab(item.id)}
+                  aria-current={isActive ? "page" : undefined}
                   className={className}
                 >
                   {content}
@@ -574,7 +584,7 @@ export function HubCommunityOverview() {
             />
 
             {!hasSpaces ? (
-              <section className="mt-4 overflow-hidden rounded-[1.35rem] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100 sm:p-8 animate-in fade-in duration-300">
+              <section className="mt-4 overflow-hidden rounded-[1.35rem] bg-[var(--color-surface)] p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-[var(--color-border)] sm:p-8 animate-in fade-in duration-300">
                 <div className="grid grid-cols-12 gap-6">
                   <div className="col-span-12 flex flex-col gap-4 lg:col-span-8">
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fd5000]/10 text-[#fd5000]">
@@ -583,10 +593,10 @@ export function HubCommunityOverview() {
                     {canCreateSpace ? (
                       <>
                         <div>
-                          <h2 className="text-[1.35rem] font-semibold tracking-tight text-gray-900">
+                          <h2 className="min-w-0 break-words text-[1.35rem] font-semibold tracking-tight text-[var(--color-text-primary)]">
                             Welcome to your new Community
                           </h2>
-                          <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-gray-500">
+                          <p className="mt-2 max-w-xl break-words text-[14px] leading-relaxed text-[var(--color-text-muted)]">
                             Create your first Space to organize members for discussion,
                             resources, and live sessions.
                           </p>
@@ -595,13 +605,13 @@ export function HubCommunityOverview() {
                           <button
                             type="button"
                             onClick={() => setCreateSpaceOpen(true)}
-                            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#fd5000] px-5 text-[13px] font-semibold text-white hover:bg-[#e04700]"
+                            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#fd5000] px-5 text-[13px] font-semibold text-white hover:bg-[#e04700] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                           >
                             Create First Space
                           </button>
                           <Link
                             href={`/dashboard/communities/${encodeURIComponent(slug)}`}
-                            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-200 bg-white px-5 text-[13px] font-semibold text-gray-700 hover:bg-gray-50"
+                            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-[13px] font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                           >
                             Owner Console
                           </Link>
@@ -610,10 +620,10 @@ export function HubCommunityOverview() {
                     ) : (
                       <>
                         <div>
-                          <h2 className="text-[1.35rem] font-semibold tracking-tight text-gray-900">
+                          <h2 className="min-w-0 break-words text-[1.35rem] font-semibold tracking-tight text-[var(--color-text-primary)]">
                             No spaces available yet.
                           </h2>
-                          <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-gray-500">
+                          <p className="mt-2 max-w-xl break-words text-[14px] leading-relaxed text-[var(--color-text-muted)]">
                             No Spaces have been published yet. Check back soon — your host
                             is setting things up.
                           </p>

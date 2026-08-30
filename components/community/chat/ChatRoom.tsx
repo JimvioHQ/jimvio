@@ -600,7 +600,7 @@ export function ChatRoom({
               className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center animate-in fade-in duration-300"
               role="status"
             >
-              <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[var(--color-accent)] shadow-[0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-gray-100">
+              <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-surface)] text-[var(--color-accent)] shadow-[0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-[var(--color-border)]">
                 <span className="text-[20px] font-bold">
                   {(roomName?.trim()?.[0] || "S").toUpperCase()}
                 </span>
@@ -608,7 +608,7 @@ export function ChatRoom({
               <p className="text-[17px] font-semibold tracking-tight text-[var(--color-text-primary)]">
                 {emptyTitle ?? "Start the conversation"}
               </p>
-              <p className="mt-2 max-w-sm whitespace-pre-line text-[13.5px] leading-relaxed text-[var(--color-text-muted)]">
+              <p className="mt-2 max-w-sm whitespace-pre-line break-words text-[13.5px] leading-relaxed text-[var(--color-text-muted)]">
                 {emptyDescription ??
                   "Share an idea, drop a file, or ask a question — this channel becomes knowledge as you collaborate."}
               </p>
@@ -627,7 +627,7 @@ export function ChatRoom({
                   {emptyActionLabel ?? "Start Discussion"}
                 </button>
               ) : (
-                <span className="mt-6 inline-flex min-h-10 items-center rounded-full bg-white px-4 text-[12px] font-semibold text-gray-500 ring-1 ring-gray-200">
+                <span className="mt-6 inline-flex min-h-10 items-center rounded-full bg-[var(--color-surface)] px-4 text-[12px] font-semibold text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]">
                   Read Only
                 </span>
               )}
@@ -741,7 +741,7 @@ export function ChatRoom({
             <div
               className={cn(
                 discussionLayout &&
-                  "mx-auto max-w-xl rounded-xl bg-white/90 px-3 py-2 shadow-sm ring-1 ring-gray-100"
+                  "mx-auto max-w-xl rounded-xl bg-[var(--color-surface)]/90 px-3 py-2 shadow-sm ring-1 ring-[var(--color-border)]"
               )}
             >
               <p className="text-[13px] font-semibold text-[var(--color-text-primary)]">

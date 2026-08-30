@@ -934,7 +934,7 @@ export function FeedSection({
                 <div
                     className={cn(
                         "bg-surface border rounded-2xl p-3.5",
-                        isHub ? "border-[var(--color-border,#e4e4e7)] bg-white shadow-sm" : "border-border"
+                        isHub ? "border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface)] shadow-sm" : "border-border"
                     )}
                 >
                     <Link
@@ -1238,13 +1238,13 @@ function PostCard({
                         <Link
                             href={authorProfileHref}
                             aria-label={`View ${name}'s profile`}
-                            className="block text-[13px] font-semibold text-text-primary truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
+                            className="block min-w-0 break-words text-[13px] font-semibold text-text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {name}
                         </Link>
                     ) : (
-                        <p className="text-[13px] font-semibold text-text-primary truncate">{name}</p>
+                        <p className="min-w-0 break-words text-[13px] font-semibold text-text-primary">{name}</p>
                     )}
                     {profile?.username && (
                         <p className="text-[11px] text-text-muted truncate">
@@ -1479,15 +1479,15 @@ function PostCard({
                                 key={i}
                                 type="button"
                                 onClick={() => onVotePoll(i)}
-                                className="relative w-full overflow-hidden rounded-xl border border-border px-3 py-2 text-left text-[12px] font-medium text-text-primary hover:border-[#fd5000]/40"
+                                className="relative min-h-11 w-full overflow-hidden rounded-xl border border-border px-3 py-2 text-left text-[12px] font-medium text-text-primary hover:border-[#fd5000]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                             >
                                 <span
                                     className="absolute inset-y-0 left-0 bg-[#fd5000]/12"
                                     style={{ width: `${pct}%` }}
                                 />
-                                <span className="relative flex justify-between gap-2">
-                                    <span>{opt.text}</span>
-                                    <span className="text-text-muted">{pct}%</span>
+                                <span className="relative flex min-w-0 justify-between gap-2">
+                                    <span className="min-w-0 break-words">{opt.text}</span>
+                                    <span className="shrink-0 text-text-muted">{pct}%</span>
                                 </span>
                             </button>
                         );
@@ -1966,7 +1966,7 @@ function PostDetailPanel({
                                 onLike={likeComment}
                             />
                             {replies(c.id).map((r) => (
-                                <div key={r.id} className="ml-8 mt-3 pl-3 border-l-2 border-border">
+                                <div key={r.id} className="ml-4 mt-3 min-w-0 border-l-2 border-border pl-3 sm:ml-8">
                                     <CommentItem
                                         comment={r}
                                         currentUserId={currentUserId}
@@ -2088,7 +2088,7 @@ function CommentItem({
             )}
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                    <span className="text-[12px] font-semibold text-text-primary">{name}</span>
+                    <span className="min-w-0 break-words text-[12px] font-semibold text-text-primary">{name}</span>
                     <span className="text-[10px] text-text-muted">
                         {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                         {comment.edited_at ? " · edited" : ""}
@@ -2165,7 +2165,7 @@ function CommentItem({
                         </div>
                     </div>
                 ) : (
-                    <p className="text-[13px] text-text-primary leading-relaxed whitespace-pre-wrap">
+                    <p className="min-w-0 break-words text-[13px] text-text-primary leading-relaxed whitespace-pre-wrap">
                         {comment.body}
                     </p>
                 )}
@@ -2173,14 +2173,14 @@ function CommentItem({
                     <button
                         type="button"
                         onClick={() => onReply(comment)}
-                        className="inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-[#fd5000] transition-colors font-semibold"
+                        className="inline-flex min-h-11 items-center gap-1 text-[11px] text-text-muted hover:text-[#fd5000] transition-colors font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                     >
                         <Reply className="h-3 w-3" /> Reply
                     </button>
                     <button
                         type="button"
                         onClick={() => onLike(comment.id)}
-                        className="inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-[#fd5000] transition-colors font-semibold"
+                        className="inline-flex min-h-11 items-center gap-1 text-[11px] text-text-muted hover:text-[#fd5000] transition-colors font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                     >
                         <Heart className="h-3 w-3" />
                         {(comment.like_count ?? 0) > 0 ? comment.like_count : "Like"}

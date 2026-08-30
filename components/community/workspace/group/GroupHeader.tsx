@@ -80,9 +80,9 @@ function GhostIconButton({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 w-8 items-center justify-center rounded-lg",
-        "border border-gray-200/80 bg-white/90 text-gray-500 shadow-sm",
-        "transition-all duration-150 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800",
+        "inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded-lg sm:h-8 sm:w-8 sm:min-h-8 sm:min-w-8",
+        "border border-[var(--color-border)] bg-[var(--color-surface)]/90 text-[var(--color-text-muted)] shadow-sm",
+        "transition-all duration-150 hover:border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35"
       )}
     >
@@ -133,7 +133,7 @@ export function GroupHeader({
   return (
     <header
       className={cn(
-        "relative shrink-0 border-b border-gray-100/90 bg-white/95 backdrop-blur-sm",
+        "relative shrink-0 border-b border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur-sm",
         "px-3 py-1.5 sm:px-4 sm:py-2",
         className
       )}
@@ -143,7 +143,7 @@ export function GroupHeader({
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 sm:flex-nowrap">
-            <h1 className="truncate text-[15px] font-semibold tracking-tight text-gray-900 sm:text-[16px]">
+            <h1 className="min-w-0 break-words text-[15px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[16px]">
               {group.name}
             </h1>
             <span
@@ -158,7 +158,7 @@ export function GroupHeader({
             >
               {visibility}
             </span>
-            <span className="inline-flex items-center gap-1 text-[12px] font-medium text-gray-500">
+            <span className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--color-text-muted)]">
               <Users className="h-3 w-3" aria-hidden />
               {memberCountLabel(group.memberCount)}
             </span>
@@ -185,8 +185,9 @@ export function GroupHeader({
           <WorkspaceActionMenu
             label={`${group.name} actions`}
             buttonClassName={cn(
-              "h-8 w-8 rounded-lg border border-gray-200/80 bg-white/90 text-gray-500 shadow-sm",
-              "hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800"
+              "h-9 w-9 min-h-9 min-w-9 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/90 text-[var(--color-text-muted)] shadow-sm sm:h-8 sm:w-8 sm:min-h-8 sm:min-w-8",
+              "hover:border-[var(--color-border)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35"
             )}
             items={buildWorkspaceActions({
               muted: !notificationsOn,

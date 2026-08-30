@@ -149,7 +149,7 @@ export function SharedCommunityCard({
             <div className="flex min-w-0 items-start justify-between gap-2">
               <h2
                 className={cn(
-                  "min-w-0 flex-1 break-words line-clamp-1 font-semibold tracking-tight text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors",
+                  "min-w-0 flex-1 break-words line-clamp-2 font-semibold tracking-tight text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors",
                   featured ? "text-[16px]" : "text-[14px]"
                 )}
               >
@@ -211,14 +211,14 @@ export function SharedCommunityCard({
           <button
             type="button"
             onClick={handleShare}
-            className="h-7 flex-1 rounded-lg text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+            className="min-h-11 flex-1 rounded-lg text-[11px] font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
           >
             {copied ? "Link copied" : "Share"}
           </button>
           <Link
             href={`/communities/${c.slug}/subscribe`}
             onClick={(e) => e.stopPropagation()}
-            className="h-7 flex-1 rounded-lg bg-[var(--color-accent)] text-center text-[11px] font-semibold leading-7 text-white transition-colors hover:bg-[var(--color-accent-hover)]"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-[var(--color-accent)] text-center text-[11px] font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
           >
             Join
           </Link>
@@ -232,7 +232,7 @@ export function CreateCommunityTile() {
   return (
     <Link
       href="/communities/create"
-      className="group flex h-full min-h-[260px] flex-col justify-between rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-light)]/40"
+      className="group flex h-full min-h-[260px] flex-col justify-between rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-accent-light)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
     >
       <div>
         <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--color-surface-secondary)] text-[var(--color-text-primary)] transition-colors group-hover:bg-[var(--color-accent)] group-hover:text-white">

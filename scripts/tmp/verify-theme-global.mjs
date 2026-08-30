@@ -43,7 +43,26 @@ assert.match(css, /--background:\s*var\(--color-bg\)/);
 assert.match(css, /\.jimvio-page/);
 assert.match(css, /overflow-wrap:\s*break-word/);
 assert.match(css, /html\.dark \.wallet-os-scope/);
+assert.match(css, /bg-white\\\/40/);
+assert.match(css, /bg-white\\\/95/);
+assert.match(css, /bg-gray-100/);
+assert.match(css, /divide-gray-100/);
+assert.match(css, /text-gray-800/);
+assert.match(css, /bg-\\\[\\#F9FAFB\\\]/);
 assert.doesNotMatch(css, /--color-accent:\s*#0a0a0a/);
+
+const feedPage = read("components/feed/FeedPageContent.tsx");
+assert.match(feedPage, /bg-\[var\(--color-bg\)\]/);
+assert.doesNotMatch(feedPage, /from-\[#FFF8F5\]/);
+
+const hubOverview = read("components/community/hub/hub-community-overview.tsx");
+assert.match(hubOverview, /bg-\[var\(--color-bg\)\]/);
+assert.doesNotMatch(hubOverview, /#f8fafc/);
+assert.match(hubOverview, /aria-current/);
+
+const feedTabs = read("components/feed/FeedTabs.tsx");
+assert.match(feedTabs, /role="tablist"/);
+assert.match(feedTabs, /aria-selected/);
 
 assert.match(toggle, /useTheme/);
 assert.match(toggle, /setTheme/);

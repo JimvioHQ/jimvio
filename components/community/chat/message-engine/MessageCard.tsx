@@ -291,7 +291,7 @@ export function MessageCard({
                     "px-2.5 py-1 shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
                     isOwn
                       ? "rounded-[16px] rounded-br-md bg-[var(--color-accent-light)] ring-1 ring-[var(--color-accent)]/10"
-                      : "rounded-[16px] rounded-bl-md bg-white/95 ring-1 ring-black/[0.04]"
+                      : "rounded-[16px] rounded-bl-md bg-[var(--color-surface)] ring-1 ring-[var(--color-border)]"
                   )
                 : cn(
                     "px-3 pb-2.5 pt-2 shadow-sm group-hover:shadow-md",
@@ -307,7 +307,7 @@ export function MessageCard({
                 {discussion && profileHref ? (
                   <Link
                     href={profileHref}
-                    className="text-[13px] font-semibold text-gray-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 rounded-sm"
+                    className="min-w-0 break-words text-[13px] font-semibold text-[var(--color-text-primary)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 rounded-sm"
                   >
                     {name}
                   </Link>
@@ -316,7 +316,7 @@ export function MessageCard({
                     className={cn(
                       "font-semibold",
                       discussion
-                        ? "text-[13px] text-gray-900"
+                        ? "min-w-0 break-words text-[13px] text-[var(--color-text-primary)]"
                         : "text-[11px] text-[var(--color-accent)]"
                     )}
                   >
@@ -392,7 +392,7 @@ export function MessageCard({
                   body={m.body}
                   className={
                     discussion
-                      ? "text-[13px] leading-snug text-gray-800"
+                      ? "min-w-0 break-words text-[13px] leading-snug text-[var(--color-text-primary)]"
                       : undefined
                   }
                 />

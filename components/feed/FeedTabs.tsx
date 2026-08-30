@@ -23,40 +23,61 @@ export function FeedTabs({
   }, [activeTab]);
 
   return (
-    <div className="border-b border-gray-200/80 bg-transparent px-0.5">
+    <div className="border-b border-[var(--color-border)] bg-transparent px-0.5">
       <div className="flex items-center">
         <div className="relative min-w-0 flex-1">
           <div
             className="absolute bottom-0 h-0.5 rounded-full bg-orange-500 transition-all duration-200"
             style={{ left: indicator.left, width: indicator.width }}
           />
-          <div className="flex overflow-x-auto scrollbar-hide">
-            {FEED_TABS.map((tab, i) => (
+          <div
+            role="tablist"
+            aria-label="Feed filters"
+            className="flex overflow-x-auto scrollbar-hide"
+          >
+            {FEED_TABS.map((tab, i) => {
+              const selected = activeTab === tab;
+              return (
               <button
                 key={tab}
                 ref={(el) => {
                   tabRefs.current[i] = el;
                 }}
                 type="button"
+                role="tab"
+                aria-selected={selected}
+                tabIndex={selected ? 0 : -1}
                 onClick={() => {
                   if (value === undefined) setUncontrolledTab(tab);
                   onChange?.(tab);
                 }}
-                className={`shrink-0 px-3 py-3 text-[13px] transition-colors sm:px-3.5 ${
-                  activeTab === tab
-                    ? "font-semibold text-gray-900"
-                    : "font-medium text-gray-500 hover:text-gray-800"
+                onKeyDown={(e) => {
+                  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                  e.preventDefault();
+                  const dir = e.key === "ArrowRight" ? 1 : -1;
+                  const next = (i + dir + FEED_TABS.length) % FEED_TABS.length;
+                  const nextTab = FEED_TABS[next];
+                  if (!nextTab) return;
+                  if (value === undefined) setUncontrolledTab(nextTab);
+                  onChange?.(nextTab);
+                  tabRefs.current[next]?.focus();
+                }}
+                className={`min-h-11 shrink-0 px-3 py-2.5 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 sm:px-3.5 ${
+                  selected
+                    ? "font-semibold text-[var(--color-text-primary)]"
+                    : "font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
                 }`}
               >
                 {tab}
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
         <button
           type="button"
           aria-label="Filter feed"
-          className="ml-1 shrink-0 rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+          className="ml-1 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
         >
           <SlidersHorizontal className="h-4 w-4" />
         </button>

@@ -39,7 +39,7 @@ export function FeedPageContent({
 
   return (
     <>
-      <div className="mx-auto w-full max-w-[1440px] bg-gradient-to-b from-[#FFF8F5]/80 via-gray-50/80 to-gray-50/80 p-4 lg:p-5">
+      <div className="mx-auto w-full min-w-0 max-w-[1440px] bg-[var(--color-bg)] p-4 lg:p-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-5">
           {/* Main feed — dominant */}
           <div className="min-w-0 flex-1 space-y-5 pb-8 lg:pb-20">

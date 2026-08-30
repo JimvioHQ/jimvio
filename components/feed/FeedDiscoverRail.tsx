@@ -97,12 +97,12 @@ function CommunityMiniCard({
   return (
     <article
       className={cn(
-        "group flex w-[168px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[#F3F4F6] bg-white",
+        "group flex w-[168px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]",
         "shadow-[0_1px_2px_rgba(17,24,39,0.04)] transition hover:-translate-y-0.5 hover:border-[#fd5000]/35 hover:shadow-md"
       )}
     >
       <Link href={href} className="relative flex flex-col">
-        <div className="relative h-[84px] w-full bg-[#F3F4F6]">
+        <div className="relative h-[84px] w-full bg-[var(--color-surface-secondary)]">
           {coverSrc ? (
             <Image
               src={coverSrc}
@@ -123,7 +123,7 @@ function CommunityMiniCard({
         </div>
 
         <div className="relative px-3">
-          <div className="absolute -top-5 left-3 h-10 w-10 overflow-hidden rounded-xl border-[2.5px] border-white bg-white shadow-sm ring-1 ring-black/5">
+          <div className="absolute -top-5 left-3 h-10 w-10 overflow-hidden rounded-xl border-[2.5px] border-[var(--color-surface)] bg-[var(--color-surface)] shadow-sm ring-1 ring-black/5">
             {logoSrc ? (
               <Image
                 src={logoSrc}
@@ -144,7 +144,7 @@ function CommunityMiniCard({
 
         <div className="px-3 pb-3.5 pt-7">
           <div className="flex items-start gap-1">
-            <p className="line-clamp-2 min-w-0 flex-1 text-[13px] font-semibold leading-snug tracking-tight text-[#111827]">
+            <p className="line-clamp-2 min-w-0 flex-1 break-words text-[13px] font-semibold leading-snug tracking-tight text-[var(--color-text-primary)]">
               {name}
             </p>
             {verified ? (
@@ -156,7 +156,7 @@ function CommunityMiniCard({
               />
             ) : null}
           </div>
-          <p className="mt-1 truncate text-[11px] leading-snug text-[#6B7280]">
+          <p className="mt-1 truncate text-[11px] leading-snug text-[var(--color-text-muted)]">
             {description}
           </p>
         </div>
@@ -222,10 +222,10 @@ export function FeedDiscoverRail({
   return (
     <div className="space-y-3">
       {pins.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl border border-[#E8EAED] bg-white/90 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur">
-          <div className="flex items-center gap-2 border-b border-[#F3F4F6] px-4 py-2.5">
+        <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/90 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur">
+          <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-2.5">
             <Pin className="h-4 w-4 text-[#fd5000]" />
-            <h2 className="text-[13px] font-bold text-[#111827]">Pinned</h2>
+            <h2 className="text-[13px] font-bold text-[var(--color-text-primary)]">Pinned</h2>
           </div>
           <div className="flex gap-2.5 overflow-x-auto px-3 py-3 scrollbar-hide">
             {pins.map((pin) => {
@@ -248,10 +248,10 @@ export function FeedDiscoverRail({
       ) : null}
 
       {communities.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl border border-[#E8EAED] bg-white/90 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur">
-          <div className="flex items-center gap-2 border-b border-[#F3F4F6] px-4 py-2.5">
+        <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/90 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur">
+          <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-2.5">
             <Flame className="h-4 w-4 text-[#fd5000]" />
-            <h2 className="text-[13px] font-bold text-[#111827]">
+            <h2 className="text-[13px] font-bold text-[var(--color-text-primary)]">
               🔥 Trending Communities
             </h2>
           </div>
@@ -273,10 +273,10 @@ export function FeedDiscoverRail({
       ) : null}
 
       {topics.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl border border-[#E8EAED] bg-white/90 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur">
-          <div className="flex items-center gap-2 border-b border-[#F3F4F6] px-4 py-2.5">
+        <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/90 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur">
+          <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-2.5">
             <Hash className="h-4 w-4 text-[#fd5000]" />
-            <h2 className="text-[13px] font-bold text-[#111827]">
+            <h2 className="text-[13px] font-bold text-[var(--color-text-primary)]">
               Trending Topics
             </h2>
           </div>
@@ -286,14 +286,14 @@ export function FeedDiscoverRail({
                 key={topic.topic}
                 href={`/communities/explore?search=${encodeURIComponent(`#${topic.topic}`)}`}
                 className={cn(
-                  "w-[148px] shrink-0 rounded-xl border border-[#F3F4F6] bg-[#F9FAFB] p-3",
+                  "w-[148px] min-w-0 shrink-0 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] p-3",
                   "transition hover:-translate-y-0.5 hover:border-[#fd5000]/35 hover:shadow-md"
                 )}
               >
-                <p className="truncate text-[13px] font-bold text-[#111827]">
+                <p className="min-w-0 break-words text-[13px] font-bold text-[var(--color-text-primary)]">
                   #{topic.topic}
                 </p>
-                <p className="mt-1 text-[10px] text-[#6B7280]">
+                <p className="mt-1 text-[10px] text-[var(--color-text-muted)]">
                   {formatNumber(topic.post_count)} posts ·{" "}
                   {formatNumber(topic.community_count)} communities
                 </p>
@@ -325,10 +325,10 @@ export function FeedDiscoverRail({
       ) : null}
 
       {live.length > 0 ? (
-        <section className="overflow-hidden rounded-2xl border border-[#E8EAED] bg-white/90 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur">
-          <div className="flex items-center gap-2 border-b border-[#F3F4F6] px-4 py-2.5">
+        <section className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/90 shadow-[0_1px_2px_rgba(17,24,39,0.04)] backdrop-blur">
+          <div className="flex items-center gap-2 border-b border-[var(--color-border)] px-4 py-2.5">
             <Radio className="h-4 w-4 text-[#fd5000]" />
-            <h2 className="text-[13px] font-bold text-[#111827]">Live now</h2>
+            <h2 className="text-[13px] font-bold text-[var(--color-text-primary)]">Live now</h2>
           </div>
           <div className="flex gap-2 overflow-x-auto px-3 py-3 scrollbar-hide">
             {live.slice(0, 8).map((item) => (
@@ -336,7 +336,7 @@ export function FeedDiscoverRail({
                 key={item.id}
                 href={item.href}
                 className={cn(
-                  "group flex w-[148px] shrink-0 flex-col overflow-hidden rounded-xl border border-[#F3F4F6] bg-[#F9FAFB]",
+                  "group flex w-[148px] min-w-0 shrink-0 flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)]",
                   "transition hover:-translate-y-0.5 hover:border-[#fd5000]/35 hover:shadow-md"
                 )}
               >
@@ -363,7 +363,7 @@ export function FeedDiscoverRail({
                   ) : null}
                 </div>
                 <div className="p-2.5">
-                  <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-[#111827]">
+                  <p className="line-clamp-2 min-w-0 break-words text-[12px] font-semibold leading-snug text-[var(--color-text-primary)]">
                     {item.title}
                   </p>
                   {item.subtitle ? (

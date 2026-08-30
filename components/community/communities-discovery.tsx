@@ -102,7 +102,7 @@ function CommunitiesHero({
               <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
                 {featuredEyebrow(priceFilter)}
               </p>
-              <h2 className="mt-2 text-xl font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
+              <h2 className="mt-2 min-w-0 break-words text-xl font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-2xl">
                 {community.name}
               </h2>
               {community.tagline && (
@@ -138,14 +138,14 @@ function CommunitiesHero({
             <div className="flex flex-wrap gap-2">
               <Link
                 href={`/communities/${community.slug}`}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--color-text-primary)] px-4 text-[13px] font-medium text-[var(--color-bg)] transition-opacity hover:opacity-90"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-[var(--color-text-primary)] px-4 text-[13px] font-medium text-[var(--color-bg)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
               >
                 View community
                 <ArrowUpRight size={14} />
               </Link>
               <Link
                 href={`/communities/${community.slug}/subscribe`}
-                className="inline-flex h-9 items-center rounded-lg border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)]"
+                className="inline-flex min-h-11 items-center rounded-lg border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
               >
                 {community.is_free ? "Join free" : "Join now"}
               </Link>
@@ -165,7 +165,7 @@ function CommunitiesHero({
         </ul>
         <Link
           href="/communities/create"
-          className="mt-5 inline-flex h-9 items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)]"
+          className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
         >
           Start your own
         </Link>
@@ -417,7 +417,7 @@ export function CommunitiesDiscovery({
 
             <Link
               href="/communities/create"
-              className="hidden shrink-0 items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)] sm:inline-flex"
+              className="hidden min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-4 py-2 text-[13px] font-medium text-[var(--color-text-primary)] transition-colors hover:border-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 sm:inline-flex"
             >
               Start a community
               <ArrowUpRight size={14} />
@@ -463,8 +463,9 @@ export function CommunitiesDiscovery({
                     type="button"
                     onClick={() => setCategory(c)}
                     aria-pressed={active}
+                    aria-current={active ? "page" : undefined}
                     className={cn(
-                      "h-10 shrink-0 border-b-2 px-3 text-[13px] font-medium transition-colors sm:px-4",
+                      "min-h-11 shrink-0 border-b-2 px-3 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40 sm:px-4",
                       active
                         ? "border-[var(--color-text-primary)] text-[var(--color-text-primary)]"
                         : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"

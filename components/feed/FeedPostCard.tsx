@@ -332,22 +332,22 @@ export function FeedPostCard({
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-16 text-gray-400">
         <Loader2 className="h-5 w-5 animate-spin" />
-        <p className="text-[13px] font-medium text-[#6B7280]">Loading your community feed...</p>
+        <p className="text-[13px] font-medium text-[var(--color-text-muted)]">Loading your community feed...</p>
       </div>
     );
   }
 
   if (!loading && loadError && posts.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center">
-        <p className="text-[15px] font-bold text-[#111827]">Unable to load the community feed.</p>
-        <p className="mx-auto mt-1 max-w-sm text-[13px] text-[#6B7280]">
+      <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-14 text-center">
+        <p className="text-[15px] font-bold text-[var(--color-text-primary)]">Unable to load the community feed.</p>
+        <p className="mx-auto mt-1 max-w-sm break-words text-[13px] text-[var(--color-text-muted)]">
           Check your connection and try again.
         </p>
         <button
           type="button"
           onClick={() => void load()}
-          className="mt-4 inline-flex h-10 items-center rounded-xl bg-[#fd5000] px-4 text-[13px] font-bold text-white"
+          className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-[#fd5000] px-4 text-[13px] font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
         >
           Retry
         </button>
@@ -357,12 +357,12 @@ export function FeedPostCard({
 
   if (!loading && posts.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-14 text-center">
+      <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-14 text-center">
         <Flame className="mx-auto h-6 w-6 text-[#fd5000]" />
-        <p className="mt-3 text-[15px] font-bold text-[#111827]">
+        <p className="mt-3 text-[15px] font-bold text-[var(--color-text-primary)]">
           {isAuthenticated ? "No posts yet." : "No public posts yet."}
         </p>
-        <p className="mx-auto mt-1 max-w-sm text-[13px] text-[#6B7280]">
+        <p className="mx-auto mt-1 max-w-sm break-words text-[13px] text-[var(--color-text-muted)]">
           {isAuthenticated
             ? "Public communities and member posts will show up here. This is an empty feed, not a failed load."
             : "Public communities are still here. This is an empty feed, not a failed load."}
@@ -370,7 +370,7 @@ export function FeedPostCard({
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link
             href="/communities/explore"
-            className="inline-flex h-10 items-center rounded-xl bg-[#fd5000] px-4 text-[13px] font-bold text-white"
+            className="inline-flex min-h-11 items-center rounded-xl bg-[#fd5000] px-4 text-[13px] font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
           >
             Explore communities
           </Link>
@@ -384,7 +384,7 @@ export function FeedPostCard({
       {posts.map((post, index) => (
         <article
           key={post.id}
-          className="bg-transparent px-0.5 py-5 transition-colors first:pt-4 hover:bg-white/40"
+          className="bg-transparent px-0.5 py-5 transition-colors first:pt-4 hover:bg-[var(--color-surface)]/40"
         >
           <div className="mb-3 flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-start gap-3">
@@ -406,13 +406,13 @@ export function FeedPostCard({
                     <Link
                       href={post.author.profileHref}
                       aria-label={`View ${post.author.name}'s profile`}
-                      className="text-[14px] font-semibold leading-none text-gray-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
+                      className="min-w-0 break-words text-[14px] font-semibold leading-none text-gray-900 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {post.author.name}
                     </Link>
                   ) : (
-                    <span className="text-[14px] font-semibold leading-none text-gray-900">
+                    <span className="min-w-0 break-words text-[14px] font-semibold leading-none text-gray-900">
                       {post.author.name}
                     </span>
                   )}
@@ -452,13 +452,13 @@ export function FeedPostCard({
             <button
               type="button"
               aria-label="Post options"
-              className="shrink-0 rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="min-w-0 pl-[52px]">
+          <div className="min-w-0 pl-0 sm:pl-[52px]">
             {post.promotionLabel && (
               <span className="mb-2 inline-flex rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
                 {post.promotionLabel}
@@ -500,8 +500,10 @@ export function FeedPostCard({
                 <button
                   type="button"
                   onClick={() => void toggleLike(post.id)}
+                  aria-label={post.liked ? "Unlike post" : "Like post"}
+                  aria-pressed={post.liked}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium transition-colors hover:bg-red-50 hover:text-red-500",
+                    "inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium transition-colors hover:bg-red-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
                     post.liked ? "text-red-500" : "text-gray-500"
                   )}
                 >
@@ -515,7 +517,8 @@ export function FeedPostCard({
                 </button>
                 <Link
                   href={post.href ?? `/communities?post=${post.id}`}
-                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-600"
+                  aria-label={`Comments (${post.engagement.comments})`}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-orange-50 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                 >
                   <MessageCircle className="h-4 w-4" />
                   {post.engagement.comments}
@@ -523,7 +526,8 @@ export function FeedPostCard({
                 <button
                   type="button"
                   onClick={() => void sharePost(post)}
-                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"
+                  aria-label="Share post"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                 >
                   <Share2 className="h-4 w-4" />
                   {post.engagement.shares}
@@ -531,7 +535,7 @@ export function FeedPostCard({
                 <button
                   type="button"
                   aria-label="More actions"
-                  className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>

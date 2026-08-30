@@ -286,9 +286,11 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-3 sm:gap-x-3 sm:px-6">
                 {/* Mobile hamburger */}
                     <button
+                        type="button"
                         onClick={() => setMobileNavOpen((o) => !o)}
-                        aria-label="Open navigation menu"
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] lg:hidden"
+                        aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+                        aria-expanded={mobileNavOpen}
+                    className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 lg:hidden"
                     >
                     <Menu className="h-5 w-5" />
                     </button>
@@ -311,8 +313,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     <Link
                                 key={`${label}-${href}`}
                                 href={href}
+                                aria-current={active ? "page" : undefined}
                                 className={cn(
-                                    "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[13px] font-semibold tracking-tight transition-colors",
+                                    "inline-flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[13px] font-semibold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
                                     active
                                         ? "bg-[#fd5000]/10 text-[#fd5000]"
                                         : "text-[var(--color-text-secondary,#52525b)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
@@ -500,8 +503,8 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 <main className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden scrollbar-hide", isLiveStudio && "bg-[var(--color-bg)]")}>
                     {/* Mobile page title bar */}
                     {!isLiveStudio && (
-                    <div className="flex h-11 items-center border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-4 lg:hidden">
-                        <h1 className="text-[14px] font-bold text-[var(--color-text-primary)]">{pageTitle}</h1>
+                    <div className="flex min-h-11 items-center border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-4 py-2 lg:hidden">
+                        <h1 className="min-w-0 break-words text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">{pageTitle}</h1>
                     </div>
                     )}
                     <div className={cn("flex min-h-0 flex-1 flex-col", !isLiveStudio && !isCommunityWorkspace && "pb-14 lg:pb-0")}>
@@ -531,8 +534,9 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                                 key={href}
                             href={navHref}
                                 aria-label={label}
+                                aria-current={active ? "page" : undefined}
                             className={cn(
-                                "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors",
+                                "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
                                 active ? "text-[#fd5000]" : "text-[var(--color-text-muted)]"
                             )}
                         >

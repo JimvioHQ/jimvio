@@ -293,7 +293,7 @@ export function ChatInputZone({
             {discussion ? (
               <div
                 className={cn(
-                  "flex w-full items-center gap-0.5 rounded-full border border-black/[0.06] bg-white/95 px-1 py-0.5",
+                  "flex w-full items-center gap-0.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/95 px-1 py-0.5",
                   "shadow-[0_2px_10px_rgba(15,23,42,0.06)] backdrop-blur-md",
                   "focus-within:border-[var(--color-accent)]/30 focus-within:ring-2 focus-within:ring-[var(--color-accent)]/12"
                 )}
@@ -302,7 +302,7 @@ export function ChatInputZone({
                   type="button"
                   aria-label="Attach file"
                   onClick={() => fileRef.current?.click()}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                 >
                   <span className="text-base font-medium leading-none">+</span>
                 </button>
@@ -333,7 +333,7 @@ export function ChatInputZone({
                       {pendingMain.map((a, i) => (
                         <div
                           key={a.url}
-                          className="flex items-center gap-1.5 rounded-lg border border-gray-100 bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-800"
+                          className="flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-text-primary)]"
                         >
                           <FileIcon size={11} className="text-[var(--color-accent)]" />
                           <span className="max-w-[90px] truncate">{a.name}</span>
@@ -389,7 +389,7 @@ export function ChatInputZone({
                     type="button"
                     aria-label="Emoji picker"
                     onClick={onOpenEmojiPicker}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                   >
                     <Smile className="h-3.5 w-3.5" />
                   </button>
@@ -400,17 +400,17 @@ export function ChatInputZone({
                       setText(`${text}@`);
                       taRef.current?.focus();
                     }}
-                    className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-50 hover:text-gray-600"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-muted)] transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                   >
                     <AtSign className="h-3.5 w-3.5" />
                   </button>
                   <label
                     htmlFor={imgInputId}
                     className={cn(
-                      "flex h-7 w-7 cursor-pointer items-center justify-center rounded-full transition-colors",
+                      "flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-colors",
                       uploading
                         ? "pointer-events-none opacity-50"
-                        : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                        : "text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
                     )}
                     aria-label="Attach image"
                   >
@@ -427,8 +427,8 @@ export function ChatInputZone({
                     title="Voice message"
                     onClick={() => void onStartVoice()}
                     className={cn(
-                      "flex h-7 w-7 items-center justify-center rounded-full text-gray-400",
-                      "transition hover:bg-gray-50 hover:text-gray-600 disabled:cursor-not-allowed disabled:opacity-50",
+                      "flex h-9 w-9 items-center justify-center rounded-full text-[var(--color-text-muted)]",
+                      "transition hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] disabled:cursor-not-allowed disabled:opacity-50",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
                     )}
                   >
@@ -440,7 +440,7 @@ export function ChatInputZone({
                     aria-label="Send message"
                     onClick={onSend}
                     className={cn(
-                      "ml-0.5 flex h-8 w-8 items-center justify-center rounded-full",
+                      "ml-0.5 flex h-10 w-10 items-center justify-center rounded-full",
                       "bg-[var(--color-accent)] text-white shadow-[0_3px_10px_rgba(253,80,0,0.24)]",
                       "transition-all duration-150 hover:bg-[var(--color-accent-hover)] hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-45",
                       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"

@@ -169,7 +169,7 @@ export function GroupWorkspace({
     <div
       className={cn(
         "flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden",
-        "bg-[linear-gradient(180deg,#fafafa_0%,#f5f5f7_100%)]",
+        "bg-[var(--color-bg)]",
         "animate-in fade-in duration-300"
       )}
     >
@@ -281,7 +281,7 @@ export function GroupWorkspace({
 
         {tab === "members" ? (
           <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-white p-1 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100">
+            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-[var(--color-surface)] p-1 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-[var(--color-border)]">
               <MembersPanel members={members} />
             </div>
           </div>
@@ -289,7 +289,7 @@ export function GroupWorkspace({
 
         {tab === "files" ? (
           <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-white p-1 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100">
+            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-[var(--color-surface)] p-1 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-[var(--color-border)]">
               <FilesPanel
                 roomId={discussionRoom?.id}
                 canManage={Boolean(isStaff)}
@@ -301,7 +301,7 @@ export function GroupWorkspace({
 
         {tab === "posts" ? (
           <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-white p-4 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-gray-100 sm:p-5">
+            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-[var(--color-surface)] p-4 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-[var(--color-border)] sm:p-5">
               <FeedSection communityId={communityId} filter="for-you" />
             </div>
           </div>
