@@ -38,7 +38,7 @@ export type ApiPost = {
   user_has_liked?: boolean | null;
   community_id?: string | null;
   attachments?: Record<string, unknown> | null;
-  communities?: { slug?: string | null } | null;
+  communities?: { slug?: string | null; name?: string | null } | null;
   profiles?: {
     full_name?: string | null;
     avatar_url?: string | null;
@@ -84,6 +84,8 @@ type DisplayPost = {
   href?: string;
   title?: string | null;
   promotionLabel?: string | null;
+  communityName?: string | null;
+  communitySlug?: string | null;
 };
 
 function mapApiPost(post: ApiPost): DisplayPost {
@@ -128,9 +130,11 @@ function mapApiPost(post: ApiPost): DisplayPost {
       shares: post.share_count ?? 0,
     },
     liked: Boolean(post.user_has_liked),
+    communityName: post.communities?.name ?? null,
+    communitySlug: post.communities?.slug ?? null,
     href: post.communities?.slug
       ? `/communities/${post.communities.slug}/feed?post=${post.id}`
-      : `/communities?post=${post.id}`,
+      : `/communities/feed?post=${post.id}`,
   };
 }
 
@@ -309,10 +313,9 @@ export function FeedPostCard({
   }
 
   async function sharePost(post: DisplayPost) {
+    const path = post.href ?? `/communities/feed?post=${post.id}`;
     const url =
-      typeof window !== "undefined"
-        ? `${window.location.origin}/communities?post=${post.id}`
-        : `/communities?post=${post.id}`;
+      typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
     try {
       if (navigator.share) {
         await navigator.share({ title: post.body.slice(0, 80), url });
@@ -320,8 +323,24 @@ export function FeedPostCard({
         await navigator.clipboard.writeText(url);
         toast.success("Link copied");
       }
-      if (!usingMock) {
-        void fetch(`/api/posts/${post.id}/share`, { method: "POST" }).catch(() => undefined);
+      if (!usingMock && isAuthenticated) {
+        const res = await fetch(`/api/posts/${post.id}/share`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "link" }),
+        });
+        if (res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { share_count?: number };
+          if (typeof data.share_count === "number") {
+            setPosts((prev) =>
+              prev.map((p) =>
+                p.id === post.id
+                  ? { ...p, engagement: { ...p.engagement, shares: data.share_count! } }
+                  : p
+              )
+            );
+          }
+        }
       }
     } catch {
       /* user cancelled share */
@@ -436,6 +455,15 @@ export function FeedPostCard({
                   <span className="text-[12px] text-gray-400">{post.timestamp}</span>
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {post.communitySlug && post.communityName ? (
+                    <Link
+                      href={`/communities/${post.communitySlug}`}
+                      className="text-[12px] font-medium text-[#fd5000] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 rounded-sm"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {post.communityName}
+                    </Link>
+                  ) : null}
                   {post.pinned && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-orange-600">
                       <Pin className="h-3 w-3" />

@@ -1635,7 +1635,10 @@ export async function getCommunityOverviewStats(
   const tags = (Array.isArray(community?.tags) ? community.tags : []).filter(
     (t): t is string => typeof t === "string" && t.length > 0
   );
-  const memberCount = memberCountRes.count ?? community?.member_count ?? 0;
+  const memberCount =
+    typeof community?.member_count === "number" && community.member_count > 0
+      ? community.member_count
+      : memberCountRes.count ?? 0;
   const postCount = community?.post_count ?? 0;
 
   const parsedRules = (community?.long_description ?? community?.description ?? "")

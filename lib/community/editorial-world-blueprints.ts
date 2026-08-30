@@ -40,14 +40,14 @@ export type WorldCommunitySeed = {
 };
 
 export const MEMBER_TIER_RANGES: Array<[number, number]> = [
-  [40, 100],
-  [100, 250],
-  [250, 500],
-  [500, 800],
-  [800, 1200],
-  [1200, 1500],
-  [1500, 1800],
-  [1800, 2000],
+  [40, 80],
+  [80, 140],
+  [140, 200],
+  [200, 240],
+  [240, 280],
+  [100, 180],
+  [60, 160],
+  [150, 260],
 ];
 
 const ALLOWED_CATEGORIES = new Set([

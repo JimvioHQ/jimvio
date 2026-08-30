@@ -82,6 +82,15 @@ export async function canReadPublicCommunityRoom(roomId: string): Promise<boolea
   return true;
 }
 
+/**
+ * Authenticated engagement on public community content (like / react / share / comment).
+ * Members always qualify; non-members may engage when the room is publicly readable.
+ */
+export async function canEngageWithRoom(userId: string, roomId: string): Promise<boolean> {
+  if (await canAccessRoom(userId, roomId)) return true;
+  return canReadPublicCommunityRoom(roomId);
+}
+
 export async function canAccessSpace(userId: string, spaceId: string): Promise<boolean> {
   const supabase = getService();
   const { data: space } = await supabase

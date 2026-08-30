@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { canAccessRoom, canReadPublicCommunityRoom } from "@/services/accessControl";
+import { canAccessRoom, canEngageWithRoom, canReadPublicCommunityRoom } from "@/services/accessControl";
 import { notifyPostAuthor } from "@/lib/community/notify-community";
 import { assertCanCommentInRoom } from "@/lib/community/workspace/assert-can-publish";
 import { rateLimit } from "@/lib/ops/rate-limit";
@@ -116,15 +116,18 @@ export async function POST(
     return NextResponse.json({ error: "Comments are disabled on this post" }, { status: 403 });
   }
 
-  const hasAccess = await canAccessRoom(user.id, post.room_id);
+  const hasAccess = await canEngageWithRoom(user.id, post.room_id);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
 
-  const commentGate = await assertCanCommentInRoom(supabase, user.id, post.room_id);
-  if (!commentGate.ok) {
-    return NextResponse.json(
-      { error: commentGate.error },
-      { status: commentGate.status }
-    );
+  const memberAccess = await canAccessRoom(user.id, post.room_id);
+  if (memberAccess) {
+    const commentGate = await assertCanCommentInRoom(supabase, user.id, post.room_id);
+    if (!commentGate.ok) {
+      return NextResponse.json(
+        { error: commentGate.error },
+        { status: commentGate.status }
+      );
+    }
   }
 
   const { body, parent_id } = (await req.json()) as { body?: string; parent_id?: string | null };

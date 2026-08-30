@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { canAccessRoom } from "@/services/accessControl";
+import { canEngageWithRoom } from "@/services/accessControl";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,7 @@ export async function POST(
 
   if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const hasAccess = await canAccessRoom(user.id, post.room_id);
+  const hasAccess = await canEngageWithRoom(user.id, post.room_id);
   if (!hasAccess) return NextResponse.json({ error: "No access" }, { status: 403 });
 
   const db = supabase as any;
