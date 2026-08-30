@@ -105,11 +105,13 @@ assert.match(platform, /getPublicCommunitiesTotal/);
 
 const explore = read("app/communities/(discovery)/explore/page.tsx");
 assert.match(explore, /getPublicCommunitiesTotal/);
+assert.match(explore, /Suspense/);
 
 const discovery = read("components/community/communities-discovery.tsx");
 assert.match(discovery, /IntersectionObserver/);
 assert.match(discovery, /Load more communities/);
 assert.match(discovery, /reached the end of discoverable communities/);
+assert.match(discovery, /useSearchParams/);
 
 const migrations = fs
   .readdirSync(path.join(root, "supabase", "migrations"))

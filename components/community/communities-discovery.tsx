@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Search, Loader2, X, ArrowUpRight, ChevronDown } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 import {
@@ -297,17 +298,26 @@ export function CommunitiesDiscovery({
   initialTotal?: number;
   initialError?: boolean;
 }) {
-  const [search, setSearch] = useState("");
-  const [debounced, setDebounced] = useState("");
+  const searchParams = useSearchParams();
+  const queryFromUrl = (searchParams.get("search") || searchParams.get("q") || "").trim();
+  const [search, setSearch] = useState(queryFromUrl);
+  const [debounced, setDebounced] = useState(queryFromUrl);
   const [category, setCategory] = useState<Category>("All");
   const [sort, setSort] = useState<SortKey>("popular");
   const [priceFilter, setPriceFilter] = useState<PriceFilter>("all");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(initialTotal);
   const [items, setItems] = useState<CommunityRow[]>(initialCommunities);
-  const [loading, setLoading] = useState(initialCommunities.length === 0);
+  const [loading, setLoading] = useState(initialCommunities.length === 0 || Boolean(queryFromUrl));
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(initialError);
+
+  useEffect(() => {
+    if (queryFromUrl === search) return;
+    setSearch(queryFromUrl);
+    setDebounced(queryFromUrl);
+  }, [queryFromUrl]); // eslint-disable-line react-hooks/exhaustive-deps -- sync URL → input only
+
   useEffect(() => {
     const t = setTimeout(() => setDebounced(search.trim()), 300);
     return () => clearTimeout(t);
