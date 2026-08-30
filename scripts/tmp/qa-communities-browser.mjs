@@ -142,11 +142,12 @@ async function run() {
               if (present) continue;
               // User communities may rank below featured editorial on page 1 —
               // verify discoverability via search (same Explore UI).
-              await page.goto(`${BASE}/communities/explore?search=${encodeURIComponent(slug.split("-")[0])}`, {
+              const query = slug === "forex-hub" ? "forex hub" : slug === "gcs-unity" ? "gcs unity" : slug;
+              await page.goto(`${BASE}/communities/explore?search=${encodeURIComponent(query)}`, {
                 waitUntil: "domcontentloaded",
               });
               await setTheme(page, theme);
-              await page.waitForTimeout(500);
+              await page.waitForTimeout(900);
               const found =
                 (await page.locator(`a[href*="${slug}"]`).count()) > 0 ||
                 (await page.content()).includes(slug);

@@ -4,6 +4,8 @@
  * Owner Console can distinguish via app_metadata / profile settings.
  */
 
+import { WORLD_PERSONA_EXTRAS } from "./editorial-world-personas";
+
 export type EditorialPersonaSpec = {
   /** Local-part after editorial+ ; email becomes editorial+{key}@jimvio.com */
   key: string;
@@ -92,14 +94,20 @@ export const EDITORIAL_PERSONAS: EditorialPersonaSpec[] = [
   },
 ];
 
+/** Full editorial persona roster used by the world seeder. */
+export const ALL_EDITORIAL_PERSONAS: EditorialPersonaSpec[] = [
+  ...EDITORIAL_PERSONAS,
+  ...WORLD_PERSONA_EXTRAS,
+];
+
 export function pickPersonaForCategory(
   category: string,
   salt: string
 ): EditorialPersonaSpec {
-  const matches = EDITORIAL_PERSONAS.filter((p) =>
+  const matches = ALL_EDITORIAL_PERSONAS.filter((p) =>
     p.affinities.some((a) => a.toLowerCase() === category.toLowerCase())
   );
-  const pool = matches.length ? matches : EDITORIAL_PERSONAS;
+  const pool = matches.length ? matches : ALL_EDITORIAL_PERSONAS;
   let hash = 0;
   for (let i = 0; i < salt.length; i++) hash = (hash * 31 + salt.charCodeAt(i)) >>> 0;
   return pool[hash % pool.length]!;

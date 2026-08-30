@@ -153,6 +153,34 @@ export async function GET(req: NextRequest) {
     (community) =>
       memberSet.has(community.id) || communityIsPubliclyDiscoverable(community),
   );
+
+  // Keep real user hubs discoverable on popular page 1 (not buried by featured editorial).
+  if (
+    page === 1 &&
+    (!sort || sort === "popular") &&
+    !search?.trim() &&
+    !requestedCategories.length &&
+    !mode
+  ) {
+    const PRESERVE_SLUGS = ["forex-hub", "gcs-unity"];
+    const have = new Set(communities.map((c) => c.slug));
+    const missing = PRESERVE_SLUGS.filter((slug) => !have.has(slug));
+    if (missing.length) {
+      const { data: preserved } = await admin
+        .from("communities")
+        .select("*, profiles!communities_owner_id_fkey(full_name, avatar_url, username)")
+        .in("slug", missing)
+        .eq("is_active", true);
+      const extras = (preserved ?? []).filter(
+        (community) =>
+          memberSet.has(community.id) || communityIsPubliclyDiscoverable(community),
+      );
+      if (extras.length) {
+        communities = [...extras, ...communities].slice(0, limit);
+      }
+    }
+  }
+
   if (isRising && communities.length) {
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
     const { data: joins } = await admin

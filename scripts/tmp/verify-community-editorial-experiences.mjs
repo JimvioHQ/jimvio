@@ -16,7 +16,7 @@ function read(rel) {
 
 const origin = read("lib/community/editorial-origin.ts");
 const catalog = read("lib/community/editorial-catalog.ts");
-const seed = read("scripts/seed-community-experiences.ts");
+const seed = read("scripts/seed-community-world.ts");
 const settingsPatch = read("app/api/c/owner/settings/route.ts");
 const settingsForm = read("components/community/owner-console/settings/SettingsSectionForm.tsx");
 const categories = read("lib/community/categories.ts");
@@ -54,21 +54,21 @@ assert.doesNotMatch(catalog, /Nice post/);
 assert.doesNotMatch(catalog, /fake user|bot account|seed script|demo database/i);
 assert.doesNotMatch(catalog, /guaranteed payout|easy money|members are making/i);
 
-const ecosystem = read("lib/community/editorial-ecosystem.ts");
-assert.match(ecosystem, /ECOSYSTEM_BLUEPRINTS/);
+const ecosystem = read("lib/community/editorial-world-blueprints.ts");
+assert.match(ecosystem, /WORLD_COMMUNITY_SEEDS/);
 assert.match(ecosystem, /slug: "tech-and-developers"/);
 assert.match(ecosystem, /slug: "content-creators"/);
 assert.match(ecosystem, /slug: "rwanda-community"/);
 assert.match(ecosystem, /slug: "africa-creators"/);
-assert.match(ecosystem, /From Jimvio/);
 assert.ok(
-  (ecosystem.match(/slug: "/g) || []).length >= 30,
-  "ecosystem should define a substantial community set"
+  (ecosystem.match(/slug:\s*"/g) || []).length >= 200,
+  "world blueprints should define >=200 communities"
 );
 
 const personas = read("lib/community/editorial-personas.ts");
 assert.match(personas, /editorial\+/);
 assert.match(personas, /jimvio\.com/);
+assert.match(personas, /ALL_EDITORIAL_PERSONAS/);
 assert.doesNotMatch(personas, /Bot 1|Demo User|Seed User|Fake Member/i);
 
 assert.match(seed, /ensureDefaultCommunityWorkspace/);
@@ -80,8 +80,8 @@ assert.match(seed, /from\("community_post_comments"\)/);
 assert.match(seed, /from\("community_messages"\)/);
 assert.match(seed, /forex-hub/);
 assert.match(seed, /gcs-unity/);
-assert.match(seed, /ensureEditorialPersonas/);
-assert.match(seed, /editorial\+/);
+assert.match(seed, /ensurePersonas|ALL_EDITORIAL_PERSONAS/);
+assert.match(seed, /editorialPersonaEmail/);
 assert.match(seed, /auth\.admin\.createUser/);
 assert.match(seed, /jimvio_editorial|origin: "editorial"/);
 assert.doesNotMatch(seed, /DISABLE ROW LEVEL SECURITY/);

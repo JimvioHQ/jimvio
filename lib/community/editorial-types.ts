@@ -8,6 +8,7 @@ export type EditorialCommentSpec = {
   body: string;
   daysAgo: number;
   hour?: number;
+  personaKey?: string;
 };
 
 export type EditorialPostSpec = {
@@ -22,6 +23,13 @@ export type EditorialPostSpec = {
   href?: string;
   pollOptions?: string[];
   comments?: EditorialCommentSpec[];
+  /** Optional HTTPS image URLs for photo+text posts */
+  images?: string[];
+  /** Optional HTTPS video URL for video+text posts */
+  videoUrl?: string | null;
+  viewCount?: number;
+  likeCount?: number;
+  personaKey?: string;
 };
 
 export type EditorialMessageSpec = {
@@ -59,5 +67,8 @@ export type EditorialCommunitySpec = {
   avatarUrl?: string;
   coverImage?: string;
   featured?: boolean;
+  /** Editorial display member count (≤ 2000). Real memberships may be a smaller authorship pool. */
+  targetMemberCount?: number;
+  activity?: "high" | "medium" | "low";
   posts: EditorialPostSpec[];
 };

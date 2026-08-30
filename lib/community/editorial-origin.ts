@@ -12,6 +12,7 @@ export type JimvioContentOrigin = "editorial" | "promotion";
 export type JimvioCommunityProvenance = {
   origin: "editorial";
   managed: true;
+  targetMemberCount?: number;
 };
 
 export type JimvioPostProvenance = {
@@ -54,12 +55,21 @@ export function readCommunityEditorialOrigin(
 }
 
 export function communityEditorialSettings(
-  existing: unknown = {}
+  existing: unknown = {},
+  opts?: { targetMemberCount?: number }
 ): Record<string, unknown> {
   const base = isRecord(existing) ? { ...existing } : {};
+  const prev = isRecord(base.jimvio) ? base.jimvio : {};
+  const target =
+    typeof opts?.targetMemberCount === "number"
+      ? Math.min(2000, Math.max(1, Math.floor(opts.targetMemberCount)))
+      : typeof prev.targetMemberCount === "number"
+        ? prev.targetMemberCount
+        : undefined;
   base.jimvio = {
     origin: "editorial",
     managed: true,
+    ...(typeof target === "number" ? { targetMemberCount: target } : {}),
   } satisfies JimvioCommunityProvenance;
   return base;
 }

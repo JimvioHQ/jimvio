@@ -3,7 +3,7 @@
  * Used by the idempotent seeder. Not a second community system.
  */
 
-import { ECOSYSTEM_CATALOG, ECOSYSTEM_COMMUNITY_SLUGS } from "./editorial-ecosystem";
+import { buildWorldCatalog } from "./editorial-world-build";
 import type { EditorialCommunitySpec, EditorialRoomSpec } from "./editorial-types";
 
 export type {
@@ -21,10 +21,7 @@ export const CORE_EDITORIAL_COMMUNITY_SLUGS = [
   "faith-and-inspiration",
 ] as const;
 
-export const EDITORIAL_COMMUNITY_SLUGS = [
-  ...CORE_EDITORIAL_COMMUNITY_SLUGS,
-  ...ECOSYSTEM_COMMUNITY_SLUGS,
-] as const;
+const CORE_SLUG_SET = new Set<string>(CORE_EDITORIAL_COMMUNITY_SLUGS);
 
 const CORE_EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
   {
@@ -867,10 +864,14 @@ const CORE_EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
   },
 ];
 
+export const WORLD_EDITORIAL_CATALOG = buildWorldCatalog(CORE_SLUG_SET);
+
 export const EDITORIAL_CATALOG: EditorialCommunitySpec[] = [
   ...CORE_EDITORIAL_CATALOG,
-  ...ECOSYSTEM_CATALOG,
+  ...WORLD_EDITORIAL_CATALOG,
 ];
+
+export const EDITORIAL_COMMUNITY_SLUGS = EDITORIAL_CATALOG.map((c) => c.slug);
 
 export function editorialRoomsFor(spec: EditorialCommunitySpec): EditorialRoomSpec[] {
   return [spec.extraRoom, ...(spec.extraRooms ?? [])];
@@ -884,6 +885,8 @@ export function editorialCatalogStats() {
     posts: community.posts.length,
     polls: community.posts.filter((post) => post.postType === "poll").length,
     promotions: community.posts.filter((post) => post.origin === "promotion").length,
+    photoPosts: community.posts.filter((post) => (post.images?.length ?? 0) > 0).length,
+    videoPosts: community.posts.filter((post) => Boolean(post.videoUrl)).length,
     comments: community.posts.reduce(
       (sum, post) => sum + (post.comments?.length ?? 0),
       0
@@ -893,5 +896,6 @@ export function editorialCatalogStats() {
       (sum, room) => sum + room.messages.length,
       0
     ),
+    targetMemberCount: community.targetMemberCount ?? null,
   }));
 }
