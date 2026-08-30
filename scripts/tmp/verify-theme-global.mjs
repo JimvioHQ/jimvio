@@ -18,6 +18,7 @@ const css = read("styles/globals.css");
 const toggle = read("components/ui/theme-toggle.tsx");
 const ugcShell = read("components/ugc/workspace/UGCWorkspaceShell.tsx");
 const appNav = read("components/shell/AppTopNav.tsx");
+const commandCenter = read("components/command-center/CommandCenter.tsx");
 
 assert.match(layout, /from "@\/components\/providers\/theme-provider"/);
 assert.match(layout, /<ThemeProvider>/);
@@ -45,6 +46,8 @@ assert.match(toggle, /setTheme/);
 
 assert.match(ugcShell, /bg-\[var\(--color-bg\)\]/);
 assert.match(appNav, /bg-\[var\(--color-surface\)\]/);
+assert.match(commandCenter, /bg-\[var\(--color-surface\)\]\/95/);
+assert.doesNotMatch(commandCenter, /sm:bg-white\/85/);
 
 const themeProviders = [
   "components/providers/theme-provider.tsx",

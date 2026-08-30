@@ -228,10 +228,10 @@ export function CommandCenter() {
         aria-label="Jimvio Universal Command Palette"
         onKeyDown={onKeyDown}
         className={cn(
-          "relative z-10 flex h-[100dvh] w-full max-w-full flex-col overflow-hidden border border-white/20",
-          "rounded-none bg-white/95 shadow-2xl backdrop-blur-2xl dark:bg-[var(--color-surface)]/95",
+          "relative z-10 flex h-[100dvh] w-full max-w-full flex-col overflow-hidden border border-white/20 dark:border-[var(--color-border)]",
+          "rounded-none bg-[var(--color-surface)]/95 shadow-2xl backdrop-blur-2xl",
           "pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]",
-          "sm:h-auto sm:max-h-[min(72vh,640px)] sm:w-[min(820px,100%)] sm:max-w-[820px] sm:rounded-2xl sm:bg-white/85 sm:pt-0 sm:pb-0 dark:sm:bg-[var(--color-surface)]/90",
+          "sm:h-auto sm:max-h-[min(72vh,640px)] sm:w-[min(820px,100%)] sm:max-w-[820px] sm:rounded-2xl sm:bg-[var(--color-surface)]/90 sm:pt-0 sm:pb-0",
           "motion-safe:animate-[jimvio-command-center-enter_220ms_ease-out]",
         )}
       >
