@@ -26,7 +26,7 @@ export function WalletAtmosphere({ contained = false }: { contained?: boolean })
     <div
       aria-hidden
       className={cn(
-        "pointer-events-none -z-10 overflow-hidden bg-[#F5F5F4]",
+        "pointer-events-none -z-10 overflow-hidden bg-[#F5F5F4] dark:bg-[var(--color-bg)]",
         contained ? "absolute inset-0" : "fixed inset-0",
       )}
     >
@@ -34,7 +34,7 @@ export function WalletAtmosphere({ contained = false }: { contained?: boolean })
       <div className="absolute top-[10%] right-[-12%] h-[460px] w-[460px] rounded-full bg-[radial-gradient(circle,rgba(14,14,16,0.06),transparent_72%)] blur-3xl" />
       <div className="absolute bottom-[-15%] left-[-10%] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(255,90,31,0.07),transparent_70%)] blur-3xl" />
       <div
-        className="absolute inset-0 opacity-[0.025] mix-blend-multiply"
+        className="absolute inset-0 opacity-[0.025] mix-blend-multiply dark:mix-blend-normal dark:opacity-[0.08]"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
@@ -50,7 +50,7 @@ export function WalletScope({ children, className }: { children: React.ReactNode
   return (
     <div
       className={cn(
-        "wallet-os-scope relative isolate min-h-screen font-[var(--font-wallet-os-sans)] text-[#121113]",
+        "wallet-os-scope relative isolate min-h-screen font-[var(--font-wallet-os-sans)] text-[#121113] dark:text-[var(--color-text-primary)]",
         className,
       )}
     >
@@ -72,7 +72,7 @@ export const WalletCard = React.forwardRef<
       "rounded-[20px] border transition-all duration-300",
       tone === "ink"
         ? "border-white/[0.06] bg-[#141316] text-white shadow-[0_1px_2px_rgba(0,0,0,0.3),0_20px_44px_-20px_rgba(0,0,0,0.55)]"
-        : "border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(16,15,14,0.04),0_10px_28px_-16px_rgba(16,15,14,0.10)]",
+        : "border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(16,15,14,0.04),0_10px_28px_-16px_rgba(16,15,14,0.10)] dark:border-[var(--color-border)] dark:bg-[var(--color-surface)]",
       interactive &&
         "hover:-translate-y-[1.5px] hover:shadow-[0_1px_2px_rgba(16,15,14,0.06),0_18px_36px_-16px_rgba(16,15,14,0.16)]",
       className,
@@ -122,8 +122,8 @@ const buttonVariantClasses: Record<WalletButtonVariant, string> = {
   primary:
     "bg-[#FF5A1F] text-white shadow-[0_1px_2px_rgba(255,90,31,0.22),0_10px_22px_-10px_rgba(255,90,31,0.55)] hover:bg-[#F04E15] active:scale-[0.98]",
   dark: "bg-[#121113] text-white shadow-[0_1px_2px_rgba(0,0,0,0.25)] hover:bg-[#221F20] active:scale-[0.98]",
-  outline: "border border-black/10 bg-white text-[#121113] hover:border-black/20 hover:bg-black/[0.02] active:scale-[0.98]",
-  ghost: "text-[#726D64] hover:bg-black/[0.04] hover:text-[#121113]",
+  outline: "border border-black/10 bg-white text-[#121113] hover:border-black/20 hover:bg-black/[0.02] active:scale-[0.98] dark:border-[var(--color-border)] dark:bg-[var(--color-surface)] dark:text-[var(--color-text-primary)] dark:hover:bg-[var(--color-surface-secondary)]",
+  ghost: "text-[#726D64] hover:bg-black/[0.04] hover:text-[#121113] dark:text-[var(--color-text-muted)] dark:hover:bg-[var(--color-surface-secondary)] dark:hover:text-[var(--color-text-primary)]",
   danger: "border border-[#F3D0CB] bg-[#FCECE9] text-[#B93A2A] hover:bg-[#FBE1DC]",
 };
 
@@ -218,7 +218,7 @@ export function WalletStat({
   icon?: React.ReactNode;
 }) {
   const toneClasses: Record<string, string> = {
-    default: "border-black/[0.06] bg-white",
+    default: "border-black/[0.06] bg-white dark:border-[var(--color-border)] dark:bg-[var(--color-surface)]",
     accent: "border-[#FFDCC7] bg-[#FFF6F1]",
     success: "border-[#CFEFDA] bg-[#F1FAF4]",
     warning: "border-[#FBE7AE] bg-[#FFFAEE]",

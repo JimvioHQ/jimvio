@@ -154,6 +154,25 @@
     --glass-blur: 24px;
   }
 
+  /* Aliases for older surfaces — always resolve to the existing Jimvio tokens. */
+  :root,
+  .dark {
+    --background: var(--color-bg);
+    --foreground: var(--color-text-primary);
+    --card-foreground: var(--color-text-primary);
+    --muted: var(--color-surface-secondary);
+    --muted-foreground: var(--color-text-muted);
+    --input: var(--color-border);
+    --primary: var(--color-accent);
+    --primary-foreground: #ffffff;
+    --accent-foreground: #ffffff;
+    --surface: var(--color-surface);
+    --border: var(--color-border);
+    --text: var(--color-text-primary);
+    --text2: var(--color-text-secondary);
+    --text3: var(--color-text-muted);
+  }
+
   /* Two-row navbar (link strip + bar) from lg — keep in sync with components/layout/navbar.tsx */
   @media (min-width: 1024px) {
     :root {
@@ -227,6 +246,20 @@
   textarea::placeholder {
     color: var(--color-text-muted);
     opacity: 1;
+  }
+
+  h1, h2, h3, h4, h5, h6, p, li, td, th, label, dt, dd, figcaption, button {
+    overflow-wrap: break-word;
+  }
+
+  img, svg, video, canvas {
+    max-width: 100%;
+  }
+
+  [role="dialog"][aria-modal="true"],
+  [data-radix-dialog-content] {
+    max-height: min(90dvh, 48rem);
+    overflow-wrap: break-word;
   }
 
   .text-zinc-900,
@@ -315,6 +348,32 @@
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: var(--radius-lg);
+  }
+
+  html.dark .glass-subtle {
+    background: rgba(17, 17, 17, 0.62);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .jimvio-page {
+    width: 100%;
+    max-width: var(--container-max);
+    margin-inline: auto;
+    padding-inline: var(--space-4);
+    padding-block: var(--space-6);
+  }
+
+  @media (min-width: 640px) {
+    .jimvio-page {
+      padding-inline: var(--space-6);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .jimvio-page {
+      padding-inline: var(--space-8);
+      padding-block: var(--space-8);
+    }
   }
 
   .gradient-brand {
@@ -1379,4 +1438,38 @@ html.dark .to-\[\#FAFAFA\]:not([class*="dark:to-"]) {
 
 html.dark .identity-scope {
   color: var(--color-text-primary);
+}
+
+html.dark .wallet-os-scope {
+  color: var(--color-text-primary);
+}
+
+html.dark .bg-\[\#F5F5F4\]:not([class*="dark:bg-"]),
+html.dark .bg-\[\#F5F5F4\]\/90:not([class*="dark:bg-"]) {
+  background-color: var(--color-bg);
+}
+
+html.dark .bg-stone-100:not([class*="dark:bg-"]),
+html.dark .bg-zinc-100:not([class*="dark:bg-"]) {
+  background-color: var(--color-surface-secondary);
+}
+
+html.dark .text-\[\#121113\]:not([class*="dark:text-"]),
+html.dark .text-stone-950:not([class*="dark:text-"]),
+html.dark .text-zinc-800:not([class*="dark:text-"]),
+html.dark .text-slate-900:not([class*="dark:text-"]) {
+  color: var(--color-text-primary);
+}
+
+html.dark .text-\[\#726D64\]:not([class*="dark:text-"]),
+html.dark .text-\[\#7C766B\]:not([class*="dark:text-"]),
+html.dark .text-\[\#9B968D\]:not([class*="dark:text-"]),
+html.dark .text-\[\#9A9388\]:not([class*="dark:text-"]),
+html.dark .text-\[\#B9B3A6\]:not([class*="dark:text-"]) {
+  color: var(--color-text-muted);
+}
+
+html.dark .placeholder\:text-gray-400::placeholder,
+html.dark .placeholder\:text-\[\#B9B3A6\]::placeholder {
+  color: var(--color-text-muted);
 }

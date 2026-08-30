@@ -39,6 +39,10 @@ assert.match(css, /color-scheme:\s*dark/);
 assert.match(css, /data-slot="switch-thumb"/);
 assert.match(css, /:not\(\[class\*="dark:bg-"\]\)/);
 assert.match(css, /Global dark chrome remap/);
+assert.match(css, /--background:\s*var\(--color-bg\)/);
+assert.match(css, /\.jimvio-page/);
+assert.match(css, /overflow-wrap:\s*break-word/);
+assert.match(css, /html\.dark \.wallet-os-scope/);
 assert.doesNotMatch(css, /--color-accent:\s*#0a0a0a/);
 
 assert.match(toggle, /useTheme/);
@@ -48,6 +52,18 @@ assert.match(ugcShell, /bg-\[var\(--color-bg\)\]/);
 assert.match(appNav, /bg-\[var\(--color-surface\)\]/);
 assert.match(commandCenter, /bg-\[var\(--color-surface\)\]\/95/);
 assert.doesNotMatch(commandCenter, /sm:bg-white\/85/);
+
+const select = read("components/ui/select.tsx");
+assert.match(select, /bg-\[var\(--color-surface\)\]/);
+assert.doesNotMatch(select, /bg-slate-900\/90/);
+
+const ugcPage = read("components/ugc/workspace/UGCPageShell.tsx");
+assert.match(ugcPage, /px-4/);
+assert.match(ugcPage, /--color-text-primary/);
+
+const dash = read("components/dashboard/dashboard-shell.tsx");
+assert.match(dash, /px-4/);
+assert.doesNotMatch(dash, /px-0 py-3/);
 
 const themeProviders = [
   "components/providers/theme-provider.tsx",

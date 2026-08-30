@@ -118,7 +118,7 @@ function DashboardShellContent({ children }: { children: React.ReactNode }) {
       unreadNotifications={unreadNotifications}
       unreadMessages={unreadMessages}
     >
-      <div className="px-0 py-3 sm:px-6 sm:py-8 lg:p-10 max-w-[1400px] mx-auto">{children}</div>
+      <div className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6 sm:py-8 lg:p-10">{children}</div>
     </CreatorOsFrame>
   );
 }

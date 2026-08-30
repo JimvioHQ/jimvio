@@ -13,8 +13,8 @@ export const metadata: Metadata = noIndexMetadata(
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-white dark:bg-bg">
-      <div className="flex flex-1 flex-col justify-center px-6 py-12 lg:flex-none lg:w-1/2 xl:w-5/12 bg-white dark:bg-surface relative">
+    <div className="flex min-h-screen bg-[var(--color-bg)]">
+      <div className="relative flex flex-1 flex-col justify-center bg-[var(--color-surface)] px-4 py-12 sm:px-6 lg:w-1/2 lg:flex-none xl:w-5/12">
         <div className="mx-auto w-full max-w-[420px]">
           <div className="mb-8">
             <Link

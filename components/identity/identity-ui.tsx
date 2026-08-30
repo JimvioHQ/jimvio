@@ -32,13 +32,13 @@ export function IdentityAtmosphere({ contained = false }: { contained?: boolean 
       <div className="absolute top-[20%] left-[-15%] h-[480px] w-[480px] rounded-full bg-[radial-gradient(circle,rgba(30,30,28,0.05),transparent_70%)] blur-3xl" />
       <div className="absolute bottom-[-20%] right-[10%] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(255,90,31,0.08),transparent_70%)] blur-3xl" />
       <div
-        className="absolute inset-0 opacity-[0.03] mix-blend-multiply"
+        className="absolute inset-0 opacity-[0.03] mix-blend-multiply dark:mix-blend-normal dark:opacity-[0.08]"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
         }}
       />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(255,255,255,0.6))]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(255,255,255,0.6))] dark:bg-[linear-gradient(180deg,transparent,rgba(10,10,10,0.45))]" />
     </div>
   );
 }
@@ -101,17 +101,17 @@ export function IdentitySectionHeading({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-wrap items-start justify-between gap-3", className)}>
-      <div>
+    <div className={cn("flex min-w-0 flex-wrap items-start justify-between gap-3", className)}>
+      <div className="min-w-0">
         {eyebrow && (
-          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9A9388]">
+          <p className="mb-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#9A9388] dark:text-[var(--color-text-muted)]">
             {eyebrow}
           </p>
         )}
-        <h2 className="font-[var(--font-identity-serif)] text-[20px] font-medium tracking-tight text-[#161512] sm:text-[22px]">
+        <h2 className="font-[var(--font-identity-serif)] text-[20px] font-medium leading-snug tracking-tight text-[#161512] dark:text-[var(--color-text-primary)] sm:text-[22px]">
           {title}
         </h2>
-        {description && <p className="mt-1 text-[13.5px] leading-relaxed text-[#7C766B]">{description}</p>}
+        {description && <p className="mt-1 text-[13.5px] leading-relaxed text-[#7C766B] dark:text-[var(--color-text-secondary)]">{description}</p>}
       </div>
       {action}
     </div>

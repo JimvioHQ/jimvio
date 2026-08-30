@@ -158,24 +158,24 @@ export function WalletOsShell({ children }: { children: React.ReactNode }) {
 
         {/* Main column */}
         <div className="min-w-0 flex-1">
-          <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-black/[0.06] bg-[#F5F5F4]/90 px-4 py-3 backdrop-blur-md lg:hidden">
+          <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-[var(--color-border)] bg-[color-mix(in_srgb,var(--color-bg)_90%,transparent)] px-4 py-3 backdrop-blur-md lg:hidden">
             <button
               type="button"
               onClick={() => setMobileNav(true)}
               aria-label="Open navigation"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-black/[0.06] bg-white shadow-[0_1px_2px_rgba(16,15,14,0.05)]"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_1px_2px_rgba(16,15,14,0.05)]"
             >
-              <Menu className="h-4 w-4 text-[#121113]" />
+              <Menu className="h-4 w-4 text-[var(--color-text-primary)]" />
             </button>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[#9B968D]">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
                 Jimvio Wallet OS
               </p>
-              <p className="truncate text-[14px] font-semibold text-[#121113]">{activeItem?.label ?? "Wallet"}</p>
+              <p className="truncate text-[14px] font-semibold text-[var(--color-text-primary)]">{activeItem?.label ?? "Wallet"}</p>
             </div>
             <Link
               href="/dashboard/wallet"
-              className="shrink-0 rounded-full border border-black/[0.08] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#121113]"
+              className="shrink-0 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-primary)]"
             >
               Classic
             </Link>

@@ -24,13 +24,13 @@ export function UGCPageShell({
   const heading = titleKey ? t(titleKey) : title ?? "";
   const sub = subtitleKey ? t(subtitleKey) : subtitle;
   return (
-    <div className="mx-auto max-w-6xl space-y-4 pb-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-[#111827] sm:text-2xl">{heading}</h1>
-          {sub ? <p className="mt-1 text-[13px] text-[#6B7280]">{sub}</p> : null}
+    <div className="mx-auto max-w-6xl space-y-4 px-4 pb-8 sm:px-6">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold leading-snug text-[var(--color-text-primary)] sm:text-2xl">{heading}</h1>
+          {sub ? <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-text-muted)]">{sub}</p> : null}
         </div>
-        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+        {actions ? <div className="flex min-w-0 flex-wrap gap-2">{actions}</div> : null}
       </div>
       {children}
     </div>

@@ -131,15 +131,12 @@ const DialogContent = React.forwardRef<
         // Position
         "fixed left-[50%] top-[50%] z-[10000]",
         "translate-x-[-50%] translate-y-[-50%]",
-        "w-full max-w-lg",
-        // ✅ Theme-aware background, border, radius
+        "w-[calc(100%-2rem)] max-w-lg max-h-[min(90dvh,48rem)] overflow-y-auto",
         "rounded-[var(--radius-lg)]",
         "border border-[var(--color-border)]",
         "bg-[var(--color-surface)]",
-        // ✅ Theme-aware shadow
         "shadow-[var(--shadow-xl)]",
-        // Padding
-        "p-6",
+        "p-4 sm:p-6",
         // Animation
         "data-[state=open]:animate-scale-in",
         className
