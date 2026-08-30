@@ -220,6 +220,12 @@ export function SettingsSectionForm({
   if (section === "general") {
     return (
       <SectionCard title="General" description="Core community identity and locale.">
+        {settings.editorialOrigin === "editorial" && (
+          <p className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-3 py-2 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
+            Jimvio editorial community. Members see this as public Jimvio
+            programming, not as a demo or seed label.
+          </p>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Community name">
             <Input value={name} onChange={(e) => setName(e.target.value)} disabled={readOnly} />

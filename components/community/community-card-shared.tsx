@@ -144,26 +144,26 @@ export function SharedCommunityCard({
           </div>
         </div>
 
-        <div className={cn("flex flex-1 flex-col px-3.5 pb-3.5", featured ? "pt-6" : "pt-5")}>
-          <div className="min-h-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
+        <div className={cn("flex min-w-0 flex-1 flex-col px-3.5 pb-3.5", featured ? "pt-6" : "pt-5")}>
+          <div className="min-h-0 min-w-0 flex-1">
+            <div className="flex min-w-0 items-start justify-between gap-2">
               <h2
                 className={cn(
-                  "line-clamp-1 font-semibold tracking-tight text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors",
+                  "min-w-0 flex-1 break-words line-clamp-1 font-semibold tracking-tight text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)] transition-colors",
                   featured ? "text-[16px]" : "text-[14px]"
                 )}
               >
                 {c.name}
               </h2>
               {c.category && (
-                <span className="shrink-0 rounded-md bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                <span className="max-w-[40%] shrink-0 truncate rounded-md bg-[var(--color-surface-secondary)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
                   {c.category}
                 </span>
               )}
             </div>
 
             {c.tagline ? (
-              <p className="mt-1 line-clamp-2 text-[12px] leading-snug text-[var(--color-text-muted)]">
+              <p className="mt-1 min-w-0 break-words line-clamp-2 text-[12px] leading-snug text-[var(--color-text-muted)]">
                 {c.tagline}
               </p>
             ) : owner ? (

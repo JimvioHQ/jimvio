@@ -27,7 +27,7 @@ export default async function FeedPage() {
         online_members: 0,
         trending_score: 0,
         verified: isCommunityVerified({
-          is_featured: false,
+          is_featured: Boolean(row.is_featured),
           member_count: memberCount,
         }),
         href: `/communities/${row.slug}`,

@@ -133,7 +133,9 @@ export async function GET(req: NextRequest) {
   } else if (sort === "trending" || mode === "trending" || mode === "hot") {
     query = query.order("post_count", { ascending: false }).order("updated_at", { ascending: false });
   } else {
-    query = query.order("member_count", { ascending: false });
+    query = query
+      .order("is_featured", { ascending: false })
+      .order("member_count", { ascending: false });
   }
 
   const isRising = sort === "rising" || mode === "rising";

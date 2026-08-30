@@ -57,6 +57,7 @@ import {
     COMPOSER_MAX_CHARS,
 } from "@/lib/feed/composer-utils";
 import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
+import { jimvioPromotionLabel } from "@/lib/community/editorial-origin";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1173,6 +1174,8 @@ function PostCard({
         }
     }
 
+    const promotionLabel = jimvioPromotionLabel(post.attachments);
+
     return (
         <article
             ref={cardRef}
@@ -1443,9 +1446,21 @@ function PostCard({
                     </div>
                 </div>
             ) : (
-            <p className="text-[14px] text-text-primary leading-relaxed whitespace-pre-wrap mb-3">
-                {post.body}
-            </p>
+            <div className="mb-3 min-w-0">
+                {promotionLabel && (
+                    <span className="mb-2 inline-flex rounded-md bg-[var(--color-accent-light)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+                        {promotionLabel}
+                    </span>
+                )}
+                {post.title?.trim() && (
+                    <h3 className="mb-1.5 min-w-0 break-words text-[15px] font-semibold leading-snug text-text-primary">
+                        {post.title.trim()}
+                    </h3>
+                )}
+                <p className="min-w-0 break-words text-[14px] text-text-primary leading-relaxed whitespace-pre-wrap">
+                    {post.body}
+                </p>
+            </div>
             )}
 
             {post.quoted_post && (

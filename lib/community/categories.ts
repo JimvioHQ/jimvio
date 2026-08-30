@@ -3,6 +3,7 @@
  * "Tech" remains available as a legacy alias for existing communities.
  */
 export const COMMUNITY_CATEGORIES = [
+  "News",
   "Technology",
   "AI",
   "Programming",
@@ -20,6 +21,7 @@ export const COMMUNITY_CATEGORIES = [
   "Fitness",
   "Sports",
   "Music",
+  "Faith",
   "Travel",
   "Startups",
   "Fashion",

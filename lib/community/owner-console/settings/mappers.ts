@@ -2,6 +2,7 @@
  * Map communities row ↔ Owner Settings model.
  */
 
+import { readCommunityEditorialOrigin } from "@/lib/community/editorial-origin";
 import { defaultSettingsConfig } from "./constants";
 import type {
   CommunitySettingsConfig,
@@ -171,5 +172,6 @@ export function mapCommunitySettings(
     archivedAt: row.archived_at,
     config,
     updatedAt: row.updated_at,
+    editorialOrigin: readCommunityEditorialOrigin(row.settings),
   };
 }

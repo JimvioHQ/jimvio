@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { mergeCommunitySettingsPreservingProvenance } from "@/lib/community/editorial-origin";
 import {
   COMMUNITY_SETTINGS_SELECT,
   VISIBILITY_MODES,
@@ -194,7 +195,10 @@ export async function PATCH(req: NextRequest) {
     if (body.config.commerce?.currency !== undefined) {
       patch.currency = body.config.commerce.currency;
     }
-    patch.settings = nextConfig;
+    patch.settings = mergeCommunitySettingsPreservingProvenance(
+      asCommunitySettingsRow(existing).settings,
+      nextConfig as unknown as Record<string, unknown>,
+    );
   }
 
   const { data, error } = await admin

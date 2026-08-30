@@ -22,6 +22,7 @@ import { toPlayableCommunityVideoUrl } from "@/lib/community-chat-upload";
 import type { FeedTab } from "@/lib/feed/mock-data";
 import { FEED_TAB_FILTERS } from "@/lib/feed/tab-filters";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
+import { jimvioPromotionLabel } from "@/lib/community/editorial-origin";
 
 export type ApiPost = {
   id: string;
@@ -36,6 +37,7 @@ export type ApiPost = {
   created_at?: string | null;
   user_has_liked?: boolean | null;
   community_id?: string | null;
+  attachments?: Record<string, unknown> | null;
   communities?: { slug?: string | null } | null;
   profiles?: {
     full_name?: string | null;
@@ -80,6 +82,8 @@ type DisplayPost = {
   };
   liked?: boolean;
   href?: string;
+  title?: string | null;
+  promotionLabel?: string | null;
 };
 
 function mapApiPost(post: ApiPost): DisplayPost {
@@ -114,7 +118,9 @@ function mapApiPost(post: ApiPost): DisplayPost {
       ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true })
       : "",
     pinned: Boolean(post.is_pinned),
-    body: (post.body || post.title || "").trim(),
+    title: post.title?.trim() || null,
+    body: (post.body || "").trim() || (post.title || "").trim(),
+    promotionLabel: jimvioPromotionLabel(post.attachments),
     media,
     engagement: {
       likes: post.like_count ?? 0,
@@ -452,8 +458,20 @@ export function FeedPostCard({
             </button>
           </div>
 
-          <div className="pl-[52px]">
-            <p className="mb-3 text-[14px] leading-relaxed text-gray-800">{post.body}</p>
+          <div className="min-w-0 pl-[52px]">
+            {post.promotionLabel && (
+              <span className="mb-2 inline-flex rounded-md bg-orange-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-700 dark:bg-orange-500/10 dark:text-orange-300">
+                {post.promotionLabel}
+              </span>
+            )}
+            {post.title && (
+              <h3 className="mb-1.5 min-w-0 break-words text-[15px] font-semibold leading-snug text-gray-900 dark:text-[var(--color-text-primary)]">
+                {post.title}
+              </h3>
+            )}
+            <p className="mb-3 min-w-0 break-words text-[14px] leading-relaxed text-gray-800 dark:text-[var(--color-text-primary)] whitespace-pre-wrap">
+              {post.body}
+            </p>
 
             {post.media?.type === "video" && (
               <div className="mb-3">

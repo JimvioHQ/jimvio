@@ -84,7 +84,7 @@ export async function getAdminRevenueChartData() {
 }
 
 const COMMUNITY_CARD_COLUMNS =
-  "id, name, slug, tagline, category, member_count, post_count, is_free, monthly_price, currency, cover_image, avatar_url, created_at, owner_id, is_private, is_active, visibility, visibility_mode, archived_at";
+  "id, name, slug, tagline, category, member_count, post_count, is_free, monthly_price, currency, cover_image, avatar_url, created_at, owner_id, is_private, is_active, is_featured, visibility, visibility_mode, archived_at";
 
 async function attachOwnerProfiles<T extends { owner_id?: string | null }>(
   rows: T[],
@@ -120,6 +120,7 @@ async function fetchPublicCommunitiesUncached(limit: number) {
     .select(COMMUNITY_CARD_COLUMNS)
     .eq("is_active", true)
     .or("is_private.eq.false,is_private.is.null")
+    .order("is_featured", { ascending: false })
     .order("member_count", { ascending: false })
     .limit(limit);
 
@@ -135,7 +136,7 @@ async function fetchPublicCommunitiesUncached(limit: number) {
 export async function getPublicCommunities(limit = 12) {
   return unstable_cache(
     () => fetchPublicCommunitiesUncached(limit),
-    [`public-communities-v6-${limit}`],
+    [`public-communities-v7-${limit}`],
     { revalidate: 120 },
   )();
 }
@@ -144,9 +145,10 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
   const admin = getAdminDB();
   const { data, error } = await admin
     .from("communities")
-    .select("id, name, slug, tagline, member_count, avatar_url, cover_image, category, is_private, is_active, visibility, visibility_mode, archived_at")
+    .select("id, name, slug, tagline, member_count, avatar_url, cover_image, category, is_private, is_active, is_featured, visibility, visibility_mode, archived_at")
     .eq("is_active", true)
     .or("is_private.eq.false,is_private.is.null")
+    .order("is_featured", { ascending: false })
     .order("member_count", { ascending: false })
     .limit(limit);
 
@@ -161,7 +163,7 @@ async function fetchHomepageCommunitiesUncached(limit: number) {
 export async function getHomepageCommunities(limit = 8) {
   return unstable_cache(
     () => fetchHomepageCommunitiesUncached(limit),
-    [`homepage-communities-v5-${limit}`],
+    [`homepage-communities-v6-${limit}`],
     { revalidate: 120 },
   )();
 }
