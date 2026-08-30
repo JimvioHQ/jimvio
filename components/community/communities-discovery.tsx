@@ -351,8 +351,27 @@ export function CommunitiesDiscovery({
   );
 
   useEffect(() => {
+    // Always hydrate popular Explore from the API so preserved hubs
+    // (forex-hub / gcs-unity) stay discoverable even when SSR cache is stale.
+    if (!debounced && category === "All" && sort === "popular") {
+      setPage(1);
+      setLoading(true);
+      fetchPage(1, false)
+        .catch(() => {
+          if (initialCommunities.length) {
+            setItems(initialCommunities);
+            setTotal(initialTotal);
+            setLoadError(false);
+          } else {
+            setLoadError(true);
+            setItems([]);
+          }
+        })
+        .finally(() => setLoading(false));
+      return;
+    }
     if (!debounced && category === "All" && initialCommunities.length > 0) {
-      if (sort !== "popular" && sort !== "free") {
+      if (sort !== "free") {
         setLoading(true);
         fetchPage(1, false)
           .catch(() => {

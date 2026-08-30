@@ -128,15 +128,30 @@ async function fetchPublicCommunitiesUncached(limit: number) {
     console.error("Error fetching public communities:", error);
     throw error;
   }
-  return attachOwnerProfiles(
-    (data ?? []).filter(communityIsPubliclyDiscoverable),
-  );
+
+  let rows = (data ?? []).filter(communityIsPubliclyDiscoverable);
+  const PRESERVE_SLUGS = ["forex-hub", "gcs-unity"];
+  const have = new Set(rows.map((c) => c.slug));
+  const missing = PRESERVE_SLUGS.filter((slug) => !have.has(slug));
+  if (missing.length) {
+    const { data: preserved } = await admin
+      .from("communities")
+      .select(COMMUNITY_CARD_COLUMNS)
+      .in("slug", missing)
+      .eq("is_active", true);
+    const extras = (preserved ?? []).filter(communityIsPubliclyDiscoverable);
+    if (extras.length) {
+      rows = [...extras, ...rows].slice(0, limit);
+    }
+  }
+
+  return attachOwnerProfiles(rows);
 }
 
 export async function getPublicCommunities(limit = 12) {
   return unstable_cache(
     () => fetchPublicCommunitiesUncached(limit),
-    [`public-communities-v7-${limit}`],
+    [`public-communities-v8-${limit}`],
     { revalidate: 120 },
   )();
 }

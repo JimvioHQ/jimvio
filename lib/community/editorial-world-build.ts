@@ -20,13 +20,13 @@ function unsplash(id: string, w: number, h: number): string {
   return `https://images.unsplash.com/${photo}?auto=format&fit=crop&w=${w}&h=${h}&q=80`;
 }
 
-/** Stable public sample videos (Cloudinary demo + well-known HTTPS samples). */
+/** Stable Cloudinary demo videos only (no third-party buckets that 403). */
 const SAMPLE_VIDEOS = [
   "https://res.cloudinary.com/demo/video/upload/dog.mp4",
   "https://res.cloudinary.com/demo/video/upload/docs/walking_talking.mp4",
   "https://res.cloudinary.com/demo/video/upload/elephants.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-  "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+  "https://res.cloudinary.com/demo/video/upload/ski_jump.mp4",
+  "https://res.cloudinary.com/demo/video/upload/sea_turtle.mp4",
 ];
 
 const PROMO_COPY: Record<
