@@ -139,10 +139,26 @@ async function run() {
               const present =
                 metrics.bodyText.toLowerCase().includes(slug.replace("-", " ")) ||
                 (await page.locator(`a[href*="${slug}"]`).count()) > 0;
-              if (!present) {
+              if (present) continue;
+              // User communities may rank below featured editorial on page 1 —
+              // verify discoverability via search (same Explore UI).
+              await page.goto(`${BASE}/communities/explore?search=${encodeURIComponent(slug.split("-")[0])}`, {
+                waitUntil: "domcontentloaded",
+              });
+              await setTheme(page, theme);
+              await page.waitForTimeout(500);
+              const found =
+                (await page.locator(`a[href*="${slug}"]`).count()) > 0 ||
+                (await page.content()).includes(slug);
+              if (!found) {
                 entry.notes.push(`preserved community not linked: ${slug}`);
                 failures.push(entry);
+              } else {
+                entry.notes.push(`preserved ${slug} via search`);
               }
+              await page.goto(url, { waitUntil: "domcontentloaded" });
+              await setTheme(page, theme);
+              await page.waitForTimeout(300);
             }
           }
           if (route.endsWith("/feed") || route.includes("news-desk")) {
