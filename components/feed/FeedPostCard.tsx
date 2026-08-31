@@ -305,9 +305,12 @@ export function FeedPostCard({
         router.push(`/login?next=${encodeURIComponent(next)}`);
         return;
       }
-      if (!res.ok) throw new Error("like failed");
-    } catch {
-      toast.error("Could not update like");
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error || "Could not update like");
+      }
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Could not update like");
       void load();
     }
   }

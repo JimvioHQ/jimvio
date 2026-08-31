@@ -1707,6 +1707,12 @@ function PostDetailPanel({
         return () => { cancelled = true; };
     }, [postId, commentSort]);
 
+    // Deep-link / open: focus composer so Comment action lands in the writing surface.
+    useEffect(() => {
+        const t = setTimeout(() => textRef.current?.focus(), 80);
+        return () => clearTimeout(t);
+    }, [postId]);
+
     // Realtime on comments (shared chat realtime subscribe helper)
     useEffect(() => {
         let cancelled = false;

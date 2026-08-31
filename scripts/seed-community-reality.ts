@@ -376,21 +376,18 @@ async function main() {
       .update({ member_count: memberCount })
       .eq("id", community.id);
 
+    // Free/inherit spaces are accessible to every active community member.
+    // Keep spaces.member_count equal to the real community membership count.
     const { data: spaces } = await db
       .from("spaces")
-      .select("id")
+      .select("id, access_type")
       .eq("community_id", community.id)
       .eq("is_active", true);
-    for (let s = 0; s < (spaces ?? []).length; s++) {
-      const space = spaces![s]!;
-      const spaceMembers = Math.max(
-        8,
-        Math.min(
-          memberCount,
-          Math.floor(memberCount * (0.35 + (hash(`${community.slug}:sp:${s}`) % 50) / 100))
-        )
-      );
-      await db.from("spaces").update({ member_count: spaceMembers }).eq("id", space.id);
+    for (const space of spaces ?? []) {
+      const access = (space.access_type || "free").toLowerCase();
+      if (access === "free" || access === "inherit") {
+        await db.from("spaces").update({ member_count: memberCount }).eq("id", space.id);
+      }
     }
 
     const { data: posts } = await db

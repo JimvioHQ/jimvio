@@ -294,10 +294,31 @@ async function activateFreeMembership(
 
 async function bumpMemberCount(communityId: string, current: number | null) {
   const supabase = getService();
+  const next = (current ?? 0) + 1;
   await supabase
     .from("communities")
-    .update({ member_count: (current ?? 0) + 1 })
+    .update({ member_count: next })
     .eq("id", communityId);
+  await syncFreeSpaceMemberCounts(communityId, next);
+}
+
+/** Free/inherit spaces mirror active community membership size. */
+async function syncFreeSpaceMemberCounts(communityId: string, memberCount: number) {
+  const supabase = getService();
+  const { data: spaces } = await supabase
+    .from("spaces")
+    .select("id, access_type")
+    .eq("community_id", communityId)
+    .eq("is_active", true);
+  for (const space of spaces ?? []) {
+    const access = (space.access_type || "free").toLowerCase();
+    if (access === "free" || access === "inherit") {
+      await supabase
+        .from("spaces")
+        .update({ member_count: memberCount })
+        .eq("id", space.id);
+    }
+  }
 }
 
 async function notifyJoin(userId: string, community: JoinCommunityRow) {
@@ -497,12 +518,14 @@ export async function leaveCommunity(userId: string, communityId: string) {
 
   if (error) throw error;
 
+  const next = Math.max(0, (community.member_count ?? 1) - 1);
   await supabase
     .from("communities")
     .update({
-      member_count: Math.max(0, (community.member_count ?? 1) - 1),
+      member_count: next,
     })
     .eq("id", communityId);
+  await syncFreeSpaceMemberCounts(communityId, next);
 
   return membership;
 }
@@ -582,10 +605,12 @@ export async function handleCommunityPayment(params: CommunityPaymentParams) {
     if (error) throw error;
     membershipId = inserted!.id;
 
+    const next = (community.member_count ?? 0) + 1;
     await supabase
       .from("communities")
-      .update({ member_count: (community.member_count ?? 0) + 1 })
+      .update({ member_count: next })
       .eq("id", params.communityId);
+    await syncFreeSpaceMemberCounts(params.communityId, next);
   }
 
   const commissionRate = Number(community.platform_commission_rate ?? 15);
