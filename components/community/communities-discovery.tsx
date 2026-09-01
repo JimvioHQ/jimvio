@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { CommunityCoverImage } from "@/components/community/community-media";
 import { useSearchParams } from "next/navigation";
 import { Search, Loader2, X, ArrowUpRight, ChevronDown } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
@@ -83,18 +83,13 @@ function CommunitiesHero({
       <div className="overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]">
         <div className="grid sm:grid-cols-[1.1fr_1fr]">
           <div className="relative min-h-[200px] sm:min-h-[260px]">
-            {community.cover_image ? (
-              <Image
-                src={community.cover_image}
-                alt=""
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, 40vw"
-                unoptimized
-              />
-            ) : (
-              <div className="absolute inset-0 bg-[var(--color-accent)]/90" />
-            )}
+            <CommunityCoverImage
+              name={community.name}
+              src={community.cover_image}
+              featured
+              sizes="(max-width: 640px) 100vw, 40vw"
+              className="absolute inset-0"
+            />
             <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/20 to-transparent sm:bg-gradient-to-t sm:from-black/55 sm:via-black/15 sm:to-transparent" />
           </div>
 

@@ -366,9 +366,9 @@ function buildPosts(seed: WorldCommunitySeed): EditorialPostSpec[] {
 
 /** ~5% private, ~5% paid, rest free/public — deterministic per slug. */
 export function accessModeFor(seed: WorldCommunitySeed): "free" | "paid" | "private" {
-  const bucket = hash(`${seed.slug}:access`) % 20;
+  const bucket = hash(`${seed.slug}:access`) % 10;
   if (bucket === 0) return "private";
-  if (bucket === 1) return "paid";
+  if (bucket >= 1 && bucket <= 2) return "paid";
   return "free";
 }
 

@@ -17,6 +17,7 @@ import {
   resolveWorkspaceRole,
 } from "@/lib/community/workspace";
 import { useSpacesRealtime } from "@/lib/community/workspace/use-spaces-realtime";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 interface Props {
   community: WorkspaceCommunity;
@@ -62,6 +63,10 @@ export function SpacesSection({
     const online = overview?.membersOnline ?? 0;
     return spacesWithRooms.map((space, index) => {
       const mapped = mapSpaceToGroup(space, roleInput, {
+        cover:
+          safeMediaUrl(space.cover_url ?? space.banner_url ?? undefined, 640) ??
+          safeMediaUrl(community.avatar_url ?? community.cover_image ?? undefined, 640) ??
+          undefined,
         description: space.description ?? null,
         memberCount: space.member_count ?? 0,
         createdAt: space.created_at ?? null,

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { BadgeCheck, Flame, Hash, Pin, Radio } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 import { CommunityLetterAvatar } from "@/components/community/community-letter-avatar";
+import { CommunityAvatarImage, CommunityCoverImage } from "@/components/community/community-media";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 type LiveItem = {
@@ -105,14 +106,11 @@ function CommunityMiniCard({
       <Link href={href} className="relative flex flex-col">
         <div className="relative h-[84px] w-full bg-[var(--color-surface-secondary)]">
           {coverSrc ? (
-            <Image
-              src={coverSrc}
-              alt=""
-              fill
-              className="object-cover transition duration-300 group-hover:scale-105"
+            <CommunityCoverImage
+              name={name}
+              src={cover}
               sizes="168px"
-              loading="lazy"
-              unoptimized
+              imageClassName="transition duration-300 group-hover:scale-105"
             />
           ) : (
             <CommunityLetterAvatar
@@ -126,15 +124,7 @@ function CommunityMiniCard({
         <div className="relative px-3">
           <div className="absolute -top-5 left-3 h-10 w-10 overflow-hidden rounded-xl border-[2.5px] border-[var(--color-surface)] bg-[var(--color-surface)] shadow-sm ring-1 ring-black/5">
             {logoSrc ? (
-              <Image
-                src={logoSrc}
-                alt=""
-                width={40}
-                height={40}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                unoptimized
-              />
+              <CommunityAvatarImage name={name} src={logo} size={40} />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-[#FFF1EB] text-[12px] font-bold text-[#fd5000]">
                 {name.slice(0, 1).toUpperCase()}

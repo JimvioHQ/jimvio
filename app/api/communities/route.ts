@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
 
   // Discover/list must not leak private / invite-only communities unless the viewer is a member.
   let memberCommunityIds: string[] = [];
+  let ownedCommunityIds: string[] = [];
   if (user) {
     const { data: memberships } = await admin
       .from("community_memberships")
@@ -58,7 +59,18 @@ export async function GET(req: NextRequest) {
       .eq("status", "active")
       .limit(2000);
     memberCommunityIds = (memberships ?? []).map((row) => row.community_id).filter(Boolean);
+
+    const { data: owned } = await admin
+      .from("communities")
+      .select("id")
+      .eq("owner_id", user.id)
+      .eq("is_active", true)
+      .limit(500);
+    ownedCommunityIds = (owned ?? []).map((row) => row.id).filter(Boolean);
   }
+
+  const memberSet = new Set(memberCommunityIds);
+  const ownerSet = new Set(ownedCommunityIds);
 
   if (memberCommunityIds.length) {
     query = query.or(
@@ -148,7 +160,6 @@ export async function GET(req: NextRequest) {
   }
 
   let communities = data ?? [];
-  const memberSet = new Set(memberCommunityIds);
   communities = communities.filter(
     (community) =>
       memberSet.has(community.id) || communityIsPubliclyDiscoverable(community),
@@ -171,10 +182,16 @@ export async function GET(req: NextRequest) {
         .select("*, profiles!communities_owner_id_fkey(full_name, avatar_url, username)")
         .in("slug", missing)
         .eq("is_active", true);
-      const extras = (preserved ?? []).filter(
-        (community) =>
-          memberSet.has(community.id) || communityIsPubliclyDiscoverable(community),
-      );
+      const extras = (preserved ?? [])
+        .filter(
+          (community) =>
+            memberSet.has(community.id) || communityIsPubliclyDiscoverable(community),
+        )
+        .map((community) => ({
+          ...community,
+          is_member: memberSet.has(community.id),
+          is_owner: ownerSet.has(community.id) || community.owner_id === user?.id,
+        }));
       if (extras.length) {
         communities = [...extras, ...communities].slice(0, limit);
       }
@@ -203,7 +220,13 @@ export async function GET(req: NextRequest) {
       .slice((page - 1) * limit, page * limit);
   }
 
-  return NextResponse.json({ communities, total: count ?? 0, page, limit });
+  return NextResponse.json({
+    communities,
+    total: count ?? 0,
+    page,
+    limit,
+    memberCommunityIds: user ? memberCommunityIds : [],
+  });
 }
 
 /**

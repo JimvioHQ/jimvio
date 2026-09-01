@@ -88,7 +88,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
       supabase
         .from("spaces")
         .select(
-          "id, name, slug, icon, color, description, access_type, sort_order, space_type, created_at, is_featured, member_count"
+          "id, name, slug, icon, color, description, access_type, sort_order, space_type, created_at, is_featured, member_count, cover_url, banner_url"
         )
         .eq("community_id", community.id)
         .eq("is_active", true)

@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useCurrency } from "@/context/CurrencyContext";
 import { cn, formatNumber } from "@/lib/utils";
 import { CommunityLetterAvatar, communityInitial } from "@/components/community/community-letter-avatar";
+import { CommunityAvatarImage, CommunityCoverImage } from "@/components/community/community-media";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 export type CommunityRow = {
@@ -23,6 +23,8 @@ export type CommunityRow = {
   image_url?: string | null;
   avatar_url?: string | null;
   created_at?: string | null;
+  is_member?: boolean;
+  is_owner?: boolean;
   profiles?: {
     full_name: string | null;
     avatar_url: string | null;
@@ -60,6 +62,10 @@ export function SharedCommunityCard({
   const owner = ownerLabel(c);
   const featured = variant === "featured";
   const detailHref = `/communities/${c.slug}`;
+  const joined = Boolean(c.is_member || c.is_owner);
+  const joinHref = c.is_free
+    ? `/communities/${c.slug}`
+    : `/communities/${c.slug}/subscribe`;
 
   function handleShare(e: React.MouseEvent) {
     e.preventDefault();
@@ -97,11 +103,10 @@ export function SharedCommunityCard({
           )}
         >
           {safeMediaUrl(c.cover_image, featured ? 800 : 480) ? (
-            <Image
-              src={safeMediaUrl(c.cover_image, featured ? 800 : 480)!}
-              alt=""
-              fill
-              className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            <CommunityCoverImage
+              name={c.name}
+              src={c.cover_image}
+              featured={featured}
               sizes={featured ? "(max-width: 768px) 100vw, 40vw" : "(max-width: 768px) 50vw, 20vw"}
             />
           ) : (
@@ -129,13 +134,7 @@ export function SharedCommunityCard({
             )}
           >
             {safeMediaUrl(avatarSrc, 96) ? (
-              <Image
-                src={safeMediaUrl(avatarSrc, 96)!}
-                alt=""
-                width={40}
-                height={40}
-                className="h-full w-full object-cover"
-              />
+              <CommunityAvatarImage name={c.name} src={avatarSrc} size={featured ? 40 : 32} />
             ) : (
               <div className="flex h-full w-full items-center justify-center bg-[var(--color-accent-light)] text-[12px] font-bold text-[var(--color-accent)]">
                 {initial}
@@ -189,7 +188,10 @@ export function SharedCommunityCard({
                 Free to join
               </span>
             ) : c.monthly_price ? (
-              <div className="flex items-baseline gap-0.5 tabular-nums">
+              <div className="flex items-baseline gap-1 tabular-nums">
+                <span className="rounded-md bg-[var(--color-accent-light)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-accent)]">
+                  Paid
+                </span>
                 <span className="text-[15px] font-bold text-[var(--color-text-primary)]">
                   {formatMoney(c.monthly_price, c.currency)}
                 </span>
@@ -216,11 +218,17 @@ export function SharedCommunityCard({
             {copied ? "Link copied" : "Share"}
           </button>
           <Link
-            href={`/communities/${c.slug}/subscribe`}
+            href={joined ? detailHref : joinHref}
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-[var(--color-accent)] text-center text-[11px] font-semibold text-white transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40"
+            aria-label={joined ? `${c.name} — already joined` : `Join ${c.name}`}
+            className={cn(
+              "inline-flex min-h-11 flex-1 items-center justify-center rounded-lg text-center text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/40",
+              joined
+                ? "border border-[var(--color-border)] bg-[var(--color-surface-secondary)] text-[var(--color-text-secondary)]"
+                : "bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)]"
+            )}
           >
-            Join
+            {joined ? "✓ Joined" : "Join"}
           </Link>
         </div>
       )}

@@ -21,6 +21,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { cn, getInitials } from "@/lib/utils";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
+import { manageCommunityHref } from "@/lib/community/owner-console/nav";
 
 export type SidebarItem =
   | "feed"
@@ -141,6 +142,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
   const [communitiesOpen, setCommunitiesOpen] = useState(true);
   const [communities, setCommunities] = useState<CommunityRow[]>([]);
   const [pinned, setPinned] = useState<CommunityRow[]>([]);
+  const [ownedCommunities, setOwnedCommunities] = useState<CommunityRow[]>([]);
   const [user, setUser] = useState(userProp ?? null);
 
   useEffect(() => {
@@ -169,6 +171,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
       if (!isAuthenticated && !userProp) {
         setCommunities([]);
         setPinned([]);
+        setOwnedCommunities([]);
         return;
       }
       const supabase = createClient();
@@ -177,6 +180,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
       if (!authUserId || cancelled) {
         setCommunities([]);
         setPinned([]);
+        setOwnedCommunities([]);
         return;
       }
 
@@ -224,6 +228,24 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
         }
       }
       setCommunities(mapped);
+
+      const { data: ownedRows } = await supabase
+        .from("communities")
+        .select("id, name, slug, avatar_url")
+        .eq("owner_id", authUserId)
+        .eq("is_active", true)
+        .order("name")
+        .limit(8);
+      if (!cancelled) {
+        setOwnedCommunities(
+          (ownedRows ?? []).map((c: { id: string; name: string; slug: string; avatar_url: string | null }) => ({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            avatar_url: c.avatar_url ?? null,
+          }))
+        );
+      }
 
       try {
         const pinRes = await fetch("/api/c/pins", { cache: "no-store" });
@@ -284,6 +306,14 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
               </p>
             </div>
           </Link>
+          {ownedCommunities.length > 0 ? (
+            <Link
+              href={manageCommunityHref(ownedCommunities[0]!.slug)}
+              className="mt-3 flex min-h-9 items-center justify-center rounded-lg border border-orange-200 bg-orange-50 px-3 text-xs font-semibold text-orange-600 transition hover:bg-orange-100"
+            >
+              Manage Community
+            </Link>
+          ) : null}
         </div>
 
         <nav className="space-y-0.5 p-3">

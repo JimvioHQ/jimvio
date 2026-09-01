@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -91,19 +92,22 @@ export function HubAvatar({
   live?: boolean;
   className?: string;
 }) {
+  const [failed, setFailed] = useState(false);
   const initials = (name || "?")
     .split(/\s+/)
     .slice(0, 2)
     .map((w) => w[0]?.toUpperCase() ?? "")
     .join("");
+  const showImage = Boolean(src?.trim()) && !failed;
   return (
     <div className={cn("relative shrink-0", className)} style={{ width: size, height: size }}>
-      {src ? (
+      {showImage ? (
         <img
-          src={src}
+          src={src!}
           alt={name}
           className="h-full w-full rounded-full object-cover ring-2 ring-white"
           style={{ width: size, height: size }}
+          onError={() => setFailed(true)}
         />
       ) : (
         <div

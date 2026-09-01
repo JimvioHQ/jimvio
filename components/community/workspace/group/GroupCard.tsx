@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BadgeCheck,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { WorkspaceGroup } from "@/lib/community/workspace";
+import { SafeCommunityImage } from "@/components/community/community-media";
 import {
   WorkspaceActionMenu,
   buildWorkspaceActions,
@@ -90,13 +91,15 @@ export function GroupCard({
           aria-hidden
         />
         {group.cover ? (
-          <Image
+          <SafeCommunityImage
             src={group.cover}
             alt=""
             fill
             className="object-cover transition duration-700 group-hover:scale-[1.06]"
             sizes="(max-width: 768px) 100vw, 33vw"
-            unoptimized
+            fallback={
+              <div className="absolute inset-0" style={{ background: coverFallback }} aria-hidden />
+            }
           />
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

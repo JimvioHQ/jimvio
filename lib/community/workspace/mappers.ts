@@ -24,6 +24,7 @@ import {
   type WorkspaceGroup,
   type WorkspaceSpace,
 } from "./types";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 function channelIconForType(type: ChannelType, name: string): string {
   if (type === "announcement" || /announcement|campaign/i.test(name)) return "📢";
@@ -151,12 +152,14 @@ export function mapSpaceToWorkspaceSpace(
   >
 ): WorkspaceSpace {
   const role = resolveWorkspaceRole(roleInput);
+  const coverFromSpace =
+    safeMediaUrl(space.cover_url ?? space.banner_url ?? undefined, 640) ?? null;
   return {
     id: space.id,
     name: space.name,
     slug: space.slug,
     icon: space.icon,
-    cover: extras?.cover ?? null,
+    cover: extras?.cover ?? coverFromSpace,
     description: extras?.description ?? null,
     color: extras?.color ?? null,
     privacy: privacyFromAccess(space.access_type),

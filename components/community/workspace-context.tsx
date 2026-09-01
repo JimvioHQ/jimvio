@@ -37,6 +37,8 @@ export type WorkspaceSpaceRow = {
   created_at?: string | null;
   is_featured?: boolean | null;
   member_count?: number | null;
+  cover_url?: string | null;
+  banner_url?: string | null;
   rooms: WorkspaceRoomRow[];
 };
 

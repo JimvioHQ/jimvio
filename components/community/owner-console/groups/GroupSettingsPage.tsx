@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { CloudinaryUploadButton } from "@/components/ui/cloudinary-upload";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -315,9 +316,28 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
                 ))}
               </div>
             </Field>
-            <Field label="Cover URL">
+            <Field label="Cover image">
+              {group.coverUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={group.coverUrl}
+                  alt=""
+                  className="mb-2 h-24 w-full rounded-xl object-cover"
+                />
+              ) : (
+                <div className="mb-2 flex h-24 items-center justify-center rounded-xl bg-[var(--color-surface-secondary)] text-[11px] text-[var(--color-text-muted)]">
+                  No cover image
+                </div>
+              )}
+              <CloudinaryUploadButton
+                folder="jimvio/communities"
+                buttonText="Upload cover"
+                onUploadSuccess={(url) => void save({ coverUrl: url })}
+              />
               <Input
+                className="mt-2"
                 defaultValue={group.coverUrl ?? ""}
+                placeholder="Or paste image URL"
                 onBlur={(e) => {
                   if (e.target.value !== (group.coverUrl ?? "")) {
                     void save({ coverUrl: e.target.value || null });

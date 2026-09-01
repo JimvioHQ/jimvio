@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { SafeCommunityImage } from "@/components/community/community-media";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 import {
   Calendar,
   Check,
@@ -89,11 +91,13 @@ function spaceVisibilityLabel(accessType: string) {
 export function OverviewSpacesPanel({
   slug,
   spaces,
+  communityAvatarUrl,
   canManage = false,
   onCreateSpace,
 }: {
   slug: string;
   spaces: WorkspaceSpaceRow[];
+  communityAvatarUrl?: string | null;
   canManage?: boolean;
   onCreateSpace?: () => void;
 }) {
@@ -134,6 +138,9 @@ export function OverviewSpacesPanel({
         const members = space.member_count;
         const visibility = spaceVisibilityLabel(space.access_type);
         const desc = space.description?.trim() || null;
+        const thumbSrc =
+          safeMediaUrl(space.cover_url ?? space.banner_url ?? undefined, 128) ??
+          safeMediaUrl(communityAvatarUrl ?? undefined, 128);
         return (
           <li key={space.id}>
             <Link
@@ -144,18 +151,18 @@ export function OverviewSpacesPanel({
                 <span
                   className={cn(
                     "relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl text-[13px] font-bold text-white shadow-sm transition duration-200 group-hover:scale-[1.03]",
-                    color
+                    !thumbSrc && color
                   )}
                 >
-                  {space.icon && /^https?:\/\//.test(space.icon) ? (
-                    <Image
-                      src={space.icon}
+                  {thumbSrc ? (
+                    <SafeCommunityImage
+                      src={thumbSrc}
                       alt=""
                       fill
                       className="object-cover"
-                      unoptimized
+                      fallback={<span className={cn("flex h-full w-full items-center justify-center", color)}>{letter}</span>}
                     />
-                  ) : space.icon ? (
+                  ) : space.icon && !/^https?:\/\//.test(space.icon) ? (
                     <span className="text-lg leading-none">{space.icon}</span>
                   ) : (
                     letter

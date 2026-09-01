@@ -194,6 +194,59 @@ function authorshipPool(
   return scored.slice(0, Math.min(size, scored.length)).map((s) => s.p);
 }
 
+async function ensureEditorialSpace(
+  db: SupabaseClient,
+  communityId: string,
+  room: EditorialCommunitySpec["extraRoom"],
+  sortOrder: number
+): Promise<{ spaceId: string; roomId: string }> {
+  const { data: existingSpace } = await db
+    .from("spaces")
+    .select("id")
+    .eq("community_id", communityId)
+    .eq("slug", room.slug)
+    .maybeSingle();
+
+  let spaceId = existingSpace?.id as string | undefined;
+  if (!spaceId) {
+    const { data: inserted, error } = await db
+      .from("spaces")
+      .insert({
+        community_id: communityId,
+        name: room.name,
+        slug: room.slug,
+        description: room.description,
+        icon: "💬",
+        sort_order: sortOrder,
+        access_type: "free",
+        privacy: "public",
+        space_type: "discussion",
+        is_active: true,
+        room_count: 0,
+        member_count: 0,
+        last_activity_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    if (error || !inserted?.id) throw new Error(`space ${room.slug}: ${error?.message}`);
+    spaceId = inserted.id;
+  } else {
+    await db
+      .from("spaces")
+      .update({
+        name: room.name,
+        description: room.description,
+        is_active: true,
+        sort_order: sortOrder,
+      })
+      .eq("id", spaceId);
+  }
+
+  const roomId = await ensureRoom(db, communityId, spaceId, room, 0);
+  await db.from("spaces").update({ room_count: 1 }).eq("id", spaceId);
+  return { spaceId, roomId };
+}
+
 async function ensureRoom(
   db: SupabaseClient,
   communityId: string,
@@ -500,16 +553,16 @@ async function seedCommunity(
     if (error) throw new Error(`[${spec.slug}] memberships: ${error.message}`);
   }
 
-  const workspace = await ensureDefaultCommunityWorkspace(db, communityId);
-  if (!workspace.spaceId || !workspace.roomId) {
+  const rooms = editorialRoomsFor(spec);
+  const editorialSpaces: { spaceId: string; roomId: string }[] = [];
+  for (let i = 0; i < rooms.length; i++) {
+    editorialSpaces.push(await ensureEditorialSpace(db, communityId!, rooms[i]!, i));
+  }
+  const workspace = editorialSpaces[0];
+  if (!workspace?.spaceId || !workspace?.roomId) {
     throw new Error(`[${spec.slug}] workspace missing`);
   }
-
-  const rooms = editorialRoomsFor(spec);
-  const roomIds: string[] = [];
-  for (let i = 0; i < rooms.length; i++) {
-    roomIds.push(await ensureRoom(db, communityId, workspace.spaceId, rooms[i]!, i + 1));
-  }
+  const roomIds = editorialSpaces.map((entry) => entry.roomId);
 
   const { data: existingPosts } = await db
     .from("community_posts")
@@ -638,16 +691,16 @@ async function seedCommunity(
     personas,
   );
 
-  const [{ count: postCount }, { count: roomCount }, { count: membershipCount }] = await Promise.all([
+  const [{ count: postCount }, { count: spaceCount }, { count: membershipCount }] = await Promise.all([
     db
       .from("community_posts")
       .select("id", { count: "exact", head: true })
       .eq("community_id", communityId)
       .eq("is_published", true),
     db
-      .from("rooms")
+      .from("spaces")
       .select("id", { count: "exact", head: true })
-      .eq("space_id", workspace.spaceId)
+      .eq("community_id", communityId)
       .eq("is_active", true),
     db
       .from("community_memberships")
@@ -663,7 +716,7 @@ async function seedCommunity(
     .update({
       member_count: actualMembers,
       post_count: postCount ?? 0,
-      space_count: 1,
+      space_count: spaceCount ?? rooms.length,
     })
     .eq("id", communityId);
   await db.from("spaces").update({ room_count: roomCount ?? 1 }).eq("id", workspace.spaceId);

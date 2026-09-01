@@ -642,6 +642,7 @@ export function HubCommunityOverview() {
               <OverviewSpacesPanel
                 slug={slug}
                 spaces={spacesWithRooms}
+                communityAvatarUrl={logo}
                 canManage={canCreateSpace}
                 onCreateSpace={() => setCreateSpaceOpen(true)}
               />
