@@ -55,6 +55,8 @@ export interface CloudinarySignature {
   apiKey:     string;
   cloudName:  string;
   folder:     CloudinaryFolder;
+  /** Signed Cloudinary upload type (`upload`, `private`, `authenticated`). */
+  type?:      "upload" | "private" | "authenticated";
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -86,7 +88,9 @@ export class CloudinaryService {
     formData.append("folder",    signatureParams.folder);
 
     // ← was missing; without this, private uploads are treated as public
-    const cloudinaryType = accessType === "public" ? "upload" : accessType;
+    const cloudinaryType =
+      signatureParams.type ??
+      (accessType === "public" ? "upload" : accessType);
     formData.append("type", cloudinaryType);
 
     const endpoint = `https://api.cloudinary.com/v1_1/${signatureParams.cloudName}/${resourceType}/upload`;

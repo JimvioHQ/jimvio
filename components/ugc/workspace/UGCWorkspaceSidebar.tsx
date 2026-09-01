@@ -26,7 +26,6 @@ import {
   Megaphone,
   PlusCircle,
   Scale,
-  Search,
   Shield,
   Sparkles,
   Star,
@@ -59,18 +58,28 @@ const PRIMARY_NAV: {
   { id: "dashboard", label: "Dashboard", href: "/ugc/dashboard", icon: LayoutDashboard, i18n: "dashboard" },
   { id: "discover", label: "Discover Campaigns", href: "/ugc", icon: Compass, i18n: "discover" },
   { id: "applications", label: "My Applications", href: "/ugc/applications", icon: FileVideo, i18n: "applications" },
+  { id: "submissions", label: "Submissions", href: "/ugc/submissions", icon: FileStack, i18n: "submissions" },
+  { id: "calendar", label: "Calendar", href: "/ugc/calendar", icon: Calendar, i18n: "calendar" },
+  { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign, i18n: "earnings" },
   { id: "creator-profile", label: "Creator Profile", href: "/identity/edit", icon: UserRound, i18n: "creatorProfileNav" },
+];
+
+/** Secondary creator destinations — collapsed by default to reduce sidebar clutter. */
+const CREATOR_TOOLS_MORE: {
+  id: string;
+  label: string;
+  href: string;
+  icon: typeof LayoutDashboard;
+  i18n?: UgcMessageKey;
+}[] = [
   { id: "projects", label: "Active Projects", href: "/ugc/campaigns", icon: Clapperboard, i18n: "projects" },
-  { id: "submissions", label: "Submissions", href: "/ugc/submissions", icon: FileVideo, i18n: "submissions" },
   { id: "library", label: "Library", href: "/ugc/library", icon: FolderOpen, i18n: "library" },
   { id: "saved", label: "Saved", href: "/ugc/saved", icon: Bookmark, i18n: "saved" },
-  { id: "calendar", label: "Calendar", href: "/ugc/calendar", icon: Calendar, i18n: "calendar" },
   { id: "matches", label: "Matches", href: "/ugc/matches", icon: Sparkles, i18n: "matches" },
   { id: "creator-copilot", label: "Creator Copilot", href: "/ugc/creator-copilot", icon: Bot, i18n: "creatorCopilot" },
   { id: "achievements", label: "Achievements", href: "/ugc/achievements", icon: Trophy, i18n: "achievements" },
   { id: "analytics", label: "Analytics", href: "/ugc/analytics", icon: BarChart3, i18n: "analytics" },
   { id: "insights", label: "Insights", href: "/ugc/insights", icon: LineChart, i18n: "insights" },
-  { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign, i18n: "earnings" },
   { id: "payouts", label: "Payouts", href: "/ugc/payouts", icon: Wallet, i18n: "payouts" },
   { id: "referrals", label: "Referrals", href: "/ugc/referrals", icon: Gift, i18n: "referrals" },
   { id: "deals", label: "Brand Deals", href: "/ugc/brand-deals", icon: Handshake, i18n: "deals" },
@@ -90,8 +99,6 @@ const CAMPAIGN_CENTER_MORE: {
   { id: "cc-templates", label: "Templates", href: "/ugc/campaign-center/templates", icon: FileStack, i18n: "templates" },
   { id: "cc-favorites", label: "Favorites", href: "/ugc/campaign-center/favorites", icon: Star, i18n: "favorites" },
   { id: "cc-invitations", label: "Invitations", href: "/ugc/campaign-center/invitations", icon: Mail, i18n: "invitations" },
-  { id: "cc-search", label: "Search", href: "/ugc/search", icon: Search, i18n: "search" },
-  { id: "cc-analytics", label: "Analytics", href: "/ugc/campaign-center/analytics", icon: BarChart3, i18n: "analytics" },
   { id: "cc-recruit", label: "Creator Recruitment", href: "/ugc/campaign-center/recruitment", icon: Users, i18n: "creatorRecruitment" },
   { id: "cc-assets", label: "Campaign Assets", href: "/ugc/campaign-center/assets", icon: ImageIcon, i18n: "campaignAssets" },
   { id: "cc-copilot", label: "Copilot", href: "/ugc/campaign-center/copilot", icon: Bot, i18n: "copilot" },
@@ -106,6 +113,7 @@ const CAMPAIGN_CENTER_MORE: {
 ];
 
 const CC_MORE_STORAGE_KEY = "jimvio-ugc-cc-more-expanded";
+const CREATOR_MORE_STORAGE_KEY = "jimvio-ugc-creator-more-expanded";
 
 function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/campaign-center/create")) return "cc-create";
@@ -142,7 +150,7 @@ function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/matches")) return "matches";
   if (pathname.startsWith("/ugc/creator-copilot")) return "creator-copilot";
   if (pathname.startsWith("/ugc/achievements")) return "achievements";
-  if (pathname.startsWith("/ugc/search")) return "cc-search";
+  if (pathname.startsWith("/ugc/search")) return "discover";
   if (pathname.startsWith("/ugc/insights")) return "insights";
   if (pathname.startsWith("/ugc/analytics")) return "analytics";
   if (pathname.startsWith("/ugc/earnings")) return "earnings";
@@ -207,8 +215,10 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
   const activeId = resolveActive(pathname);
   const openAssistant = useAIStore((s) => s.openAssistant);
   const moreItemActive = CAMPAIGN_CENTER_MORE.some((i) => i.id === activeId);
+  const creatorMoreActive = CREATOR_TOOLS_MORE.some((i) => i.id === activeId);
 
   const [moreOpen, setMoreOpen] = useState(false);
+  const [creatorMoreOpen, setCreatorMoreOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -217,22 +227,41 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
       if (saved === "1") setMoreOpen(true);
       else if (saved === "0") setMoreOpen(false);
       else if (moreItemActive) setMoreOpen(true);
+
+      const creatorSaved = localStorage.getItem(CREATOR_MORE_STORAGE_KEY);
+      if (creatorSaved === "1") setCreatorMoreOpen(true);
+      else if (creatorSaved === "0") setCreatorMoreOpen(false);
+      else if (creatorMoreActive) setCreatorMoreOpen(true);
     } catch {
       if (moreItemActive) setMoreOpen(true);
+      if (creatorMoreActive) setCreatorMoreOpen(true);
     }
     setHydrated(true);
-  }, [moreItemActive]);
+  }, [moreItemActive, creatorMoreActive]);
 
   useEffect(() => {
     if (!hydrated) return;
     if (moreItemActive && !moreOpen) setMoreOpen(true);
-  }, [moreItemActive, hydrated, moreOpen]);
+    if (creatorMoreActive && !creatorMoreOpen) setCreatorMoreOpen(true);
+  }, [moreItemActive, creatorMoreActive, hydrated, moreOpen, creatorMoreOpen]);
 
   const toggleMore = () => {
     setMoreOpen((prev) => {
       const next = !prev;
       try {
         localStorage.setItem(CC_MORE_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
+  const toggleCreatorMore = () => {
+    setCreatorMoreOpen((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(CREATOR_MORE_STORAGE_KEY, next ? "1" : "0");
       } catch {
         /* ignore */
       }
@@ -271,6 +300,61 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
               />
             </li>
           ))}
+        </ul>
+
+        <div className="mt-4 px-2.5 pb-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#9CA3AF]">
+            Creator tools
+          </p>
+        </div>
+        <ul className="space-y-[2px]">
+          <li>
+            <button
+              type="button"
+              onClick={toggleCreatorMore}
+              aria-expanded={creatorMoreOpen}
+              aria-label="Creator tools"
+              className={cn(
+                "group flex w-full items-center gap-2.5 rounded-[10px] px-2.5 py-[8px] text-[12px] font-medium transition-all duration-150",
+                creatorMoreOpen || creatorMoreActive
+                  ? "text-[#FF5A1F]"
+                  : "text-[#6B7280] hover:bg-[#F8FAFC] hover:text-[#111827]",
+              )}
+            >
+              <ChevronDown
+                className={cn(
+                  "h-[15px] w-[15px] shrink-0 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  creatorMoreOpen ? "rotate-0 text-[#FF5A1F]" : "-rotate-90 text-[#9CA3AF]",
+                )}
+                strokeWidth={2.2}
+              />
+              <span className="truncate font-semibold">More tools</span>
+            </button>
+            <AnimatePresence initial={false}>
+              {creatorMoreOpen ? (
+                <motion.ul
+                  key="creator-more"
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-[2px] pb-1 pt-0.5">
+                    {CREATOR_TOOLS_MORE.map((item) => (
+                      <li key={item.id}>
+                        <NavLink
+                          item={{ ...item, label: item.i18n ? t(item.i18n) : item.label }}
+                          active={item.id === activeId}
+                          onNavigate={onNavigate}
+                        />
+                      </li>
+                    ))}
+                  </div>
+                </motion.ul>
+              ) : null}
+            </AnimatePresence>
+          </li>
         </ul>
 
         <div className="mt-4 px-2.5 pb-1">

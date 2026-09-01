@@ -105,7 +105,8 @@ export function useCloudinaryUpload(
         //   "private"        → private (opaque URL, requires server-signed link)
         //   "authenticated"  → authenticated (Cloudinary access control)
         const cloudinaryType =
-          accessType === "public" ? "upload" : accessType;
+          sig.type ??
+          (accessType === "public" ? "upload" : accessType);
         formData.append("type", cloudinaryType);
 
         const endpoint = `https://api.cloudinary.com/v1_1/${sig.cloudName}/${resourceType}/upload`;

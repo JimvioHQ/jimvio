@@ -3,8 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getHubEvents } from "@/services/community/hub-data";
 import {
   createCommunityEvent,
+  deleteCommunityEvent,
+  listCommunityEventsForOwner,
   listHubCommunityEvents,
   setEventRsvp,
+  updateCommunityEvent,
   type CommunityEventKind,
 } from "@/lib/community/events";
 
@@ -30,6 +33,20 @@ export async function GET(req: NextRequest) {
   }
 
   const communitySlug = req.nextUrl.searchParams.get("community")?.trim() || "";
+  const communityId = req.nextUrl.searchParams.get("communityId")?.trim() || "";
+  const manage = req.nextUrl.searchParams.get("manage") === "1";
+
+  if (manage && communityId) {
+    try {
+      const events = await listCommunityEventsForOwner(user.id, communityId);
+      return NextResponse.json({ events });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Forbidden" },
+        { status: 403 },
+      );
+    }
+  }
 
   const [legacy, native] = await Promise.all([
     communitySlug ? Promise.resolve([]) : getHubEvents(user.id),
@@ -81,6 +98,52 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: error instanceof Error ? error.message : "RSVP failed" },
         { status: 400 }
+      );
+    }
+  }
+
+  if (body.action === "delete") {
+    try {
+      await deleteCommunityEvent({
+        userId: user.id,
+        eventId: String(body.eventId ?? ""),
+      });
+      return NextResponse.json({ ok: true });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Delete failed" },
+        { status: 400 },
+      );
+    }
+  }
+
+  if (body.action === "update") {
+    const eventId = String(body.eventId ?? "");
+    if (!eventId) {
+      return NextResponse.json({ error: "eventId is required" }, { status: 400 });
+    }
+    const kind = KINDS.has(body.kind) ? (body.kind as CommunityEventKind) : undefined;
+    try {
+      const event = await updateCommunityEvent({
+        userId: user.id,
+        eventId,
+        title: typeof body.title === "string" ? body.title.trim() : undefined,
+        description: body.description,
+        kind,
+        location: body.location,
+        isOnline: body.isOnline,
+        meetingUrl: body.meetingUrl,
+        imageUrl: body.imageUrl,
+        startsAt: typeof body.startsAt === "string" ? body.startsAt : undefined,
+        endsAt: body.endsAt,
+        capacity: body.capacity != null ? Number(body.capacity) : undefined,
+        isPublished: body.isPublished,
+      });
+      return NextResponse.json({ ok: true, event });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "Update failed" },
+        { status: 400 },
       );
     }
   }

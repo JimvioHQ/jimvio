@@ -9,6 +9,15 @@ cloudinarySDK.config({
   secure:     true,
 });
 
+export type CloudinaryAccessType = "public" | "private" | "authenticated";
+
+/** Cloudinary `type` param included in signed uploads. */
+export function cloudinaryUploadType(
+  accessType: CloudinaryAccessType = "public",
+): "upload" | "private" | "authenticated" {
+  return accessType === "public" ? "upload" : accessType;
+}
+
 // HMAC-SHA256 signature for signed uploads
 function buildSignature(paramsToSign: Record<string, string>): string {
   const crypto = require("crypto") as typeof import("crypto");
@@ -24,16 +33,21 @@ function buildSignature(paramsToSign: Record<string, string>): string {
 
 export const cloudinaryServer = {
   // Generate signed upload params (for client-direct uploads)
-  generateUploadSignature(folder: CloudinaryFolder): CloudinarySignature {
+  generateUploadSignature(
+    folder: CloudinaryFolder,
+    accessType: CloudinaryAccessType = "public",
+  ): CloudinarySignature {
     const timestamp = Math.floor(Date.now() / 1000).toString();
-    const paramsToSign: Record<string, string> = { folder, timestamp };
+    const type = cloudinaryUploadType(accessType);
+    const paramsToSign: Record<string, string> = { folder, timestamp, type };
     const signature = buildSignature(paramsToSign);
     return {
       timestamp,
       signature,
-      apiKey:    process.env.CLOUDINARY_API_KEY!,
+      apiKey: process.env.CLOUDINARY_API_KEY!,
       cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? "",
       folder,
+      type,
     };
   },
 

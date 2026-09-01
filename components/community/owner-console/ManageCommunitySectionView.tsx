@@ -10,6 +10,7 @@ import { ModerationManagement } from "@/components/community/owner-console/moder
 import { GroupsManagement } from "@/components/community/owner-console/groups";
 import { GroupSettingsPage } from "@/components/community/owner-console/groups/GroupSettingsPage";
 import { AnalyticsManagement } from "@/components/community/owner-console/analytics";
+import { EventsManagement } from "@/components/community/owner-console/events";
 import type { OwnerConsoleSectionId } from "@/lib/community/owner-console";
 
 const TOP_LEVEL: Partial<Record<OwnerConsoleSectionId, ComponentType<object> | null>> = {
@@ -19,6 +20,7 @@ const TOP_LEVEL: Partial<Record<OwnerConsoleSectionId, ComponentType<object> | n
   moderation: ModerationManagement,
   spaces: GroupsManagement,
   analytics: AnalyticsManagement,
+  events: EventsManagement,
 };
 
 function SectionFallback({ label }: { label: string }) {

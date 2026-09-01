@@ -96,6 +96,163 @@ export async function listHubCommunityEvents(userId: string) {
   });
 }
 
+export async function listCommunityEventsForOwner(
+  userId: string,
+  communityId: string,
+) {
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from("community_memberships")
+    .select("role")
+    .eq("community_id", communityId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  const { data: community } = await supabase
+    .from("communities")
+    .select("owner_id, slug, name")
+    .eq("id", communityId)
+    .maybeSingle();
+
+  const canManage =
+    community?.owner_id === userId ||
+    ["owner", "admin", "moderator"].includes(String(membership?.role ?? ""));
+  if (!canManage) throw new Error("Not authorized to manage events");
+
+  const { data: events, error } = await db()
+    .from("community_events")
+    .select(
+      "id, community_id, created_by, title, description, kind, location, is_online, meeting_url, image_url, starts_at, ends_at, capacity, rsvp_count, is_published",
+    )
+    .eq("community_id", communityId)
+    .order("starts_at", { ascending: true })
+    .limit(200);
+  if (error) throw error;
+
+  return (events ?? []).map((e: CommunityEventRow) => ({
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    start_date: e.starts_at,
+    end_date: e.ends_at,
+    location: e.location ?? (e.is_online ? "Online" : null),
+    image_url: e.image_url,
+    attendee_count: Number(e.rsvp_count ?? 0),
+    kind: e.kind,
+    is_published: e.is_published,
+    meeting_url: e.meeting_url,
+    capacity: e.capacity,
+    community_name: community?.name ?? null,
+    community_slug: community?.slug ?? null,
+    source: "event" as const,
+  }));
+}
+
+export async function updateCommunityEvent(input: {
+  userId: string;
+  eventId: string;
+  title?: string;
+  description?: string | null;
+  kind?: CommunityEventKind;
+  location?: string | null;
+  isOnline?: boolean;
+  meetingUrl?: string | null;
+  imageUrl?: string | null;
+  startsAt?: string;
+  endsAt?: string | null;
+  capacity?: number | null;
+  isPublished?: boolean;
+}) {
+  const { data: event } = await db()
+    .from("community_events")
+    .select("id, community_id, created_by")
+    .eq("id", input.eventId)
+    .maybeSingle();
+  if (!event) throw new Error("Event not found");
+
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from("community_memberships")
+    .select("role")
+    .eq("community_id", event.community_id)
+    .eq("user_id", input.userId)
+    .eq("status", "active")
+    .maybeSingle();
+  const { data: community } = await supabase
+    .from("communities")
+    .select("owner_id")
+    .eq("id", event.community_id)
+    .maybeSingle();
+
+  const canManage =
+    community?.owner_id === input.userId ||
+    event.created_by === input.userId ||
+    ["owner", "admin", "moderator"].includes(String(membership?.role ?? ""));
+  if (!canManage) throw new Error("Not authorized to update this event");
+
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (input.title != null) patch.title = input.title.trim();
+  if (input.description !== undefined) patch.description = input.description?.trim() || null;
+  if (input.kind != null) patch.kind = input.kind;
+  if (input.location !== undefined) patch.location = input.location?.trim() || null;
+  if (input.isOnline != null) patch.is_online = input.isOnline;
+  if (input.meetingUrl !== undefined) patch.meeting_url = input.meetingUrl?.trim() || null;
+  if (input.imageUrl !== undefined) patch.image_url = input.imageUrl?.trim() || null;
+  if (input.startsAt != null) patch.starts_at = input.startsAt;
+  if (input.endsAt !== undefined) patch.ends_at = input.endsAt;
+  if (input.capacity !== undefined) patch.capacity = input.capacity;
+  if (input.isPublished != null) patch.is_published = input.isPublished;
+
+  const { data, error } = await db()
+    .from("community_events")
+    .update(patch)
+    .eq("id", input.eventId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteCommunityEvent(input: {
+  userId: string;
+  eventId: string;
+}) {
+  const { data: event } = await db()
+    .from("community_events")
+    .select("id, community_id, created_by")
+    .eq("id", input.eventId)
+    .maybeSingle();
+  if (!event) throw new Error("Event not found");
+
+  const supabase = await createClient();
+  const { data: membership } = await supabase
+    .from("community_memberships")
+    .select("role")
+    .eq("community_id", event.community_id)
+    .eq("user_id", input.userId)
+    .eq("status", "active")
+    .maybeSingle();
+  const { data: community } = await supabase
+    .from("communities")
+    .select("owner_id")
+    .eq("id", event.community_id)
+    .maybeSingle();
+
+  const canManage =
+    community?.owner_id === input.userId ||
+    event.created_by === input.userId ||
+    ["owner", "admin", "moderator"].includes(String(membership?.role ?? ""));
+  if (!canManage) throw new Error("Not authorized to delete this event");
+
+  const { error } = await db()
+    .from("community_events")
+    .delete()
+    .eq("id", input.eventId);
+  if (error) throw error;
+  return { ok: true };
+}
+
 export async function createCommunityEvent(input: {
   userId: string;
   communityId: string;

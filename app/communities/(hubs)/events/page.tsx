@@ -45,6 +45,7 @@ function EventsPage() {
   const legacyTab = searchParams.get("tab");
   const communitySlug = searchParams.get("community")?.trim() || "";
   const [loading, setLoading] = useState(true);
+  const [authRequired, setAuthRequired] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"upcoming" | "past">("upcoming");
   const [events, setEvents] = useState<HubEvent[]>([]);
@@ -66,6 +67,13 @@ function EventsPage() {
           ? `?community=${encodeURIComponent(communitySlug)}`
           : "";
         const res = await fetch(`/api/c/events${qs}`);
+        if (res.status === 401) {
+          if (!cancelled) {
+            setAuthRequired(true);
+            setEvents([]);
+          }
+          return;
+        }
         if (!res.ok) return;
         const data = (await res.json()) as { events: HubEvent[] };
         if (!cancelled) setEvents(data.events ?? []);
@@ -153,6 +161,17 @@ function EventsPage() {
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
           </div>
+        ) : authRequired ? (
+          <HubCard className="py-12 text-center">
+            <Calendar className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
+            <p className="text-[14px] font-bold">Sign in to view events</p>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+              Your community calendar, RSVPs, and campaign deadlines appear here after you sign in.
+            </p>
+            <HubLinkButton href="/login?redirect=/communities/events" className="mt-4">
+              Sign in
+            </HubLinkButton>
+          </HubCard>
         ) : filteredEvents.length === 0 ? (
           <HubCard className="py-12 text-center">
             <Calendar className="mx-auto mb-3 h-10 w-10 text-zinc-300" />

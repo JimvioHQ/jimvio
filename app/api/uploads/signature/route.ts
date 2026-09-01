@@ -9,13 +9,24 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { folder } = await req.json() as { folder: CloudinaryFolder };
+    const { folder, accessType } = await req.json() as {
+      folder: CloudinaryFolder;
+      accessType?: "public" | "private" | "authenticated";
+    };
 
     if (!ALL_CLOUDINARY_FOLDERS.includes(folder)) {
       return NextResponse.json({ error: "Invalid folder" }, { status: 400 });
     }
 
-    const signature = cloudinaryServer.generateUploadSignature(folder);
+    const normalizedAccess =
+      accessType === "private" || accessType === "authenticated"
+        ? accessType
+        : "public";
+
+    const signature = cloudinaryServer.generateUploadSignature(
+      folder,
+      normalizedAccess,
+    );
     return NextResponse.json({ success: true, data: signature });
   } catch {
     return NextResponse.json({ error: "Failed to generate signature" }, { status: 500 });
