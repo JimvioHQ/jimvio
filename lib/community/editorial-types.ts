@@ -50,6 +50,8 @@ export type EditorialRoomSpec = {
   messages: EditorialMessageSpec[];
 };
 
+export type EditorialCommunityAccess = "free" | "paid" | "private";
+
 export type EditorialCommunitySpec = {
   slug: string;
   name: string;
@@ -70,5 +72,7 @@ export type EditorialCommunitySpec = {
   /** Editorial display member count (≤ 2000). Real memberships may be a smaller authorship pool. */
   targetMemberCount?: number;
   activity?: "high" | "medium" | "low";
+  /** Majority free/public; small paid + private minorities. */
+  access?: EditorialCommunityAccess;
   posts: EditorialPostSpec[];
 };

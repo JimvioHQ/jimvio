@@ -177,21 +177,22 @@ export async function GET(req: NextRequest) {
       query = query.in("author_id", [...friendAuthorIds]);
       break;
     case "spaces":
-      query = query
-        .neq("space_id", "00000000-0000-0000-0000-000000000000")
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false });
+      query = query.neq("space_id", "00000000-0000-0000-0000-000000000000");
       break;
     case "missions":
-      query = query
-        .in("post_type", ["mission", "task", "challenge"])
-        .order("created_at", { ascending: false });
+      query = query.in("post_type", ["mission", "task", "challenge"]);
       break;
     default:
       break;
   }
 
-  query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
+  // Global feed: chronological only so pins cannot monopolize the stream.
+  // Community-scoped feed: keep pins as a community-level feature.
+  if (communityId) {
+    query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
   // Paginate chronologically so cursor pages never skip/duplicate posts.
   // Ranking may reorder *within* a page for display, but must not drive the cursor.
   const { data, error } = await query.limit(limit + 1);

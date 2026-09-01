@@ -61,7 +61,8 @@ export function feedScore(item: RankableFeedItem, ctx: RankContext = {}): number
   if (item.author_id && ctx.viewerId && item.author_id === ctx.viewerId) relationship += 1;
 
   const spamPenalty = looksLikeSpam(item.body) ? 12 : 0;
-  const pin = item.is_pinned ? 10_000 : 0;
+  // Soft within-page nudge only — never let pins dominate a global page.
+  const pin = item.is_pinned ? 0.35 : 0;
 
   return pin + freshness * 12 + engagement + relationship - spamPenalty;
 }

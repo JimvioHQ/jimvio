@@ -31,24 +31,34 @@ function excludeTechnicalPosts<T extends { body?: string | null }>(rows: T[]): T
 /** Match RLS COALESCE(is_private, false) = false — NULL privacy is public. */
 export async function loadPublicCommunityIds(
   db: Db,
-  limit = 80,
+  limit = 2000,
 ): Promise<{ ids: string[]; error: string | null }> {
-  const { data, error } = await db
-    .from("communities")
-    .select("id, is_active, is_private, visibility, visibility_mode, archived_at")
-    .eq("is_active", true)
-    .or("is_private.eq.false,is_private.is.null")
-    .order("member_count", { ascending: false })
-    .limit(limit);
+  const ids: string[] = [];
+  const pageSize = 200;
+  let from = 0;
 
-  if (error) {
-    console.error("Error loading public communities:", error);
-    return { ids: [], error: error.message };
+  while (ids.length < limit) {
+    const to = from + pageSize - 1;
+    const { data, error } = await db
+      .from("communities")
+      .select("id, is_active, is_private, visibility, visibility_mode, archived_at")
+      .eq("is_active", true)
+      .or("is_private.eq.false,is_private.is.null")
+      .order("member_count", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Error loading public communities:", error);
+      return { ids: [], error: error.message };
+    }
+
+    const rows = data ?? [];
+    ids.push(...rows.filter(communityIsPubliclyDiscoverable).map((c) => c.id));
+    if (rows.length < pageSize) break;
+    from += pageSize;
   }
-  return {
-    ids: (data ?? []).filter(communityIsPubliclyDiscoverable).map((c) => c.id),
-    error: null,
-  };
+
+  return { ids: ids.slice(0, limit), error: null };
 }
 
 export type PublicDiscoveryFeedParams = {
@@ -170,7 +180,13 @@ export async function loadPublicDiscoveryFeed(
       break;
   }
 
-  query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
+  // Global discovery is chronological so pinned welcome posts cannot dominate.
+  // Community-scoped feeds may still surface pins first (community-level feature).
+  if (communityId) {
+    query = query.order("is_pinned", { ascending: false }).order("created_at", { ascending: false });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
   const { data, error } = await query.limit(Math.min(limit * 2 + 4, 80));
 
   if (error) {

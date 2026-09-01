@@ -43,6 +43,15 @@ function atDaysAgo(daysAgo: number, hour = 12): string {
   return date.toISOString();
 }
 
+function hashSlug(input: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
 function isTransientSeedError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return /fetch failed|ECONNRESET|ETIMEDOUT|socket hang up|429|503|502|network/i.test(msg);
@@ -270,6 +279,11 @@ async function seedCommunity(
     .eq("slug", spec.slug)
     .maybeSingle();
 
+  const access = spec.access ?? "free";
+  const isPrivate = access === "private";
+  const isPaid = access === "paid";
+  const monthlyPrice = isPaid ? 9 + (hashSlug(spec.slug) % 22) : null;
+
   const fields = {
     name: spec.name,
     tagline: spec.tagline,
@@ -277,10 +291,13 @@ async function seedCommunity(
     long_description: spec.longDescription,
     category: spec.category,
     tags: spec.tags,
-    visibility: "public" as const,
-    visibility_mode: "public" as const,
-    is_private: false,
-    is_free: true,
+    visibility: isPrivate ? ("private" as const) : ("public" as const),
+    visibility_mode: isPrivate ? ("private" as const) : ("public" as const),
+    is_private: isPrivate,
+    is_free: !isPaid,
+    monthly_price: monthlyPrice,
+    yearly_price: isPaid && monthlyPrice != null ? monthlyPrice * 10 : null,
+    currency: isPaid ? "USD" : null,
     is_featured: featuredFlag,
     is_active: true,
     member_count: targetMembers,
@@ -400,7 +417,7 @@ async function seedCommunity(
       attachments,
       images: post.images ?? null,
       video_url: post.videoUrl ?? null,
-      audience: "public",
+      audience: isPrivate ? "community" : "public",
       is_published: true,
       is_pinned: Boolean(post.pinned),
       is_exclusive: false,

@@ -95,6 +95,10 @@ function engagement(slug: string, key: string, activity: WorldCommunitySeed["act
 function buildRooms(seed: WorldCommunitySeed): EditorialRoomSpec[] {
   return seed.rooms.map((room, index) => {
     const prefix = `${seed.slug}-${room.slug}`;
+    const p0 = seed.prompts[index % seed.prompts.length]!;
+    const p1 = seed.prompts[(index + 1) % seed.prompts.length]!;
+    const p2 = seed.prompts[(index + 2) % seed.prompts.length]!;
+    const density = seed.activity === "high" ? 14 : seed.activity === "medium" ? 10 : 7;
     const messages: EditorialMessageSpec[] = [
       {
         key: `${prefix}-m1`,
@@ -105,7 +109,7 @@ function buildRooms(seed: WorldCommunitySeed): EditorialRoomSpec[] {
       },
       {
         key: `${prefix}-m2`,
-        body: `Question: ${seed.prompts[index % seed.prompts.length]}`,
+        body: p0,
         daysAgo: 52 - index,
         hour: 11,
       },
@@ -113,8 +117,8 @@ function buildRooms(seed: WorldCommunitySeed): EditorialRoomSpec[] {
         key: `${prefix}-m3`,
         body:
           index % 2 === 0
-            ? "I tried a similar approach last month. The hard part was getting the first step clear before optimizing."
-            : "That matches what I have seen — constraints first, then tools.",
+            ? `I tried something similar in ${seed.topic}. The hard part was clarifying the first step before optimizing.`
+            : `That matches what I have seen in ${room.focus} — constraints first, then tools.`,
         daysAgo: 51 - index,
         hour: 14,
         replyToKey: `${prefix}-m2`,
@@ -124,7 +128,7 @@ function buildRooms(seed: WorldCommunitySeed): EditorialRoomSpec[] {
         body:
           index % 2 === 0
             ? "Would you share what you would change if you ran it again?"
-            : "Any checklist you keep for newcomers in this channel?",
+            : `Any checklist you keep for newcomers in ${room.name}?`,
         daysAgo: 28 - index,
         hour: 16,
         replyToKey: `${prefix}-m3`,
@@ -134,20 +138,82 @@ function buildRooms(seed: WorldCommunitySeed): EditorialRoomSpec[] {
         body:
           index % 2 === 0
             ? "I would document the failure mode earlier. It saves the second week of thrash."
-            : "Short welcome, one example, link to the longer Discussion post.",
+            : "Short welcome, one example, then link the longer Discussion post.",
         daysAgo: 27 - index,
         hour: 10,
         replyToKey: `${prefix}-m4`,
       },
-    ];
-    if (seed.activity !== "low") {
-      messages.push({
+      {
         key: `${prefix}-m6`,
-        body: `Resource note for ${seed.topic}: when you share a tip, add where it fails. That keeps the thread honest.`,
-        daysAgo: 9 - Math.min(index, 8),
+        body: p1,
+        daysAgo: 18 - Math.min(index, 8),
+        hour: 12,
+      },
+      {
+        key: `${prefix}-m7`,
+        body: `On ${seed.topic}: when you share a tip, add where it fails. That keeps the thread honest.`,
+        daysAgo: 17 - Math.min(index, 8),
         hour: 15,
-      });
+        replyToKey: `${prefix}-m6`,
+      },
+    ];
+
+    if (density >= 10) {
+      messages.push(
+        {
+          key: `${prefix}-m8`,
+          body: `Has anyone compared approaches for ${room.focus} this month?`,
+          daysAgo: 12 - Math.min(index, 6),
+          hour: 11,
+        },
+        {
+          key: `${prefix}-m9`,
+          body: `Yes — I tested a lighter workflow yesterday. Worked better after cutting noise from the first draft.`,
+          daysAgo: 11 - Math.min(index, 6),
+          hour: 14,
+          replyToKey: `${prefix}-m8`,
+        },
+        {
+          key: `${prefix}-m10`,
+          body: `Did it hold up on a tighter deadline?`,
+          daysAgo: 11 - Math.min(index, 6),
+          hour: 16,
+          replyToKey: `${prefix}-m9`,
+        },
+      );
     }
+
+    if (density >= 14) {
+      messages.push(
+        {
+          key: `${prefix}-m11`,
+          body: p2,
+          daysAgo: 6 - Math.min(index, 4),
+          hour: 10,
+        },
+        {
+          key: `${prefix}-m12`,
+          body: `I bookmarked that. Going to try it on my next ${seed.topic} session.`,
+          daysAgo: 5 - Math.min(index, 4),
+          hour: 13,
+          replyToKey: `${prefix}-m11`,
+        },
+        {
+          key: `${prefix}-m13`,
+          body: `Same — especially the part about measuring one metric before adding tools.`,
+          daysAgo: 4 - Math.min(index, 4),
+          hour: 17,
+          replyToKey: `${prefix}-m12`,
+        },
+        {
+          key: `${prefix}-m14`,
+          body: `Resource for ${room.name}: share one primary source or example, not five half-finished links.`,
+          daysAgo: 2,
+          hour: 9,
+        },
+      );
+    }
+
     return {
       slug: room.slug === "general" && index === 0 ? `${seed.slug}-general` : room.slug,
       name: room.name,
@@ -156,6 +222,55 @@ function buildRooms(seed: WorldCommunitySeed): EditorialRoomSpec[] {
       messages,
     };
   });
+}
+
+function commentBodiesFor(seed: WorldCommunitySeed, i: number): EditorialCommentSpec[] {
+  const comments: EditorialCommentSpec[] = [];
+  const roll = hash(`${seed.slug}:croll:${i}`) % 10;
+  // Varied density: 0, 1, 2–3, occasionally more — never every post identical.
+  if (roll === 0) return comments;
+
+  comments.push({
+    key: `${seed.slug}-p${i}-c1`,
+    body:
+      roll % 2 === 0
+        ? `Naming the constraint in ${seed.topic} first usually gets better replies than a hot take.`
+        : `I hit this last week in ${seed.topic}. Specifics beat slogans here.`,
+    daysAgo: Math.max(1, 60 - i * 3),
+    hour: 12,
+  });
+
+  if (roll >= 4) {
+    comments.push({
+      key: `${seed.slug}-p${i}-c2`,
+      body:
+        roll % 3 === 0
+          ? "Agree — one concrete example beats three abstract principles."
+          : `Curious what you would try differently with half the time on ${seed.topic}.`,
+      daysAgo: Math.max(1, 59 - i * 3),
+      hour: 15,
+    });
+  }
+
+  if (roll >= 7) {
+    comments.push({
+      key: `${seed.slug}-p${i}-c3`,
+      body: `That tracks with what I have seen. Would love a short checklist for newcomers.`,
+      daysAgo: Math.max(1, 58 - i * 3),
+      hour: 18,
+    });
+  }
+
+  if (roll >= 9 && seed.activity === "high") {
+    comments.push({
+      key: `${seed.slug}-p${i}-c4`,
+      body: `I tried a lighter version of this and the failure mode showed up earlier — useful.`,
+      daysAgo: Math.max(1, 57 - i * 3),
+      hour: 20,
+    });
+  }
+
+  return comments;
 }
 
 function buildPosts(seed: WorldCommunitySeed): EditorialPostSpec[] {
@@ -181,6 +296,12 @@ function buildPosts(seed: WorldCommunitySeed): EditorialPostSpec[] {
         daysAgo: 94,
         hour: 9,
       },
+      {
+        key: `${seed.slug}-welcome-c2`,
+        body: `Glad this room exists for ${seed.topic}. Looking forward to practical threads.`,
+        daysAgo: 90,
+        hour: 14,
+      },
     ],
   });
 
@@ -188,35 +309,10 @@ function buildPosts(seed: WorldCommunitySeed): EditorialPostSpec[] {
   while (posts.length < budget - 2) {
     const prompt = seed.prompts[i % seed.prompts.length]!;
     const kind = hash(`${seed.slug}:kind:${i}`) % 10;
-    // ~40% text, ~35% photo, ~15% video, remainder structured later via poll/promo
     const isPhoto = kind >= 4 && kind <= 7;
     const isVideo = kind >= 8;
     const eng = engagement(seed.slug, `p${i}`, seed.activity);
-    const comments: EditorialCommentSpec[] = [];
-    if (i % 3 === 0) {
-      comments.push({
-        key: `${seed.slug}-p${i}-c1`,
-        body: "Naming the constraint first usually gets better replies than a hot take.",
-        daysAgo: Math.max(1, 60 - i * 3),
-        hour: 12,
-      });
-    }
-    if (i % 4 === 0) {
-      comments.push({
-        key: `${seed.slug}-p${i}-c2`,
-        body: "Agree — one concrete example beats three abstract principles.",
-        daysAgo: Math.max(1, 59 - i * 3),
-        hour: 15,
-      });
-    }
-    if (i % 5 === 0 && seed.activity === "high") {
-      comments.push({
-        key: `${seed.slug}-p${i}-c3`,
-        body: "Curious what you would try differently with half the time.",
-        daysAgo: Math.max(1, 58 - i * 3),
-        hour: 18,
-      });
-    }
+    const comments = commentBodiesFor(seed, i);
 
     const post: EditorialPostSpec = {
       key: `${seed.slug}-prompt-${i}`,
@@ -248,10 +344,10 @@ function buildPosts(seed: WorldCommunitySeed): EditorialPostSpec[] {
     daysAgo: 21,
     hour: 13,
     pollOptions: seed.pollOptions,
+    comments: commentBodiesFor(seed, 900),
     ...engagement(seed.slug, "poll", seed.activity),
   });
 
-  // ~1 promo per community (not spammy at world scale)
   const promo = PROMO_COPY[seed.promoHref];
   posts.push({
     key: `${seed.slug}-promo-0`,
@@ -266,6 +362,14 @@ function buildPosts(seed: WorldCommunitySeed): EditorialPostSpec[] {
   });
 
   return posts;
+}
+
+/** ~5% private, ~5% paid, rest free/public — deterministic per slug. */
+export function accessModeFor(seed: WorldCommunitySeed): "free" | "paid" | "private" {
+  const bucket = hash(`${seed.slug}:access`) % 20;
+  if (bucket === 0) return "private";
+  if (bucket === 1) return "paid";
+  return "free";
 }
 
 export function buildWorldCommunity(seed: WorldCommunitySeed): EditorialCommunitySpec {
@@ -290,6 +394,7 @@ export function buildWorldCommunity(seed: WorldCommunitySeed): EditorialCommunit
     featured: Boolean(seed.featured),
     targetMemberCount: targetMemberCountFor(seed),
     activity: seed.activity,
+    access: accessModeFor(seed),
     extraRoom: primary!,
     extraRooms: rest,
     posts: buildPosts(seed),
