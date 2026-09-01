@@ -143,6 +143,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { count: activeSpaceCount } = await supabase
+    .from("spaces")
+    .select("id", { count: "exact", head: true })
+    .eq("community_id", communityId)
+    .eq("is_active", true)
+    .eq("is_hidden", false);
+
+  if ((activeSpaceCount ?? 0) >= 1) {
+    return NextResponse.json(
+      { error: "Each community supports one Space. Edit the existing Space instead." },
+      { status: 409 }
+    );
+  }
+
   const { count } = await supabase
     .from("spaces")
     .select("id", { count: "exact", head: true })

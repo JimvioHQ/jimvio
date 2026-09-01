@@ -66,7 +66,7 @@ export function ChannelWorkspace({
   members: membersProp,
   drawerOpen = false,
   drawer,
-  initialTab = "home",
+  initialTab = "discussion",
   onSearch,
   roomId,
   communityId,

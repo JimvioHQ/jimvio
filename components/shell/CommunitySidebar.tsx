@@ -14,9 +14,10 @@ import {
 import { CreateSpaceDialog } from "@/components/community/CreateSpaceDialog";
 import {
   communitySpaceHref,
-  hasCapability,
-  resolveWorkspaceRole,
+  resolvePrimarySpace,
+  resolveSpaceAvatarSrc,
 } from "@/lib/community/workspace";
+import { safeMediaUrl } from "@/lib/media/optimize-url";
 
 type CommunityNavItem = "overview" | "spaces";
 
@@ -71,9 +72,13 @@ function formatMemberCount(count: number): string {
 
 function buildSpaces(
   communitySlug: string,
-  spacesWithRooms: WorkspaceSpaceRow[]
+  spacesWithRooms: WorkspaceSpaceRow[],
+  communityAvatar?: string | null,
+  communityCover?: string | null
 ): SpaceItem[] {
-  return spacesWithRooms.map((space, index) => ({
+  const primary = resolvePrimarySpace(spacesWithRooms);
+  const list = primary ? [primary] : spacesWithRooms.slice(0, 1);
+  return list.map((space) => ({
     id: space.id,
     slug: space.slug,
     label: space.name,
@@ -82,8 +87,12 @@ function buildSpaces(
       ""
     ),
     memberCount: space.member_count ?? 0,
-    iconColor: SPACE_ICON_COLORS[index % SPACE_ICON_COLORS.length],
-    iconUrl: space.icon,
+    iconColor: "bg-orange-500",
+    iconUrl:
+      safeMediaUrl(
+        resolveSpaceAvatarSrc(space, communityAvatar, communityCover) ?? undefined,
+        96
+      ) ?? space.icon,
   }));
 }
 
@@ -331,19 +340,15 @@ export function CommunitySidebar({
 
   const spaces = useMemo(() => {
     if (spacesProp !== undefined) return spacesProp;
-    return buildSpaces(slug, spacesWithRooms);
-  }, [spacesProp, spacesWithRooms, slug]);
+    return buildSpaces(
+      slug,
+      spacesWithRooms,
+      workspace?.avatarUrl,
+      workspace?.coverUrl
+    );
+  }, [spacesProp, spacesWithRooms, slug, workspace?.avatarUrl, workspace?.coverUrl]);
 
-  const canCreateSpace = workspace
-    ? hasCapability(
-        resolveWorkspaceRole({
-          userId: workspace.userId,
-          ownerId: workspace.ownerId,
-          membership: workspace.membership,
-        }),
-        "group.create"
-      )
-    : false;
+  const canCreateSpace = false;
   const communityId = workspace?.communityId ?? null;
 
   const bodyProps = {

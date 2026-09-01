@@ -194,6 +194,95 @@ function authorshipPool(
   return scored.slice(0, Math.min(size, scored.length)).map((s) => s.p);
 }
 
+async function ensurePrimaryEditorialSpace(
+  db: SupabaseClient,
+  communityId: string,
+  spec: EditorialCommunitySpec,
+): Promise<{ spaceId: string; roomId: string }> {
+  const name = spec.name.slice(0, 120);
+  const slug = "general";
+  const description =
+    spec.extraRoom.description ??
+    spec.welcomeMessage?.slice(0, 500) ??
+    `Main space for ${spec.name}`;
+
+  const { data: existingSpace } = await db
+    .from("spaces")
+    .select("id")
+    .eq("community_id", communityId)
+    .eq("slug", slug)
+    .maybeSingle();
+
+  let spaceId = existingSpace?.id as string | undefined;
+  if (!spaceId) {
+    const { data: inserted, error } = await db
+      .from("spaces")
+      .insert({
+        community_id: communityId,
+        name,
+        slug,
+        description,
+        icon: "💬",
+        sort_order: 0,
+        access_type: "free",
+        privacy: "public",
+        space_type: "discussion",
+        is_active: true,
+        is_featured: true,
+        room_count: 0,
+        member_count: 0,
+        last_activity_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    if (error || !inserted?.id) throw new Error(`[${spec.slug}] primary space: ${error?.message}`);
+    spaceId = inserted.id;
+  } else {
+    await db
+      .from("spaces")
+      .update({
+        name,
+        description,
+        is_active: true,
+        is_hidden: false,
+        is_featured: true,
+        sort_order: 0,
+      })
+      .eq("id", spaceId);
+  }
+
+  const roomId = await ensureRoom(
+    db,
+    communityId,
+    spaceId,
+    {
+      name: "Discussion",
+      slug: "discussion",
+      description,
+      welcomeMessage: spec.extraRoom.welcomeMessage ?? spec.welcomeMessage,
+      messages: [],
+    },
+    0
+  );
+
+  const { data: redundant } = await db
+    .from("spaces")
+    .select("id")
+    .eq("community_id", communityId)
+    .neq("id", spaceId)
+    .eq("is_active", true);
+
+  for (const row of redundant ?? []) {
+    await db
+      .from("spaces")
+      .update({ is_active: false, is_hidden: true })
+      .eq("id", row.id);
+  }
+
+  await db.from("spaces").update({ room_count: 1, name }).eq("id", spaceId);
+  return { spaceId, roomId };
+}
+
 async function ensureEditorialSpace(
   db: SupabaseClient,
   communityId: string,
@@ -554,15 +643,8 @@ async function seedCommunity(
   }
 
   const rooms = editorialRoomsFor(spec);
-  const editorialSpaces: { spaceId: string; roomId: string }[] = [];
-  for (let i = 0; i < rooms.length; i++) {
-    editorialSpaces.push(await ensureEditorialSpace(db, communityId!, rooms[i]!, i));
-  }
-  const workspace = editorialSpaces[0];
-  if (!workspace?.spaceId || !workspace?.roomId) {
-    throw new Error(`[${spec.slug}] workspace missing`);
-  }
-  const roomIds = editorialSpaces.map((entry) => entry.roomId);
+  const workspace = await ensurePrimaryEditorialSpace(db, communityId!, spec);
+  const discussionRoomId = workspace.roomId;
 
   const { data: existingPosts } = await db
     .from("community_posts")
@@ -672,14 +754,17 @@ async function seedCommunity(
     await db.from("community_posts").update({ comment_count: count ?? 0 }).eq("id", postId);
   }
 
-  for (let r = 0; r < rooms.length; r++) {
-    const room = rooms[r]!;
-    const roomId = roomIds[r]!;
-    await seedRoomMessages(db, communityId, roomId, room.messages, spec, owner, personas);
+  for (const room of rooms) {
+    await seedRoomMessages(
+      db,
+      communityId,
+      discussionRoomId,
+      room.messages,
+      spec,
+      owner,
+      personas
+    );
   }
-
-  const discussionRoomId = await getDiscussionRoomId(db, communityId, workspace.spaceId);
-  if (!discussionRoomId) throw new Error(`[${spec.slug}] discussion room missing`);
 
   await seedRoomMessages(
     db,
@@ -688,7 +773,7 @@ async function seedCommunity(
     buildDefaultDiscussionMessages(spec),
     spec,
     owner,
-    personas,
+    personas
   );
 
   const [{ count: postCount }, { count: spaceCount }, { count: membershipCount }] = await Promise.all([

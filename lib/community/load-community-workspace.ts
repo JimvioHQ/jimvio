@@ -4,6 +4,7 @@ import { buildPointsSnapshot } from "@/lib/community/points";
 import { getCommunityOverviewStats, type CommunityOverviewStats } from "@/services/community/hub-data";
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
 import { communityIsRestrictedToMembers } from "@/lib/community/join-policy";
+import { resolvePrimarySpace } from "@/lib/community/workspace/primary-space";
 
 export type CommunityWorkspacePayload = {
   community: {
@@ -147,7 +148,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
     roomsBySpace.set(r.space_id, list);
   }
 
-  const spacesWithRooms: WorkspaceSpaceRow[] = (spacesRes.data ?? [])
+  const allSpacesWithRooms: WorkspaceSpaceRow[] = (spacesRes.data ?? [])
     .filter((s) => canSeeRestricted || isPublicSpace(s.access_type))
     .map((s) => ({
       id: s.id,
@@ -178,6 +179,9 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
         channel_staff_role: staffByRoom.get(r.id) ?? null,
       })),
     }));
+
+  const primarySpace = resolvePrimarySpace(allSpacesWithRooms);
+  const spacesWithRooms = primarySpace ? [primarySpace] : allSpacesWithRooms.slice(0, 1);
 
   const points: PointsSnapshot | null = pointsRes.data
     ? buildPointsSnapshot(

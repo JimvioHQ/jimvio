@@ -23,6 +23,45 @@ async function getUserCommunityIds(supabase: Awaited<ReturnType<typeof createCli
   return (memberships ?? []).map((m) => m.community_id);
 }
 
+/** Joined + publicly discoverable communities the user may browse Spaces for. */
+async function getAccessibleCommunityIds(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string
+): Promise<string[]> {
+  const joined = await getUserCommunityIds(supabase, userId);
+  const ids = new Set(joined);
+
+  const { data: owned } = await supabase
+    .from("communities")
+    .select("id")
+    .eq("owner_id", userId)
+    .eq("is_active", true);
+  for (const row of owned ?? []) ids.add(row.id);
+
+  const { data: publicRows } = await supabase
+    .from("communities")
+    .select("id")
+    .eq("is_active", true)
+    .or("is_private.eq.false,is_private.is.null")
+    .limit(500);
+  for (const row of publicRows ?? []) ids.add(row.id);
+
+  return [...ids];
+}
+
+function pickPrimarySpace<T extends { id: string; slug: string; sort_order?: number | null; is_featured?: boolean | null }>(
+  spaces: T[]
+): T | null {
+  if (!spaces.length) return null;
+  return (
+    spaces.find((s) => s.slug === "general") ??
+    spaces.find((s) => s.is_featured) ??
+    [...spaces].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0] ??
+    spaces[0] ??
+    null
+  );
+}
+
 export type HubPlatformStats = {
   membersOnline: number;
   membersOnlineDelta: string | null;
@@ -104,6 +143,10 @@ export type HubSpaceItem = {
   room_count: number;
   member_count: number;
   href: string;
+  access_type: string;
+  last_message: string | null;
+  last_message_at: string | null;
+  message_count: number;
 };
 
 export type HubMissionItem = {
@@ -818,21 +861,88 @@ export type HubChannelItem = {
 
 export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
   const supabase = await createClient();
-  const communityIds = await getUserCommunityIds(supabase, userId);
+  const communityIds = await getAccessibleCommunityIds(supabase, userId);
   if (communityIds.length === 0) return [];
 
   const { data: spaces } = await supabase
     .from("spaces")
     .select(
-      "id, name, slug, description, community_id, room_count, member_count, space_type, cover_url, banner_url, communities(name, slug, avatar_url, cover_image)"
+      "id, name, slug, description, community_id, room_count, member_count, space_type, cover_url, banner_url, access_type, sort_order, is_featured, communities(name, slug, avatar_url, cover_image)"
     )
     .in("community_id", communityIds)
     .eq("is_active", true)
     .eq("is_hidden", false)
     .order("sort_order", { ascending: true })
-    .limit(200);
+    .limit(500);
 
-  return (spaces ?? []).map((space) => {
+  type SpaceRow = NonNullable<typeof spaces>[number];
+  const byCommunity = new Map<string, SpaceRow[]>();
+  for (const space of spaces ?? []) {
+    const list = byCommunity.get(space.community_id) ?? [];
+    list.push(space);
+    byCommunity.set(space.community_id, list);
+  }
+
+  const primarySpaces = [...byCommunity.values()]
+    .map((list) => pickPrimarySpace(list))
+    .filter((s): s is NonNullable<typeof s> => !!s);
+
+  const spaceIds = primarySpaces.map((s) => s.id);
+  const { data: rooms } = spaceIds.length
+    ? await supabase
+        .from("rooms")
+        .select("id, slug, name, room_type, space_id")
+        .in("space_id", spaceIds)
+        .eq("is_active", true)
+        .eq("room_type", "chat")
+    : { data: [] as never[] };
+
+  const discussionRoomBySpace = new Map<string, string>();
+  for (const space of primarySpaces) {
+    const spaceRooms = (rooms ?? []).filter((r) => r.space_id === space.id);
+    const pick =
+      spaceRooms.find((r) => /^(discussion|general|chat|lounge)$/i.test(r.slug ?? "")) ??
+      spaceRooms[0];
+    if (pick) discussionRoomBySpace.set(space.id, pick.id);
+  }
+
+  const roomIds = [...discussionRoomBySpace.values()];
+  const lastByRoom = new Map<string, { body: string; created_at: string }>();
+  const countByRoom = new Map<string, number>();
+
+  if (roomIds.length > 0) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: lastRows } = await (supabase as any).rpc("hub_room_last_messages", {
+        p_room_ids: roomIds,
+      });
+      for (const row of (lastRows ?? []) as Array<{
+        room_id: string;
+        body: string | null;
+        created_at: string | null;
+      }>) {
+        if (row.room_id && row.body) {
+          lastByRoom.set(row.room_id, {
+            body: row.body,
+            created_at: row.created_at ?? new Date().toISOString(),
+          });
+        }
+      }
+    } catch {
+      /* RPC optional */
+    }
+
+    for (const roomId of roomIds) {
+      const { count } = await supabase
+        .from("community_messages")
+        .select("id", { count: "exact", head: true })
+        .eq("room_id", roomId)
+        .eq("is_deleted", false);
+      countByRoom.set(roomId, count ?? 0);
+    }
+  }
+
+  return primarySpaces.map((space) => {
     const community = space.communities as {
       name: string;
       slug: string;
@@ -845,6 +955,8 @@ export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
       null;
     const communityAvatar =
       community?.avatar_url?.trim() || community?.cover_image?.trim() || null;
+    const roomId = discussionRoomBySpace.get(space.id);
+    const last = roomId ? lastByRoom.get(roomId) : undefined;
     return {
       id: space.id,
       name: space.name,
@@ -858,6 +970,10 @@ export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
       community_slug: community?.slug ?? "",
       room_count: space.room_count ?? 0,
       member_count: space.member_count ?? 0,
+      access_type: (space as { access_type?: string }).access_type ?? "free",
+      last_message: last?.body?.slice(0, 140) ?? null,
+      last_message_at: last?.created_at ?? null,
+      message_count: roomId ? countByRoom.get(roomId) ?? 0 : 0,
       href: community
         ? `/communities/${community.slug}/spaces/${space.slug}`
         : "/communities",

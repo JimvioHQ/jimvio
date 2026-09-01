@@ -11,6 +11,7 @@ import { CourseRoom } from "../rooms/CourseRoom";
 import { TasksRoom } from "../rooms/TasksRoom";
 import { ResourcesRoom } from "../rooms/ResourcesRoom";
 import { ChannelWorkspace } from "@/components/community/workspace/channel";
+import { GroupHeader } from "@/components/community/workspace/group/GroupHeader";
 import {
   mapRoomToChannel,
   mapSpaceToGroup,
@@ -147,6 +148,17 @@ export function RoomContent({
         );
     }
   })();
+
+  if (room.room_type === "chat") {
+    return (
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)]">
+        <GroupHeader group={group} compact />
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {discussion}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ChannelWorkspace
