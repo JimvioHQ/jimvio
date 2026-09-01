@@ -30,7 +30,9 @@ import {
 } from "../lib/community/editorial-personas";
 import { ensureDefaultCommunityWorkspace } from "../lib/community/ensure-default-workspace";
 import { assertWorldBlueprintIntegrity } from "../lib/community/editorial-world-blueprints";
+import { buildDefaultDiscussionMessages } from "../lib/community/editorial-world-build";
 import { assertProductionScriptAllowed } from "../lib/ops/script-safety";
+import type { EditorialMessageSpec } from "../lib/community/editorial-types";
 
 config({ path: ".env.local" });
 assertProductionScriptAllowed("seed-community-world");
@@ -242,6 +244,143 @@ async function ensureRoom(
   return inserted.id;
 }
 
+async function seedRoomMessages(
+  db: SupabaseClient,
+  communityId: string,
+  roomId: string,
+  messages: EditorialMessageSpec[],
+  spec: EditorialCommunitySpec,
+  owner: { id: string },
+  personas: PersonaRow[],
+) {
+  const { data: existingMessages } = await db
+    .from("community_messages")
+    .select("id, metadata")
+    .eq("community_id", communityId)
+    .eq("room_id", roomId);
+  const idByKey = new Map<string, string>();
+  for (const row of existingMessages ?? []) {
+    const key = readMessageEditorialKey(row.metadata);
+    if (key) idByKey.set(key, row.id);
+  }
+  for (const message of messages) {
+    if (idByKey.has(message.key)) continue;
+    const replyToId = message.replyToKey ? idByKey.get(message.replyToKey) : undefined;
+    const replySource = message.replyToKey
+      ? messages.find((m) => m.key === message.replyToKey)
+      : undefined;
+    const { data: inserted, error } = await db
+      .from("community_messages")
+      .insert({
+        room_id: roomId,
+        community_id: communityId,
+        sender_id: pickAuthor(owner.id, personas, spec.category, message.key),
+        body: message.body,
+        message_type: "text",
+        is_pinned: Boolean(message.pinned),
+        is_deleted: false,
+        reply_to_id: replyToId ?? null,
+        reply_to_body: replySource?.body?.slice(0, 280) ?? null,
+        metadata: editorialMessageMetadata({ key: message.key }),
+        created_at: atDaysAgo(message.daysAgo, message.hour),
+      })
+      .select("id")
+      .single();
+    if (error || !inserted?.id) {
+      throw new Error(`[${spec.slug}] message ${message.key}: ${error?.message}`);
+    }
+    idByKey.set(message.key, inserted.id);
+  }
+  const { count: messageCount } = await db
+    .from("community_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("room_id", roomId)
+    .eq("is_deleted", false);
+  await db
+    .from("rooms")
+    .update({
+      message_count: messageCount ?? 0,
+      last_activity_at: new Date().toISOString(),
+    })
+    .eq("id", roomId);
+}
+
+async function getDiscussionRoomId(
+  db: SupabaseClient,
+  communityId: string,
+  spaceId: string,
+): Promise<string | null> {
+  const { data: room } = await db
+    .from("rooms")
+    .select("id")
+    .eq("space_id", spaceId)
+    .eq("slug", "discussion")
+    .eq("is_active", true)
+    .maybeSingle();
+  if (room?.id) return room.id;
+
+  const { data: created, error } = await db
+    .from("rooms")
+    .insert({
+      space_id: spaceId,
+      community_id: communityId,
+      name: "Discussion",
+      slug: "discussion",
+      description: "Main community discussion",
+      room_type: "chat",
+      channel_kind: "discussion",
+      access_type: "inherit",
+      sort_order: 0,
+      is_active: true,
+      visibility: "public",
+      last_activity_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (error || !created?.id) return null;
+  return created.id;
+}
+
+async function seedDefaultDiscussionOnly(
+  db: SupabaseClient,
+  spec: EditorialCommunitySpec,
+  owner: { id: string },
+  personas: PersonaRow[],
+): Promise<"skipped" | "seeded"> {
+  if (PRESERVED.has(spec.slug)) return "skipped";
+
+  const { data: existing } = await db
+    .from("communities")
+    .select("id")
+    .eq("slug", spec.slug)
+    .maybeSingle();
+  if (!existing?.id) return "skipped";
+
+  const workspace = await ensureDefaultCommunityWorkspace(db, existing.id);
+  if (!workspace.spaceId) throw new Error(`[${spec.slug}] workspace missing`);
+
+  const discussionRoomId = await getDiscussionRoomId(db, existing.id, workspace.spaceId);
+  if (!discussionRoomId) throw new Error(`[${spec.slug}] discussion room missing`);
+
+  const { count } = await db
+    .from("community_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("room_id", discussionRoomId)
+    .eq("is_deleted", false);
+  if ((count ?? 0) > 0) return "skipped";
+
+  await seedRoomMessages(
+    db,
+    existing.id,
+    discussionRoomId,
+    buildDefaultDiscussionMessages(spec),
+    spec,
+    owner,
+    personas,
+  );
+  return "seeded";
+}
+
 async function seedCommunity(
   db: SupabaseClient,
   spec: EditorialCommunitySpec,
@@ -302,7 +441,6 @@ async function seedCommunity(
     currency: isPaid ? "USD" : null,
     is_featured: featuredFlag,
     is_active: true,
-    member_count: targetMembers,
     ...(spec.avatarUrl ? { avatar_url: spec.avatarUrl } : {}),
     ...(spec.coverImage
       ? { cover_image: spec.coverImage, banner_url: spec.coverImage }
@@ -328,6 +466,7 @@ async function seedCommunity(
         owner_id: owner.id,
         slug: spec.slug,
         ...fields,
+        member_count: 0,
         settings,
         created_at: spec.createdAt,
         post_count: 0,
@@ -483,57 +622,21 @@ async function seedCommunity(
   for (let r = 0; r < rooms.length; r++) {
     const room = rooms[r]!;
     const roomId = roomIds[r]!;
-    const { data: existingMessages } = await db
-      .from("community_messages")
-      .select("id, metadata")
-      .eq("community_id", communityId)
-      .eq("room_id", roomId);
-    const idByKey = new Map<string, string>();
-    for (const row of existingMessages ?? []) {
-      const key = readMessageEditorialKey(row.metadata);
-      if (key) idByKey.set(key, row.id);
-    }
-    for (const message of room.messages) {
-      if (idByKey.has(message.key)) continue;
-      const replyToId = message.replyToKey ? idByKey.get(message.replyToKey) : undefined;
-      const replySource = message.replyToKey
-        ? room.messages.find((m) => m.key === message.replyToKey)
-        : undefined;
-      const { data: inserted, error } = await db
-        .from("community_messages")
-        .insert({
-          room_id: roomId,
-          community_id: communityId,
-          sender_id: pickAuthor(owner.id, personas, spec.category, message.key),
-          body: message.body,
-          message_type: "text",
-          is_pinned: Boolean(message.pinned),
-          is_deleted: false,
-          reply_to_id: replyToId ?? null,
-          reply_to_body: replySource?.body?.slice(0, 280) ?? null,
-          metadata: editorialMessageMetadata({ key: message.key }),
-          created_at: atDaysAgo(message.daysAgo, message.hour),
-        })
-        .select("id")
-        .single();
-      if (error || !inserted?.id) {
-        throw new Error(`[${spec.slug}] message ${message.key}: ${error?.message}`);
-      }
-      idByKey.set(message.key, inserted.id);
-    }
-    const { count: messageCount } = await db
-      .from("community_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("room_id", roomId)
-      .eq("is_deleted", false);
-    await db
-      .from("rooms")
-      .update({
-        message_count: messageCount ?? 0,
-        last_activity_at: new Date().toISOString(),
-      })
-      .eq("id", roomId);
+    await seedRoomMessages(db, communityId, roomId, room.messages, spec, owner, personas);
   }
+
+  const discussionRoomId = await getDiscussionRoomId(db, communityId, workspace.spaceId);
+  if (!discussionRoomId) throw new Error(`[${spec.slug}] discussion room missing`);
+
+  await seedRoomMessages(
+    db,
+    communityId,
+    discussionRoomId,
+    buildDefaultDiscussionMessages(spec),
+    spec,
+    owner,
+    personas,
+  );
 
   const [{ count: postCount }, { count: roomCount }, { count: membershipCount }] = await Promise.all([
     db
@@ -585,6 +688,7 @@ async function seedCommunity(
 
 async function main() {
   assertWorldBlueprintIntegrity();
+  const discussionOnly = process.argv.includes("--discussion-only");
   const { url, key } = requireEnv();
   const db = createClient(url, key, { auth: { persistSession: false } });
   const authorEmail =
@@ -603,13 +707,32 @@ async function main() {
   console.log(`Catalog: ${EDITORIAL_CATALOG.length} communities`);
   const personas = await ensurePersonas(db);
   console.log(`Personas: ${personas.length}`);
+  if (discussionOnly) console.log("Mode: discussion-only backfill");
 
   let done = 0;
+  let seeded = 0;
+  let skipped = 0;
   await mapPool(EDITORIAL_CATALOG, CONCURRENCY, async (spec) => {
-    await withRetry(spec.slug, () => seedCommunity(db, spec, author, personas));
+    if (discussionOnly) {
+      const result = await withRetry(spec.slug, () =>
+        seedDefaultDiscussionOnly(db, spec, author, personas),
+      );
+      if (result === "seeded") {
+        seeded += 1;
+        console.log(`✓ ${spec.slug} discussion seeded`);
+      } else {
+        skipped += 1;
+      }
+    } else {
+      await withRetry(spec.slug, () => seedCommunity(db, spec, author, personas));
+    }
     done += 1;
     if (done % 10 === 0) console.log(`… ${done}/${EDITORIAL_CATALOG.length}`);
   });
+
+  if (discussionOnly) {
+    console.log(`Discussion backfill: seeded=${seeded} skipped=${skipped}`);
+  }
 
   for (const slug of PRESERVED) {
     const { data } = await db

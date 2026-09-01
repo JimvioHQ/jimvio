@@ -53,6 +53,7 @@ async function main() {
       .from("communities")
       .select("id, slug, member_count, owner_id, settings")
       .eq("is_active", true)
+      .order("id", { ascending: true })
       .range(from, from + 99);
     if (error) throw error;
     if (!data?.length) break;

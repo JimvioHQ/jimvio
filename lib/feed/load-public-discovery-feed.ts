@@ -5,6 +5,7 @@ import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import { rankFeedItems } from "@/lib/growth/feed-ranking";
 import { isGuestVisiblePublicPost } from "@/lib/feed/public-post-visibility";
+import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
 
 const PAGE_SIZE = 20;
 const FEED_FILTERS = new Set([
@@ -129,6 +130,71 @@ export async function loadPublicDiscoveryFeed(
 
   if (!publicCommunityIds.length) {
     return { ok: true, posts: [], next_cursor: null };
+  }
+
+  // Global feed: ranked pool with Jimvio promo/system exclusions.
+  if (!communityId) {
+    const useRanking = publicFilter !== "newest";
+    try {
+      const global = await loadGlobalCommunityFeed(db, {
+        limit,
+        cursor,
+        useRanking,
+      });
+      let posts = global.posts;
+
+      if (publicFilter === "verified") {
+        const { data: featuredCommunities } = await db
+          .from("communities")
+          .select("id")
+          .in("id", publicCommunityIds)
+          .or("is_featured.eq.true,member_count.gte.100");
+        const featuredIds = new Set((featuredCommunities ?? []).map((c) => c.id));
+        posts = posts.filter((p) => featuredIds.has(p.community_id));
+      } else if (publicFilter === "spaces") {
+        posts = posts.filter(
+          (p) => p.space_id && p.space_id !== "00000000-0000-0000-0000-000000000000",
+        );
+      } else if (publicFilter === "missions") {
+        posts = posts.filter((p) =>
+          ["mission", "task", "challenge"].includes(String(p.post_type ?? "")),
+        );
+      } else if (publicFilter === "trending" || publicFilter === "hot" || publicFilter === "rising") {
+        const maxAgeMs =
+          publicFilter === "hot"
+            ? 48 * 3_600_000
+            : publicFilter === "rising"
+              ? 7 * 24 * 3_600_000
+              : 14 * 24 * 3_600_000;
+        const cutoff = Date.now() - maxAgeMs;
+        posts = posts.filter((p) => {
+          const created = p.created_at ? new Date(p.created_at).getTime() : 0;
+          if (created < cutoff) return false;
+          if (publicFilter === "rising") return true;
+          return (
+            Number(p.like_count ?? 0) >= 1 ||
+            Number(p.comment_count ?? 0) >= 1
+          );
+        });
+      }
+
+      const enriched = posts.map((post) => ({
+        ...post,
+        user_has_liked: false,
+        user_reaction: null,
+        user_has_saved: false,
+        quoted_post: null,
+      }));
+
+      return {
+        ok: true,
+        posts: enriched as Record<string, unknown>[],
+        next_cursor: global.next_cursor,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load global feed";
+      return { ok: false, status: 400, error: message };
+    }
   }
 
   let query = db

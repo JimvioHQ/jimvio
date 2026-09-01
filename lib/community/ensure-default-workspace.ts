@@ -21,13 +21,16 @@ export async function ensureDefaultCommunityWorkspace(
     const spaceId = existingSpaces[0].id as string;
     const { data: existingRooms } = await admin
       .from("rooms")
-      .select("id")
+      .select("id, slug")
       .eq("space_id", spaceId)
       .eq("is_active", true)
-      .limit(1);
+      .order("sort_order", { ascending: true });
+    const discussionRoom =
+      (existingRooms ?? []).find((r: { slug?: string | null }) => r.slug === "discussion") ??
+      existingRooms?.[0];
     return {
       spaceId,
-      roomId: (existingRooms?.[0]?.id as string) ?? null,
+      roomId: (discussionRoom?.id as string) ?? null,
       created: false,
     };
   }

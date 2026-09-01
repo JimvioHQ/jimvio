@@ -404,3 +404,97 @@ export function buildWorldCommunity(seed: WorldCommunitySeed): EditorialCommunit
 export function buildWorldCatalog(excludeSlugs: Set<string> = new Set()): EditorialCommunitySpec[] {
   return WORLD_COMMUNITY_SEEDS.filter((seed) => !excludeSlugs.has(seed.slug)).map(buildWorldCommunity);
 }
+
+/** Conversation seed for the default Group Discussion room (General space). */
+export function buildDefaultDiscussionMessages(
+  spec: Pick<EditorialCommunitySpec, "slug" | "name" | "category" | "description" | "tagline" | "activity">,
+): EditorialMessageSpec[] {
+  const topic = spec.tagline || spec.description.slice(0, 80) || spec.name;
+  const prefix = `${spec.slug}-main-discussion`;
+  const p0 = `What is working for you in ${topic} right now?`;
+  const p1 = `Any pitfalls newcomers should avoid in ${spec.name}?`;
+  const activity = spec.activity === "high" ? 10 : spec.activity === "medium" ? 8 : 6;
+
+  const messages: EditorialMessageSpec[] = [
+    {
+      key: `${prefix}-m1`,
+      body: `Has anyone tried a new approach to ${topic} this week?`,
+      daysAgo: 16,
+      hour: 10,
+    },
+    {
+      key: `${prefix}-m2`,
+      body: `Yes — I tested a lighter workflow yesterday. The feedback loop was more useful than I expected.`,
+      daysAgo: 16,
+      hour: 11,
+      replyToKey: `${prefix}-m1`,
+    },
+    {
+      key: `${prefix}-m3`,
+      body: `Which part saved you the most time?`,
+      daysAgo: 15,
+      hour: 9,
+      replyToKey: `${prefix}-m2`,
+    },
+    {
+      key: `${prefix}-m4`,
+      body: `Cutting duplicate steps before sharing drafts with the group. Small change, big difference.`,
+      daysAgo: 15,
+      hour: 14,
+      replyToKey: `${prefix}-m3`,
+    },
+    {
+      key: `${prefix}-m5`,
+      body: `How are you handling short-form content in ${spec.name}?`,
+      daysAgo: 9,
+      hour: 16,
+    },
+    {
+      key: `${prefix}-m6`,
+      body: `I batch two sessions per week and keep one thread for feedback only.`,
+      daysAgo: 8,
+      hour: 11,
+      replyToKey: `${prefix}-m5`,
+    },
+    {
+      key: `${prefix}-m7`,
+      body: p0,
+      daysAgo: 6,
+      hour: 12,
+    },
+    {
+      key: `${prefix}-m8`,
+      body: `Good reminder — I'll try that on my next ${spec.category} draft.`,
+      daysAgo: 5,
+      hour: 15,
+      replyToKey: `${prefix}-m7`,
+    },
+  ];
+
+  if (activity >= 10) {
+    messages.push(
+      {
+        key: `${prefix}-m9`,
+        body: p1,
+        daysAgo: 4,
+        hour: 10,
+      },
+      {
+        key: `${prefix}-m10`,
+        body: `Same question here — curious how others in ${topic} keep momentum without burning out.`,
+        daysAgo: 3,
+        hour: 13,
+        replyToKey: `${prefix}-m9`,
+      },
+      {
+        key: `${prefix}-m11`,
+        body: `I keep one weekly check-in post and move detailed notes to the Discussion feed.`,
+        daysAgo: 2,
+        hour: 17,
+        replyToKey: `${prefix}-m10`,
+      },
+    );
+  }
+
+  return messages;
+}

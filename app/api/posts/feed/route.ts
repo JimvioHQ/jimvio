@@ -11,6 +11,7 @@ import { roomBelongsToCommunity, roomSpaceMatches } from "@/lib/community/assert
 import { requireCommunityMember } from "@/lib/community/rbac";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
 import { loadPublicCommunityIds, loadPublicDiscoveryFeed } from "@/lib/feed/load-public-discovery-feed";
+import { loadGlobalCommunityFeed } from "@/lib/feed/load-global-community-feed";
 
 export const dynamic = "force-dynamic";
 
@@ -124,6 +125,89 @@ export async function GET(req: NextRequest) {
   const friendAuthorIds = new Set<string>(
     ((sharedMembershipRows ?? []) as { user_id: string }[]).map((row) => row.user_id)
   );
+
+  if (!communityId && !draftsOnly && filter !== "following" && filter !== "friends") {
+    try {
+      const useRanking = filter !== "newest";
+      const global = await loadGlobalCommunityFeed(supabase, {
+        limit,
+        cursor,
+        viewerId: user.id,
+        followedAuthorIds,
+        memberCommunityIds: membershipIds,
+        useRanking,
+      });
+
+      let pageRows = global.posts;
+      if (filter === "verified") {
+        const { data: featuredCommunities } = await supabase
+          .from("communities")
+          .select("id")
+          .or("is_featured.eq.true,member_count.gte.100");
+        const featuredIds = new Set((featuredCommunities ?? []).map((c) => c.id));
+        pageRows = pageRows.filter((p) => featuredIds.has(p.community_id));
+      } else if (filter === "spaces") {
+        pageRows = pageRows.filter(
+          (p) => p.space_id && p.space_id !== "00000000-0000-0000-0000-000000000000",
+        );
+      } else if (filter === "missions") {
+        pageRows = pageRows.filter((p) =>
+          ["mission", "task", "challenge"].includes(String(p.post_type ?? "")),
+        );
+      }
+
+      const postIds = pageRows.map((post) => post.id);
+      const [{ data: likedRows }, { data: reactionRows }, { data: savedRows }] =
+        postIds.length > 0
+          ? await Promise.all([
+              supabase
+                .from("community_post_likes")
+                .select("post_id")
+                .eq("user_id", user.id)
+                .in("post_id", postIds),
+              db
+                .from("community_post_reactions")
+                .select("post_id, reaction")
+                .eq("user_id", user.id)
+                .in("post_id", postIds),
+              supabase
+                .from("community_saved_posts")
+                .select("post_id")
+                .eq("user_id", user.id)
+                .in("post_id", postIds),
+            ])
+          : [
+              { data: [] as { post_id: string }[] },
+              { data: [] as { post_id: string; reaction: string }[] },
+              { data: [] as { post_id: string }[] },
+            ];
+
+      const likedSet = new Set((likedRows ?? []).map((row) => row.post_id));
+      const reactionByPost = new Map(
+        ((reactionRows ?? []) as { post_id: string; reaction: string }[]).map((r) => [
+          r.post_id,
+          r.reaction,
+        ]),
+      );
+      const savedSet = new Set((savedRows ?? []).map((row) => row.post_id));
+
+      const posts = pageRows.map((post) => {
+        const userReaction = reactionByPost.get(post.id) ?? null;
+        return {
+          ...post,
+          user_has_liked: likedSet.has(post.id) || Boolean(userReaction),
+          user_reaction: userReaction,
+          user_has_saved: savedSet.has(post.id),
+          quoted_post: null,
+        };
+      });
+
+      return NextResponse.json({ posts, next_cursor: global.next_cursor });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load global feed";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+  }
 
   let query = supabase
     .from("community_posts")
