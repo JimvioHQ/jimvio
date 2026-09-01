@@ -204,9 +204,8 @@ export function GroupWorkspace({
             hideSidebar
             discussionLayout
             canPost={canPost}
-            emptyTitle={`Welcome to ${group.name}`}
-            emptyDescription="Say hello or share an update with the community."
-            emptyActionLabel={canPost ? "Write a message" : undefined}
+            emptyTitle="No messages yet"
+            emptyDescription="Start the conversation with the Space."
             readOnlyTitle={readOnlyCopy?.title}
             readOnlyDescription={readOnlyCopy?.description}
           />

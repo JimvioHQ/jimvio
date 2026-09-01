@@ -11,7 +11,6 @@ import { VisitTracker } from "@/components/community/personalization/VisitTracke
 import {
   canEnterChannel,
   communitySpaceHref,
-  resolveGroupDiscussionRoom,
   resolveSpace,
   resolveSpaceAndRoom,
 } from "@/lib/community/workspace";
@@ -72,9 +71,42 @@ export function SpaceWorkspacePage() {
     );
   }
 
-  // Room match (flat Space-area URL) → ChannelWorkspace behavior
+  // Legacy room slug URL → open parent Space chat directly
   if (roomHit) {
     const { space, room } = roomHit;
+
+    if (room.room_type === "chat") {
+      const slug = communitySlug || workspace.slug;
+      const spaceHref = communitySpaceHref(slug, space.slug);
+      return (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <VisitTracker
+            id={space.id}
+            kind="group"
+            communityId={workspace.communityId}
+            title={space.name}
+            href={spaceHref}
+            subtitle={workspace.communityName}
+          />
+          <GroupWorkspace
+            space={space}
+            communityId={workspace.communityId}
+            communitySlug={slug}
+            ownerId={workspace.ownerId}
+            userId={workspace.userId}
+            membership={workspace.membership ?? null}
+            memberCount={
+              workspace.overview?.memberCount ?? workspace.memberCount ?? 0
+            }
+            isStaff={Boolean(workspace.isAdmin || workspace.isOwner)}
+            ownerName={workspace.ownerName}
+            communityAvatar={workspace.avatarUrl}
+            communityCover={workspace.coverUrl}
+          />
+        </div>
+      );
+    }
+
     const canEnter = canEnterChannel({
       room: { is_locked: room.is_locked, access_type: room.access_type },
       spaceAccessType: space.access_type,
@@ -161,7 +193,7 @@ export function SpaceWorkspacePage() {
     );
   }
 
-  // Space match → open primary discussion chat directly
+  // Space match → direct discussion chat (GroupWorkspace)
   if (spaceHit) {
     if (!spaceHit.slug?.trim()) {
       return (
@@ -175,85 +207,8 @@ export function SpaceWorkspacePage() {
       );
     }
 
-    const discussionRoomLite = resolveGroupDiscussionRoom(spaceHit.rooms);
     const slug = communitySlug || workspace.slug;
     const spaceHref = communitySpaceHref(slug, spaceHit.slug);
-
-    if (discussionRoomLite) {
-      const discussionRoom =
-        spaceHit.rooms.find((r) => r.id === discussionRoomLite.id) ??
-        discussionRoomLite;
-      const canEnter = canEnterChannel({
-        room: {
-          is_locked: discussionRoom.is_locked,
-          access_type: discussionRoom.access_type,
-        },
-        spaceAccessType: spaceHit.access_type,
-        membership: workspace.membership ?? null,
-        ownerId: workspace.ownerId,
-        userId: workspace.userId,
-        spaceId: spaceHit.id,
-      });
-
-      if (!canEnter) {
-        return (
-          <StatusCard
-            icon={Lock}
-            title="Members-only space"
-            description={`Upgrade your plan to access ${spaceHit.name}.`}
-            actionLabel="See plans"
-            onAction={() =>
-              router.push(`/communities/${communitySlug}/subscribe`)
-            }
-          />
-        );
-      }
-
-      if (!discussionRoom.slug?.trim()) {
-        return (
-          <StatusCard
-            icon={Hash}
-            title="Discussion unavailable"
-            description="This Space is missing a discussion channel slug."
-            actionLabel="Back to community"
-            onAction={() => router.push(homeBase)}
-          />
-        );
-      }
-
-      return (
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <VisitTracker
-            id={discussionRoom.id}
-            kind="channel"
-            communityId={workspace.communityId}
-            title={spaceHit.name}
-            href={spaceHref}
-            subtitle={workspace.communityName}
-          />
-          <RoomContent
-            community={{
-              id: workspace.communityId,
-              slug,
-              name: workspace.communityName,
-              owner_id: workspace.ownerId ?? "",
-              member_count: workspace.memberCount ?? 0,
-              avatar_url: workspace.avatarUrl ?? null,
-              cover_image: workspace.coverUrl ?? null,
-            }}
-            space={spaceHit}
-            room={discussionRoom}
-            currentUserId={workspace.currentUserId || workspace.userId || ""}
-            membership={workspace.membership ?? null}
-            ownerId={workspace.ownerId ?? null}
-            memberCount={
-              workspace.overview?.memberCount ?? workspace.memberCount ?? 0
-            }
-            onlineCount={workspace.overview?.membersOnline ?? 0}
-          />
-        </div>
-      );
-    }
 
     return (
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
@@ -263,7 +218,7 @@ export function SpaceWorkspacePage() {
           communityId={workspace.communityId}
           title={spaceHit.name}
           href={spaceHref}
-          subtitle={`${spaceHit.rooms.length} rooms`}
+          subtitle={workspace.communityName}
         />
         <GroupWorkspace
           space={spaceHit}

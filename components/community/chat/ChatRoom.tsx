@@ -545,7 +545,7 @@ export function ChatRoom({
                 {emptyDescription ??
                   "Share an idea, drop a file, or ask a question — this channel becomes knowledge as you collaborate."}
               </p>
-              {canPost ? (
+              {canPost && !discussionLayout ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -559,11 +559,11 @@ export function ChatRoom({
                 >
                   {emptyActionLabel ?? "Start Discussion"}
                 </button>
-              ) : (
+              ) : !canPost ? (
                 <span className="mt-6 inline-flex min-h-10 items-center rounded-full bg-[var(--color-surface)] px-4 text-[12px] font-semibold text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]">
                   Read Only
                 </span>
-              )}
+              ) : null}
             </div>
           ) : scopedMessages.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center px-4 py-12 text-center">

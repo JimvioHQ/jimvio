@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   const offset = Math.max(0, Number(req.nextUrl.searchParams.get("offset") ?? 0) || 0);
   const limit = Math.min(
     60,
-    Math.max(1, Number(req.nextUrl.searchParams.get("limit") ?? 36) || 36)
+    Math.max(1, Number(req.nextUrl.searchParams.get("limit") ?? 30) || 30)
   );
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
 

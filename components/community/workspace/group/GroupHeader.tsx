@@ -161,6 +161,9 @@ export function GroupHeader({
             >
               {visibility}
             </span>
+            <span className="text-[12px] font-medium text-[var(--color-text-muted)]" aria-hidden>
+              ·
+            </span>
             <span className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--color-text-muted)]">
               <Users className="h-3 w-3" aria-hidden />
               {memberCountLabel(group.memberCount)}

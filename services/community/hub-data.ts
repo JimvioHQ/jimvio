@@ -992,7 +992,7 @@ export async function getHubSpaces(
   sorted = [...sorted].sort((a, b) => a.community_name.localeCompare(b.community_name));
 
   const offset = Math.max(0, opts?.offset ?? 0);
-  const limit = Math.min(60, Math.max(1, opts?.limit ?? 36));
+  const limit = Math.min(60, Math.max(1, opts?.limit ?? 30));
   const total = sorted.length;
   const page = sorted.slice(offset, offset + limit);
   const nextOffset = offset + limit < total ? offset + limit : null;

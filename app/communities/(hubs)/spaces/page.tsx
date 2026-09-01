@@ -3,13 +3,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  ArrowRight,
   Globe,
   Layers,
   Loader2,
   Lock,
+  MessageSquare,
   Search,
   Users,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { HubCard, HubAvatar, HubLinkButton, HubBadge } from "@/components/community/hub/hub-ui";
 import { resolveSpaceAvatar } from "@/components/community/hub/messages/MessageEntityAvatar";
 
@@ -22,9 +25,12 @@ type HubSpace = {
   community_avatar_url: string | null;
   community_name: string;
   community_slug: string;
+  community_id?: string;
   member_count: number;
   href: string;
   access_type: string;
+  last_message: string | null;
+  last_message_at: string | null;
 };
 
 function accessLabel(accessType: string): { label: string; private: boolean } {
@@ -41,11 +47,15 @@ function accessLabel(accessType: string): { label: string; private: boolean } {
 function SpaceCard({ space }: { space: HubSpace }) {
   const avatarSrc = resolveSpaceAvatar(space.cover_url, space.community_avatar_url);
   const access = accessLabel(space.access_type);
+  const lastActive = space.last_message_at
+    ? formatDistanceToNow(new Date(space.last_message_at), { addSuffix: true })
+    : null;
 
   return (
     <Link
       href={space.href}
       className="group flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-border,#e4e4e7)] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#FF5A1F]/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+      aria-label={`Enter ${space.name}`}
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[#FF5A1F]/[0.06] to-[#F8FAFC]">
         {avatarSrc ? (
@@ -60,26 +70,7 @@ function SpaceCard({ space }: { space: HubSpace }) {
             <HubAvatar name={space.name} src={null} size={56} />
           </div>
         )}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-2.5 pb-2 pt-8">
-          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-white/80">
-            {space.community_name}
-          </p>
-          <h2 className="truncate text-[13px] font-bold text-white">{space.name}</h2>
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-2 p-2.5">
-        {space.description ? (
-          <p className="line-clamp-2 min-h-[2.5rem] text-[11px] leading-snug text-[var(--color-text-muted)]">
-            {space.description}
-          </p>
-        ) : (
-          <p className="min-h-[2.5rem] text-[11px] text-[var(--color-text-muted)]">
-            Open to join the discussion.
-          </p>
-        )}
-
-        <div className="mt-auto flex flex-wrap items-center gap-1.5">
+        <div className="absolute left-2 top-2">
           <HubBadge variant={access.private ? "default" : "orange"}>
             {access.private ? (
               <Lock className="mr-0.5 inline h-2.5 w-2.5" />
@@ -88,19 +79,81 @@ function SpaceCard({ space }: { space: HubSpace }) {
             )}
             {access.label}
           </HubBadge>
-          {space.member_count > 0 ? (
-            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-[var(--color-text-muted)]">
-              <Users className="h-3 w-3" />
-              {space.member_count.toLocaleString()}
-            </span>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-2 p-2.5">
+        <div>
+          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+            {space.community_name}
+          </p>
+          <h2 className="truncate text-[13px] font-bold text-[#111827] group-hover:text-[#FF5A1F]">
+            {space.name}
+          </h2>
+        </div>
+
+        {space.description ? (
+          <p className="line-clamp-2 text-[11px] leading-snug text-[var(--color-text-muted)]">
+            {space.description}
+          </p>
+        ) : null}
+
+        <div className="mt-auto space-y-2">
+          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-[var(--color-text-muted)]">
+            {space.member_count > 0 ? (
+              <span className="inline-flex items-center gap-0.5">
+                <Users className="h-3 w-3" />
+                {space.member_count.toLocaleString()}
+              </span>
+            ) : null}
+            {space.last_message ? (
+              <span className="inline-flex min-w-0 items-center gap-0.5">
+                <MessageSquare className="h-3 w-3 shrink-0" />
+                <span className="truncate">{space.last_message}</span>
+              </span>
+            ) : null}
+          </div>
+          {lastActive ? (
+            <p className="text-[10px] text-[var(--color-text-muted)]">Active {lastActive}</p>
           ) : null}
+          <span className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-[#FF5A1F] px-2.5 py-1.5 text-[10px] font-bold text-white transition group-hover:bg-[#e54e1a]">
+            Enter Space
+            <ArrowRight className="h-3 w-3" />
+          </span>
         </div>
       </div>
     </Link>
   );
 }
 
-const PAGE_SIZE = 36;
+function SpaceCardSkeleton() {
+  return (
+    <div className="flex h-full min-h-[180px] flex-col overflow-hidden rounded-xl border border-[var(--color-border,#e4e4e7)] bg-white">
+      <div className="aspect-[4/3] animate-pulse bg-[#F1F5F9]" />
+      <div className="space-y-2 p-2.5">
+        <div className="h-2.5 w-1/3 animate-pulse rounded bg-[#F1F5F9]" />
+        <div className="h-3.5 w-2/3 animate-pulse rounded bg-[#F1F5F9]" />
+        <div className="h-8 animate-pulse rounded bg-[#F1F5F9]" />
+        <div className="h-7 animate-pulse rounded-lg bg-[#F1F5F9]" />
+      </div>
+    </div>
+  );
+}
+
+const PAGE_SIZE = 30;
+
+function dedupeSpaces(spaces: HubSpace[]): HubSpace[] {
+  const seenIds = new Set<string>();
+  const seenCommunities = new Set<string>();
+  return spaces.filter((space) => {
+    if (seenIds.has(space.id)) return false;
+    const communityKey = space.community_id ?? space.community_slug;
+    if (seenCommunities.has(communityKey)) return false;
+    seenIds.add(space.id);
+    seenCommunities.add(communityKey);
+    return true;
+  });
+}
 
 export default function HubSpacesPage() {
   const [loading, setLoading] = useState(true);
@@ -137,12 +190,7 @@ export default function HubSpacesPage() {
       setNextOffset(json.nextOffset ?? null);
       setSpaces((prev) => {
         const merged = append ? [...prev, ...(json.spaces ?? [])] : json.spaces ?? [];
-        const seen = new Set<string>();
-        return merged.filter((space) => {
-          if (seen.has(space.id)) return false;
-          seen.add(space.id);
-          return true;
-        });
+        return dedupeSpaces(merged);
       });
     },
     []
@@ -202,8 +250,7 @@ export default function HubSpacesPage() {
               Community Spaces
             </h1>
             <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[var(--color-text-muted)]">
-              One discussion Space per community — open any card to jump straight into the
-              conversation.
+              One Space per community — click any card to open the discussion chat instantly.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -226,9 +273,13 @@ export default function HubSpacesPage() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-7 w-7 animate-spin text-zinc-400" />
-          </div>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+              <li key={i}>
+                <SpaceCardSkeleton />
+              </li>
+            ))}
+          </ul>
         ) : noSearchResults ? (
           <HubCard className="py-14 text-center">
             <Search className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
