@@ -7,6 +7,8 @@ node_modules/
 .next/
 out/
 build/
+dist/
+coverage/
 
 # Env files (never commit real secrets — use .env.example)
 .env
@@ -18,9 +20,10 @@ build/
 # Vercel
 .vercel
 
-# TypeScript
+# TypeScript / ESLint caches
 *.tsbuildinfo
 next-env.d.ts
+.eslintcache
 
 # Misc
 .DS_Store
@@ -45,5 +48,12 @@ scratch/
 .auth/
 test-results/
 playwright-report/
+
+# scripts/tmp — keep verify-*.mjs tracked; ignore logs & QA scratch
+scripts/tmp/*.log
+scripts/tmp/qa-*
+scripts/tmp/*-results.json
+scripts/tmp/*-results.*
+scripts/tmp/smoke-auth*
 
 /lib/generated/prisma

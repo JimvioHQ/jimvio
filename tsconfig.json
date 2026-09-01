@@ -40,6 +40,13 @@
   "exclude": [
     "node_modules",
     "scripts",
-    "e2e"
+    "e2e",
+    "forensics",
+    "coverage",
+    "dist",
+    "build",
+    "out",
+    ".vercel",
+    ".turbo"
   ]
 }

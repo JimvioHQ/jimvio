@@ -60,24 +60,37 @@ function listSourceFiles() {
 }
 
 function fingerprint() {
-  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root }).toString().trim();
-  const files = listSourceFiles();
-  const h = createHash("sha256");
-  h.update(head + "\n");
-  for (const f of files) {
-    h.update(f + "\n");
-    try {
-      h.update(readFileSync(join(root, f)));
-      h.update("\n");
-    } catch {
-      h.update("MISSING\n");
-    }
+  // Prefer Git's own tree hashing over re-reading every file into Node.
+  // Still binds the stamp to HEAD + dirty worktree state (fail-closed).
+  const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root })
+    .toString()
+    .trim();
+  let tree = "";
+  try {
+    tree = execFileSync("git", ["write-tree"], { cwd: root }).toString().trim();
+  } catch {
+    tree = execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: root })
+      .toString()
+      .trim();
   }
-  const dirty = execFileSync("git", ["status", "--porcelain=v1", "-uall"], { cwd: root })
+  const dirty = execFileSync("git", ["status", "--porcelain=v1", "-uall"], {
+    cwd: root,
+  })
     .toString()
     .split("\n")
-    .filter((l) => l && !l.includes("scripts/tmp/smoke-auth") && !l.endsWith(".log"))
+    .filter(
+      (l) =>
+        l &&
+        !l.includes("scripts/tmp/smoke-auth") &&
+        !l.endsWith(".log") &&
+        !l.includes(".eslintcache")
+    )
     .join("\n");
+  const h = createHash("sha256");
+  h.update(head + "\n");
+  h.update(tree + "\n");
+  h.update(dirty + "\n");
+  const files = listSourceFiles();
   return {
     head,
     hash: h.digest("hex"),

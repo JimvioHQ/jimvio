@@ -101,31 +101,10 @@ console.log(`node: ${process.version}`);
 }
 
 // --- Quality gates ---
+// Run the fail-closed pre-push gate once. It already covers lint, type-check,
+// verify scripts, production build, route/RSC/env scans, migrations, and perf.
+// Do NOT also run lint/type-check/test/build separately — that doubled wall time.
 run("install", "npm", ["ci"]);
-run("lint", "npm", ["run", "lint"]);
-run("type-check", "npm", ["run", "type-check"]);
-run("test", "npm", ["run", "test"]);
-run("build", "npm", ["run", "build"], {
-  env: {
-    NODE_OPTIONS: process.env.NODE_OPTIONS || "--max-old-space-size=8192",
-    NEXT_PUBLIC_SUPABASE_URL:
-      process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
-    NEXT_PUBLIC_SUPABASE_ANON_KEY:
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.placeholder",
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.placeholder",
-    SUPABASE_SERVICE_ROLE_KEY:
-      process.env.SUPABASE_SERVICE_ROLE_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY0NTE5MjgwMCwiZXhwIjoxOTYwNzY4ODAwfQ.placeholder",
-    SUPABASE_SECRET_KEY:
-      process.env.SUPABASE_SECRET_KEY ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY0NTE5MjgwMCwiZXhwIjoxOTYwNzY4ODAwfQ.placeholder",
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || "https://jimvio.example",
-    CRON_SECRET: process.env.CRON_SECRET || "ci-build-placeholder-cron-secret",
-  },
-});
 run("ci:prepush", "npm", ["run", "ci:prepush"], {
   env: {
     NODE_OPTIONS: process.env.NODE_OPTIONS || "--max-old-space-size=8192",

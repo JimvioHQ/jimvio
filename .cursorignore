@@ -1,0 +1,44 @@
+# Cursor indexing — exclude build/cache/generated noise ONLY.
+# Keep application source + verify-*.mjs searchable.
+
+node_modules/
+.pnp
+.pnp.js
+
+.next/
+out/
+build/
+dist/
+coverage/
+.turbo/
+.vercel/
+
+*.tsbuildinfo
+.eslintcache
+.cache/
+tmp/
+scratch/
+
+*.log
+.env
+.env*.local
+
+.auth/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# QA scratch only (do not blanket-ignore scripts/tmp)
+scripts/tmp/qa-communities-browser-results.json
+scripts/tmp/qa-communities-engagement-e2e.mjs
+scripts/tmp/sync-space-member-counts.mjs
+scripts/tmp/smoke-auth-run.log
+scripts/tmp/smoke-auth-run2.log
+scripts/tmp/smoke-auth-run3.log
+scripts/tmp/smoke-auth-run4.log
+
+forensics/
+
+public/uploads/
+**/__screenshots__/
+lib/generated/prisma/
