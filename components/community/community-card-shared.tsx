@@ -179,6 +179,14 @@ export function SharedCommunityCard({
                   <span>{formatNumber(c.post_count ?? 0)} posts</span>
                 </>
               )}
+              {(c.member_count ?? 0) >= 50 || (c.post_count ?? 0) >= 5 ? (
+                <>
+                  <span aria-hidden className="text-[var(--color-border-strong)]">
+                    ·
+                  </span>
+                  <span className="font-medium text-emerald-600">Active</span>
+                </>
+              ) : null}
             </div>
           </div>
 

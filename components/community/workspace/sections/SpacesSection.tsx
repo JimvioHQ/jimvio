@@ -14,6 +14,8 @@ import {
   communitySpaceHref,
   hasCapability,
   mapSpaceToGroup,
+  partitionSpacesForDisplay,
+  resolveSpaceAvatarSrc,
   resolveWorkspaceRole,
 } from "@/lib/community/workspace";
 import { useSpacesRealtime } from "@/lib/community/workspace/use-spaces-realtime";
@@ -58,33 +60,48 @@ export function SpacesSection({
     onChange: refreshSpaces,
   });
 
+  const { primary, secondary } = partitionSpacesForDisplay(spacesWithRooms, {
+    isStaff: canCreate,
+  });
+  const visibleSpaces = primary
+    ? [primary, ...secondary]
+    : spacesWithRooms;
+
   const spaceCards = useMemo(() => {
     const roleInput = { userId, ownerId, membership };
     const online = overview?.membersOnline ?? 0;
-    return spacesWithRooms.map((space, index) => {
+    return visibleSpaces.map((space, index) => {
       const mapped = mapSpaceToGroup(space, roleInput, {
         cover:
-          safeMediaUrl(space.cover_url ?? space.banner_url ?? undefined, 640) ??
-          safeMediaUrl(community.avatar_url ?? community.cover_image ?? undefined, 640) ??
-          undefined,
+          safeMediaUrl(
+            resolveSpaceAvatarSrc(
+              space,
+              community.avatar_url,
+              community.cover_image
+            ) ?? undefined,
+            640
+          ) ?? undefined,
         description: space.description ?? null,
         memberCount: space.member_count ?? 0,
         createdAt: space.created_at ?? null,
         onlineCount:
           online > 0
-            ? Math.max(1, Math.round(online / Math.max(spacesWithRooms.length, 1)))
+            ? Math.max(1, Math.round(online / Math.max(visibleSpaces.length, 1)))
             : 0,
-        featured: Boolean(space.is_featured) || index === 0,
+        featured: Boolean(space.is_featured) || space.id === primary?.id,
         tags: space.access_type === "paid" ? ["Premium"] : ["Open"],
       });
       return { space, group: mapped };
     });
   }, [
-    spacesWithRooms,
+    visibleSpaces,
+    primary?.id,
     userId,
     ownerId,
     membership,
     overview?.membersOnline,
+    community.avatar_url,
+    community.cover_image,
   ]);
 
   return (
@@ -105,8 +122,8 @@ export function SpacesSection({
             Spaces
           </h2>
           <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
-            Premium workspaces for discussion, knowledge, courses, and live
-            sessions — open a Space to start collaborating.
+            Your community&apos;s primary Space for discussion — open it to start
+            collaborating. Additional Spaces appear when created.
           </p>
         </div>
         {canCreate && (

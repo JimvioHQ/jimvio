@@ -284,6 +284,32 @@ function PriceFilterChips({
   );
 }
 
+function TrendingCommunitiesRow({ items }: { items: CommunityRow[] }) {
+  if (items.length === 0) return null;
+  const trending = items.slice(0, 12);
+  return (
+    <section className="mb-8 sm:mb-10">
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-[17px] font-semibold tracking-tight text-[var(--color-text-primary)] sm:text-[18px]">
+            Trending communities
+          </h2>
+          <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+            Active hubs with real members and conversations
+          </p>
+        </div>
+      </div>
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 no-scrollbar sm:-mx-6 sm:px-6">
+        {trending.map((c) => (
+          <div key={c.id} className="w-[220px] shrink-0 sm:w-[240px]">
+            <SharedCommunityCard c={c} showQuickActions={false} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function CommunitiesDiscovery({
   initialCommunities = [],
   initialTotal = 0,
@@ -456,9 +482,9 @@ export function CommunitiesDiscovery({
               <h1 className="text-[clamp(1.85rem,4vw,2.75rem)] font-semibold leading-[1.08] tracking-tight text-[var(--color-text-primary)]">
                 Communities
               </h1>
-              <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-[var(--color-text-muted)]">
-                Paid memberships, free groups, and private hubs — browse by topic,
-                compare pricing, and join in one click.
+              <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-muted)]">
+                Discover communities, creators, conversations and spaces that
+                match your interests.
               </p>
             </div>
 
@@ -479,7 +505,7 @@ export function CommunitiesDiscovery({
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by community name…"
+              placeholder="Search communities or spaces…"
               aria-label="Search communities"
               className="h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] pl-11 pr-11 text-[15px] text-[var(--color-text-primary)] outline-none transition-all placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent-light)]"
             />
@@ -658,6 +684,10 @@ export function CommunitiesDiscovery({
           </div>
         ) : (
           <>
+            {!debounced && category === "All" && visibleItems.length > 1 ? (
+              <TrendingCommunitiesRow items={visibleItems} />
+            ) : null}
+
             {heroCommunity && (
               <CommunitiesHero
                 community={heroCommunity}

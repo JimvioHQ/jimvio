@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { AIAssistantPanel } from "@/components/feed/AIAssistantPanel";
-import { ActivityFeedCard } from "@/components/feed/ActivityFeedCard";
 import { FeedDiscoverRail } from "@/components/feed/FeedDiscoverRail";
 import { FeedPostCard, type ApiPost } from "@/components/feed/FeedPostCard";
 import { FeedTabs } from "@/components/feed/FeedTabs";
@@ -14,12 +13,11 @@ import { StoriesRail } from "@/components/feed/StoriesRail";
 import type { FeedTab } from "@/lib/feed/mock-data";
 import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
 
-/** Desktop intelligence rail — AI Assistant, Activity Feed, Live now, Popular Users. */
+/** Desktop intelligence rail — AI Assistant, Live now, Popular Users. */
 function FeedRightRail() {
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <AIAssistantPanel />
-      <ActivityFeedCard />
       <LiveNowCard />
       <PopularUsersCard />
     </div>

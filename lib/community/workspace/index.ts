@@ -91,3 +91,10 @@ export {
   GROUP_DISCUSSION_ROOM_TYPE,
   type DiscussionRoomLite,
 } from "./resolve-group-discussion-room";
+
+export {
+  EDITORIAL_TEMPLATE_SPACE_SLUGS,
+  resolvePrimarySpace,
+  partitionSpacesForDisplay,
+  resolveSpaceAvatarSrc,
+} from "./primary-space";

@@ -11,6 +11,7 @@ import { VisitTracker } from "@/components/community/personalization/VisitTracke
 import {
   canEnterChannel,
   communitySpaceHref,
+  resolveGroupDiscussionRoom,
   resolveSpace,
   resolveSpaceAndRoom,
 } from "@/lib/community/workspace";
@@ -160,7 +161,7 @@ export function SpaceWorkspacePage() {
     );
   }
 
-  // Space match → GroupWorkspace behavior
+  // Space match → open primary discussion chat directly
   if (spaceHit) {
     if (!spaceHit.slug?.trim()) {
       return (
@@ -174,8 +175,85 @@ export function SpaceWorkspacePage() {
       );
     }
 
+    const discussionRoomLite = resolveGroupDiscussionRoom(spaceHit.rooms);
     const slug = communitySlug || workspace.slug;
     const spaceHref = communitySpaceHref(slug, spaceHit.slug);
+
+    if (discussionRoomLite) {
+      const discussionRoom =
+        spaceHit.rooms.find((r) => r.id === discussionRoomLite.id) ??
+        discussionRoomLite;
+      const canEnter = canEnterChannel({
+        room: {
+          is_locked: discussionRoom.is_locked,
+          access_type: discussionRoom.access_type,
+        },
+        spaceAccessType: spaceHit.access_type,
+        membership: workspace.membership ?? null,
+        ownerId: workspace.ownerId,
+        userId: workspace.userId,
+        spaceId: spaceHit.id,
+      });
+
+      if (!canEnter) {
+        return (
+          <StatusCard
+            icon={Lock}
+            title="Members-only space"
+            description={`Upgrade your plan to access ${spaceHit.name}.`}
+            actionLabel="See plans"
+            onAction={() =>
+              router.push(`/communities/${communitySlug}/subscribe`)
+            }
+          />
+        );
+      }
+
+      if (!discussionRoom.slug?.trim()) {
+        return (
+          <StatusCard
+            icon={Hash}
+            title="Discussion unavailable"
+            description="This Space is missing a discussion channel slug."
+            actionLabel="Back to community"
+            onAction={() => router.push(homeBase)}
+          />
+        );
+      }
+
+      return (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <VisitTracker
+            id={discussionRoom.id}
+            kind="channel"
+            communityId={workspace.communityId}
+            title={spaceHit.name}
+            href={spaceHref}
+            subtitle={workspace.communityName}
+          />
+          <RoomContent
+            community={{
+              id: workspace.communityId,
+              slug,
+              name: workspace.communityName,
+              owner_id: workspace.ownerId ?? "",
+              member_count: workspace.memberCount ?? 0,
+              avatar_url: workspace.avatarUrl ?? null,
+              cover_image: workspace.coverUrl ?? null,
+            }}
+            space={spaceHit}
+            room={discussionRoom}
+            currentUserId={workspace.currentUserId || workspace.userId || ""}
+            membership={workspace.membership ?? null}
+            ownerId={workspace.ownerId ?? null}
+            memberCount={
+              workspace.overview?.memberCount ?? workspace.memberCount ?? 0
+            }
+            onlineCount={workspace.overview?.membersOnline ?? 0}
+          />
+        </div>
+      );
+    }
 
     return (
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">

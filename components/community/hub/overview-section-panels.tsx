@@ -16,9 +16,12 @@ import {
 import { cn } from "@/lib/utils";
 import {
   communitySpaceHref,
+  partitionSpacesForDisplay,
+  resolveSpaceAvatarSrc,
   SPACE_TYPE_LABELS,
   isSpaceType,
 } from "@/lib/community/workspace";
+import { CommunityAvatarImage } from "@/components/community/community-media";
 import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
 import type { CommunityOverviewStats } from "@/services/community/hub-data";
 import { useCreatorOSStore } from "@/lib/community/os";
@@ -101,7 +104,11 @@ export function OverviewSpacesPanel({
   canManage?: boolean;
   onCreateSpace?: () => void;
 }) {
-  if (spaces.length === 0) {
+  const { primary, secondary } = partitionSpacesForDisplay(spaces, {
+    isStaff: canManage,
+  });
+
+  if (!primary && spaces.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl bg-white px-6 py-14 text-center shadow-[0_1px_3px_rgba(16,24,40,0.06)] ring-1 ring-gray-100 animate-in fade-in duration-300">
         <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-[#fd5000]">
@@ -126,9 +133,48 @@ export function OverviewSpacesPanel({
     );
   }
 
+  const displaySecondary = secondary;
+
   return (
-    <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      {spaces.map((space, index) => {
+    <div className="space-y-6 animate-in fade-in duration-300">
+      {primary ? (
+        <Link
+          href={communitySpaceHref(slug, primary.slug)}
+          className="group flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-[0_4px_24px_rgba(15,23,42,0.06)] ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:ring-[#fd5000]/25 sm:flex-row sm:items-center sm:p-6"
+        >
+          <CommunityAvatarImage
+            name={primary.name}
+            src={resolveSpaceAvatarSrc(primary, communityAvatarUrl)}
+            size={56}
+            className="shrink-0 !rounded-2xl"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#fd5000]">
+              Primary Space
+            </p>
+            <h3 className="mt-1 truncate text-[18px] font-semibold text-gray-900 group-hover:text-[#fd5000]">
+              {primary.name}
+            </h3>
+            <p className="mt-1 text-[13px] text-gray-500">
+              {(primary.member_count ?? 0).toLocaleString()} members ·{" "}
+              {relativeActivity(primary.created_at)}
+            </p>
+            <p className="mt-2 text-[13px] font-medium text-[#fd5000]">
+              Open discussion →
+            </p>
+          </div>
+        </Link>
+      ) : null}
+
+      {displaySecondary.length > 0 ? (
+        <>
+          {primary ? (
+            <h3 className="text-[13px] font-semibold uppercase tracking-wide text-gray-500">
+              {canManage ? "All spaces" : "More spaces"}
+            </h3>
+          ) : null}
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {(primary ? displaySecondary : spaces).map((space, index) => {
         const href = communitySpaceHref(slug, space.slug);
         const letter = (space.name.trim()[0] || "S").toUpperCase();
         const color = SPACE_ICON_COLORS[index % SPACE_ICON_COLORS.length];
@@ -138,9 +184,10 @@ export function OverviewSpacesPanel({
         const members = space.member_count;
         const visibility = spaceVisibilityLabel(space.access_type);
         const desc = space.description?.trim() || null;
-        const thumbSrc =
-          safeMediaUrl(space.cover_url ?? space.banner_url ?? undefined, 128) ??
-          safeMediaUrl(communityAvatarUrl ?? undefined, 128);
+        const thumbSrc = safeMediaUrl(
+          resolveSpaceAvatarSrc(space, communityAvatarUrl) ?? undefined,
+          128
+        );
         return (
           <li key={space.id}>
             <Link
@@ -212,7 +259,20 @@ export function OverviewSpacesPanel({
           </li>
         );
       })}
-    </ul>
+          </ul>
+        </>
+      ) : null}
+
+      {canManage && onCreateSpace ? (
+        <button
+          type="button"
+          onClick={onCreateSpace}
+          className="inline-flex min-h-10 items-center justify-center rounded-xl border border-dashed border-gray-200 px-4 text-[13px] font-semibold text-gray-600 transition hover:border-[#fd5000]/40 hover:text-[#fd5000]"
+        >
+          Create additional Space
+        </button>
+      ) : null}
+    </div>
   );
 }
 
