@@ -1,7 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
 import { getAdminDB } from "@/lib/supabase/admin";
+import { hasActiveTwoFactorSecret } from "@/lib/auth/repair-broken-2fa";
 import type { AccountStatus } from "@/lib/users/account-status";
 import { isDeletedAccountEmail } from "@/lib/users/account-status";
+
+export type TwoFactorAdminStatus = "disabled" | "enabled" | "broken" | "pending_setup";
+
+export function resolveTwoFactorAdminStatus(input: {
+    two_factor_enabled: boolean;
+    secret: string | null | undefined;
+    pending_secret: string | null | undefined;
+}): TwoFactorAdminStatus {
+    const hasSecret = hasActiveTwoFactorSecret(input.secret);
+    const hasPending = hasActiveTwoFactorSecret(input.pending_secret);
+
+    if (input.two_factor_enabled && hasSecret) return "enabled";
+    if (input.two_factor_enabled && !hasSecret) return "broken";
+    if (!input.two_factor_enabled && hasPending) return "pending_setup";
+    if (!input.two_factor_enabled && hasSecret) return "enabled";
+    return "disabled";
+}
 
 export interface AdminUserRow {
     id: string;
@@ -158,6 +176,7 @@ export interface AdminUserDetail {
     backup_full_name: string | null;
     pending_reports: number;
     two_factor_enabled: boolean;
+    two_factor_status: TwoFactorAdminStatus;
     created_at: string | null;
     updated_at: string | null;
 
@@ -278,6 +297,7 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
         txRes,
         notifRes,
         authRes,
+        mfaRes,
     ] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).single(),
 
@@ -331,6 +351,12 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
             .eq("is_read", false),
 
         admin.auth.admin.getUserById(userId),
+
+        admin
+            .from("user_2fa_secrets")
+            .select("secret, pending_secret")
+            .eq("user_id", userId)
+            .maybeSingle(),
     ]);
 
     if (profileRes.error || !profileRes.data) return null;
@@ -348,6 +374,13 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
     const pendingReports = inf?.id
         ? await countPendingReportsForInfluencer(inf.id)
         : 0;
+
+    const mfaRow = mfaRes.data;
+    const twoFactorStatus = resolveTwoFactorAdminStatus({
+        two_factor_enabled: p.two_factor_enabled ?? false,
+        secret: mfaRow?.secret ?? null,
+        pending_secret: mfaRow?.pending_secret ?? null,
+    });
 
     const result: AdminUserDetail = {
         id: p.id,
@@ -373,6 +406,7 @@ export async function getAdminUserById(userId: string): Promise<AdminUserDetail 
         backup_full_name: (authMeta.backup_full_name as string | null) ?? null,
         pending_reports: pendingReports,
         two_factor_enabled: p.two_factor_enabled ?? false,
+        two_factor_status: twoFactorStatus,
         created_at: p.created_at ?? null,
         updated_at: p.updated_at ?? null,
 

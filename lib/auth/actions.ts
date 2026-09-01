@@ -16,6 +16,10 @@ import {
 import { isAccountAccessBlocked } from "@/lib/users/account-status"
 import { rethrowIfNextNavigation } from "@/lib/auth/redirect-error"
 import {
+  hasActiveTwoFactorSecret,
+  repairBrokenTwoFactorState,
+} from "@/lib/auth/repair-broken-2fa"
+import {
   GENERIC_CONFIRMATION_SENT,
   GENERIC_RESET_SENT,
   isExistingAccountAuthError,
@@ -348,8 +352,16 @@ export async function signIn(formData: FormData) {
     if (profileResult.error) console.error("[auth] 2FA profile lookup error:", profileResult.error)
     if (secretResult.error) console.error("[auth] 2FA secret lookup error:", secretResult.error)
 
-    const needs2FA =
-      profileResult.data?.two_factor_enabled || Boolean(secretResult.data?.secret)
+    const hasActiveSecret = hasActiveTwoFactorSecret(secretResult.data?.secret)
+    if (profileResult.data?.two_factor_enabled && !hasActiveSecret) {
+      try {
+        await repairBrokenTwoFactorState(userId)
+      } catch (repairErr) {
+        console.error("[auth] broken 2FA repair failed:", repairErr)
+      }
+    }
+
+    const needs2FA = hasActiveSecret
 
     if (needs2FA) {
       cookieStore.delete(TWO_FA_VERIFIED_COOKIE)
@@ -419,8 +431,8 @@ export async function verify2FAAndLogin(formData: FormData) {
 
   const next = (formData.get("next") as string)?.trim() || undefined
 
-  // ── No secret stored — fail closed when 2FA is enabled ──
-  if (!secretData?.secret) {
+  // ── No secret stored — repair incomplete enrollment or continue without 2FA ──
+  if (!secretData?.secret || !hasActiveTwoFactorSecret(secretData.secret)) {
     const { data: profile2fa } = await admin
       .from("profiles")
       .select("two_factor_enabled")
@@ -428,8 +440,13 @@ export async function verify2FAAndLogin(formData: FormData) {
       .maybeSingle()
 
     if (profile2fa?.two_factor_enabled) {
-      return {
-        error: "Two-factor authentication is not fully set up on this account. Contact support.",
+      try {
+        await repairBrokenTwoFactorState(pendingUserId, admin)
+      } catch (repairErr) {
+        console.error("[auth] broken 2FA repair at verify failed:", repairErr)
+        return {
+          error: "Two-factor authentication is not fully set up on this account. Contact support.",
+        }
       }
     }
 

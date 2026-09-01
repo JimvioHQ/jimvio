@@ -178,9 +178,19 @@ export function AdminUserDetailClient({ user }: { user: AdminUserDetail }) {
                             {user.is_verified && (
                                 <StatusPill status="verified" size="md" />
                             )}
-                            {user.two_factor_enabled && (
+                            {user.two_factor_status === "enabled" && (
                                 <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-orange-700 bg-orange-50 dark:bg-orange-950/30 px-2 py-0.5 rounded-full ring-1 ring-orange-600/20 dark:text-orange-400">
                                     <KeyRound className="h-3 w-3" /> 2FA
+                                </span>
+                            )}
+                            {user.two_factor_status === "broken" && (
+                                <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-amber-700 bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-full ring-1 ring-amber-600/20 dark:text-amber-400">
+                                    <KeyRound className="h-3 w-3" /> 2FA broken
+                                </span>
+                            )}
+                            {user.two_factor_status === "pending_setup" && (
+                                <span className="inline-flex items-center gap-1 text-[10.5px] font-medium text-slate-700 bg-slate-50 dark:bg-slate-950/30 px-2 py-0.5 rounded-full ring-1 ring-slate-600/20 dark:text-slate-400">
+                                    <KeyRound className="h-3 w-3" /> 2FA setup
                                 </span>
                             )}
                             {user.unread_notifications > 0 && (

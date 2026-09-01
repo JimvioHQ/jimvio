@@ -6,6 +6,12 @@ import type { ActionResult } from "@/lib/actions/security";
 import { assertPlatformAdmin } from "@/lib/auth/platform-admin";
 import { CLAIMABLE_USER_ROLES, isPrivilegedUserRole } from "@/lib/auth/provision-nonprivileged-role";
 import {
+  getBrokenTwoFactorState,
+  repairBrokenTwoFactorState,
+} from "@/lib/auth/repair-broken-2fa";
+import { getPublicAppUrl } from "@/lib/app-url";
+import { writeAuditEvent } from "@/services/ops/audit";
+import {
   type AccountStatus,
   isDeletedAccountEmail,
   tombstoneEmailFor,
@@ -343,5 +349,141 @@ export async function deleteManagedUser(
   revalidatePath(`/admin/users/${userId}`);
   revalidatePath("/admin/users");
   revalidatePath("/admin/verifications");
+  return { success: true };
+}
+
+export async function repairManagedUserBrokenMfa(
+  userId: string,
+  reason: string,
+): Promise<ActionResult> {
+  const auth = await assertAdminAccess();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  if (!reason.trim()) {
+    return { success: false, error: "A reason is required to repair broken 2FA." };
+  }
+
+  const admin = getAdminDB();
+  const state = await getBrokenTwoFactorState(admin, userId);
+  if (!state.broken) {
+    return { success: false, error: "This account does not have broken 2FA enrollment." };
+  }
+
+  await repairBrokenTwoFactorState(userId, admin);
+
+  await writeAuditEvent({
+    actorId: auth.adminId,
+    action: "admin.user.mfa_repair_broken",
+    entityType: "user",
+    entityId: userId,
+    metadata: { reason: reason.trim() },
+  });
+
+  revalidatePath(`/admin/users/${userId}`);
+  return { success: true };
+}
+
+export async function clearManagedUserMfa(
+  userId: string,
+  reason: string,
+): Promise<ActionResult> {
+  const auth = await assertAdminAccess();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  if (!reason.trim()) {
+    return { success: false, error: "A reason is required to clear 2FA." };
+  }
+
+  const admin = getAdminDB();
+  const now = new Date().toISOString();
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({ two_factor_enabled: false, updated_at: now })
+    .eq("id", userId);
+
+  if (profileError) return { success: false, error: profileError.message };
+
+  const { error: deleteError } = await admin
+    .from("user_2fa_secrets")
+    .delete()
+    .eq("user_id", userId);
+
+  if (deleteError) return { success: false, error: deleteError.message };
+
+  await writeAuditEvent({
+    actorId: auth.adminId,
+    action: "admin.user.mfa_clear",
+    entityType: "user",
+    entityId: userId,
+    metadata: { reason: reason.trim() },
+  });
+
+  revalidatePath(`/admin/users/${userId}`);
+  return { success: true };
+}
+
+export async function sendManagedUserPasswordReset(userId: string): Promise<ActionResult> {
+  const auth = await assertAdminAccess();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  const admin = getAdminDB();
+  const { data: authUser, error: authErr } = await admin.auth.admin.getUserById(userId);
+  if (authErr || !authUser?.user?.email) {
+    return { success: false, error: authErr?.message ?? "User email not found." };
+  }
+
+  const email = authUser.user.email;
+  if (isDeletedAccountEmail(email)) {
+    return { success: false, error: "Deleted accounts cannot receive password resets." };
+  }
+
+  const redirectTo = `${getPublicAppUrl()}/auth/callback?next=/settings/security`;
+  const { error } = await admin.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) return { success: false, error: error.message };
+
+  await writeAuditEvent({
+    actorId: auth.adminId,
+    action: "admin.user.password_reset_email",
+    entityType: "user",
+    entityId: userId,
+    metadata: { email_domain: email.split("@")[1] ?? null },
+  });
+
+  return { success: true };
+}
+
+export async function revokeManagedUserSessions(
+  userId: string,
+  reason: string,
+): Promise<ActionResult> {
+  const auth = await assertAdminAccess();
+  if (!auth.ok) return { success: false, error: auth.error };
+
+  if (userId === auth.adminId) {
+    return { success: false, error: "You cannot revoke your own active session from here." };
+  }
+
+  if (!reason.trim()) {
+    return { success: false, error: "A reason is required to revoke sessions." };
+  }
+
+  const admin = getAdminDB();
+  try {
+    await admin.auth.admin.signOut(userId, "global");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to revoke sessions.";
+    return { success: false, error: message };
+  }
+
+  await writeAuditEvent({
+    actorId: auth.adminId,
+    action: "admin.user.sessions_revoke",
+    entityType: "user",
+    entityId: userId,
+    metadata: { reason: reason.trim() },
+  });
+
+  revalidatePath(`/admin/users/${userId}`);
   return { success: true };
 }

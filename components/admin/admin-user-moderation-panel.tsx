@@ -3,14 +3,18 @@
 import { useState, useTransition, type ElementType } from "react";
 import Link from "next/link";
 import {
-  ShieldAlert,
-  ShieldCheck,
-  Snowflake,
   Ban,
   PauseCircle,
   Trash2,
   Save,
   Loader2,
+  KeyRound,
+  LogOut,
+  Mail,
+  ShieldAlert,
+  ShieldCheck,
+  ShieldOff,
+  Snowflake,
 } from "lucide-react";
 import {
   BrandBtn,
@@ -26,7 +30,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { StatusPill } from "@/components/ui/admin";
 import { cn } from "@/lib/utils";
 import {
+  clearManagedUserMfa,
   deleteManagedUser,
+  repairManagedUserBrokenMfa,
+  revokeManagedUserSessions,
+  sendManagedUserPasswordReset,
   setUserAccountStatus,
   toggleManagedUserRole,
   updateAdminManagedUser,
@@ -55,6 +63,9 @@ export function AdminUserModerationPanel({ user }: { user: AdminUserDetail }) {
 
   const accountStatus = user.account_status ?? (user.is_active ? "active" : "suspended");
   const isDeleted = accountStatus === "deleted";
+  const mfaStatus = user.two_factor_status ?? (user.two_factor_enabled ? "enabled" : "disabled");
+  const mfaBroken = mfaStatus === "broken";
+  const mfaEnabled = mfaStatus === "enabled";
 
   function run(action: () => Promise<{ success: boolean; error?: string }>) {
     startTransition(async () => {
@@ -121,6 +132,86 @@ export function AdminUserModerationPanel({ user }: { user: AdminUserDetail }) {
         </div>
 
         <div className="space-y-5 p-4">
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-secondary)]/40 px-3 py-2.5 text-[12px] text-[var(--color-text-muted)]">
+            <p className="font-semibold text-[var(--color-text-primary)]">Two-factor authentication</p>
+            <p className="mt-1">
+              Status:{" "}
+              <span className="font-medium text-[var(--color-text-primary)]">
+                {mfaStatus === "enabled" && "Enabled"}
+                {mfaStatus === "disabled" && "Disabled"}
+                {mfaStatus === "broken" && "Broken enrollment (profile flag without secret)"}
+                {mfaStatus === "pending_setup" && "Setup in progress"}
+              </span>
+            </p>
+            {mfaBroken ? (
+              <p className="mt-1 text-amber-700 dark:text-amber-400">
+                User cannot complete login until broken 2FA is repaired.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <ModerationBtn
+              icon={Mail}
+              label="Send password reset"
+              disabled={pending || isDeleted}
+              onClick={() => {
+                if (!confirm(`Send a password reset email to ${user.email}?`)) return;
+                run(() => sendManagedUserPasswordReset(user.id));
+              }}
+            />
+            <ModerationBtn
+              icon={LogOut}
+              label="Revoke sessions"
+              disabled={pending || isDeleted}
+              onClick={() => {
+                if (!reason.trim()) {
+                  setToast({ msg: "Enter a moderation reason first", type: "err" });
+                  return;
+                }
+                if (!confirm(`Sign out ${user.email} from all devices?`)) return;
+                run(() => revokeManagedUserSessions(user.id, reason));
+              }}
+            />
+            {mfaBroken ? (
+              <ModerationBtn
+                icon={ShieldOff}
+                label="Repair broken 2FA"
+                tone="success"
+                disabled={pending}
+                onClick={() => {
+                  if (!reason.trim()) {
+                    setToast({ msg: "Enter a reason first", type: "err" });
+                    return;
+                  }
+                  run(() => repairManagedUserBrokenMfa(user.id, reason));
+                }}
+              />
+            ) : null}
+            {mfaEnabled ? (
+              <ModerationBtn
+                icon={KeyRound}
+                label="Clear 2FA"
+                tone="danger"
+                disabled={pending}
+                onClick={() => {
+                  if (!reason.trim()) {
+                    setToast({ msg: "Enter a reason first", type: "err" });
+                    return;
+                  }
+                  if (
+                    !confirm(
+                      `Remove 2FA for ${user.email}? They will need to re-enroll from account settings.`,
+                    )
+                  ) {
+                    return;
+                  }
+                  run(() => clearManagedUserMfa(user.id, reason));
+                }}
+              />
+            ) : null}
+          </div>
+
           {isAdminAccount ? (
             <p className="text-[12.5px] leading-relaxed text-[var(--color-text-muted)]">
               This user is a platform admin. Suspend, ban, and delete actions are disabled. You can still edit profile fields below.
