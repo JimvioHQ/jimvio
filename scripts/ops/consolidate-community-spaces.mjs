@@ -34,15 +34,17 @@ function isGenericDisplayName(name) {
 }
 
 function pickCanonicalSpace(spaces, communitySlug) {
-  const active = spaces.filter((s) => s.is_active !== false);
-  if (!active.length) return null;
-  if (active.length === 1) return active[0];
-
   const preferredPrefix = PREFERRED_SPACE_SLUG_BY_COMMUNITY[communitySlug];
   if (preferredPrefix) {
-    const match = active.find((s) => s.slug === preferredPrefix || s.slug.startsWith(`${preferredPrefix}-`));
+    const match = spaces.find(
+      (s) => s.slug === preferredPrefix || s.slug.startsWith(`${preferredPrefix}-`)
+    );
     if (match) return match;
   }
+
+  const active = spaces.filter((s) => s.is_active !== false);
+  if (!active.length) return spaces[0] ?? null;
+  if (active.length === 1) return active[0];
 
   const featuredCustom = active.find((s) => s.is_featured && s.slug !== "general");
   if (featuredCustom) return featuredCustom;
@@ -99,8 +101,16 @@ async function main() {
       .eq("community_id", community.id)
       .order("sort_order", { ascending: true });
 
-    const activeSpaces = (spaces ?? []).filter((s) => s.is_active !== false);
-    if (activeSpaces.length <= 1) {
+    const allSpaces = spaces ?? [];
+    const activeSpaces = allSpaces.filter((s) => s.is_active !== false);
+    const canonical = pickCanonicalSpace(allSpaces, community.slug);
+    if (!canonical) continue;
+
+    const redundantActive = activeSpaces.filter((s) => s.id !== canonical.id);
+    const needsRestore = canonical.is_active === false;
+    const needsConsolidation = redundantActive.length > 0 || needsRestore;
+
+    if (!needsConsolidation) {
       const only = activeSpaces[0];
       if (only && /^general$/i.test(only.name.trim()) && community.name) {
         if (!dryRun) {
@@ -112,9 +122,6 @@ async function main() {
       }
       continue;
     }
-
-    const canonical = pickCanonicalSpace(activeSpaces, community.slug);
-    if (!canonical) continue;
 
     const { data: allRooms } = await db
       .from("rooms")
@@ -152,9 +159,9 @@ async function main() {
       targetRoom = { id: created.id };
     }
 
-    const redundantSpaces = activeSpaces.filter((s) => s.id !== canonical.id);
+    const uniqueRedundant = activeSpaces.filter((s) => s.id !== canonical.id);
 
-    for (const space of redundantSpaces) {
+    for (const space of uniqueRedundant) {
       const redundantRooms = (allRooms ?? []).filter((r) => r.space_id === space.id);
       for (const room of redundantRooms) {
         if (room.id === targetRoom.id) continue;
@@ -211,16 +218,20 @@ async function main() {
           name: canonicalName,
           room_count: 1,
           sort_order: 0,
+          is_active: true,
           is_hidden: false,
         })
         .eq("id", canonical.id);
+      if (needsRestore) {
+        await db.from("rooms").update({ is_active: true }).eq("space_id", canonical.id);
+      }
       await db
         .from("communities")
         .update({ space_count: 1 })
         .eq("id", community.id);
     }
     consolidated += 1;
-    console.log(`✓ ${community.slug}: kept ${canonical.slug}, archived ${redundantSpaces.length}`);
+    console.log(`✓ ${community.slug}: kept ${canonical.slug}, archived ${uniqueRedundant.length}`);
   }
 
   console.log(
