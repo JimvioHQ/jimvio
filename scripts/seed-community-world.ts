@@ -719,7 +719,7 @@ async function seedCommunity(
       space_count: spaceCount ?? rooms.length,
     })
     .eq("id", communityId);
-  await db.from("spaces").update({ room_count: roomCount ?? 1 }).eq("id", workspace.spaceId);
+  await db.from("spaces").update({ room_count: 1 }).eq("id", workspace.spaceId);
 
   // Free/inherit spaces: every active community member has access — keep counts truthful.
   const { data: spaces } = await db
@@ -735,7 +735,7 @@ async function seedCommunity(
   }
 
   console.log(
-    `✓ ${spec.slug} members=${actualMembers} posts=${postCount ?? 0} rooms=${roomCount ?? 0}`
+    `✓ ${spec.slug} members=${actualMembers} posts=${postCount ?? 0} spaces=${spaceCount ?? rooms.length}`
   );
 }
 

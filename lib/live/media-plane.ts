@@ -56,6 +56,7 @@ export class LiveMediaPlane {
   private listeners = new Set<Listener>();
   private deviceHandler: (() => void) | null = null;
   private disposed = false;
+  private shareStarting = false;
 
   subscribe(fn: Listener): () => void {
     this.listeners.add(fn);
@@ -270,11 +271,16 @@ export class LiveMediaPlane {
     quality?: "standard" | "high";
   }): Promise<boolean> {
     this.lastError = null;
+    if (this.shareStarting) return false;
+    if (this.shareStream?.getVideoTracks().some((t) => t.readyState === "live")) {
+      return true;
+    }
     if (!navigator.mediaDevices?.getDisplayMedia) {
       this.lastError = "Screen share unavailable";
       this.emit();
       return false;
     }
+    this.shareStarting = true;
     try {
       const surface =
         options?.target === "browser_tab"
@@ -291,11 +297,22 @@ export class LiveMediaPlane {
           frameRate: { ideal: high ? 30 : 24 },
         } as MediaTrackConstraints,
         audio: true,
-      });
+        // Prevent picking this browser tab (avoids recursive Live Room capture).
+        preferCurrentTab: false,
+        selfBrowserSurface: "exclude",
+      } as DisplayMediaStreamOptions);
       this.stopShareTracks();
       this.shareStream = stream;
       const vt = stream.getVideoTracks()[0];
       if (vt) {
+        const settings = vt.getSettings?.() as { displaySurface?: string } | undefined;
+        if (settings?.displaySurface === "browser") {
+          this.lastError =
+            "Sharing this browser tab can mirror the live room. Choose a window or entire screen instead.";
+          this.stopShareTracks();
+          this.emit();
+          return false;
+        }
         vt.addEventListener("ended", () => {
           this.stopScreenShare();
         });
@@ -312,12 +329,18 @@ export class LiveMediaPlane {
       }
       this.emit();
       return false;
+    } finally {
+      this.shareStarting = false;
     }
   }
 
   /** Re-open the display picker to switch window/monitor/tab. */
-  async switchScreenShare(): Promise<boolean> {
-    return this.startScreenShare();
+  async switchScreenShare(options?: {
+    target?: "entire_screen" | "window" | "browser_tab";
+    quality?: "standard" | "high";
+  }): Promise<boolean> {
+    this.stopScreenShare();
+    return this.startScreenShare(options);
   }
 
   stopScreenShare(): void {

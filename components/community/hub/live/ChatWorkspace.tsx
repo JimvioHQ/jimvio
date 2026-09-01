@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import {
   CornerDownRight,
   Heart,
@@ -50,7 +50,7 @@ function ChatWorkspaceImpl({
   scrollTop: number;
   onScrollSave: (y: number) => void;
   chatInput: string;
-  setChatInput: (v: string) => void;
+  setChatInput: Dispatch<SetStateAction<string>>;
   hostName?: string | null;
   participantAvatars?: { name: string; src: string | null }[];
   onSend?: (
@@ -544,7 +544,7 @@ function ChatWorkspaceImpl({
       <ChatEmojiPickerDialog
         open={emojiOpen}
         onOpenChange={setEmojiOpen}
-        onSelect={(native) => setChatInput(chatInput ? `${chatInput}${native}` : native)}
+        onSelect={(native) => setChatInput((prev) => prev + native)}
         onSelectGif={
           roomActions && onSendGif
             ? (gif) => {

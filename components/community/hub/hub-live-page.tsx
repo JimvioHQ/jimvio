@@ -169,7 +169,9 @@ export function HubLivePage({
     micOn: media.micOn,
     shareStream: media.shareStream,
     sharing: media.sharing,
-    preferLocalStage: live.myRole === "host" || live.myRole === "cohost" || live.myRole === "speaker",
+    preferLocalStage:
+      (live.myRole === "host" || live.myRole === "cohost" || live.myRole === "speaker") &&
+      !media.sharing,
   });
 
   const micOn = media.micOn;
@@ -589,7 +591,11 @@ export function HubLivePage({
 
   const switchShareSource = useCallback(async () => {
     if (live.session && !gate(canShareScreen(live.myRole), "Speakers only")) return;
-    const ok = await media.switchScreenShare();
+    const prefs = useLiveCollabStore.getState();
+    const ok = await media.switchScreenShare({
+      target: prefs.shareTarget,
+      quality: prefs.shareQuality,
+    });
     if (ok) {
       setActivity("share");
       void live.syncMedia({ sharing: true });
@@ -1553,21 +1559,20 @@ export function HubLivePage({
           </>
         )}
 
-        {/* Left drawer */}
+        {/* Left drawer — flex column on desktop; overlay on mobile only */}
         {!focusMode && drawer.leftPanel !== "none" && (
           <>
             <aside
               className={cn(
-                "absolute inset-y-0 z-30 hidden w-[280px] flex-col bg-white shadow-[8px_0_40px_rgba(0,0,0,0.06)] md:flex",
-                "animate-in fade-in slide-in-from-left-1 duration-[180ms]",
-                showLeftRail ? "left-[220px]" : "left-0"
+                "hidden w-[280px] shrink-0 flex-col border-r border-neutral-100 bg-white md:flex",
+                "animate-in fade-in slide-in-from-left-1 duration-[180ms]"
               )}
             >
               <DrawerHeader
                 title={LEFT_TOOLS.find((t) => t.id === drawer.leftPanel)?.label ?? ""}
                 onClose={() => updateDrawer({ leftPanel: "none" })}
               />
-              <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
                 {drawer.leftPanel === "people" && <PeoplePanel {...peoplePanelProps} />}
                 {drawer.leftPanel === "rooms" && (
                   <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
@@ -1593,7 +1598,7 @@ export function HubLivePage({
                   title={LEFT_TOOLS.find((t) => t.id === drawer.leftPanel)?.label ?? ""}
                   onClose={() => updateDrawer({ leftPanel: "none" })}
                 />
-                <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4">
                   {drawer.leftPanel === "people" && <PeoplePanel {...peoplePanelProps} />}
                   {drawer.leftPanel === "rooms" && (
                     <RoomsPanel rooms={data?.rooms ?? []} related={data?.relatedRooms ?? []} />
@@ -1851,13 +1856,13 @@ export function HubLivePage({
           <aside
             className={cn(
               "flex w-full max-w-[300px] shrink-0 flex-col bg-white sm:w-[300px]",
-              "fixed inset-y-0 right-0 z-40",
+              "fixed inset-y-0 right-0 z-40 lg:static lg:z-auto lg:max-w-none lg:border-l lg:border-neutral-100",
               "transition-transform duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-              "lg:static lg:z-auto lg:max-w-none lg:border-l lg:border-neutral-100",
               drawer.rightOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
               !drawer.rightOpen && mode !== "minimal" && "lg:hidden"
             )}
           >
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {drawer.rightTab !== "chat" && (
             <div
               role="tablist"
@@ -2155,6 +2160,7 @@ export function HubLivePage({
                 />
               )}
               {drawer.rightTab === "analytics" && <AnalyticsPanel analytics={analytics} />}
+            </div>
             </div>
           </aside>
         )}

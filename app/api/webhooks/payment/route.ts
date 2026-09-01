@@ -184,8 +184,111 @@ async function handleWebhook(req: NextRequest, method: "GET" | "POST") {
     return NextResponse.json({ received: true });
   }
 
-  await processOrderPayment(db, event, resolvedOrderId, eventId);
+  if (resolvedOrderId) {
+    const handledCommunity = await tryProcessCommunityOrderPayment(
+      db,
+      event,
+      resolvedOrderId,
+      eventId
+    );
+    if (handledCommunity) {
+      return NextResponse.json({ received: true });
+    }
+  }
+
+  await processOrderPayment(db, event, resolvedOrderId!, eventId);
   return NextResponse.json({ received: true });
+}
+
+/** Route community subscription orders to membership finalizer instead of marketplace flow. */
+async function tryProcessCommunityOrderPayment(
+  db: ReturnType<typeof getDb>,
+  event: PaymentEvent,
+  orderId: string,
+  eventId: string | null
+): Promise<boolean> {
+  const { data: order } = await db
+    .from("orders")
+    .select("integration_source, metadata, payment_status, total_amount, currency, buyer_id")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  if (order?.integration_source !== "community") return false;
+
+  if (order.payment_status === "completed") {
+    if (eventId) await markWebhookProcessed(db, eventId, orderId);
+    return true;
+  }
+
+  const meta = (order.metadata ?? {}) as {
+    community_id?: string;
+    plan_type?: string;
+  };
+
+  if (!meta.community_id || !meta.plan_type || !order.buyer_id) {
+    throw new Error(`Community order ${orderId} missing metadata`);
+  }
+
+  const planType = meta.plan_type;
+  if (!["monthly", "yearly", "lifetime"].includes(planType)) {
+    throw new Error(`Community order ${orderId} has invalid plan_type`);
+  }
+
+  if (event.amount != null && order.total_amount != null) {
+    const expected = Number(order.total_amount);
+    const received = Number(event.amount);
+    const orderCurrency = (order.currency ?? "USD").toString().toUpperCase();
+    const eventCurrency = event.currency?.toString().toUpperCase();
+
+    if (eventCurrency && eventCurrency !== orderCurrency) {
+      throw new Error(
+        `Currency mismatch order=${orderId} expected=${orderCurrency} received=${eventCurrency}`
+      );
+    }
+
+    const amountsMatch =
+      orderCurrency === "RWF"
+        ? received === expected
+        : Math.abs(received - expected) < 0.005;
+
+    if (!amountsMatch) {
+      throw new Error(
+        `Amount mismatch order=${orderId} expected=${expected} received=${received}`
+      );
+    }
+  }
+
+  await finalizeCommunityPayment(db, {
+    communityId: meta.community_id,
+    userId: order.buyer_id,
+    planType: planType as "monthly" | "yearly" | "lifetime",
+    amount: Number(order.total_amount ?? event.amount ?? 0),
+    currency: order.currency ?? event.currency ?? "USD",
+    paymentProvider: event.provider,
+    paymentReference: event.providerTransactionId,
+  });
+
+  await finalizeOrderPayment(db, orderId, {
+    providerTransactionId: event.providerTransactionId,
+    providerReference: event.idempotencyKey,
+    paidAtIso: new Date().toISOString(),
+    notifyUserId: order.buyer_id,
+    paymentProvider: event.provider,
+    webhookReference: event.idempotencyKey,
+  });
+
+  await db
+    .from("orders")
+    .update({
+      gateway_used: event.provider,
+      payment_provider: event.provider,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", orderId);
+
+  console.log(`[webhook/payment] ✓ Community order finalized: ${orderId}`);
+  if (eventId) await markWebhookProcessed(db, eventId, orderId);
+  return true;
 }
 
 // ---------------------------------------------------------------------------

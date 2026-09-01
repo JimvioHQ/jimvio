@@ -129,6 +129,7 @@ export function CommunitySubscribeClient({
 
   /* ─── Submit ─── */
   async function handleComplete() {
+    if (submitting) return;
     if (!payment) { toast.error("Please select a payment method"); return; }
     setSubmitting(true);
     try {

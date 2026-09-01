@@ -163,7 +163,22 @@ export function useChatRoom({
         realtimeEnabled: isChatting,
         userId,
         onIncomingCall: (payload) => {
-            setIncomingCall(payload as IncomingCall);
+            if (!payload) return;
+            const sender = payload.sender;
+            setIncomingCall({
+                type: payload.type,
+                roomId: payload.roomId,
+                convId: payload.convId,
+                sender: sender
+                    ? {
+                          name: sender.full_name || sender.username || "Someone",
+                          avatar: sender.avatar_url,
+                          username: sender.username ?? undefined,
+                          full_name: sender.full_name ?? undefined,
+                          avatar_url: sender.avatar_url ?? undefined,
+                      }
+                    : null,
+            });
         },
         onThreadReply: handleThreadReply,
     });

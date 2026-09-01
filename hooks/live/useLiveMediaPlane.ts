@@ -101,9 +101,15 @@ export function useLiveMediaPlane(enabled = true) {
     planeRef.current?.stopScreenShare();
   }, []);
 
-  const switchScreenShare = useCallback(async () => {
-    return (await planeRef.current?.switchScreenShare()) ?? false;
-  }, []);
+  const switchScreenShare = useCallback(
+    async (options?: {
+      target?: "entire_screen" | "window" | "browser_tab";
+      quality?: "standard" | "high";
+    }) => {
+      return (await planeRef.current?.switchScreenShare(options)) ?? false;
+    },
+    []
+  );
 
   const startRecording = useCallback(async () => {
     return (await planeRef.current?.startRecording()) ?? false;

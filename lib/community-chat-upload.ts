@@ -84,6 +84,7 @@ export async function uploadCommunityChatFile(
   formData.append("timestamp", sig.timestamp);
   formData.append("signature", sig.signature);
   formData.append("folder", sig.folder);
+  if (sig.type) formData.append("type", sig.type);
 
   const endpoint = `https://api.cloudinary.com/v1_1/${sig.cloudName}/${resourceType}/upload`;
   const uploadRes = await fetch(endpoint, { method: "POST", body: formData });

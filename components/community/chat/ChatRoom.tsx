@@ -30,14 +30,12 @@ import { Loader2, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useCall } from "../call-context";
-import { CallOverlay } from "./CallOverlay";
 import { ChatEmojiPickerDialog } from "./chat-emoji-picker-dialog";
 import { ChatHeader } from "./ChatHeader";
 import { ChatInputZone } from "./ChatInputZone";
 import { ChatSidebar } from "./ChatSidebar";
 import { ChatSkeleton } from "./ChatSkeleton";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { IncomingCallModal } from "./IncomingCallModal";
 import { SpaceCallPanel } from "@/components/community/workspace/space/SpaceCallPanel";
 import { MessageRow } from "./MessageRow";
 import { ThreadPanel } from "./ThreadPanel";
@@ -105,14 +103,7 @@ export function ChatRoom({
   const answers = useCollaborationStore((s) => s.answers);
   const knowledgeCards = useCollaborationStore((s) => s.cards);
   const {
-    callType,
-    setCallType,
-    incomingCall,
-    setIncomingCall,
-    localStream,
-    remoteStream,
-    pcRef,
-    iceQueueRef,
+    startCall,
   } = useCall();
 
   const [aiMsg, setAiMsg] = useState<Msg | null>(null);
@@ -300,71 +291,23 @@ export function ChatRoom({
     [hook]
   );
 
-  // ── WebRTC ──────────────────────────────────────────────────────────────────
-  async function sendCallSignal(
-    type: "audio" | "video" | "call_signal",
-    body?: unknown
-  ) {
-    const ep = hook.activeConvId
-      ? `/api/communities/${slug}/inbox/${hook.activeConvId}/messages`
-      : `/api/messages/${roomId}`;
-    await fetch(ep, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        body: typeof body === "object" ? JSON.stringify(body) : body || type,
-        message_type:
-          type === "call_signal" ? "call_signal" : "call_start",
-      }),
-    });
-  }
-
-  async function initWebRTC(type: "audio" | "video", isInitiator: boolean) {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: type === "video",
-    });
-    const pc = new RTCPeerConnection({
-      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-    });
-    pcRef.current = pc;
-    stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-    pc.ontrack = (ev) => {
-      void ev.streams[0];
-    };
-    pc.onicecandidate = (ev) => {
-      if (ev.candidate) sendCallSignal("call_signal", { ice: ev.candidate });
-    };
-    if (isInitiator) {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      sendCallSignal("call_signal", { sdp: offer });
-    }
-  }
-
-  async function startNativeCall(type: "audio" | "video") {
-    setCallType(type);
-    iceQueueRef.current = [];
-    await sendCallSignal(type);
-    await initWebRTC(type, true);
-  }
-
-  // Space header call buttons → start WebRTC
+  // Space header call buttons → CallProvider
   useEffect(() => {
     if (!callRequest) return;
     const type = callRequest.type;
     clearCallRequest();
-    void startNativeCall(type);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- bridge from Space header
-  }, [callRequest, clearCallRequest]);
+    const peer = hook.activeConvPeer
+      ? { name: hook.activeConvPeer.name, avatar: hook.activeConvPeer.avatar }
+      : { name: roomName };
+    void startCall(type, roomId, hook.activeConvId ?? undefined, peer);
+  }, [callRequest, clearCallRequest, hook.activeConvPeer, hook.activeConvId, roomId, roomName, startCall]);
 
-  function handleEndCall() {
-    if (localStream) localStream.getTracks().forEach((t) => t.stop());
-    setCallType(null);
-    pcRef.current?.close();
-    pcRef.current = null;
-    iceQueueRef.current = [];
-  }
+  const handleStartCall = (type: "audio" | "video") => {
+    const peer = hook.activeConvPeer
+      ? { name: hook.activeConvPeer.name, avatar: hook.activeConvPeer.avatar }
+      : { name: roomName };
+    void startCall(type, roomId, hook.activeConvId ?? undefined, peer);
+  };
 
   const renderMessage = useCallback(
     (m: Msg, meta: { compact: boolean }) => (
@@ -485,16 +428,6 @@ export function ChatRoom({
         sendingGif={hook.sendingGif}
       />
 
-      {callType && (
-        <CallOverlay
-          callType={callType}
-          roomName={roomName}
-          activeConvPeer={hook.activeConvPeer}
-          localStream={localStream}
-          remoteStream={remoteStream}
-          onEndCall={handleEndCall}
-        />
-      )}
 
       {!hideSidebar ? (
       <ChatSidebar
@@ -548,16 +481,16 @@ export function ChatRoom({
             setSearchScope("messages");
           }}
           onSetChatFilter={hook.setChatFilter}
-          onStartAudioCall={() => void startNativeCall("audio")}
-          onStartVideoCall={() => void startNativeCall("video")}
+          onStartAudioCall={() => handleStartCall("audio")}
+          onStartVideoCall={() => handleStartCall("video")}
           onBack={() => hook.setForceShowList(true)}
           hideLegacySearchBar
         />
 
         {showCallPanel && !discussionLayout ? (
           <SpaceCallPanel
-            onAudioCall={() => void startNativeCall("audio")}
-            onVideoCall={() => void startNativeCall("video")}
+            onAudioCall={() => handleStartCall("audio")}
+            onVideoCall={() => handleStartCall("video")}
           />
         ) : null}
 
@@ -859,18 +792,6 @@ export function ChatRoom({
         }}
       />
 
-      {incomingCall && (
-        <IncomingCallModal
-          incomingCall={incomingCall}
-          onDecline={() => setIncomingCall(null)}
-          onAccept={() => {
-            setCallType(incomingCall.type);
-            setIncomingCall(null);
-            iceQueueRef.current = [];
-            void initWebRTC(incomingCall.type, false);
-          }}
-        />
-      )}
     </div>
   );
 }

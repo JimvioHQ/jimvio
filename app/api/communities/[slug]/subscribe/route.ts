@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getAdminDB } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -51,27 +52,53 @@ export async function POST(
     return NextResponse.json({ error: "Invalid plan or price" }, { status: 400 });
   }
 
-  const { data: order, error: orderErr } = await supabase
-    .from("orders")
-    .insert({
-      buyer_id: user.id,
-      total_amount: amount,
-      subtotal: amount,
-      currency: community.currency || "USD",
-      status: "pending",
-      payment_status: "pending",
-      integration_source: "community",
-      metadata: {
-        community_id: community.id,
-        plan_type: planType,
-        community_name: community.name,
-      },
-    })
-    .select("id")
-    .single();
+  const admin = getAdminDB();
 
-  if (orderErr || !order) {
-    return NextResponse.json({ error: orderErr?.message ?? "Order create failed" }, { status: 400 });
+  const { data: pendingOrders } = await admin
+    .from("orders")
+    .select("id, metadata")
+    .eq("buyer_id", user.id)
+    .eq("integration_source", "community")
+    .eq("payment_status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  const pendingOrder = pendingOrders?.find((row) => {
+    const meta = row.metadata as { community_id?: string; plan_type?: string } | null;
+    return meta?.community_id === community.id && meta?.plan_type === planType;
+  });
+
+  let orderId = pendingOrder?.id as string | undefined;
+
+  if (!orderId) {
+    const { data: order, error: orderErr } = await admin
+      .from("orders")
+      .insert({
+        buyer_id: user.id,
+        total_amount: amount,
+        subtotal: amount,
+        currency: community.currency || "USD",
+        status: "checkout_direct",
+        payment_status: "pending",
+        integration_source: "community",
+        metadata: {
+          community_id: community.id,
+          plan_type: planType,
+          community_name: community.name,
+        },
+      })
+      .select("id")
+      .single();
+
+    if (orderErr || !order) {
+      const msg = orderErr?.message ?? "Order create failed";
+      console.error("[community/subscribe] order insert failed:", msg);
+      return NextResponse.json(
+        { error: "Unable to start checkout. Please try again." },
+        { status: 400 }
+      );
+    }
+    orderId = order.id;
   }
 
   const base = appBaseUrl();
@@ -90,7 +117,7 @@ export async function POST(
   const paymentRes = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ orderId: order.id }),
+    body: JSON.stringify({ orderId }),
   });
 
   const paymentData = (await paymentRes.json()) as Record<string, unknown>;
