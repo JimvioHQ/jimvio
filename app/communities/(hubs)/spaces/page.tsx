@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRight,
   Globe,
   Layers,
   Loader2,
   Lock,
-  MessageSquare,
   Search,
   Users,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import { HubCard, HubAvatar, HubLinkButton, HubBadge } from "@/components/community/hub/hub-ui";
 import { resolveSpaceAvatar } from "@/components/community/hub/messages/MessageEntityAvatar";
 
@@ -25,13 +22,9 @@ type HubSpace = {
   community_avatar_url: string | null;
   community_name: string;
   community_slug: string;
-  room_count: number;
   member_count: number;
   href: string;
   access_type: string;
-  last_message: string | null;
-  last_message_at: string | null;
-  message_count: number;
 };
 
 function accessLabel(accessType: string): { label: string; private: boolean } {
@@ -48,49 +41,45 @@ function accessLabel(accessType: string): { label: string; private: boolean } {
 function SpaceCard({ space }: { space: HubSpace }) {
   const avatarSrc = resolveSpaceAvatar(space.cover_url, space.community_avatar_url);
   const access = accessLabel(space.access_type);
-  const lastActive = space.last_message_at
-    ? formatDistanceToNow(new Date(space.last_message_at), { addSuffix: true })
-    : null;
 
   return (
     <Link
       href={space.href}
-      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-border,#e4e4e7)] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#FF5A1F]/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
+      className="group flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-border,#e4e4e7)] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#FF5A1F]/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
     >
-      <div className="relative flex items-start gap-3 border-b border-[var(--color-border,#e4e4e7)]/80 bg-gradient-to-br from-[#FF5A1F]/[0.04] to-transparent p-4">
-        <div className="relative shrink-0">
-          <HubAvatar name={space.community_name} src={space.community_avatar_url} size={44} />
-          <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-[#FF5A1F]/10 shadow-sm">
-            <HubAvatar name={space.name} src={avatarSrc} size={24} />
-          </span>
-        </div>
-        <div className="min-w-0 flex-1 pt-0.5">
-          <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-[#FF5A1F]/[0.06] to-[#F8FAFC]">
+        {avatarSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarSrc}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <HubAvatar name={space.name} src={null} size={56} />
+          </div>
+        )}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-2.5 pb-2 pt-8">
+          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-white/80">
             {space.community_name}
           </p>
-          <h2 className="truncate text-[15px] font-bold text-[#111827] group-hover:text-[#FF5A1F]">
-            {space.name}
-          </h2>
-          {space.description ? (
-            <p className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-[var(--color-text-muted)]">
-              {space.description}
-            </p>
-          ) : null}
+          <h2 className="truncate text-[13px] font-bold text-white">{space.name}</h2>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-secondary,#f4f4f5)] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-text-muted)]">
-            <Users className="h-3 w-3" />
-            {space.member_count.toLocaleString()} members
-          </span>
-          {space.message_count > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-secondary,#f4f4f5)] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-text-muted)]">
-              <MessageSquare className="h-3 w-3" />
-              {space.message_count.toLocaleString()} messages
-            </span>
-          ) : null}
+      <div className="flex flex-1 flex-col gap-2 p-2.5">
+        {space.description ? (
+          <p className="line-clamp-2 min-h-[2.5rem] text-[11px] leading-snug text-[var(--color-text-muted)]">
+            {space.description}
+          </p>
+        ) : (
+          <p className="min-h-[2.5rem] text-[11px] text-[var(--color-text-muted)]">
+            Open to join the discussion.
+          </p>
+        )}
+
+        <div className="mt-auto flex flex-wrap items-center gap-1.5">
           <HubBadge variant={access.private ? "default" : "orange"}>
             {access.private ? (
               <Lock className="mr-0.5 inline h-2.5 w-2.5" />
@@ -99,53 +88,72 @@ function SpaceCard({ space }: { space: HubSpace }) {
             )}
             {access.label}
           </HubBadge>
-        </div>
-
-        {space.last_message ? (
-          <div className="rounded-xl border border-[var(--color-border,#e4e4e7)]/60 bg-[#F8FAFC] px-3 py-2.5">
-            <p className="line-clamp-2 text-[12px] leading-relaxed text-[#111827]/80">
-              {space.last_message}
-            </p>
-            {lastActive ? (
-              <p className="mt-1 text-[10px] font-medium text-[var(--color-text-muted)]">
-                Active {lastActive}
-              </p>
-            ) : null}
-          </div>
-        ) : (
-          <p className="text-[12px] text-[var(--color-text-muted)]">
-            Join the conversation — be the first to say hello.
-          </p>
-        )}
-
-        <div className="mt-auto flex items-center justify-between pt-1">
-          <span className="text-[12px] font-semibold text-[#FF5A1F] opacity-0 transition-opacity group-hover:opacity-100">
-            Open discussion
-          </span>
-          <span className="inline-flex items-center gap-1 rounded-lg bg-[#FF5A1F] px-3 py-1.5 text-[11px] font-bold text-white shadow-sm transition group-hover:bg-[#e54e1a]">
-            Open Space
-            <ArrowRight className="h-3.5 w-3.5" />
-          </span>
+          {space.member_count > 0 ? (
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-[var(--color-text-muted)]">
+              <Users className="h-3 w-3" />
+              {space.member_count.toLocaleString()}
+            </span>
+          ) : null}
         </div>
       </div>
     </Link>
   );
 }
 
+const PAGE_SIZE = 36;
+
 export default function HubSpacesPage() {
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [spaces, setSpaces] = useState<HubSpace[]>([]);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
+  const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  const fetchPage = useCallback(
+    async (offset: number, q: string, append: boolean) => {
+      const params = new URLSearchParams({
+        offset: String(offset),
+        limit: String(PAGE_SIZE),
+      });
+      if (q) params.set("q", q);
+
+      const res = await fetch(`/api/c/spaces?${params.toString()}`);
+      if (!res.ok) return;
+      const json = (await res.json()) as {
+        spaces: HubSpace[];
+        nextOffset: number | null;
+        total: number;
+      };
+
+      setTotal(json.total ?? 0);
+      setNextOffset(json.nextOffset ?? null);
+      setSpaces((prev) => {
+        const merged = append ? [...prev, ...(json.spaces ?? [])] : json.spaces ?? [];
+        const seen = new Set<string>();
+        return merged.filter((space) => {
+          if (seen.has(space.id)) return false;
+          seen.add(space.id);
+          return true;
+        });
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/c/spaces");
-        if (!res.ok) return;
-        const json = (await res.json()) as { spaces: HubSpace[] };
-        if (!cancelled) setSpaces(json.spaces ?? []);
+        await fetchPage(0, debouncedQuery, false);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -153,26 +161,38 @@ export default function HubSpacesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [debouncedQuery, fetchPage]);
 
-  const filtered = useMemo(
-    () =>
-      spaces.filter(
-        (space) =>
-          space.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          space.community_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          space.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          space.last_message?.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    [spaces, searchQuery]
-  );
+  useEffect(() => {
+    if (loading || loadingMore || nextOffset == null) return;
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting || loadingMore || nextOffset == null) return;
+        setLoadingMore(true);
+        void fetchPage(nextOffset, debouncedQuery, true).finally(() => setLoadingMore(false));
+      },
+      { rootMargin: "240px" }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [debouncedQuery, fetchPage, loading, loadingMore, nextOffset]);
 
   const hasSpaces = spaces.length > 0;
-  const noSearchResults = hasSpaces && filtered.length === 0;
+  const noSearchResults = !loading && total === 0 && debouncedQuery.length > 0;
+
+  const countLabel = useMemo(() => {
+    if (loading) return null;
+    if (total === 0) return null;
+    return `${spaces.length}${nextOffset != null ? ` of ${total}` : ""} ${total === 1 ? "space" : "spaces"}`;
+  }, [loading, nextOffset, spaces.length, total]);
 
   return (
     <div className="min-h-full bg-[#F8FAFC]">
-      <div className="mx-auto w-full max-w-7xl space-y-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+      <div className="mx-auto w-full max-w-[1600px] space-y-5 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="flex items-center gap-2.5 text-2xl font-black tracking-tight text-[#111827]">
@@ -217,7 +237,7 @@ export default function HubSpacesPage() {
               Try a different search term.
             </p>
           </HubCard>
-        ) : filtered.length === 0 ? (
+        ) : !hasSpaces ? (
           <HubCard className="py-14 text-center">
             <Layers className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
             <p className="text-[15px] font-bold text-[#111827]">No Spaces yet</p>
@@ -233,16 +253,27 @@ export default function HubSpacesPage() {
           </HubCard>
         ) : (
           <>
-            <p className="text-[12px] font-medium text-[var(--color-text-muted)]">
-              {filtered.length} {filtered.length === 1 ? "space" : "spaces"} available
-            </p>
-            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {filtered.map((space) => (
-                <li key={space.id} className="min-h-[220px]">
+            {countLabel ? (
+              <p className="text-[12px] font-medium text-[var(--color-text-muted)]">
+                {countLabel} available
+              </p>
+            ) : null}
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {spaces.map((space) => (
+                <li key={space.id} className="min-h-[180px]">
                   <SpaceCard space={space} />
                 </li>
               ))}
             </ul>
+            <div ref={sentinelRef} className="flex justify-center py-6">
+              {loadingMore ? (
+                <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
+              ) : nextOffset == null && spaces.length > 0 ? (
+                <p className="text-[12px] text-[var(--color-text-muted)]">
+                  You&apos;ve reached the end.
+                </p>
+              ) : null}
+            </div>
           </>
         )}
       </div>

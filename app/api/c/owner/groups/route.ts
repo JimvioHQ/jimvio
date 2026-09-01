@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { pickPrimarySpaceCandidate } from "@/lib/community/workspace/primary-space";
 import {
   DEFAULT_GROUP_COLOR,
   DEFAULT_GROUP_CONTENT,
@@ -101,9 +102,16 @@ export async function GET(req: NextRequest) {
   }
 
   const rows = asSpaceRows(data);
+  const activeRows = rows.filter((r) => r.is_active !== false);
+  const primary = pickPrimarySpaceCandidate(activeRows) ?? pickPrimarySpaceCandidate(rows);
+
   const filtered = includeSystem
-    ? rows
-    : rows.filter((r) => !mapSpaceToOwnerGroup(r).isSystem);
+    ? primary
+      ? [primary]
+      : []
+    : primary && !mapSpaceToOwnerGroup(primary).isSystem
+      ? [primary]
+      : [];
 
   const staffMap = await loadStaffMap(
     admin,
@@ -159,6 +167,20 @@ export async function POST(req: NextRequest) {
   });
 
   const admin = createServiceRoleClient();
+
+  const { count: activeSpaceCount } = await admin
+    .from("spaces")
+    .select("id", { count: "exact", head: true })
+    .eq("community_id", communityId)
+    .eq("is_active", true);
+
+  if ((activeSpaceCount ?? 0) >= 1) {
+    return NextResponse.json(
+      { error: "Each community supports one Space. Edit the existing Space instead." },
+      { status: 409 }
+    );
+  }
+
   const { count } = await admin
     .from("spaces")
     .select("id", { count: "exact", head: true })

@@ -1,12 +1,21 @@
 /**
- * Seed the default Group (space) + Discussion room for a newly created community.
+ * Seed the default Space + Discussion room for a newly created community.
  * Idempotent: skips when the community already has at least one active space.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 60);
+}
+
 export async function ensureDefaultCommunityWorkspace(
   db: SupabaseClient,
-  communityId: string
+  communityId: string,
+  opts?: { communityName?: string | null; communitySlug?: string | null }
 ): Promise<{ spaceId: string | null; roomId: string | null; created: boolean }> {
   const admin = db as any;
 
@@ -35,20 +44,29 @@ export async function ensureDefaultCommunityWorkspace(
     };
   }
 
+  const communityName = opts?.communityName?.trim() || "Community";
+  const baseSlug =
+    opts?.communitySlug?.trim() ||
+    slugify(communityName) ||
+    "community";
+  const spaceSlug = `${baseSlug}-space`.slice(0, 80);
+  const spaceName = communityName.slice(0, 120);
+
   const { data: space, error: spaceError } = await admin
     .from("spaces")
     .insert({
       community_id: communityId,
-      name: "General",
-      slug: "general",
-      description: "Default group for community discussion",
+      name: spaceName,
+      slug: spaceSlug,
+      description: `Main discussion space for ${communityName}`,
       icon: "💬",
-      color: "#6366F1",
+      color: "#FF5A1F",
       sort_order: 0,
       access_type: "free",
       privacy: "public",
       space_type: "discussion",
       is_active: true,
+      is_featured: true,
       room_count: 0,
       member_count: 0,
       last_activity_at: new Date().toISOString(),
@@ -66,9 +84,9 @@ export async function ensureDefaultCommunityWorkspace(
     .insert({
       space_id: space.id,
       community_id: communityId,
-      name: "Discussion",
+      name: spaceName,
       slug: "discussion",
-      description: "Main community discussion",
+      description: `Discussion for ${communityName}`,
       room_type: "chat",
       channel_kind: "discussion",
       access_type: "inherit",

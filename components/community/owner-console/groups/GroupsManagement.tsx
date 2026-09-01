@@ -78,6 +78,8 @@ export function GroupsManagement() {
     );
   }
 
+  const hasActiveSpace = groups.some((g) => g.status !== "archived");
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -157,7 +159,16 @@ export function GroupsManagement() {
             />
             Archived
           </label>
-          <Button type="button" onClick={() => setCreateOpen(true)}>
+          <Button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            disabled={hasActiveSpace}
+            title={
+              hasActiveSpace
+                ? "Each community supports one Space. Edit the existing Space instead."
+                : undefined
+            }
+          >
             <Plus className="mr-1.5 h-4 w-4" />
             Create Space
           </Button>

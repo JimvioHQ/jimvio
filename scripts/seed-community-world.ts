@@ -498,7 +498,10 @@ async function seedDefaultDiscussionOnly(
     .maybeSingle();
   if (!existing?.id) return "skipped";
 
-  const workspace = await ensureDefaultCommunityWorkspace(db, existing.id);
+  const workspace = await ensureDefaultCommunityWorkspace(db, existing.id, {
+    communityName: spec.name,
+    communitySlug: spec.slug,
+  });
   if (!workspace.spaceId) throw new Error(`[${spec.slug}] workspace missing`);
 
   const discussionRoomId = await getDiscussionRoomId(db, existing.id, workspace.spaceId);

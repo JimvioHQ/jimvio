@@ -311,7 +311,10 @@ export async function POST(req: NextRequest) {
   }
 
   // Seed default workspace with service role so RLS cannot block first group/room.
-  await ensureDefaultCommunityWorkspace(admin as any, data.id);
+  await ensureDefaultCommunityWorkspace(admin as any, data.id, {
+    communityName: data.name,
+    communitySlug: data.slug,
+  });
 
   return NextResponse.json({ community: data });
 }

@@ -60,12 +60,11 @@ export function SpacesSection({
     onChange: refreshSpaces,
   });
 
-  const { primary, secondary } = partitionSpacesForDisplay(spacesWithRooms, {
+  const { primary } = partitionSpacesForDisplay(spacesWithRooms, {
     isStaff: canCreate,
   });
-  const visibleSpaces = primary
-    ? [primary, ...secondary]
-    : spacesWithRooms;
+  const visibleSpaces = primary ? [primary] : spacesWithRooms.slice(0, 1);
+  const hasSpace = visibleSpaces.length > 0;
 
   const spaceCards = useMemo(() => {
     const roleInput = { userId, ownerId, membership };
@@ -122,11 +121,10 @@ export function SpacesSection({
             Spaces
           </h2>
           <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-[var(--color-text-secondary)]">
-            Your community&apos;s primary Space for discussion — open it to start
-            collaborating. Additional Spaces appear when created.
+            Your community&apos;s discussion Space — open it to start collaborating.
           </p>
         </div>
-        {canCreate && (
+        {canCreate && !hasSpace && (
           <button
             type="button"
             onClick={() => setCreateOpen(true)}
@@ -154,9 +152,6 @@ export function SpacesSection({
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {spaceCards.map(({ space, group }, index) => {
             const href = communitySpaceHref(community.slug, space.slug);
-            const latestFromRoom = group.channels[0]?.name
-              ? `Latest · ${group.channels[0].name}`
-              : null;
             const latestFromCreated = space.created_at
               ? `Created ${new Date(space.created_at).toLocaleDateString("en-US", {
                   month: "short",
@@ -164,7 +159,7 @@ export function SpacesSection({
                   year: "numeric",
                 })}`
               : null;
-            const latest = latestFromRoom ?? latestFromCreated;
+            const latest = latestFromCreated;
             return (
               <GroupCard
                 key={space.id}

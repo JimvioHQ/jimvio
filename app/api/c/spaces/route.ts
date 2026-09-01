@@ -26,7 +26,7 @@ function slugify(name: string) {
     .slice(0, 60);
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,8 +36,15 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const spaces = await getHubSpaces(user.id);
-  return NextResponse.json({ spaces });
+  const offset = Math.max(0, Number(req.nextUrl.searchParams.get("offset") ?? 0) || 0);
+  const limit = Math.min(
+    60,
+    Math.max(1, Number(req.nextUrl.searchParams.get("limit") ?? 36) || 36)
+  );
+  const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+
+  const result = await getHubSpaces(user.id, { offset, limit, q });
+  return NextResponse.json(result);
 }
 
 /** Create a Space with a primary room matching the Space type. */

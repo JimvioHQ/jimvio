@@ -848,10 +848,19 @@ export type HubChannelItem = {
   href: string;
 };
 
-export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
+export async function getHubSpaces(
+  userId: string,
+  opts?: { offset?: number; limit?: number; q?: string }
+): Promise<{
+  spaces: HubSpaceItem[];
+  nextOffset: number | null;
+  total: number;
+}> {
   const supabase = await createClient();
   const communityIds = await getAccessibleCommunityIds(supabase, userId);
-  if (communityIds.length === 0) return [];
+  if (communityIds.length === 0) {
+    return { spaces: [], nextOffset: null, total: 0 };
+  }
 
   const { data: spaces } = await supabase
     .from("spaces")
@@ -931,7 +940,7 @@ export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
     }
   }
 
-  return primarySpaces.map((space) => {
+  const items = primarySpaces.map((space) => {
     const community = space.communities as {
       name: string;
       slug: string;
@@ -968,6 +977,27 @@ export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
         : "/communities",
     };
   });
+
+  const q = opts?.q?.trim().toLowerCase() ?? "";
+  let sorted = items;
+  if (q) {
+    sorted = items.filter(
+      (space) =>
+        space.name.toLowerCase().includes(q) ||
+        space.community_name.toLowerCase().includes(q) ||
+        space.description?.toLowerCase().includes(q) ||
+        space.last_message?.toLowerCase().includes(q)
+    );
+  }
+  sorted = [...sorted].sort((a, b) => a.community_name.localeCompare(b.community_name));
+
+  const offset = Math.max(0, opts?.offset ?? 0);
+  const limit = Math.min(60, Math.max(1, opts?.limit ?? 36));
+  const total = sorted.length;
+  const page = sorted.slice(offset, offset + limit);
+  const nextOffset = offset + limit < total ? offset + limit : null;
+
+  return { spaces: page, nextOffset, total };
 }
 
 export async function getHubChannels(userId: string): Promise<HubChannelItem[]> {
