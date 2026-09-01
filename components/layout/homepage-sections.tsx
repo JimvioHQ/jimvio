@@ -469,10 +469,10 @@ export function TrendingProductsRow({
 }) {
   if (loadError) {
     return (
-      <section className={`${sectionAlt} py-12 sm:py-16`}>
+      <section className="bg-[#F8FAFC] py-12 sm:py-16">
         <div className={shell}>
-          <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">
-            🔥 Trending Products
+          <h2 className="text-[clamp(1.375rem,3vw,1.75rem)] font-black tracking-[-0.03em] text-[#111827]">
+            Trending Products
           </h2>
           <p className="mt-3 text-[14px] font-medium text-[var(--color-text-muted)]">
             Couldn’t load products. Retry.
@@ -486,18 +486,23 @@ export function TrendingProductsRow({
   if (!trending.length) return null;
 
   return (
-    <section className={`${sectionAlt} py-12 sm:py-16`}>
+    <section className="bg-[#F8FAFC] py-12 sm:py-16 lg:py-[4.5rem]">
       <div className={shell}>
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">
-            🔥 Trending Products
-          </h2>
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-3 sm:mb-8">
+          <div>
+            <h2 className="text-[clamp(1.375rem,3vw,1.75rem)] font-black tracking-[-0.03em] text-[#111827] dark:text-[var(--color-text-primary)]">
+              Trending Products
+            </h2>
+            <p className="mt-1.5 text-[13px] text-[var(--color-text-muted)] sm:text-[14px]">
+              Top selling products right now
+            </p>
+          </div>
           <Link
             href="/marketplace"
-            className="inline-flex min-h-11 shrink-0 items-center gap-1 text-[12px] font-bold sm:text-[13px]"
-            style={{ color: ORANGE }}
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-[12px] font-bold sm:text-[13px]"
+            style={{ color: "#FF5A1F" }}
           >
-            View All <ArrowRight className="size-3" />
+            View all <ArrowRight className="size-3.5" />
           </Link>
         </div>
         <HomepageTrendingProductsClient
@@ -539,13 +544,15 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
       <article
         key={c.id}
         className={cn(
-          "group relative flex h-full flex-col overflow-hidden rounded-[12px] border border-[#EEF0F2] bg-white",
-          "shadow-[0_1px_2px_rgba(17,24,39,0.04),0_3px_10px_rgba(17,24,39,0.03)]",
-          "transition-all duration-200",
-          "hover:-translate-y-1 hover:shadow-[0_6px_20px_rgba(17,24,39,0.09)]",
+          "group relative flex h-full flex-col overflow-hidden rounded-[24px] border border-[var(--color-border)] bg-white",
+          "shadow-[0_2px_10px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.03)]",
+          "transition-[transform,box-shadow,border-color] duration-200 ease-out",
+          "hover:-translate-y-[3px] hover:border-[var(--color-border-strong)]",
+          "hover:shadow-[0_16px_40px_rgba(17,24,39,0.08)]",
+          "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
         )}
       >
-        <div className="relative aspect-[5/3] shrink-0 overflow-hidden bg-[#F3F4F6]">
+        <div className="relative aspect-[5/3] shrink-0 overflow-hidden bg-[#F8FAFC]">
           <Link href={`/ugc/${c.id}`} className="absolute inset-0 block" aria-label={c.title}>
             {safeMediaUrl(banner, 640) ? (
               // eslint-disable-next-line @next/next/no-img-element -- dynamic campaign CDN
@@ -569,38 +576,38 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
               <div
                 className="absolute inset-0"
                 style={{
-                  background: "linear-gradient(145deg, #FFF4EF 0%, #F3F4F6 60%, #FFE8DC 100%)",
+                  background: "linear-gradient(145deg, #FFF4EF 0%, #F8FAFC 60%, #FFE8DC 100%)",
                 }}
               />
             )}
           </Link>
 
-          <span className="absolute left-2.5 top-2.5 z-[1] rounded-full bg-[#FF5A1F] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-[0_2px_8px_rgba(255,90,31,0.35)]">
+          <span className="absolute left-2.5 top-2.5 z-[1] rounded-full bg-[#FF5A1F] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white shadow-[0_2px_8px_rgba(255,90,31,0.3)]">
             Featured
           </span>
 
           <div className="absolute inset-x-0 bottom-0 z-[2] flex justify-center px-3 pb-3">
             <Link
               href={`/ugc/${c.id}/join`}
-              className="inline-flex h-9 min-w-[44px] items-center justify-center rounded-full bg-[#FF5A1F] px-5 text-[12px] font-bold text-white shadow-[0_8px_22px_rgba(255,90,31,0.42)] transition-colors hover:bg-[#E54E18]"
+              className="inline-flex h-9 min-w-[44px] items-center justify-center rounded-full bg-[#FF5A1F] px-5 text-[12px] font-bold text-white shadow-[0_8px_22px_rgba(255,90,31,0.35)] transition-colors hover:bg-[#E54E18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2"
             >
               Join Campaign
             </Link>
           </div>
         </div>
 
-        <Link href={`/ugc/${c.id}`} className="flex flex-1 flex-col px-4 pb-3 pt-3">
+        <Link href={`/ugc/${c.id}`} className="flex flex-1 flex-col px-4 pb-4 pt-3.5">
           <div className="flex items-center gap-1.5">
             {safeMediaUrl(logoUrl, 64) ? (
               // eslint-disable-next-line @next/next/no-img-element -- dynamic vendor logos
               <img
                 src={safeMediaUrl(logoUrl, 64)!}
                 alt=""
-                className="h-4 w-4 shrink-0 rounded-full border border-[#E8EAED] object-cover"
+                className="h-5 w-5 shrink-0 rounded-full border border-[#E8EAED] object-cover"
                 loading="lazy"
               />
             ) : (
-              <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-[7px] font-bold text-white">
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#FF5A1F] text-[8px] font-bold text-white">
                 {vendor?.business_name?.[0] ?? "B"}
               </span>
             )}
@@ -609,21 +616,21 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
             </span>
           </div>
 
-          <h3 className="mt-1 line-clamp-2 text-[12.5px] font-bold leading-[1.3] tracking-[-0.01em] text-[#111827] transition-colors group-hover:text-[#FF5A1F]">
+          <h3 className="mt-2 line-clamp-2 text-[13px] font-bold leading-[1.35] tracking-[-0.015em] text-[#111827] transition-colors group-hover:text-[#FF5A1F] sm:text-[14px]">
             {c.title}
           </h3>
 
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <span className="truncate text-[10.5px] font-medium text-[#6B7280]">
+          <div className="mt-2.5 flex items-center justify-between gap-2">
+            <span className="truncate text-[11px] font-medium text-[#6B7280]">
               {joined} creator{joined === 1 ? "" : "s"}
             </span>
-            <span className="shrink-0 rounded-[6px] bg-[#ECFDF5] px-1.5 py-[3px] text-[10px] font-bold tabular-nums leading-none text-[#059669]">
+            <span className="shrink-0 rounded-lg bg-[#ECFDF5] px-2 py-1 text-[10px] font-bold tabular-nums leading-none text-[#059669]">
               {payAmount}
               {paySuffix}
             </span>
           </div>
           {daysLeft !== null ? (
-            <span className="mt-2 inline-flex w-fit rounded-[6px] bg-[#FFF0E8] px-1.5 py-[3px] text-[9.5px] font-bold text-[#FF5A1F]">
+            <span className="mt-2.5 inline-flex w-fit rounded-lg bg-[#FFF0E8] px-2 py-1 text-[10px] font-bold text-[#FF5A1F]">
               {daysLeft === 0 ? "Ends today" : `${daysLeft}d left`}
             </span>
           ) : null}
@@ -633,12 +640,23 @@ export function FeaturedUGCCampaigns({ campaigns = [] }: { campaigns: SharedCamp
   });
 
   return (
-    <section className={`${section} py-12 sm:py-16`}>
+    <section className="bg-white py-12 sm:py-16 lg:py-[4.5rem]">
       <div className={shell}>
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h2 className="text-[20px] font-black text-[var(--color-text-primary)] sm:text-[26px]">Featured UGC Campaigns</h2>
-          <Link href="/ugc" className="shrink-0 text-[12px] font-bold sm:text-[13px]" style={{ color: ORANGE }}>
-            Explore All <ArrowRight className="inline size-3" />
+        <div className="mb-7 flex items-end justify-between gap-3 sm:mb-8">
+          <div>
+            <h2 className="text-[clamp(1.375rem,3vw,1.75rem)] font-black tracking-[-0.03em] text-[#111827] dark:text-[var(--color-text-primary)]">
+              Featured UGC Campaigns
+            </h2>
+            <p className="mt-1.5 text-[13px] text-[var(--color-text-muted)] sm:text-[14px]">
+              Paid creator opportunities live now
+            </p>
+          </div>
+          <Link
+            href="/ugc"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-[12px] font-bold sm:text-[13px]"
+            style={{ color: "#FF5A1F" }}
+          >
+            Explore All <ArrowRight className="size-3.5" />
           </Link>
         </div>
         <HomepageShowcaseLayout

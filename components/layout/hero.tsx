@@ -240,54 +240,52 @@ const PARTNER_IMG_LOGOS = [
   { src: "/logos/paypal.png", alt: "PayPal", h: "h-5" },
   { src: "/logos/Payoneer_Master_Logo_OnWhite_RGB.svg", alt: "Payoneer", h: "h-5" },
   { src: "/logos/binance.png", alt: "Binance Pay", h: "h-5" },
-  { src: "/logos/flutterwave.png", alt: "Flutterwave", h: "h-4" },
+  { src: "/logos/Flutterwave-main.svg", alt: "Flutterwave", h: "h-4" },
   { src: "/logos/NOWPayments_idKVr3HnXR_1.svg", alt: "NOWPayments", h: "h-4" },
+  { src: "/logos/Afrigo-Logo.png", alt: "AfriGo", h: "h-5" },
 ] as const;
 
 function PartnerLogoTrack({ suffix }: { suffix: string }) {
   return (
-    <>
-      <span className="inline-flex shrink-0 items-center opacity-70">
-        <ApplePayLogo className="h-5" />
-      </span>
+    <div className="flex items-center gap-10 sm:gap-14 md:gap-16">
       {PARTNER_IMG_LOGOS.map((logo) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           key={`${logo.alt}-${suffix}`}
           src={logo.src}
           alt={logo.alt}
-          width={88}
-          height={20}
+          width={96}
+          height={24}
           decoding="async"
           loading="lazy"
-          className={`${logo.h} w-auto shrink-0 object-contain opacity-60 dark:opacity-70 dark:brightness-0 dark:invert`}
+          className={`${logo.h} w-auto shrink-0 object-contain opacity-[0.55] grayscale transition-opacity duration-200 dark:opacity-70 dark:brightness-0 dark:invert`}
         />
       ))}
-      <span className="inline-flex shrink-0 items-center opacity-80">
+      <span className="inline-flex shrink-0 items-center opacity-75">
         <VisaLogo className="h-5" />
       </span>
-      <span className="inline-flex shrink-0 items-center opacity-80">
+      <span className="inline-flex shrink-0 items-center opacity-75">
         <MastercardLogo className="h-6" />
       </span>
-      <span className="inline-flex shrink-0 items-center opacity-80">
-        <GooglePayLogo className="h-5" />
-      </span>
-      <span className="inline-flex shrink-0 items-center opacity-80">
+      <span className="inline-flex shrink-0 items-center opacity-75">
         <ApplePayLogo className="h-5" />
       </span>
-      <span className="inline-flex shrink-0 items-center opacity-80">
+      <span className="inline-flex shrink-0 items-center opacity-75">
+        <GooglePayLogo className="h-5" />
+      </span>
+      <span className="inline-flex shrink-0 items-center opacity-75">
         <AmexLogo className="h-5" />
       </span>
-      <span className="inline-flex shrink-0 items-center opacity-80">
+      <span className="inline-flex shrink-0 items-center opacity-75">
         <DiscoverLogo className="h-5" />
       </span>
-      <span className="inline-flex shrink-0 items-center opacity-80">
+      <span className="inline-flex shrink-0 items-center opacity-75">
         <UnionPayLogo className="h-5" />
       </span>
-      <span className="inline-flex shrink-0 items-center opacity-80">
+      <span className="inline-flex shrink-0 items-center opacity-75">
         <JcbLogo className="h-5" />
       </span>
-    </>
+    </div>
   );
 }
 
@@ -296,32 +294,35 @@ const HeroPartnerStrip = memo(function HeroPartnerStrip() {
 
   return (
     <div className="mx-auto w-full max-w-8xl px-4 sm:px-6">
-      <p className="mb-5 text-center text-[11px] font-medium tracking-[0.01em] text-[var(--color-text-muted)] sm:mb-6 sm:text-[12px]">
-        Trusted by 17,238 creators and businesses worldwide
+      <p className="mb-6 text-center text-[12px] font-medium tracking-[-0.01em] text-[var(--color-text-muted)] sm:mb-7 sm:text-[13px]">
+        Trusted by{" "}
+        <span className="font-semibold tabular-nums text-[#111827] dark:text-[var(--color-text-primary)]">
+          17,238
+        </span>{" "}
+        creators and businesses worldwide
       </p>
 
-      <div className="group relative min-h-[28px] overflow-hidden sm:min-h-[32px]">
-        <div
-          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[var(--color-surface)] to-transparent sm:w-16"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[var(--color-surface)] to-transparent sm:w-16"
-          aria-hidden
-        />
-
+      <div
+        className="group relative min-h-[32px] overflow-hidden sm:min-h-[36px]"
+        style={{
+          maskImage:
+            "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
+          WebkitMaskImage:
+            "linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent)",
+        }}
+      >
         <div
           className={cn(
-            "flex w-max items-center gap-12 sm:gap-16",
+            "flex w-max items-center",
             !reduced &&
-              "animate-[hero-partner-marquee_90s_linear_infinite] group-hover:[animation-play-state:paused] motion-reduce:animate-none",
+              "animate-[hero-partner-marquee_75s_linear_infinite] motion-reduce:animate-none sm:animate-[hero-partner-marquee_95s_linear_infinite]",
           )}
           style={{ willChange: reduced ? undefined : "transform" }}
         >
-          <div className="flex items-center gap-12 sm:gap-16">
+          <div className="flex shrink-0 items-center pr-10 sm:pr-14 md:pr-16">
             <PartnerLogoTrack suffix="a" />
           </div>
-          <div className="flex items-center gap-12 sm:gap-16" aria-hidden>
+          <div className="flex shrink-0 items-center pr-10 sm:pr-14 md:pr-16" aria-hidden>
             <PartnerLogoTrack suffix="b" />
           </div>
         </div>
@@ -435,10 +436,10 @@ export function Hero() {
         </div>
 
         {/* Lower hero — trust badges + Trusted by / payment marquee */}
-        <div className="relative z-10 w-full pb-1.5 pt-8 sm:pb-2 sm:pt-9 lg:pb-2.5">
+        <div className="relative z-10 w-full pb-6 pt-9 sm:pb-8 sm:pt-10 lg:pb-10">
           <HeroTrustBadges />
 
-          <div className="mt-8 w-full sm:mt-10">
+          <div className="mt-9 w-full sm:mt-11">
             <HeroPartnerStrip />
           </div>
         </div>

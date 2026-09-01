@@ -104,11 +104,11 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
     <Link
       href={journey.href}
       className={cn(
-        "jimvio-journey-card group relative flex h-full min-h-[268px] flex-col overflow-hidden rounded-[22px] p-5 sm:p-6",
-        "border border-[var(--color-border)] bg-[var(--color-surface)]",
-        "shadow-[0_2px_10px_rgba(17,24,39,0.04)]",
+        "jimvio-journey-card group relative flex h-full min-h-[280px] flex-col overflow-hidden rounded-[24px] p-5 sm:min-h-[292px] sm:p-6",
+        "border border-[var(--color-border)] bg-white",
+        "shadow-[0_2px_10px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.03)]",
         "transition-[transform,box-shadow,border-color] duration-200 ease-out",
-        "hover:-translate-y-1",
+        "hover:-translate-y-[3px]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2",
         "active:translate-y-0 active:scale-[0.995]",
         "motion-reduce:transition-none motion-reduce:hover:translate-y-0",
@@ -116,16 +116,16 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
       style={{
         ["--journey-i" as string]: index,
         ["--journey-accent" as string]: journey.color,
-        background: `linear-gradient(180deg, color-mix(in srgb, ${journey.color} 6%, var(--color-surface)) 0%, var(--color-surface) 46%)`,
+        background: `linear-gradient(165deg, color-mix(in srgb, ${journey.color} 5.5%, #ffffff) 0%, #ffffff 42%)`,
       }}
     >
       <span
         aria-hidden
-        className="absolute bottom-0 left-0 top-0 w-[2px] rounded-r-full opacity-50 transition-all duration-200 group-hover:w-1 group-hover:opacity-100 motion-reduce:transition-none"
+        className="absolute bottom-0 left-0 top-0 w-[2px] rounded-r-full opacity-45 transition-all duration-200 group-hover:w-[3px] group-hover:opacity-100 motion-reduce:transition-none"
         style={{ background: journey.color }}
       />
       <Icon
-        className="pointer-events-none absolute -bottom-6 -right-5 size-[104px] opacity-[0.06] transition-transform duration-300 ease-out group-hover:scale-110 group-hover:-translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:scale-100 sm:size-[118px]"
+        className="pointer-events-none absolute -bottom-5 -right-4 size-[100px] opacity-[0.055] transition-transform duration-300 ease-out group-hover:translate-x-[-2px] group-hover:translate-y-[-2px] motion-reduce:transition-none sm:size-[112px]"
         style={{ color: journey.color }}
         strokeWidth={1.15}
         aria-hidden
@@ -134,17 +134,17 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 motion-reduce:transition-none"
         style={{
-          background: `radial-gradient(90% 70% at 0% 0%, color-mix(in srgb, ${journey.color} 10%, transparent), transparent 58%)`,
+          background: `radial-gradient(90% 70% at 0% 0%, color-mix(in srgb, ${journey.color} 8%, transparent), transparent 58%)`,
         }}
       />
 
       <div className="relative flex items-start gap-3 pl-1">
         <span
-          className="grid size-12 shrink-0 place-items-center rounded-2xl transition-transform duration-200 ease-out group-hover:scale-[1.06] group-hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          className="grid size-12 shrink-0 place-items-center rounded-2xl transition-transform duration-200 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           style={{
-            background: `${journey.color}14`,
+            background: `${journey.color}12`,
             color: journey.color,
-            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.5)`,
+            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.55)`,
           }}
         >
           <Icon className="size-5 sm:size-[22px]" strokeWidth={1.85} />
@@ -154,8 +154,8 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
             {journey.role}
           </h3>
           <p
-            className="mt-1.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide sm:text-[11px]"
-            style={{ background: `${journey.color}14`, color: journey.color }}
+            className="mt-1.5 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold tracking-wide sm:text-[11px]"
+            style={{ background: `${journey.color}12`, color: journey.color }}
           >
             {journey.metric}
           </p>
@@ -183,7 +183,7 @@ function JourneyCard({ journey, index }: { journey: Journey; index: number }) {
         style={{ color: journey.color }}
       >
         {journey.cta}
-        <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1 motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
+        <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-[4px] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0" />
       </span>
     </Link>
   );
@@ -224,24 +224,24 @@ export function ChooseYourJourney() {
   return (
     <section
       ref={sectionRef}
-      className="jimvio-journey-hub border-t border-[var(--color-border)] bg-[var(--color-surface)] py-10 sm:py-14"
+      className="jimvio-journey-hub relative bg-white py-12 sm:py-16 lg:py-[4.5rem]"
       aria-labelledby="jimvio-journey-title"
     >
       <style>{JOURNEY_CSS}</style>
       <div className={shell}>
-        <div className="mb-8 text-center sm:mb-10">
+        <div className="mb-10 text-center sm:mb-12">
           <h2
             id="jimvio-journey-title"
-            className="text-[26px] font-black tracking-tight text-[var(--color-text-primary)] sm:text-[30px]"
+            className="text-[clamp(1.625rem,3.6vw,2.125rem)] font-black tracking-[-0.03em] text-[#111827] dark:text-[var(--color-text-primary)]"
           >
             Choose Your Journey
           </h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-[var(--color-text-muted)]">
+          <p className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[var(--color-text-muted)] sm:text-[15px]">
             One account — sell, earn, create, or buy depending on what you need right now.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
           {JOURNEYS.map((journey, index) => (
             <JourneyCard key={journey.role} journey={journey} index={index} />
           ))}
@@ -253,22 +253,22 @@ export function ChooseYourJourney() {
 
 const JOURNEY_CSS = `
 @keyframes jimvio-journey-enter {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .jimvio-journey-hub[data-motion="ready"] .jimvio-journey-card {
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(14px);
 }
 .jimvio-journey-hub[data-motion="in"] .jimvio-journey-card {
-  animation: jimvio-journey-enter 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--journey-i, 0) * 55ms);
+  animation: jimvio-journey-enter 400ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--journey-i, 0) * 50ms);
 }
 .jimvio-journey-card:hover {
-  border-color: color-mix(in srgb, var(--journey-accent) 30%, var(--color-border));
+  border-color: color-mix(in srgb, var(--journey-accent) 28%, var(--color-border));
   box-shadow:
-    0 14px 34px rgba(17, 24, 39, 0.08),
-    0 2px 8px color-mix(in srgb, var(--journey-accent) 10%, transparent);
+    0 16px 40px rgba(17, 24, 39, 0.07),
+    0 2px 8px color-mix(in srgb, var(--journey-accent) 8%, transparent);
 }
 @media (prefers-reduced-motion: reduce) {
   .jimvio-journey-hub[data-motion="ready"] .jimvio-journey-card,

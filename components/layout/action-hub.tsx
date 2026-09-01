@@ -19,7 +19,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Eyebrow from "@/components/ui/Eyebrow";
 
 const ORANGE = "#FF5A1F";
 const GREEN = "#16a34a";
@@ -146,7 +145,7 @@ function ActionHubCta({ label, accent }: { label: string; accent: string }) {
         style={{ transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)" }}
       >
         <ArrowRight
-          className="size-3.5 transition-transform duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-[5px] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0 sm:size-4"
+          className="size-3.5 transition-transform duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:translate-x-[4px] motion-reduce:transition-none motion-reduce:group-hover:translate-x-0 sm:size-4"
           strokeWidth={2}
           aria-hidden
         />
@@ -163,11 +162,11 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
     <Link
       href={action.href}
       className={cn(
-        "jimvio-action-hub-card group relative flex h-full min-h-[220px] flex-col overflow-hidden rounded-[22px] p-6 sm:min-h-[248px] sm:p-7",
+        "jimvio-action-hub-card group relative flex h-full min-h-[220px] flex-col overflow-hidden rounded-[24px] p-6 sm:min-h-[248px] sm:p-7",
         "border border-[var(--color-border)] bg-[var(--color-surface)]",
         "shadow-[0_2px_10px_rgba(17,24,39,0.04),0_1px_2px_rgba(17,24,39,0.03)]",
         "transition-[transform,box-shadow,border-color] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-        "hover:-translate-y-1",
+        "hover:-translate-y-[3px]",
         "active:translate-y-0 active:scale-[0.995]",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]",
         "motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100",
@@ -176,7 +175,7 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
         {
           "--hub-i": index,
           "--hub-accent": action.accent,
-          background: `linear-gradient(180deg, color-mix(in srgb, ${action.accent} calc(5.5% * ${tint}), var(--color-surface)) 0%, var(--color-surface) 52%)`,
+          background: `linear-gradient(180deg, color-mix(in srgb, ${action.accent} calc(5% * ${tint}), #ffffff) 0%, #ffffff 48%)`,
         } as CSSProperties
       }
     >
@@ -186,14 +185,14 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute right-0 top-0 size-28 translate-x-8 -translate-y-8 rounded-full opacity-[0.22] blur-2xl transition-opacity duration-[240ms] group-hover:opacity-40 motion-reduce:transition-none"
+        className="pointer-events-none absolute right-0 top-0 size-28 translate-x-8 -translate-y-8 rounded-full opacity-[0.18] blur-2xl transition-opacity duration-[240ms] group-hover:opacity-40 motion-reduce:transition-none"
         style={{ background: action.accent }}
       />
       <span
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-[240ms] group-hover:opacity-100 motion-reduce:transition-none"
         style={{
-          background: `radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, ${action.accent} 9%, transparent), transparent 58%)`,
+          background: `radial-gradient(120% 80% at 0% 0%, color-mix(in srgb, ${action.accent} 8%, transparent), transparent 58%)`,
         }}
       />
       <span
@@ -205,19 +204,19 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
       <span className="relative mb-5 inline-flex size-12 items-center justify-center sm:mb-6 sm:size-[52px]">
         <span
           aria-hidden
-          className="absolute inset-[-18%] rounded-full opacity-50 blur-xl transition-opacity duration-[240ms] group-hover:opacity-80 motion-reduce:transition-none"
-          style={{ background: `color-mix(in srgb, ${action.accent} 28%, transparent)` }}
+          className="absolute inset-[-18%] rounded-full opacity-45 blur-xl transition-opacity duration-[240ms] group-hover:opacity-70 motion-reduce:transition-none"
+          style={{ background: `color-mix(in srgb, ${action.accent} 26%, transparent)` }}
         />
         <span
           className={cn(
             "relative grid size-full place-items-center rounded-2xl border border-white/70 dark:border-white/5",
             "transition-transform duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-            "group-hover:scale-[1.06] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
+            "group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100",
           )}
           style={{
-            background: `color-mix(in srgb, ${action.accent} calc(11% * ${tint}), var(--color-surface))`,
+            background: `color-mix(in srgb, ${action.accent} calc(10% * ${tint}), #ffffff)`,
             color: action.accent,
-            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.55), 0 8px 20px color-mix(in srgb, ${action.accent} 10%, transparent)`,
+            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.55), 0 8px 20px color-mix(in srgb, ${action.accent} 8%, transparent)`,
           }}
         >
           <span
@@ -225,7 +224,7 @@ function ActionHubCard({ action, index }: { action: ActionItem; index: number })
             className="pointer-events-none absolute inset-px rounded-[15px] bg-gradient-to-b from-white/55 to-transparent dark:from-white/10"
           />
           <Icon
-            className="relative size-5 transition-transform duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-y-1 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0 sm:size-[22px]"
+            className="relative size-5 transition-transform duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:group-hover:translate-y-0 sm:size-[22px]"
             strokeWidth={1.75}
             aria-hidden
           />
@@ -277,28 +276,33 @@ export function WhatToDoToday() {
   return (
     <section
       ref={sectionRef}
-      className="jimvio-action-hub bg-[var(--color-surface)] pt-10 pb-8 sm:pt-12 sm:pb-10"
+      className="jimvio-action-hub relative overflow-hidden bg-[#F8FAFC] pt-14 pb-12 sm:pt-16 sm:pb-14 lg:pt-[4.5rem] lg:pb-16"
       aria-labelledby="jimvio-action-hub-title"
     >
       <style>{ACTION_HUB_CSS}</style>
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#FF5A1F]/20 to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-0 h-[280px] w-[min(720px,90vw)] -translate-x-1/2 rounded-full bg-[rgba(255,90,31,0.035)] blur-[100px]"
+      />
+
       <div className={shell}>
-        <header className="mx-auto mb-8 max-w-2xl text-center sm:mb-10">
-          <div className="flex justify-center">
-            <Eyebrow>Your Jimvio Journey</Eyebrow>
-          </div>
+        <header className="mx-auto mb-10 max-w-3xl text-center sm:mb-12">
+          <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.22em] text-[#FF5A1F] sm:mb-5 sm:text-[12px] sm:tracking-[0.24em]">
+            Your Jimvio Journey
+          </p>
           <h2
             id="jimvio-action-hub-title"
-            className="text-[26px] font-black tracking-tight text-[var(--color-text-primary)] sm:text-[32px]"
+            className="text-[clamp(1.75rem,4.2vw,2.75rem)] font-black leading-[1.12] tracking-[-0.035em] text-[#111827] dark:text-[var(--color-text-primary)]"
           >
             What do you want to build today?
           </h2>
-          <p className="mx-auto mt-2.5 max-w-xl text-[14px] leading-relaxed text-[var(--color-text-muted)] sm:text-[15px]">
+          <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--color-text-muted)] sm:mt-5 sm:text-[16px] sm:leading-[1.55]">
             Choose your path and start creating, earning, selling, or growing with Jimvio.
           </p>
-          <div
-            aria-hidden
-            className="mx-auto mt-6 h-px w-14 bg-gradient-to-r from-transparent via-[#FF5A1F]/35 to-transparent"
-          />
         </header>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-6">
@@ -313,25 +317,25 @@ export function WhatToDoToday() {
 
 const ACTION_HUB_CSS = `
 @keyframes jimvio-action-hub-enter {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .jimvio-action-hub[data-motion="ready"] .jimvio-action-hub-card {
   opacity: 0;
-  transform: translateY(16px);
+  transform: translateY(14px);
 }
 .jimvio-action-hub[data-motion="in"] .jimvio-action-hub-card {
-  animation: jimvio-action-hub-enter 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--hub-i, 0) * 64ms);
+  animation: jimvio-action-hub-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--hub-i, 0) * 55ms);
 }
 .jimvio-action-hub-card {
   pointer-events: auto;
 }
 .jimvio-action-hub-card:hover {
-  border-color: color-mix(in srgb, var(--hub-accent) 28%, var(--color-border));
+  border-color: color-mix(in srgb, var(--hub-accent) 26%, var(--color-border));
   box-shadow:
-    0 14px 36px rgba(17, 24, 39, 0.08),
-    0 2px 8px color-mix(in srgb, var(--hub-accent) 10%, transparent);
+    0 16px 40px rgba(17, 24, 39, 0.07),
+    0 2px 8px color-mix(in srgb, var(--hub-accent) 8%, transparent);
 }
 .jimvio-action-hub-card:active {
   box-shadow: 0 6px 16px rgba(17, 24, 39, 0.06);
