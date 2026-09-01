@@ -1,74 +1,125 @@
 "use client";
 
-import { Loader2, Radio } from "lucide-react";
-import { getInitials } from "@/lib/utils";
-import { useHubLiveRail } from "@/components/feed/use-hub-live-rail";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef } from "react";
+import { FeedSidebarCard, FeedSidebarSkeleton } from "@/components/feed/FeedSidebarCard";
+import { useFeedHubDiscover } from "@/components/feed/use-feed-hub-discover";
+import { cn, formatNumber, getInitials } from "@/lib/utils";
 
-/**
- * Compact Live Now row — real hub live data (no mocks).
- * Hides when nothing is live / featured.
- */
+function LiveCreatorCard({
+  title,
+  hostName,
+  hostAvatarUrl,
+  thumbnailUrl,
+  href,
+  viewerCount,
+}: {
+  title: string;
+  hostName: string;
+  hostAvatarUrl: string | null;
+  thumbnailUrl: string | null;
+  href: string;
+  viewerCount: number | null;
+}) {
+  const visual = thumbnailUrl || hostAvatarUrl;
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "group relative flex w-[88px] shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-[var(--color-border,#e5e7eb)] bg-[var(--color-surface,#fff)]",
+        "transition-[transform,box-shadow,border-color] duration-200 motion-reduce:transition-none",
+        "hover:-translate-y-0.5 hover:border-[#FF5A1F]/30 hover:shadow-md active:scale-[0.98] motion-reduce:active:scale-100"
+      )}
+    >
+      <div className="relative aspect-square w-full bg-[var(--color-surface-secondary,#f3f4f6)]">
+        {visual ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={visual} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950 text-sm font-bold text-white">
+            {getInitials(hostName)}
+          </div>
+        )}
+        <span className="absolute left-1 top-1 rounded bg-red-600 px-1 py-px text-[8px] font-bold uppercase tracking-wide text-white motion-safe:animate-pulse motion-reduce:animate-none">
+          Live
+        </span>
+      </div>
+      <div className="space-y-0.5 px-2 py-2">
+        <p className="truncate text-[11px] font-semibold text-[var(--color-text-primary,#111827)]">
+          {hostName}
+        </p>
+        <p className="truncate text-[10px] text-[var(--color-text-muted,#6b7280)]">{title}</p>
+        {viewerCount != null && viewerCount > 0 ? (
+          <p className="text-[9px] font-medium tabular-nums text-[var(--color-text-muted,#6b7280)]">
+            {formatNumber(viewerCount)} watching
+          </p>
+        ) : null}
+      </div>
+    </Link>
+  );
+}
+
+/** Horizontal live creator rail — real live_sessions only. */
 export function LiveNowCard() {
-  const { live, loading } = useHubLiveRail();
+  const { live, loading } = useFeedHubDiscover();
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   if (loading) {
     return (
-      <section className="flex items-center justify-center rounded-xl border border-gray-200 bg-white py-6">
-        <Loader2 className="h-4 w-4 animate-spin text-gray-400" aria-hidden />
-        <span className="sr-only">Loading live sessions</span>
-      </section>
+      <FeedSidebarCard title="Live now" titleAccent="live" viewAllHref="/communities/live">
+        <FeedSidebarSkeleton rows={1} />
+      </FeedSidebarCard>
     );
   }
 
-  if (!live || (!live.live && !live.href)) return null;
-  // Prefer true live sessions; featured non-live fallback only when marked live.
-  if (!live.live) return null;
+  if (live.length === 0) return null;
 
-  const host = live.host || "Creator";
+  const scrollBy = (dir: -1 | 1) => {
+    scrollerRef.current?.scrollBy({ left: dir * 180, behavior: "smooth" });
+  };
 
   return (
-    <section className="min-w-0">
-      <h3 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-900">
-        <Radio className="h-3 w-3 text-[#FF5A1F]" aria-hidden />
-        Live Now
-      </h3>
-
-      <div className="flex overflow-hidden rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-        <div className="relative h-[72px] w-[72px] shrink-0 bg-zinc-900">
-          {live.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={live.imageUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-950">
-              <Radio className="h-5 w-5 text-white/35" aria-hidden />
-            </div>
-          )}
-          <span className="absolute left-1 top-1 rounded bg-[#FF5A1F] px-1 py-px text-[8px] font-bold uppercase tracking-wide text-white">
-            Live
-          </span>
+    <FeedSidebarCard title="Live now" titleAccent="live" viewAllHref="/communities/live">
+      <div className="relative -mx-0.5">
+        <div
+          ref={scrollerRef}
+          className="flex gap-2 overflow-x-auto overscroll-x-contain scroll-smooth px-0.5 pb-0.5 scrollbar-hide snap-x snap-mandatory"
+        >
+          {live.map((session) => (
+            <LiveCreatorCard
+              key={session.id}
+              title={session.title}
+              hostName={session.hostName}
+              hostAvatarUrl={session.hostAvatarUrl}
+              thumbnailUrl={session.thumbnailUrl}
+              href={session.href}
+              viewerCount={session.viewerCount}
+            />
+          ))}
         </div>
-
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-2.5 py-2">
-          <p className="truncate text-[12px] font-semibold leading-snug text-gray-900">
-            {live.title}
-          </p>
-          <div className="flex items-center gap-1.5">
-            <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[8px] font-semibold text-gray-600">
-              {getInitials(host)}
-            </span>
-            <span className="truncate text-[11px] text-gray-500">{host}</span>
-          </div>
-          <button
-            type="button"
-            className="mt-0.5 inline-flex h-7 w-fit items-center rounded-md bg-[#FF5A1F] px-2.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#e64e18]"
-            onClick={() => {
-              window.location.assign(live.href || `/communities/live/${live.id}`);
-            }}
-          >
-            Join Live
-          </button>
-        </div>
+        {live.length > 3 ? (
+          <>
+            <button
+              type="button"
+              aria-label="Scroll live creators left"
+              onClick={() => scrollBy(-1)}
+              className="absolute -left-1 top-[28%] hidden h-7 w-7 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] shadow-sm transition-colors hover:text-[var(--color-text-primary)] lg:flex"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Scroll live creators right"
+              onClick={() => scrollBy(1)}
+              className="absolute -right-1 top-[28%] hidden h-7 w-7 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] shadow-sm transition-colors hover:text-[var(--color-text-primary)] lg:flex"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </>
+        ) : null}
       </div>
-    </section>
+    </FeedSidebarCard>
   );
 }

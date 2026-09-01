@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Bell, Loader2 } from "lucide-react";
+import { Bell, Loader2, Radio, Sparkles, Users } from "lucide-react";
+import { FeedSidebarCard, FeedSidebarSkeleton } from "@/components/feed/FeedSidebarCard";
 import { timeAgo } from "@/lib/utils";
 import { isTechnicalFeedBody } from "@/lib/community/message-signaling";
 
@@ -16,6 +17,16 @@ type ActivityItem = {
   created_at?: string | null;
 };
 
+const MAX_ITEMS = 5;
+
+function activityIcon(item: ActivityItem) {
+  const blob = `${item.type ?? ""} ${item.category ?? ""} ${item.title}`.toLowerCase();
+  if (blob.includes("live")) return Radio;
+  if (blob.includes("member") || blob.includes("join")) return Users;
+  if (blob.includes("project") || blob.includes("campaign")) return Sparkles;
+  return Bell;
+}
+
 /** Compact activity timeline — real notifications feed (no mocks). */
 export function ActivityFeedCard() {
   const [items, setItems] = useState<ActivityItem[]>([]);
@@ -28,7 +39,7 @@ export function ActivityFeedCard() {
       setLoading(true);
       setError(false);
       try {
-        const res = await fetch("/api/notifications?limit=5", {
+        const res = await fetch(`/api/notifications?limit=${MAX_ITEMS}`, {
           cache: "no-store",
         });
         if (res.status === 401) {
@@ -47,13 +58,17 @@ export function ActivityFeedCard() {
         }
         const data = (await res.json()) as { items?: ActivityItem[] };
         const raw = Array.isArray(data.items) ? data.items : [];
-        if (!cancelled) {
-          setItems(
-            raw.filter(
-              (item) => !isTechnicalFeedBody(item.message) && !isTechnicalFeedBody(item.title),
-            ),
-          );
+        const seen = new Set<string>();
+        const filtered: ActivityItem[] = [];
+        for (const item of raw) {
+          if (!item.id || seen.has(item.id)) continue;
+          if (isTechnicalFeedBody(item.message) || isTechnicalFeedBody(item.title)) continue;
+          if (!item.title?.trim()) continue;
+          seen.add(item.id);
+          filtered.push(item);
+          if (filtered.length >= MAX_ITEMS) break;
         }
+        if (!cancelled) setItems(filtered);
       } catch {
         if (!cancelled) {
           setItems([]);
@@ -69,54 +84,49 @@ export function ActivityFeedCard() {
   }, []);
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-3 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-      <div className="mb-1.5 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <span className="h-3.5 w-0.5 rounded-full bg-[#FF5A1F]" aria-hidden />
-          <h3 className="text-[12px] font-bold text-gray-900">Activity Feed</h3>
-        </div>
-        <Link
-          href="/communities/notifications"
-          className="text-[11px] font-medium text-[#FF5A1F] hover:underline"
-        >
-          View all
-        </Link>
-      </div>
-
+    <FeedSidebarCard
+      title="Activity Feed"
+      titleAccent="orange"
+      viewAllHref="/communities/notifications"
+    >
       {loading ? (
-        <div className="flex justify-center py-4">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" aria-hidden />
-        </div>
+        <FeedSidebarSkeleton rows={3} />
       ) : error ? (
-        <p className="py-2 text-[11px] text-gray-500">Couldn’t load activity right now.</p>
+        <p className="py-1 text-[11px] text-[var(--color-text-muted,#6b7280)]">
+          Couldn&apos;t load activity right now.
+        </p>
       ) : items.length === 0 ? (
-        <p className="py-2 text-[11px] text-gray-500">No recent community activity yet.</p>
+        <p className="py-1 text-[11px] text-[var(--color-text-muted,#6b7280)]">
+          No recent activity
+        </p>
       ) : (
-        <ul className="divide-y divide-gray-50">
+        <ul className="divide-y divide-[var(--color-border,#e5e7eb)]/60">
           {items.map((item) => {
-            const live =
-              `${item.type ?? ""} ${item.category ?? ""} ${item.title}`.toLowerCase().includes(
-                "live",
-              );
+            const Icon = activityIcon(item);
+            const live = `${item.type ?? ""} ${item.category ?? ""} ${item.title}`
+              .toLowerCase()
+              .includes("live");
             const body = (
               <>
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100">
-                  <Bell className="h-3 w-3 text-gray-500" strokeWidth={2} />
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-surface-secondary,#f3f4f6)]">
+                  <Icon className="h-3.5 w-3.5 text-[var(--color-text-muted,#6b7280)]" strokeWidth={2} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11.5px] font-semibold leading-snug text-gray-900">
+                  <p className="text-[11.5px] font-semibold leading-snug text-[var(--color-text-primary,#111827)]">
                     {item.title}
                   </p>
                   {item.message ? (
-                    <p className="mt-0.5 truncate text-[10.5px] text-gray-500">{item.message}</p>
+                    <p className="mt-0.5 truncate text-[10.5px] text-[var(--color-text-muted,#6b7280)]">
+                      {item.message}
+                    </p>
                   ) : null}
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-0.5 pt-0.5">
-                  <span className="text-[10px] tabular-nums text-gray-400">
+                  <span className="text-[10px] tabular-nums text-[var(--color-text-muted,#9ca3af)]">
                     {item.created_at ? timeAgo(item.created_at) : ""}
                   </span>
                   {live ? (
-                    <span className="rounded bg-[#FF5A1F] px-1 py-px text-[8px] font-bold uppercase tracking-wide text-white">
+                    <span className="rounded bg-red-600 px-1 py-px text-[8px] font-bold uppercase tracking-wide text-white">
                       Live
                     </span>
                   ) : null}
@@ -125,11 +135,11 @@ export function ActivityFeedCard() {
             );
 
             return (
-              <li key={item.id} className="py-1.5 first:pt-0 last:pb-0">
+              <li key={item.id} className="py-2 first:pt-0 last:pb-0">
                 {item.action_url ? (
                   <Link
                     href={item.action_url}
-                    className="flex items-start gap-2 transition-colors hover:bg-gray-50/80"
+                    className="flex items-start gap-2 rounded-lg transition-colors hover:bg-[var(--color-surface-secondary,#f9fafb)]/80"
                   >
                     {body}
                   </Link>
@@ -141,6 +151,6 @@ export function ActivityFeedCard() {
           })}
         </ul>
       )}
-    </section>
+    </FeedSidebarCard>
   );
 }

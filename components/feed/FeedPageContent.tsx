@@ -8,22 +8,20 @@ import { FeedPostCard, type ApiPost } from "@/components/feed/FeedPostCard";
 import { FeedTabs } from "@/components/feed/FeedTabs";
 import { LiveNowCard } from "@/components/feed/LiveNowCard";
 import { MiniLivePlayerBar } from "@/components/feed/MiniLivePlayerBar";
+import { PopularUsersCard } from "@/components/feed/PopularUsersCard";
 import { PostComposer } from "@/components/feed/PostComposer";
 import { StoriesRail } from "@/components/feed/StoriesRail";
-import { TopMissionsList } from "@/components/feed/TopMissionsList";
-import { UpcomingLiveSessions } from "@/components/feed/UpcomingLiveSessions";
 import type { FeedTab } from "@/lib/feed/mock-data";
 import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
 
-/** Single narrow intelligence rail — never multi-column. */
+/** Desktop intelligence rail — AI Assistant, Live now, Popular Users, Activity Feed. */
 function FeedRightRail() {
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <LiveNowCard />
       <AIAssistantPanel />
-      <UpcomingLiveSessions />
+      <LiveNowCard />
+      <PopularUsersCard />
       <ActivityFeedCard />
-      <TopMissionsList />
     </div>
   );
 }
@@ -58,7 +56,7 @@ export function FeedPageContent({
             </div>
           </div>
 
-          {/* Compact intelligence rail — stacked under feed on mobile */}
+          {/* Intelligence rail — stacked under feed on mobile, sticky on desktop */}
           <aside className="w-full shrink-0 pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:sticky lg:top-4 lg:z-10 lg:w-[300px] lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-4 xl:w-[320px]">
             <FeedRightRail />
           </aside>

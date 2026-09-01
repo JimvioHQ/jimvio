@@ -5,6 +5,10 @@ import {
   isCommunityVerified,
 } from "@/lib/community/trending-score";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
+import {
+  loadFeedSidebarLiveNow,
+  loadFeedSidebarPopularUsers,
+} from "@/lib/feed/load-feed-sidebar";
 
 export const dynamic = "force-dynamic";
 
@@ -132,20 +136,16 @@ export async function GET() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let liveRows: Array<{
-    id: string | number;
-    title?: string | null;
-  }> = [];
+  let liveRows: Awaited<ReturnType<typeof loadFeedSidebarLiveNow>> = [];
+  let popularUsers: Awaited<ReturnType<typeof loadFeedSidebarPopularUsers>> = [];
   try {
-    const liveRes = await (supabase as any)
-      .from("live_sessions")
-      .select("id, title, status, community_id, host_user_id")
-      .eq("status", "live")
-      .order("started_at", { ascending: false })
-      .limit(6);
-    liveRows = liveRes?.data ?? [];
+    [liveRows, popularUsers] = await Promise.all([
+      loadFeedSidebarLiveNow(8),
+      loadFeedSidebarPopularUsers(user?.id ?? null),
+    ]);
   } catch {
     liveRows = [];
+    popularUsers = [];
   }
 
   let trendingRows: TrendingCommunityRow[] = [];
@@ -201,17 +201,20 @@ export async function GET() {
     });
   }
 
-  void user;
-
   return NextResponse.json({
     communities: trendingRows.map(mapCommunity),
     live: liveRows.map((s) => ({
-      id: String(s.id),
-      title: s.title || "Live room",
+      id: s.id,
+      title: s.title,
       subtitle: "Live now",
-      href: `/communities/live/${s.id}`,
-      image: null,
+      href: s.href,
+      image: s.thumbnailUrl ?? s.hostAvatarUrl,
       badge: "Live",
+      hostName: s.hostName,
+      hostAvatarUrl: s.hostAvatarUrl,
+      viewerCount: s.viewerCount,
+      thumbnailUrl: s.thumbnailUrl,
     })),
+    popularUsers,
   });
 }
