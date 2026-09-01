@@ -63,6 +63,15 @@ export type HubMessagePeer = {
   sharedCommunities: Array<{ id: string; name: string; slug: string; href: string }>;
 };
 
+function resolveEntityAvatar(
+  primary: string | null | undefined,
+  fallback: string | null | undefined
+): string | null {
+  const p = primary?.trim();
+  if (p) return p;
+  const f = fallback?.trim();
+  return f || null;
+}
 function countReactions(raw: unknown) {
   if (!raw || typeof raw !== "object") return {};
   const out: Record<string, number> = {};
@@ -276,26 +285,40 @@ export async function getHubMessageThreads(userId: string) {
       slug: string;
       community_id: string;
       space_id: string | null;
-      spaces: { slug: string } | null;
-      communities: { name: string; slug: string } | null;
+      spaces: {
+        slug: string;
+        name: string;
+        cover_url: string | null;
+        banner_url: string | null;
+      } | null;
+      communities: {
+        name: string;
+        slug: string;
+        avatar_url: string | null;
+        cover_image: string | null;
+      } | null;
     };
 
     const [{ data: rooms }, { data: spaces }] = await Promise.all([
       supabase
         .from("rooms")
-        .select("id, name, slug, community_id, space_id, spaces(slug), communities(name, slug)")
+        .select(
+          "id, name, slug, community_id, space_id, spaces(slug, name, cover_url, banner_url), communities(name, slug, avatar_url, cover_image)"
+        )
         .in("community_id", communityIds)
         .eq("room_type", "chat")
         .eq("is_active", true)
         .order("sort_order", { ascending: true })
-        .limit(30),
+        .limit(50),
       supabase
         .from("spaces")
-        .select("id, name, slug, community_id, communities(name, slug)")
+        .select(
+          "id, name, slug, community_id, cover_url, banner_url, communities(name, slug, avatar_url, cover_image)"
+        )
         .in("community_id", communityIds)
         .eq("is_active", true)
         .order("sort_order", { ascending: true })
-        .limit(20),
+        .limit(50),
     ]);
 
     const roomRows = (rooms ?? []) as unknown as RoomRow[];
@@ -312,7 +335,9 @@ export async function getHubMessageThreads(userId: string) {
     if (uncoveredSpaceIds.length > 0) {
       const { data: spaceRooms } = await supabase
         .from("rooms")
-        .select("id, name, slug, community_id, space_id, spaces(slug), communities(name, slug)")
+        .select(
+          "id, name, slug, community_id, space_id, spaces(slug, name, cover_url, banner_url), communities(name, slug, avatar_url, cover_image)"
+        )
         .in("space_id", uncoveredSpaceIds)
         .eq("room_type", "chat")
         .eq("is_active", true)
@@ -338,15 +363,23 @@ export async function getHubMessageThreads(userId: string) {
       const community = room.communities;
       const space = room.spaces;
       const last = roomLastMsg.get(room.id);
+      const communityImage = resolveEntityAvatar(
+        community?.avatar_url,
+        community?.cover_image
+      );
+      const spaceImage = resolveEntityAvatar(
+        space?.cover_url,
+        space?.banner_url
+      );
       threads.push({
         id: `room:${room.id}`,
         kind: "group",
-        name: room.name,
-        avatarUrl: null,
+        name: space?.name?.trim() || room.name,
+        avatarUrl: resolveEntityAvatar(spaceImage, communityImage),
         subtitle: community?.name ?? null,
         lastMessage: last
           ? previewChatMessage(last.body, last.message_type)
-          : "Group chat",
+          : "No messages yet",
         lastMessageTime: last?.created_at ?? new Date().toISOString(),
         unreadCount: unreadFromLast(last, userId, readCursors.get(`room:${room.id}`)),
         isOnline: false,
@@ -374,11 +407,24 @@ export async function getHubMessageThreads(userId: string) {
       // Already represented by a group room thread — avoid duplicate stubs.
       if (spaceIdsWithGroupRooms.has(space.id)) continue;
 
-      const community = space.communities as { name: string; slug: string } | null;
+      const community = space.communities as {
+        name: string;
+        slug: string;
+        avatar_url: string | null;
+        cover_image: string | null;
+      } | null;
       const primaryRoom = primaryRoomBySpace.get(space.id);
       const spaceHref = community
         ? `/communities/${community.slug}/spaces/${space.slug}`
         : null;
+      const communityImage = resolveEntityAvatar(
+        community?.avatar_url,
+        community?.cover_image
+      );
+      const spaceImage = resolveEntityAvatar(
+        (space as { cover_url?: string | null }).cover_url,
+        (space as { banner_url?: string | null }).banner_url
+      );
 
       if (primaryRoom) {
         // Attach primary chat room so selecting opens real messages.
@@ -393,7 +439,7 @@ export async function getHubMessageThreads(userId: string) {
         id: `space:${space.id}`,
         kind: "space",
         name: space.name,
-        avatarUrl: null,
+        avatarUrl: resolveEntityAvatar(spaceImage, communityImage),
         subtitle: community?.name ?? null,
         lastMessage: "Open space",
         lastMessageTime: new Date().toISOString(),

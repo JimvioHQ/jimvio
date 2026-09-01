@@ -59,7 +59,8 @@ export function ChatHeader({
   voiceRoomHref: string;
   participants?: Array<{ id: string; name: string; avatarUrl: string | null }>;
 }) {
-  const showCreator = thread.kind === "direct" || peer?.isCreator;
+  const showCreator = thread.kind === "direct" && peer?.isCreator;
+  const isSpaceChat = thread.kind === "group";
 
   return (
     <header className="flex shrink-0 items-center justify-between gap-3 border-b border-black/[0.06] bg-white/90 px-3 py-2 backdrop-blur-md sm:px-4">
@@ -83,7 +84,7 @@ export function ChatHeader({
             name={thread.name}
             src={thread.avatarUrl}
             size={36}
-            live={online}
+            online={online}
           />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -91,21 +92,28 @@ export function ChatHeader({
                 {thread.name}
               </p>
               {showCreator && <HubBadge variant="orange">Creator</HubBadge>}
+              {isSpaceChat && <HubBadge variant="default">Space</HubBadge>}
             </div>
-            <p
-              className={cn(
-                "flex items-center gap-1.5 text-[11px] font-semibold",
-                online ? "text-emerald-600" : "text-[var(--color-text-muted)]"
-              )}
-            >
-              <span
+            {isSpaceChat && thread.subtitle ? (
+              <p className="truncate text-[11px] font-medium text-[var(--color-text-muted)]">
+                {thread.subtitle}
+              </p>
+            ) : (
+              <p
                 className={cn(
-                  "inline-block h-1.5 w-1.5 rounded-full",
-                  online ? "bg-emerald-500" : "bg-zinc-400"
+                  "flex items-center gap-1.5 text-[11px] font-semibold",
+                  online ? "text-emerald-600" : "text-[var(--color-text-muted)]"
                 )}
-              />
-              {online ? "Online" : "Offline"}
-            </p>
+              >
+                <span
+                  className={cn(
+                    "inline-block h-1.5 w-1.5 rounded-full",
+                    online ? "bg-emerald-500" : "bg-zinc-400"
+                  )}
+                />
+                {online ? "Online" : "Offline"}
+              </p>
+            )}
           </div>
         </button>
       </div>

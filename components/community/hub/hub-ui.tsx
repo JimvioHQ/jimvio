@@ -84,12 +84,15 @@ export function HubAvatar({
   src,
   size = 40,
   live,
+  online,
   className,
 }: {
   name: string;
   src?: string | null;
   size?: number;
   live?: boolean;
+  /** Green/gray presence dot for messaging (distinct from live stream badge). */
+  online?: boolean;
   className?: string;
 }) {
   const [failed, setFailed] = useState(false);
@@ -121,6 +124,15 @@ export function HubAvatar({
         <span className="absolute -bottom-0.5 -right-0.5 rounded-full border-2 border-white bg-red-500 px-1 text-[7px] font-bold text-white">
           LIVE
         </span>
+      )}
+      {!live && online !== undefined && (
+        <span
+          className={cn(
+            "absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white",
+            online ? "bg-emerald-500" : "bg-neutral-300"
+          )}
+          aria-hidden
+        />
       )}
     </div>
   );

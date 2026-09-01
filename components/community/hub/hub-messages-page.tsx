@@ -74,7 +74,7 @@ export function HubMessagesPage() {
   const [sending, setSending] = useState(false);
   const [activeTab, setActiveTab] = useState<MessagesTabId>("all");
   const [search, setSearch] = useState("");
-  const [showDetails, setShowDetails] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
   const [mobileDetails, setMobileDetails] = useState(false);
   const [mediaTab, setMediaTab] = useState<MediaTabId>("Media");
   const [notificationsOn, setNotificationsOn] = useState(true);
@@ -190,8 +190,8 @@ export function HubMessagesPage() {
     presence,
   ]);
 
-  const loadThreads = useCallback(async () => {
-    setLoading(true);
+  const loadThreads = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const res = await fetch("/api/c/messages");
       if (!res.ok) return;
@@ -202,13 +202,76 @@ export function HubMessagesPage() {
       setThreads(data.threads ?? []);
       setTabCounts(data.tabCounts ?? { all: 0, unread: 0, groups: 0, spaces: 0 });
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     void loadThreads();
   }, [loadThreads]);
+
+  const communityIdsForRealtime = useMemo(
+    () => [...new Set(threads.map((t) => t.communityId).filter(Boolean))],
+    [threads]
+  );
+
+  useEffect(() => {
+    if (!currentUserId || communityIdsForRealtime.length === 0) return;
+    const supabase = createClient();
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        void loadThreads({ silent: true });
+      }, 400);
+    };
+
+    const channels = communityIdsForRealtime.map((communityId) =>
+      supabase
+        .channel(`hub-threads:${communityId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "community_messages",
+            filter: `community_id=eq.${communityId}`,
+          },
+          scheduleRefresh
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "community_inbox_messages",
+            filter: `community_id=eq.${communityId}`,
+          },
+          scheduleRefresh
+        )
+        .subscribe()
+    );
+
+    const readChannel = supabase
+      .channel(`hub-threads-reads:${currentUserId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messaging_conversation_reads",
+          filter: `user_id=neq.${currentUserId}`,
+        },
+        scheduleRefresh
+      )
+      .subscribe();
+
+    return () => {
+      if (debounce) clearTimeout(debounce);
+      channels.forEach((ch) => supabase.removeChannel(ch));
+      supabase.removeChannel(readChannel);
+    };
+  }, [communityIdsForRealtime, currentUserId, loadThreads]);
 
   useEffect(() => {
     void createClient()
@@ -744,14 +807,28 @@ export function HubMessagesPage() {
     }
   }
 
+  function closeDetails() {
+    setShowDetails(false);
+    setMobileDetails(false);
+  }
+
+  function openDetails() {
+    setShowDetails(true);
+    setMobileDetails(true);
+  }
+
+  function toggleDetails() {
+    if (showDetails || mobileDetails) closeDetails();
+    else openDetails();
+  }
+
   function handleQuickAction(id: QuickActionId) {
     if (id === "ai") {
       openAssistant();
       return;
     }
     if (id === "more") {
-      setShowDetails(true);
-      setMobileDetails(true);
+      toggleDetails();
       return;
     }
     setShareAction(id);
@@ -805,6 +882,7 @@ export function HubMessagesPage() {
           }
           setActiveThreadId(id);
           setMobileShowChat(true);
+          closeDetails();
           setReplyingTo(null);
           setShowChatSearch(false);
           setChatSearch("");
@@ -816,7 +894,7 @@ export function HubMessagesPage() {
         onTogglePin={togglePin}
         onOpenFilter={() =>
           toast.message("Filters", {
-            description: "Use the All / Unread / Groups / Spaces tabs.",
+            description: "Use the All / Unread / Chats / Spaces tabs.",
           })
         }
         className={cn(mobileShowChat && "hidden lg:flex")}
@@ -858,14 +936,8 @@ export function HubMessagesPage() {
                   })
                 }
                 onSearch={() => setShowChatSearch((v) => !v)}
-                onMore={() => {
-                  setShowDetails(true);
-                  setMobileDetails(true);
-                }}
-                onToggleDetails={() => {
-                  setShowDetails(true);
-                  setMobileDetails(true);
-                }}
+                onMore={toggleDetails}
+                onToggleDetails={toggleDetails}
                 voiceRoomHref={voiceRoomHref}
               />
 
@@ -891,7 +963,7 @@ export function HubMessagesPage() {
                     <button
                       type="button"
                       className="text-[var(--color-accent,#fd5000)]"
-                      onClick={() => setShowDetails(true)}
+                      onClick={openDetails}
                     >
                       View
                     </button>
@@ -983,7 +1055,7 @@ export function HubMessagesPage() {
           onNotificationsChange={setNotificationsOn}
           muted={muted}
           onMutedChange={setMuted}
-          onClose={() => setShowDetails(false)}
+          onClose={closeDetails}
           onAudio={() => toast.message("Audio call")}
           onVideo={() => toast.message("Video call")}
           onProfile={() => {
@@ -1008,7 +1080,7 @@ export function HubMessagesPage() {
             type="button"
             className="absolute inset-0 bg-black/40"
             aria-label="Close details overlay"
-            onClick={() => setMobileDetails(false)}
+            onClick={closeDetails}
           />
           <div className="absolute inset-y-0 right-0 w-[min(100%,340px)] bg-[var(--color-surface)] shadow-xl">
             <ChatDetailsAside
@@ -1023,7 +1095,7 @@ export function HubMessagesPage() {
               onNotificationsChange={setNotificationsOn}
               muted={muted}
               onMutedChange={setMuted}
-              onClose={() => setMobileDetails(false)}
+              onClose={closeDetails}
               onAudio={() => toast.message("Audio call")}
               onVideo={() => toast.message("Video call")}
               onProfile={() => {

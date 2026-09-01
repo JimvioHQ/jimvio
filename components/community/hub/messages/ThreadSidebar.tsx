@@ -3,11 +3,9 @@
 import {
   Filter,
   MessageCircle,
-  Monitor,
   Pin,
   Search,
   SquarePen,
-  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar } from "../hub-ui";
@@ -17,7 +15,7 @@ import { formatShortTime } from "./utils";
 const TABS: Array<{ id: MessagesTabId; label: string }> = [
   { id: "all", label: "All" },
   { id: "unread", label: "Unread" },
-  { id: "groups", label: "Groups" },
+  { id: "groups", label: "Chats" },
   { id: "spaces", label: "Spaces" },
 ];
 
@@ -158,23 +156,13 @@ export function ThreadSidebar({
                 )}
 
                 <div className="relative shrink-0">
-                  {thread.kind === "group" ? (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-violet-500/10 text-violet-600 ring-2 ring-white">
-                      <Users className="h-4.5 w-4.5 h-[18px] w-[18px]" />
-                    </div>
-                  ) : thread.kind === "space" ? (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500/10 text-sky-600 ring-2 ring-white">
-                      <Monitor className="h-[18px] w-[18px]" />
-                    </div>
-                  ) : (
-                    <HubAvatar
-                      name={thread.name}
-                      src={thread.avatarUrl}
-                      size={40}
-                      live={thread.isOnline}
-                      className="ring-2 ring-white"
-                    />
-                  )}
+                  <HubAvatar
+                    name={thread.name}
+                    src={thread.avatarUrl}
+                    size={40}
+                    online={thread.kind === "direct" ? thread.isOnline : undefined}
+                    className="ring-2 ring-white"
+                  />
                 </div>
 
                 <div className="min-w-0 flex-1">

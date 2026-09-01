@@ -2,19 +2,29 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Layers, Loader2, Search, Users, ChevronRight } from "lucide-react";
-import { HubCard, HubLinkButton } from "@/components/community/hub/hub-ui";
+import { ChevronRight, Layers, Loader2, Search } from "lucide-react";
+import { HubCard, HubAvatar, HubLinkButton } from "@/components/community/hub/hub-ui";
+import { resolveSpaceAvatar } from "@/components/community/hub/messages/MessageEntityAvatar";
 
 type HubSpace = {
   id: string;
   name: string;
   slug: string;
   description: string | null;
+  cover_url: string | null;
+  community_avatar_url: string | null;
   community_name: string;
   community_slug: string;
   room_count: number;
   member_count: number;
   href: string;
+};
+
+type CommunityGroup = {
+  community_slug: string;
+  community_name: string;
+  community_avatar_url: string | null;
+  spaces: HubSpace[];
 };
 
 export default function HubSpacesPage() {
@@ -35,7 +45,9 @@ export default function HubSpacesPage() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filtered = useMemo(
@@ -49,6 +61,30 @@ export default function HubSpacesPage() {
     [spaces, searchQuery]
   );
 
+  const grouped = useMemo(() => {
+    const map = new Map<string, CommunityGroup>();
+    for (const space of filtered) {
+      const key = space.community_slug || space.community_name;
+      const existing = map.get(key);
+      if (existing) {
+        existing.spaces.push(space);
+        continue;
+      }
+      map.set(key, {
+        community_slug: space.community_slug,
+        community_name: space.community_name,
+        community_avatar_url: space.community_avatar_url,
+        spaces: [space],
+      });
+    }
+    return [...map.values()].sort((a, b) =>
+      a.community_name.localeCompare(b.community_name)
+    );
+  }, [filtered]);
+
+  const hasSpaces = spaces.length > 0;
+  const noSearchResults = hasSpaces && filtered.length === 0;
+
   return (
     <div className="min-h-full bg-[var(--color-bg,#f4f4f5)]">
       <div className="w-full space-y-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
@@ -56,17 +92,17 @@ export default function HubSpacesPage() {
           <div>
             <h1 className="flex items-center gap-2 text-xl font-black tracking-tight">
               <Layers className="h-5 w-5 text-[#fd5000]" />
-              Spaces & Groups
+              Spaces & Communities
             </h1>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Public, private, and invite-only communities — feed, files, events, and members
+              Spaces across your communities — discussions, announcements, and collaboration
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <HubLinkButton href="/communities/create">Create community</HubLinkButton>
             <HubLinkButton href="/communities/explore" variant="secondary">
-              Discover more
+              Explore communities
             </HubLinkButton>
+            <HubLinkButton href="/communities/create">Create community</HubLinkButton>
           </div>
         </div>
 
@@ -85,41 +121,87 @@ export default function HubSpacesPage() {
           <div className="flex justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : noSearchResults ? (
+          <HubCard className="py-12 text-center">
+            <Search className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
+            <p className="text-[14px] font-bold">No matching spaces</p>
+            <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
+              Try a different search term.
+            </p>
+          </HubCard>
+        ) : grouped.length === 0 ? (
           <HubCard className="py-12 text-center">
             <Layers className="mx-auto mb-3 h-10 w-10 text-zinc-300" />
-            <p className="text-[14px] font-bold">No groups yet</p>
+            <p className="text-[14px] font-bold">No Spaces yet</p>
             <p className="mt-1 text-[12px] text-[var(--color-text-muted)]">
-              Join a community to access its groups.
+              Join or create a Community to start using Spaces.
             </p>
-            <HubLinkButton href="/communities" className="mt-4">
-              Browse communities
-            </HubLinkButton>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <HubLinkButton href="/communities/explore">Explore communities</HubLinkButton>
+              <HubLinkButton href="/communities/create" variant="secondary">
+                Create community
+              </HubLinkButton>
+            </div>
           </HubCard>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {filtered.map((space) => (
-              <Link key={space.id} href={space.href}>
-                <HubCard className="group h-full transition hover:border-[#fd5000]/30 hover:shadow-md">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-[14px] font-bold group-hover:text-[#fd5000]">{space.name}</p>
-                      <p className="text-[11px] text-[var(--color-text-muted)]">{space.community_name}</p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-zinc-300 group-hover:text-[#fd5000]" />
+          <div className="space-y-6">
+            {grouped.map((group) => (
+              <section key={group.community_slug || group.community_name}>
+                <div className="mb-3 flex items-center gap-2.5">
+                  <HubAvatar
+                    name={group.community_name}
+                    src={group.community_avatar_url}
+                    size={32}
+                  />
+                  <div className="min-w-0">
+                    <h2 className="truncate text-[14px] font-bold text-[var(--color-text-primary)]">
+                      {group.community_name}
+                    </h2>
+                    <p className="text-[11px] text-[var(--color-text-muted)]">
+                      {group.spaces.length}{" "}
+                      {group.spaces.length === 1 ? "space" : "spaces"}
+                    </p>
                   </div>
-                  {space.description && (
-                    <p className="mt-2 line-clamp-2 text-[12px] text-[var(--color-text-secondary)]">{space.description}</p>
-                  )}
-                  <div className="mt-3 flex items-center gap-4 text-[10px] font-semibold text-[var(--color-text-muted)]">
-                    <span className="inline-flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {space.member_count.toLocaleString()} members
-                    </span>
-                    <span>{space.room_count} rooms</span>
-                  </div>
-                </HubCard>
-              </Link>
+                </div>
+
+                <ul className="space-y-1">
+                  {group.spaces.map((space) => (
+                    <li key={space.id}>
+                      <Link
+                        href={space.href}
+                        className="group flex items-center gap-3 rounded-xl border border-transparent px-2 py-2 transition hover:border-[#fd5000]/20 hover:bg-white"
+                      >
+                        <HubAvatar
+                          name={space.name}
+                          src={resolveSpaceAvatar(
+                            space.cover_url,
+                            space.community_avatar_url
+                          )}
+                          size={36}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-semibold group-hover:text-[#fd5000]">
+                            {space.name}
+                          </p>
+                          {space.description ? (
+                            <p className="truncate text-[11px] text-[var(--color-text-muted)]">
+                              {space.description}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-[var(--color-text-muted)]">
+                              {space.member_count.toLocaleString()} members
+                              {space.room_count > 0
+                                ? ` · ${space.room_count} rooms`
+                                : ""}
+                            </p>
+                          )}
+                        </div>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-zinc-300 group-hover:text-[#fd5000]" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
           </div>
         )}
