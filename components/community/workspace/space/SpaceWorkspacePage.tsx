@@ -277,6 +277,8 @@ export function SpaceWorkspacePage() {
           }
           isStaff={Boolean(workspace.isAdmin || workspace.isOwner)}
           ownerName={workspace.ownerName}
+          communityAvatar={workspace.avatarUrl}
+          communityCover={workspace.coverUrl}
         />
       </div>
     );

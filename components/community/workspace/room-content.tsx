@@ -16,6 +16,7 @@ import {
   mapRoomToChannel,
   mapSpaceToGroup,
   resolveChannelEmptyCopy,
+  resolveSpaceAvatarSrc,
 } from "@/lib/community/workspace";
 import type { MembershipLite } from "@/lib/community-workspace-access";
 
@@ -62,9 +63,14 @@ export function RoomContent({
       mapSpaceToGroup(space, roleInput, {
         memberCount,
         onlineCount,
+        cover: resolveSpaceAvatarSrc(
+          space,
+          community.avatar_url,
+          community.cover_image
+        ),
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [space, currentUserId, ownerId, membership, memberCount, onlineCount]
+    [space, currentUserId, ownerId, membership, memberCount, onlineCount, community.avatar_url, community.cover_image]
   );
 
   const emptyCopy = useMemo(

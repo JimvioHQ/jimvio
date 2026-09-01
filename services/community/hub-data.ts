@@ -49,18 +49,7 @@ async function getAccessibleCommunityIds(
   return [...ids];
 }
 
-function pickPrimarySpace<T extends { id: string; slug: string; sort_order?: number | null; is_featured?: boolean | null }>(
-  spaces: T[]
-): T | null {
-  if (!spaces.length) return null;
-  return (
-    spaces.find((s) => s.slug === "general") ??
-    spaces.find((s) => s.is_featured) ??
-    [...spaces].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0] ??
-    spaces[0] ??
-    null
-  );
-}
+import { pickPrimarySpaceCandidate } from "@/lib/community/workspace/primary-space";
 
 export type HubPlatformStats = {
   membersOnline: number;
@@ -884,7 +873,7 @@ export async function getHubSpaces(userId: string): Promise<HubSpaceItem[]> {
   }
 
   const primarySpaces = [...byCommunity.values()]
-    .map((list) => pickPrimarySpace(list))
+    .map((list) => pickPrimarySpaceCandidate(list))
     .filter((s): s is NonNullable<typeof s> => !!s);
 
   const spaceIds = primarySpaces.map((s) => s.id);

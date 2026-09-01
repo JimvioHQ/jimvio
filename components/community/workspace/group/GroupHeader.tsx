@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   Phone,
   Search,
+  Settings,
   Users,
   Video,
 } from "lucide-react";
@@ -100,6 +101,7 @@ export function GroupHeader({
   onToggleNotifications,
   onInvite,
   onAbout,
+  onSettings,
   onSearch,
   onAudioCall,
   onVideoCall,
@@ -115,6 +117,7 @@ export function GroupHeader({
   onSearch?: () => void;
   onJoin?: () => void;
   onAbout?: () => void;
+  onSettings?: () => void;
   onAudioCall?: () => void;
   onVideoCall?: () => void;
   searchValue?: string;
@@ -179,6 +182,12 @@ export function GroupHeader({
           {onVideoCall ? (
             <GhostIconButton label="Video call" onClick={onVideoCall}>
               <Video className="h-3.5 w-3.5" />
+            </GhostIconButton>
+          ) : null}
+
+          {onSettings ? (
+            <GhostIconButton label="Space settings" onClick={onSettings}>
+              <Settings className="h-3.5 w-3.5" />
             </GhostIconButton>
           ) : null}
 

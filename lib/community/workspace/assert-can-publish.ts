@@ -29,6 +29,32 @@ async function resolveRoomPostingAccess(
     return { room: null as null, access: null, membership: null };
   }
 
+  let mergedPermission = room.permission_config;
+  if (room.space_id) {
+    const { data: spaceRow } = await supabase
+      .from("spaces")
+      .select("permission_config")
+      .eq("id", room.space_id)
+      .maybeSingle();
+    if (spaceRow?.permission_config && typeof spaceRow.permission_config === "object") {
+      const spacePolicy = spaceRow.permission_config as Record<string, unknown>;
+      const roomPolicy =
+        room.permission_config && typeof room.permission_config === "object"
+          ? (room.permission_config as Record<string, unknown>)
+          : {};
+      const spaceMode = spacePolicy.postingMode;
+      const roomMode = roomPolicy.postingMode;
+      if (
+        spaceMode &&
+        (!roomMode ||
+          roomMode === "everyone" ||
+          (spaceMode !== "everyone" && roomMode === spaceMode))
+      ) {
+        mergedPermission = { ...spacePolicy, ...roomPolicy } as typeof room.permission_config;
+      }
+    }
+  }
+
   const { data: community } = await supabase
     .from("communities")
     .select("owner_id")
@@ -72,7 +98,7 @@ async function resolveRoomPostingAccess(
           }
         : null,
     },
-    permission_config: room.permission_config,
+    permission_config: mergedPermission,
     behavior_config: room.behavior_config,
     channelStaff,
     room,

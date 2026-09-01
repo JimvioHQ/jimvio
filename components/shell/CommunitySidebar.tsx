@@ -203,7 +203,7 @@ function SidebarBody({
 
         <div className="mb-2 flex items-center justify-between px-3">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">
-            Spaces
+            Space
           </p>
           {canManage && communityId ? (
             <button

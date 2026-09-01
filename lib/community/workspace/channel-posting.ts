@@ -155,9 +155,15 @@ export function resolveChannelPostingAccess(args: {
   canPublish: boolean;
   canComment: boolean;
 } {
-  const rawPermission =
-    args.room && isGroupDiscussionRoom(args.room)
-      ? { ...DISCUSSION_PERMISSION_CONFIG, publisherIds: [] }
+  const hasExplicitPolicy =
+    args.permission_config &&
+    typeof args.permission_config === "object" &&
+    Object.keys(args.permission_config as object).length > 0;
+
+  const rawPermission = hasExplicitPolicy
+    ? args.permission_config
+    : args.room && isGroupDiscussionRoom(args.room)
+      ? DISCUSSION_PERMISSION_CONFIG
       : args.permission_config;
   const { permissionConfig, behaviorConfig } = normalizeChannelPostingConfig({
     permission_config: rawPermission,

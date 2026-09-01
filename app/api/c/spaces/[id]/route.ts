@@ -14,6 +14,14 @@ import {
 } from "@/lib/community/owner-console/groups";
 import { isSpaceType } from "@/lib/community/workspace/space-types";
 import { rateLimit } from "@/lib/ops/rate-limit";
+import {
+  applyPostingMode,
+  normalizePermissionConfig,
+} from "@/lib/community/owner-console/channels/constants";
+import {
+  CHANNEL_POSTING_MODES,
+  type ChannelPostingMode,
+} from "@/lib/community/owner-console/channels/types";
 
 export const dynamic = "force-dynamic";
 
@@ -57,11 +65,27 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   }
 
+  const { data: discussionRoom } = await loaded.admin
+    .from("rooms")
+    .select("id, permission_config")
+    .eq("space_id", id)
+    .eq("is_active", true)
+    .eq("room_type", "chat")
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  const permissionConfig = normalizePermissionConfig(
+    discussionRoom?.permission_config ?? loaded.raw.permission_config
+  );
+
   return NextResponse.json({
     space: {
       ...mapSpaceToOwnerGroup(loaded.row, []),
       spaceType: loaded.raw.space_type ?? "discussion",
       archivedBy: loaded.raw.archived_by ?? null,
+      permissionConfig,
+      discussionRoomId: discussionRoom?.id ?? null,
     },
   });
 }
@@ -149,6 +173,19 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     if (body.isHidden) patch.privacy = "hidden";
   }
 
+  const rawMessagingMode = body.messagingMode ?? body.messaging_mode;
+  let messagingPermission: ReturnType<typeof normalizePermissionConfig> | null = null;
+  if (
+    typeof rawMessagingMode === "string" &&
+    (CHANNEL_POSTING_MODES as readonly string[]).includes(rawMessagingMode)
+  ) {
+    messagingPermission = applyPostingMode(
+      rawMessagingMode as ChannelPostingMode,
+      normalizePermissionConfig(loaded.row.permission_config)
+    );
+    patch.permission_config = messagingPermission;
+  }
+
   const { data: updated, error } = await loaded.admin
     .from("spaces")
     .update(patch)
@@ -161,6 +198,31 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       { error: error?.message ?? "Update failed" },
       { status: 400 }
     );
+  }
+
+  if (messagingPermission) {
+    const discussionRoomId =
+      typeof body.discussionRoomId === "string" ? body.discussionRoomId : null;
+    if (discussionRoomId) {
+      await loaded.admin
+        .from("rooms")
+        .update({
+          permission_config: messagingPermission,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", discussionRoomId)
+        .eq("space_id", id);
+    } else {
+      await loaded.admin
+        .from("rooms")
+        .update({
+          permission_config: messagingPermission,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("space_id", id)
+        .eq("room_type", "chat")
+        .eq("is_active", true);
+    }
   }
 
   const raw = updated as Record<string, unknown>;

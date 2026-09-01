@@ -18,19 +18,67 @@ export const EDITORIAL_TEMPLATE_SPACE_SLUGS = new Set([
   "networking",
 ]);
 
-/** The main conversation Space for a community (preserves existing General Space data). */
+export type PrimarySpaceCandidate = {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order?: number | null;
+  is_featured?: boolean | null;
+};
+
+const LEGACY_GENERAL_SLUG = "general";
+
+function isGenericDisplayName(name: string | null | undefined): boolean {
+  return /^general$/i.test((name ?? "").trim());
+}
+
+/**
+ * Pick the canonical Space for a community.
+ * Prefers configured custom Spaces (e.g. QuantForg Signals) over legacy "general".
+ */
+export function pickPrimarySpaceCandidate<T extends PrimarySpaceCandidate>(
+  spaces: readonly T[]
+): T | null {
+  if (spaces.length === 0) return null;
+  if (spaces.length === 1) return spaces[0];
+
+  const featuredCustom = spaces.find(
+    (s) => s.is_featured && s.slug !== LEGACY_GENERAL_SLUG
+  );
+  if (featuredCustom) return featuredCustom;
+
+  const customNamed = spaces.filter(
+    (s) => s.slug !== LEGACY_GENERAL_SLUG && !isGenericDisplayName(s.name)
+  );
+  if (customNamed.length === 1) return customNamed[0];
+  if (customNamed.length > 1) {
+    const featured = customNamed.find((s) => s.is_featured);
+    if (featured) return featured;
+    return [...customNamed].sort(
+      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+    )[0];
+  }
+
+  const nonGeneralSlug = spaces.filter((s) => s.slug !== LEGACY_GENERAL_SLUG);
+  if (nonGeneralSlug.length === 1) return nonGeneralSlug[0];
+  if (nonGeneralSlug.length > 0) {
+    const featured = nonGeneralSlug.find((s) => s.is_featured);
+    if (featured) return featured;
+    return [...nonGeneralSlug].sort(
+      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+    )[0];
+  }
+
+  return (
+    spaces.find((s) => s.slug === LEGACY_GENERAL_SLUG) ?? spaces[0] ?? null
+  );
+}
+
+/** The main conversation Space for a community. */
 export function resolvePrimarySpace(
   spaces: readonly WorkspaceSpaceRow[]
 ): WorkspaceSpaceRow | null {
-  if (spaces.length === 0) return null;
-  const byGeneral = spaces.find((s) => s.slug === "general");
-  if (byGeneral) return byGeneral;
-  const featured = spaces.find((s) => s.is_featured);
-  if (featured) return featured;
-  const sorted = [...spaces].sort(
-    (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
-  );
-  return sorted[0] ?? spaces[0] ?? null;
+  return pickPrimarySpaceCandidate(spaces);
 }
 
 export function partitionSpacesForDisplay(

@@ -24,12 +24,47 @@ const db = createClient(env("NEXT_PUBLIC_SUPABASE_URL"), env("SUPABASE_SERVICE_R
 
 const DISCUSSION_SLUG_RE = /^(discussion|general|chat|lounge)$/i;
 
-function pickCanonicalSpace(spaces) {
+/** Communities with a known canonical Space slug (preserve integration URLs). */
+const PREFERRED_SPACE_SLUG_BY_COMMUNITY = {
+  quantforg: "quantforg-signals",
+};
+
+function isGenericDisplayName(name) {
+  return /^general$/i.test((name ?? "").trim());
+}
+
+function pickCanonicalSpace(spaces, communitySlug) {
   const active = spaces.filter((s) => s.is_active !== false);
   if (!active.length) return null;
+  if (active.length === 1) return active[0];
+
+  const preferredPrefix = PREFERRED_SPACE_SLUG_BY_COMMUNITY[communitySlug];
+  if (preferredPrefix) {
+    const match = active.find((s) => s.slug === preferredPrefix || s.slug.startsWith(`${preferredPrefix}-`));
+    if (match) return match;
+  }
+
+  const featuredCustom = active.find((s) => s.is_featured && s.slug !== "general");
+  if (featuredCustom) return featuredCustom;
+
+  const customNamed = active.filter(
+    (s) => s.slug !== "general" && !isGenericDisplayName(s.name)
+  );
+  if (customNamed.length === 1) return customNamed[0];
+  if (customNamed.length > 0) {
+    const featured = customNamed.find((s) => s.is_featured);
+    if (featured) return featured;
+    return [...customNamed].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0];
+  }
+
+  const nonGeneral = active.filter((s) => s.slug !== "general");
+  if (nonGeneral.length === 1) return nonGeneral[0];
+  if (nonGeneral.length > 0) {
+    return [...nonGeneral].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0];
+  }
+
   return (
     active.find((s) => s.slug === "general") ??
-    active.find((s) => s.is_featured) ??
     [...active].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))[0]
   );
 }
@@ -78,7 +113,7 @@ async function main() {
       continue;
     }
 
-    const canonical = pickCanonicalSpace(activeSpaces);
+    const canonical = pickCanonicalSpace(activeSpaces, community.slug);
     if (!canonical) continue;
 
     const { data: allRooms } = await db

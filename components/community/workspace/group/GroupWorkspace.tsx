@@ -6,8 +6,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   communitySpaceHref,
+  mapRoomToChannel,
   mapSpaceToGroup,
   resolveGroupDiscussionRoom,
+  resolveSpaceAvatarSrc,
   type WorkspaceGroup,
 } from "@/lib/community/workspace";
 import type { WorkspaceSpaceRow } from "@/components/community/workspace-context";
@@ -15,21 +17,13 @@ import type { MembershipLite } from "@/lib/community-workspace-access";
 import { useCommunityRoster } from "@/components/community/workspace/shared/useCommunityRoster";
 import { ChatRoom } from "@/components/community/chat/ChatRoom";
 import { WorkspaceSkeleton } from "@/components/community/workspace/shared/WorkspaceSkeleton";
-import { SpaceAboutPanel } from "@/components/community/workspace/space/SpaceAboutPanel";
-import {
-  SpaceViewTabs,
-  type SpaceViewTab,
-} from "@/components/community/workspace/space/SpaceViewChrome";
-import { MembersPanel } from "@/components/community/workspace/channel/panels/MembersPanel";
-import { FilesPanel } from "@/components/community/workspace/channel/panels/FilesPanel";
-import { FeedSection } from "@/components/community/workspace/sections/Feed";
-import { useRoomMessageIndex } from "@/lib/community/chat/room-message-index";
+import { SpaceSettingsDialog } from "@/components/community/workspace/space/SpaceSettingsDialog";
 import { GroupHeader } from "./GroupHeader";
 
 type DiscussionRoom = WorkspaceSpaceRow["rooms"][number];
 
 /**
- * Member Space experience — clean header, tabs, call panel, conversation.
+ * Member Space experience — discussion-first: header + messages only.
  */
 export function GroupWorkspace({
   space,
@@ -40,7 +34,9 @@ export function GroupWorkspace({
   membership,
   memberCount,
   isStaff,
-  ownerName,
+  ownerName: _ownerName,
+  communityAvatar,
+  communityCover,
 }: {
   space: WorkspaceSpaceRow;
   communityId: string;
@@ -51,22 +47,26 @@ export function GroupWorkspace({
   memberCount?: number;
   isStaff?: boolean;
   ownerName?: string | null;
+  communityAvatar?: string | null;
+  communityCover?: string | null;
 }) {
   const router = useRouter();
   const [notificationsOn, setNotificationsOn] = useState(true);
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const [tab, setTab] = useState<SpaceViewTab>("discussion");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { members } = useCommunityRoster(communityId);
   const [ensuredRoom, setEnsuredRoom] = useState<DiscussionRoom | null>(null);
   const [ensuring, setEnsuring] = useState(false);
   const [ensureError, setEnsureError] = useState<string | null>(null);
   const [ensureAttempt, setEnsureAttempt] = useState(0);
-  const requestSearch = useRoomMessageIndex((s) => s.requestSearch);
-  const requestCall = useRoomMessageIndex((s) => s.requestCall);
 
   const roleInput = useMemo(
     () => ({ userId, ownerId, membership }),
     [userId, ownerId, membership]
+  );
+
+  const avatarSrc = useMemo(
+    () => resolveSpaceAvatarSrc(space, communityAvatar, communityCover),
+    [space, communityAvatar, communityCover]
   );
 
   const group: WorkspaceGroup = useMemo(
@@ -76,8 +76,9 @@ export function GroupWorkspace({
         onlineCount: 0,
         description: space.description ?? null,
         color: space.color ?? null,
+        cover: avatarSrc,
       }),
-    [space, roleInput, memberCount, members.length]
+    [space, roleInput, memberCount, members.length, avatarSrc]
   );
 
   const resolvedFromSpace = useMemo(
@@ -86,10 +87,28 @@ export function GroupWorkspace({
   );
   const discussionRoom = resolvedFromSpace ?? ensuredRoom;
 
-  const canPost =
-    Boolean(userId) &&
-    Boolean(membership?.status === "active" || isStaff) &&
-    membership?.status !== "cancelled";
+  const posting = useMemo(() => {
+    if (!discussionRoom) return null;
+    return mapRoomToChannel(discussionRoom, roleInput);
+  }, [discussionRoom, roleInput]);
+
+  const canPost = Boolean(
+    userId &&
+      (membership?.status === "active" || isStaff) &&
+      membership?.status !== "cancelled" &&
+      posting?.canPublish
+  );
+
+  const readOnlyCopy = useMemo(() => {
+    const restricted =
+      posting && !posting.canPublish && Boolean(userId) && membership?.status === "active";
+    if (!restricted) return null;
+    return {
+      title: "Only admins can send messages in this Space.",
+      description:
+        "You can read the conversation and scroll history. Messaging is limited to community admins.",
+    };
+  }, [posting, userId, membership?.status]);
 
   useEffect(() => {
     if (resolvedFromSpace || ensuredRoom) return;
@@ -109,13 +128,13 @@ export function GroupWorkspace({
         };
         if (cancelled) return;
         if (!res.ok || !data.room) {
-          setEnsureError(data.error ?? "Could not open Discussion");
+          setEnsureError(data.error ?? "Could not open discussion");
           return;
         }
         setEnsuredRoom(data.room);
         router.refresh();
       } catch {
-        if (!cancelled) setEnsureError("Could not open Discussion");
+        if (!cancelled) setEnsureError("Could not open discussion");
       } finally {
         if (!cancelled) setEnsuring(false);
       }
@@ -125,17 +144,6 @@ export function GroupWorkspace({
     };
   }, [resolvedFromSpace, ensuredRoom, space.id, ensureAttempt, router]);
 
-  const aboutMembers = useMemo(
-    () =>
-      members.map((m) => ({
-        id: m.id,
-        name: m.name,
-        avatarUrl: m.avatarUrl,
-        role: m.role,
-      })),
-    [members]
-  );
-
   const copyInvite = useCallback(() => {
     const href = communitySpaceHref(communitySlug, space.slug);
     void navigator.clipboard?.writeText(
@@ -144,44 +152,22 @@ export function GroupWorkspace({
     toast.success("Invite link copied");
   }, [communitySlug, space.slug]);
 
-  const handleTabChange = useCallback((next: SpaceViewTab) => {
-    if (next === "about") {
-      setAboutOpen(true);
-      setTab("discussion");
-      return;
-    }
-    setTab(next);
-  }, []);
-
-  const lastActivityLabel = useMemo(() => {
-    const iso = space.created_at;
-    if (!iso) return null;
-    const t = new Date(iso).getTime();
-    if (Number.isNaN(t)) return null;
-    return `Created ${new Date(iso).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })}`;
-  }, [space.created_at]);
-
   return (
     <div
       className={cn(
         "flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden",
-        "bg-[var(--color-bg)]",
+        "bg-[#F8FAFC]",
         "animate-in fade-in duration-300"
       )}
     >
       <GroupHeader
         group={group}
-        ownerName={ownerName}
         isMember={Boolean(membership)}
         notificationsOn={notificationsOn}
         spaceType={space.space_type}
         verified={Boolean(space.is_featured)}
-        lastActivityLabel={lastActivityLabel}
         compact
+        onSettings={isStaff ? () => setSettingsOpen(true) : undefined}
         onToggleNotifications={() => {
           const next = !notificationsOn;
           const previous = notificationsOn;
@@ -204,125 +190,59 @@ export function GroupWorkspace({
             });
         }}
         onInvite={copyInvite}
-        onAbout={() => setAboutOpen(true)}
-        onSearch={() => {
-          setTab("discussion");
-          requestSearch();
-        }}
-        onAudioCall={() => {
-          setTab("discussion");
-          requestCall("audio");
-        }}
-        onVideoCall={() => {
-          setTab("discussion");
-          requestCall("video");
-        }}
         onJoin={() => router.push(`/communities/${communitySlug}/subscribe`)}
       />
 
-      <SpaceViewTabs
-        active={tab}
-        memberCount={group.memberCount || members.length}
-        onChange={handleTabChange}
-      />
-
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {tab === "discussion" ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            {discussionRoom ? (
-              <ChatRoom
-                roomId={discussionRoom.id}
-                roomName={discussionRoom.name}
-                communityId={communityId}
-                slug={communitySlug}
-                hideHeader
-                hideSidebar
-                discussionLayout
-                canPost={canPost}
-                emptyTitle={`Welcome to ${group.name}`}
-                emptyDescription="Start the first conversation."
-                emptyActionLabel={canPost ? "Start Discussion" : "Read Only"}
-              />
-            ) : ensuring ? (
-              <WorkspaceSkeleton rows={8} className="min-h-[320px]" />
-            ) : (
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center animate-in fade-in duration-300">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-accent)]/10 text-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/15">
-                  <span className="text-[22px] font-bold">
-                    {(group.name.trim()[0] || "S").toUpperCase()}
-                  </span>
-                </span>
-                <div>
-                  <p className="text-[17px] font-semibold tracking-tight text-gray-900">
-                    Welcome to {group.name}
-                  </p>
-                  <p className="mt-2 max-w-sm text-[13.5px] leading-relaxed text-gray-500">
-                    Start the first conversation.
-                  </p>
-                </div>
-                {ensureError ? (
-                  <p className="text-[12px] text-red-600">{ensureError}</p>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEnsuredRoom(null);
-                    setEnsureError(null);
-                    setEnsureAttempt((n) => n + 1);
-                  }}
-                  className="inline-flex min-h-11 items-center rounded-xl bg-[var(--color-accent)] px-5 text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(253,80,0,0.22)] transition hover:bg-[var(--color-accent-hover)]"
-                >
-                  Retry Discussion
-                </button>
-              </div>
-            )}
+        {discussionRoom ? (
+          <ChatRoom
+            roomId={discussionRoom.id}
+            roomName={space.name}
+            communityId={communityId}
+            slug={communitySlug}
+            hideHeader
+            hideSidebar
+            discussionLayout
+            canPost={canPost}
+            emptyTitle={`Welcome to ${group.name}`}
+            emptyDescription="Say hello or share an update with the community."
+            emptyActionLabel={canPost ? "Write a message" : undefined}
+            readOnlyTitle={readOnlyCopy?.title}
+            readOnlyDescription={readOnlyCopy?.description}
+          />
+        ) : ensuring ? (
+          <WorkspaceSkeleton rows={8} className="min-h-[320px]" />
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+            <p className="text-[15px] font-semibold text-[#111827]">
+              {ensureError ?? `Opening ${group.name}…`}
+            </p>
+            {ensureError ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setEnsuredRoom(null);
+                  setEnsureError(null);
+                  setEnsureAttempt((n) => n + 1);
+                }}
+                className="inline-flex min-h-11 items-center rounded-xl bg-[#FF5A1F] px-5 text-[13px] font-semibold text-white"
+              >
+                Retry
+              </button>
+            ) : null}
           </div>
-        ) : null}
-
-        {tab === "members" ? (
-          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-[var(--color-surface)] p-1 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-[var(--color-border)]">
-              <MembersPanel members={members} />
-            </div>
-          </div>
-        ) : null}
-
-        {tab === "files" ? (
-          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-[var(--color-surface)] p-1 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-[var(--color-border)]">
-              <FilesPanel
-                roomId={discussionRoom?.id}
-                canManage={Boolean(isStaff)}
-                onOpenDiscussion={() => setTab("discussion")}
-              />
-            </div>
-          </div>
-        ) : null}
-
-        {tab === "posts" ? (
-          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.35rem] bg-[var(--color-surface)] p-4 shadow-[0_8px_30px_rgba(15,23,42,0.04)] ring-1 ring-[var(--color-border)] sm:p-5">
-              <FeedSection communityId={communityId} filter="for-you" />
-            </div>
-          </div>
-        ) : null}
+        )}
       </div>
 
-      <SpaceAboutPanel
-        open={aboutOpen}
-        onClose={() => setAboutOpen(false)}
-        group={group}
-        spaceType={space.space_type}
-        ownerName={ownerName}
-        createdAt={space.created_at}
-        description={space.description}
-        rules={group.rules}
-        members={aboutMembers}
-        onViewDetails={() => {
-          setAboutOpen(false);
-          setTab("members");
-        }}
-      />
+      {isStaff ? (
+        <SpaceSettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          spaceId={space.id}
+          discussionRoomId={discussionRoom?.id}
+          onSaved={() => router.refresh()}
+        />
+      ) : null}
     </div>
   );
 }

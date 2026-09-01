@@ -25,11 +25,11 @@ const BY_TYPE: Record<ChannelType, ChannelEmptyCopy> = {
   },
   discussion: {
     emptyTitle: "Start the conversation",
-    emptyDescription:
-      "Say hello, ask a question, or share what’s on your mind.",
+    emptyDescription: "Say hello, ask a question, or share what's on your mind.",
     emptyActionLabel: "Write a message",
-    readOnlyTitle: "Posting is restricted",
-    readOnlyDescription: "Only authorized publishers can post in this channel.",
+    readOnlyTitle: "Only admins can send messages in this Space.",
+    readOnlyDescription:
+      "You can read the conversation and scroll history. Messaging is limited to community admins.",
   },
   qa: {
     emptyTitle: "Ask your first question",
