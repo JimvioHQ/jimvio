@@ -45,6 +45,7 @@ function ChatWorkspaceImpl({
   connected = true,
   queuedCount = 0,
   slowModeSeconds = 0,
+  onlineCount,
 }: {
   messages: ChatMessage[];
   scrollTop: number;
@@ -70,6 +71,7 @@ function ChatWorkspaceImpl({
   connected?: boolean;
   queuedCount?: number;
   slowModeSeconds?: number;
+  onlineCount?: number;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -199,14 +201,28 @@ function ChatWorkspaceImpl({
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-white" role="region" aria-label="Live chat">
       <div className="flex items-center justify-between gap-2 border-b border-neutral-100 px-4 py-3">
-        <h2 className="text-[14px] font-semibold tracking-[-0.02em] text-neutral-900">
-          Live Chat
-        </h2>
-        {queuedCount > 0 && (
-          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-            {queuedCount} queued
-          </span>
-        )}
+        <div className="min-w-0">
+          <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-neutral-900">
+            Live Chat
+          </h2>
+          {onlineCount != null && onlineCount > 0 && (
+            <p className="mt-0.5 text-[11px] text-neutral-400">
+              {onlineCount.toLocaleString()} online
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {!connected && (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+              Reconnecting…
+            </span>
+          )}
+          {queuedCount > 0 && (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+              {queuedCount} queued
+            </span>
+          )}
+        </div>
       </div>
 
       {avatars.length > 0 && (
@@ -262,7 +278,7 @@ function ChatWorkspaceImpl({
         >
           {enriched.length === 0 ? (
             <p className="py-14 text-center text-[12px] leading-relaxed text-neutral-400">
-              Quiet for now — messages will appear as the room talks.
+              No messages yet. Say hello to start the conversation.
             </p>
           ) : (
             enriched.map((m) => {

@@ -20,13 +20,14 @@ export const CHAT_RENDER_CAP = 200;
 
 /** Premium Live studio surfaces */
 export const LIVE_SURFACE = "bg-white";
-export const LIVE_PAGE_BG = "bg-[#f7f7f8]";
+export const LIVE_PAGE_BG = "bg-[#F8FAFC]";
+export const LIVE_STAGE_BG = "bg-[#0a0c10]";
 export const LIVE_BORDER = "border border-neutral-200/80";
 export const LIVE_SHADOW =
   "shadow-[0_8px_30px_rgba(15,23,42,0.06)]";
 export const LIVE_SHADOW_LG =
-  "shadow-[0_16px_48px_rgba(15,23,42,0.10)]";
+  "shadow-[0_20px_60px_rgba(0,0,0,0.28)]";
 export const LIVE_RADIUS = "rounded-2xl";
 export const LIVE_RADIUS_LG = "rounded-[20px]";
-export const LIVE_ACCENT = "text-accent";
-export const LIVE_ACCENT_BG = "bg-accent";
+export const LIVE_ACCENT = "text-[#FF5A1F]";
+export const LIVE_ACCENT_BG = "bg-[#FF5A1F]";

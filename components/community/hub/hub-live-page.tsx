@@ -42,6 +42,10 @@ import { uploadLiveRecording } from "@/lib/live/upload-recording";
 import { liveStudioLog } from "@/lib/live/observability";
 import { canonicalLiveUrl } from "@/lib/live/live-url";
 import { copyTextToClipboard } from "@/lib/live/native-share";
+import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
+import { LiveOfflineStage } from "./live/LiveOfflineStage";
+import { LiveReactionFloater } from "./live/LiveReactionFloater";
+import { LiveMobileDock } from "./live/LiveMobileDock";
 import { AiFab } from "./live/AiFab";
 import { CommandPalette, defaultLiveCommands } from "./live/CommandPalette";
 import { ControlDock, useEphemeralToast } from "./live/ControlDock";
@@ -1003,14 +1007,6 @@ export function HubLivePage({
     inviteRole,
     showToast,
   ]);
-  const liveStatusLabel =
-    live.session?.status === "live"
-      ? "LIVE"
-      : live.session?.status === "ended" || data?.session.liveStatus === "ended"
-        ? "ENDED"
-        : data?.session.liveStatus === "scheduled"
-          ? "UPCOMING"
-          : "OFFLINE";
   const discussionHref =
     data?.session.discussionHref ??
     (data?.session.communitySlug
@@ -1200,10 +1196,13 @@ export function HubLivePage({
 
   const showLeftRail = !focusMode;
   const showSpeakers = mode !== "minimal" && !focusMode && hasSession;
-  const showRight =
-    !focusMode &&
-    (mode === "minimal" || mode === "creator" || mode === "studio") &&
-    (drawer.rightOpen || mode === "minimal");
+  const showRight = !focusMode;
+  const displayTitle = live.session?.title ?? session.title;
+  const hostSpeaker = speakers.find(
+    (s) => s.role === "host" || s.role === "Host" || s.id === hostUserId
+  );
+  const hostAvatar = hostSpeaker?.avatar_url ?? speakers[0]?.avatar_url ?? null;
+  const isLiveHost = canEndLive(live.myRole) || live.myRole === "host";
   const immersive = activity === "share" || focusMode;
   const startedLabel = live.session?.started_at
     ? `Started ${formatTime(live.session.started_at)}`
@@ -1297,185 +1296,21 @@ export function HubLivePage({
           </div>
         </div>
       )}
-      {/* Header — match reference: back link + one info/actions row */}
+      {/* Header — title + follow/share only */}
       {!focusMode && (
-        <header
-          className={cn(
-            "shrink-0 px-4 py-2.5 transition-colors duration-[180ms] sm:px-5",
-            immersive ? "bg-black/30 text-white" : "bg-white"
-          )}
-        >
-          <div className="mb-1.5 flex items-center gap-2">
-            <button
-              type="button"
-              className={cn(
-                "inline-flex h-8 w-8 items-center justify-center rounded-lg lg:hidden",
-                immersive ? "text-white/70 hover:bg-white/10" : "text-neutral-500 hover:bg-neutral-50",
-                FOCUS_RING
-              )}
-              aria-label="Open live menu"
-              onClick={() => setLiveNavOpen(true)}
-            >
-              <Menu className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-            </button>
-            <Link
-              href="/communities/live"
-              className={cn(
-                "inline-flex items-center gap-1 text-[12px] font-medium",
-                immersive ? "text-white/55 hover:text-white" : "text-neutral-500 hover:text-neutral-800",
-                FOCUS_RING
-              )}
-            >
-              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} aria-hidden />
-              Back
-            </Link>
-          </div>
-
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                {hasSession ? (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-red-500 px-1.5 py-0.5 text-[10px] font-bold tracking-[0.04em] text-white">
-                    LIVE
-                  </span>
-                ) : (
-                  <span className={cn("text-[10px] font-semibold tracking-[0.06em]", immersive ? "text-white/35" : "text-neutral-400")}>
-                    {liveStatusLabel}
-                  </span>
-                )}
-                <h1
-                  className={cn(
-                    "min-w-0 truncate text-[17px] font-bold tracking-[-0.03em] sm:text-[18px]",
-                    immersive ? "text-white" : "text-neutral-900"
-                  )}
-                >
-                  {session.title}
-                </h1>
-              </div>
-              <p
-                className={cn(
-                  "mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12px]",
-                  immersive ? "text-white/45" : "text-neutral-500"
-                )}
-              >
-                <span>{session.tag || "Live Room"}</span>
-                <span aria-hidden>·</span>
-                <span className="tabular-nums">
-                  {formatCount(live.viewerCount || analytics?.viewers || 0)} watching
-                </span>
-                {startedLabel && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span>{startedLabel}</span>
-                  </>
-                )}
-                {hasSession && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span className="font-medium tabular-nums text-red-500">{formatElapsed(elapsed)}</span>
-                  </>
-                )}
-                <span aria-hidden>·</span>
-                <Link
-                  href={discussionHref}
-                  className={cn(
-                    "font-medium underline-offset-2 hover:underline",
-                    immersive ? "text-white/55" : "text-neutral-500"
-                  )}
-                >
-                  Discussion
-                </Link>
-                <ConnectionPill quality={connection} dark={immersive} />
-              </p>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-1.5">
-              {!hasSession && (
-                <button
-                  type="button"
-                  onClick={() => void createOrJoinLive()}
-                  className={cn(
-                    "inline-flex h-9 items-center rounded-full bg-accent px-3.5 text-[12px] font-semibold text-white hover:bg-accent-hover",
-                    FOCUS_RING
-                  )}
-                >
-                  Go Live
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => void toggleFollowHost()}
-                disabled={follow.busy || !hostUserId || hostUserId === live.userId}
-                className={cn(
-                  "hidden h-9 items-center rounded-full border px-3.5 text-[12px] font-semibold sm:inline-flex",
-                  MOTION_COLORS,
-                  immersive ? FOCUS_RING_DARK : FOCUS_RING,
-                  follow.following
-                    ? immersive
-                      ? "border-white/30 bg-white/10 text-white"
-                      : "border-neutral-300 bg-neutral-100 text-neutral-700"
-                    : immersive
-                      ? "border-white/20 text-white hover:bg-white/10"
-                      : "border-neutral-200 bg-white text-neutral-800 hover:bg-neutral-50"
-                )}
-              >
-                {follow.following ? "Following" : "Follow"}
-              </button>
-              <button
-                type="button"
-                onClick={openShareSheet}
-                title="Share"
-                aria-label="Share live link"
-                className={cn(
-                  "inline-flex h-9 w-9 items-center justify-center rounded-full",
-                  MOTION_COLORS,
-                  immersive ? FOCUS_RING_DARK : FOCUS_RING,
-                  immersive
-                    ? "text-white/50 hover:bg-white/10 hover:text-white"
-                    : "text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700"
-                )}
-              >
-                {copied ? (
-                  <Check className="h-3.5 w-3.5 text-emerald-500" aria-hidden />
-                ) : (
-                  <Share2 className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => toggleLeft("settings")}
-                title="More"
-                aria-label="More options"
-                className={cn(
-                  "inline-flex h-9 w-9 items-center justify-center rounded-full",
-                  MOTION_COLORS,
-                  immersive ? FOCUS_RING_DARK : FOCUS_RING,
-                  immersive
-                    ? "text-white/50 hover:bg-white/10 hover:text-white"
-                    : "text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700"
-                )}
-              >
-                <MoreHorizontal className="h-4 w-4" strokeWidth={1.6} aria-hidden />
-              </button>
-              <button
-                type="button"
-                onClick={() => updateDrawer({ rightOpen: !drawer.rightOpen })}
-                className={cn(
-                  "inline-flex h-9 w-9 items-center justify-center rounded-full lg:hidden",
-                  MOTION_COLORS,
-                  immersive ? FOCUS_RING_DARK : FOCUS_RING,
-                  immersive
-                    ? "text-white/50 hover:bg-white/10"
-                    : "text-neutral-400 hover:bg-neutral-50"
-                )}
-                aria-label={drawer.rightOpen ? "Hide side panel" : "Show side panel"}
-                aria-expanded={drawer.rightOpen}
-              >
-                <MessageSquare className="h-3.5 w-3.5" strokeWidth={1.6} aria-hidden />
-              </button>
-            </div>
-          </div>
-        </header>
+        <LiveExperienceHeader
+          title={displayTitle}
+          immersive={immersive}
+          follow={follow}
+          onFollow={() => void toggleFollowHost()}
+          onShare={openShareSheet}
+          onMore={() => toggleLeft("settings")}
+          onOpenChat={() => updateDrawer({ rightOpen: true, rightTab: "chat" })}
+          copied={copied}
+          showFollow={Boolean(hostUserId && hostUserId !== live.userId)}
+          showGoLive={!hasSession && isLiveHost}
+          onGoLive={() => void createOrJoinLive()}
+        />
       )}
 
       {/* Body — three columns: LIVE NOW | Stage | Chat */}
@@ -1620,7 +1455,7 @@ export function HubLivePage({
           <div
             className={cn(
               "flex min-h-0 flex-1 flex-col overflow-y-auto",
-              immersive ? "p-0" : "px-3 pb-3 pt-1 sm:px-4 sm:pb-4"
+              immersive ? "p-0" : "px-0 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pt-0 sm:px-4 sm:pb-4"
             )}
           >
             <div
@@ -1628,7 +1463,11 @@ export function HubLivePage({
               onDoubleClick={() => setFocusMode((v) => !v)}
               className={cn(
                 "relative w-full shrink-0 cursor-default overflow-hidden bg-neutral-950 shadow-[0_8px_30px_rgba(0,0,0,0.12)]",
-                immersive ? "min-h-0 flex-1 rounded-none" : "aspect-video rounded-2xl",
+                immersive
+                  ? "min-h-0 flex-1 rounded-none"
+                  : hasSession
+                    ? "aspect-video rounded-none sm:rounded-2xl"
+                    : "min-h-[min(72vh,640px)] rounded-none sm:rounded-2xl",
                 activity === "share" && "motion-safe:sm:scale-[1.002]",
                 "motion-safe:transition-transform motion-safe:duration-[180ms]"
               )}
@@ -1644,6 +1483,7 @@ export function HubLivePage({
               {livekit.remotes.map((r) => (
                 <RemoteAudioSink key={`audio-${r.identity}`} stream={r.audioStream} />
               ))}
+              <LiveReactionFloater sessionId={live.session?.id ?? null} />
 
               {hasSession ? (
                 <div className="relative z-[2] h-full w-full">
@@ -1771,31 +1611,21 @@ export function HubLivePage({
                   )}
                 </div>
               ) : (
-                <div className="relative z-[1] flex h-full min-h-[220px] w-full flex-col items-center justify-center px-6 text-center aspect-video">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.06]">
-                    <Radio className="h-5 w-5 text-white/35" strokeWidth={1.5} />
-                  </div>
-                  <p className="text-[15px] font-semibold tracking-[-0.02em] text-white">
-                    Ready when you are
-                  </p>
-                  <p className="mt-1.5 max-w-sm text-[13px] text-white/40">
-                    Open a community room to start streaming.
-                  </p>
-                  <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => void createOrJoinLive()}
-                      className="rounded-full bg-accent px-4 py-2 text-[12px] font-semibold text-white hover:bg-accent-hover"
-                    >
-                      Go Live
-                    </button>
-                    <Link
-                      href="/communities/explore"
-                      className="rounded-full bg-white/10 px-4 py-2 text-[12px] font-medium text-white/80 hover:opacity-90"
-                    >
-                      Browse communities
-                    </Link>
-                  </div>
+                <div className="relative z-[1] h-full w-full">
+                  <LiveOfflineStage
+                    hostName={session.host}
+                    hostAvatar={hostAvatar}
+                    title={displayTitle}
+                    isHost={isLiveHost}
+                    onGoLive={isLiveHost ? () => void createOrJoinLive() : undefined}
+                    onFollow={
+                      hostUserId && hostUserId !== live.userId
+                        ? () => void toggleFollowHost()
+                        : undefined
+                    }
+                    following={follow.following}
+                    followBusy={follow.busy}
+                  />
                 </div>
               )}
             </div>
@@ -1813,6 +1643,7 @@ export function HubLivePage({
             )}
 
             {hasSession ? (
+            <div className="hidden lg:block">
             <ControlDock
               activity={activity}
               micOn={micOn}
@@ -1847,21 +1678,35 @@ export function HubLivePage({
               onLeave={() => void leaveLive()}
               canEnd={canEndLive(live.myRole)}
             />
+            </div>
             ) : null}
           </div>
         </main>
 
         {/* Right workspace — Live Chat column */}
         {showRight && (
+          <>
+            {drawer.rightOpen && (
+              <button
+                type="button"
+                className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+                aria-label="Close live chat"
+                onClick={() => updateDrawer({ rightOpen: false })}
+              />
+            )}
           <aside
             className={cn(
-              "flex w-full max-w-[300px] shrink-0 flex-col bg-white sm:w-[300px]",
-              "fixed inset-y-0 right-0 z-40 lg:static lg:z-auto lg:max-w-none lg:border-l lg:border-neutral-100",
-              "transition-transform duration-[180ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-              drawer.rightOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0",
-              !drawer.rightOpen && mode !== "minimal" && "lg:hidden"
+              "flex w-full shrink-0 flex-col bg-white",
+              "fixed inset-x-0 bottom-0 z-40 max-h-[min(78vh,640px)] rounded-t-[20px] border-t border-neutral-200 shadow-[0_-20px_60px_rgba(0,0,0,0.18)]",
+              "lg:static lg:inset-auto lg:z-auto lg:h-auto lg:max-h-none lg:w-[min(360px,32vw)] lg:rounded-none lg:border-0 lg:border-l lg:border-neutral-100 lg:shadow-none",
+              "transition-transform duration-[220ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+              drawer.rightOpen ? "translate-y-0" : "translate-y-full lg:translate-y-0"
             )}
           >
+            <div
+              className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-neutral-200 lg:hidden"
+              aria-hidden
+            />
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {drawer.rightTab !== "chat" && (
             <div
@@ -1926,6 +1771,7 @@ export function HubLivePage({
                     chatInput={chatInput}
                     setChatInput={setChatInput}
                     hostName={session.host}
+                    onlineCount={live.viewerCount || analytics?.viewers || 0}
                     participantAvatars={speakers.slice(0, 6).map((s) => ({
                       name: s.name,
                       src: s.avatar_url,
@@ -2163,8 +2009,27 @@ export function HubLivePage({
             </div>
             </div>
           </aside>
+          </>
         )}
       </div>
+
+      <LiveMobileDock
+        isHost={isLiveHost && hasSession}
+        micOn={micOn}
+        camOn={camOn}
+        sharing={media.sharing}
+        onMic={() => void toggleMic()}
+        onCam={() => void toggleCam()}
+        onShare={() => void startShare()}
+        onAudio={() => toggleLeft("settings")}
+        onSettings={() => toggleLeft("settings")}
+        onChat={() => updateDrawer({ rightOpen: true, rightTab: "chat" })}
+        onReact={() => {
+          if (live.session?.id) void live.react("❤️");
+        }}
+        onShareLink={openShareSheet}
+        onMore={() => setLiveNavOpen(true)}
+      />
 
       {/* Floating AI — never permanent chrome */}
       <AiFab

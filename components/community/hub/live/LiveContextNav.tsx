@@ -103,34 +103,46 @@ function LiveContextNavImpl({
 
   const quick: NavItem[] = useMemo(
     () => [
-      { id: "share", label: "Share Live", icon: Share2, onClick: onShare },
-      { id: "invite", label: "Invite People", icon: UsersRound, onClick: onInvite },
-      { id: "report", label: "Report Live", icon: Flag, onClick: onReport },
+      { id: "share", label: "Share", icon: Share2, onClick: onShare },
+      { id: "invite", label: "Invite", icon: UsersRound, onClick: onInvite },
+      { id: "report", label: "Report", icon: Flag, onClick: onReport },
     ],
     [onShare, onInvite, onReport]
   );
 
+  if (variant === "drawer") {
+    return (
+      <nav aria-label="Live session navigation" className="flex h-full w-full flex-col bg-white">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 scrollbar-hide">
+          <Section label="Live">
+            {liveNow.map((item) => (
+              <NavRow key={item.id} item={item} />
+            ))}
+          </Section>
+          <Section label="Actions" className="mt-4">
+            {quick.map((item) => (
+              <NavRow key={item.id} item={item} muted />
+            ))}
+          </Section>
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav
       aria-label="Live session navigation"
-      className={cn(
-        "h-full shrink-0 flex-col bg-white",
-        variant === "drawer"
-          ? "flex w-full border-0"
-          : "hidden w-[220px] border-r border-neutral-100 lg:flex"
-      )}
+      className="hidden h-full w-14 shrink-0 flex-col border-r border-neutral-100 bg-white lg:flex"
     >
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 scrollbar-hide">
-        <Section label="Live now">
-          {liveNow.map((item) => (
-            <NavRow key={item.id} item={item} />
-          ))}
-        </Section>
-        <Section label="Quick actions" className="mt-4">
-          {quick.map((item) => (
-            <NavRow key={item.id} item={item} muted />
-          ))}
-        </Section>
+      <div className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-1.5 py-3 scrollbar-hide">
+        {liveNow.map((item) => (
+          <IconRailButton key={item.id} item={item} />
+        ))}
+      </div>
+      <div className="flex flex-col items-center gap-1 border-t border-neutral-100 px-1.5 py-2">
+        {quick.map((item) => (
+          <IconRailButton key={item.id} item={item} muted />
+        ))}
       </div>
     </nav>
   );
@@ -182,6 +194,36 @@ function NavRow({ item, muted }: { item: NavItem; muted?: boolean }) {
             item.active ? "text-accent/80" : "text-neutral-400"
           )}
         >
+          {item.badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function IconRailButton({ item, muted }: { item: NavItem; muted?: boolean }) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      title={item.label}
+      aria-label={item.label}
+      aria-current={item.active ? "page" : undefined}
+      onClick={item.onClick}
+      className={cn(
+        "relative inline-flex h-10 w-10 items-center justify-center rounded-xl",
+        MOTION_COLORS,
+        FOCUS_RING,
+        item.active
+          ? "bg-accent/10 text-accent"
+          : muted
+            ? "text-neutral-400 hover:bg-neutral-50 hover:text-neutral-700"
+            : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900"
+      )}
+    >
+      <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} aria-hidden />
+      {item.badge != null && item.badge !== "" && (
+        <span className="absolute -right-0.5 -top-0.5 min-w-[16px] rounded-full bg-neutral-900 px-1 text-center text-[9px] font-semibold leading-4 text-white">
           {item.badge}
         </span>
       )}
