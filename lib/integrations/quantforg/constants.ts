@@ -1,3 +1,5 @@
+import { createHash } from "crypto";
+
 /** Verified production IDs — override via env if destination changes. */
 export const QUANTFORG_COMMUNITY_ID =
   process.env.QUANTFORG_COMMUNITY_ID?.trim() ||
@@ -24,6 +26,23 @@ export const QUANTFORG_WEBHOOK_PROVIDER = "quantforg";
 export function getQuantForgWebhookSecret(): string | null {
   const secret = process.env.QUANTFORG_WEBHOOK_SECRET?.trim();
   return secret || null;
+}
+
+/** Non-secret metadata for ops sync checks (Railway vs Vercel). */
+export function getQuantForgWebhookSecretMetadata(): {
+  configured: boolean;
+  length: number;
+  fingerprint: string | null;
+} {
+  const secret = getQuantForgWebhookSecret();
+  if (!secret) {
+    return { configured: false, length: 0, fingerprint: null };
+  }
+  return {
+    configured: true,
+    length: secret.length,
+    fingerprint: createHash("sha256").update(secret).digest("hex").slice(0, 12),
+  };
 }
 
 export function quantForgIdempotencyKey(eventId: string): string {

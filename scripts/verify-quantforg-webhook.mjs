@@ -78,10 +78,17 @@ function gateSignature() {
 
   const bad = sign("wrong", body);
   assert.notEqual(sig, bad);
+
+  const hexSecret = randomBytes(32).toString("hex");
+  const hexBody = JSON.stringify({ event_id: "evt-hex", event_type: "ROBOT_STARTED", timestamp: "2026-09-01T19:00:00Z" });
+  const utfSig = sign(hexSecret, hexBody);
+  const hexKeySig = createHmac("sha256", Buffer.from(hexSecret, "hex")).update(hexBody).digest("hex");
+  assert.notEqual(utfSig, hexKeySig);
 }
 
 function gateDestinationIds() {
   const src = read("lib/integrations/quantforg/constants.ts");
+  assert.match(src, /getQuantForgWebhookSecretMetadata/);
   assert.match(src, /quantforg-signals-mtihy5zc/);
   assert.match(src, /496ad20c-1796-41c2-90e8-29ebc9243e2a/);
   assert.match(src, /bf08dbfb-2624-43e2-8af6-f2057d052356/);

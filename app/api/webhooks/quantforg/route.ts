@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit } from "@/lib/ops/rate-limit";
-import { getQuantForgWebhookSecret } from "@/lib/integrations/quantforg/constants";
+import { getQuantForgWebhookSecret, getQuantForgWebhookSecretMetadata } from "@/lib/integrations/quantforg/constants";
 import { publishQuantForgEvent } from "@/lib/integrations/quantforg/publish-event";
 import { quantForgWebhookPayloadSchema } from "@/lib/integrations/quantforg/types";
 import { verifyQuantForgWebhookAuth } from "@/lib/integrations/quantforg/verify-signature";
@@ -77,16 +77,19 @@ export async function POST(req: NextRequest) {
 
 /** Lightweight readiness probe — never exposes secrets. */
 export async function GET() {
-  const configured = Boolean(getQuantForgWebhookSecret());
+  const meta = getQuantForgWebhookSecretMetadata();
   return NextResponse.json(
     {
-      ok: configured,
+      ok: meta.configured,
       service: "quantforg_webhook",
       endpoint: "/api/webhooks/quantforg",
-      hint: configured
+      secret: meta.configured
+        ? { length: meta.length, fingerprint: meta.fingerprint }
+        : null,
+      hint: meta.configured
         ? "POST signed events with X-QuantForg-Signature or Bearer token"
         : "Set QUANTFORG_WEBHOOK_SECRET in production env",
     },
-    { status: configured ? 200 : 503 }
+    { status: meta.configured ? 200 : 503 }
   );
 }

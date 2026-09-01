@@ -3,6 +3,7 @@ import { getQuantForgIntegrationStatus } from "@/lib/integrations/quantforg/publ
 import {
   QUANTFORG_COMMUNITY_SLUG,
   QUANTFORG_SPACE_SLUG,
+  getQuantForgWebhookSecretMetadata,
 } from "@/lib/integrations/quantforg/constants";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +15,13 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const status = await getQuantForgIntegrationStatus();
+    const secretMeta = getQuantForgWebhookSecretMetadata();
     return NextResponse.json({
       ok: status.configured,
       service: "quantforg_integration",
+      secret: secretMeta.configured
+        ? { length: secretMeta.length, fingerprint: secretMeta.fingerprint }
+        : null,
       destination: {
         community_slug: QUANTFORG_COMMUNITY_SLUG,
         space_slug: QUANTFORG_SPACE_SLUG,
