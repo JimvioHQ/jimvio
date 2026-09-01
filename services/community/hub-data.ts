@@ -1716,21 +1716,24 @@ export async function getCommunityOverviewStats(
         !isCallSignalingMessage(
           (row as { message_type?: string | null }).message_type,
           row.body
-        )
+        ) && !isTechnicalFeedBody(row.body)
     )
     .slice(0, 10)
     .map((row) => {
       const profile = row.profiles as { full_name: string | null; username: string | null } | null;
       const name = profile?.full_name ?? profile?.username ?? "Someone";
       const room = roomNameById.get(row.room_id) ?? "a space";
-      const preview = (row.body ?? "").slice(0, 60);
+      const body = row.body ?? "";
+      if (isTechnicalFeedBody(body)) return null;
+      const preview = body.slice(0, 60);
       return {
         id: row.id,
         text: `${name} posted in ${room}${preview ? `: ${preview}` : ""}`,
         time: row.created_at ?? new Date().toISOString(),
         href: `${base}/chat`,
       };
-    });
+    })
+    .filter((row): row is NonNullable<typeof row> => row != null);
 
   const popularThisWeek = courses.slice(0, 4).map((course) => ({
     id: course.id,

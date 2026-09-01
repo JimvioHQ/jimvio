@@ -31,6 +31,7 @@ import {
   hasCapability,
   resolveWorkspaceRole,
 } from "@/lib/community/workspace";
+import { manageCommunityHref } from "@/lib/community/owner-console";
 import { cn } from "@/lib/utils";
 import {
   OverviewCoursesPanel,
@@ -468,12 +469,12 @@ export function HubCommunityOverview() {
                     <div className="absolute right-0 z-20 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-1 shadow-lg" role="menu">
                       {canManage ? (
                         <Link
-                          href={`/owner/communities/${encodeURIComponent(slug)}`}
+                          href={manageCommunityHref(slug)}
                           role="menuitem"
                           className="block min-h-11 px-3.5 py-2.5 text-[13px] font-medium leading-[28px] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                           onClick={() => setMoreOpen(false)}
                         >
-                          Owner Console
+                          Manage Community
                         </Link>
                       ) : null}
                       <Link
@@ -610,10 +611,10 @@ export function HubCommunityOverview() {
                             Create First Space
                           </button>
                           <Link
-                            href={`/owner/communities/${encodeURIComponent(slug)}`}
+                            href={manageCommunityHref(slug)}
                             className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-5 text-[13px] font-semibold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
                           >
-                            Owner Console
+                            Manage Community
                           </Link>
                         </div>
                       </>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Inter } from "next/font/google";
-import { OwnerConsoleSidebar } from "./OwnerConsoleSidebar";
+import { OwnerConsoleSidebarConnected } from "./OwnerConsoleSidebar";
 import { OwnerConsoleTopBar } from "./OwnerConsoleTopBar";
 import {
   OwnerConsoleProvider,
@@ -43,13 +43,7 @@ export function OwnerConsoleLayout({
           }
         />
         <div className="flex min-h-0 flex-1">
-          <OwnerConsoleSidebar
-            communitySlug={value.community?.slug ?? null}
-            role={value.role}
-            badges={value.badges}
-            userName={value.userName}
-            userAvatar={value.userAvatar}
-          />
+          <OwnerConsoleSidebarConnected />
           <main className="min-w-0 flex-1 overflow-y-auto">
             <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
               {children}

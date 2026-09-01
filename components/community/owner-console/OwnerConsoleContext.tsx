@@ -5,6 +5,7 @@ import type { WorkspaceRole } from "@/lib/community/workspace/types";
 import type {
   OwnerCommunitySummary,
   OwnerConsoleBadges,
+  CommunityConsoleMode,
 } from "@/lib/community/owner-console";
 
 export type OwnerConsoleContextValue = {
@@ -16,6 +17,11 @@ export type OwnerConsoleContextValue = {
   userAvatar: string | null;
   badges: OwnerConsoleBadges;
   workspaceHref: string | null;
+  consoleMode: CommunityConsoleMode;
+  hrefSection: (
+    section?: string,
+    query?: Record<string, string | undefined | null>
+  ) => string;
 };
 
 const OwnerConsoleContext = createContext<OwnerConsoleContextValue | null>(null);

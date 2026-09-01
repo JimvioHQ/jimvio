@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { sectionPath } from "@/lib/community/owner-console";
+import { manageCommunityHref } from "@/lib/community/owner-console";
 import {
   hasCapability,
   resolveWorkspaceRole,
@@ -65,7 +65,7 @@ export default async function CommunitySettingsRedirect({
   });
 
   if (hasCapability(role, "settings.view") || hasCapability(role, "settings.manage")) {
-    redirect(sectionPath("settings", slug));
+    redirect(manageCommunityHref(slug, "settings"));
   }
 
   if (
@@ -73,7 +73,7 @@ export default async function CommunitySettingsRedirect({
     (hasCapability(role, "moderation.view") ||
       hasCapability(role, "moderation.manage"))
   ) {
-    redirect(sectionPath("moderation", slug));
+    redirect(manageCommunityHref(slug, "moderation"));
   }
 
   redirect("/communities/settings");

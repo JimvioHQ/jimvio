@@ -17,7 +17,6 @@ import {
   OWNER_CONSOLE_HUB,
   OWNER_NAV_ITEMS,
   OWNER_NAV_SECTIONS,
-  ownerConsoleHref,
   useOwnerConsoleUiStore,
   type OwnerConsoleBadges,
   type OwnerConsoleSectionId,
@@ -25,19 +24,22 @@ import {
 import { hasCapability } from "@/lib/community/workspace/permissions";
 import type { WorkspaceRole } from "@/lib/community/workspace/types";
 import { ownerSectionIcon } from "./owner-icons";
+import { useOwnerConsole } from "./OwnerConsoleContext";
 
 export function OwnerConsoleSidebar({
   communitySlug,
+  communityName,
   role,
   badges,
-  userName,
-  userAvatar,
+  consoleMode = "owner",
+  hrefSection,
 }: {
   communitySlug: string | null;
+  communityName?: string | null;
   role: WorkspaceRole;
   badges: OwnerConsoleBadges;
-  userName?: string;
-  userAvatar?: string | null;
+  consoleMode?: "owner" | "manage";
+  hrefSection: (section?: string, query?: Record<string, string | undefined | null>) => string;
 }) {
   const pathname = usePathname();
   const collapsed = useOwnerConsoleUiStore((s) => s.sidebarCollapsed);
@@ -76,9 +78,8 @@ export function OwnerConsoleSidebar({
     return badges[key] ?? 0;
   };
 
-  const consoleBase = communitySlug
-    ? ownerConsoleHref(communitySlug)
-    : OWNER_CONSOLE_HUB;
+  const consoleBase = communitySlug ? hrefSection() : OWNER_CONSOLE_HUB;
+  const isManage = consoleMode === "manage";
 
   const navBody = (
     <div className="flex h-full flex-col">
@@ -110,16 +111,26 @@ export function OwnerConsoleSidebar({
         </button>
       </div>
 
+      {/* Management identity */}
+      {!collapsed && communitySlug && communityName ? (
+        <div className="border-b border-[#E5E7EB] px-3 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">
+            {isManage ? "Manage Community" : "Manage"}
+          </p>
+          <p className="mt-0.5 truncate text-[14px] font-semibold text-[#111827]">
+            {communityName}
+          </p>
+        </div>
+      ) : null}
+
       <div className="border-b border-[#E5E7EB] px-2 py-2">
         <Link
           href={communitySlug ? consoleBase : OWNER_CONSOLE_HUB}
           onClick={() => setMobileOpen(false)}
-          title="Dashboard"
+          title="Overview"
           className={cn(
             "flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-semibold transition",
-            pathname === OWNER_CONSOLE_HUB ||
-              pathname === consoleBase ||
-              pathname === `${consoleBase}/`
+            isOverviewActive(pathname, consoleBase, communitySlug)
               ? "bg-[#FF5A1F] text-white shadow-sm shadow-[#FF5A1F]/25"
               : "text-[#4B5563] hover:bg-[#F3F4F6] hover:text-[#111827]",
             collapsed && "justify-center px-2"
@@ -129,7 +140,7 @@ export function OwnerConsoleSidebar({
             className: "h-4 w-4 shrink-0",
             "aria-hidden": true,
           })}
-          {!collapsed && <span>Dashboard</span>}
+          {!collapsed && <span>Overview</span>}
         </Link>
       </div>
 
@@ -150,11 +161,12 @@ export function OwnerConsoleSidebar({
 
       <nav
         className="min-h-0 flex-1 overflow-y-auto px-2 py-3"
-        aria-label="Owner console sections"
+        aria-label="Community management sections"
       >
         {OWNER_NAV_SECTIONS.map((section) => {
           const items = section.items.filter((id) => visibleIds.includes(id));
           if (items.length === 0) return null;
+          if (section.id === "overview") return null;
           const isOpen = expanded.includes(section.id) || !!navQuery.trim();
           return (
             <div key={section.id} className="mb-3">
@@ -187,12 +199,11 @@ export function OwnerConsoleSidebar({
                   {items.map((id) => {
                     const item = OWNER_NAV_ITEMS[id];
                     const href = communitySlug
-                      ? ownerConsoleHref(communitySlug, item.section)
+                      ? hrefSection(item.section)
                       : OWNER_CONSOLE_HUB;
                     const active =
                       id === "overview"
-                        ? pathname === consoleBase ||
-                          pathname === `${consoleBase}/`
+                        ? isOverviewActive(pathname, consoleBase, communitySlug)
                         : pathname === href ||
                           pathname.startsWith(`${href}/`);
                     const count = badgeValue(item.badgeKey);
@@ -245,38 +256,14 @@ export function OwnerConsoleSidebar({
         })}
       </nav>
 
-      {/* Profile footer */}
-      {!collapsed && (
+      {!collapsed && communitySlug && (
         <div className="border-t border-[#E5E7EB] p-3">
-          <div className="flex items-center gap-2.5 rounded-xl bg-[#FAFAFB] px-2.5 py-2">
-            <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#F3F4F6]">
-              {userAvatar ? (
-                <Image
-                  src={userAvatar}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-xs font-bold text-[#FF5A1F]">
-                  {(userName ?? "O")[0]}
-                </span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-semibold text-[#111827]">
-                {userName ?? "Owner"}
-              </p>
-              <p className="text-[11px] text-[#9CA3AF]">
-                {role === "owner" ? "Owner" : role}
-              </p>
-            </div>
-            <ChevronDown className="h-4 w-4 shrink-0 text-[#9CA3AF]" aria-hidden />
-          </div>
-          <p className="mt-2 px-1 text-[10px] text-[#D1D5DB]">
-            Keyboard · Collapse sidebar to focus
-          </p>
+          <Link
+            href={`/communities/${encodeURIComponent(communitySlug)}`}
+            className="flex items-center justify-center rounded-xl border border-[#E5E7EB] bg-[#FAFAFB] px-3 py-2 text-[12px] font-semibold text-[#4B5563] transition hover:border-[#FF5A1F]/30 hover:text-[#111827]"
+          >
+            View Community
+          </Link>
         </div>
       )}
     </div>
@@ -310,6 +297,20 @@ export function OwnerConsoleSidebar({
   );
 }
 
+function isOverviewActive(
+  pathname: string,
+  consoleBase: string,
+  communitySlug: string | null
+) {
+  if (!communitySlug) return pathname === OWNER_CONSOLE_HUB;
+  return (
+    pathname === consoleBase ||
+    pathname === `${consoleBase}/` ||
+    pathname.endsWith(`/communities/${communitySlug}/manage`) ||
+    pathname.endsWith(`/communities/${communitySlug}/manage/`)
+  );
+}
+
 function matchQuery(
   item: { label: string; description: string },
   q: string
@@ -327,5 +328,21 @@ function canSeeAnyStaff(role: WorkspaceRole) {
     hasCapability(role, "pins.manage") ||
     hasCapability(role, "members.invite") ||
     hasCapability(role, "group.manage")
+  );
+}
+
+/** Sidebar wired to OwnerConsoleContext */
+export function OwnerConsoleSidebarConnected() {
+  const { community, role, badges, consoleMode, hrefSection } =
+    useOwnerConsole();
+  return (
+    <OwnerConsoleSidebar
+      communitySlug={community?.slug ?? null}
+      communityName={community?.name ?? null}
+      role={role}
+      badges={badges}
+      consoleMode={consoleMode}
+      hrefSection={hrefSection}
+    />
   );
 }

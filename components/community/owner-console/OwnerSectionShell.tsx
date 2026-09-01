@@ -7,6 +7,7 @@ import {
   type OwnerConsoleSectionId,
 } from "@/lib/community/owner-console";
 import { ownerSectionIcon } from "./owner-icons";
+import { useOwnerConsole } from "./OwnerConsoleContext";
 
 /**
  * Reusable section shell for Owner Console pages.
@@ -22,6 +23,7 @@ export function OwnerSectionShell({
   actions?: React.ReactNode;
 }) {
   const item = OWNER_NAV_ITEMS[sectionId];
+  const { hrefSection } = useOwnerConsole();
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -54,10 +56,10 @@ export function OwnerSectionShell({
             leaving your workspace.
           </p>
           <Link
-            href="/owner/communities"
+            href={hrefSection()}
             className="mt-5 inline-flex h-10 items-center rounded-xl bg-[#FF5A1F] px-4 text-[13px] font-semibold text-white transition hover:bg-[#F04E14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/50"
           >
-            Back to dashboard
+            Back to overview
           </Link>
         </div>
       )}

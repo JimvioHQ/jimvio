@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo } from "react";
 import {
+  communityConsoleHref,
   useOwnerConsoleUiStore,
   type OwnerCommunitySummary,
   type OwnerConsoleBadges,
+  type CommunityConsoleMode,
 } from "@/lib/community/owner-console";
 import type { WorkspaceRole } from "@/lib/community/workspace/types";
 import { OwnerConsoleLayout } from "./OwnerConsoleLayout";
@@ -16,6 +18,7 @@ export function OwnerConsoleClientGate({
   userName,
   userAvatar,
   badges,
+  consoleMode = "owner",
   children,
 }: {
   communities: OwnerCommunitySummary[];
@@ -25,6 +28,7 @@ export function OwnerConsoleClientGate({
   userName: string;
   userAvatar: string | null;
   badges: OwnerConsoleBadges;
+  consoleMode?: CommunityConsoleMode;
   children: React.ReactNode;
 }) {
   const storedId = useOwnerConsoleUiStore((s) => s.selectedCommunityId);
@@ -47,6 +51,17 @@ export function OwnerConsoleClientGate({
 
   const role: WorkspaceRole = community?.role ?? "guest";
 
+  const hrefSection = useMemo(
+    () => (section = "", query?: Record<string, string | undefined | null>) => {
+      if (!community?.slug) return "/owner/communities";
+      return communityConsoleHref(community.slug, section, {
+        mode: consoleMode,
+        query,
+      });
+    },
+    [community?.slug, consoleMode]
+  );
+
   return (
     <OwnerConsoleLayout
       value={{
@@ -58,6 +73,8 @@ export function OwnerConsoleClientGate({
         userAvatar,
         badges,
         workspaceHref: community ? `/communities/${community.slug}` : null,
+        consoleMode,
+        hrefSection,
       }}
     >
       {children}

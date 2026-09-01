@@ -585,7 +585,7 @@ export function ChatRoom({
           className={cn(
             "flex min-h-0 flex-1 flex-col overflow-y-auto",
             discussionLayout
-              ? "discussion-chat-canvas px-2 py-1 pb-1 sm:px-3 lg:px-4"
+              ? "discussion-chat-canvas px-1.5 py-0.5 pb-0.5 sm:px-2.5 lg:px-3"
               : "bg-[var(--color-bg)] px-3 py-3 pb-5 sm:px-[5%]",
             "scrollbar-thin scrollbar-thumb-[var(--color-border-strong)]",
             hook.loading && "overflow-hidden"
@@ -597,7 +597,7 @@ export function ChatRoom({
             !hook.searchQuery.trim() &&
             hook.chatFilter === "all" ? (
             <div
-              className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center animate-in fade-in duration-300"
+              className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center animate-in fade-in duration-300"
               role="status"
             >
               <span className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-surface)] text-[var(--color-accent)] shadow-[0_8px_24px_rgba(15,23,42,0.06)] ring-1 ring-[var(--color-border)]">

@@ -10,6 +10,9 @@ import type { PermissionCapability } from "@/lib/community/workspace/permissions
 /** Hub list — communities the user owns or can manage. */
 export const OWNER_CONSOLE_HUB = "/owner/communities";
 
+/** Preferred member-facing management entry: /communities/{slug}/manage */
+export const MANAGE_COMMUNITY_SEGMENT = "manage";
+
 /**
  * Base path segment for Owner Console (hub). Section URLs are built with
  * `ownerConsoleHref(slug, section)` → `/owner/communities/{slug}/…`.
@@ -81,7 +84,7 @@ function navItem(
 export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   overview: navItem(
     "overview",
-    "Dashboard",
+    "Overview",
     "",
     "settings.manage",
     "Community health and operating dashboard"
@@ -184,10 +187,10 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   ),
   automations: navItem(
     "automations",
-    "Billing",
+    "Monetization",
     "automations",
     "settings.manage",
-    "Billing and automation workflows"
+    "Billing, plans, and automation workflows"
   ),
   security: navItem(
     "security",
@@ -219,41 +222,42 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   ),
 };
 
-/** Grouped Owner Console navigation — collapsible sections. */
+/** Grouped management navigation — collapsible sections. */
 export const OWNER_NAV_SECTIONS: OwnerNavSection[] = [
   {
-    id: "community",
-    label: "Community",
+    id: "overview",
+    label: "Overview",
+    collapsible: false,
+    items: ["overview"],
+  },
+  {
+    id: "manage",
+    label: "Manage Community",
     collapsible: true,
-    items: ["members", "spaces", "roles", "live"],
+    items: ["settings", "members", "roles", "moderation"],
   },
   {
     id: "content",
-    label: "Content",
+    label: "Manage Content",
     collapsible: true,
-    items: ["courses", "events", "content"],
+    items: ["spaces", "content", "courses", "events", "live"],
   },
   {
-    id: "commerce",
-    label: "Commerce",
+    id: "growth",
+    label: "Growth & Engagement",
     collapsible: true,
-    items: ["commerce", "analytics"],
+    items: ["analytics", "ai"],
   },
   {
-    id: "engagement",
-    label: "Engagement",
+    id: "tools",
+    label: "Tools",
     collapsible: true,
-    items: ["moderation", "ai"],
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    collapsible: true,
-    items: ["settings", "automations", "security", "integrations", "audit"],
+    items: ["commerce", "automations", "integrations", "security", "audit"],
   },
 ];
 
 export type OwnerQuickActionId =
+  | "create_post"
   | "create_community"
   | "create_space"
   /** @deprecated Use create_space */
@@ -281,6 +285,51 @@ export type OwnerQuickAction = {
  * @param section - path under the console (e.g. "spaces", "channels/abc", "")
  * @param query - optional search params (action, tab, …) — community id is NOT required
  */
+/**
+ * Manage Community URL — /communities/{slug}/manage/…
+ * Mirrors owner console sections under the community namespace.
+ */
+export function manageCommunityHref(
+  slug: string,
+  section: string = "",
+  query?: Record<string, string | undefined | null>
+): string {
+  const clean = section.replace(/^\/+/, "").replace(/^manage\/?/i, "");
+  const normalized =
+    clean === "groups" || clean.startsWith("groups/")
+      ? clean.replace(/^groups/, "spaces")
+      : clean === "channels" || clean.startsWith("channels/")
+        ? "spaces"
+        : clean;
+  const base = normalized
+    ? `/communities/${encodeURIComponent(slug)}/${MANAGE_COMMUNITY_SEGMENT}/${normalized}`
+    : `/communities/${encodeURIComponent(slug)}/${MANAGE_COMMUNITY_SEGMENT}`;
+  if (!query) return base;
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) {
+    if (v != null && v !== "") params.set(k, v);
+  }
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
+export type CommunityConsoleMode = "owner" | "manage";
+
+export function communityConsoleHref(
+  slug: string,
+  section: string = "",
+  options?: {
+    mode?: CommunityConsoleMode;
+    query?: Record<string, string | undefined | null>;
+  }
+): string {
+  const mode = options?.mode ?? "owner";
+  const query = options?.query;
+  return mode === "manage"
+    ? manageCommunityHref(slug, section, query)
+    : ownerConsoleHref(slug, section, query);
+}
+
 export function ownerConsoleHref(
   slug: string,
   section: string = "",
@@ -307,6 +356,14 @@ export function ownerConsoleHref(
 }
 
 export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
+  {
+    id: "create_post",
+    label: "Create Post",
+    href: ({ slug }) =>
+      `/create/post${slug ? `?community=${encodeURIComponent(slug)}` : ""}`,
+    capability: "channel.manage",
+    primary: true,
+  },
   {
     id: "create_community",
     label: "Create Community",

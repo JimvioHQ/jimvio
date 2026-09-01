@@ -1,23 +1,12 @@
 import {
+  manageCommunityHref,
   ownerConsoleHref,
   type OwnerCommunitySummary,
   type OwnerDashboardMetric,
 } from "./nav";
 
-function spark(seed: number, points = 8): number[] {
-  const out: number[] = [];
-  let v = 40 + (seed % 20);
-  for (let i = 0; i < points; i++) {
-    v = Math.max(8, Math.min(96, v + ((seed * (i + 3)) % 17) - 8));
-    out.push(v);
-  }
-  return out;
-}
-
 /**
- * Dashboard KPI architecture — five premium metrics for the Owner Console.
- * Values filled by later phases / APIs; sparklines are structural placeholders.
- * Community Health remains available for section shells / legacy consumers.
+ * Dashboard KPI cards — real counts only; no fabricated trends or sparklines.
  */
 export function buildOwnerDashboardMetrics(
   community: OwnerCommunitySummary | null,
@@ -30,61 +19,98 @@ export function buildOwnerDashboardMetrics(
   const communities = options?.communitiesCount ?? (community ? 1 : 0);
   const reports = options?.reports ?? 0;
   const live = options?.live ?? 0;
-  const seed = members + communities * 11;
 
-  return [
-    {
+  const metrics: OwnerDashboardMetric[] = [];
+
+  if (community) {
+    metrics.push({
       id: "members",
-      label: "Total Members",
+      label: "Members",
       value: members,
-      hint: "Community Health · active roster",
+      hint: "Active community roster",
       tone: "accent",
       href: link("members"),
-      trend: members > 0 ? "▲ 16% vs last 7 days" : "— vs last 7 days",
-      trendUp: members > 0,
-      sparkline: spark(seed + 1),
-    },
-    {
-      id: "communities",
-      label: "Active Communities",
-      value: communities,
-      hint: "Communities you manage",
-      href: "/owner/communities",
-      trend: communities > 0 ? "▲ 4% vs last 7 days" : "— vs last 7 days",
-      trendUp: communities > 0,
-      sparkline: spark(seed + 2),
-    },
-    {
-      id: "revenue",
-      label: "Revenue (7D)",
-      value: "$0.00",
-      hint: "Commerce and memberships",
-      tone: "success",
-      href: link("commerce"),
-      trend: "— vs last 7 days",
-      trendUp: false,
-      sparkline: spark(seed + 3),
-    },
-    {
+    });
+  }
+
+  metrics.push({
+    id: "communities",
+    label: "Communities",
+    value: communities,
+    hint: "Workspaces you manage",
+    href: "/owner/communities",
+  });
+
+  if (community) {
+    metrics.push({
       id: "live",
       label: "Live Sessions",
       value: live,
-      hint: "Active or scheduled lives",
+      hint: live > 0 ? "Active now" : "Schedule a live session",
       href: link("live"),
-      trend: live > 0 ? "▲ 8% vs last 7 days" : "— vs last 7 days",
-      trendUp: live > 0,
-      sparkline: spark(seed + 4),
+    });
+    metrics.push({
+      id: "reports",
+      label: "Open Reports",
+      value: reports,
+      hint: reports > 0 ? "Needs moderation" : "Queue clear",
+      tone: reports > 0 ? "warn" : "default",
+      href: link("moderation"),
+    });
+  }
+
+  return metrics;
+}
+
+export function buildManageDashboardMetrics(
+  community: OwnerCommunitySummary,
+  options?: { reports?: number; live?: number; postCount?: number | null }
+): OwnerDashboardMetric[] {
+  const slug = community.slug;
+  const link = (section: string) => manageCommunityHref(slug, section);
+  const members = community.memberCount ?? 0;
+  const reports = options?.reports ?? 0;
+  const live = options?.live ?? 0;
+  const posts = options?.postCount;
+
+  const metrics: OwnerDashboardMetric[] = [
+    {
+      id: "members",
+      label: "Members",
+      value: members,
+      hint: "Community members",
+      tone: "accent",
+      href: link("members"),
+    },
+  ];
+
+  if (posts != null) {
+    metrics.push({
+      id: "health",
+      label: "Posts",
+      value: posts,
+      hint: "Published posts",
+      href: link("content"),
+    });
+  }
+
+  metrics.push(
+    {
+      id: "live",
+      label: "Live",
+      value: live,
+      hint: live > 0 ? "Live now" : "No active lives",
+      href: link("live"),
     },
     {
       id: "reports",
-      label: "Pending Reports",
+      label: "Reports",
       value: reports,
-      hint: "Community Health · moderation queue",
-      tone: "warn",
+      hint: reports > 0 ? "Open moderation items" : "All clear",
+      tone: reports > 0 ? "warn" : "default",
       href: link("moderation"),
-      trend: reports > 0 ? "Needs attention" : "All clear",
-      trendUp: reports === 0,
-      sparkline: spark(seed + 5),
-    },
-  ];
+    }
+  );
+
+  return metrics.slice(0, 5);
 }

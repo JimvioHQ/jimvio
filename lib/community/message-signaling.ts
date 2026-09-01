@@ -20,6 +20,8 @@ function looksLikeSignalingBody(body: string | null | undefined): boolean {
   if (!trimmed) return false;
   if (/^candidate:/i.test(trimmed)) return true;
   if (/"ice"\s*:\s*\{/.test(trimmed) && /candidate/i.test(trimmed)) return true;
+  if (/^\s*\{\s*"ice"\s*:/.test(trimmed)) return true;
+  if (/^\s*\{\s*"sdp"\s*:/.test(trimmed)) return true;
   if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return false;
   try {
     const parsed = JSON.parse(trimmed) as {

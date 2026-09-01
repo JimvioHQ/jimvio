@@ -82,13 +82,13 @@ assert.doesNotMatch(overview, /CreatorOSDashboard/);
 assert.doesNotMatch(overview, /Latest Activity/);
 assert.doesNotMatch(overview, /Latest Activity/);
 assert.doesNotMatch(overview, /Health Score|Community Score|CreatorOSDashboard/);
-assert.match(overview, /Owner Console/);
+assert.match(overview, /Manage Community|Owner Console/);
 assert.match(
   fs.readFileSync(
     path.join(root, "components/community/owner-console/OwnerDashboardShell.tsx"),
     "utf8"
   ),
-  /Analytics overview|View analytics|Owner-only analytics/
+  /Manage Community|Quick Actions|Community Settings/
 );
 assert.match(
   fs.readFileSync(
