@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function FeedPage() {
   let initialCommunities: TrendingCommunity[] = [];
   let initialPosts: ApiPost[] = [];
+  let initialNextCursor: string | null = null;
   try {
     const rows = await getHomepageCommunities(8);
     initialCommunities = rows.map((row) => {
@@ -41,8 +42,10 @@ export default async function FeedPage() {
   try {
     const supabase = await createClient();
     const feed = await loadPublicDiscoveryFeed(supabase, { filter: "for-you", limit: 20 });
-    if (feed.ok) initialPosts = feed.posts as ApiPost[];
-    else console.error("[communities] public feed preload failed:", feed.error);
+    if (feed.ok) {
+      initialPosts = feed.posts as ApiPost[];
+      initialNextCursor = feed.next_cursor;
+    } else console.error("[communities] public feed preload failed:", feed.error);
   } catch (err) {
     console.error("[communities] public feed preload failed:", err);
   }
@@ -51,6 +54,7 @@ export default async function FeedPage() {
     <FeedPageContent
       initialCommunities={initialCommunities}
       initialPosts={initialPosts}
+      initialNextCursor={initialNextCursor}
     />
   );
 }

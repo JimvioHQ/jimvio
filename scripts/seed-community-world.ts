@@ -30,8 +30,10 @@ import {
 } from "../lib/community/editorial-personas";
 import { ensureDefaultCommunityWorkspace } from "../lib/community/ensure-default-workspace";
 import { assertWorldBlueprintIntegrity } from "../lib/community/editorial-world-blueprints";
+import { assertProductionScriptAllowed } from "../lib/ops/script-safety";
 
 config({ path: ".env.local" });
+assertProductionScriptAllowed("seed-community-world");
 
 const SEED_NOW = Date.parse("2026-08-30T18:00:00.000Z");
 const PRESERVED = new Set(["forex-hub", "gcs-unity"]);
@@ -533,7 +535,7 @@ async function seedCommunity(
       .eq("id", roomId);
   }
 
-  const [{ count: postCount }, { count: roomCount }] = await Promise.all([
+  const [{ count: postCount }, { count: roomCount }, { count: membershipCount }] = await Promise.all([
     db
       .from("community_posts")
       .select("id", { count: "exact", head: true })
@@ -544,20 +546,40 @@ async function seedCommunity(
       .select("id", { count: "exact", head: true })
       .eq("space_id", workspace.spaceId)
       .eq("is_active", true),
+    db
+      .from("community_memberships")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", communityId)
+      .eq("status", "active"),
   ]);
+
+  const actualMembers = membershipCount ?? targetMembers;
 
   await db
     .from("communities")
     .update({
-      member_count: targetMembers,
+      member_count: actualMembers,
       post_count: postCount ?? 0,
       space_count: 1,
     })
     .eq("id", communityId);
   await db.from("spaces").update({ room_count: roomCount ?? 1 }).eq("id", workspace.spaceId);
 
+  // Free/inherit spaces: every active community member has access — keep counts truthful.
+  const { data: spaces } = await db
+    .from("spaces")
+    .select("id, access_type")
+    .eq("community_id", communityId)
+    .eq("is_active", true);
+  for (const space of spaces ?? []) {
+    const access = (space.access_type || "free").toLowerCase();
+    if (access === "free" || access === "inherit") {
+      await db.from("spaces").update({ member_count: actualMembers }).eq("id", space.id);
+    }
+  }
+
   console.log(
-    `✓ ${spec.slug} members~${targetMembers} posts=${postCount ?? 0} rooms=${roomCount ?? 0}`
+    `✓ ${spec.slug} members=${actualMembers} posts=${postCount ?? 0} rooms=${roomCount ?? 0}`
   );
 }
 

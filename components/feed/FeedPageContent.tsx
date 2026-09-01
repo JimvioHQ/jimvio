@@ -31,9 +31,11 @@ function FeedRightRail() {
 export function FeedPageContent({
   initialCommunities = [],
   initialPosts = [],
+  initialNextCursor = null,
 }: {
   initialCommunities?: TrendingCommunity[];
   initialPosts?: ApiPost[];
+  initialNextCursor?: string | null;
 }) {
   const [feedTab, setFeedTab] = useState<FeedTab>("For You");
 
@@ -48,7 +50,11 @@ export function FeedPageContent({
             <FeedDiscoverRail initialCommunities={initialCommunities} />
             <div className="space-y-0">
               <FeedTabs value={feedTab} onChange={setFeedTab} />
-              <FeedPostCard tab={feedTab} initialPosts={feedTab === "For You" ? initialPosts : []} />
+              <FeedPostCard
+                tab={feedTab}
+                initialPosts={feedTab === "For You" ? initialPosts : []}
+                initialNextCursor={feedTab === "For You" ? initialNextCursor : null}
+              />
             </div>
           </div>
 

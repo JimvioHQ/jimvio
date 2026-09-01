@@ -190,17 +190,19 @@ function AuthorAvatar({
 export function FeedPostCard({
   tab = "For You",
   initialPosts = [],
+  initialNextCursor = null,
 }: {
   tab?: FeedTab;
   initialPosts?: ApiPost[];
+  initialNextCursor?: string | null;
 }) {
   const router = useRouter();
   const { isAuthenticated } = useFeedUser();
   const [posts, setPosts] = useState<DisplayPost[]>(() => initialPosts.map(mapApiPost));
   const [loading, setLoading] = useState(initialPosts.length === 0);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(false);
+  const [cursor, setCursor] = useState<string | null>(initialNextCursor);
+  const [hasMore, setHasMore] = useState(Boolean(initialNextCursor));
   const [usingMock, setUsingMock] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -257,8 +259,15 @@ export function FeedPostCard({
   }, [filter]);
 
   useEffect(() => {
+    if (
+      !isAuthenticated &&
+      initialPosts.length > 0 &&
+      filter === FEED_TAB_FILTERS["For You"]
+    ) {
+      return;
+    }
     void load();
-  }, [load]);
+  }, [load, initialPosts.length, filter, isAuthenticated]);
 
   useEffect(() => {
     const el = sentinelRef.current;
