@@ -605,6 +605,7 @@ import { HubPremiumCard, HubUserCard } from "@/components/community/hub/hub-ui";
 import { aggregateMemberPoints } from "@/lib/community/points";
 import { HUB_AUTH_NAV_IDS, buildHubLoginUrl } from "@/lib/community/hub-auth";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
+import { cn } from "@/lib/utils";
 
 const Icons = {
     Feed: () => (
@@ -855,6 +856,7 @@ function SidebarContent({
     onLinkClick,
     showCloseButton,
     onClose,
+    isMobileDrawer = false,
 }: {
     collapsed: boolean;
     onToggleCollapse?: () => void;
@@ -863,6 +865,7 @@ function SidebarContent({
     onLinkClick?: () => void;
     showCloseButton?: boolean;
     onClose?: () => void;
+    isMobileDrawer?: boolean;
 }) {
     const pathname = usePathname();
     const { isAuthenticated } = useFeedUser();
@@ -915,7 +918,7 @@ function SidebarContent({
         return () => { cancelled = true; };
     }, [username]);
 
-    const resolvedNav = NAV_ITEMS.map((item) => ({
+    const resolvedNav = (isMobileDrawer ? NAV_ITEMS.filter((item) => item.id !== "missions") : NAV_ITEMS).map((item) => ({
         ...item,
         href: item.href.replace("__username__", username),
     }));
@@ -1018,7 +1021,10 @@ function SidebarContent({
                                 key={id}
                                 href={linkHref}
                                 title={collapsed ? (locked ? `${label} (sign in required)` : label) : undefined}
-                                style={navLink(active)}
+                                style={{
+                                    ...navLink(active),
+                                    ...(isMobileDrawer ? { minHeight: 44 } : {}),
+                                }}
                                 onClick={onLinkClick}
                                 {...hoverHandlers(active)}
                             >
@@ -1128,12 +1134,15 @@ function SidebarContent({
                                 key={community.id}
                                 href={href}
                                 title={collapsed ? community.name : undefined}
-                                style={communityLink(active)}
+                                style={{
+                                    ...communityLink(active),
+                                    ...(isMobileDrawer ? { minHeight: 44, padding: "10px 10px" } : {}),
+                                }}
                                 onClick={onLinkClick}
                                 {...hoverHandlers(active)}
                             >
                                 <span style={{ position: "relative", flexShrink: 0 }}>
-                                    <CommunityAvatar community={community} size={26} />
+                                    <CommunityAvatar community={community} size={isMobileDrawer ? 32 : 26} />
                                     {community.unread_count && community.unread_count > 0 ? (
                                         <span style={{
                                             position: "absolute", top: -3, right: -3,
@@ -1300,30 +1309,30 @@ export default function HubSidebar({
                 </aside>
             </div>
 
-            {/* Mobile drawer — only mount when open to avoid duplicate nav in the DOM */}
-            {mobileOpen && (
-                <aside
-                    className="lg:hidden"
-                    style={{
-                        ...sidebarBase,
-                        position: "fixed",
-                        top: 56,
-                        left: 0,
-                        width: 260,
-                        height: "calc(100vh - 56px)",
-                        zIndex: 99,
-                    }}
-                >
-                    <SidebarContent
-                        collapsed={false}
-                        username={username}
-                        unreadMessages={unreadMessages}
-                        onLinkClick={onMobileClose}
-                        showCloseButton
-                        onClose={onMobileClose}
-                    />
-                </aside>
-            )}
+            {/* Mobile drawer — slides in from left */}
+            <aside
+                className={cn(
+                    "lg:hidden fixed left-0 top-14 z-[99] flex flex-col",
+                    "w-[min(288px,86vw)]",
+                    "h-[calc(100dvh-3.5rem)]",
+                    "border-r border-[var(--color-border,rgba(0,0,0,0.08))]",
+                    "bg-[var(--color-surface,#ffffff)]",
+                    "pb-[env(safe-area-inset-bottom,0px)]",
+                    "transition-transform duration-[220ms] ease-out motion-reduce:transition-none",
+                    mobileOpen ? "translate-x-0" : "-translate-x-full pointer-events-none",
+                )}
+                aria-hidden={!mobileOpen}
+            >
+                <SidebarContent
+                    collapsed={false}
+                    username={username}
+                    unreadMessages={unreadMessages}
+                    onLinkClick={onMobileClose}
+                    showCloseButton
+                    onClose={onMobileClose}
+                    isMobileDrawer
+                />
+            </aside>
         </>
     );
 }

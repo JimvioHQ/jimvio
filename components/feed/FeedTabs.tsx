@@ -27,7 +27,7 @@ export function FeedTabs({
       <div className="flex items-center">
         <div className="relative min-w-0 flex-1">
           <div
-            className="absolute bottom-0 h-0.5 rounded-full bg-orange-500 transition-all duration-200"
+            className="absolute bottom-0 h-0.5 rounded-full bg-[#FF5A1F] transition-all duration-200 motion-reduce:transition-none"
             style={{ left: indicator.left, width: indicator.width }}
           />
           <div
@@ -62,7 +62,7 @@ export function FeedTabs({
                   onChange?.(nextTab);
                   tabRefs.current[next]?.focus();
                 }}
-                className={`min-h-11 shrink-0 px-3 py-2.5 text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 sm:px-3.5 ${
+                className={`min-h-11 shrink-0 px-3 py-2.5 text-[13px] transition-colors duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40 sm:px-3.5 ${
                   selected
                     ? "font-semibold text-[var(--color-text-primary)]"
                     : "font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]"
@@ -77,7 +77,7 @@ export function FeedTabs({
         <button
           type="button"
           aria-label="Filter feed"
-          className="ml-1 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
+          className="ml-1 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40"
         >
           <SlidersHorizontal className="h-4 w-4" />
         </button>

@@ -14,7 +14,6 @@ import {
     Radio,
     Layers,
     MessageSquare,
-    Target,
     Users,
     Package,
     Wallet,
@@ -283,21 +282,22 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
         <div className="flex h-screen flex-col overflow-hidden bg-[var(--color-bg,#f4f4f5)] text-[var(--color-text-primary,#18181b)]">
 
             {/* ── Main header (full width, above sidebar) ── */}
-            <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-3 sm:gap-x-3 sm:px-6">
+            <header className="z-30 grid h-14 shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-1.5 border-b border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] px-2.5 sm:gap-x-3 sm:px-6 supports-[padding:max(0px)]:pt-[max(0px,env(safe-area-inset-top))]">
                 {/* Mobile hamburger */}
                     <button
                         type="button"
                         onClick={() => setMobileNavOpen((o) => !o)}
                         aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
                         aria-expanded={mobileNavOpen}
-                    className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40 lg:hidden"
+                    className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] hover:bg-[var(--color-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40 lg:hidden"
                     >
                     <Menu className="h-5 w-5" />
                     </button>
 
-                {/* Logo */}
-                <Link href="/" className="shrink-0" aria-label="Jimvio home">
-                    <JimvioLogo href={undefined} size="lg" />
+                {/* Logo — icon-only on narrow screens to avoid truncation */}
+                <Link href="/" className="flex min-w-0 shrink-0 items-center" aria-label="Jimvio home">
+                    <JimvioLogo href={undefined} size="md" presentation="header" variant="icon" className="sm:hidden" />
+                    <JimvioLogo href={undefined} size="md" presentation="header" variant="full" className="hidden min-w-0 sm:flex" />
                 </Link>
 
                 {/* Primary nav (desktop) — breathing room from logo */}
@@ -329,7 +329,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     })}
                 </nav>
 
-                <div className="col-start-3 ml-auto flex shrink-0 items-center justify-end gap-1.5">
+                <div className="col-start-3 ml-auto flex shrink-0 items-center justify-end gap-0.5 sm:gap-1.5">
                     {/* Search → unified Command+K */}
                     <button
                         type="button"
@@ -346,7 +346,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         type="button"
                         onClick={() => openCommandCenter()}
                         aria-label="Search"
-                        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] min-[1060px]:hidden"
+                        className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] min-[1060px]:hidden"
                     >
                         <Search className="h-[18px] w-[18px]" />
                     </button>
@@ -491,11 +491,14 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                 )}
 
                 {/* Mobile overlay backdrop (hub mode only — community drawer owns its backdrop) */}
-                {!isLiveStudio && !isCommunityWorkspace && mobileNavOpen && (
+                {!isLiveStudio && !isCommunityWorkspace && (
                     <div
-                        className="fixed inset-0 z-[98] bg-black/50 lg:hidden"
+                        className={cn(
+                            "fixed inset-0 z-[98] bg-black/50 transition-opacity duration-200 motion-reduce:transition-none lg:hidden",
+                            mobileNavOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+                        )}
                         onClick={() => setMobileNavOpen(false)}
-                        aria-hidden="true"
+                        aria-hidden={!mobileNavOpen}
                     />
                 )}
 
@@ -507,7 +510,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         <h1 className="min-w-0 break-words text-[14px] font-bold leading-tight text-[var(--color-text-primary)]">{pageTitle}</h1>
                     </div>
                     )}
-                    <div className={cn("flex min-h-0 flex-1 flex-col", !isLiveStudio && !isCommunityWorkspace && "pb-14 lg:pb-0")}>
+                    <div className={cn("flex min-h-0 flex-1 flex-col", !isLiveStudio && !isCommunityWorkspace && "pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0")}>
                         {children}
                     </div>
                 </main>
@@ -516,8 +519,11 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
             {/* ── Mobile bottom nav (hub only — hidden inside Live workspace) ── */}
             {!isLiveStudio && !isCommunityWorkspace && (
             <nav
-                className="fixed inset-x-0 bottom-0 z-[60] flex h-14 items-stretch justify-around border-t border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] lg:hidden"
-                style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+                className="fixed inset-x-0 bottom-0 z-[60] flex items-stretch justify-around border-t border-[var(--color-border,#e4e4e7)] bg-[var(--color-surface,#fff)] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden"
+                style={{
+                    paddingBottom: "env(safe-area-inset-bottom, 0px)",
+                    minHeight: "calc(3.5rem + env(safe-area-inset-bottom, 0px))",
+                }}
                 aria-label="Mobile navigation"
             >
                 {[
@@ -525,7 +531,6 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                     { label: "Live", href: "/communities/live", auth: true, icon: Radio },
                     { label: "Spaces", href: "/communities/spaces", auth: true, icon: Layers },
                     { label: "Messages", href: "/communities/messages", auth: true, icon: MessageSquare },
-                    { label: "Missions", href: "/communities/missions", auth: true, icon: Target },
                 ].map(({ label, href, auth, icon: Icon }) => {
                     const navHref = isAuthenticated === false && auth ? buildHubLoginUrl(href) : href;
                     const active = href === "/communities" ? pathname === "/communities" : pathname.startsWith(href);
@@ -536,12 +541,18 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                                 aria-label={label}
                                 aria-current={active ? "page" : undefined}
                             className={cn(
-                                "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40",
-                                active ? "text-[#fd5000]" : "text-[var(--color-text-muted)]"
+                                "relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-semibold transition-colors duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40",
+                                active ? "text-[#FF5A1F]" : "text-[var(--color-text-muted)]"
                             )}
                         >
-                            <Icon className="h-5 w-5" />
-                                {label}
+                            {active && (
+                                <span
+                                    className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[#FF5A1F] motion-reduce:hidden"
+                                    aria-hidden
+                                />
+                            )}
+                            <Icon className={cn("h-[22px] w-[22px] shrink-0", active && "stroke-[2.25]")} />
+                                <span className="truncate">{label}</span>
                             </Link>
                         );
                     })}

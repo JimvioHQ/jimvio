@@ -14,9 +14,9 @@ import { cn, getInitials } from "@/lib/utils";
 import { StoryViewer, type StoryViewerGroup } from "@/components/feed/StoryViewer";
 import { buildHubLoginUrl } from "@/lib/community/hub-auth";
 
-const STORY_RING = "border-2 border-[#FF5C00]";
-const STORY_RING_SEEN = "border-2 border-gray-300";
-const AVATAR_SIZE = "h-[54px] w-[54px]";
+const STORY_RING = "border-2 border-[#FF5A1F]";
+const STORY_RING_SEEN = "border-2 border-[var(--color-border,#d4d4d8)]";
+const AVATAR_SIZE = "h-[56px] w-[56px]";
 
 type StoryApiGroup = StoryViewerGroup & {
   has_unseen?: boolean;
@@ -162,19 +162,19 @@ export function StoriesRail() {
   };
 
   return (
-    <section className="w-full px-0.5">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-[13px] font-semibold tracking-tight text-gray-900">Stories</h2>
+    <section className="w-full min-w-0 px-0.5">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-[13px] font-semibold tracking-tight text-[var(--color-text-primary)]">Stories</h2>
         <Link
           href="/communities/live"
-          className="text-[12px] font-medium text-[#FF5C00] transition-opacity hover:opacity-80"
+          className="shrink-0 text-[12px] font-medium text-[#FF5A1F] transition-opacity hover:opacity-80"
         >
           View all
         </Link>
       </div>
 
-      <div className="flex w-full gap-3 overflow-x-auto pb-0.5 scrollbar-hide sm:gap-4">
-        <div className="flex w-[62px] shrink-0 flex-col items-center gap-1.5">
+      <div className="-mx-0.5 flex w-full gap-3 overflow-x-auto overscroll-x-contain pb-1 scrollbar-hide snap-x snap-mandatory sm:gap-4">
+        <div className="flex w-[64px] shrink-0 snap-start flex-col items-center gap-1.5">
           <div className="relative">
             <button
               type="button"
@@ -190,7 +190,7 @@ export function StoriesRail() {
                 }
                 fileRef.current?.click();
               }}
-              className="transition-opacity hover:opacity-80 disabled:opacity-60"
+              className="transition-opacity active:opacity-70 motion-reduce:active:opacity-100 disabled:opacity-60"
               aria-label={
                 ownGroup?.stories.length ? "View your story" : "Add your story"
               }
@@ -209,7 +209,7 @@ export function StoriesRail() {
                       seed="your-story"
                     />
                   ) : (
-                    <Plus className="h-5 w-5 text-[#FF5C00]" strokeWidth={2} />
+                    <Plus className="h-5 w-5 text-[#FF5A1F]" strokeWidth={2} />
                   )}
                 </div>
               </div>
@@ -225,12 +225,12 @@ export function StoriesRail() {
                 }
                 fileRef.current?.click();
               }}
-              className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#FF5C00] disabled:opacity-60"
+              className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-[#FF5A1F] disabled:opacity-60"
             >
               <Plus className="h-3 w-3 text-white" strokeWidth={3} />
             </button>
           </div>
-          <span className="max-w-[62px] truncate text-center text-[11px] font-medium text-gray-700">
+          <span className="max-w-[64px] truncate text-center text-[11px] font-medium text-[var(--color-text-secondary)]">
             {uploading ? "Uploading…" : "Your story"}
           </span>
         </div>
@@ -259,7 +259,7 @@ export function StoriesRail() {
                   key={group.author_id}
                   type="button"
                   onClick={() => openGroup(group.author_id, 0)}
-                  className="flex w-[62px] shrink-0 flex-col items-center gap-1.5 transition-opacity hover:opacity-80"
+                  className="flex w-[64px] shrink-0 snap-start flex-col items-center gap-1.5 transition-opacity active:opacity-70 motion-reduce:active:opacity-100"
                 >
                   <div className="relative">
                     <div className={cn("rounded-full p-[2px]", ring)}>
@@ -277,7 +277,7 @@ export function StoriesRail() {
                       </div>
                     </div>
                   </div>
-                  <span className="max-w-[62px] truncate text-center text-[11px] font-medium text-gray-700">
+                  <span className="max-w-[64px] truncate text-center text-[11px] font-medium text-[var(--color-text-secondary)]">
                     {name}
                   </span>
                 </button>

@@ -41,10 +41,10 @@ export function FeedPageContent({
 
   return (
     <>
-      <div className="mx-auto w-full min-w-0 max-w-[1440px] bg-[var(--color-bg)] p-4 lg:p-5">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-5">
+      <div className="mx-auto w-full min-w-0 max-w-[1440px] overflow-x-hidden bg-[var(--color-bg)] p-3 sm:p-4 lg:p-5">
+        <div className="flex flex-col gap-4 sm:gap-5 lg:flex-row lg:items-start lg:gap-5">
           {/* Main feed — dominant */}
-          <div className="min-w-0 flex-1 space-y-5 pb-8 lg:pb-20">
+          <div className="min-w-0 flex-1 space-y-4 sm:space-y-5 pb-4 lg:pb-20">
             <StoriesRail />
             <PostComposer />
             <FeedDiscoverRail initialCommunities={initialCommunities} />
@@ -59,7 +59,7 @@ export function FeedPageContent({
           </div>
 
           {/* Compact intelligence rail — stacked under feed on mobile */}
-          <aside className="w-full shrink-0 pb-16 lg:sticky lg:top-4 lg:z-10 lg:w-[300px] lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-4 xl:w-[320px]">
+          <aside className="w-full shrink-0 pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] lg:sticky lg:top-4 lg:z-10 lg:w-[300px] lg:max-h-[calc(100dvh-6rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:pb-4 xl:w-[320px]">
             <FeedRightRail />
           </aside>
         </div>

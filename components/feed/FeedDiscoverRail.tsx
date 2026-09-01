@@ -97,8 +97,9 @@ function CommunityMiniCard({
   return (
     <article
       className={cn(
-        "group flex w-[168px] shrink-0 flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]",
-        "shadow-[0_1px_2px_rgba(17,24,39,0.04)] transition hover:-translate-y-0.5 hover:border-[#fd5000]/35 hover:shadow-md"
+        "group flex w-[168px] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]",
+        "shadow-[0_1px_2px_rgba(17,24,39,0.04)] transition-[transform,box-shadow,border-color] duration-200 motion-reduce:transition-none",
+        "hover:-translate-y-0.5 hover:border-[#FF5A1F]/35 hover:shadow-md active:scale-[0.98] motion-reduce:active:scale-100"
       )}
     >
       <Link href={href} className="relative flex flex-col">
@@ -227,7 +228,7 @@ export function FeedDiscoverRail({
             <Pin className="h-4 w-4 text-[#fd5000]" />
             <h2 className="text-[13px] font-bold text-[var(--color-text-primary)]">Pinned</h2>
           </div>
-          <div className="flex gap-2.5 overflow-x-auto px-3 py-3 scrollbar-hide">
+          <div className="flex gap-2.5 overflow-x-auto overscroll-x-contain px-3 py-3 scrollbar-hide snap-x snap-mandatory">
             {pins.map((pin) => {
               const c = pin.community;
               if (!c) return null;
@@ -255,7 +256,7 @@ export function FeedDiscoverRail({
               🔥 Trending Communities
             </h2>
           </div>
-          <div className="flex gap-2.5 overflow-x-auto px-3 py-3 scrollbar-hide">
+          <div className="flex gap-2.5 overflow-x-auto overscroll-x-contain px-3 py-3 scrollbar-hide snap-x snap-mandatory">
             {communities.slice(0, 8).map((community) => (
               <CommunityMiniCard
                 key={community.id}
