@@ -103,7 +103,7 @@ export function WorkspaceShell({
                 {def.label}
               </span>
               <Link
-                href="/dashboard"
+                href="/"
                 className="ml-auto text-xs font-medium text-[var(--color-accent)]"
               >
                 Mission Control

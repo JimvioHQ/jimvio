@@ -147,7 +147,7 @@ export function buildCreatorBusinessGraph(payload: CreatorProfilePayload): Busin
 
   const scaffoldDiscovery = (id: keyof typeof BUSINESS_DISCOVERY_META, kind: BusinessGraphPayload["discoverySections"][0]["nodes"][0]["kind"], label: string) =>
     businessSection(id, BUSINESS_DISCOVERY_META[id].title, [
-      businessNode({ id: `disc-${id}`, kind, title: label, href: "/dashboard", badge: "Suggested" }, title),
+      businessNode({ id: `disc-${id}`, kind, title: label, href: "/", badge: "Suggested" }, title),
     ], BUSINESS_DISCOVERY_META[id].description);
 
   const scaffoldCollab = (id: keyof typeof BUSINESS_COLLABORATION_META) =>

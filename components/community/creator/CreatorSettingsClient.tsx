@@ -157,7 +157,7 @@ export function CreatorSettingsClient({ communityId }: { communityId: string }) 
         .eq("id", communityId);
         
       if (err) throw err;
-      router.push("/dashboard");
+      router.push("/");
     } catch (e) {
       setError(supabaseErrorMessage(e));
       setDeleting(false);

@@ -19,7 +19,7 @@ import { useUserStore } from "@/lib/store/use-user-store";
 function isOwnerConsolePath(pathname: string | null): boolean {
   if (!pathname) return false;
   // Hub stays inside DashboardShell; per-community Owner Console is full-bleed.
-  return /^\/dashboard\/communities\/[^/]+/.test(pathname);
+  return /^\/\/communities\/[^/]+/.test(pathname);
 }
 
 function DashboardShellContent({ children }: { children: React.ReactNode }) {

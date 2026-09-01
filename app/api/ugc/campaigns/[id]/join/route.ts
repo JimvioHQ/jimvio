@@ -128,7 +128,7 @@ export async function POST(
       autoApproved: result.outcome.autoApproved,
       projectCreated: result.outcome.projectCreated,
       redirectTo: result.outcome.projectCreated
-        ? `/ugc/${id}/dashboard`
+        ? `/ugc/${id}/`
         : `/ugc/${id}/application`,
     },
     { status: 201 },

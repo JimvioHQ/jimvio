@@ -22,7 +22,7 @@ export default function LiveActivity() {
             </div>
             <GlobeCanvas />
             <div style={{ display: "flex", gap: "12px" }}>
-                <Link href="/dashboard" style={{ textDecoration: "none" }}>
+                <Link href="/" style={{ textDecoration: "none" }}>
                     <button style={{ padding: "12px 24px", fontSize: "14px", fontWeight: 600, borderRadius: "10px", border: "none", cursor: "pointer", color: "#fff", background: "var(--color-accent)" }}>
                         <ArrowRight style={{ marginRight: "4px" }} />
                         Go to Dashboard

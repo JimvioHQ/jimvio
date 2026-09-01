@@ -14,12 +14,12 @@ export const OS_NAV_ITEMS: OsNavItem[] = [
   { id: "communities", label: "Communities", href: "/communities", icon: "users-round" },
   { id: "affiliate", label: "Affiliates", href: "/affiliates", icon: "link" },
   { id: "ugc", label: "UGC & Clipping", href: "/ugc", icon: "megaphone" },
-  { id: "messages", label: "Messages", href: "/dashboard/messages", icon: "message" },
-  { id: "inbox", label: "Inbox", href: "/dashboard/notifications", icon: "bell" },
-  { id: "products", label: "Products", href: "/dashboard/products", icon: "package" },
-  { id: "analytics", label: "Analytics", href: "/dashboard/analytics", icon: "chart" },
+  { id: "messages", label: "Messages", href: "/messages", icon: "message" },
+  { id: "inbox", label: "Inbox", href: "/settings/notifications", icon: "bell" },
+  { id: "products", label: "Products", href: "/marketplace", icon: "package" },
+  { id: "analytics", label: "Analytics", href: "/", icon: "chart" },
   { id: "ai", label: "Jimvio AI", href: "#open-ai", icon: "sparkles" },
-  { id: "settings", label: "Settings", href: "/dashboard/settings", icon: "settings" },
+  { id: "settings", label: "Settings", href: "/identity/settings", icon: "settings" },
 ];
 
 export const OS_WORKSPACE_MODES: Array<{
@@ -65,25 +65,25 @@ export const OS_NOTIFICATION_FILTERS = [
 
 export const OS_QUICK_CREATE_ITEMS: OsQuickCreateItem[] = [
   // Commerce
-  { id: "product", label: "Product", description: "New listing", href: "/dashboard/products/new", icon: "package", accent: "#fd5000", group: "commerce" },
-  { id: "course", label: "Course", description: "Digital learning", href: "/dashboard/products/new", icon: "graduation", accent: "#7c3aed", group: "commerce" },
-  { id: "coupon", label: "Coupon", description: "Discount code", href: "/dashboard/products", icon: "ticket", accent: "#ca8a04", group: "commerce" },
+  { id: "product", label: "Product", description: "New listing", href: "/marketplace/new", icon: "package", accent: "#fd5000", group: "commerce" },
+  { id: "course", label: "Course", description: "Digital learning", href: "/marketplace/new", icon: "graduation", accent: "#7c3aed", group: "commerce" },
+  { id: "coupon", label: "Coupon", description: "Discount code", href: "/marketplace", icon: "ticket", accent: "#ca8a04", group: "commerce" },
   { id: "folder", label: "Folder", description: "Organize your content library", href: "/ugc/library", icon: "folder", accent: "#64748b", group: "commerce" },
 
   // Creator
   { id: "ugc-request", label: "UGC Campaign", description: "Launch a creator campaign", href: "/ugc/campaign-center/create", icon: "megaphone", accent: "#fd5000", group: "creator" },
-  { id: "campaign", label: "Seller Campaign", description: "Vendor promo campaign", href: "/dashboard/vendor/campaigns/new", icon: "megaphone", accent: "#ea580c", group: "creator" },
+  { id: "campaign", label: "Seller Campaign", description: "Vendor promo campaign", href: "/ugc/campaign-center/campaigns/new", icon: "megaphone", accent: "#ea580c", group: "creator" },
   { id: "creator-invite", label: "Creator Invite", description: "Recruit creators", href: "/ugc/campaign-center/recruitment", icon: "user-plus", accent: "#0ea5e9", group: "creator" },
   { id: "brand-invite", label: "Brand Invite", description: "Invite a brand partner", href: "/ugc/campaign-center/invitations", icon: "handshake", accent: "#7c3aed", group: "creator" },
   { id: "automation", label: "Automation", description: "Automate campaign steps", href: "/ugc/campaign-center/automations", icon: "workflow", accent: "#0d9488", group: "creator" },
   { id: "workflow", label: "Workflow", description: "Multi-step campaign workflow", href: "/ugc/campaign-center/workflows", icon: "git-branch", accent: "#0d9488", group: "creator" },
 
   // Community
-  { id: "community", label: "Community", description: "Launch a hub", href: "/dashboard/communities", icon: "users", accent: "#16a34a", group: "community" },
+  { id: "community", label: "Community", description: "Launch a hub", href: "/owner/communities", icon: "users", accent: "#16a34a", group: "community" },
   { id: "space", label: "Space", description: "Open a new collaboration space", href: "/communities/spaces", icon: "layers", accent: "#16a34a", group: "community" },
   { id: "event", label: "Event", description: "Schedule a community event", href: "/communities/events", icon: "calendar", accent: "#16a34a", group: "community" },
   { id: "live-event", label: "Live Event", description: "Schedule a live room", href: "/communities/live", icon: "live", accent: "#dc2626", group: "community" },
-  { id: "message", label: "Message", description: "Start conversation", href: "/dashboard/messages", icon: "message", accent: "#4f46e5", group: "community" },
+  { id: "message", label: "Message", description: "Start conversation", href: "/messages", icon: "message", accent: "#4f46e5", group: "community" },
 
   // Money
   { id: "affiliate-link", label: "Affiliate Link", description: "Create a referral link", href: "/affiliates", icon: "link", accent: "#0d9488", group: "money" },
@@ -125,12 +125,12 @@ export const OS_ACTIVITY_SCAFFOLD = [
 ];
 
 export const OS_NOTIFICATIONS_SCAFFOLD = [
-  { id: "n-1", category: "orders" as const, title: "Order shipped", body: "Order #1040 is on the way.", time: "10m ago", read: false, archived: false, href: "/dashboard/orders" },
-  { id: "n-2", category: "payments" as const, title: "Payout processed", body: "Withdrawal completed successfully.", time: "1h ago", read: false, archived: false, href: "/dashboard/wallet" },
-  { id: "n-3", category: "messages" as const, title: "New message", body: "Buyer asked about shipping.", time: "2h ago", read: true, archived: false, href: "/dashboard/messages" },
-  { id: "n-4", category: "payments" as const, title: "Payment received", body: "New store payment.", time: "3h ago", read: false, archived: false, href: "/dashboard/payments" },
+  { id: "n-1", category: "orders" as const, title: "Order shipped", body: "Order #1040 is on the way.", time: "10m ago", read: false, archived: false, href: "/orders" },
+  { id: "n-2", category: "payments" as const, title: "Payout processed", body: "Withdrawal completed successfully.", time: "1h ago", read: false, archived: false, href: "/wallet" },
+  { id: "n-3", category: "messages" as const, title: "New message", body: "Buyer asked about shipping.", time: "2h ago", read: true, archived: false, href: "/messages" },
+  { id: "n-4", category: "payments" as const, title: "Payment received", body: "New store payment.", time: "3h ago", read: false, archived: false, href: "/wallet" },
   { id: "n-5", category: "ugc" as const, title: "UGC submission", body: "Creator submitted content for review.", time: "4h ago", read: false, archived: false, href: "/ugc" },
-  { id: "n-6", category: "communities" as const, title: "Community post", body: "New discussion in your hub.", time: "5h ago", read: true, archived: false, href: "/dashboard/communities" },
+  { id: "n-6", category: "communities" as const, title: "Community post", body: "New discussion in your hub.", time: "5h ago", read: true, archived: false, href: "/owner/communities" },
   { id: "n-7", category: "security" as const, title: "New login", body: "Account accessed from new device.", time: "1d ago", read: true, archived: false },
   { id: "n-8", category: "system" as const, title: "Platform update", body: "Jimvio OS frontend architecture ready.", time: "1d ago", read: true, archived: false },
 ];

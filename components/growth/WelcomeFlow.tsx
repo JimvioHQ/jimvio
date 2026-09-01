@@ -7,7 +7,7 @@ import { Compass, Handshake, Store, Wand2 } from "lucide-react";
 const intents = [
   { id: "browse", title: "Browse", description: "Discover products, people, and ideas.", href: "/marketplace", icon: Compass },
   { id: "create", title: "Create", description: "Build your audience and publish.", href: "/creator", icon: Wand2 },
-  { id: "sell", title: "Sell", description: "Start a storefront and earn.", href: "/dashboard/activate/vendor", icon: Store },
+  { id: "sell", title: "Sell", description: "Start a storefront and earn.", href: "/activate/vendor", icon: Store },
   { id: "join", title: "Join", description: "Find a community that fits.", href: "/communities", icon: Handshake },
 ] as const;
 

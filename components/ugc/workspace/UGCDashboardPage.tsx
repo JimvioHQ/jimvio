@@ -228,7 +228,7 @@ export function UGCDashboardPage() {
                   (data.topCampaigns ?? []).slice(0, 5).map((c) => (
                     <Link
                       key={c.id}
-                      href={`/ugc/${c.id}/dashboard`}
+                      href={`/ugc/${c.id}/`}
                       className="flex items-center justify-between rounded-xl bg-[#FAFAFA] px-3 py-2.5 hover:bg-[#FFF4EF]"
                     >
                       <span className="truncate text-[13px] font-medium">{c.title}</span>

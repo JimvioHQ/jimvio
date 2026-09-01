@@ -80,7 +80,7 @@ const actions = mustExist("lib/actions/notifications.ts");
 assert.match(actions, /archiveNotification/);
 assert.match(actions, /trackNotificationClick/);
 
-const page = mustExist("app/dashboard/notifications/page.tsx");
+const page = mustExist("app/inbox/page.tsx");
 assert.match(page, /groupActivityByDate/);
 assert.match(page, /subscribeUserNotifications/);
 assert.match(page, /Load more|loadNotifications/);

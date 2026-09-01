@@ -75,7 +75,7 @@ export async function listReengagementCandidates(daysInactive: number) {
 }
 
 export async function sendAchievementEmail(userId: string, title: string, message: string) {
-  await notifyUser(db(), { userId, type: "system", title, message, actionUrl: "/dashboard" });
+  await notifyUser(db(), { userId, type: "system", title, message, actionUrl: "/" });
   await trackGrowthEvent(userId, "growth.achievement_queued", { title });
 }
 
@@ -85,7 +85,7 @@ export async function sendDigestEmail(userId: string, summary: Awaited<ReturnTyp
     type: "system",
     title: "Your weekly Jimvio report",
     message: `${summary.communitiesOwned} communities, ${summary.productsListed} products, and ${summary.productsSold} paid sales this week.`,
-    actionUrl: "/dashboard",
+    actionUrl: "/",
   });
   await trackGrowthEvent(userId, "growth.digest_queued", summary);
 }

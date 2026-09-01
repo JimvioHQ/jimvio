@@ -71,8 +71,8 @@ export async function GET(request: Request) {
   const errorParam = searchParams.get("error");
   const errorCode = searchParams.get("error_code");
   const errorDescription = searchParams.get("error_description");
-  const next = searchParams.get("next") ?? "/dashboard";
-  const safeNext = sanitizeAuthenticatedNext(next) ?? "/dashboard";
+  const next = searchParams.get("next") ?? "/";
+  const safeNext = sanitizeAuthenticatedNext(next) ?? "/";
 
   if (errorParam || errorDescription || errorCode) {
     console.error("[auth/callback] provider error:", { errorParam, errorCode, errorDescription });
@@ -202,7 +202,7 @@ export async function GET(request: Request) {
 
   if (otpType === "email_change") {
     const updated = NextResponse.redirect(
-      `${origin}/dashboard/settings?status=email_updated`,
+      `${origin}/identity/settings?status=email_updated`,
     );
     updated.cookies.delete(PASSWORD_RECOVERY_COOKIE);
     updated.cookies.delete("sb-code-verifier");
@@ -230,7 +230,7 @@ export async function GET(request: Request) {
     console.error("[auth/callback] resolvePostLoginPath threw:", err);
     destination = safeNext;
   }
-  destination = sanitizeAuthenticatedNext(destination) ?? "/dashboard";
+  destination = sanitizeAuthenticatedNext(destination) ?? "/";
 
   const admin = createAdminClient();
   const { data: profile2fa } = await admin
@@ -240,7 +240,7 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   if (profile2fa?.two_factor_enabled) {
-    const safeDest = isSafeInternalPath(destination) ? destination : "/dashboard";
+    const safeDest = isSafeInternalPath(destination) ? destination : "/";
     const challenge = NextResponse.redirect(
       `${origin}/login/2fa?next=${encodeURIComponent(safeDest)}`,
     );

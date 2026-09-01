@@ -45,8 +45,8 @@ const replacements = [
 
 const targetFiles = [
   'app/dashboard/campaigns/page.tsx',
-  'app/dashboard/vendor/setup/page.tsx',
-  'app/dashboard/vendor/campaigns/new/page.tsx',
+  'app/ugc/campaign-center/setup/page.tsx',
+  'app/ugc/campaign-center/campaigns/new/page.tsx',
   'app/admin/ugc/submissions/page.tsx',
   'components/ugc/ugc-post-form.tsx',
   'components/ugc/ugc-feed.tsx',

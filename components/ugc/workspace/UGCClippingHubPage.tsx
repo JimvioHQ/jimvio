@@ -117,7 +117,7 @@ export function UGCClippingHubPage() {
                     <h3 className="text-[15px] font-bold text-[#111827]">{c.title}</h3>
                     <div className="mt-3 flex gap-2">
                       <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
-                        <Link href={joinedIds.has(c.id) ? `/ugc/${c.id}/dashboard` : `/ugc/${c.id}`}>
+                        <Link href={joinedIds.has(c.id) ? `/ugc/${c.id}/` : `/ugc/${c.id}`}>
                           {joinedIds.has(c.id) ? "Open project" : "View campaign"}
                         </Link>
                       </Button>

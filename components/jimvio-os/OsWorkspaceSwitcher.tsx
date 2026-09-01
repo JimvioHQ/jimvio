@@ -10,11 +10,11 @@ import { cn } from "./os-ui";
 
 /**
  * Premium workspace switcher — Apple/Linear-style.
- * Never redirects to module pages. On /dashboard the home transforms in place.
- * From elsewhere, soft-lands on /dashboard Mission Control for the selected workspace.
+ * Never redirects to module pages. On / the home transforms in place.
+ * From elsewhere, soft-lands on / Mission Control for the selected workspace.
  */
 export function OsWorkspaceSwitcher() {
-  const pathname = usePathname() ?? "/dashboard";
+  const pathname = usePathname() ?? "/";
   const router = useRouter();
   const mode = useJimvioOsStore((s) => s.workspaceMode);
   const setMode = useJimvioOsStore((s) => s.setWorkspaceMode);
@@ -42,8 +42,8 @@ export function OsWorkspaceSwitcher() {
     setMode(next);
     setOpen(false);
     // Stay in Mission Control — never jump to marketplace/UGC/etc. on switch.
-    if (pathname !== "/dashboard") {
-      router.push("/dashboard");
+    if (pathname !== "/") {
+      router.push("/");
     }
   }
 

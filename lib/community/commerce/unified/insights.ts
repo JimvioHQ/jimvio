@@ -55,7 +55,7 @@ export function deriveAiBusinessInsights(args: {
         products.length === 0
           ? "Launch a digital product or course offer — your storefront is ready for first SKUs."
           : `Double down on “${products[0].title}” with a limited bundle this ${period}.`,
-      href: "/dashboard/products/new",
+      href: "/marketplace/new",
     },
     {
       id: "pricing",
@@ -117,7 +117,7 @@ export function deriveAiBusinessInsights(args: {
         currency: "USD",
         maximumFractionDigits: 0,
       }).format(Math.max(forecast, 0))} based on wallet + funnel signals.`,
-      href: "/dashboard/analytics",
+      href: "/",
     },
     {
       id: "growth",
@@ -129,7 +129,7 @@ export function deriveAiBusinessInsights(args: {
           : courses.length === 0
             ? "Add a flagship course — education lifts AOV and repeat purchases."
             : "Bundle course + membership + affiliate offer into one launch campaign.",
-      href: "/dashboard/vendor/campaigns/new",
+      href: "/ugc/campaign-center/campaigns/new",
     },
   ];
 }

@@ -12,7 +12,7 @@ async function resolveSlug(communityId: string): Promise<string | null> {
   } = await supabase.auth.getUser();
   if (!user) {
     redirect(
-      `/login?next=${encodeURIComponent(`/creator/${communityId}/dashboard`)}`
+      `/login?next=${encodeURIComponent(`/creator/${communityId}/`)}`
     );
   }
   const { data } = await supabase

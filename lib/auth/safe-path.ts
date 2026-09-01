@@ -14,7 +14,7 @@ export function isSafeInternalPath(path: string): boolean {
 
 export function sanitizeInternalPath(
   raw: string | null | undefined,
-  fallback = "/dashboard",
+  fallback = "/",
 ): string {
   const s = raw?.trim() ?? "";
   return isSafeInternalPath(s) ? s : fallback;

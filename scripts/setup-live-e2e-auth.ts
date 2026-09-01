@@ -54,7 +54,7 @@ async function main() {
       return (
         !p.startsWith("/login") &&
         (p.includes("/communities") ||
-          p.includes("/dashboard") ||
+          p.includes("/") ||
           p === "/" ||
           p.includes("/home") ||
           p.includes("/account"))

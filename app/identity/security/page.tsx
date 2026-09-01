@@ -44,7 +44,7 @@ export default async function DashboardSecurityPage() {
 
         <div className="flex items-center border-t border-[var(--color-border)]/60 px-4 py-2 sm:px-5">
           <Link
-            href="/dashboard/settings"
+            href="/identity/settings"
             className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-all hover:text-[var(--color-text-primary)] hover:ring-[var(--color-border-strong)]"
           >
             <Settings className="size-4" />

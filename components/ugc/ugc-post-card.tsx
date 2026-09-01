@@ -290,7 +290,7 @@ export function UGCPostCard({ post, currentUserId, onDelete, className }: UGCPos
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
-        <Link href={`/dashboard/settings`} className="flex items-center gap-2.5 group">
+        <Link href={`/identity/settings`} className="flex items-center gap-2.5 group">
           <Avatar className="h-9 w-9">
             <AvatarImage src={author.avatar_url ?? ""} />
             <AvatarFallback className="bg-[var(--color-accent-light)] text-[var(--color-accent)] text-sm font-bold">

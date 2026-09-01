@@ -61,7 +61,7 @@ export function DashboardMessagesPanel({ messages, className }: DashboardMessage
       <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border)] px-4 py-3">
         <h3 className="text-[13px] font-bold text-[var(--color-text-primary)]">My messages</h3>
         <Link
-          href="/dashboard/messages"
+          href="/messages"
           className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline"
         >
           Open inbox
@@ -85,7 +85,7 @@ export function DashboardMessagesPanel({ messages, className }: DashboardMessage
           messages.slice(0, 4).map((msg) => (
             <Link
               key={msg.id}
-              href={msg.href ?? "/dashboard/messages"}
+              href={msg.href ?? "/messages"}
               className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-[var(--color-surface-secondary)]/60"
             >
               <MessageAvatar

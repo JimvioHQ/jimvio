@@ -413,8 +413,8 @@ export function CreateCommunityForm() {
             <Link
               href={
                 successSlug
-                  ? `/dashboard/communities/${encodeURIComponent(successSlug)}/groups`
-                  : "/dashboard/communities"
+                  ? `/owner/communities/${encodeURIComponent(successSlug)}/groups`
+                  : "/owner/communities"
               }
               className="inline-flex h-10 items-center justify-center gap-1.5 rounded-md bg-[var(--color-accent)] px-4 text-[13px] font-medium text-white hover:bg-[var(--color-accent-hover)]"
             >
@@ -423,8 +423,8 @@ export function CreateCommunityForm() {
             <Link
               href={
                 successSlug
-                  ? `/dashboard/communities/${encodeURIComponent(successSlug)}`
-                  : `/dashboard/communities`
+                  ? `/owner/communities/${encodeURIComponent(successSlug)}`
+                  : `/owner/communities`
               }
               className="inline-flex h-10 items-center justify-center rounded-md border border-[var(--color-border)] px-4 text-[13px] font-medium text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
             >

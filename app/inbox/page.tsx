@@ -36,10 +36,10 @@ const VALID_CATEGORIES = new Set<NotificationUiCategory>([
 // Quick link pills for hubs that don't map to an existing NotificationUiCategory
 // (Approvals, Wallet, Campaigns, Affiliate) — presentation-only, no new API categories.
 const INBOX_QUICK_LINKS = [
-    { label: "Messages", href: "/dashboard/messages" },
+    { label: "Messages", href: "/messages" },
     { label: "Orders", href: "/orders" },
     { label: "Wallet", href: "/wallet" },
-    { label: "Campaigns", href: "/dashboard/vendor/campaigns" },
+    { label: "Campaigns", href: "/ugc/campaign-center" },
     { label: "Affiliate", href: "/affiliates" },
     { label: "Approvals", href: "/ugc/applications" },
 ];

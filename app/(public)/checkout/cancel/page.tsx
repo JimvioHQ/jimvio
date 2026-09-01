@@ -449,7 +449,7 @@ function CancelContent() {
           </p>
           <p className="flex gap-3">
             <Link
-              href="/dashboard/orders"
+              href="/orders"
               className="hover:underline hover:text-[var(--color-text-primary)] transition-colors"
             >
               My orders

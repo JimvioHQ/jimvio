@@ -186,7 +186,7 @@ const ROLES: Record<RoleKey, RoleConfig> = {
       { q: "Is there a listing fee?", a: "No. Jimvio charges zero listing fees. A small transaction fee applies only when you make a sale." },
     ],
     buttonLabel: "Start application",
-    setupPath: "/dashboard/vendor/setup",
+    setupPath: "/activate/vendor",
     icon: <Store className="h-5 w-5" />,
     iconColor: "text-orange-500",
     table: "vendors",
@@ -206,7 +206,7 @@ const ROLES: Record<RoleKey, RoleConfig> = {
       { q: "Can I promote any product?", a: "You can generate affiliate links for any product on Jimvio that has affiliate enabled by the vendor." },
     ],
     buttonLabel: "Activate affiliate",
-    setupPath: "/dashboard/analytics",
+    setupPath: "/affiliates/dashboard",
     icon: <Link2 className="h-5 w-5" />,
     iconColor: "text-emerald-600 dark:text-emerald-400",
     table: "affiliates",
@@ -350,7 +350,7 @@ export default function ActivateRolePage() {
           </p>
           <div className="flex flex-col gap-2">
             <Button asChild className="w-full h-10 rounded-xl bg-orange-500 hover:bg-orange-600 text-white border-none font-semibold text-[13px]">
-              <Link href="/dashboard">Go to dashboard</Link>
+              <Link href="/">Go home</Link>
             </Button>
             <button
               onClick={() => setActiveRole(ROLE_KEYS.find((r) => !statusMap[r]) ?? "vendor")}
@@ -485,7 +485,7 @@ export default function ActivateRolePage() {
               <p className="mt-3 text-[12px] text-[var(--color-text-muted)]">
                 Complete the remaining steps above before applying.
                 {!accountChecks.emailConfirmed && (
-                  <> <Link href="/dashboard/settings" className="text-[var(--color-accent)] font-semibold hover:underline">Verify your email →</Link></>
+                  <> <Link href="/identity/settings" className="text-[var(--color-accent)] font-semibold hover:underline">Verify your email →</Link></>
                 )}
               </p>
             )}

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
  * Workspace tools → Core → Profile. No Pinned / Recent.
  */
 export function OsSidebar() {
-  const pathname = usePathname() ?? "/dashboard";
+  const pathname = usePathname() ?? "/";
   const collapsed = useJimvioOsStore((s) => s.sidebarCollapsed);
   const toggleCollapsed = useJimvioOsStore((s) => s.toggleSidebarCollapsed);
   const workspaceMode = useJimvioOsStore((s) => s.workspaceMode);
@@ -30,7 +30,7 @@ export function OsSidebar() {
   function isActive(item: WorkspaceNavItem) {
     if (item.href === "#open-ai") return false;
     if (item.href === "/") return pathname === "/";
-    if (item.href === "/dashboard") return pathname === "/dashboard";
+    if (item.href === "/") return pathname === "/";
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
 

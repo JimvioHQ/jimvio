@@ -49,7 +49,7 @@ export function buildOwnerDashboardMetrics(
       label: "Active Communities",
       value: communities,
       hint: "Communities you manage",
-      href: "/dashboard/communities",
+      href: "/owner/communities",
       trend: communities > 0 ? "▲ 4% vs last 7 days" : "— vs last 7 days",
       trendUp: communities > 0,
       sparkline: spark(seed + 2),

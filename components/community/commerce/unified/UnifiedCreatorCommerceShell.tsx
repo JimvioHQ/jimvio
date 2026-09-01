@@ -107,7 +107,7 @@ export function UnifiedCreatorCommerceShell({
       }
       if (key === "o") {
         e.preventDefault();
-        router.push("/dashboard/orders");
+        router.push("/orders");
       }
     };
     window.addEventListener("keydown", onKeyDown);

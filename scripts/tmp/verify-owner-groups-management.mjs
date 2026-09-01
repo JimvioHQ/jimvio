@@ -33,13 +33,13 @@ const apiAnalytics = mustExist(
   "app/api/c/owner/groups/[id]/analytics/route.ts"
 );
 const spacesPage = mustExist(
-  "app/dashboard/communities/[communitySlug]/spaces/page.tsx"
+  "app/owner/communities/[communitySlug]/spaces/page.tsx"
 );
 const groupsRedirect = mustExist(
-  "app/dashboard/communities/[communitySlug]/groups/page.tsx"
+  "app/owner/communities/[communitySlug]/groups/page.tsx"
 );
 const settingsPage = mustExist(
-  "app/dashboard/communities/[communitySlug]/groups/[groupId]/page.tsx"
+  "app/owner/communities/[communitySlug]/groups/[groupId]/page.tsx"
 );
 const management = mustExist(
   "components/community/owner-console/groups/GroupsManagement.tsx"

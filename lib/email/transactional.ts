@@ -75,7 +75,7 @@ export async function sendPaymentSuccessEmail(
         providerLabel?: string;
     }
 ) {
-    const orderUrl = `${getAppBaseUrl()}/dashboard/orders/${params.orderId}`;
+    const orderUrl = `${getAppBaseUrl()}/orders/${params.orderId}`;
     const provider = params.providerLabel ? ` via ${escapeHtml(params.providerLabel)}` : "";
     const html = wrapEmailHtml({
         preview: `Payment confirmed for order #${params.orderNumber}.`,
@@ -148,7 +148,7 @@ export async function sendOrderShippedEmail(
         trackingUrl?: string | null;
     }
 ) {
-    const orderUrl = `${getAppBaseUrl()}/dashboard/orders/${params.orderId}`;
+    const orderUrl = `${getAppBaseUrl()}/orders/${params.orderId}`;
     const trackingBlock = params.trackingNumber
         ? `<p style="margin:0 0 12px;">Tracking number: <strong>${escapeHtml(params.trackingNumber)}</strong></p>`
         : "";
@@ -186,7 +186,7 @@ export async function sendPayoutSentEmail(
         destinationLabel?: string;
     }
 ) {
-    const walletUrl = `${getAppBaseUrl()}/dashboard/wallet`;
+    const walletUrl = `${getAppBaseUrl()}/wallet`;
     const destination = params.destinationLabel
         ? `<p style="margin:0 0 12px;">Sent to: <strong>${escapeHtml(params.destinationLabel)}</strong></p>`
         : "";
@@ -219,7 +219,7 @@ export async function sendWelcomeEmail(
         dashboardUrl?: string;
     } = {}
 ) {
-    const dashboardUrl = params.dashboardUrl || `${getAppBaseUrl()}/dashboard`;
+    const dashboardUrl = params.dashboardUrl || `${getAppBaseUrl()}/`;
     const intentLine = params.intent
         ? `<p style="margin:0 0 12px;">You chose to start with <strong>${escapeHtml(params.intent)}</strong> — we tailored a few next steps around that.</p>`
         : "";

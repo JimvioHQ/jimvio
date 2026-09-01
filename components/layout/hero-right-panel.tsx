@@ -208,7 +208,7 @@ function LoggedInView({ profile }: { profile: NonNullable<Profile> }) {
         </div>
 
         <Link
-          href="/dashboard"
+          href="/"
           className="group relative flex items-center justify-center gap-2 w-full h-9 rounded-lg text-[11px] font-bold text-white overflow-hidden transition-all hover:brightness-110 active:scale-[0.97]"
           style={{
             background: "linear-gradient(135deg, #f97316 0%, #ea6c0a 100%)",
@@ -238,8 +238,8 @@ function LoggedInView({ profile }: { profile: NonNullable<Profile> }) {
       <div className="grid grid-cols-2 gap-2">
         {[
           { href: "/orders", icon: ShoppingBag, label: "Orders" },
-          { href: "/dashboard/settings", icon: Settings, label: "Settings" },
-          { href: "/dashboard/vendor/setup", icon: Factory, label: "Sell" },
+          { href: "/identity/settings", icon: Settings, label: "Settings" },
+          { href: "/ugc/campaign-center/setup", icon: Factory, label: "Sell" },
           { href: "/ugc", icon: Megaphone, label: "Campaigns" },
         ].map(({ href, icon: Icon, label }) => (
           <Link

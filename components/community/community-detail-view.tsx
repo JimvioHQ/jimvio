@@ -698,7 +698,7 @@ export function CommunityDetailView({
                   </Link>
                   {(isOwner || isModerator) && (
                     <Link
-                      href={`/dashboard/communities/${encodeURIComponent(community.slug)}`}
+                      href={`/owner/communities/${encodeURIComponent(community.slug)}`}
                       className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-[var(--color-border)] text-[12px] font-medium text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                     >
                       Manage community
@@ -706,7 +706,7 @@ export function CommunityDetailView({
                   )}
                   {isOwner && (
                     <Link
-                      href={`/dashboard/communities/${encodeURIComponent(community.slug)}/commerce`}
+                      href={`/owner/communities/${encodeURIComponent(community.slug)}/commerce`}
                       className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md border border-[var(--color-border)] text-[12px] font-medium text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                     >
                       Commerce

@@ -268,7 +268,7 @@ export function deriveBusinessSnapshots(args: {
       label: "Campaigns",
       value: count(affiliateStats.length),
       meta: "tracked codes",
-      href: "/dashboard/vendor/campaigns",
+      href: "/ugc/campaign-center/campaigns",
     },
     {
       id: "revenue",
@@ -282,7 +282,7 @@ export function deriveBusinessSnapshots(args: {
       label: "Payouts",
       value: money(earned > 0 ? Math.round(earned * 0.85) : 0),
       meta: "available estimate",
-      href: "/dashboard/wallet",
+      href: "/wallet",
     },
     {
       id: "conversions",

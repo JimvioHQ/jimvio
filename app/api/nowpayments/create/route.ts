@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       order_id: orderIds.join(","),
       order_description: `Jimvio order(s): ${orders.map((o) => o.order_number).join(", ")}`,
       ipn_callback_url: `${baseUrl}/api/nowpayments/ipn`,
-      success_url: `${baseUrl}/dashboard/orders?payment=success`,
+      success_url: `${baseUrl}/orders?payment=success`,
       cancel_url: `${baseUrl}/cart?payment=cancelled`,
     });
 

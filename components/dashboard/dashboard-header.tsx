@@ -54,19 +54,19 @@
 //         icon: Package,
 //         label: "Create product",
 //         sub: "Add a new product",
-//         href: "/dashboard/products/new",
+//         href: "/marketplace/new",
 //     },
 //     {
 //         icon: Megaphone,
 //         label: "Create post",
 //         sub: "Share with your audience",
-//         href: "/dashboard/posts/new",
+//         href: "/ugc/campaign-center",
 //     },
 //     {
 //         icon: Radio,
 //         label: "Start campaign",
 //         sub: "Launch UGC or clipping campaign",
-//         href: "/dashboard/vendor/campaigns/new",
+//         href: "/ugc/campaign-center/campaigns/new",
 //     },
 //     {
 //         icon: Users,
@@ -284,14 +284,14 @@
 
 //                 {/* Actions */}
 //                 <DropdownMenuItem asChild className="rounded-[var(--radius-sm)] focus:bg-[var(--color-surface-secondary)] cursor-pointer">
-//                     <Link href="/dashboard/settings" className="flex items-center gap-2.5 px-3 py-2">
+//                     <Link href="/identity/settings" className="flex items-center gap-2.5 px-3 py-2">
 //                         <Settings className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
 //                         <span className="text-[12px] font-medium text-[var(--color-text-secondary)]">Account settings</span>
 //                     </Link>
 //                 </DropdownMenuItem>
 
 //                 <DropdownMenuItem asChild className="rounded-[var(--radius-sm)] focus:bg-[var(--color-surface-secondary)] cursor-pointer">
-//                     <Link href="/dashboard/wallet" className="flex items-center gap-2.5 px-3 py-2">
+//                     <Link href="/wallet" className="flex items-center gap-2.5 px-3 py-2">
 //                         <Wallet className="h-3.5 w-3.5 text-[var(--color-accent)]" />
 //                         <span className="text-[12px] font-medium text-[var(--color-text-secondary)]">My wallet</span>
 //                     </Link>
@@ -417,7 +417,7 @@
 
 //                 {/* Notifications */}
 //                 <Link
-//                     href="/dashboard/notifications"
+//                     href="/settings/notifications"
 //                     className={cn(
 //                         "relative flex items-center justify-center h-9 w-9",
 //                         "rounded-[var(--radius-sm)] border border-[var(--color-border)]",
@@ -511,19 +511,19 @@ const CREATE_ITEMS = [
         icon: ShoppingBag,
         label: "Create product",
         sub: "Add a new product",
-        href: "/dashboard/products/new",
+        href: "/marketplace/new",
     },
     {
         icon: Megaphone,
         label: "Create post",
         sub: "Share with your audience",
-        href: "/dashboard/posts/new",
+        href: "/ugc/campaign-center",
     },
     {
         icon: Radio,
         label: "Start campaign",
         sub: "Launch UGC or clipping campaign",
-        href: "/dashboard/vendor/campaigns/new",
+        href: "/ugc/campaign-center/campaigns/new",
     },
     {
         icon: Users,
@@ -890,7 +890,7 @@ function MobilePreferencesMenu() {
                 <div className="px-3 pb-3">
                     <DropdownMenuItem asChild className="rounded-lg focus:bg-[var(--color-surface-secondary)] cursor-pointer p-0">
                         <Link
-                            href="/dashboard/settings"
+                            href="/identity/settings"
                             className="flex items-center justify-center gap-2 w-full px-3 py-2.5 text-[12px] font-semibold text-[var(--color-accent)] border border-[var(--color-border)] rounded-lg hover:bg-[var(--color-surface-secondary)]"
                         >
                             <Settings className="h-3.5 w-3.5" />
@@ -994,7 +994,7 @@ function UserMenu({ user }: { user: UserProfile }) {
                     className="rounded-[var(--radius-sm)] focus:bg-[var(--color-surface-secondary)] cursor-pointer"
                 >
                     <Link
-                        href="/dashboard/settings"
+                        href="/identity/settings"
                         className="flex items-center gap-2.5 px-3 py-2"
                     >
                         <Settings className="h-3.5 w-3.5 text-[var(--color-text-muted)]" />
@@ -1009,7 +1009,7 @@ function UserMenu({ user }: { user: UserProfile }) {
                     className="rounded-[var(--radius-sm)] focus:bg-[var(--color-surface-secondary)] cursor-pointer"
                 >
                     <Link
-                        href="/dashboard/wallet"
+                        href="/wallet"
                         className="flex items-center gap-2.5 px-3 py-2"
                     >
                         <Wallet className="h-3.5 w-3.5 text-[var(--color-accent)]" />
@@ -1196,7 +1196,7 @@ export function DashboardHeader({
 
                 {/* Notifications */}
                 <Link
-                    href="/dashboard/notifications"
+                    href="/settings/notifications"
                     className={cn(
                         "relative flex items-center justify-center h-9 w-9",
                         "rounded-full border border-[var(--color-border)]",

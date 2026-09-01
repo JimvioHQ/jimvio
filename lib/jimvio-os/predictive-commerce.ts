@@ -157,7 +157,7 @@ const HEALTH_DOMAIN_BASE: HealthDomainBase[] = [
     baseTrend: "up",
     explanation: "Inventory turns are healthy, but two SKUs are trending toward stockout within days.",
     actionLabel: "Review inventory",
-    actionHref: "/dashboard/products",
+    actionHref: "/marketplace",
   },
   {
     id: "creator",
@@ -193,7 +193,7 @@ const HEALTH_DOMAIN_BASE: HealthDomainBase[] = [
     baseTrend: "down",
     explanation: "A segment of members has gone quiet over the past two weeks — worth a nudge.",
     actionLabel: "Review community activity",
-    actionHref: "/dashboard/communities",
+    actionHref: "/owner/communities",
   },
   {
     id: "live",
@@ -220,7 +220,7 @@ const HEALTH_DOMAIN_BASE: HealthDomainBase[] = [
     baseTrend: "up",
     explanation: "Agent recommendations are being reviewed at a healthy pace, with room to act on more.",
     actionLabel: "Open Agent Center",
-    actionHref: "/dashboard/agents",
+    actionHref: "/",
   },
 ];
 
@@ -324,7 +324,7 @@ const OPPORTUNITY_LIBRARY: Record<string, PredictiveOpportunity> = {
     why: "Order history shows these items are purchased together often, and live bundles historically convert well.",
     expectedOutcome: "Higher average order value during your next live commerce session.",
     cta: "Select products",
-    href: "/dashboard/products",
+    href: "/marketplace",
   },
   "opp-brand-reallocation": {
     id: "opp-brand-reallocation",
@@ -373,7 +373,7 @@ const RISK_LIBRARY: Record<string, PredictiveRisk> = {
     confidence: 92,
     expectedOutcome: "Avoided stockout and preserved revenue momentum on your best sellers.",
     cta: "Review inventory",
-    href: "/dashboard/products",
+    href: "/marketplace",
   },
   "risk-fulfillment-sla": {
     id: "risk-fulfillment-sla",
@@ -385,7 +385,7 @@ const RISK_LIBRARY: Record<string, PredictiveRisk> = {
     confidence: 90,
     expectedOutcome: "Protected delivery reliability and customer satisfaction.",
     cta: "Review orders",
-    href: "/dashboard/orders",
+    href: "/orders",
   },
   "risk-inactive-community": {
     id: "risk-inactive-community",
@@ -397,7 +397,7 @@ const RISK_LIBRARY: Record<string, PredictiveRisk> = {
     confidence: 68,
     expectedOutcome: "Reduced churn risk among previously engaged members.",
     cta: "Review community activity",
-    href: "/dashboard/communities",
+    href: "/owner/communities",
   },
   "risk-campaign-deadline": {
     id: "risk-campaign-deadline",
@@ -421,7 +421,7 @@ const RISK_LIBRARY: Record<string, PredictiveRisk> = {
     confidence: 74,
     expectedOutcome: "Faster resolution before delays compound into support volume.",
     cta: "Review orders",
-    href: "/dashboard/orders",
+    href: "/orders",
   },
 };
 
@@ -455,7 +455,7 @@ const GROWTH_LIBRARY: Record<string, GrowthSuggestion> = {
     signals: ["Trending demand", "Low current coverage"],
     expectedOutcome: "Incremental revenue from an underserved but warming market.",
     cta: "Open analytics",
-    href: "/dashboard/analytics",
+    href: "/",
   },
   "growth-course-launch": {
     id: "growth-course-launch",
@@ -589,7 +589,7 @@ const TIMELINE_EVENTS: BusinessTimelineEvent[] = [
     title: "3 new orders came in",
     detail: "Orders across two product categories, all within your standard fulfillment window.",
     kind: "order",
-    href: "/dashboard/orders",
+    href: "/orders",
     timeLabel: "2h ago",
   },
   {
@@ -616,7 +616,7 @@ const TIMELINE_EVENTS: BusinessTimelineEvent[] = [
     title: "A product crossed a low-stock threshold",
     detail: "Sell-through velocity outpaced your restock schedule on one SKU.",
     kind: "product",
-    href: "/dashboard/products",
+    href: "/marketplace",
     timeLabel: "Yesterday",
   },
   {
@@ -652,7 +652,7 @@ const TIMELINE_EVENTS: BusinessTimelineEvent[] = [
     title: "Weekly revenue trended upward",
     detail: "This week is tracking ahead of the prior week across active workspaces.",
     kind: "revenue",
-    href: "/dashboard/analytics",
+    href: "/",
     timeLabel: "This week",
   },
   {
@@ -661,7 +661,7 @@ const TIMELINE_EVENTS: BusinessTimelineEvent[] = [
     title: "Fulfillment times improved",
     detail: "Average time-to-ship dropped compared to last week's baseline.",
     kind: "order",
-    href: "/dashboard/orders",
+    href: "/orders",
     timeLabel: "This week",
   },
   {
@@ -761,6 +761,6 @@ export function getExecutiveMorningBrief(mode?: OsWorkspaceMode): ExecutiveMorni
       ? `${topOpportunity.expectedOutcome} (est. ${topOpportunity.metricValue})`
       : "Keeps your workspace running smoothly with no immediate action needed.",
     cta: topOpportunity?.cta ?? "Open Agent Center",
-    href: topOpportunity?.href ?? "/dashboard/agents",
+    href: topOpportunity?.href ?? "/",
   };
 }

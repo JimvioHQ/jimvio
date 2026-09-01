@@ -12,11 +12,11 @@ const CHECKLISTS: Record<WelcomeIntent, ChecklistItem[]> = {
   create: [
     { key: "open_creator_hub", label: "Open your creator hub", href: "/creator" },
     { key: "create_community", label: "Create a community", href: "/communities/create" },
-    { key: "activate_creator", label: "Activate your creator role", href: "/dashboard/activate/influencer" },
+    { key: "activate_creator", label: "Activate your creator role", href: "/activate/influencer" },
   ],
   sell: [
-    { key: "activate_vendor", label: "Start your vendor application", href: "/dashboard/activate/vendor" },
-    { key: "open_vendor_dashboard", label: "Open your vendor dashboard", href: "/dashboard/vendor" },
+    { key: "activate_vendor", label: "Start your vendor application", href: "/activate/vendor" },
+    { key: "open_vendor_dashboard", label: "Open your vendor dashboard", href: "/ugc/campaign-center" },
   ],
   join: [
     { key: "explore_communities", label: "Explore communities", href: "/communities" },

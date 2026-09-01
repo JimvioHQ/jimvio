@@ -172,7 +172,7 @@ export async function PATCH(
         tracking_number: body.tracking_number ?? null,
         tracking_url: body.tracking_url ?? null,
       },
-      actionUrl: `/dashboard/orders/${orderId}`,
+      actionUrl: `/orders/${orderId}`,
       email: isShipped
         ? {
             kind: "order_shipped",

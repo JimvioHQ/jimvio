@@ -17,7 +17,7 @@ type OsMorningBriefProps = {
 
 const PENDING_LINKS = [
   { label: "Orders", href: "/orders" },
-  { label: "Notifications", href: "/dashboard/notifications" },
+  { label: "Notifications", href: "/settings/notifications" },
   { label: "UGC applications", href: "/ugc/applications" },
   { label: "Wallet", href: "/wallet" },
 ];

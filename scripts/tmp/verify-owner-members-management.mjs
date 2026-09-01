@@ -32,7 +32,7 @@ const apiInvites = mustExist("app/api/c/owner/members/invites/route.ts");
 const apiJoin = mustExist("app/api/c/owner/members/join-requests/route.ts");
 const apiAnalytics = mustExist("app/api/c/owner/members/analytics/route.ts");
 const page = mustExist(
-  "app/dashboard/communities/[communitySlug]/members/page.tsx"
+  "app/owner/communities/[communitySlug]/members/page.tsx"
 );
 const management = mustExist(
   "components/community/owner-console/members/MembersManagement.tsx"

@@ -85,7 +85,7 @@ export const localAnalyticsProvider: AiAnalyticsProvider = {
           earned > 0
             ? `Wallet signals show $${Math.round(earned).toLocaleString("en-US")} lifetime — period movement tracks offers, courses, and affiliate conversions.`
             : "Revenue is quiet — feature one product and one course to create the first conversion loop.",
-        href: context.base ? `${context.base}/billing` : "/dashboard/analytics",
+        href: context.base ? `${context.base}/billing` : "/",
       },
       {
         id: "eng",
@@ -122,7 +122,7 @@ export const localAnalyticsProvider: AiAnalyticsProvider = {
         topic: "forecast",
         title: "Forecast",
         explanation: `Near-term forecast leans ${health >= 62 ? "positive" : "cautious"} based on health ${health}/100 and message volume ${msgs}.`,
-        href: "/dashboard/analytics",
+        href: "/",
       },
       {
         id: "rec",
@@ -130,7 +130,7 @@ export const localAnalyticsProvider: AiAnalyticsProvider = {
         title: "Recommendations",
         explanation:
           "Ship one announcement, one offer, and one live this week — the AI Native loop compounds fastest that way.",
-        href: context.base ?? "/dashboard",
+        href: context.base ?? "/",
       },
     ];
     return insights;

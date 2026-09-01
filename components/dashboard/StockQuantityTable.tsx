@@ -56,7 +56,7 @@ interface StockQuantityTableProps {
 export function StockQuantityTable({
   rows,
   onDelete,
-  addHref = "/dashboard/products/new",
+  addHref = "/marketplace/new",
   className,
 }: StockQuantityTableProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -276,6 +276,6 @@ export function mapProductToStockRow(
     price: formatMoney(p.price, p.currency ?? "USD"),
     imageUrl: p.imageUrl ?? null,
     imageColor: p.imageColor,
-    editHref: `/dashboard/products/${p.id}/edit`,
+    editHref: `/marketplace/${p.id}/edit`,
   };
 }

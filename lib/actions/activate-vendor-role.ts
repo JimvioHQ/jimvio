@@ -8,6 +8,6 @@ import type { ActionResult } from "@/lib/actions/security";
 export async function activateVendorRole(): Promise<ActionResult> {
   const result = await provisionOwnNonPrivilegedRole("vendor");
   if (!("ok" in result)) return { success: false, error: result.error };
-  revalidatePath("/dashboard");
+  revalidatePath("/");
   return { success: true };
 }

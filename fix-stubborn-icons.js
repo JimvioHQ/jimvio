@@ -33,6 +33,6 @@ fixFile('components/marketplace/marketplace-client.tsx', {
   580: '              icon="🛒"'
 });
 
-fixFile('app/dashboard/vendor/setup/page.tsx', {
+fixFile('app/ugc/campaign-center/setup/page.tsx', {
   325: '                { value: "bank",      label: "Bank Transfer",  icon: "🏦", desc: "Direct bank transfer" },'
 });

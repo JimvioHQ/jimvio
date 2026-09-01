@@ -1072,7 +1072,7 @@ function DigitalAssetsPanel({ order, celebratory = false }: {
           })}
         </ul>
 
-        <Link href="/dashboard/library" className={cn(btnSecondary, "mt-3 w-full")}>
+        <Link href="/library" className={cn(btnSecondary, "mt-3 w-full")}>
           Open library <ChevronRight className="h-3 w-3" />
         </Link>
       </div>

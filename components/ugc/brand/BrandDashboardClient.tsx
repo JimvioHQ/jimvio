@@ -98,7 +98,7 @@ export default function BrandDashboardClient() {
         illustration="profile"
         action={
           <Button asChild className="rounded-xl bg-[#FF5A1F]">
-            <Link href="/dashboard/activate/vendor">Activate vendor</Link>
+            <Link href="/activate/vendor">Activate vendor</Link>
           </Button>
         }
       />

@@ -119,7 +119,7 @@ export async function GET() {
       createdAt: tx.created_at,
     })),
     // Kept unchanged for `IdentityWalletClient` backward compat (existing "Withdraw funds" link).
-    withdrawalUrl: "/dashboard/wallet",
+    withdrawalUrl: "/wallet",
     // New Wallet OS surface — forward-looking consumers can link here instead.
     walletOsUrl: "/wallet",
   });

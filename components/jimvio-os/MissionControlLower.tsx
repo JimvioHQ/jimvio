@@ -72,7 +72,7 @@ const InsightsRow = memo(function InsightsRow({
           title="No insights yet"
           message="Once there's enough activity, AI will surface trends and opportunities here."
           ctaLabel="Open analytics"
-          ctaHref="/dashboard/analytics"
+          ctaHref="/"
         />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -106,7 +106,7 @@ const SmartCalendar = memo(function SmartCalendar({
           title="Nothing scheduled"
           message="AI will suggest deadlines and events here as your workspace fills up."
           ctaLabel="Open Home"
-          ctaHref="/dashboard"
+          ctaHref="/"
         />
       ) : (
         <OsCard padding="none" className="overflow-hidden rounded-3xl">
@@ -191,7 +191,7 @@ const ActivityTimeline = memo(function ActivityTimeline({
           title="No activity yet"
           message="AI will surface new orders, messages, and updates here as they happen."
           ctaLabel="Open notifications"
-          ctaHref="/dashboard/notifications"
+          ctaHref="/settings/notifications"
         />
       ) : (
         <OsCard padding="lg" className="rounded-3xl">

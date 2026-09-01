@@ -19,7 +19,7 @@ const INTENTS: IntentSeed[] = [
     id: "nl-create-product",
     title: "Create a product",
     subtitle: "Open product composer",
-    href: "/dashboard/products/new",
+    href: "/marketplace/new",
     phrases: ["create a product", "new product", "add product", "list a product"],
   },
   {
@@ -44,7 +44,7 @@ const INTENTS: IntentSeed[] = [
     id: "nl-launch-seller-campaign",
     title: "Launch seller campaign",
     subtitle: "Create a vendor promo campaign",
-    href: "/dashboard/vendor/campaigns/new",
+    href: "/ugc/campaign-center/campaigns/new",
     phrases: ["launch seller campaign", "vendor campaign", "seller campaign", "launch campaign"],
   },
   {
@@ -81,7 +81,7 @@ const INTENTS: IntentSeed[] = [
     id: "nl-todays-revenue",
     title: "Show today's revenue",
     subtitle: "Open revenue analytics",
-    href: "/dashboard/analytics",
+    href: "/",
     phrases: [
       "show today's revenue",
       "show todays revenue",
@@ -122,14 +122,14 @@ const INTENTS: IntentSeed[] = [
     id: "nl-create-community",
     title: "Create community",
     subtitle: "Open community wizard",
-    href: "/dashboard/communities",
+    href: "/owner/communities",
     phrases: ["create community", "create a community", "new community", "community wizard", "launch community"],
   },
   {
     id: "nl-upload-product",
     title: "Upload product",
     subtitle: "Open product upload",
-    href: "/dashboard/products/new",
+    href: "/marketplace/new",
     phrases: ["upload product", "upload a product", "new listing", "add listing"],
   },
   {
@@ -170,7 +170,7 @@ const INTENTS: IntentSeed[] = [
     id: "nl-todays-sales",
     title: "Show today's sales",
     subtitle: "Open sales analytics",
-    href: "/dashboard/analytics",
+    href: "/",
     phrases: [
       "show today's sales",
       "show todays sales",
@@ -219,7 +219,7 @@ const INTENTS: IntentSeed[] = [
     id: "nl-open-store",
     title: "Open store",
     subtitle: "Manage your vendor storefront",
-    href: "/dashboard/vendor/store",
+    href: "/ugc/campaign-center/store",
     phrases: ["open store", "my store", "manage store", "storefront settings", "vendor store"],
   },
   {
@@ -233,14 +233,14 @@ const INTENTS: IntentSeed[] = [
     id: "nl-open-messages",
     title: "Open messages",
     subtitle: "Your conversations and inbox",
-    href: "/dashboard/messages",
+    href: "/messages",
     phrases: ["open messages", "open inbox", "show messages", "my messages", "chats", "inbox"],
   },
   {
     id: "nl-open-notifications",
     title: "Open notifications",
     subtitle: "Recent alerts and updates",
-    href: "/dashboard/notifications",
+    href: "/settings/notifications",
     phrases: ["open notifications", "show notifications", "my notifications", "notifications"],
   },
   {
@@ -294,7 +294,7 @@ const INTENTS: IntentSeed[] = [
     id: "nl-low-stock",
     title: "Low stock alerts",
     subtitle: "Products running low on inventory",
-    href: "/dashboard/products",
+    href: "/marketplace",
     phrases: ["low stock", "inventory", "out of stock", "stock levels", "restock"],
   },
   {
@@ -327,14 +327,14 @@ const INTENTS: IntentSeed[] = [
     id: "nl-analytics",
     title: "Show analytics",
     subtitle: "Creator analytics dashboard",
-    href: "/dashboard/analytics",
+    href: "/",
     phrases: ["show analytics", "open analytics", "stats", "metrics"],
   },
   {
     id: "nl-open-agents",
     title: "Open Agent Center",
     subtitle: "Your specialized AI coworkers — recommend only",
-    href: "/dashboard/agents",
+    href: "/",
     phrases: ["open agents", "agent center", "ai agents", "open agent center", "jimvio agents", "my agents"],
   },
   {
@@ -386,7 +386,7 @@ export function resolveNlCommandIntents(query: string): NlCommandIntent[] {
       if (intent.id === "nl-shop") href = `${base}/shop`;
       if (intent.id === "nl-feed") href = `${base}/feed`;
     }
-    if (!href && intent.id === "nl-course") href = "/dashboard/products/new";
+    if (!href && intent.id === "nl-course") href = "/marketplace/new";
 
     return {
       id: intent.id,

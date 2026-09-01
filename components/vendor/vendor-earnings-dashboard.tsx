@@ -365,7 +365,7 @@ export function VendorEarningsDashboard() {
                             <td className="p-3">
                               {t.order_id && t.order_number ? (
                                 <Link
-                                  href={`/dashboard/vendor/orders/${t.order_id}`}
+                                  href={`/ugc/campaign-center/orders/${t.order_id}`}
                                   className="text-[var(--color-accent)] font-medium hover:underline"
                                 >
                                   {t.order_number}

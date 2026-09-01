@@ -41,7 +41,7 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
     async function check() {
       const session = await getPlatformAdminSession();
       if (!session.ok) {
-        router.replace(session.status === 401 ? "/login?next=/admin" : "/dashboard");
+        router.replace(session.status === 401 ? "/login?next=/admin" : "/");
         setIsAdmin(false);
         return;
       }
@@ -180,7 +180,7 @@ export function AdminAppShell({ children }: { children: React.ReactNode }) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="flex items-center gap-2 cursor-pointer">
+                    <Link href="/" className="flex items-center gap-2 cursor-pointer">
                       <LayoutPanelLeft className="h-4 w-4 opacity-60" />
                       User dashboard
                     </Link>

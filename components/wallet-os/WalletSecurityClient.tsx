@@ -137,7 +137,7 @@ export function WalletSecurityClient() {
           <p className="flex-1 text-[12.5px] leading-relaxed text-[#726D64]">
             Two-factor authentication is managed at the account level and protects every login, including your wallet.
           </p>
-          <Link href="/dashboard/security" className="mt-4">
+          <Link href="/identity/security" className="mt-4">
             <WalletButton variant="outline" size="md" className="w-full">
               Manage 2FA in account security
               <ArrowUpRight className="h-4 w-4" />

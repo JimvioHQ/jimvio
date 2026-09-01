@@ -44,7 +44,7 @@ export function OsNotificationPanel() {
             Mark all read
           </button>
           <Link
-            href="/dashboard/notifications"
+            href="/settings/notifications"
             className="rounded-lg px-2 py-1 text-[10px] font-semibold text-[var(--color-accent)] hover:underline"
           >
             View all

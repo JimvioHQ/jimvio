@@ -131,7 +131,7 @@ export function OsTopbar({ user, unreadNotifications = 0, unreadMessages = 0, on
           <Sparkles className="size-[17px]" />
         </TopbarIconButton>
 
-        <TopbarIconButton href="/dashboard/notifications" label="Notifications" badge={unreadNotifications}>
+        <TopbarIconButton href="/settings/notifications" label="Notifications" badge={unreadNotifications}>
           <Bell className="size-[17px]" />
         </TopbarIconButton>
 

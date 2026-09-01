@@ -29,7 +29,7 @@ export function OsPinnedProjects({
   className?: string;
   currentLabel?: string;
 }) {
-  const pathname = usePathname() ?? "/dashboard";
+  const pathname = usePathname() ?? "/";
   const [pins, setPins] = useState<OsPinnedProject[]>([]);
 
   useEffect(() => {

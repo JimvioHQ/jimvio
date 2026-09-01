@@ -6,7 +6,7 @@ export function AccountSettingsHeader({
   title,
   description,
   email,
-  backHref = "/dashboard",
+  backHref = "/",
 }: {
   title: string;
   description: string;

@@ -301,7 +301,7 @@ export function MyCommunitiesClient() {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        router.replace("/login?next=/dashboard/communities");
+        router.replace("/login?next=/owner/communities");
         return;
       }
 

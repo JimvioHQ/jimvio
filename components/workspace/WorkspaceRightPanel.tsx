@@ -58,7 +58,7 @@ export function WorkspaceRightPanel({ workspace }: WorkspaceRightPanelProps) {
           Get recommendations and insights tailored to your {def.label.toLowerCase()} activity.
         </p>
         <Link
-          href="/dashboard"
+          href="/"
           className="mt-3 inline-flex text-[12px] font-semibold text-[var(--color-accent)] hover:underline"
         >
           Open Mission Control →

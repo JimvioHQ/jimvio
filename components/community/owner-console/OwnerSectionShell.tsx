@@ -54,7 +54,7 @@ export function OwnerSectionShell({
             leaving your workspace.
           </p>
           <Link
-            href="/dashboard/communities"
+            href="/owner/communities"
             className="mt-5 inline-flex h-10 items-center rounded-xl bg-[#FF5A1F] px-4 text-[13px] font-semibold text-white transition hover:bg-[#F04E14] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/50"
           >
             Back to dashboard

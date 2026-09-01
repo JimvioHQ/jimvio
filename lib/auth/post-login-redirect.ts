@@ -17,16 +17,16 @@ function adminDb() {
 }
 
 function sanitizePath(raw: string | null | undefined): string {
-  return sanitizeInternalPath(raw, "/dashboard")
+  return sanitizeInternalPath(raw, "/")
 }
 
 // Role priority — highest wins
 const ROLE_HOME: Record<string, string> = {
   admin: "/admin",
-  vendor: "/dashboard/vendor",
-  affiliate: "/dashboard",
-  influencer: "/dashboard",
-  buyer: "/dashboard",
+  vendor: "/ugc/campaign-center",
+  affiliate: "/",
+  influencer: "/",
+  buyer: "/",
 }
 const ROLE_PRIORITY = ["admin", "vendor", "affiliate", "influencer", "buyer"]
 
@@ -35,16 +35,16 @@ export async function resolvePostLoginPath(
   rawNext: string | null | undefined
 ): Promise<string> {
   const incoming = sanitizePath(rawNext)
-  const safe = isPasswordResetPath(incoming) ? "/dashboard" : incoming
+  const safe = isPasswordResetPath(incoming) ? "/" : incoming
 
   if (isAuthCompletionPath(safe) && !isPasswordResetPath(safe)) return safe
 
-  // If a specific destination was requested and it's not just /dashboard,
+  // If a specific destination was requested and it's not just /,
   // honor it — the user was trying to go somewhere
   const hasExplicitNext =
     rawNext?.trim() &&
-    rawNext.trim() !== "/dashboard" &&
-    safe !== "/dashboard"
+    rawNext.trim() !== "/" &&
+    safe !== "/"
 
   try {
     const { data, error } = await adminDb()
@@ -55,7 +55,7 @@ export async function resolvePostLoginPath(
 
     if (error) {
       console.error("[resolvePostLoginPath] role lookup failed:", error.message)
-      return hasExplicitNext ? safe : "/dashboard"
+      return hasExplicitNext ? safe : "/"
     }
 
     const roles = ((data ?? []) as { role: string }[]).map(r => r.role)
@@ -71,7 +71,7 @@ export async function resolvePostLoginPath(
         .eq("user_id", userId)
         .maybeSingle()
       const row = onboarding as { welcome_completed_at?: string | null } | null
-      return row?.welcome_completed_at ? "/dashboard" : "/welcome"
+      return row?.welcome_completed_at ? "/" : "/welcome"
     }
 
     const roleHome = ROLE_HOME[topRole]
@@ -99,6 +99,6 @@ export async function resolvePostLoginPath(
 
   } catch (err) {
     console.error("[resolvePostLoginPath] unexpected error:", err)
-    return hasExplicitNext ? safe : "/dashboard"
+    return hasExplicitNext ? safe : "/"
   }
 }

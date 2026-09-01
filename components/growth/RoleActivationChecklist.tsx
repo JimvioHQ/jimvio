@@ -3,11 +3,11 @@ import { CheckCircle2 } from "lucide-react";
 
 const nextSteps = {
   vendor: [
-    { label: "Complete your vendor application", href: "/dashboard/vendor/setup" },
-    { label: "Add your first product", href: "/dashboard/products/new" },
+    { label: "Complete your vendor application", href: "/ugc/campaign-center/setup" },
+    { label: "Add your first product", href: "/marketplace/new" },
   ],
   affiliate: [
-    { label: "Open your affiliate analytics", href: "/dashboard/analytics" },
+    { label: "Open your affiliate analytics", href: "/" },
     { label: "Explore products to share", href: "/marketplace" },
   ],
   influencer: [

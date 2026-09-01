@@ -55,22 +55,22 @@ export const MOBILE_BOTTOM_NAV_ITEMS = [
 export const PROFILE_QUICK_ACCESS_ITEMS: ProfileMenuItem[] = [
   { label: "Wallet", href: "/wallet", icon: Wallet },
   { label: "Orders", href: "/orders", icon: Package },
-  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, badge: "messages" },
-  { label: "Inbox", href: "/dashboard/notifications", icon: Inbox, badge: "inbox" },
+  { label: "Messages", href: "/messages", icon: MessageSquare, badge: "messages" },
+  { label: "Inbox", href: "/inbox", icon: Inbox, badge: "inbox" },
 ];
 
 /** Account section under profile — keep existing useful destinations. */
 export const PROFILE_ACCOUNT_ITEMS: ProfileMenuItem[] = [
-  { label: "My Account", href: "/dashboard/settings", icon: Settings },
-  { label: "Digital Library", href: "/dashboard/library", icon: Video },
+  { label: "My Account", href: "/identity/settings", icon: Settings },
+  { label: "Digital Library", href: "/library", icon: Video },
 ];
 
 /** Canonical Orders URL (user-facing). */
 export const ORDERS_HREF = "/orders";
 
 /** Canonical Messages / Inbox routes. */
-export const MESSAGES_HREF = "/dashboard/messages";
-export const INBOX_HREF = "/dashboard/notifications";
+export const MESSAGES_HREF = "/messages";
+export const INBOX_HREF = "/inbox";
 export const WALLET_HREF = "/wallet";
 export const HOME_HREF = "/";
 
@@ -101,8 +101,8 @@ export function isPrimaryNavActive(
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
-export function isDashboardActive(pathname: string): boolean {
-  return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+export function isDashboardActive(_pathname: string): boolean {
+  return false;
 }
 
 export function isHomeActive(pathname: string): boolean {
@@ -114,10 +114,5 @@ export function isWalletActive(pathname: string): boolean {
 }
 
 export function isOrdersActive(pathname: string): boolean {
-  return (
-    pathname === "/orders" ||
-    pathname.startsWith("/orders/") ||
-    pathname === "/dashboard/orders" ||
-    pathname.startsWith("/dashboard/orders/")
-  );
+  return pathname === "/orders" || pathname.startsWith("/orders/");
 }

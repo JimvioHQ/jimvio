@@ -50,7 +50,7 @@ export function CreatorProfileActions({
         />
       )}
       <Link
-        href="/dashboard/messages"
+        href="/messages"
         className="inline-flex h-10 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 text-[13px] font-semibold transition-[transform,background-color] duration-200 hover:scale-[1.02] hover:bg-[var(--color-surface-secondary)]"
       >
         <MessageCircle className="size-4" />

@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const LINKS = (communityId: string, slug: string) => [
-  { href: `/creator/${communityId}/dashboard`, label: "Overview", icon: BarChart3 },
+  { href: `/creator/${communityId}/`, label: "Overview", icon: BarChart3 },
   { href: `/creator/${communityId}/spaces`, label: "Spaces", icon: LayoutGrid },
   { href: `/creator/${communityId}/members`, label: "Members", icon: Users },
   { href: `/creator/${communityId}/content`, label: "Content", icon: BookOpen },

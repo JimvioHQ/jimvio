@@ -23,10 +23,10 @@ export function AuthCompleteClient() {
     const hash = parseHash();
     const err = hash.get("error") || searchParams.get("error");
     const errCode = hash.get("error_code") || searchParams.get("error_code");
-    const nextRaw = searchParams.get("next") ?? "/dashboard";
+    const nextRaw = searchParams.get("next") ?? "/";
     const next = isSafeInternalPath(nextRaw) && nextRaw !== "/reset-password"
       ? nextRaw
-      : "/dashboard";
+      : "/";
 
     if (err === "access_denied" || errCode === "otp_expired") {
       const looksLikeReset = hash.get("type") === "recovery" || searchParams.get("type") === "recovery";

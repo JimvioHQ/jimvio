@@ -33,7 +33,7 @@ export default function CampaignApplicationPage() {
       if (!res.ok) throw new Error("load failed");
       const json = await res.json();
       if (json.status === "accepted") {
-        router.replace(`/ugc/${id}/dashboard`);
+        router.replace(`/ugc/${id}/`);
         return;
       }
       if (!json.status) {

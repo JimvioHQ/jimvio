@@ -320,7 +320,7 @@ function OrderActions({ order, onCancel, onReorder }: {
 
             {vendors.length === 1 ? (
                <DropdownMenuItem asChild className="rounded-lg cursor-pointer px-3 py-2 text-xs font-semibold text-[var(--color-text-primary)] focus:bg-[var(--color-surface-secondary)]">
-                  <Link href={`/dashboard/messages?vendor=${vendors[0].id}`} className="flex items-center gap-2.5">
+                  <Link href={`/messages?vendor=${vendors[0].id}`} className="flex items-center gap-2.5">
                      <MessageSquare className="h-3.5 w-3.5 text-[var(--color-text-muted)]" /> Message Vendor
                   </Link>
                </DropdownMenuItem>
@@ -329,7 +329,7 @@ function OrderActions({ order, onCancel, onReorder }: {
                   <div className="px-3 pt-2 pb-1 text-[9px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Message vendor</div>
                   {vendors.map(v => (
                      <DropdownMenuItem key={v.id} asChild className="rounded-lg cursor-pointer px-3 py-2 text-xs font-medium text-[var(--color-text-primary)] focus:bg-[var(--color-surface-secondary)]">
-                        <Link href={`/dashboard/messages?vendor=${v.id}`} className="flex items-center gap-2.5">
+                        <Link href={`/messages?vendor=${v.id}`} className="flex items-center gap-2.5">
                            <MessageSquare className="h-3.5 w-3.5 text-[var(--color-text-muted)]" /> {v.name}
                         </Link>
                      </DropdownMenuItem>

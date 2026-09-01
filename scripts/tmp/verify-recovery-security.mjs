@@ -141,11 +141,11 @@ assert.doesNotMatch(
   middleware,
   /isPasswordResetPath\(pathname\) \|\s*\n\s*\(Boolean\(user\) && cookieMatchesUser\(recovery/,
 );
-assert.match(middleware, /\/dashboard/);
+assert.match(middleware, /\/owner/);
 assert.match(middleware, /\/wallet/);
 assert.match(middleware, /\/admin/);
 
-assert.match(postLogin, /isPasswordResetPath\(incoming\) \? "\/dashboard"/);
+assert.match(postLogin, /isPasswordResetPath\(incoming\) \? "\/"/);
 
 // 1. Forgot password → recovery email → callback → reset
 assert.match(actions, /resetPasswordForEmail/);
@@ -154,7 +154,7 @@ assert.match(callback, /\/reset-password/);
 
 // 2. Normal email login → /reset-password is not recovery
 assert.match(actions, /signInWithPassword/);
-assert.match(postLogin, /isPasswordResetPath\(incoming\) \? "\/dashboard"/);
+assert.match(postLogin, /isPasswordResetPath\(incoming\) \? "\/"/);
 
 // 3. Google login → next=/reset-password is not recovery
 assert.match(actions, /signInWithOAuth/);

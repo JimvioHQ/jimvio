@@ -112,7 +112,7 @@ function clearFailedAttempts(userId: string) {
 // ─────────────────────────────────────────────
 
 async function resolveLandingPath(userId: string, next?: string | null): Promise<string> {
-  return resolvePostLoginPath(userId, sanitizeAuthenticatedNext(next) ?? "/dashboard")
+  return resolvePostLoginPath(userId, sanitizeAuthenticatedNext(next) ?? "/")
 }
 
 async function currentSessionIsPasswordRecovery(
@@ -355,7 +355,7 @@ export async function signIn(formData: FormData) {
       cookieStore.delete(TWO_FA_VERIFIED_COOKIE)
       cookieStore.set(TWO_FA_PENDING_COOKIE, userId, twoFaPendingCookieOptions())
 
-      const safe = sanitizeAuthenticatedNext(next) ?? "/dashboard"
+      const safe = sanitizeAuthenticatedNext(next) ?? "/"
       redirect(`/login/2fa?next=${encodeURIComponent(safe)}`)
     }
   } catch (err) {
@@ -699,12 +699,12 @@ export async function updatePassword(formData: FormData) {
     return { error: "Something went wrong. Please try again." }
   }
 
-  const path = await resolveLandingPath(user.id, "/dashboard")
+  const path = await resolveLandingPath(user.id, "/")
   redirect(path)
 }
 
 export async function linkGoogleIdentity(): Promise<void> {
-  let redirectUrl = "/dashboard/security?error=link_failed"
+  let redirectUrl = "/identity/security?error=link_failed"
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -713,7 +713,7 @@ export async function linkGoogleIdentity(): Promise<void> {
     }
     const callbackUrl = buildAuthCallbackUrl(
       await getPublicAppUrl(),
-      "/dashboard/security",
+      "/identity/security",
     )
     const { data, error } = await supabase.auth.linkIdentity({
       provider: "google",
@@ -725,7 +725,7 @@ export async function linkGoogleIdentity(): Promise<void> {
     })
     if (error || !data?.url) {
       console.error("[auth] linkGoogleIdentity:", error?.message ?? "missing url")
-      redirectUrl = "/dashboard/security?error=link_failed"
+      redirectUrl = "/identity/security?error=link_failed"
     } else {
       redirectUrl = data.url
     }

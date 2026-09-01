@@ -15,7 +15,7 @@ export type OsPinnedProject = {
 };
 
 export type OsPreferredLayout = {
-  /** Whether the "Classic dashboard" section starts expanded on /dashboard. */
+  /** Whether the "Classic dashboard" section starts expanded on /. */
   dashboardClassicExpanded?: boolean;
   /** Last sidebar collapse preference, mirrored for cross-surface reads. */
   sidebarCollapsed?: boolean;

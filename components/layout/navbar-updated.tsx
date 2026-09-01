@@ -489,9 +489,9 @@ function UserMenu({ user }: { user: { email: string; full_name?: string | null; 
 
                 {/* Menu items */}
                 {[
-                    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-                    { href: "/dashboard/library", icon: Video, label: "Digital Library" },
-                    { href: "/dashboard/settings", icon: Settings, label: "Account Settings" },
+                    { href: "/", icon: LayoutDashboard, label: "Dashboard" },
+                    { href: "/library", icon: Video, label: "Digital Library" },
+                    { href: "/identity/settings", icon: Settings, label: "Account Settings" },
                 ].map((item) => (
                     <DropdownMenuItem key={item.href} asChild className="p-0 focus:bg-transparent">
                         <Link href={item.href}
@@ -676,7 +676,7 @@ export function Navbar({ user, marketing }: NavbarProps) {
 
                         {/* Messages */}
                         {user && (
-                            <IconBtn href="/dashboard/messages" badge={chatCount}>
+                            <IconBtn href="/messages" badge={chatCount}>
                                 <MessageCircle className="h-[18px] w-[18px]" />
                             </IconBtn>
                         )}
@@ -832,9 +832,9 @@ function MobileDrawer({ open, onClose, user, pathname, marketplaceVariants, navL
     const toggle = (s: string) => setExpanded((p) => (p === s ? null : s));
 
     const accountLinks = [
-        { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-        { href: "/dashboard/library", icon: Video, label: "Digital Library" },
-        { href: "/dashboard/settings", icon: Settings, label: "Account Settings" },
+        { href: "/", icon: LayoutDashboard, label: "Dashboard" },
+        { href: "/library", icon: Video, label: "Digital Library" },
+        { href: "/identity/settings", icon: Settings, label: "Account Settings" },
     ];
 
     function NavRow({ href, icon: Icon, label, active }: { href: string; icon: LucideIcon; label: string; active: boolean }) {

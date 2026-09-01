@@ -1,7 +1,7 @@
 /**
  * Jimvio Creator Commerce OS — workspace definitions (UI-only).
  * Every href maps to an EXISTING production route.
- * Workspace switch stays on /dashboard — homeHref is informational only.
+ * Workspace switch stays on / — homeHref is informational only.
  */
 
 import type { OsWorkspaceMode } from "./types";
@@ -111,10 +111,10 @@ export const OS_CORE_RAIL: WorkspaceNavItem[] = [
 export const OS_PROFILE_RAIL: WorkspaceNavItem[] = [
   { id: "wallet", label: "Wallet", href: "/wallet", icon: "wallet", section: "system" },
   { id: "orders", label: "Orders", href: "/orders", icon: "shopping-bag", section: "system" },
-  { id: "messages", label: "Messages", href: "/dashboard/messages", icon: "message", section: "system" },
-  { id: "inbox", label: "Inbox", href: "/dashboard/notifications", icon: "bell", section: "system" },
+  { id: "messages", label: "Messages", href: "/messages", icon: "message", section: "system" },
+  { id: "inbox", label: "Inbox", href: "/settings/notifications", icon: "bell", section: "system" },
   { id: "identity", label: "Profile", href: "/identity", icon: "users", section: "system" },
-  { id: "settings", label: "Settings", href: "/dashboard/settings", icon: "settings", section: "system" },
+  { id: "settings", label: "Settings", href: "/identity/settings", icon: "settings", section: "system" },
 ];
 
 /** @deprecated Prefer OS_CORE_RAIL + OS_PROFILE_RAIL */
@@ -150,16 +150,16 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     label: "Buyer",
     emoji: "🛒",
     description: "Shop and discover",
-    homeHref: "/dashboard",
+    homeHref: "/",
     tools: [
       { id: "flash", label: "Flash Deals", href: "/marketplace/flash-deals", icon: "ticket" },
       { id: "orders", label: "Orders", href: "/orders", icon: "shopping-bag" },
-      { id: "wishlist", label: "Wishlist", href: "/dashboard/wishlist", icon: "heart" },
+      { id: "wishlist", label: "Wishlist", href: "/marketplace", icon: "heart" },
     ],
     quickActions: [
       { label: "Browse", href: "/marketplace", icon: "store" },
       { label: "Orders", href: "/orders", icon: "shopping-bag" },
-      { label: "Wishlist", href: "/dashboard/wishlist", icon: "heart" },
+      { label: "Wishlist", href: "/marketplace", icon: "heart" },
       { label: "Deals", href: "/marketplace/flash-deals", icon: "ticket" },
     ],
     recommendations: [
@@ -184,17 +184,17 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       suggestedActions: [
         { label: "Continue shopping", href: "/marketplace" },
         { label: "Review orders", href: "/orders" },
-        { label: "Open wishlist", href: "/dashboard/wishlist" },
+        { label: "Open wishlist", href: "/marketplace" },
         { label: "Flash deals", href: "/marketplace/flash-deals" },
       ],
       focus: [
         { id: "f1", label: "Track pending order", href: "/orders", progress: 60, deadline: "Today", priority: "high", cta: "View order" },
-        { id: "f2", label: "Checkout wishlist picks", href: "/dashboard/wishlist", progress: 35, deadline: "This week", priority: "medium", cta: "Open wishlist" },
+        { id: "f2", label: "Checkout wishlist picks", href: "/marketplace", progress: 35, deadline: "This week", priority: "medium", cta: "Open wishlist" },
         { id: "f3", label: "Claim a flash deal", href: "/marketplace/flash-deals", progress: 10, deadline: "Ends soon", priority: "high", cta: "Browse deals" },
       ],
       insights: [
         { id: "i1", label: "Orders", value: "2", trend: "In transit", href: "/orders" },
-        { id: "i2", label: "Wishlist", value: "5", trend: "Saved", href: "/dashboard/wishlist" },
+        { id: "i2", label: "Wishlist", value: "5", trend: "Saved", href: "/marketplace" },
         { id: "i3", label: "Deals", value: "3", trend: "Ending today", href: "/marketplace/flash-deals" },
       ],
       calendar: [
@@ -203,8 +203,8 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       ],
       activity: [
         { id: "a1", label: "Order update", detail: "Shipment moved to out for delivery", time: "2h", href: "/orders", kind: "Orders" },
-        { id: "a2", label: "Wishlist", detail: "A saved item dropped in price", time: "5h", href: "/dashboard/wishlist", kind: "Shopping" },
-        { id: "a3", label: "Message", detail: "Seller replied to your question", time: "1d", href: "/dashboard/messages", kind: "Messages" },
+        { id: "a2", label: "Wishlist", detail: "A saved item dropped in price", time: "5h", href: "/marketplace", kind: "Shopping" },
+        { id: "a3", label: "Message", detail: "Seller replied to your question", time: "1d", href: "/messages", kind: "Messages" },
       ],
     }),
   },
@@ -213,18 +213,18 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     label: "Seller",
     emoji: "🏪",
     description: "Orders, inventory, shipping",
-    homeHref: "/dashboard",
+    homeHref: "/",
     tools: [
-      { id: "products", label: "Products", href: "/dashboard/products", icon: "package" },
+      { id: "products", label: "Products", href: "/marketplace", icon: "package" },
       { id: "orders", label: "Orders", href: "/orders", icon: "shopping-bag" },
-      { id: "customers", label: "Customers", href: "/dashboard/vendor/orders", icon: "users" },
-      { id: "store", label: "Store", href: "/dashboard/vendor/store", icon: "store" },
+      { id: "customers", label: "Customers", href: "/ugc/campaign-center/orders", icon: "users" },
+      { id: "store", label: "Store", href: "/ugc/campaign-center/store", icon: "store" },
     ],
     quickActions: [
-      { label: "Add Product", href: "/dashboard/products/new", icon: "plus" },
+      { label: "Add Product", href: "/marketplace/new", icon: "plus" },
       { label: "Orders", href: "/orders", icon: "shopping-bag" },
-      { label: "Inventory", href: "/dashboard/products", icon: "package" },
-      { label: "Store", href: "/dashboard/vendor/store", icon: "store" },
+      { label: "Inventory", href: "/marketplace", icon: "package" },
+      { label: "Store", href: "/ugc/campaign-center/store", icon: "store" },
     ],
     recommendations: [
       "Fulfill unshipped orders first",
@@ -247,19 +247,19 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       ],
       suggestedActions: [
         { label: "Review orders", href: "/orders" },
-        { label: "Add product", href: "/dashboard/products/new" },
-        { label: "Update inventory", href: "/dashboard/products" },
+        { label: "Add product", href: "/marketplace/new" },
+        { label: "Update inventory", href: "/marketplace" },
         { label: "Withdraw earnings", href: "/wallet/withdrawals" },
       ],
       focus: [
         { id: "f1", label: "Ship pending orders", href: "/orders", progress: 45, deadline: "Today", priority: "high", cta: "Fulfill" },
-        { id: "f2", label: "Publish product draft", href: "/dashboard/products", progress: 70, deadline: "Tomorrow", priority: "medium", cta: "Continue" },
-        { id: "f3", label: "Restock inventory", href: "/dashboard/products", progress: 20, deadline: "This week", priority: "high", cta: "Update stock" },
+        { id: "f2", label: "Publish product draft", href: "/marketplace", progress: 70, deadline: "Tomorrow", priority: "medium", cta: "Continue" },
+        { id: "f3", label: "Restock inventory", href: "/marketplace", progress: 20, deadline: "This week", priority: "high", cta: "Update stock" },
       ],
       insights: [
-        { id: "i1", label: "Revenue", value: "+18%", trend: "vs last week", href: "/dashboard/analytics" },
+        { id: "i1", label: "Revenue", value: "+18%", trend: "vs last week", href: "/" },
         { id: "i2", label: "Orders", value: "5", trend: "Awaiting ship", href: "/orders" },
-        { id: "i3", label: "Growth", value: "Strong", trend: "Store health", href: "/dashboard/vendor/store" },
+        { id: "i3", label: "Growth", value: "Strong", trend: "Store health", href: "/ugc/campaign-center/store" },
       ],
       calendar: [
         { id: "c1", label: "Order SLA", when: "Today · 4pm", href: "/orders", kind: "Order" },
@@ -267,7 +267,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       ],
       activity: [
         { id: "a1", label: "New order", detail: "Customer placed an order awaiting fulfillment", time: "18m", href: "/orders", kind: "Orders" },
-        { id: "a2", label: "Inventory", detail: "SKU inventory dipped below threshold", time: "3h", href: "/dashboard/products", kind: "Products" },
+        { id: "a2", label: "Inventory", detail: "SKU inventory dipped below threshold", time: "3h", href: "/marketplace", kind: "Products" },
         { id: "a3", label: "Wallet", detail: "Balance ready for withdrawal", time: "1d", href: "/wallet", kind: "Wallet" },
       ],
     }),
@@ -277,7 +277,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     label: "Creator",
     emoji: "🎥",
     description: "Content, campaigns, portfolio",
-    homeHref: "/dashboard",
+    homeHref: "/",
     tools: [
       { id: "content", label: "My Content", href: "/ugc/library", icon: "graduation" },
       { id: "campaigns", label: "Campaigns", href: "/ugc", icon: "megaphone" },
@@ -334,7 +334,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       ],
       activity: [
         { id: "a1", label: "Campaign", detail: "Brand viewed your application", time: "1h", href: "/ugc/applications", kind: "Campaigns" },
-        { id: "a2", label: "Message", detail: "New brief shared for review", time: "4h", href: "/dashboard/messages", kind: "Messages" },
+        { id: "a2", label: "Message", detail: "New brief shared for review", time: "4h", href: "/messages", kind: "Messages" },
         { id: "a3", label: "Wallet", detail: "UGC payout settled", time: "2d", href: "/wallet", kind: "Wallet" },
       ],
     }),
@@ -344,7 +344,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     label: "Brand",
     emoji: "💼",
     description: "Campaigns and creator discovery",
-    homeHref: "/dashboard",
+    homeHref: "/",
     tools: [
       { id: "campaigns", label: "Campaigns", href: "/ugc/campaign-center", icon: "megaphone" },
       { id: "creators", label: "Creators", href: "/ugc/campaign-center/recruitment", icon: "users" },
@@ -410,7 +410,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     label: "Affiliate",
     emoji: "🤝",
     description: "Links, conversions, referrals",
-    homeHref: "/dashboard",
+    homeHref: "/",
     tools: [
       { id: "links", label: "Links", href: "/affiliates/links", icon: "link" },
       { id: "programs", label: "Programs", href: "/affiliates", icon: "megaphone" },
@@ -474,10 +474,10 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     label: "Community",
     emoji: "👥",
     description: "Hubs, courses, events",
-    homeHref: "/dashboard",
+    homeHref: "/",
     tools: [
       { id: "communities", label: "Communities", href: "/communities", icon: "users-round" },
-      { id: "members", label: "Members", href: "/dashboard/communities", icon: "users" },
+      { id: "members", label: "Members", href: "/owner/communities", icon: "users" },
       { id: "spaces", label: "Spaces", href: "/communities/spaces", icon: "layout" },
       { id: "courses", label: "Courses", href: "/communities/courses", icon: "graduation" },
       { id: "events", label: "Events", href: "/communities/events", icon: "megaphone" },
@@ -485,7 +485,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     quickActions: [
       { label: "Create Space", href: "/communities/spaces", icon: "layout" },
       { label: "Create Event", href: "/communities/events", icon: "calendar" },
-      { label: "Invite Members", href: "/dashboard/communities", icon: "users" },
+      { label: "Invite Members", href: "/owner/communities", icon: "users" },
       { label: "Courses", href: "/communities/courses", icon: "graduation" },
     ],
     recommendations: [
@@ -508,7 +508,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
         "AI found 3 growth ideas",
       ],
       suggestedActions: [
-        { label: "Invite members", href: "/dashboard/communities" },
+        { label: "Invite members", href: "/owner/communities" },
         { label: "Create event", href: "/communities/events" },
         { label: "Open spaces", href: "/communities/spaces" },
         { label: "Join live", href: "/communities/live" },
@@ -519,7 +519,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
         { id: "f3", label: "Finish course draft", href: "/communities/courses", progress: 40, deadline: "This week", priority: "medium", cta: "Edit course" },
       ],
       insights: [
-        { id: "i1", label: "Community trend", value: "+14%", trend: "Engagement", href: "/dashboard/communities" },
+        { id: "i1", label: "Community trend", value: "+14%", trend: "Engagement", href: "/owner/communities" },
         { id: "i2", label: "Members", value: "Active", trend: "This week", href: "/communities" },
         { id: "i3", label: "Growth", value: "Steady", trend: "Spaces", href: "/communities/spaces" },
       ],
@@ -539,17 +539,17 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     label: "Live Commerce",
     emoji: "📺",
     description: "Go live and sell",
-    homeHref: "/dashboard",
+    homeHref: "/",
     tools: [
       { id: "go-live", label: "Streaming", href: "/communities/live", icon: "live" },
       { id: "upcoming", label: "Upcoming Lives", href: "/communities/events", icon: "megaphone" },
-      { id: "products", label: "Products", href: "/dashboard/products", icon: "package" },
+      { id: "products", label: "Products", href: "/marketplace", icon: "package" },
       { id: "audience", label: "Audience", href: "/communities", icon: "users" },
     ],
     quickActions: [
       { label: "Go Live", href: "/communities/live", icon: "live" },
       { label: "Schedule Live", href: "/communities/events", icon: "calendar" },
-      { label: "Products", href: "/dashboard/products", icon: "package" },
+      { label: "Products", href: "/marketplace", icon: "package" },
       { label: "Replay", href: "/communities/live", icon: "play" },
     ],
     recommendations: [
@@ -574,22 +574,22 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       suggestedActions: [
         { label: "Go live", href: "/communities/live" },
         { label: "Schedule live", href: "/communities/events" },
-        { label: "Load products", href: "/dashboard/products" },
+        { label: "Load products", href: "/marketplace" },
         { label: "Join live", href: "/communities/live" },
       ],
       focus: [
-        { id: "f1", label: "Prep live product bag", href: "/dashboard/products", progress: 35, deadline: "Today", priority: "high", cta: "Select products" },
+        { id: "f1", label: "Prep live product bag", href: "/marketplace", progress: 35, deadline: "Today", priority: "high", cta: "Select products" },
         { id: "f2", label: "Schedule next live", href: "/communities/events", progress: 20, deadline: "Tomorrow", priority: "medium", cta: "Schedule" },
         { id: "f3", label: "Promote to community", href: "/communities", progress: 10, deadline: "This week", priority: "medium", cta: "Share" },
       ],
       insights: [
-        { id: "i1", label: "Revenue", value: "Live", trend: "Last session", href: "/dashboard/analytics" },
+        { id: "i1", label: "Revenue", value: "Live", trend: "Last session", href: "/" },
         { id: "i2", label: "Audience", value: "Warm", trend: "Reminders", href: "/communities" },
         { id: "i3", label: "Growth", value: "+8%", trend: "Watch time", href: "/communities/live" },
       ],
       calendar: [
         { id: "c1", label: "Go live", when: "Sat · 5pm", href: "/communities/live", kind: "Live" },
-        { id: "c2", label: "Product prep", when: "Fri", href: "/dashboard/products", kind: "Approval" },
+        { id: "c2", label: "Product prep", when: "Fri", href: "/marketplace", kind: "Approval" },
       ],
       activity: [
         { id: "a1", label: "Live", detail: "Upcoming session reminder set", time: "2h", href: "/communities/live", kind: "Live" },
@@ -603,7 +603,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     label: "AI Workspace",
     emoji: "🤖",
     description: "Copilot and automation",
-    homeHref: "/dashboard",
+    homeHref: "/",
     tools: [
       { id: "campaign-ai", label: "Campaign Builder", href: "/ugc/campaign-center/copilot", icon: "megaphone" },
       { id: "creator-ai", label: "Creator Coach", href: "/ugc/creator-copilot", icon: "users" },
@@ -612,7 +612,7 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
     ],
     quickActions: [
       { label: "Generate", href: "/ugc/campaign-center/copilot", icon: "sparkles" },
-      { label: "Analyze", href: "/dashboard/analytics", icon: "chart" },
+      { label: "Analyze", href: "/", icon: "chart" },
       { label: "Automate", href: "/ugc/campaign-center/automations", icon: "zap" },
       { label: "Finance AI", href: "/wallet/ai", icon: "wallet" },
     ],
@@ -637,26 +637,26 @@ export const CREATOR_OS_WORKSPACES: WorkspaceDefinition[] = [
       ],
       suggestedActions: [
         { label: "Generate brief", href: "/ugc/campaign-center/copilot" },
-        { label: "Analyze growth", href: "/dashboard/analytics" },
+        { label: "Analyze growth", href: "/" },
         { label: "Automate workflow", href: "/ugc/campaign-center/automations" },
         { label: "Wallet AI", href: "/wallet/ai" },
       ],
       focus: [
         { id: "f1", label: "Generate campaign brief", href: "/ugc/campaign-center/copilot", progress: 15, deadline: "Today", priority: "high", cta: "Generate" },
         { id: "f2", label: "Enable automation", href: "/ugc/campaign-center/automations", progress: 40, deadline: "Tomorrow", priority: "medium", cta: "Automate" },
-        { id: "f3", label: "Review AI insights", href: "/dashboard/analytics", progress: 60, deadline: "This week", priority: "low", cta: "Open insights" },
+        { id: "f3", label: "Review AI insights", href: "/", progress: 60, deadline: "This week", priority: "low", cta: "Open insights" },
       ],
       insights: [
-        { id: "i1", label: "Opportunities", value: "6", trend: "Ready", href: "/dashboard" },
+        { id: "i1", label: "Opportunities", value: "6", trend: "Ready", href: "/" },
         { id: "i2", label: "Automations", value: "1", trend: "Idle", href: "/ugc/campaign-center/automations" },
-        { id: "i3", label: "Growth", value: "AI+", trend: "Suggestions", href: "/dashboard/analytics" },
+        { id: "i3", label: "Growth", value: "AI+", trend: "Suggestions", href: "/" },
       ],
       calendar: [
         { id: "c1", label: "Automation review", when: "Today", href: "/ugc/campaign-center/automations", kind: "Approval" },
         { id: "c2", label: "Finance AI check-in", when: "Fri", href: "/wallet/ai", kind: "Withdrawal" },
       ],
       activity: [
-        { id: "a1", label: "AI", detail: "New opportunity set generated", time: "20m", href: "/dashboard", kind: "AI" },
+        { id: "a1", label: "AI", detail: "New opportunity set generated", time: "20m", href: "/", kind: "AI" },
         { id: "a2", label: "Automation", detail: "Workflow waiting for enablement", time: "3h", href: "/ugc/campaign-center/automations", kind: "AI" },
         { id: "a3", label: "Wallet", detail: "Financial summary refreshed", time: "1d", href: "/wallet/ai", kind: "Wallet" },
       ],

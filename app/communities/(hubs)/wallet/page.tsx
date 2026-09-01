@@ -106,7 +106,7 @@ export default function HubWalletPage() {
               Your creator earnings and payouts
             </p>
           </div>
-          <HubLinkButton href="/dashboard/wallet" variant="secondary">
+          <HubLinkButton href="/wallet" variant="secondary">
             Manage payouts <ChevronRight className="ml-1 h-3.5 w-3.5" />
           </HubLinkButton>
         </div>
@@ -174,7 +174,7 @@ export default function HubWalletPage() {
               ))}
             </div>
           )}
-          <HubLinkButton href="/dashboard/wallet" variant="secondary" className="mt-3 w-full">
+          <HubLinkButton href="/wallet" variant="secondary" className="mt-3 w-full">
             View all transactions
           </HubLinkButton>
         </HubCard>

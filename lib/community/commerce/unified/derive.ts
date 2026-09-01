@@ -165,21 +165,21 @@ export function deriveCommerceMetrics(args: {
       label: "Pending payouts",
       value: money(pending),
       hint: "clearing estimate",
-      href: "/dashboard/wallet",
+      href: "/wallet",
     },
     {
       id: "wallet",
       label: "Wallet balance",
       value: money(wallet),
       hint: "available estimate",
-      href: "/dashboard/wallet",
+      href: "/wallet",
     },
     {
       id: "orders",
       label: "Recent orders",
       value: count(orders),
       hint: `${period} volume`,
-      href: "/dashboard/orders",
+      href: "/orders",
     },
     {
       id: "conversion",
@@ -193,14 +193,14 @@ export function deriveCommerceMetrics(args: {
       label: "Refund rate",
       value: pct(refundRate),
       hint: "health-adjusted",
-      href: "/dashboard/orders",
+      href: "/orders",
     },
     {
       id: "aov",
       label: "Average order value",
       value: money(aov),
       hint: `${period} AOV`,
-      href: "/dashboard/analytics",
+      href: "/",
     },
   ];
 }
@@ -338,8 +338,8 @@ export function deriveProductHub(args: {
     }) ?? [];
 
   return [
-    group("digital", "Digital products", ["digital_download", "product"], "/dashboard/products/new"),
-    group("physical", "Physical products", ["marketplace_item"], "/dashboard/products/new"),
+    group("digital", "Digital products", ["digital_download", "product"], "/marketplace/new"),
+    group("physical", "Physical products", ["marketplace_item"], "/marketplace/new"),
     group("courses", "Courses", ["course"], `${base}/courses`, courseExtras),
     group(
       "memberships",
@@ -347,7 +347,7 @@ export function deriveProductHub(args: {
       ["subscription", "donation"],
       `${base}/shop`
     ),
-    group("bundles", "Bundles", ["product"], "/dashboard/products/new"),
+    group("bundles", "Bundles", ["product"], "/marketplace/new"),
     group("subscriptions", "Subscriptions", ["subscription"], `${base}/shop`),
     {
       id: "affiliate",
@@ -375,6 +375,6 @@ export function deriveProductHub(args: {
         })),
       ].slice(0, 6),
     },
-    group("coupons", "Coupons", ["coupon"], "/dashboard/vendor/store"),
+    group("coupons", "Coupons", ["coupon"], "/ugc/campaign-center/store"),
   ];
 }

@@ -152,7 +152,7 @@ export function UGCSubmissionsPage() {
                   ) : null}
                   {camp?.id ? (
                     <Button asChild size="sm" variant="outline" className="rounded-xl">
-                      <Link href={`/ugc/${camp.id}/dashboard`}>Project</Link>
+                      <Link href={`/ugc/${camp.id}/`}>Project</Link>
                     </Button>
                   ) : null}
                 </div>

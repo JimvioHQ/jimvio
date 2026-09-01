@@ -1,6 +1,6 @@
 /**
  * Community Owner Console Foundation smoke checks — no network.
- * Routes live under /dashboard/communities/[communitySlug].
+ * Routes live under /owner/communities/[communitySlug].
  * Auto-picked up by ci:prepush via scripts/tmp/verify-*.mjs
  */
 import assert from "node:assert/strict";
@@ -9,7 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const consoleRoot = "app/dashboard/communities/[communitySlug]";
+const consoleRoot = "app/owner/communities/[communitySlug]";
 
 function mustExist(rel) {
   const p = path.join(root, rel);
@@ -49,7 +49,7 @@ const settings = mustExist(`${consoleRoot}/settings/page.tsx`);
 const moderation = mustExist(`${consoleRoot}/moderation/page.tsx`);
 const analytics = mustExist(`${consoleRoot}/analytics/page.tsx`);
 const roles = mustExist(`${consoleRoot}/roles/page.tsx`);
-const hub = mustExist("app/dashboard/communities/page.tsx");
+const hub = mustExist("app/owner/communities/page.tsx");
 const hubClient = mustExist("components/dashboard/my-communities-client.tsx");
 const legacyRedirect = mustExist("app/community-owner/[[...rest]]/page.tsx");
 const wsTypes = mustExist("lib/community/workspace/types.ts");
@@ -58,7 +58,7 @@ const perms = mustExist("lib/community/workspace/permissions.ts");
 assert.match(nav, /OWNER_CONSOLE_BASE/);
 assert.match(nav, /OWNER_CONSOLE_HUB/);
 assert.match(nav, /ownerConsoleHref/);
-assert.match(nav, /\/dashboard\/communities/);
+assert.match(nav, /\/owner\/communities/);
 assert.match(nav, /OWNER_NAV_ITEMS/);
 assert.match(nav, /OWNER_NAV_SECTIONS/);
 assert.match(nav, /OWNER_QUICK_ACTIONS/);

@@ -56,7 +56,7 @@ async function recommendCourses(limit: number): Promise<DiscoveryHit[]> {
     entityType: "course" as const,
     title: row.title,
     subtitle: row.description,
-    href: row.room_id ? `/communities/rooms/${row.room_id}` : "/dashboard/library",
+    href: row.room_id ? `/communities/rooms/${row.room_id}` : "/library",
     imageUrl: row.thumbnail_url,
     score: 100 - i,
   }));
@@ -210,7 +210,7 @@ export async function getRecentlyViewed(userId: string, limit = 12): Promise<Dis
     entityType: row.entity_type,
     title: row.title ?? row.entity_type,
     subtitle: null,
-    href: row.href ?? "/dashboard",
+    href: row.href ?? "/",
     imageUrl: row.metadata?.imageUrl ?? null,
     score: 100 - i,
     meta: row.metadata ?? {},

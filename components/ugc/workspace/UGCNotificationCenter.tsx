@@ -2,7 +2,7 @@
 
 /**
  * Lightweight UGC notification center panel — reused on creator dashboard.
- * Full archive lives at /dashboard/notifications (existing route).
+ * Full archive lives at /settings/notifications (existing route).
  */
 
 import Link from "next/link";
@@ -52,7 +52,7 @@ export function UGCNotificationCenter({
           <Bell className="h-4 w-4 text-[#FF5A1F]" />
           Notification center
         </h2>
-        <Link href="/dashboard/notifications" className="text-[12px] font-semibold text-[#FF5A1F]">
+        <Link href="/settings/notifications" className="text-[12px] font-semibold text-[#FF5A1F]">
           Open inbox
         </Link>
       </div>

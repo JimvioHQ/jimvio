@@ -103,7 +103,7 @@ export function WalletOsShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="mt-4 flex flex-col gap-1 border-t border-white/[0.06] px-2.5 pt-4">
             <Link
-              href="/dashboard/wallet"
+              href="/wallet"
               className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12.5px] font-medium text-white/45 transition-colors hover:bg-white/[0.05] hover:text-white/80"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
@@ -145,7 +145,7 @@ export function WalletOsShell({ children }: { children: React.ReactNode }) {
               </div>
               <div className="mt-4 flex flex-col gap-1 border-t border-white/[0.06] px-2.5 pt-4">
                 <Link
-                  href="/dashboard/wallet"
+                  href="/wallet"
                   className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12.5px] font-medium text-white/45 hover:bg-white/[0.05] hover:text-white/80"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
@@ -174,7 +174,7 @@ export function WalletOsShell({ children }: { children: React.ReactNode }) {
               <p className="truncate text-[14px] font-semibold text-[var(--color-text-primary)]">{activeItem?.label ?? "Wallet"}</p>
             </div>
             <Link
-              href="/dashboard/wallet"
+              href="/wallet"
               className="shrink-0 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-primary)]"
             >
               Classic

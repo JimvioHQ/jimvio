@@ -588,8 +588,8 @@ function MobileDrawer({
       icon: item.icon,
       label: item.label,
     })),
-    { href: "/dashboard/library", icon: Video, label: "Digital Library" },
-    { href: "/dashboard/settings", icon: Settings, label: "Settings" },
+    { href: "/library", icon: Video, label: "Digital Library" },
+    { href: "/identity/settings", icon: Settings, label: "Settings" },
   ];
 
   const SectionLabel = ({ children }: { children: React.ReactNode }) => (
@@ -751,7 +751,7 @@ function MobileDrawer({
                               >
                                 <link.icon className="size-4 shrink-0 text-[var(--color-text-muted)]" />
                                 {link.label}
-                                {link.href === "/dashboard/messages" && chatCount > 0 && (
+                                {link.href === "/messages" && chatCount > 0 && (
                                   <span className="ml-auto rounded-full bg-[#fd5000] px-1.5 py-0.5 text-[10px] font-bold text-white">
                                     {chatCount > 99 ? "99+" : chatCount}
                                   </span>
@@ -817,7 +817,7 @@ function MobileDrawer({
               {user && (
                 <div className="grid grid-cols-2 gap-2 border-b border-[var(--color-border)] px-4 py-4">
                   <Link
-                    href="/dashboard/messages"
+                    href="/messages"
                     onClick={onClose}
                     className="relative flex items-center justify-center gap-2 rounded-lg border border-[var(--color-border)] py-2.5 text-[13px] font-semibold text-[var(--color-text-primary)]"
                   >

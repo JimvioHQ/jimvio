@@ -107,7 +107,7 @@ export async function advanceOrderFulfillment(
             type: "order",
             title: "Order Shipped 📦",
             message: `Your order #${orderNumber} is on the way.${trackingNumber ? ` Tracking: ${trackingNumber}` : ""}`,
-            actionUrl: `/dashboard/orders/${orderId}`,
+            actionUrl: `/orders/${orderId}`,
             data: {
                 order_id: orderId,
                 status: "shipped",

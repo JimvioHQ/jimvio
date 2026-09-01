@@ -134,7 +134,7 @@ export function AffiliatePayoutsClient() {
           description={error}
           actionHref={
             error.includes("Activate")
-              ? "/dashboard/activate/affiliate"
+              ? "/activate/affiliate"
               : "/login?next=/affiliates/payouts"
           }
           actionLabel={error.includes("Activate") ? "Activate" : "Sign in"}
@@ -170,7 +170,7 @@ export function AffiliatePayoutsClient() {
               </button>
             ))}
             <a
-              href="/dashboard/wallet"
+              href="/wallet"
               className={cn(AFFILIATE_BTN_SECONDARY, "h-9 px-3 text-[12px]")}
             >
               Open wallet / invoices

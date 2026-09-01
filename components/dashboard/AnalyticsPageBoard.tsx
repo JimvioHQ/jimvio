@@ -549,7 +549,7 @@ export function AnalyticsPageBoard({
         <Panel>
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-[14px] font-bold text-[var(--color-text-primary)]">Recent sales</h3>
-            <Link href="/dashboard/orders" className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline">
+            <Link href="/orders" className="text-[11px] font-semibold text-[var(--color-accent)] hover:underline">
               See all
             </Link>
           </div>

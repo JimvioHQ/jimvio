@@ -177,7 +177,7 @@ export function AppTopNav({
         </button>
 
         <Link
-          href="/dashboard/notifications"
+          href="/settings/notifications"
           aria-label="Notifications"
           className="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
         >

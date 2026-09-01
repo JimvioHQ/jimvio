@@ -33,7 +33,7 @@ const api = mustExist("app/api/c/owner/settings/route.ts");
 const apiDanger = mustExist("app/api/c/owner/settings/danger/route.ts");
 const apiExport = mustExist("app/api/c/owner/settings/export/route.ts");
 const page = mustExist(
-  "app/dashboard/communities/[communitySlug]/settings/page.tsx"
+  "app/owner/communities/[communitySlug]/settings/page.tsx"
 );
 const management = mustExist(
   "components/community/owner-console/settings/SettingsManagement.tsx"

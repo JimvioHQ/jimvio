@@ -77,8 +77,8 @@ export async function finalizeAndCompleteOrder(orderId: string, actorId?: string
     notes: notes || "Order finalized and funds released to participants.",
   });
 
-  revalidatePath(`/dashboard/vendor/orders/${orderId}`);
-  revalidatePath(`/dashboard/orders/${orderId}`);
+  revalidatePath(`/ugc/campaign-center/orders/${orderId}`);
+  revalidatePath(`/orders/${orderId}`);
 
   return { success: true };
 }

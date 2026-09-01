@@ -32,12 +32,12 @@ export async function requestEmailChange(newEmail: string): Promise<ActionResult
 
   const { error } = await supabase.auth.updateUser(
     { email },
-    { emailRedirectTo: buildAuthCallbackUrl(await getPublicAppUrl(), "/dashboard/settings") },
+    { emailRedirectTo: buildAuthCallbackUrl(await getPublicAppUrl(), "/identity/settings") },
   );
   if (error) return { success: false, error: mapEmailChangeError(error) };
 
-  revalidatePath("/dashboard/settings");
-  revalidatePath("/dashboard/security");
+  revalidatePath("/identity/settings");
+  revalidatePath("/identity/security");
   revalidatePath("/admin/settings/profile");
   return {
     success: true,
@@ -108,7 +108,7 @@ export async function deactivateAccount(): Promise<ActionResult<{ message: strin
     .eq("user_id", user.id)
     .neq("role", "admin");
 
-  revalidatePath("/dashboard");
+  revalidatePath("/");
   return {
     success: true,
     data: { message: "Your account has been deactivated. Contact support to restore access." },
@@ -141,7 +141,7 @@ export async function saveUserPreferences(input: {
   });
   if (metaError) return { success: false, error: metaError.message };
 
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/identity/settings");
   return { success: true };
 }
 
@@ -162,7 +162,7 @@ export async function saveVendorPolicies(policies: VendorPolicies): Promise<Acti
   });
   if (error) return { success: false, error: error.message };
 
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/identity/settings");
   return { success: true };
 }
 
@@ -207,7 +207,7 @@ export async function saveAffiliateSettings(input: {
     .eq("id", row.id);
 
   if (error) return { success: false, error: error.message };
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/identity/settings");
   return { success: true };
 }
 
@@ -260,7 +260,7 @@ export async function saveInfluencerSettings(input: {
     .eq("id", row.id);
 
   if (error) return { success: false, error: error.message };
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/identity/settings");
   return { success: true };
 }
 
@@ -306,6 +306,6 @@ export async function activateUserRole(
   const provisioned = await provisionOwnNonPrivilegedRole(role);
   if (!("ok" in provisioned)) return { success: false, error: provisioned.error };
 
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/identity/settings");
   return { success: true };
 }

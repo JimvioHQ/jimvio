@@ -32,7 +32,7 @@ export async function createBuyingLead(form: BuyingLeadForm) {
     });
 
     if (error) throw error;
-    revalidatePath("/dashboard/requests");
+    revalidatePath("/messages");
     return { success: true };
   } catch (e: any) {
     console.error("createBuyingLead:", e);

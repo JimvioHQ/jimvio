@@ -11,7 +11,7 @@ const items = [
   { href: "/marketplace", label: "Marketplace", icon: ShoppingBag },
   { href: "/shorts", label: "Videos", icon: Clapperboard },
   { href: "/ugc", label: "Campaigns", icon: Megaphone },
-  { href: "/dashboard", label: "Dashboard", icon: User },
+  { href: "/", label: "Dashboard", icon: User },
 ];
 
 export function HomeBottomNav() {

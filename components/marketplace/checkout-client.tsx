@@ -137,7 +137,7 @@ export function CheckoutClient({ orders, total }: CheckoutClientProps) {
           </p>
 
           <Button asChild variant="outline" className="w-full">
-            <a href="/dashboard/orders">View Orders</a>
+            <a href="/orders">View Orders</a>
           </Button>
         </div>
       </div>

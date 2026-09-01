@@ -155,7 +155,7 @@ function KanbanCard({
         {column === "approved" || column === "in_progress" || column === "submitted"
           ? campaign?.id ? (
               <Button asChild size="sm" className="h-8 rounded-lg bg-[#FF5A1F] px-2.5 text-[11px]">
-                <Link href={`/ugc/${campaign.id}/dashboard`}>{t("openProject")}</Link>
+                <Link href={`/ugc/${campaign.id}/`}>{t("openProject")}</Link>
               </Button>
             ) : null
           : null}

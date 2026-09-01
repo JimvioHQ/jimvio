@@ -35,7 +35,7 @@ export async function markNotificationRead(
       eventName: "read",
     });
   }
-  revalidatePath("/dashboard/notifications");
+  revalidatePath("/settings/notifications");
   return { ok: true };
 }
 
@@ -57,7 +57,7 @@ export async function markAllNotificationsRead(): Promise<{ ok: boolean; error?:
     eventName: "read",
     properties: { scope: "mark_all" },
   });
-  revalidatePath("/dashboard/notifications");
+  revalidatePath("/settings/notifications");
   return { ok: true };
 }
 
@@ -80,7 +80,7 @@ export async function archiveNotification(
     notificationId,
     eventName: "archived",
   });
-  revalidatePath("/dashboard/notifications");
+  revalidatePath("/settings/notifications");
   return { ok: true };
 }
 
@@ -103,7 +103,7 @@ export async function dismissNotification(
     notificationId,
     eventName: "deleted",
   });
-  revalidatePath("/dashboard/notifications");
+  revalidatePath("/settings/notifications");
   return { ok: true };
 }
 

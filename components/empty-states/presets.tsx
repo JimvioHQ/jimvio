@@ -76,7 +76,7 @@ export function resolveEmptyStatePreset(
           description: "List something to sell — physical, digital, or from our product catalog.",
           illustration: <ProductsShelfIllustration />,
           actions: [
-            { label: "Add product", href: "/dashboard/products/new", icon: Plus, variant: "primary" },
+            { label: "Add product", href: "/marketplace/new", icon: Plus, variant: "primary" },
           ],
         };
       }
@@ -101,7 +101,7 @@ export function resolveEmptyStatePreset(
           description: "When someone buys from you, the order lands here for fulfillment.",
           illustration: <OrdersIllustration />,
           actions: [
-            { label: "View products", href: "/dashboard/products", icon: Package, variant: "ghost" },
+            { label: "View products", href: "/marketplace", icon: Package, variant: "ghost" },
           ],
         };
       }
@@ -147,7 +147,7 @@ export function resolveEmptyStatePreset(
           description: "Launch a UGC or clipping campaign, set a budget, and invite creators.",
           illustration: <CampaignsIllustration />,
           actions: [
-            { label: "New campaign", href: "/dashboard/vendor/campaigns/new", icon: Plus, variant: "primary" },
+            { label: "New campaign", href: "/ugc/campaign-center/campaigns/new", icon: Plus, variant: "primary" },
             { label: "How it works", href: "/ugc", variant: "ghost" },
           ],
         };
@@ -191,7 +191,7 @@ export function resolveEmptyStatePreset(
           : "Withdrawals and payment history will show here once money moves.",
         query: query?.trim(),
         illustration: <OrdersIllustration />,
-        actions: [{ label: "Wallet", href: "/dashboard/wallet", icon: CreditCard, variant: "ghost" }],
+        actions: [{ label: "Wallet", href: "/wallet", icon: CreditCard, variant: "ghost" }],
       };
 
     case "vendors":
@@ -312,7 +312,7 @@ export const ADMIN_CAMPAIGN_ACTIONS: EmptyAction[] = [
 ];
 
 export const VENDOR_ORDER_ACTIONS: EmptyAction[] = [
-  { label: "View products", href: "/dashboard/products", icon: Package, variant: "ghost" },
+  { label: "View products", href: "/marketplace", icon: Package, variant: "ghost" },
 ];
 
 export const NOT_FOUND_DEFAULT_ACTIONS: EmptyAction[] = [

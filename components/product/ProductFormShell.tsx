@@ -1818,7 +1818,7 @@ export function ProductFormShell({
 }) {
     const router = useRouter();
     const isAdminMode = mode === "admin";
-    const listHref = returnHref ?? (isAdminMode ? "/admin/products" : "/dashboard/products");
+    const listHref = returnHref ?? (isAdminMode ? "/admin/products" : "/marketplace");
     const [isPending, startTransition] = useTransition();
     const [step, setStep] = useState(1);
     const [vendor, setVendor] = useState<any>(null);
@@ -1855,7 +1855,7 @@ export function ProductFormShell({
 
             if (!isAdminMode) {
                 const { data: vends } = await supabase.from("vendors").select("*").eq("user_id", user.id);
-                if (!vends || vends.length === 0) { router.push("/dashboard/activate/vendor"); return; }
+                if (!vends || vends.length === 0) { router.push("/activate/vendor"); return; }
                 setVendor(vends[0]);
             }
 
@@ -2285,7 +2285,7 @@ export function ProductFormShell({
 
                     <div className="flex items-center gap-2 flex-shrink-0">
                         <button
-                            onClick={() => router.push("/dashboard/products")}
+                            onClick={() => router.push("/marketplace")}
                             className="hidden sm:flex h-8 px-4 text-xs items-center font-medium transition-all"
                             style={{
                                 borderRadius: "var(--radius-sm)",

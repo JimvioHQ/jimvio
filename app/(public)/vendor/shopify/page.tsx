@@ -17,12 +17,12 @@ export default async function VendorShopifyPage() {
   const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
   const isVendor = roles?.some((r) => r.role === "vendor") ?? false;
   if (!isVendor) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   const { data: vendor, error } = await supabase.from("vendors").select("id").eq("user_id", user.id).maybeSingle();
   if (error || !vendor) {
-    redirect("/dashboard/activate/vendor");
+    redirect("/activate/vendor");
   }
 
   return (

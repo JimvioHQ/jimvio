@@ -118,7 +118,7 @@ export function canEnterOwnerConsole(role: WorkspaceRole): boolean {
  *
  * Accepts:
  * - `/community-owner/groups`
- * - `/dashboard/communities/{slug}/groups`
+ * - `/owner/communities/{slug}/groups`
  * - `groups` / `groups/abc`
  * - paths with `?action=` query (`community=` is stripped)
  */
@@ -131,13 +131,13 @@ export function sectionPath(
   const [pathPart, queryPart] = sectionHref.split("?");
   let section = pathPart
     .replace(/^https?:\/\/[^/]+/i, "")
-    .replace(/^\/dashboard\/communities\/[^/]+\/?/i, "")
-    .replace(/^\/dashboard\/communities\/?/i, "")
+    .replace(/^\/owner\/communities\/[^/]+\/?/i, "")
+    .replace(/^\/owner\/communities\/?/i, "")
     .replace(/^\/community-owner\/?/i, "")
     .replace(/^\/+/, "");
 
   if (
-    section === "dashboard/communities" ||
+    section === "owner/communities" ||
     section === OWNER_CONSOLE_HUB.slice(1)
   ) {
     section = "";

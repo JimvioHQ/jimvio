@@ -30,9 +30,9 @@ const apiMembers = mustExist("app/api/c/owner/channels/[id]/members/route.ts");
 const apiAnalytics = mustExist(
   "app/api/c/owner/channels/[id]/analytics/route.ts"
 );
-const page = mustExist("app/dashboard/communities/[communitySlug]/channels/page.tsx");
+const page = mustExist("app/owner/communities/[communitySlug]/channels/page.tsx");
 const settingsPage = mustExist(
-  "app/dashboard/communities/[communitySlug]/channels/[channelId]/page.tsx"
+  "app/owner/communities/[communitySlug]/channels/[channelId]/page.tsx"
 );
 const management = mustExist(
   "components/community/owner-console/channels/ChannelsManagement.tsx"
@@ -78,6 +78,6 @@ assert.match(list, /draggable|Drag to reorder/);
 assert.match(settings, /Danger Zone|danger/);
 assert.match(settings, /automation/);
 assert.match(settings, /CHANNEL_SETTINGS_TABS/);
-mustExist("app/dashboard/communities/[communitySlug]/spaces/page.tsx");
+mustExist("app/owner/communities/[communitySlug]/spaces/page.tsx");
 
 console.log("Community owner channels management verification passed.");

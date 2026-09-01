@@ -62,36 +62,36 @@ interface SidebarProps {
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard },
   {
     label: "Marketplace",
     href: "/marketplace",
     icon: Package,
     activeMatch: (p) => p.startsWith("/marketplace"),
   },
-  { label: "Products", href: "/dashboard/products", icon: Package },
+  { label: "Products", href: "/marketplace", icon: Package },
   { label: "Orders", href: "/orders", icon: Truck },
-  { label: "Customers", href: "/dashboard/vendor/orders", icon: Users },
-  { label: "Revenue", href: "/dashboard/payments", icon: DollarSign },
-  { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { label: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
-  { label: "Store", href: "/dashboard/vendor/store", icon: Store },
+  { label: "Customers", href: "/ugc/campaign-center/orders", icon: Users },
+  { label: "Revenue", href: "/wallet", icon: DollarSign },
+  { label: "Analytics", href: "/", icon: BarChart3 },
+  { label: "Wishlist", href: "/marketplace", icon: Heart },
+  { label: "Store", href: "/ugc/campaign-center/store", icon: Store },
   {
     label: "Seller Hub",
-    href: "/dashboard/vendor/store",
+    href: "/ugc/campaign-center/store",
     icon: Boxes,
-    activeMatch: (p) => p.startsWith("/dashboard/vendor"),
+    activeMatch: (p) => p.startsWith("/ugc/campaign-center"),
   },
   {
     label: "Communities",
-    href: "/dashboard/communities",
+    href: "/owner/communities",
     icon: Globe,
     activeMatch: (p) =>
-      p.startsWith("/dashboard/communities") || p.startsWith("/communities"),
+      p.startsWith("/owner/communities") || p.startsWith("/communities"),
   },
-  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-  { label: "Notifications", href: "/dashboard/notifications", icon: Bell },
-  { label: "Account", href: "/dashboard/settings", icon: Settings },
+  { label: "Messages", href: "/messages", icon: MessageSquare },
+  { label: "Notifications", href: "/settings/notifications", icon: Bell },
+  { label: "Account", href: "/identity/settings", icon: Settings },
   { label: "Jimvio OS", icon: Monitor },
 ];
 
@@ -202,7 +202,7 @@ function SidebarContent({
   function isActive(item: NavItem): boolean {
     if (item.activeMatch) return item.activeMatch(pathname);
     if (!item.href) return false;
-    if (item.href === "/dashboard") return pathname === "/dashboard";
+    if (item.href === "/") return pathname === "/";
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
 

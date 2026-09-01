@@ -246,7 +246,7 @@ export async function notifyCommunityOwnerOnJoinRequest(
     type: "community",
     title: "Join request",
     message: `${params.memberName} requested to join ${params.communityName}`,
-    actionUrl: `/dashboard/communities/${params.communitySlug}/members`,
+    actionUrl: `/owner/communities/${params.communitySlug}/members`,
     data: { event: "join_request", memberId: params.memberId, communityId: params.communityId },
   });
 }

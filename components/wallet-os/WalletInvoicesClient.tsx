@@ -62,7 +62,7 @@ export function WalletInvoicesClient() {
         title="Invoices & statements"
         description="Monthly wallet statements and downloadable receipts for every payout."
         action={
-          <Link href="/dashboard/orders">
+          <Link href="/orders">
             <WalletButton variant="outline" size="md">
               Order invoices
               <ArrowUpRight className="h-4 w-4" />

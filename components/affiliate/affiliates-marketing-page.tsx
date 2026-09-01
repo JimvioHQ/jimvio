@@ -39,7 +39,7 @@ export function AffiliatesMarketingPage({
   const primaryCtaHref = hasAffiliateAccount
     ? "/affiliates/dashboard"
     : isLoggedIn
-      ? "/dashboard/activate/affiliate"
+      ? "/activate/affiliate"
       : "/register?role=affiliate";
 
   return (

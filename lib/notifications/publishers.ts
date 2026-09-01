@@ -154,7 +154,7 @@ export async function notifyCourseEnrollment(input: {
     category: "course_enrollment",
     title: "Course enrollment",
     message: `You're enrolled in ${input.courseTitle}`,
-    actionUrl: input.actionUrl ?? `/dashboard/library`,
+    actionUrl: input.actionUrl ?? `/library`,
     eventKey: `course_enrollment:${input.userId}:${input.courseId}`,
     data: { event: "course_enrollment", courseId: input.courseId },
   });
@@ -174,7 +174,7 @@ export async function notifyLessonCompleted(input: {
     message: input.lessonTitle
       ? `You completed “${input.lessonTitle}”`
       : "You completed a lesson",
-    actionUrl: input.actionUrl ?? `/dashboard/library`,
+    actionUrl: input.actionUrl ?? `/library`,
     eventKey: `lesson_completed:${input.userId}:${input.lessonId}`,
     data: {
       event: "lesson_completed",
@@ -220,7 +220,7 @@ export async function notifyProductPurchased(input: {
     message: input.productLabel
       ? `You purchased ${input.productLabel}`
       : `Order ${input.orderNumber} is confirmed`,
-    actionUrl: `/dashboard/orders/${input.orderId}`,
+    actionUrl: `/orders/${input.orderId}`,
     eventKey: `product_purchased:${input.orderId}`,
     data: { event: "product_purchased", orderId: input.orderId },
   });
@@ -237,7 +237,7 @@ export async function notifyOrderUpdate(input: {
     category: "order_update",
     title: "Order update",
     message: `Order ${input.orderNumber} is now ${input.status}`,
-    actionUrl: `/dashboard/orders/${input.orderId}`,
+    actionUrl: `/orders/${input.orderId}`,
     groupKey: `order:${input.orderId}`,
     eventKey: `order_update:${input.orderId}:${input.status}`,
     data: { event: "order_update", orderId: input.orderId, status: input.status },
@@ -257,7 +257,7 @@ export async function notifyShippingUpdate(input: {
     message: input.trackingNumber
       ? `Order ${input.orderNumber} shipped · ${input.trackingNumber}`
       : `Order ${input.orderNumber} has shipped`,
-    actionUrl: `/dashboard/orders/${input.orderId}`,
+    actionUrl: `/orders/${input.orderId}`,
     eventKey: `shipping:${input.orderId}:${input.trackingNumber ?? "shipped"}`,
     data: {
       event: "shipping_update",
@@ -281,7 +281,7 @@ export async function notifyRefund(input: {
     message: input.amountLabel
       ? `A refund of ${input.amountLabel} was issued for order ${input.orderNumber}`
       : `A refund was issued for order ${input.orderNumber}`,
-    actionUrl: `/dashboard/orders/${input.orderId}`,
+    actionUrl: `/orders/${input.orderId}`,
     eventKey: `refund:${input.orderId}`,
     data: { event: "refund", orderId: input.orderId },
   });
@@ -301,7 +301,7 @@ export async function notifyAffiliateCommission(input: {
     category: "affiliate_commission",
     title: "Affiliate commission",
     message: `Commission ${input.status}: ${label}`,
-    actionUrl: "/dashboard/affiliates",
+    actionUrl: "/affiliatess",
     eventKey: input.commissionId
       ? `affiliate_commission:${input.commissionId}:${input.status}`
       : undefined,
@@ -325,7 +325,7 @@ export async function notifyCampaignUpdate(input: {
     category: "campaign_update",
     title: "Campaign update",
     message: `Campaign “${input.campaignName}” is now ${input.status}`,
-    actionUrl: "/dashboard/affiliates",
+    actionUrl: "/affiliatess",
     eventKey: `campaign:${input.campaignId}:${input.status}`,
     data: {
       event: "campaign_update",
@@ -349,7 +349,7 @@ export async function notifyAdminAnnouncement(input: {
       category: "admin_announcement" as const,
       title: input.title,
       message: input.message,
-      actionUrl: input.actionUrl ?? "/dashboard/notifications",
+      actionUrl: input.actionUrl ?? "/settings/notifications",
       force: true,
       eventKey: input.announcementId
         ? `admin_announcement:${userId}:${input.announcementId}`

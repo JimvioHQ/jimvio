@@ -40,7 +40,7 @@ Open your dashboard and pick one earning path to start today.
 **Related Opportunities**
 - Affiliate links pay per sale · UGC pays per view or post
 
-[CALCULATOR] [PRODUCTS: "high commission affiliate"] [CAMPAIGNS: "ugc paid"] [FOLLOWUPS: "Which products pay the most?", "How do UGC payouts work?", "How do I get my first sale?"] [LINKS: "Affiliate Program|/affiliates", "Browse Campaigns|/ugc", "Dashboard|/dashboard"]`;
+[CALCULATOR] [PRODUCTS: "high commission affiliate"] [CAMPAIGNS: "ugc paid"] [FOLLOWUPS: "Which products pay the most?", "How do UGC payouts work?", "How do I get my first sale?"] [LINKS: "Affiliate Program|/affiliates", "Browse Campaigns|/ugc", "Dashboard|/"]`;
   }
 
   if (/ugc|campaign|creator|content/.test(q)) {
@@ -55,7 +55,7 @@ UGC campaigns on Jimvio pay creators for content that matches brand briefs — p
 **Recommended Action**
 Join one campaign you can publish to this week.
 
-[FOLLOWUPS: "Which campaigns pay the most?", "How do I submit content?", "What content performs best?"] [CAMPAIGNS: "ugc creator paid"] [LINKS: "Browse UGC Campaigns|/ugc", "Creator Dashboard|/dashboard", "Get Started|/register"]`;
+[FOLLOWUPS: "Which campaigns pay the most?", "How do I submit content?", "What content performs best?"] [CAMPAIGNS: "ugc creator paid"] [LINKS: "Browse UGC Campaigns|/ugc", "Creator Dashboard|/", "Get Started|/register"]`;
   }
 
   if (/affiliate|commission|promot|link|product/.test(q)) {
@@ -70,7 +70,7 @@ Pick high-commission products, generate your affiliate link, and share where you
 **Recommended Action**
 Start with 2–3 products that fit your niche.
 
-[FOLLOWUPS: "What are the top commission products?", "How do affiliate links work?", "When do I get paid?"] [PRODUCTS: "affiliate high commission"] [LINKS: "Marketplace|/marketplace", "Affiliate Program|/affiliates", "Dashboard|/dashboard"]`;
+[FOLLOWUPS: "What are the top commission products?", "How do affiliate links work?", "When do I get paid?"] [PRODUCTS: "affiliate high commission"] [LINKS: "Marketplace|/marketplace", "Affiliate Program|/affiliates", "Dashboard|/"]`;
   }
 
   if (/sell|vendor|store|list/.test(q)) {
@@ -85,7 +85,7 @@ Register as a vendor, list products with clear pricing, and use affiliates + UGC
 **Recommended Action**
 Publish your first product listing today.
 
-[FOLLOWUPS: "How do I set up my store?", "How do affiliates help vendors?", "What fees does Jimvio charge?"] [LINKS: "Open Dashboard|/dashboard", "Marketplace|/marketplace", "Create Account|/register"]`;
+[FOLLOWUPS: "How do I set up my store?", "How do affiliates help vendors?", "What fees does Jimvio charge?"] [LINKS: "Open Dashboard|/", "Marketplace|/marketplace", "Create Account|/register"]`;
   }
 
   if (/community|live|course|monetiz/.test(q)) {
@@ -100,7 +100,7 @@ Build a community hub, host live sessions, and monetize with products, courses, 
 **Recommended Action**
 Define one community topic and invite your first 10 members.
 
-[FOLLOWUPS: "How do I monetize a community?", "Can I sell courses?", "How do live events work?"] [COMMUNITIES: "creator community"] [LINKS: "Explore Communities|/communities", "Dashboard|/dashboard", "Start Free|/register"]`;
+[FOLLOWUPS: "How do I monetize a community?", "Can I sell courses?", "How do live events work?"] [COMMUNITIES: "creator community"] [LINKS: "Explore Communities|/communities", "Dashboard|/", "Start Free|/register"]`;
   }
 
   return `**Quick Answer**

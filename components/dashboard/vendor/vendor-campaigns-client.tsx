@@ -117,11 +117,11 @@ export function VendorCampaignsClient() {
         subtitle="Run UGC and clipping campaigns, review submissions, and track spend."
         actions={
           <>
-            <Link href="/dashboard/vendor/campaigns/analytics" className={adminBtnSecondary}>
+            <Link href="/ugc/campaign-center/campaigns/analytics" className={adminBtnSecondary}>
               <BarChart3 className="h-3.5 w-3.5" />
               Analytics
             </Link>
-            <Link href="/dashboard/vendor/campaigns/new" className={adminBtnPrimary}>
+            <Link href="/ugc/campaign-center/campaigns/new" className={adminBtnPrimary}>
               <Plus className="h-3.5 w-3.5" />
               New campaign
             </Link>
@@ -227,8 +227,8 @@ export function VendorCampaignsClient() {
                   );
                   const manageHref =
                     c.status === "draft"
-                      ? `/dashboard/vendor/campaigns/${c.id}`
-                      : `/dashboard/vendor/campaigns/${c.id}/submissions`;
+                      ? `/ugc/campaign-center/campaigns/${c.id}`
+                      : `/ugc/campaign-center/campaigns/${c.id}/submissions`;
 
                   return (
                     <tr

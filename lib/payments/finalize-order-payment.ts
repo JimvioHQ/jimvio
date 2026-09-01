@@ -121,7 +121,7 @@
 //           title: "Digital Access Granted! ⚡",
 //           message: `Your digital purchase is ready. Access it anytime from your Library.`,
 //           data: { order_id: orderId, type: "digital_access" },
-//           action_url: `/dashboard/library`,
+//           action_url: `/library`,
 //         });
 //       }
 //     }
@@ -242,7 +242,7 @@
 //             order_id: orderId,
 //             cj_order_num: result.cjOrderNum,
 //           },
-//           action_url: `/dashboard/orders/${orderId}`,
+//           action_url: `/orders/${orderId}`,
 //         });
 //       }
 //     }
@@ -512,7 +512,7 @@
 //           : ""
 //           } has been confirmed. Order is being processed.`,
 //         data: { order_id: orderId, reference: ctx.webhookReference },
-//         action_url: `/dashboard/orders/${orderId}`,
+//         action_url: `/orders/${orderId}`,
 //       });
 //     }
 
@@ -627,7 +627,7 @@
 //           : ""
 //           } is being fulfilled by the merchant.`,
 //         data: { order_id: orderId, reference: ctx.webhookReference },
-//         action_url: `/dashboard/orders/${orderId}`,
+//         action_url: `/orders/${orderId}`,
 //       });
 //     }
 //   }
@@ -862,7 +862,7 @@ async function grantDigitalAccess(
           title: "Digital Access Granted! ⚡",
           message: "Your digital purchase is ready. Access it anytime from your Library.",
           data: { order_id: orderId, type: "digital_access" },
-          actionUrl: "/dashboard/library",
+          actionUrl: "/library",
         });
       }
     }
@@ -1171,7 +1171,7 @@ export async function finalizeOrderPayment(
         title: "Payment Confirmed!",
         message: `Your payment${paidLabel ? ` of ${paidLabel}` : ""} has been confirmed. Order is being processed.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
-        actionUrl: `/dashboard/orders/${orderId}`,
+        actionUrl: `/orders/${orderId}`,
         email: {
           kind: "payment_success",
           orderId,
@@ -1296,7 +1296,7 @@ export async function finalizeOrderPayment(
           : ""
           } is being fulfilled by the merchant.`,
         data: { order_id: orderId, reference: ctx.webhookReference },
-        actionUrl: `/dashboard/orders/${orderId}`,
+        actionUrl: `/orders/${orderId}`,
         email: {
           kind: "payment_success",
           orderId,

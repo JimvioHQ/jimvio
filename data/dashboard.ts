@@ -167,7 +167,7 @@ export const QUICK_ACTIONS: QuickAction[] = [
     sub: "Reply to conversations",
     accentColor: "#3b82f6",
     bgColor: "#eff6ff",
-    href: "/dashboard/messages",
+    href: "/messages",
   },
 ];
 

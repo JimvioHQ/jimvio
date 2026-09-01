@@ -45,7 +45,7 @@ const GROWTH_PATHS = [
   {
     title: "Open your store",
     desc: "List products & reach buyers",
-    href: "/dashboard/activate/vendor",
+    href: "/activate/vendor",
     cta: "Sell on Jimvio",
     icon: Store,
     color: "#fd5000",

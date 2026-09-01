@@ -96,7 +96,7 @@ export function AffiliateAnalyticsClient() {
           description={error}
           actionHref={
             error.includes("Activate")
-              ? "/dashboard/activate/affiliate"
+              ? "/activate/affiliate"
               : "/login?next=/affiliates/analytics"
           }
           actionLabel={error.includes("Activate") ? "Activate" : "Sign in"}

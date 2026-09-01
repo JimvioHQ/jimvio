@@ -185,7 +185,7 @@ export function AffiliateLinksClient() {
           description={error}
           actionHref={
             error.includes("Activate")
-              ? "/dashboard/activate/affiliate"
+              ? "/activate/affiliate"
               : "/login?next=/affiliates/links"
           }
           actionLabel={error.includes("Activate") ? "Activate" : "Sign in"}

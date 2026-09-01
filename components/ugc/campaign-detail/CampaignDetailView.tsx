@@ -43,7 +43,7 @@ export function CampaignDetailView() {
   const { campaign, isJoined, isBookmarked, profile, similar, isPending } = state;
   const isActive = campaign.status === "active";
   const joinHref = isJoined
-    ? `/ugc/${id}/dashboard`
+    ? `/ugc/${id}/`
     : isPending
       ? `/ugc/${id}/application`
       : `/ugc/${id}/join`;

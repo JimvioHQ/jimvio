@@ -101,7 +101,7 @@ export async function updateVendorOrderStatus(orderId: string, requestedStatus: 
 
   if (error) return { success: false, error: error.message };
 
-  revalidatePath(`/dashboard/vendor/orders/${orderId}`);
-  revalidatePath("/dashboard/vendor/orders");
+  revalidatePath(`/ugc/campaign-center/orders/${orderId}`);
+  revalidatePath("/ugc/campaign-center/orders");
   return { success: true };
 }

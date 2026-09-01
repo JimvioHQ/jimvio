@@ -46,7 +46,7 @@ export default async function CreatorHomePage() {
             {communities!.map((community) => (
               <li key={community.id}>
                 <Link
-                  href={`/dashboard/communities/${encodeURIComponent(community.slug)}`}
+                  href={`/owner/communities/${encodeURIComponent(community.slug)}`}
                   className="block rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-colors hover:border-[#fd5000]"
                 >
                   <span className="font-semibold text-[var(--color-text-primary)]">

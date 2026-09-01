@@ -21,7 +21,7 @@ export async function redirectIfAuthenticated(
 
   const pending = (await cookies()).get(TWO_FA_PENDING_COOKIE)?.value;
   if (cookieMatchesUser(pending, user.id)) {
-    const next = rawNext && isSafeInternalPath(rawNext) ? rawNext : "/dashboard";
+    const next = rawNext && isSafeInternalPath(rawNext) ? rawNext : "/";
     redirect(`/login/2fa?next=${encodeURIComponent(next)}`);
   }
 

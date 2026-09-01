@@ -632,16 +632,16 @@
 //         .delete()
 //         .eq("id", existing.id);
 //       if (error) throw error;
-//       revalidatePath("/dashboard/wishlist");
-//       revalidatePath("/dashboard/marketplace");
+//       revalidatePath("/marketplace");
+//       revalidatePath("/marketplace");
 //       return { success: true, inWishlist: false };
 //     } else {
 //       const { error } = await supabase
 //         .from("wishlists")
 //         .insert({ user_id: user.id, product_id: productId });
 //       if (error) throw error;
-//       revalidatePath("/dashboard/wishlist");
-//       revalidatePath("/dashboard/marketplace");
+//       revalidatePath("/marketplace");
+//       revalidatePath("/marketplace");
 //       return { success: true, inWishlist: true };
 //     }
 //   } catch (error: any) {
@@ -824,7 +824,7 @@
 //       notes: `Buyer transitioned order to ${newStatus}`,
 //     });
 
-//     revalidatePath(`/dashboard/orders/${orderId}`);
+//     revalidatePath(`/orders/${orderId}`);
 //     return { success: true };
 //   } catch (error: any) {
 //     console.error("Update order status error:", error);
@@ -2012,16 +2012,16 @@ export async function toggleWishlist(productId: string) {
         .delete()
         .eq("id", existing.id);
       if (error) throw error;
-      revalidatePath("/dashboard/wishlist");
-      revalidatePath("/dashboard/marketplace");
+      revalidatePath("/marketplace");
+      revalidatePath("/marketplace");
       return { success: true, inWishlist: false };
     } else {
       const { error } = await supabase
         .from("wishlists")
         .insert({ user_id: user.id, product_id: productId });
       if (error) throw error;
-      revalidatePath("/dashboard/wishlist");
-      revalidatePath("/dashboard/marketplace");
+      revalidatePath("/marketplace");
+      revalidatePath("/marketplace");
       return { success: true, inWishlist: true };
     }
   } catch (error: any) {
@@ -2209,7 +2209,7 @@ export async function updateOrderStatus(
       notes: `Buyer transitioned order to ${newStatus}`,
     });
 
-    revalidatePath(`/dashboard/orders/${orderId}`);
+    revalidatePath(`/orders/${orderId}`);
     return { success: true };
   } catch (error: any) {
     console.error("Update order status error:", error);

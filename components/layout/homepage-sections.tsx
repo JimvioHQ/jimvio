@@ -660,8 +660,8 @@ export { FeaturedCommunities } from "./featured-communities";
 const OPPS = [
   { title: "Marketplace", color: ORANGE, items: ["Checked suppliers", "Shipping options", "Card & wallet pay"], href: "/marketplace", cta: "Browse" },
   { title: "Affiliate program", color: GREEN, items: ["Up to 30% per sale", "Click tracking", "Wallet payouts"], href: "/affiliates", cta: "How it works" },
-  { title: "Vendor center", color: BLUE, items: ["Your own storefront", "Product uploads", "Order inbox"], href: "/dashboard", cta: "Open store" },
-  { title: "Brand campaigns", color: PURPLE, items: ["Post a brief", "Pick creators", "See submissions"], href: "/dashboard/vendor/campaigns/new", cta: "Start campaign" },
+  { title: "Vendor center", color: BLUE, items: ["Your own storefront", "Product uploads", "Order inbox"], href: "/", cta: "Open store" },
+  { title: "Brand campaigns", color: PURPLE, items: ["Post a brief", "Pick creators", "See submissions"], href: "/ugc/campaign-center/campaigns/new", cta: "Start campaign" },
   { title: "UGC campaigns", color: PURPLE, items: ["Paid per view", "Brand briefs", "Content approvals"], href: "/ugc", cta: "View open briefs" },
   { title: "Communities", color: BLUE, items: ["Free or paid", "Live rooms", "Courses & events"], href: "/communities", cta: "Find a group" },
 ];
@@ -702,10 +702,10 @@ export function OnePlatformOpportunities() {
 const AI_TOOLS = [
   { icon: Search, title: "Product finder", desc: "Search the catalog and filter by what's moving.", href: "/marketplace" },
   { icon: Wand2, title: "Content drafts", desc: "Rough out captions and scripts before you post.", href: "/ugc" },
-  { icon: Bot, title: "Campaign setup", desc: "Walk through budget, brief, and payout rules.", href: "/dashboard/vendor/campaigns/new" },
+  { icon: Bot, title: "Campaign setup", desc: "Walk through budget, brief, and payout rules.", href: "/ugc/campaign-center/campaigns/new" },
   { icon: Users, title: "Creator search", desc: "Find people who already post in your category.", href: "/ugc" },
-  { icon: LineChart, title: "Sales snapshot", desc: "See clicks, orders, and what's lagging.", href: "/dashboard" },
-  { icon: Store, title: "Listing helper", desc: "Tidy titles, prices, and stock on your store.", href: "/dashboard" },
+  { icon: LineChart, title: "Sales snapshot", desc: "See clicks, orders, and what's lagging.", href: "/" },
+  { icon: Store, title: "Listing helper", desc: "Tidy titles, prices, and stock on your store.", href: "/" },
 ];
 
 export function GrowthStack() {
@@ -1046,14 +1046,14 @@ const ONBOARD_CREATORS: OnboardStep[] = [
     desc: "Buyer, seller, creator, or community owner.",
     detail: "Choose what you want to do first. You can add other roles later from the dashboard.",
     minute: "5–10 min",
-    href: "/dashboard",
+    href: "/",
   },
   {
     title: "Finish your profile",
     desc: "Add a photo, bio, and payout details.",
     detail: "Creators need a short bio and payment method. Sellers add store name and logo.",
     minute: "10–15 min",
-    href: "/dashboard/settings",
+    href: "/identity/settings",
   },
   {
     title: "Make your first move",
@@ -1067,7 +1067,7 @@ const ONBOARD_CREATORS: OnboardStep[] = [
     desc: "Track clicks, sales, and earnings.",
     detail: "Open your wallet and analytics. See what worked, then repeat or scale from there.",
     minute: "22–30 min",
-    href: "/dashboard",
+    href: "/",
   },
 ];
 
@@ -1084,28 +1084,28 @@ const ONBOARD_BRANDS: OnboardStep[] = [
     desc: "Budget, audience, platforms, and payout model.",
     detail: "Decide per-view or fixed pay, which platforms you need, and how much budget to allocate.",
     minute: "5–12 min",
-    href: "/dashboard/vendor/campaigns/new",
+    href: "/ugc/campaign-center/campaigns/new",
   },
   {
     title: "Launch a campaign",
     desc: "Write the brief and publish.",
     detail: "Add examples, hashtags, and deliverables so creators know exactly what to submit.",
     minute: "12–20 min",
-    href: "/dashboard/vendor/campaigns/new",
+    href: "/ugc/campaign-center/campaigns/new",
   },
   {
     title: "Review submissions",
     desc: "Approve content and track views.",
     detail: "Check posts against your brief, approve the good ones, and monitor spend in real time.",
     minute: "20–26 min",
-    href: "/dashboard/vendor/campaigns",
+    href: "/ugc/campaign-center/campaigns",
   },
   {
     title: "Scale what works",
     desc: "Increase budget or spin up another campaign.",
     detail: "Double down on creators and formats that perform. Clone a winning campaign to move faster.",
     minute: "26–30 min",
-    href: "/dashboard/vendor/campaigns/new",
+    href: "/ugc/campaign-center/campaigns/new",
   },
 ];
 

@@ -10,7 +10,7 @@ export default async function AdminLayout({
 }) {
   const auth = await assertPlatformAdmin();
   if (!auth.ok) {
-    redirect(auth.status === 401 ? "/login?next=/admin" : "/dashboard");
+    redirect(auth.status === 401 ? "/login?next=/admin" : "/");
   }
 
   return <AdminAppShell>{children}</AdminAppShell>;

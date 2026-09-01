@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
             type: "payment",
             title: "Payout sent",
             message: `${amount} USDT has been sent to your Binance account.`,
-            actionUrl: "/dashboard/wallet",
+            actionUrl: "/wallet",
             data: { payout_id: payout.id, amount_usdt: amount },
             email: {
                 kind: "payout_sent",

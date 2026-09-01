@@ -17,7 +17,7 @@ export default async function IdentityEditPage() {
 
   const payload = await getIdentityByUserId(user.id, user.id);
   if (!payload) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   return <IdentityEditClient initialPayload={payload} />;

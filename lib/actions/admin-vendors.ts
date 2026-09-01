@@ -56,7 +56,7 @@ export async function approveVendor(vendorId: string, notes?: string) {
                 userIds: [vendor.user_id],
                 title: "Vendor approved",
                 message: "Your vendor account has been verified. You can start selling on Jimvio.",
-                actionUrl: "/dashboard",
+                actionUrl: "/",
                 announcementId: `vendor-approved-${vendorId}`,
             });
         } catch (err) {
@@ -99,7 +99,7 @@ export async function rejectVendor(vendorId: string, notes: string) {
                 message: notes?.trim()
                     ? `Your vendor application was not approved: ${notes.trim()}`
                     : "Your vendor application was not approved.",
-                actionUrl: "/dashboard",
+                actionUrl: "/",
                 announcementId: `vendor-rejected-${vendorId}`,
             });
         }

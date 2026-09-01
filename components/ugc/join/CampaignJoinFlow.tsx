@@ -78,7 +78,7 @@ export function CampaignJoinFlow() {
           },
         });
         if (pJson.status === "accepted") {
-          router.replace(`/ugc/${id}/dashboard`);
+          router.replace(`/ugc/${id}/`);
           return;
         }
         if (pJson.status === "pending" || pJson.status === "waitlisted") {

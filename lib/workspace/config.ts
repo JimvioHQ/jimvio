@@ -80,10 +80,10 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
       { id: "digital", label: "Digital", href: "/marketplace/digital", icon: Package },
       { id: "physical", label: "Physical", href: "/marketplace/physical", icon: Package },
       { id: "deals", label: "Flash Deals", href: "/marketplace/flash-deals", icon: Zap },
-      { id: "wishlist", label: "Wishlist", href: "/dashboard/wishlist", icon: Bookmark },
+      { id: "wishlist", label: "Wishlist", href: "/marketplace", icon: Bookmark },
       { id: "cart", label: "Cart", href: "/cart", icon: ShoppingBag },
-      { id: "orders", label: "Orders", href: "/dashboard/orders", icon: Package },
-      { id: "store", label: "Seller Hub", href: "/dashboard/vendor/store", icon: Store },
+      { id: "orders", label: "Orders", href: "/orders", icon: Package },
+      { id: "store", label: "Seller Hub", href: "/ugc/campaign-center/store", icon: Store },
     ],
   },
   communities: {
@@ -192,7 +192,7 @@ export const WORKSPACES: Record<WorkspaceId, WorkspaceDefinition> = {
       { id: "submissions", label: "Submissions", href: "/ugc/submissions", icon: FileVideo },
       { id: "analytics", label: "Analytics", href: "/ugc/analytics", icon: BarChart3 },
       { id: "earnings", label: "Earnings", href: "/ugc/earnings", icon: DollarSign },
-      { id: "wallet", label: "Wallet", href: "/dashboard/wallet", icon: Wallet },
+      { id: "wallet", label: "Wallet", href: "/wallet", icon: Wallet },
       { id: "profile", label: "Creator Profile", href: "/communities/profile", icon: Users },
     ],
     rightPanel: {

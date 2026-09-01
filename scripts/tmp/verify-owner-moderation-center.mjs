@@ -40,7 +40,7 @@ const apiAnalytics = mustExist(
   "app/api/c/owner/moderation/analytics/route.ts"
 );
 const page = mustExist(
-  "app/dashboard/communities/[communitySlug]/moderation/page.tsx"
+  "app/owner/communities/[communitySlug]/moderation/page.tsx"
 );
 const management = mustExist(
   "components/community/owner-console/moderation/ModerationManagement.tsx"

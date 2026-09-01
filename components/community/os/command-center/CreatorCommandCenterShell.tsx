@@ -109,13 +109,13 @@ export function CreatorCommandCenterShell({
       if (!(e.metaKey || e.ctrlKey) || !e.shiftKey) return;
       const key = e.key.toLowerCase();
       const map: Record<string, string> = {
-        p: "/dashboard/products/new",
+        p: "/marketplace/new",
         c: `${base}/courses`,
-        n: "/dashboard/communities",
+        n: "/owner/communities",
         l: `${base}/live`,
         e: `${base}/events`,
         i: `${base}/members`,
-        m: "/dashboard/vendor/campaigns/new",
+        m: "/ugc/campaign-center/campaigns/new",
         a: `${base}/feed`,
         k: "__search__",
       };

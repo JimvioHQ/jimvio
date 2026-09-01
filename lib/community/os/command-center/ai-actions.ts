@@ -174,19 +174,19 @@ export function deriveAiCtas(base: string): AiCtaAction[] {
     { id: "event", label: "Schedule event", href: `${base}/events` },
     { id: "live", label: "Start live", href: `${base}/live` },
     { id: "message", label: "Message members", href: `${base}/members` },
-    { id: "campaign", label: "Create campaign", href: "/dashboard/vendor/campaigns/new" },
+    { id: "campaign", label: "Create campaign", href: "/ugc/campaign-center/campaigns/new" },
   ];
 }
 
 export function deriveProductivityActions(base: string): CreatorQuickAction[] {
   return [
-    { id: "product", label: "Create Product", href: "/dashboard/products/new", shortcut: "⇧⌘P" },
+    { id: "product", label: "Create Product", href: "/marketplace/new", shortcut: "⇧⌘P" },
     { id: "course", label: "Create Course", href: `${base}/courses`, shortcut: "⇧⌘C" },
-    { id: "community", label: "Create Community", href: "/dashboard/communities", shortcut: "⇧⌘N" },
+    { id: "community", label: "Create Community", href: "/owner/communities", shortcut: "⇧⌘N" },
     { id: "live", label: "Start Live", href: `${base}/live`, shortcut: "⇧⌘L" },
     { id: "event", label: "Create Event", href: `${base}/events`, shortcut: "⇧⌘E" },
     { id: "invite", label: "Invite Members", href: `${base}/members`, shortcut: "⇧⌘I" },
-    { id: "campaign", label: "Launch Campaign", href: "/dashboard/vendor/campaigns/new", shortcut: "⇧⌘M" },
+    { id: "campaign", label: "Launch Campaign", href: "/ugc/campaign-center/campaigns/new", shortcut: "⇧⌘M" },
     { id: "ai-post", label: "Generate AI Post", href: `${base}/feed`, shortcut: "⇧⌘A" },
   ];
 }

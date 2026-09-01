@@ -104,7 +104,7 @@ export function UGCActiveProjectsPage() {
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button asChild size="sm" className="rounded-xl bg-[#FF5A1F]">
-                    <Link href={`/ugc/${row.campaign?.id}/dashboard`}>Open workspace</Link>
+                    <Link href={`/ugc/${row.campaign?.id}/`}>Open workspace</Link>
                   </Button>
                   <Button asChild size="sm" variant="outline" className="rounded-xl">
                     <Link href={`/ugc/${row.campaign?.id}/submit`}>Submit</Link>

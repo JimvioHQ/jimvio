@@ -32,7 +32,7 @@ const apiAnalytics = mustExist("app/api/c/owner/roles/analytics/route.ts");
 const apiAudit = mustExist("app/api/c/owner/roles/audit/route.ts");
 const apiExport = mustExist("app/api/c/owner/roles/export/route.ts");
 const page = mustExist(
-  "app/dashboard/communities/[communitySlug]/roles/page.tsx"
+  "app/owner/communities/[communitySlug]/roles/page.tsx"
 );
 const management = mustExist(
   "components/community/owner-console/roles/RolesManagement.tsx"

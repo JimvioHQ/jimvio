@@ -219,7 +219,7 @@ export function AdminCampaignsClient() {
                   >
                     <td className="min-w-[200px] px-3 py-3">
                       <Link
-                        href={`/dashboard/vendor/campaigns/${c.id}`}
+                        href={`/ugc/campaign-center/campaigns/${c.id}`}
                         className="line-clamp-1 font-medium text-[var(--color-text-primary)] hover:text-[var(--color-accent)]"
                       >
                         {c.title}
@@ -264,7 +264,7 @@ export function AdminCampaignsClient() {
                       <StatusPill status={c.status} />
                     </td>
                     <td className="px-3 py-3">
-                      <RowArrow href={`/dashboard/vendor/campaigns/${c.id}`} />
+                      <RowArrow href={`/ugc/campaign-center/campaigns/${c.id}`} />
                     </td>
                   </tr>
                 ))}

@@ -150,7 +150,7 @@ export default function PublicUGCSubmitPage() {
 
       setSuccess(true);
       setTimeout(() => {
-        router.push(`/ugc/${id}/dashboard`);
+        router.push(`/ugc/${id}/`);
       }, 1800);
     } catch (err: unknown) {
       window.clearInterval(tick);
@@ -177,7 +177,7 @@ export default function PublicUGCSubmitPage() {
     <div className="mx-auto max-w-3xl space-y-6 px-4 pb-20 pt-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
-          href={`/ugc/${id}/dashboard`}
+          href={`/ugc/${id}/`}
           className="inline-flex items-center gap-2 text-sm font-semibold text-[#6B7280] hover:text-[#111827]"
         >
           <ArrowLeft className="h-4 w-4" />

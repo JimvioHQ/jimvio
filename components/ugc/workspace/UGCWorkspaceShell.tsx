@@ -88,7 +88,7 @@ export function UGCWorkspaceShell({ children, user }: UGCWorkspaceShellProps) {
               <Menu className="h-4 w-4" />
             </button>
             <span className="min-w-0 truncate text-sm font-semibold text-[var(--color-text-primary)]">{t("ugcClipping")}</span>
-            <Link href="/dashboard" className="ml-auto inline-flex min-h-11 items-center text-xs font-semibold text-[#FF5A1F]">
+            <Link href="/" className="ml-auto inline-flex min-h-11 items-center text-xs font-semibold text-[#FF5A1F]">
               {t("openCreatorOs")}
             </Link>
           </div>

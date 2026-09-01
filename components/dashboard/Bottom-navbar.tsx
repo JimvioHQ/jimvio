@@ -197,20 +197,20 @@ export function BottomNav({
 
     const NAV_ITEMS: NavItem[] = [
         {
-            href: "/dashboard",
+            href: "/",
             icon: <LayoutDashboard className="h-5 w-5" />,
             label: "Home",
-            activeMatch: (p) => p === "/dashboard",
+            activeMatch: (p) => p === "/",
         },
         {
-            href: "/dashboard/marketplace",
+            href: "/marketplace",
             icon: <Globe className="h-5 w-5" />,
             label: "Shop",
             activeMatch: (p) =>
-                p.startsWith("/dashboard/marketplace") || p.startsWith("/marketplace"),
+                p.startsWith("/marketplace") || p.startsWith("/marketplace"),
         },
         {
-            href: "/dashboard/messages",
+            href: "/messages",
             icon: <MessageSquare className="h-5 w-5" />,
             label: "Inbox",
             badge: unreadMessages,

@@ -208,7 +208,7 @@ export default function ActivateVendorPage() {
       await fetchRoles();
       toast.success("Application submitted successfully.");
       router.refresh();
-      router.push("/dashboard");
+      router.push("/ugc/campaign-center");
    }
 
    /* ── Loading ── */
@@ -245,7 +245,7 @@ export default function ActivateVendorPage() {
             <div className="max-w-lg mx-auto px-4 sm:px-6 pt-10 sm:pt-16">
 
                <Link
-                  href="/dashboard"
+                  href="/"
                   className="inline-flex items-center gap-2 mb-10 text-xs font-semibold"
                   style={{ color: "var(--color-text-muted)" }}
                   onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-primary)")}
@@ -353,9 +353,9 @@ export default function ActivateVendorPage() {
                      {isApproved && (
                         <div className="grid grid-cols-2 gap-2">
                            {[
-                              { href: "/dashboard/vendor/store", icon: Store, label: "My Store" },
-                              { href: "/dashboard/products/new", icon: Plus, label: "New Product" },
-                              { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+                              { href: "/ugc/campaign-center", icon: Store, label: "My Store" },
+                              { href: "/ugc/campaign-center", icon: Plus, label: "New Product" },
+                              { href: "/", icon: LayoutDashboard, label: "Home" },
                               { href: `/marketplace/${vendor.business_slug}`, icon: Globe, label: "Public Page" },
                            ].map(({ href, icon: Icon, label }) => (
                               <Link
@@ -380,7 +380,7 @@ export default function ActivateVendorPage() {
                      {/* CTA */}
                      <div className="flex gap-2 pt-1">
                         <Link
-                           href="/dashboard"
+                           href="/"
                            className="flex-1 h-10 flex items-center justify-center rounded-xl text-xs font-semibold transition-all"
                            style={{
                               background: "var(--color-accent)", color: "#fff",
@@ -417,7 +417,7 @@ export default function ActivateVendorPage() {
 
             {/* Back */}
             <Link
-               href="/dashboard"
+               href="/"
                className="inline-flex items-center gap-2 mb-10 text-xs font-semibold"
                style={{ color: "var(--color-text-muted)" }}
                onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-primary)")}

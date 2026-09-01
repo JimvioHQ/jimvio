@@ -55,7 +55,7 @@ export function WishlistGrid({ initialItems }: { initialItems: WishlistItem[] })
         <p className="text-lg font-bold text-stone-900 dark:text-white tracking-tight">No saved products</p>
         <p className="text-[12px] font-semibold text-stone-500 mt-1 uppercase tracking-widest">Save products from the marketplace to see them here.</p>
         <Button asChild className="mt-6 h-11 px-8 rounded-sm bg-stone-900 text-white font-bold text-[11px] uppercase tracking-widest shadow-none active:scale-95 transition-all hover:bg-stone-800">
-          <Link href="/dashboard/marketplace">Browse Marketplace</Link>
+          <Link href="/marketplace">Browse Marketplace</Link>
         </Button>
       </GlassCard>
     );

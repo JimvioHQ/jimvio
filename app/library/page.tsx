@@ -265,7 +265,7 @@ import { DigitalLibrary } from "@/components/library/digital-library"
 //                 )}
 //               </div>
 //               {config.action === "continue" ? (
-//                 <Link href={`/dashboard/my-courses/${row.products?.id}`} onClick={() => onAccess(row.id)} className="dl-shelf-btn" style={{ color: config.color }}>
+//                 <Link href={`/library/${row.products?.id}`} onClick={() => onAccess(row.id)} className="dl-shelf-btn" style={{ color: config.color }}>
 //                   <config.ActionIcon size={12} />
 //                 </Link>
 //               ) : (
@@ -384,7 +384,7 @@ import { DigitalLibrary } from "@/components/library/digital-library"
 
 //       {/* Order badge */}
 //       {row.order_id && (
-//         <Link href={`/dashboard/orders/${row.order_id}`} className="dl-card-order-badge"
+//         <Link href={`/orders/${row.order_id}`} className="dl-card-order-badge"
 //           onClick={e => e.stopPropagation()} title={`Order #${row.order_id}`}>
 //           <ShoppingBag size={9} /> #{String(row.order_id).slice(-6)}
 //         </Link>
@@ -428,7 +428,7 @@ import { DigitalLibrary } from "@/components/library/digital-library"
 //         {!isExpired && isReady && (
 //           <div className="dl-card-hover">
 //             {config.action === "continue" ? (
-//               <Link href={`/dashboard/my-courses/${product?.id}`} onClick={() => onAccess(row.id)} className="dl-card-hover-btn">
+//               <Link href={`/library/${product?.id}`} onClick={() => onAccess(row.id)} className="dl-card-hover-btn">
 //                 <config.ActionIcon size={13} /> {config.actionLabel}
 //               </Link>
 //             ) : (
@@ -506,7 +506,7 @@ import { DigitalLibrary } from "@/components/library/digital-library"
 //               <Loader2 size={12} className="animate-spin" /> Preparing…
 //             </button>
 //           ) : config.action === "continue" ? (
-//             <Link href={`/dashboard/my-courses/${product?.id}`} onClick={() => onAccess(row.id)}
+//             <Link href={`/library/${product?.id}`} onClick={() => onAccess(row.id)}
 //               className="dl-btn dl-btn--primary dl-btn--sm" style={{ flex: 1, backgroundColor: config.color }}>
 //               <config.ActionIcon size={12} /> {config.actionLabel}
 //             </Link>
@@ -518,7 +518,7 @@ import { DigitalLibrary } from "@/components/library/digital-library"
 
 //           {!isExpired && isReady && (
 //             config.action === "continue" ? (
-//               <Link href={`/dashboard/my-courses/${product?.id}?tab=progress`} className="dl-btn dl-btn--icon dl-btn--sm">
+//               <Link href={`/library/${product?.id}?tab=progress`} className="dl-btn dl-btn--icon dl-btn--sm">
 //                 <BarChart2 size={13} />
 //               </Link>
 //             ) : (
@@ -530,7 +530,7 @@ import { DigitalLibrary } from "@/components/library/digital-library"
 //         </div>
 
 //         {row.order_id && (
-//           <Link href={`/dashboard/orders/${row.order_id}`} className="dl-card-order-link">
+//           <Link href={`/orders/${row.order_id}`} className="dl-card-order-link">
 //             <ShoppingBag size={10} /> Order #{String(row.order_id).slice(-8)}
 //           </Link>
 //         )}
@@ -750,11 +750,11 @@ import { DigitalLibrary } from "@/components/library/digital-library"
 //           {!isExpired && isReady ? (
 //             config.action === "continue" ? (
 //               <>
-//                 <Link href={`/dashboard/my-courses/${product?.id}`} onClick={() => onAccess(row.id)}
+//                 <Link href={`/library/${product?.id}`} onClick={() => onAccess(row.id)}
 //                   className="dl-btn dl-btn--primary dl-btn--sm" style={{ backgroundColor: config.color }}>
 //                   <config.ActionIcon size={11} /> <span className="dl-btn-label">{config.actionLabel}</span>
 //                 </Link>
-//                 <Link href={`/dashboard/my-courses/${product?.id}?tab=progress`} className="dl-btn dl-btn--icon dl-btn--sm">
+//                 <Link href={`/library/${product?.id}?tab=progress`} className="dl-btn dl-btn--icon dl-btn--sm">
 //                   <BarChart2 size={12} />
 //                 </Link>
 //               </>
@@ -1014,7 +1014,7 @@ import { DigitalLibrary } from "@/components/library/digital-library"
 //       if (e.key === "Enter" && focusedIndex >= 0 && paginated[focusedIndex]) {
 //         const row = paginated[focusedIndex];
 //         const config = getSubtypeConfig(row.subtype);
-//         if (config.action === "continue") { router.push(`/dashboard/my-courses/${row.products?.id}`); return; }
+//         if (config.action === "continue") { router.push(`/library/${row.products?.id}`); return; }
 //         window.open(proxyUrl(row.id), "_blank", "noopener,noreferrer");
 //       }
 //       if (e.key === " " && focusedIndex >= 0 && paginated[focusedIndex]) {

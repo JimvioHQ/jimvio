@@ -81,7 +81,7 @@ export function VerifyEmailClient() {
         </form>
       )}
 
-      <Link href={status === "email_verified" ? "/dashboard" : "/login"}>
+      <Link href={status === "email_verified" ? "/" : "/login"}>
         <Button className="w-full h-12 rounded-sm bg-zinc-900 hover:bg-zinc-800 text-white font-bold text-[14px]">
           {status === "email_verified" ? "Continue" : "Back to sign in"}
         </Button>

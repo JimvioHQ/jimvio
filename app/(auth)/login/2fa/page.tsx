@@ -25,7 +25,7 @@ export default async function TwoFAPage({
     return (
         <div className="mx-auto max-w-md px-4 py-10">
             <TwoFALoginForm
-                next={params.next && isSafeInternalPath(params.next) ? params.next : "/dashboard"}
+                next={params.next && isSafeInternalPath(params.next) ? params.next : "/"}
             />
         </div>
     );

@@ -125,7 +125,7 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
                   <Link href="/wallet">Open Wallet OS</Link>
                 </Button>
                 <Button asChild size="sm" variant="outline" className="rounded-xl">
-                  <Link href="/dashboard/wallet">Open wallet</Link>
+                  <Link href="/wallet">Open wallet</Link>
                 </Button>
                 <Button asChild size="sm" variant="outline" className="rounded-xl">
                   <Link href="/identity/wallet">Unified wallet</Link>
@@ -149,10 +149,10 @@ export function UGCEarningsPage({ mode = "earnings" }: { mode?: "earnings" | "pa
             {mode === "payouts" ? (
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button asChild className="rounded-xl bg-[#FF5A1F]">
-                  <Link href="/dashboard/wallet">Request withdrawal</Link>
+                  <Link href="/wallet">Request withdrawal</Link>
                 </Button>
                 <Button asChild variant="outline" className="rounded-xl">
-                  <Link href="/dashboard/payments">Payment methods</Link>
+                  <Link href="/wallet">Payment methods</Link>
                 </Button>
                 <Button asChild variant="outline" className="rounded-xl">
                   <a href="/api/ugc/payouts/history?format=csv">

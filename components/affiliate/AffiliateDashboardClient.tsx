@@ -166,7 +166,7 @@ export function AffiliateDashboardClient() {
           description={error}
           actionHref={
             error.includes("Activate")
-              ? "/dashboard/activate/affiliate"
+              ? "/activate/affiliate"
               : error.includes("Sign in")
                 ? "/login?next=/affiliates/dashboard"
                 : "/affiliates"

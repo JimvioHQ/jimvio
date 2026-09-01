@@ -79,7 +79,7 @@ export async function notifyVendorNewApplication(
     type: "system",
     title: "New campaign application",
     message: `A creator applied to "${campaignTitle}".`,
-    actionUrl: `/dashboard/vendor/campaigns/${campaignId}/applications`,
+    actionUrl: `/ugc/campaign-center/campaigns/${campaignId}/applications`,
     data: { campaignId, event: "new_application" },
   });
 }

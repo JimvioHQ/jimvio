@@ -260,7 +260,7 @@ export function UGCAnalyticsPage() {
                   data.topCampaigns?.map((c) => (
                     <Link
                       key={c.id}
-                      href={`/ugc/${c.id}/dashboard`}
+                      href={`/ugc/${c.id}/`}
                       className="flex items-center justify-between rounded-xl bg-[#FAFAFA] px-3 py-2.5 hover:bg-[#FFF4EF]"
                     >
                       <div className="min-w-0">

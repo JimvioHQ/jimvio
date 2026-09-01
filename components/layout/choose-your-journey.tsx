@@ -53,7 +53,7 @@ const JOURNEYS: readonly Journey[] = [
     tagline: "List products, manage orders, and get paid without a separate tool stack.",
     items: ["Store dashboard", "Inventory & orders", "Fast payouts"],
     cta: "Open your store",
-    href: "/dashboard",
+    href: "/",
   },
   {
     role: "Affiliate",
@@ -73,7 +73,7 @@ const JOURNEYS: readonly Journey[] = [
     tagline: "Launch campaigns, brief creators, and track performance from one hub.",
     items: ["Campaign builder", "Creator matching", "ROI tracking"],
     cta: "Launch a campaign",
-    href: "/dashboard/vendor/campaigns/new",
+    href: "/ugc/campaign-center/campaigns/new",
   },
   {
     role: "Creator",

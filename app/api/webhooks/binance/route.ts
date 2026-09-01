@@ -364,7 +364,7 @@ export async function POST(req: NextRequest) {
         type: "payment",
         title: "Payment confirmed",
         message: `Your payment for order ${data.merchantTradeNo} was received.`,
-        action_url: `/dashboard/orders/${order.id}`,
+        action_url: `/orders/${order.id}`,
     });
 
     if (notifError) {

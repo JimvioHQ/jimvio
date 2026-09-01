@@ -127,7 +127,7 @@ function SidebarContent({
   onNavigate?: () => void;
   onMobileClose?: () => void;
 }) {
-  const pathname = usePathname() ?? "/dashboard";
+  const pathname = usePathname() ?? "/";
   const workspaceMode = useJimvioOsStore((s) => s.workspaceMode);
   const openAssistant = useAIStore((s) => s.openAssistant);
 
@@ -136,7 +136,7 @@ function SidebarContent({
   function isActive(item: WorkspaceNavItem) {
     if (item.href === "#open-ai") return false;
     if (item.href === "/") return pathname === "/";
-    if (item.href === "/dashboard") return pathname === "/dashboard";
+    if (item.href === "/") return pathname === "/";
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   }
 

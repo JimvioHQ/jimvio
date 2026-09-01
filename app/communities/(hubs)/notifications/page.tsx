@@ -102,7 +102,7 @@ export default function CommunityNotificationsPage() {
             >
               Mark all read
             </button>
-            <HubLinkButton href="/dashboard/notifications" variant="secondary">
+            <HubLinkButton href="/settings/notifications" variant="secondary">
               Full inbox
             </HubLinkButton>
           </div>

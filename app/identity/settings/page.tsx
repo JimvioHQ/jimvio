@@ -84,7 +84,7 @@ export default async function IdentitySettingsPage() {
       icon: MessageSquareQuote,
     },
     {
-      href: "/dashboard/settings",
+      href: "/identity/settings",
       title: "Account settings",
       description: "General account preferences and workspace defaults.",
       icon: Settings2,
@@ -96,7 +96,7 @@ export default async function IdentitySettingsPage() {
       icon: Bell,
     },
     {
-      href: "/dashboard/security",
+      href: "/identity/security",
       title: "Security",
       description: "Password, two-factor authentication and active sessions.",
       icon: ShieldCheck,
@@ -145,7 +145,7 @@ export default async function IdentitySettingsPage() {
         <Paintbrush className="h-4 w-4 text-[#9A9388]" />
         <p className="text-[12.5px] text-[#8B8579]">
           Appearance (theme, density) lives in your{" "}
-          <Link href="/dashboard/settings" className="font-medium text-[#D6480F] underline-offset-2 hover:underline">
+          <Link href="/identity/settings" className="font-medium text-[#D6480F] underline-offset-2 hover:underline">
             account settings
           </Link>
           .

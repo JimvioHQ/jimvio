@@ -18,7 +18,7 @@ const TIMEOUT_MS = Number(process.env.SMOKE_TIMEOUT_MS || 25_000);
 const CRITICAL = [
   { name: "home", path: "/", expectStatus: [200] },
   { name: "login", path: "/login", expectStatus: [200] },
-  { name: "dashboard_gate", path: "/dashboard", expectStatus: [200, 307, 302, 303], allowRedirect: true },
+  { name: "dashboard_gate", path: "/", expectStatus: [200, 307, 302, 303], allowRedirect: true },
   { name: "communities", path: "/communities", expectStatus: [200] },
   { name: "marketplace", path: "/marketplace", expectStatus: [200] },
   { name: "creator_gate", path: "/creator", expectStatus: [200, 307, 302, 303], allowRedirect: true },

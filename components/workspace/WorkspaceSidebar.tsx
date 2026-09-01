@@ -144,7 +144,7 @@ export function WorkspaceSidebar({ workspace, activeId, onNavigate }: WorkspaceS
       ) : (
         <div className="mt-auto shrink-0 border-t border-[var(--color-border)] p-3">
           <Link
-            href="/dashboard"
+            href="/"
             onClick={onNavigate}
             className="flex items-center justify-center gap-1.5 rounded-xl border border-[var(--color-accent)]/25 bg-[var(--color-accent-subtle)] px-3 py-2.5 text-[12px] font-bold text-[var(--color-accent)] transition-colors hover:border-[var(--color-accent)]/40 hover:bg-[var(--color-accent-subtle)]"
           >

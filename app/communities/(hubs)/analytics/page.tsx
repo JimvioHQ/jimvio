@@ -90,7 +90,7 @@ export default function HubAnalyticsPage() {
               Creator performance across your communities
             </p>
           </div>
-          <HubLinkButton href="/dashboard/community/analytics" variant="secondary">
+          <HubLinkButton href="/communities/analytics" variant="secondary">
             Full dashboard <ChevronRight className="ml-1 h-3.5 w-3.5" />
           </HubLinkButton>
         </div>

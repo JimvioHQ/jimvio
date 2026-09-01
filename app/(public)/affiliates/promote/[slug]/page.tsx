@@ -214,7 +214,7 @@ export default async function AffiliatePromoteProductPage({ params }: PageProps)
       linkCode={linkCode}
       needsAuth={!user}
       needsAffiliate={!!user && needsAffiliate}
-      activateHref="/dashboard/activate/affiliate"
+      activateHref="/activate/affiliate"
       loginHref={`/login?next=${encodeURIComponent(`/affiliates/promote/${slug}`)}`}
     />
   );

@@ -9,7 +9,7 @@ import {
 export const dynamic = "force-dynamic";
 
 /**
- * Legacy /community-owner/* → /dashboard/communities/[slug]/…
+ * Legacy /community-owner/* → /owner/communities/[slug]/…
  * Resolves ?community=<id> to slug when present.
  */
 export default async function LegacyCommunityOwnerRedirect({

@@ -48,7 +48,7 @@ assert.match(reel, /\/communities\/\$\{/);
 assert.doesNotMatch(reel, /\/groups\/community\//);
 
 const action = mustExist("components/marketplace/product-action-module.tsx");
-assert.match(action, /\/dashboard\/library\?highlight=/);
+assert.match(action, /\/library\?highlight=/);
 assert.doesNotMatch(action, /\/dashboard\/digital-assets/);
 
 const login = mustExist("app/(auth)/login/page.tsx");

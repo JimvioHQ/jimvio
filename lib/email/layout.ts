@@ -46,7 +46,7 @@ export function wrapEmailHtml(params: {
             <td style="padding:18px 28px;background:#fafafa;border-top:1px solid #f4f4f5;">
               <p style="margin:0;font-size:12px;line-height:1.5;color:#a1a1aa;">
                 You received this email because of activity on your Jimvio account.
-                <a href="${baseUrl}/dashboard/settings" style="color:#71717a;">Manage preferences</a>
+                <a href="${baseUrl}/identity/settings" style="color:#71717a;">Manage preferences</a>
               </p>
             </td>
           </tr>

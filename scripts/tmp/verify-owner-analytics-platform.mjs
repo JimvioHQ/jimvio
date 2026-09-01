@@ -29,7 +29,7 @@ const nav = mustExist("lib/community/owner-console/nav.ts");
 const api = mustExist("app/api/c/owner/analytics/route.ts");
 const apiExport = mustExist("app/api/c/owner/analytics/export/route.ts");
 const page = mustExist(
-  "app/dashboard/communities/[communitySlug]/analytics/page.tsx"
+  "app/owner/communities/[communitySlug]/analytics/page.tsx"
 );
 const management = mustExist(
   "components/community/owner-console/analytics/AnalyticsManagement.tsx"

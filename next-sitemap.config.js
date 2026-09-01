@@ -30,7 +30,7 @@ module.exports = {
     "/order/*",
     "/account",
     "/account/*",
-    "/dashboard",
+    "/",
     "/dashboard/*",
     "/profile/edit",
     "/settings",

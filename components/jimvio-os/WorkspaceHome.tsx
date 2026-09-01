@@ -214,14 +214,14 @@ function resolveBriefHref(
     const tokens = c.label.toLowerCase().split(/\s+/).filter((t) => t.length > 3);
     if (tokens.some((t) => hay.includes(t))) return c.href;
   }
-  if (hay.includes("order")) return "/dashboard/orders";
+  if (hay.includes("order")) return "/orders";
   if (hay.includes("wallet") || hay.includes("withdraw")) return "/wallet";
   if (hay.includes("campaign")) return workspace.id === "brand" ? "/ugc/campaign-center" : "/ugc";
-  if (hay.includes("inventory") || hay.includes("stock") || hay.includes("product")) return "/dashboard/products";
+  if (hay.includes("inventory") || hay.includes("stock") || hay.includes("product")) return "/marketplace";
   if (hay.includes("community") || hay.includes("member")) return "/communities";
   if (hay.includes("affiliate") || hay.includes("link")) return "/affiliates";
   if (hay.includes("live")) return "/communities/live";
-  if (hay.includes("revenue") || hay.includes("analytic")) return "/dashboard/analytics";
+  if (hay.includes("revenue") || hay.includes("analytic")) return "/";
   if (hay.includes("ai") || hay.includes("opportunit")) return null;
   return null;
 }
@@ -411,7 +411,7 @@ const ContinueWorking = memo(function ContinueWorking({ accent }: { accent: stri
           title="Nothing in progress yet"
           message="As you move through Jimvio, unfinished work will appear here — campaigns, products, uploads, and more."
           ctaLabel="Explore workspace"
-          ctaHref="/dashboard"
+          ctaHref="/"
         />
       </section>
     );

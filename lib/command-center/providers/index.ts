@@ -272,7 +272,7 @@ export const communityScopedProvider: CommandSearchProvider = {
         kind: "message",
         title: "Messages",
         subtitle: "Open conversations",
-        href: "/dashboard/messages",
+        href: "/messages",
         keywords: ["messages", "dm", "inbox"],
         icon: "message",
       },

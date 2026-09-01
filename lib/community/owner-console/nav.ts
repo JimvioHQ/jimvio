@@ -1,6 +1,6 @@
 /**
  * Community Owner Console — navigation & domain types.
- * Permanent home: /dashboard/communities/[communitySlug]
+ * Permanent home: /owner/communities/[communitySlug]
  */
 
 import type { LucideIcon } from "lucide-react";
@@ -8,11 +8,11 @@ import type { WorkspaceRole } from "@/lib/community/workspace/types";
 import type { PermissionCapability } from "@/lib/community/workspace/permissions";
 
 /** Hub list — communities the user owns or can manage. */
-export const OWNER_CONSOLE_HUB = "/dashboard/communities";
+export const OWNER_CONSOLE_HUB = "/owner/communities";
 
 /**
  * Base path segment for Owner Console (hub). Section URLs are built with
- * `ownerConsoleHref(slug, section)` → `/dashboard/communities/{slug}/…`.
+ * `ownerConsoleHref(slug, section)` → `/owner/communities/{slug}/…`.
  */
 export const OWNER_CONSOLE_BASE = OWNER_CONSOLE_HUB;
 
@@ -42,7 +42,7 @@ export type OwnerConsoleSectionId =
 export type OwnerNavItem = {
   id: OwnerConsoleSectionId;
   label: string;
-  /** Path segment under /dashboard/communities/[slug] (empty = overview). */
+  /** Path segment under /owner/communities/[slug] (empty = overview). */
   section: string;
   /** @deprecated Prefer `section` + ownerConsoleHref — kept for verify scripts. */
   href: string;

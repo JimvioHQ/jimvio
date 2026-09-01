@@ -678,7 +678,7 @@ export default function DashboardSettingsClient() {
             </TabsList>
 
             <Link
-              href="/dashboard/security"
+              href="/identity/security"
               className="mr-3 inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)] transition-all hover:text-[var(--color-text-primary)] hover:ring-[var(--color-border-strong)]"
             >
               <Shield className="size-4" />
@@ -841,7 +841,7 @@ export default function DashboardSettingsClient() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {authMethods?.googleConnected ? (
                     <Link
-                      href="/dashboard/security"
+                      href="/identity/security"
                       className="text-[12px] font-semibold text-orange-600 hover:text-orange-500"
                     >
                       Manage in Security
@@ -864,7 +864,7 @@ export default function DashboardSettingsClient() {
                     </BrandBtn>
                   )}
                   <Link
-                    href="/dashboard/security"
+                    href="/identity/security"
                     className="text-[12px] font-semibold text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
                   >
                     Change password
@@ -1141,7 +1141,7 @@ export default function DashboardSettingsClient() {
                   id: "vendor",
                   label: "Vendor",
                   active: Boolean(vendor) || activeRoles.includes("vendor"),
-                  href: "/dashboard/activate/vendor",
+                  href: "/activate/vendor",
                   desc: "Sell products on the marketplace",
                 },
                 {

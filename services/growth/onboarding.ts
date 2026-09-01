@@ -59,7 +59,7 @@ async function maybeSendWelcomeEmail(
       type: "system",
       title: "Welcome to Jimvio",
       message: "Your account is ready. Open your dashboard to continue setup.",
-      actionUrl: "/dashboard",
+      actionUrl: "/",
       email: { kind: "welcome", intent },
     });
     await db()

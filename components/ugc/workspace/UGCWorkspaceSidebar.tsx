@@ -131,7 +131,7 @@ function resolveActive(pathname: string): string {
   if (pathname.match(/^\/ugc\/campaign-center\/[^/]+\/fund/)) return "cc-mine";
   if (pathname.startsWith("/ugc/campaign-center")) return "cc-mine";
   if (pathname === "/ugc/dashboard" || pathname === "/ugc/dashboard/") return "dashboard";
-  if (/^\/ugc\/[^/]+\/dashboard\/?$/.test(pathname)) return "projects";
+  if (/^\/ugc\/[^/]+\/\/?$/.test(pathname)) return "projects";
   if (pathname.startsWith("/ugc/applications")) return "applications";
   if (pathname.startsWith("/identity")) return "creator-profile";
   if (pathname.startsWith("/ugc/campaigns")) return "projects";
@@ -151,7 +151,6 @@ function resolveActive(pathname: string): string {
   if (pathname.startsWith("/ugc/brand-deals")) return "deals";
   if (pathname === "/ugc" || pathname === "/ugc/") return "discover";
   if (pathname.startsWith("/ugc/")) return "discover";
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return "mission";
   return "discover";
 }
 
@@ -247,7 +246,7 @@ export function UGCWorkspaceSidebar({ onNavigate }: UGCWorkspaceSidebarProps) {
         <h2 className="text-[12px] font-bold tracking-tight text-[var(--color-text-primary)]">{t("ugcClipping")}</h2>
         <UgcWorkspaceSwitcher />
         <Link
-          href="/dashboard"
+          href="/"
           onClick={onNavigate}
           className={cn(
             "mt-2.5 flex items-center gap-1.5 rounded-[10px] border px-2.5 py-[7px] text-[10px] font-bold transition-all duration-150",

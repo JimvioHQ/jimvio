@@ -225,7 +225,7 @@ async function searchCourses(pattern: string, query: string, limit: number) {
     entityType: "course" as const,
     title: row.title,
     subtitle: row.description,
-    href: row.room_id ? `/communities/rooms/${row.room_id}` : `/dashboard/library`,
+    href: row.room_id ? `/communities/rooms/${row.room_id}` : `/library`,
     imageUrl: row.thumbnail_url,
     score: combineScore({
       relevance: textRelevanceScore(query, row.title, row.description),
@@ -247,7 +247,7 @@ async function searchLessons(pattern: string, query: string, limit: number) {
     entityType: "lesson" as const,
     title: row.title,
     subtitle: row.is_free ? "Free lesson" : "Lesson",
-    href: `/dashboard/library`,
+    href: `/library`,
     score: combineScore({
       relevance: textRelevanceScore(query, row.title),
       freshness: freshnessBoost(row.created_at),
@@ -407,7 +407,7 @@ async function searchPosts(
       entityType: "post" as const,
       title: row.title || "Post",
       subtitle: row.body?.slice(0, 120) ?? row.communities?.name,
-      href: slug ? `/communities/${slug}/feed?post=${row.id}` : `/dashboard`,
+      href: slug ? `/communities/${slug}/feed?post=${row.id}` : `/`,
       score: combineScore({
         relevance: textRelevanceScore(query, row.title || "", row.body),
         freshness: freshnessBoost(row.created_at),
@@ -456,7 +456,7 @@ async function searchMessages(
     entityType: "message" as const,
     title: "Message",
     subtitle: String(row.body ?? "").slice(0, 140),
-    href: roomId ? `/dashboard/messages?room=${encodeURIComponent(String(roomId))}` : `/dashboard/messages`,
+    href: roomId ? `/messages?room=${encodeURIComponent(String(roomId))}` : `/messages`,
     score: combineScore({
       relevance: textRelevanceScore(query, String(row.body ?? "")),
       freshness: freshnessBoost(row.created_at),

@@ -343,7 +343,7 @@ for (const file of listTsFiles(root)) {
   assert.ok(allowedWriteRel.has(file), `unexpected user_roles write in ${path.relative(root, file)}`);
 }
 
-for (const rel of ["app/dashboard/vendor/setup/page.tsx", "app/dashboard/activate/vendor/page.tsx"]) {
+for (const rel of ["app/activate/vendor/page.tsx", "app/activate/vendor/page.tsx"]) {
   const src = mustExist(rel);
   assert.match(src, /activateVendorRole/);
   assert.doesNotMatch(src, /from\("user_roles"\)\.upsert/);
