@@ -14,14 +14,14 @@ import { StoriesRail } from "@/components/feed/StoriesRail";
 import type { FeedTab } from "@/lib/feed/mock-data";
 import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
 
-/** Desktop intelligence rail — AI Assistant, Live now, Popular Users, Activity Feed. */
+/** Desktop intelligence rail — AI Assistant, Activity Feed, Live now, Popular Users. */
 function FeedRightRail() {
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <AIAssistantPanel />
+      <ActivityFeedCard />
       <LiveNowCard />
       <PopularUsersCard />
-      <ActivityFeedCard />
     </div>
   );
 }
