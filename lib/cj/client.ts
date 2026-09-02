@@ -32,7 +32,7 @@ export async function getCJToken(supabase: SupabaseClient): Promise<string> {
 
 const UUID_RE =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const CJ_VENDOR_SLUG = "jimvio-dropshipping";
+const CJ_VENDOR_SLUGS = ["jimvio-store", "jimvio-dropshipping"] as const;
 
 function isUuid(value: unknown): value is string {
     return typeof value === "string" && UUID_RE.test(value);
@@ -125,21 +125,23 @@ export async function getCJVendorId(supabase: SupabaseClient): Promise<string> {
         );
     }
 
-    const { data: bySlug } = await supabase
-        .from("vendors")
-        .select("id")
-        .eq("business_slug", CJ_VENDOR_SLUG)
-        .maybeSingle();
-    if (bySlug?.id && isUuid(bySlug.id)) {
-        await persistPlatformSettingsVendorId(supabase, bySlug.id);
-        cachedCjVendorId = bySlug.id;
-        return bySlug.id;
+    for (const slug of CJ_VENDOR_SLUGS) {
+        const { data: bySlug } = await supabase
+            .from("vendors")
+            .select("id")
+            .eq("business_slug", slug)
+            .maybeSingle();
+        if (bySlug?.id && isUuid(bySlug.id)) {
+            await persistPlatformSettingsVendorId(supabase, bySlug.id);
+            cachedCjVendorId = bySlug.id;
+            return bySlug.id;
+        }
     }
 
     const { data: byName } = await supabase
         .from("vendors")
         .select("id")
-        .ilike("business_name", "%dropship%")
+        .or("business_name.ilike.%jimvio store%,business_name.ilike.%dropship%")
         .eq("is_active", true)
         .limit(1)
         .maybeSingle();

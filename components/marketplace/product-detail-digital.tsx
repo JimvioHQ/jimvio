@@ -511,6 +511,7 @@ import {
 } from "@/components/marketplace/product-detail-shared";
 import type { Tables } from "@/types/supabase";
 import type { ProductWithRelations, VendorPublic } from "@/services/products";
+import { formatFollowersLabel, storefrontFollowerCount } from "@/lib/marketplace/store-display";
 import { buildProductCommerceGraph } from "@/lib/commerce-graph";
 import { buildProductBusinessGraph } from "@/lib/business-graph";
 import { CommerceGraphDiscovery, CommerceGraphPanel } from "@/components/commerce-graph";
@@ -772,7 +773,7 @@ function VendorSectionCard({
   followedVendorIds,
 }: { vendor: VendorPublic; followedVendorIds: string[] }) {
   const rating = Number(vendor.rating ?? 0);
-  const followerCount = vendor.follower_count ?? null;
+  const followersLabel = formatFollowersLabel(storefrontFollowerCount(vendor));
   const positiveRate = 99;
   const responseTime = vendor.response_time ?? "5 min";
   const fulfilledOrders = vendor.total_sales ?? 0;
@@ -834,9 +835,7 @@ function VendorSectionCard({
               <span>{positiveRate}% Positive</span>
               <span aria-hidden>|</span>
               <span>
-                {followerCount && followerCount > 0
-                  ? `${followerCount >= 1000 ? `${(followerCount / 1000).toFixed(1)}K` : followerCount} Followers`
-                  : "1.2K Followers"}
+                {followersLabel}
               </span>
             </div>
           </div>

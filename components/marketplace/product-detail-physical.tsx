@@ -25,6 +25,7 @@ import {
   type ProductVariant,
 } from "@/components/marketplace/variant-selector";
 import { filterStorefrontVariants, requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
+import { formatFollowersLabel, formatFollowerCount, storefrontFollowerCount } from "@/lib/marketplace/store-display";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
   ProductBreadcrumb, SaveShareBar,
@@ -765,12 +766,11 @@ function OrderTrackingCard() {
 function WhyChooseSection({ vendor, product }: { vendor?: any; product?: any }) {
   const rating = Number(product?.rating ?? vendor?.rating ?? 0);
   const orders = vendor?.total_sales ?? product?.sale_count ?? 0;
-  const followers = vendor?.follower_count ?? null;
   const positiveRate = vendor?.positive_rate ?? null;
 
   const stats = [
     { value: orders > 0 ? (orders >= 1000 ? `${(orders / 1000).toFixed(1)}K` : orders.toString()) : "—", label: "Orders" },
-    { value: followers ? (followers >= 1000 ? `${(followers / 1000).toFixed(1)}K` : followers.toString()) : "—", label: "Followers" },
+    { value: formatFollowerCount(storefrontFollowerCount(vendor)), label: "Followers" },
     { value: rating > 0 ? rating.toFixed(1) : "—", label: "Rating", isRating: rating > 0 },
     { value: positiveRate !== null ? `${positiveRate}%` : "—", label: "Positive Rate" },
   ];
@@ -852,12 +852,7 @@ function LiveActivityFeedSidebar({ liveViewers, recentActivity }: { liveViewers:
 // ─── Vendor Section Card ──────────────────────────────────────────────────────
 
 function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followedVendorIds: string[] }) {
-  const followerCount = vendor.follower_count ?? null;
-
-  const followersLabel =
-    followerCount && followerCount > 0
-      ? `${followerCount >= 1000 ? `${(followerCount / 1000).toFixed(1)}K` : followerCount.toLocaleString()} Followers`
-      : "No followers yet";
+  const followersLabel = formatFollowersLabel(storefrontFollowerCount(vendor));
 
   const trustItems = [
     {

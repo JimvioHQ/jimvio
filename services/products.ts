@@ -31,7 +31,9 @@ export type VendorPublic = Pick<
   | "follower_count"
   | "response_time"
   | "created_at"
->;
+> & {
+  display_follower_count?: number | null;
+};
 
 export type ProductCategoryPublic = Pick<
   Tables<"product_categories">,
@@ -105,6 +107,7 @@ const VENDOR_PUBLIC_COLS = `
   id, business_name, business_slug, business_logo, business_banner,
   business_description, business_country,
   verification_status, rating, total_sales, follower_count,
+  display_follower_count,
   response_time, created_at
 `;
 

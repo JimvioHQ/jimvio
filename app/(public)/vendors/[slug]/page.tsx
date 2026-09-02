@@ -24,7 +24,8 @@ import { getAdminDB, getVendorProducts, getVendorClipsWithDetails } from "@/serv
 import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketplace";
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { FollowButton } from "@/components/marketplace/follow-button";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { formatFollowerCount, storefrontFollowerCount } from "@/lib/marketplace/store-display";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
@@ -34,6 +35,9 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
+  if (slug === "jimvio-dropshipping") {
+    redirect("/vendors/jimvio-store");
+  }
   const admin = getAdminDB();
   const { data: vendor } = await admin
     .from("vendors")
@@ -56,6 +60,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function VendorStorePage({ params }: PageProps) {
   const { slug } = await params;
+  if (slug === "jimvio-dropshipping") {
+    redirect("/vendors/jimvio-store");
+  }
   const admin = getAdminDB();
   
   // Fetch vendor by slug from DB
@@ -156,7 +163,7 @@ export default async function VendorStorePage({ params }: PageProps) {
                     <div>
                       <p className="text-xs text-[var(--color-text-muted)] font-bold capitalize mb-1">Followers</p>
                       <p className="font-black text-lg">
-                        {(vendor.follower_count || 0) > 1000 ? `${((vendor.follower_count || 0) / 1000).toFixed(1)}k` : vendor.follower_count || 0}
+                        {formatFollowerCount(storefrontFollowerCount(vendor))}
                       </p>
                     </div>
                     <div>
@@ -311,7 +318,7 @@ export default async function VendorStorePage({ params }: PageProps) {
                     <span className="font-medium">Followers</span>
                   </div>
                   <span className="font-black text-[var(--color-text-primary)]">
-                    {(vendor.follower_count || 0) > 1000 ? `${((vendor.follower_count || 0) / 1000).toFixed(1)}k` : vendor.follower_count || 0}
+                    {formatFollowerCount(storefrontFollowerCount(vendor))}
                   </span>
                 </div>
               </div>

@@ -1194,7 +1194,8 @@ import { getDefaultAffiliateCommissionPercent } from "@/lib/platform-settings";
 import { grantDigitalAccess } from "./digital-access";
 import { Json } from "@/types/supabase";
 import { getAdminDB } from "../supabase/admin";
-import { filterStorefrontVariants, requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
+import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
+import { resolvePurchaseLine } from "@/lib/products/resolve-purchase-line";
 
 interface CJProductMeta {
   cj_pid?: string;
@@ -1499,7 +1500,7 @@ export async function addToCart(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Authentication required" };
 
-    const [productResult, variantResult] = await Promise.all([
+    const [productResult, variantsResult] = await Promise.all([
       supabase
         .from("products")
         .select(
@@ -1510,15 +1511,11 @@ export async function addToCart(
         )
         .eq("id", productId)
         .single(),
-
-      variantId && uuidRe.test(variantId)
-        ? supabase
-          .from("product_variants")
-          .select("id, cj_vid, cj_pid, price, inventory_quantity, source_metadata, weight, source")
-          .eq("id", variantId)
-          .eq("product_id", productId)
-          .single()
-        : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from("product_variants")
+        .select("id, cj_vid, cj_pid, price, inventory_quantity, source_metadata, weight, source, options, is_active")
+        .eq("product_id", productId)
+        .eq("is_active", true),
     ]);
 
     const product = productResult.data;
@@ -1532,65 +1529,25 @@ export async function addToCart(
     const productSource = normalizeProductSource(product.source);
     const isCJ = isCJSource(productSource);
     const productMeta = (product.source_metadata as CJProductMeta) ?? {};
+    const extraVariants = variantsResult.data ?? [];
 
-    let effectiveVariantId =
-      variantId && uuidRe.test(variantId) ? variantId : null;
-    let variant = variantResult.data;
-    let pendingVariantSelection = false;
-
-    if (options?.allowPendingVariant) {
-      const { data: allVariants } = await supabase
-        .from("product_variants")
-        .select(
-          "id, cj_vid, cj_pid, price, inventory_quantity, source_metadata, weight, source, options, is_active",
-        )
-        .eq("product_id", productId)
-        .eq("is_active", true);
-
-      const storefrontVariants = filterStorefrontVariants(
-        allVariants ?? [],
-        Boolean(product.track_inventory),
-      );
-      const needsSelection = requiresPurchasableVariantSelection(storefrontVariants);
-
-      if (!effectiveVariantId && !needsSelection && storefrontVariants.length > 0) {
-        variant = storefrontVariants[0];
-        effectiveVariantId = variant.id;
-      }
-
-      pendingVariantSelection = needsSelection && !effectiveVariantId;
+    const resolved = resolvePurchaseLine({
+      product,
+      variants: extraVariants,
+      selectedVariantId: variantId && uuidRe.test(variantId) ? variantId : null,
+      allowPendingVariant: options?.allowPendingVariant,
+    });
+    if (!resolved.ok) {
+      return { success: false, error: resolved.error };
     }
 
-    let cjVid: string | null = null;
-    let cjPid: string | null = productMeta.cj_pid ?? null;
-    let variantWeight: number | null = null;
-
-    if (isCJ) {
-      if (variant) {
-        const v = variant;
-        cjVid = (v.source_metadata as any)?.cj_vid ?? v.cj_vid ?? null;
-        cjPid = (v.source_metadata as any)?.cj_pid ?? v.cj_pid ?? cjPid;
-        variantWeight = v.weight ?? null;
-      } else {
-        cjVid = productMeta.cj_vid ?? null;
-        variantWeight = productMeta.cj_weight ?? null;
-      }
-
-      if (!cjVid && !options?.allowPendingVariant) {
-        return {
-          success: false,
-          error: "This product is missing variant information. Please contact support.",
-        };
-      }
-    }
-    const effectivePrice =
-      variant && Number(variant.price) > 0
-        ? Number(variant.price)
-        : Number(product.price);
-
-    const inventoryQty = variant
-      ? (variant.inventory_quantity ?? 0)
-      : (product.inventory_quantity ?? 0);
+    const effectiveVariantId = resolved.variantId;
+    const pendingVariantSelection = resolved.pendingVariantSelection;
+    const cjVid = resolved.cjVid;
+    const cjPid = resolved.cjPid;
+    const variantWeight = resolved.variantWeight;
+    const effectivePrice = resolved.price;
+    const inventoryQty = resolved.inventoryQty;
 
     if (
       !pendingVariantSelection &&
@@ -2235,26 +2192,22 @@ export async function buyDirectCheckout(
     const uuidRe =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-    const [productResult, variantResult] = await Promise.all([
+    const [productResult, variantsResult] = await Promise.all([
       supabase
         .from("products")
         .select(`
           id, name, price, images, currency, source, source_metadata,
           affiliate_enabled, affiliate_commission_rate,
           product_type, pricing_type, billing_period, digital_file_url,
-          status, is_active
+          status, is_active, track_inventory, inventory_quantity, allow_backorder
         `)
         .eq("id", productId)
         .maybeSingle(),
-
-      variantId && uuidRe.test(variantId)
-        ? supabase
-          .from("product_variants")
-          .select("id, cj_vid, cj_pid, price, source_metadata, weight, source")
-          .eq("id", variantId)
-          .eq("product_id", productId)
-          .maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from("product_variants")
+        .select("id, cj_vid, cj_pid, price, inventory_quantity, source_metadata, weight, source, options, is_active")
+        .eq("product_id", productId)
+        .eq("is_active", true),
     ]);
 
     const product = productResult.data;
@@ -2268,33 +2221,28 @@ export async function buyDirectCheckout(
     const productSource = normalizeProductSource(product.source);
     const isCJ = isCJSource(productSource);
     const productMeta = (product.source_metadata as CJProductMeta) ?? {};
-    const variant = variantResult.data;
-
-    let cjVid: string | null = null;
-    let cjPid: string | null = productMeta.cj_pid ?? null;
-    let variantWeight: number | null = null;
-
-    if (isCJ) {
-      if (variant) {
-        cjVid = (variant.source_metadata as any)?.cj_vid ?? variant.cj_vid ?? null;
-        cjPid = (variant.source_metadata as any)?.cj_pid ?? variant.cj_pid ?? cjPid;
-        variantWeight = variant.weight ?? null;
-      } else {
-        cjVid = productMeta.cj_vid ?? null;
-        variantWeight = productMeta.cj_weight ?? null;
-      }
-      if (!cjVid) {
-        return {
-          success: false,
-          error: "This supplier product is missing variant information. Please contact support.",
-        };
-      }
+    const resolved = resolvePurchaseLine({
+      product,
+      variants: variantsResult.data ?? [],
+      selectedVariantId: variantId && uuidRe.test(variantId) ? variantId : null,
+    });
+    if (!resolved.ok) {
+      return { success: false, error: resolved.error };
     }
 
-    const effectivePrice =
-      variant && Number(variant.price) > 0
-        ? Number(variant.price)
-        : Number(product.price);
+    const cjVid = resolved.cjVid;
+    const cjPid = resolved.cjPid;
+    const variantWeight = resolved.variantWeight;
+    const effectiveVariantId = resolved.variantId;
+    const effectivePrice = resolved.price;
+
+    if (
+      product.track_inventory &&
+      !product.allow_backorder &&
+      resolved.inventoryQty < quantity
+    ) {
+      return { success: false, error: "Insufficient stock" };
+    }
 
     const totalAmount = effectivePrice * quantity;
     const isFree = effectivePrice === 0;
@@ -2383,7 +2331,7 @@ export async function buyDirectCheckout(
       .insert({
         order_id: order.id,
         product_id: productId,
-        variant_id: variantId ?? null,
+        variant_id: effectiveVariantId,
         vendor_id: vendorId,
         product_type: productType,
         product_name: product.name,

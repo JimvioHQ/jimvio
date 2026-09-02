@@ -544,7 +544,7 @@ export function ProductActionModule({
         return;
       }
 
-      toast.error(BUY_NOW_ERROR);
+      toast.error(result.error ?? BUY_NOW_ERROR);
       setBuyNowLoading(false);
     } catch (err) {
       console.error("Buy now failed:", err);

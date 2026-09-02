@@ -32,7 +32,7 @@ export async function GET(): Promise<Response> {
     const { data: vendorRow } = await supabase
       .from("vendors")
       .select("id, business_name, business_slug")
-      .ilike("business_name", "%dropship%")
+      .or("business_name.ilike.%jimvio store%,business_name.ilike.%dropship%,business_slug.eq.jimvio-store,business_slug.eq.jimvio-dropshipping")
       .limit(5);
 
     return Response.json({

@@ -600,8 +600,99 @@ export async function upsertCJProductVariants(
     variantRows: CJVariantRow[]
 ): Promise<{ error?: string; upserted: number; skipped: number }> {
     const incomingVids = new Set<string>();
-    let upserted = 0;
     let skipped = 0;
+    const payloads: Array<Omit<CJVariantRow, "skipInventoryUpdate">> = [];
+    let preserveInventory = false;
+
+    for (const row of variantRows) {
+        const cjVid = normalizeCjVid(row.cj_vid);
+        if (!cjVid) {
+            skipped += 1;
+            console.warn(
+                `[CJ import] Variant missing cj_vid for product=${productId} sku=${row.sku}`
+            );
+            continue;
+        }
+
+        incomingVids.add(cjVid);
+        const { skipInventoryUpdate, ...rowFields } = row;
+        if (skipInventoryUpdate) preserveInventory = true;
+        payloads.push({
+            ...rowFields,
+            product_id: productId,
+            cj_vid: cjVid,
+            sku: rowFields.sku || cjVid,
+            source_metadata: withCjVariantSourceMetadata(
+                (row.source_metadata ?? {}) as Record<string, unknown>,
+                cjVid,
+                row.cj_pid
+            ),
+        });
+    }
+
+    if (!preserveInventory && payloads.length > 0) {
+        const seenSku = new Set<string>();
+        for (const payload of payloads) {
+            const sku = String(payload.sku ?? "");
+            if (!sku || seenSku.has(sku)) {
+                payload.sku = payload.cj_vid;
+            }
+            seenSku.add(String(payload.sku));
+        }
+
+        const skus = payloads.map((row) => String(row.sku)).filter(Boolean);
+        if (skus.length > 0) {
+            const { data: skuOwners } = await supabase
+                .from("product_variants")
+                .select("sku, cj_vid")
+                .in("sku", skus);
+            const taken = new Map(
+                (skuOwners ?? []).map((row) => [String(row.sku), String(row.cj_vid ?? "")]),
+            );
+            for (const payload of payloads) {
+                const owner = taken.get(String(payload.sku));
+                if (owner && owner !== payload.cj_vid) {
+                    payload.sku = payload.cj_vid;
+                }
+            }
+        }
+
+        const chunkSize = 80;
+        let upserted = 0;
+        for (let i = 0; i < payloads.length; i += chunkSize) {
+            const chunk = payloads.slice(i, i + chunkSize);
+            const { error } = await supabase
+                .from("product_variants")
+                .upsert(chunk, { onConflict: "cj_vid" });
+            if (error) {
+                return { error: error.message, upserted, skipped };
+            }
+            upserted += chunk.length;
+        }
+
+        const { data: existingVariants } = await supabase
+            .from("product_variants")
+            .select("id, cj_vid")
+            .eq("product_id", productId);
+
+        const staleIds = (existingVariants ?? [])
+            .filter((v) => v.cj_vid && !incomingVids.has(v.cj_vid))
+            .map((v) => v.id);
+
+        if (staleIds.length > 0) {
+            const { error } = await supabase
+                .from("product_variants")
+                .delete()
+                .in("id", staleIds);
+            if (error) {
+                return { error: error.message, upserted, skipped };
+            }
+        }
+
+        return { upserted, skipped };
+    }
+
+    let upserted = 0;
 
     for (const row of variantRows) {
         const cjVid = normalizeCjVid(row.cj_vid);
@@ -674,6 +765,20 @@ export async function upsertCJProductVariants(
 
         const { error } = await supabase.from("product_variants").insert(payload);
         if (error) {
+            const skuConflict =
+                error.code === "23505" &&
+                /sku/i.test(error.message) &&
+                payload.sku !== cjVid;
+            if (skuConflict) {
+                const { error: retryError } = await supabase
+                    .from("product_variants")
+                    .insert({ ...payload, sku: cjVid });
+                if (retryError) {
+                    return { error: retryError.message, upserted, skipped };
+                }
+                upserted += 1;
+                continue;
+            }
             return { error: error.message, upserted, skipped };
         }
         upserted += 1;

@@ -14,5 +14,5 @@
     "types/**/*.ts",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "scripts", "e2e", "forensics", "coverage", "dist", "build", "out"]
+  "exclude": ["node_modules", "scripts", "e2e", "forensics", "coverage", "dist", "build", "out", "**/*.test.ts"]
 }

@@ -20,12 +20,12 @@ function collapseWhitespace(value: string): string {
 /** Returns true if text still contains supplier branding after basic cleanup. */
 export function containsSupplierBranding(text: string): boolean {
   return (
-    CJ_DROPSHIPPING_RE.test(text) ||
-    CJ_WAREHOUSE_RE.test(text) ||
-    CJ_PACKET_RE.test(text) ||
-    CJ_WORD_RE.test(text) ||
-    CJ_PREFIX_RE.test(text) ||
-    DROPSHIP_RE.test(text) ||
+    /\bcj\s*dropshipping\b/i.test(text) ||
+    /\bcj\s*warehouse\b/i.test(text) ||
+    /\bcj\s*packet\b/i.test(text) ||
+    /\bCJ\b/.test(text) ||
+    /\bcj[_-][a-z0-9]+/i.test(text) ||
+    /\bdropship(ping|per|ment)?\b/i.test(text) ||
     /cjdropshipping/i.test(text)
   );
 }
@@ -34,7 +34,7 @@ function stripSupplierBranding(text: string): string {
   return collapseWhitespace(
     text
       .replace(CJ_DROPSHIPPING_RE, "")
-      .replace(CJ_WAREHOUSE_RE, "")
+      .replace(CJ_WAREHOUSE_RE, "Fulfillment center")
       .replace(CJ_PACKET_RE, "International")
       .replace(CJ_PREFIX_RE, "")
       .replace(CJ_WORD_RE, "")
@@ -72,7 +72,7 @@ export function sanitizeShippingMethodName(raw: string | null | undefined): stri
 export function sanitizeShipFromLabel(raw: string | null | undefined): string {
   if (!raw?.trim()) return "";
 
-  let label = stripSupplierBranding(raw.trim());
+  const label = stripSupplierBranding(raw.trim());
   if (!label || containsSupplierBranding(label)) return "";
   return label;
 }
@@ -88,7 +88,7 @@ export function sanitizeTrackingStatus(raw: string | null | undefined): string |
 export function sanitizeSupplierFacingText(raw: string | null | undefined): string {
   if (!raw?.trim()) return "";
 
-  let text = raw.trim()
+  const text = raw.trim()
     .replace(CJ_DROPSHIPPING_RE, "")
     .replace(CJ_WAREHOUSE_RE, "Fulfillment center")
     .replace(CJ_PACKET_RE, "International")
@@ -99,19 +99,47 @@ export function sanitizeSupplierFacingText(raw: string | null | undefined): stri
   return collapseWhitespace(text);
 }
 
-/** Remove supplier branding from product description HTML before render. */
+/**
+ * Remove supplier branding from product description HTML before render.
+ * Image tags (including CJ CDNs such as cf.cjdropshipping.com) are preserved
+ * so description photos keep rendering.
+ */
+function preserveDescriptionImageTag(tag: string): string {
+  if (!/\bsrc\s*=/i.test(tag)) return tag;
+  if (/src\s*=\s*["']?\s*javascript:/i.test(tag)) return "";
+  let next = tag;
+  if (!/\breferrerpolicy=/i.test(next)) {
+    next = next.replace(/<img\b/i, '<img referrerpolicy="no-referrer"');
+  }
+  if (!/\bloading=/i.test(next)) {
+    next = next.replace(/<img\b/i, '<img loading="lazy"');
+  }
+  return next;
+}
+
 export function sanitizeProductDescriptionHtml(html: string): string {
   if (!html) return "";
 
-  let out = html
+  let source = html.replace(/&lt;img\b([^&]*?)(?:\/\s*)?&gt;/gi, "<img$1>");
+
+  const preservedImages: string[] = [];
+  let out = source.replace(/<img\b[^>]*>/gi, (tag) => {
+    preservedImages.push(preserveDescriptionImageTag(tag));
+    return `__JIMVIO_DESC_IMG_${preservedImages.length - 1}__`;
+  });
+
+  out = out
     .replace(CJ_DOMAIN_IN_HREF_RE, "$1")
     .replace(CJ_DOMAIN_RE, "")
-    .replace(/cjdropshipping\.com/gi, "")
     .replace(CJ_DROPSHIPPING_RE, "")
     .replace(CJ_WAREHOUSE_RE, "Fulfillment center")
     .replace(CJ_PACKET_RE, "International")
     .replace(CJ_WORD_RE, "")
     .replace(DROPSHIP_RE, "");
+
+  out = out.replace(/__JIMVIO_DESC_IMG_(\d+)__/g, (_, index) => {
+    return preservedImages[Number(index)] ?? "";
+  });
 
   return out.trim();
 }

@@ -16,6 +16,7 @@ import { Product, Vendor } from "@/types/db";
 import { CurrencyCode } from "@/lib/currency/config";
 import { useCurrency } from "@/context/CurrencyContext";
 import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
+import { formatFollowersLabel, storefrontFollowerCount } from "@/lib/marketplace/store-display";
 
 const DEFAULT_AFFILIATE_RATE =
   PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent;
@@ -28,6 +29,7 @@ export interface SharedVendor {
     business_logo?: string | null;
     business_slug?: string | null;
     follower_count?: number;
+    display_follower_count?: number | null;
     product_count?: number;
 }
 
@@ -553,7 +555,9 @@ export function VendorCard({
                             <BadgeCheck className="h-3 w-3 text-sky-500 flex-shrink-0" />
                             <p className="text-[11px] text-[var(--color-text-muted)]">
                                 Verified creator
-                                {vendor.follower_count ? ` · ${vendor.follower_count.toLocaleString()} followers` : ""}
+                                {storefrontFollowerCount(vendor) > 0
+                                  ? ` · ${formatFollowersLabel(storefrontFollowerCount(vendor))}`
+                                  : ""}
                             </p>
                         </div>
                     </div>

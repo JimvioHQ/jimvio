@@ -12436,6 +12436,7 @@ export type Database = {
           commission_rate: number | null
           created_at: string | null
           follower_count: number | null
+          display_follower_count: number
           id: string
           is_active: boolean | null
           is_featured: boolean | null
@@ -12473,6 +12474,7 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string | null
           follower_count?: number | null
+          display_follower_count?: number
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
@@ -12510,6 +12512,7 @@ export type Database = {
           commission_rate?: number | null
           created_at?: string | null
           follower_count?: number | null
+          display_follower_count?: number
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null

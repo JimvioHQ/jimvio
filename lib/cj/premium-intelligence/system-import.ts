@@ -3,14 +3,9 @@
  */
 
 import { getServiceClient, getCJVendorId, getCJToken, cjFetchWithRetry } from "@/lib/cj/client";
-import {
-  upsertCJProduct,
-  mapCJVariantToJimvio,
-  upsertCJProductVariants,
-  type CJVariant,
-} from "@/lib/actions/cj_product";
-import { normalizeCjVid } from "@/lib/cj/variant-vid";
-import { syncProductInventoryFromVariants } from "@/lib/cj/sync-inventory";
+import { upsertCJProduct } from "@/lib/actions/cj_product";
+import { catalogOptionKeys, catalogVariantRecords } from "@/lib/cj/catalog-variants";
+import { syncCjVariantsFromPayload } from "@/lib/cj/sync-catalog-variants";
 import { getCatalogDB } from "./db";
 import { getRawProduct } from "./catalog-repository";
 import {
@@ -60,11 +55,10 @@ async function fetchCjDetail(pid: string): Promise<Record<string, unknown> | nul
   return detailRes.data ?? null;
 }
 
-function detailVariants(detail: Record<string, unknown> | null): Array<Record<string, unknown>> {
-  if (!detail || !Array.isArray(detail.variants)) return [];
-  return detail.variants.filter(
-    (row): row is Record<string, unknown> => Boolean(row) && typeof row === "object"
-  );
+function payloadObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 /**
@@ -85,7 +79,18 @@ export async function ensureCjProductImported(
       .select("images")
       .eq("id", existing)
       .maybeSingle();
-    if (hasPublishableImages(product?.images)) return existing;
+    if (hasPublishableImages(product?.images)) {
+      const rawExisting = await getRawProduct(pid);
+      if (rawExisting) {
+        await syncCjVariantsFromPayload(
+          existing,
+          pid,
+          payloadObject(rawExisting.raw_payload),
+          String(rawExisting.sku ?? pid),
+        );
+      }
+      return existing;
+    }
   }
 
   const raw = await getRawProduct(pid);
@@ -124,12 +129,12 @@ export async function ensureCjProductImported(
   try {
     const supabase = getServiceClient();
     const vendorId = await getCJVendorId(supabase);
-    const variants = detailVariants(detail);
-    const optionKeys = (
-      (Array.isArray(detail?.productKeyEnSet) ? detail?.productKeyEnSet : null) ??
-      (Array.isArray(detail?.productKeySet) ? detail?.productKeySet : null) ??
-      []
-    ).filter((key): key is string => typeof key === "string");
+    const variantPayload = {
+      ...payloadObject(refreshed.raw_payload),
+      ...(detail ?? {}),
+    };
+    const variants = catalogVariantRecords(variantPayload);
+    const optionKeys = catalogOptionKeys(variantPayload);
 
     const result = await upsertCJProduct(
       supabase,
@@ -144,36 +149,12 @@ export async function ensureCjProductImported(
 
     if (variants.length > 0) {
       try {
-        const variantRows = [];
-        for (const variant of variants) {
-          const vid = normalizeCjVid(variant.vid);
-          if (!vid) continue;
-          const cjVariant: CJVariant = {
-            vid,
-            pid: String(variant.pid ?? pid),
-            productSku: cj.productSku,
-            variantSku: String(variant.variantSku ?? ""),
-            variantName: String(variant.variantName ?? ""),
-            variantNameEn: String(variant.variantNameEn ?? ""),
-            variantImage: String(variant.variantImage ?? ""),
-            variantProperty: String(variant.variantProperty ?? variant.variantKey ?? ""),
-            variantSellPrice: String(variant.variantSellPrice ?? "0"),
-            variantWeight: String(variant.variantWeight ?? "0"),
-            variantLength: typeof variant.variantLength === "number" ? variant.variantLength : undefined,
-            variantWidth: typeof variant.variantWidth === "number" ? variant.variantWidth : undefined,
-            variantHeight: typeof variant.variantHeight === "number" ? variant.variantHeight : undefined,
-            variantVolume: typeof variant.variantVolume === "number" ? variant.variantVolume : undefined,
-            isSell: 1,
-          };
-          variantRows.push({
-            ...(await mapCJVariantToJimvio(cjVariant, result.productId, optionKeys, 0)),
-            skipInventoryUpdate: true,
-          });
-        }
-        if (variantRows.length > 0) {
-          await upsertCJProductVariants(supabase, result.productId, variantRows);
-        }
-        await syncProductInventoryFromVariants(supabase, result.productId);
+        await syncCjVariantsFromPayload(
+          result.productId,
+          pid,
+          variantPayload,
+          cj.productSku,
+        );
       } catch (err) {
         console.warn(
           `[CJ import] Variant sync skipped for ${pid}:`,
