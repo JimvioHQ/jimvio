@@ -92,7 +92,7 @@ export const DEFAULT_PAYMENT_PROVIDERS: PaymentProvidersSettings = {
 };
 
 export const DEFAULT_PLATFORM_DEFAULTS: DefaultsSettings = {
-  currency: "RWF",
+  currency: "USD",
   timezone: "Africa/Kigali",
   low_stock_threshold: 5,
   allow_backorder: false,

@@ -16,7 +16,6 @@ import { requiresPurchasableVariantSelection } from "@/lib/products/storefront-v
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
-import { ProductSignalBadges } from "@/components/marketplace/product-signal-badges";
 import type { Tables } from "@/types/supabase";
 
 export type DbVariant = Tables<"product_variants">;
@@ -644,7 +643,6 @@ function ProductCard({
           className="flex min-h-[14px] flex-col gap-1 text-[9px] font-semibold"
           style={{ color: "var(--color-text-muted)" }}
         >
-          <ProductSignalBadges product={p as never} />
           {ratingValue != null && ratingValue > 0 ? (
             <span className="inline-flex items-center gap-0.5">
               <Star className="size-2.5 shrink-0 fill-amber-400 text-amber-400" />
@@ -772,11 +770,11 @@ function ProductCard({
 
         <div className="flex min-h-[20px] items-baseline gap-1.5">
           <span className="text-[15px] font-black leading-none tracking-[-0.02em]" style={{ color: "var(--color-accent)" }}>
-            {formatMoney(displayPrice, currency)}
+            {formatMoney(displayPrice, currency, "USD")}
           </span>
           {effectiveCompareAt && (
             <span className="text-[10px] font-medium leading-none line-through" style={{ color: "var(--color-text-muted)" }}>
-              {formatMoney(effectiveCompareAt, currency)}
+              {formatMoney(effectiveCompareAt, currency, "USD")}
             </span>
           )}
         </div>

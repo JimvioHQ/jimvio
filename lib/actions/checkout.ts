@@ -10,6 +10,7 @@ import { Json } from "@/types/supabase";
 import { revalidatePath } from "next/cache";
 import { notifyUser } from "@/lib/notifications/notify-user";
 import { computeOrderTotalAmount } from "@/lib/commerce/order-totals";
+import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
 import { estimateOrderTax } from "@/lib/commerce/tax-hooks";
 import {
   buildAffiliateAttribution,
@@ -140,6 +141,8 @@ type CartItem = {
   product_source: string;
   source_metadata: Json;
   affiliate_link_id?: string | null;
+  unit_price_at_add?: number | null;
+  currency_at_add?: string | null;
   products: {
     id: string;
     name: string;
@@ -220,7 +223,7 @@ async function createVendorOrder(
   vendorItems: CartItem[],
   buyerId: string,
   cartId: string,
-  currency: string,
+  _currency: string,
   referralCode: string | null
 ): Promise<string> {
   let subtotal = 0;
@@ -229,7 +232,11 @@ async function createVendorOrder(
   for (const item of vendorItems) {
     const p = item.products!;
     const v = item.product_variants;
-    const unitPrice = Number(v?.price ?? p.price);
+    const unitPrice =
+      (item.currency_at_add ?? "").toUpperCase() === PLATFORM_CURRENCY &&
+      Number.isFinite(Number(item.unit_price_at_add))
+        ? Math.round(Number(item.unit_price_at_add) * 100) / 100
+        : toPlatformUsd(Number(v?.price ?? p.price), p.currency);
     const totalPrice = unitPrice * item.quantity;
     subtotal += totalPrice;
 
@@ -267,11 +274,7 @@ async function createVendorOrder(
     });
   }
 
-  const safeCurrency = (currency || "RWF").toUpperCase();
-  console.log({ orderItemsPayload });
-  if (safeCurrency === "rwf") {
-    return Promise.reject(new Error(`Unsupported currency: ${safeCurrency}`));
-  }
+  const safeCurrency = PLATFORM_CURRENCY;
 
   const { data: order, error: orderError } = await admin
     .from("orders")
@@ -629,7 +632,7 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
   const { data: rawItems, error: itemsError } = await supabase
     .from("cart_items")
     .select(`
-      id, quantity, product_id, variant_id, vendor_id, product_source, source_metadata, affiliate_link_id,
+      id, quantity, product_id, variant_id, vendor_id, product_source, source_metadata, affiliate_link_id, unit_price_at_add, currency_at_add,
       products(
         id, name, price, currency, status, is_active, deleted_at,
         track_inventory, inventory_quantity, allow_backorder,
@@ -671,7 +674,6 @@ export async function startCheckout(): Promise<Result<{ orderIds: string[] }>> {
   }
 
   const createdOrderIds: string[] = [];
-  console.log({ cart });
   const referralCode = await resolveAffiliateReferralFromCookies();
 
   for (const [vendorId, vendorItems] of byVendor) {

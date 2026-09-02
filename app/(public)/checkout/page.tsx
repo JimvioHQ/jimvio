@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { CheckoutExperience } from "@/components/checkout/checkout-experience";
 import { syncOrderWithCart } from "@/lib/actions/checkout";
 import { sanitizeCustomerOrderMetadata } from "@/lib/orders/customer-order-fields";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ensurePendingOrderPlatformCurrency } from "@/lib/commerce/ensure-platform-currency";
+import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -203,6 +206,29 @@ export default async function CheckoutPage(props: {
   if (!order.order_items.length) {
     redirectWithError(CHECKOUT_ERRORS.NO_ITEMS, "Order has no items");
   }
+
+  try {
+    await ensurePendingOrderPlatformCurrency(createAdminClient(), order.id);
+  } catch (error) {
+    console.warn("[checkout] pending USD normalize skipped", error);
+  }
+
+  if (order.order_items.some((item) => item.product_source === "cj")) {
+    try {
+      await getOrRefreshAccessToken();
+    } catch (error) {
+      console.warn("[checkout] CJ token warm skipped", error);
+    }
+  }
+
+  const { data: refreshedRaw } = await supabase
+    .from("orders")
+    .select(ORDER_SELECT)
+    .eq("id", orderId)
+    .eq("buyer_id", user.id)
+    .in("payment_status", ["pending", "failed"])
+    .single();
+  const displayOrder = refreshedRaw ? normaliseOrder(refreshedRaw) : order;
   
   // ── Profile ─────────────────────────────────────────────────────────────────
   const { data: profile } = await supabase
@@ -215,7 +241,7 @@ export default async function CheckoutPage(props: {
     <div className="min-h-screen bg-[var(--color-bg)]">
       <div className="max-w-8xl mx-auto px-0 sm:px-4 md:px-6">
         <CheckoutExperience
-          orders={[order] as never}
+          orders={[displayOrder] as never}
           profile={profile}
           mode={isCommunity ? "community" : "cart"}
           preferredMethod={preferredMethod}

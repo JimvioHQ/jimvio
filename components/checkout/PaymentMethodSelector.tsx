@@ -698,7 +698,7 @@ export function PaymentMethodSelector({
   selected,
   onSelect,
   orderTotal = 0,
-  orderCurrency = "RWF",
+  orderCurrency = "USD",
   showSummary = true,
   onPay,
   loading = false,

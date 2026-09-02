@@ -42,7 +42,6 @@ import {
 } from "./MarketplaceSearchPopover";
 import Link from "next/link";
 import { PersonalizedMarketplaceFeed } from "./personalized/PersonalizedMarketplaceFeed";
-import { CollectionsSection } from "./CollectionsSection";
 import type { MarketplaceCollection } from "@/lib/marketplace/collections";
 
 type ProductType = MarketplaceProductType;
@@ -240,7 +239,6 @@ export function MarketplacePageClient({
   initialStats,
   heroPhysical,
   heroDigital,
-  initialCollections = [],
 }: Props) {
   const supabase = createClient();
   const startingBundle = initialBundles[initialType];
@@ -1163,11 +1161,6 @@ export function MarketplacePageClient({
               ))}
             </div>
           </section>
-        )}
-
-        {/* ── Collections ── */}
-        {initialCollections.length > 0 && (
-          <CollectionsSection collections={initialCollections} />
         )}
 
         {/* ── Trending Products — skeleton only this section while loading ── */}

@@ -429,7 +429,7 @@ export async function POST(req: NextRequest) {
 
   // Amount check against saved transaction (same currency as Flutterwave charge)
   const expectedAmount = txRow?.amount ?? null;
-  const expectedCurrency = (txRow?.currency ?? "RWF").toUpperCase();
+  const expectedCurrency = (txRow?.currency ?? order.currency ?? "USD").toUpperCase();
   if (
     amount != null &&
     expectedAmount != null &&

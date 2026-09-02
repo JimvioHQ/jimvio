@@ -1196,6 +1196,7 @@ import { Json } from "@/types/supabase";
 import { getAdminDB } from "../supabase/admin";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import { resolvePurchaseLine } from "@/lib/products/resolve-purchase-line";
+import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
 
 interface CJProductMeta {
   cj_pid?: string;
@@ -1546,7 +1547,10 @@ export async function addToCart(
     const cjVid = resolved.cjVid;
     const cjPid = resolved.cjPid;
     const variantWeight = resolved.variantWeight;
-    const effectivePrice = resolved.price;
+    const effectivePrice = toPlatformUsd(
+      resolved.price,
+      product.currency,
+    );
     const inventoryQty = resolved.inventoryQty;
 
     if (
@@ -1594,7 +1598,7 @@ export async function addToCart(
     const { data: cart, error: cartError } = await supabase
       .from("carts")
       .upsert(
-        { user_id: user.id, currency: product.currency?.toUpperCase() || "RWF" },
+        { user_id: user.id, currency: PLATFORM_CURRENCY },
         { onConflict: "user_id" }
       )
       .select("id")
@@ -1661,7 +1665,7 @@ export async function addToCart(
           vendor_id: vendorId,
           quantity,
           unit_price_at_add: effectivePrice,
-          currency_at_add: product.currency?.toUpperCase() || "RWF",
+          currency_at_add: PLATFORM_CURRENCY,
           product_source: lineSource,
           source_metadata: lineMeta as Json,
           affiliate_link_id: affiliateLinkId,
@@ -2234,7 +2238,7 @@ export async function buyDirectCheckout(
     const cjPid = resolved.cjPid;
     const variantWeight = resolved.variantWeight;
     const effectiveVariantId = resolved.variantId;
-    const effectivePrice = resolved.price;
+    const effectivePrice = toPlatformUsd(resolved.price, product.currency);
 
     if (
       product.track_inventory &&
@@ -2244,10 +2248,10 @@ export async function buyDirectCheckout(
       return { success: false, error: "Insufficient stock" };
     }
 
-    const totalAmount = effectivePrice * quantity;
+    const totalAmount = Math.round(effectivePrice * quantity * 100) / 100;
     const isFree = effectivePrice === 0;
     const productType = product.product_type ?? (isCJ ? "physical" : "digital");
-    const productCurrency = product.currency?.toUpperCase() || "RWF";
+    const productCurrency = PLATFORM_CURRENCY;
 
     const cookieStore = await cookies();
     const lastVideoId = cookieStore.get("jimvio_last_video_id")?.value ?? null;

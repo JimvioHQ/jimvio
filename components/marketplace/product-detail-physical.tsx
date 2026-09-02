@@ -1354,11 +1354,11 @@ export function PhysicalProductDetail({
                   <div className="mt-4">
                     <div className="flex flex-wrap items-baseline gap-2.5">
                       <span className="text-[32px] font-extrabold leading-none tracking-[-0.03em] text-[var(--color-accent)]">
-                        {formatMoney(activePrice, product.currency)}
+                        {formatMoney(activePrice, product.currency, "USD")}
                       </span>
                       {activeCompareAt && (
                         <span className="text-[15px] font-medium text-[var(--color-text-muted)] line-through decoration-[var(--color-border-strong)]">
-                          {formatMoney(activeCompareAt, product.currency)}
+                          {formatMoney(activeCompareAt, product.currency, "USD")}
                         </span>
                       )}
                       {savings !== null && savings > 0 && (
@@ -1369,7 +1369,7 @@ export function PhysicalProductDetail({
                     </div>
                     {savingsAmount > 0 && (
                       <p className="mt-1.5 text-[12px] font-semibold text-emerald-600 dark:text-emerald-400">
-                        You save {formatMoney(savingsAmount, product.currency)}
+                        You save {formatMoney(savingsAmount, product.currency, "USD")}
                       </p>
                     )}
                     {!isCJ && !isOutOfStock && activeInventory > 0 && (

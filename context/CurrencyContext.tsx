@@ -13,9 +13,11 @@ import { SUPPORTED_CURRENCIES, type CurrencyCode } from "@/lib/currency/config";
 import {
   formatAggregatedCartTotalInDisplayCurrency,
   formatConvertedPrice,
+  formatCurrency,
   formatMoneyV2,
   type CartOrderLikeForTotal,
 } from "@/lib/currency/format";
+import { PLATFORM_CURRENCY, toPlatformUsd } from "@/lib/currency/platform";
 import CustomSelect from "@/components/ui/select-2";
 import { cn } from "@/lib/utils";
 
@@ -53,13 +55,16 @@ const CurrencyContext = createContext<CurrencyContextValue | null>(null);
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const [rates, setRates] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [userCurrency, setUserCurrencyState] = useState<CurrencyCode>("RWF");
+  const [userCurrency, setUserCurrencyState] = useState<CurrencyCode>("USD");
 
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw && isCurrencyCode(raw)) {
-        setUserCurrencyState(raw);
+      if (raw === "USD") {
+        setUserCurrencyState("USD");
+      } else {
+        setUserCurrencyState("USD");
+        window.localStorage.setItem(STORAGE_KEY, "USD");
       }
     } catch {
       /* ignore */
@@ -97,10 +102,10 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const setUserCurrency = useCallback((code: CurrencyCode) => {
-    setUserCurrencyState(code);
+  const setUserCurrency = useCallback((_code: CurrencyCode) => {
+    setUserCurrencyState("USD");
     try {
-      window.localStorage.setItem(STORAGE_KEY, code);
+      window.localStorage.setItem(STORAGE_KEY, "USD");
     } catch {
       /* ignore */
     }
@@ -108,6 +113,9 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const formatPrice = useCallback(
     (amountUSD: number) => {
+      if (userCurrency === PLATFORM_CURRENCY) {
+        return formatCurrency(toPlatformUsd(amountUSD, PLATFORM_CURRENCY), PLATFORM_CURRENCY);
+      }
       if (loading) return "...";
       return formatConvertedPrice(amountUSD, userCurrency, rates);
     },
@@ -116,11 +124,13 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const formatMoney = useCallback(
     (amount: number, from: string | null | undefined, to?: string | null) => {
-      if (loading) return "...";
-      const fromCode = (from ?? "USD").toUpperCase();
+      const fromCode = (from ?? PLATFORM_CURRENCY).toUpperCase();
       const toCode = to ? to.toUpperCase() : userCurrency;
-      // formatMoneyV2 expects a CurrencyCode for `to`; coerce unknowns to userCurrency
       const safeTo: CurrencyCode = isCurrencyCode(toCode) ? toCode : userCurrency;
+      if (safeTo === PLATFORM_CURRENCY) {
+        return formatCurrency(toPlatformUsd(amount, fromCode), PLATFORM_CURRENCY);
+      }
+      if (loading) return "...";
       return formatMoneyV2(amount, fromCode, safeTo, rates);
     },
     [loading, rates, userCurrency]
@@ -128,6 +138,13 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
 
   const formatCartTotalsLabel = useCallback(
     (cartOrders: CartOrderLikeForTotal[]) => {
+      if (userCurrency === PLATFORM_CURRENCY) {
+        const total = (cartOrders ?? []).reduce((sum, order) => {
+          const line = order.order_items?.reduce((s, i) => s + Number(i.total_price), 0) ?? 0;
+          return sum + toPlatformUsd(line, order.currency);
+        }, 0);
+        return formatCurrency(total, PLATFORM_CURRENCY);
+      }
       if (loading) return "...";
       return formatAggregatedCartTotalInDisplayCurrency(cartOrders, userCurrency, rates);
     },
@@ -156,13 +173,21 @@ export function useCurrency(): CurrencyContextValue {
   if (!ctx) {
     return {
       rates: {},
-      userCurrency: "RWF",
-      displayCurrency: "RWF",
-      loading: true,
+      userCurrency: "USD",
+      displayCurrency: "USD",
+      loading: false,
       setUserCurrency: () => { },
-      formatPrice: () => "...",
-      formatMoney: () => "...",
-      formatCartTotalsLabel: () => "...",
+      formatPrice: (amountUSD: number) => formatCurrency(toPlatformUsd(amountUSD, PLATFORM_CURRENCY), PLATFORM_CURRENCY),
+      formatMoney: (amount: number, from: string | null | undefined) =>
+        formatCurrency(toPlatformUsd(amount, from), PLATFORM_CURRENCY),
+      formatCartTotalsLabel: (orders: CartOrderLikeForTotal[]) =>
+        formatCurrency(
+          (orders ?? []).reduce((sum, order) => {
+            const line = order.order_items?.reduce((s, i) => s + Number(i.total_price), 0) ?? 0;
+            return sum + toPlatformUsd(line, order.currency);
+          }, 0),
+          PLATFORM_CURRENCY,
+        ),
     };
   }
   return ctx;
@@ -181,7 +206,7 @@ export function CurrencySelector({
   useEffect(() => {
     setMounted(true);
   }, []);
-  const displayValue = mounted ? userCurrency : "RWF";
+  const displayValue = mounted ? userCurrency : "USD";
 
   return (
     <CustomSelect

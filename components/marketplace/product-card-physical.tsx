@@ -8,7 +8,6 @@ import {
 } from "lucide-react";
 import { productHasVideos } from "@/lib/product-videos";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
-import { ProductSignalBadges } from "@/components/marketplace/product-signal-badges";
 import { cn, getProductDiscountPercent, getEffectiveCompareAtPrice } from "@/lib/utils";
 import {
   addToCart,
@@ -292,8 +291,6 @@ export function ProductCardPhysical({
         {/* ── Info ── */}
         <div className="flex flex-col flex-1 p-3.5 sm:p-4 gap-2.5">
 
-          {/* Stock + affiliate badges */}
-          <ProductSignalBadges product={p as any} />
           {(lowStock || affiliateEnabled) && (
             <div className="flex flex-wrap items-center gap-1">
               {lowStock && (

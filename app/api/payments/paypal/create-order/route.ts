@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createPayPalOrder } from "@/lib/paypal";
+import { orderTotalsForUsdGateway } from "@/lib/money";
 import { requireSessionUser, notFoundIfInvalidId } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
@@ -47,10 +48,11 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_APP_URL ||
       "https://jimvio.com";
 
+    const paypalTotals = orderTotalsForUsdGateway(Number(order.total_amount), order.currency);
     const { orderId: paypalOrderId, approvalUrl } = await createPayPalOrder({
       jimvioOrderId: orderId,
-      amount: Number(order.total_amount),
-      currency: order.currency || "USD",
+      amount: paypalTotals.amount,
+      currency: paypalTotals.currency,
       description: `Jimvio Order ${order.order_number || orderId.slice(0, 8)}`,
       returnUrl: `${origin}/api/payments/paypal/capture?orderId=${orderId}`,
       cancelUrl: `${origin}/checkout/cancel?order=${orderId}&provider=paypal`,

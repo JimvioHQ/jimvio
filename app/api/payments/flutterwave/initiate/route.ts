@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { createFlutterwavePaymentLink } from "@/lib/flutterwave";
-import { usdToRwfAmount } from "@/lib/money";
+import { orderTotalsForUsdGateway } from "@/lib/money";
 import { generateTxRef } from "@/lib/payments/tx-ref";
 import { buildPaymentSnapshot } from "@/lib/payments/order-payment-utils";
 import { verifyFlutterwaveTransaction, FlutterwaveAPIError } from "@/lib/payments/Transaction-verify";
 import { requireSessionUser } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey } from "@/lib/supabase/service-role";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 type ApiError =
   | { code: "VALIDATION_ERROR"; details: z.ZodIssue[] }
@@ -69,14 +70,16 @@ function extractProfile(
   return Array.isArray(raw) ? (raw[0] ?? null) : raw;
 }
 
-function normaliseToRwf(
+function normaliseToUsd(
   amount: number,
   currency: string
-): { amount: number; currency: "RWF"; fxRate: number | null } {
-  if (currency === "RWF") return { amount, currency: "RWF", fxRate: null };
-  const converted = usdToRwfAmount(amount);
-  const fxRate = amount > 0 ? converted / amount : null;
-  return { amount: converted, currency: "RWF", fxRate };
+): { amount: number; currency: "USD"; fxRate: number | null } {
+  const converted = orderTotalsForUsdGateway(amount, currency);
+  const fxRate =
+    currency.toUpperCase() !== "USD" && amount > 0
+      ? converted.amount / amount
+      : null;
+  return { amount: converted.amount, currency: "USD", fxRate };
 }
 
 function safeReturnUrl(
@@ -106,7 +109,7 @@ async function buildAndReturnPaymentLink({
   orderId: string;
   txRef: string;
   amount: number;
-  currency: "RWF";
+  currency: "USD";
   profile: ProfileRow;
   order: { order_number: string | null };
   channel: string;
@@ -128,7 +131,7 @@ async function buildAndReturnPaymentLink({
       customerName: profile.full_name ?? "Customer",
       customerPhone: profile.phone ?? "",
       orderDescription: `Order ${order.order_number ?? orderId.slice(0, 8)}`,
-      paymentOptions: "card,applepay,googlepay,mobilemoneyrwanda",
+      paymentOptions: "card,applepay,googlepay",
       channel: "sms",
     });
   } catch (linkErr) {
@@ -193,9 +196,8 @@ export async function POST(req: NextRequest) {
 
     // ── 2. Normalize currency ─────────────────────────────────────────────
     const orderCurrency = (order.currency ?? "USD").toUpperCase();
-    const { amount, currency, fxRate } = normaliseToRwf(Number(order.total_amount), orderCurrency);
-    const isConverted = orderCurrency !== "RWF";
-    const amountUsd = isConverted ? Number(order.total_amount) : null;
+    const { amount, currency, fxRate } = normaliseToUsd(Number(order.total_amount), orderCurrency);
+    const amountUsd = amount;
     const paymentSnapshot = buildPaymentSnapshot({
       orderTotal: Number(order.total_amount),
       orderCurrency,

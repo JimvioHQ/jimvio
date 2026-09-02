@@ -18,13 +18,18 @@ import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
 import { useCurrency } from "@/context/CurrencyContext";
 import { CJ_CUSTOMER_MESSAGES, sanitizeCustomerError } from "@/lib/cj/customer-errors-shared";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
+import {
+  marketplacePaymentErrorMessage,
+  PLATFORM_CURRENCY,
+  resolveCheckoutShippingAmountUsd,
+} from "@/lib/currency/platform";
 
 
 import type { CartItem, CartOrder, CJShippingOption, PaymentApiResponse } from "@/types";
 import { cn } from "@/lib/utils";
 function defaultPayment(currency: string | null): MethodId {
-   const c = (currency || "USD").toUpperCase();
-   if (c === "RWF" || c === "USD") return "flutterwave";
+   const c = (currency || PLATFORM_CURRENCY).toUpperCase();
+   if (c === PLATFORM_CURRENCY || c === "RWF") return "flutterwave";
    return "pesapal";
 }
 function hasCJItems(orders: CartOrder[]): boolean {
@@ -53,6 +58,11 @@ function extractRedirectUrl(data: PaymentApiResponse): string | null {
 function extractErrorMessage(data: PaymentApiResponse): string {
    if (!data.error) return data.message ?? "Payment initiation failed";
    if (typeof data.error === "string") return data.error;
+   const mapped = marketplacePaymentErrorMessage(
+      data.error.code,
+      "reason" in data.error ? String((data.error as { reason?: string }).reason ?? "") : undefined,
+   );
+   if (mapped) return mapped;
    return USER_FACING_ERRORS[data.error.code] ?? "Payment initiation failed";
 }
 const PAYMENT_ENDPOINTS: Record<MethodId, string> = {
@@ -104,14 +114,14 @@ const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
 export function CheckoutExperience({
    orders, profile, preferredMethod, mode = "cart",
 }: CheckoutExperienceProps) {
-   const { formatMoney, rates } = useCurrency();
+   const { formatMoney } = useCurrency();
 
    const isCJOrder = hasCJItems(orders);
    const isCommunity = mode === "community";
    const allItems = useMemo(() => orders.flatMap((o) => o.order_items), [orders]);
    const isAllDigital = allItems.every((i) => i.product_type === "digital");
 
-   const currency = orders[0]?.currency ?? "USD";
+   const currency = orders[0]?.currency ?? PLATFORM_CURRENCY;
    const countryCode = orders[0]?.shipping_address?.country_code ?? "RW";
    const countryInfo = COUNTRY_NAMES[countryCode] ?? { name: countryCode, flag: "🌐" };
 
@@ -172,6 +182,7 @@ export function CheckoutExperience({
    // ── Submission ────────────────────────────────────────────────────────────
    const [submitting, setSubmitting] = useState(false);
    const payInFlightRef = useRef(false);
+   const shippingRequestRef = useRef(0);
    const [shippingAttempted, setShippingAttempted] = useState(false);
 
    // ── Totals ────────────────────────────────────────────────────────────────
@@ -180,14 +191,14 @@ export function CheckoutExperience({
       [allItems]
    );
 
-   const shippingCost = useMemo(() => {
-      if (!isCJOrder) return 0;
-      if (!cjSelected) return null;
-      if (cjSelected.priceUSD === 0) return 0;
-      const rate = rates[currency];
-      if (!rate || !Number.isFinite(rate)) return null;
-      return cjSelected.priceUSD * rate;
-   }, [isCJOrder, cjSelected, rates, currency]);
+   const shippingCost = useMemo(
+      () =>
+         resolveCheckoutShippingAmountUsd({
+            isCjOrder: isCJOrder,
+            selected: cjSelected,
+         }),
+      [isCJOrder, cjSelected]
+   );
 
    const total = subtotal - discount + (shippingCost ?? 0);
 
@@ -215,18 +226,20 @@ export function CheckoutExperience({
 
    // ── Shipping → delivery/payment ───────────────────────────────────────────
    async function advanceFromShipping() {
+      if (cjLoading) return;
       setShippingAttempted(true);
       const hideAddr = isAllDigital || isCommunity;
       const fieldErrors = validateShippingForm(shipping, hideAddr);
       if (Object.keys(fieldErrors).length > 0) return;
 
       if (isCJOrder) {
+         const requestId = shippingRequestRef.current + 1;
+         shippingRequestRef.current = requestId;
          setCjLoading(true);
          setCjError("");
          try {
             const cjItems = getCJCartItems(orders);
 
-            // Build the CJ payload with proper vids and weights
             const products = cjItems.map((item) => ({
                productId: item.product_id ?? undefined,
                variantId: item.variant_id ?? undefined,
@@ -245,10 +258,12 @@ export function CheckoutExperience({
                headers: { "Content-Type": "application/json" },
                body: JSON.stringify({
                   destCountryCode,
-                  orderCurrency: currency,
+                  orderCurrency: PLATFORM_CURRENCY,
                   cartItems: products
                }),
             });
+
+            if (requestId !== shippingRequestRef.current) return;
 
             const json = await res.json();
             if (!json.success) {
@@ -277,15 +292,18 @@ export function CheckoutExperience({
                setCjError("");
             } else {
                setCjSelected(null);
-               setCjError("");
+               setCjError(json.message || CJ_CUSTOMER_MESSAGES.shippingUnavailable);
             }
             setStage("delivery");
          } catch (e) {
+            if (requestId !== shippingRequestRef.current) return;
             const message = sanitizeCustomerError(e, CJ_CUSTOMER_MESSAGES.shippingRates);
             setCjError(message);
             toast.error(message);
          } finally {
-            setCjLoading(false);
+            if (requestId === shippingRequestRef.current) {
+               setCjLoading(false);
+            }
          }
       } else {
          setStage("payment");
@@ -301,7 +319,8 @@ export function CheckoutExperience({
          return;
       }
       if (isCJOrder && shippingCost === null) {
-         toast.error("Exchange rates are loading — please wait");
+         toast.error("Please select a delivery method");
+         setStage("delivery");
          return;
       }
       if (total <= 0 || !Number.isFinite(total)) {
@@ -348,7 +367,7 @@ export function CheckoutExperience({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                orderId: primaryOrderId, orderIds,
-               amount: confirmedTotal, currency,
+               amount: confirmedTotal, currency: PLATFORM_CURRENCY,
             }),
          });
          const data = await res.json();
@@ -555,7 +574,7 @@ export function CheckoutExperience({
                            <PaymentMethodSelector
                               selected={payment}
                               onSelect={setPayment}
-                              orderCurrency={currency}
+                              orderCurrency={PLATFORM_CURRENCY}
                               orderTotal={total}
                               showSummary={false}
                               enabledMethodIds={enabledPaymentMethods}

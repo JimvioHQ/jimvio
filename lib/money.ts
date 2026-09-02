@@ -9,7 +9,10 @@ function parseRate(envVal: string | undefined, fallback: number): number {
 
 /** 1 RWF = rate USD (e.g. 0.0008) */
 export function getRwfToUsdRate(): number {
-  return parseRate(process.env.RWF_TO_USD_RATE, 0.0008)
+  return parseRate(
+    process.env.NEXT_PUBLIC_RWF_TO_USD_RATE ?? process.env.RWF_TO_USD_RATE,
+    0.0008,
+  )
 }
 
 export function rwfToUsdAmount(rwf: number): number {

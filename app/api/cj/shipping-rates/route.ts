@@ -11,6 +11,9 @@ import {
 import { isJimvioUuid, usableCjVid } from "@/lib/cj/variant-vid";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 interface CartItemInput {
     productId?: string;
     variantId?: string;
@@ -142,7 +145,7 @@ export async function POST(req: NextRequest) {
 
         const body: RateRequest = await req.json();
         const destCountryCode = normalizeCountryCode(body.destCountryCode);
-        const orderCurrency = (body.orderCurrency ?? "RWF").trim() || "RWF";
+        const orderCurrency = (body.orderCurrency ?? "USD").trim() || "USD";
         const cartItems = body.cartItems;
 
         if (!destCountryCode) {

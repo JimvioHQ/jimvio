@@ -1,5 +1,6 @@
 import type { CurrencyCode } from "./config";
 import { SUPPORTED_CURRENCIES } from "./config";
+import { toPlatformUsd } from "./platform";
 
 export function isSupportedCurrencyCode(s: string): s is CurrencyCode {
   return s in SUPPORTED_CURRENCIES;
@@ -92,7 +93,7 @@ export function groupOrderLineRowsToCartOrders(
 ): CartOrderLikeForTotal[] {
   const map = new Map<string, number>();
   for (const row of rows) {
-    const c = (row.orders?.currency || "RWF").toUpperCase();
+    const c = (row.orders?.currency || "USD").toUpperCase();
     map.set(c, (map.get(c) ?? 0) + Number(row.total_price));
   }
   return [...map.entries()].map(([currency, amt]) => ({
@@ -149,6 +150,12 @@ export function formatMoneyV2(
   if (!Number.isFinite(amount)) return formatCurrency(0, to);
 
   const fromCode = (from || "USD").toUpperCase();
+
+  // Platform display is USD. Convert RWF with the same helper as cart/orders
+  // so first paint never shows Fr/RWF and never reinterprets 14100 as $14100.
+  if (to === "USD") {
+    return formatCurrency(toPlatformUsd(amount, fromCode), "USD");
+  }
 
   // Same currency — skip conversion entirely
   if (fromCode === to) {

@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
                 providerTransactionId: txRef,
                 campaignId: searchParams.get("campaign"),
                 amount: txData.amount != null ? Number(txData.amount) : null,
-                currency: txData.currency ?? "RWF",
+                currency: txData.currency ?? "USD",
                 provider: "flutterwave",
             });
             if (ugc.handled) {
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
             .maybeSingle();
 
         const expectedAmount = txRow?.amount ?? null;
-        const expectedCurrency = (txRow?.currency ?? "RWF").toUpperCase();
+        const expectedCurrency = (txRow?.currency ?? "USD").toUpperCase();
         const receivedAmount = txData.amount != null ? Number(txData.amount) : null;
         const receivedCurrency = (txData.currency ?? "").toUpperCase();
 
