@@ -25,6 +25,8 @@ export type LiveChatSettings = {
   slow_mode_seconds?: number;
   /** Future-ready gate — not enforced until subscriptions product ships. */
   subscribers_only?: boolean;
+  /** When false, viewers cannot send chat messages. */
+  enabled?: boolean;
 };
 
 export type LiveSessionRow = {
@@ -353,6 +355,7 @@ function normalizeChatSettings(raw: LiveChatSettings | undefined): Record<string
     chat: {
       slow_mode_seconds: slow,
       subscribers_only: Boolean(raw?.subscribers_only),
+      enabled: raw?.enabled !== false,
     },
   };
 }
@@ -1652,14 +1655,63 @@ export async function updateLiveChatSettings(
   }
 
   const prev = (session.settings ?? {}) as Record<string, unknown>;
+  const prevChat = (prev.chat as Record<string, unknown> | undefined) ?? {};
+  const merged: LiveChatSettings = {
+    slow_mode_seconds:
+      typeof chatSettings.slow_mode_seconds === "number"
+        ? chatSettings.slow_mode_seconds
+        : typeof prevChat.slow_mode_seconds === "number"
+          ? (prevChat.slow_mode_seconds as number)
+          : 0,
+    subscribers_only:
+      typeof chatSettings.subscribers_only === "boolean"
+        ? chatSettings.subscribers_only
+        : Boolean(prevChat.subscribers_only),
+    enabled:
+      typeof chatSettings.enabled === "boolean"
+        ? chatSettings.enabled
+        : prevChat.enabled !== false,
+  };
   const next = {
     ...prev,
-    ...normalizeChatSettings(chatSettings),
+    ...normalizeChatSettings(merged),
   };
 
   const { data, error } = await db()
     .from("live_sessions")
     .update({ settings: next, updated_at: new Date().toISOString() })
+    .eq("id", sessionId)
+    .select("*")
+    .single();
+  if (error || !data) return { error: error?.message ?? "Update failed", status: 400 };
+  return { session: data as LiveSessionRow };
+}
+
+export async function updateLiveTitle(
+  sessionId: string,
+  userId: string,
+  title: string
+): Promise<{ session: LiveSessionRow } | { error: string; status: number }> {
+  const trimmed = title.trim().slice(0, 120);
+  if (trimmed.length < 2) {
+    return { error: "Title must be at least 2 characters", status: 400 };
+  }
+
+  const session = await getSession(sessionId);
+  if (!session) return { error: "Not found", status: 404 };
+  if (session.status !== "live" && session.status !== "scheduled") {
+    return { error: "Session is not editable", status: 400 };
+  }
+
+  const me = await getParticipant(sessionId, userId);
+  const role = me?.role ?? (session.host_id === userId ? "host" : "viewer");
+  if (role !== "host" && role !== "cohost") {
+    return { error: "Only the host can edit the title", status: 403 };
+  }
+
+  const { data, error } = await db()
+    .from("live_sessions")
+    .update({ title: trimmed, updated_at: new Date().toISOString() })
     .eq("id", sessionId)
     .select("*")
     .single();

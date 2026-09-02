@@ -30,6 +30,7 @@ import {
   startScheduledLive,
   transferHost,
   updateLiveChatSettings,
+  updateLiveTitle,
   updateSelfMedia,
   voteLivePoll,
   type LiveChatSettings,
@@ -55,6 +56,7 @@ type ActionBody = {
   emoji?: string;
   chatSettings?: LiveChatSettings;
   enabled?: boolean;
+  title?: string;
 };
 
 export async function GET(
@@ -302,6 +304,14 @@ export async function POST(
         return NextResponse.json({ error: "chatSettings required" }, { status: 400 });
       }
       const result = await updateLiveChatSettings(id, user.id, body.chatSettings);
+      if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
+      return NextResponse.json(result);
+    }
+    case "update-title": {
+      if (typeof body.title !== "string") {
+        return NextResponse.json({ error: "title required" }, { status: 400 });
+      }
+      const result = await updateLiveTitle(id, user.id, body.title);
       if ("error" in result) return NextResponse.json({ error: result.error }, { status: result.status });
       return NextResponse.json(result);
     }

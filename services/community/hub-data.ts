@@ -1500,8 +1500,9 @@ export async function getHubLiveDashboard(
   const sessionTitle =
     activeLive?.title ??
     featuredLive?.title ??
-    primaryRoom?.name ??
-    (activeLive && !activeLive.community_id ? "Creator Live" : "Community Live Room");
+    (scopedSlug
+      ? primaryRoom?.name ?? "Community Live Room"
+      : "Start your Live");
   const sessionHost = featuredLive?.hostName ?? primaryRoom?.community_name ?? "Jimvio";
   const sessionHref = activeLive
     ? `/communities/live/${activeLive.id}`

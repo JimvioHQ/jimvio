@@ -43,7 +43,7 @@ import { liveStudioLog } from "@/lib/live/observability";
 import { canonicalLiveUrl } from "@/lib/live/live-url";
 import { copyTextToClipboard } from "@/lib/live/native-share";
 import { LiveExperienceHeader } from "./live/LiveExperienceHeader";
-import { LiveOfflineStage } from "./live/LiveOfflineStage";
+import { LivePrepareStage } from "./live/LivePrepareStage";
 import { LiveReactionFloater } from "./live/LiveReactionFloater";
 import { LiveMobileDock } from "./live/LiveMobileDock";
 import { AiFab } from "./live/AiFab";
@@ -145,6 +145,7 @@ export function HubLivePage({
   const [hasPolls, setHasPolls] = useState(false);
   const [egressRecording, setEgressRecording] = useState(false);
   const [liveNavOpen, setLiveNavOpen] = useState(false);
+  const [draftTitle, setDraftTitle] = useState("Start your Live");
   const chatIdleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { msg: toast, show: showToast } = useEphemeralToast();
@@ -685,7 +686,7 @@ export function HubLivePage({
             ? data.session.title
             : communityId
               ? undefined
-              : "Creator Live",
+              : draftTitle.trim() || "Creator Live",
         privacy: communityId ? undefined : "public",
       });
       if (session?.id) {
@@ -721,6 +722,7 @@ export function HubLivePage({
     sessionIdProp,
     loadDashboard,
     communitySlugProp,
+    draftTitle,
   ]);
 
   useEffect(() => {
@@ -817,7 +819,7 @@ export function HubLivePage({
 
   const analytics = data?.analytics;
   const session = data?.session ?? {
-    title: "Community Live Room",
+    title: "Start your Live",
     host: "Jimvio",
     href: "/communities/live",
     tag: "Live Room",
@@ -1197,16 +1199,81 @@ export function HubLivePage({
   const showLeftRail = !focusMode;
   const showSpeakers = mode !== "minimal" && !focusMode && hasSession;
   const showRight = !focusMode;
-  const displayTitle = live.session?.title ?? session.title;
+  const displayTitle =
+    live.session?.title ??
+    (hasSession ? session.title : draftTitle);
   const hostSpeaker = speakers.find(
     (s) => s.role === "host" || s.role === "Host" || s.id === hostUserId
   );
   const hostAvatar = hostSpeaker?.avatar_url ?? speakers[0]?.avatar_url ?? null;
   const isLiveHost = canEndLive(live.myRole) || live.myRole === "host";
+  // Creator Live hub: any authenticated user can start. Community routes: attempt; server enforces.
+  const canStartLive = Boolean(live.userId) && !hasSession;
+  const canEditLiveTitle =
+    (hasSession && (isLiveHost || live.myRole === "cohost") && Boolean(live.session?.id)) ||
+    canStartLive;
   const immersive = activity === "share" || focusMode;
   const startedLabel = live.session?.started_at
     ? `Started ${formatTime(live.session.started_at)}`
     : null;
+
+  const liveSettingsPanel = (
+    <SettingsPanel
+      mode={mode}
+      onMode={persistMode}
+      title={displayTitle}
+      canEditTitle={canEditLiveTitle}
+      onSaveTitle={
+        canEditLiveTitle
+          ? async (next) => {
+              if (!hasSession) {
+                setDraftTitle(next.trim().slice(0, 120) || "Start your Live");
+                showToast("Title ready — Go Live to start");
+                return;
+              }
+              await live.updateTitle(next);
+              showToast("Title updated");
+            }
+          : undefined
+      }
+      audioDevices={media.audioDevices}
+      videoDevices={media.videoDevices}
+      activeAudioId={media.activeAudioId}
+      activeVideoId={media.activeVideoId}
+      onSwitchMic={(id) => void media.switchMicrophone(id)}
+      onSwitchCam={(id) => void media.switchCamera(id)}
+      micOn={micOn}
+      camOn={camOn}
+      onToggleMic={() => void toggleMic()}
+      onToggleCam={() => void toggleCam()}
+      sharing={media.sharing}
+      onStartShare={() => void startShare()}
+      onStopShare={stopShare}
+      canManageChat={canModerateChat(live.myRole) || isLiveHost}
+      chatEnabled={
+        (
+          live.session?.settings as { chat?: { enabled?: boolean } } | null | undefined
+        )?.chat?.enabled !== false
+      }
+      onChatEnabled={(enabled) => {
+        if (!live.session?.id) return;
+        void fetch(`/api/c/live/sessions/${live.session.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "chat-settings",
+            chatSettings: { enabled },
+          }),
+        }).then(async (res) => {
+          if (!res.ok) showToast("Could not update chat settings");
+          else {
+            await live.refresh(live.session!.id);
+            showToast(enabled ? "Chat enabled" : "Chat disabled");
+          }
+        });
+      }}
+    />
+  );
 
   if (loading) {
     return (
@@ -1307,9 +1374,33 @@ export function HubLivePage({
           onMore={() => toggleLeft("settings")}
           onOpenChat={() => updateDrawer({ rightOpen: true, rightTab: "chat" })}
           copied={copied}
-          showFollow={Boolean(hostUserId && hostUserId !== live.userId)}
-          showGoLive={!hasSession && isLiveHost}
+          showFollow={Boolean(hostUserId && hostUserId !== live.userId && hasSession)}
+          showGoLive={canStartLive}
           onGoLive={() => void createOrJoinLive()}
+          canEditTitle={canEditLiveTitle}
+          onSaveTitle={
+            canEditLiveTitle
+              ? async (next) => {
+                  if (!hasSession) {
+                    setDraftTitle(next.trim().slice(0, 120) || "Start your Live");
+                    showToast("Title ready — Go Live to start");
+                    return;
+                  }
+                  try {
+                    await live.updateTitle(next);
+                    showToast("Title updated");
+                  } catch (e) {
+                    showToast(e instanceof Error ? e.message : "Could not save title");
+                    throw e;
+                  }
+                }
+              : undefined
+          }
+          backHref={
+            communitySlugProp
+              ? `/communities/${communitySlugProp}`
+              : "/communities/live"
+          }
         />
       )}
 
@@ -1415,9 +1506,7 @@ export function HubLivePage({
                 {drawer.leftPanel === "layout" && (
                   <LayoutPanel layout={layout} onChange={setLayout} />
                 )}
-                {drawer.leftPanel === "settings" && (
-                  <SettingsPanel mode={mode} onMode={persistMode} />
-                )}
+                {drawer.leftPanel === "settings" && liveSettingsPanel}
               </div>
             </aside>
 
@@ -1441,9 +1530,7 @@ export function HubLivePage({
                   {drawer.leftPanel === "layout" && (
                     <LayoutPanel layout={layout} onChange={setLayout} />
                   )}
-                  {drawer.leftPanel === "settings" && (
-                    <SettingsPanel mode={mode} onMode={persistMode} />
-                  )}
+                  {drawer.leftPanel === "settings" && liveSettingsPanel}
                 </div>
               </div>
             </div>
@@ -1612,19 +1699,18 @@ export function HubLivePage({
                 </div>
               ) : (
                 <div className="relative z-[1] h-full w-full">
-                  <LiveOfflineStage
-                    hostName={session.host}
-                    hostAvatar={hostAvatar}
+                  <LivePrepareStage
+                    previewStream={media.previewStream}
                     title={displayTitle}
-                    isHost={isLiveHost}
-                    onGoLive={isLiveHost ? () => void createOrJoinLive() : undefined}
-                    onFollow={
-                      hostUserId && hostUserId !== live.userId
-                        ? () => void toggleFollowHost()
-                        : undefined
-                    }
-                    following={follow.following}
-                    followBusy={follow.busy}
+                    busy={live.busy}
+                    micOn={micOn}
+                    camOn={camOn}
+                    permissionDenied={media.permissionDenied}
+                    lastError={media.lastError}
+                    canGoLive={canStartLive}
+                    onGoLive={canStartLive ? () => void createOrJoinLive() : undefined}
+                    onToggleMic={() => void toggleMic()}
+                    onToggleCam={() => void toggleCam()}
                   />
                 </div>
               )}

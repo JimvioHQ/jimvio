@@ -6,6 +6,7 @@ import { FeedDiscoverRail } from "@/components/feed/FeedDiscoverRail";
 import { FeedPostCard, type ApiPost } from "@/components/feed/FeedPostCard";
 import { FeedTabs } from "@/components/feed/FeedTabs";
 import { LiveNowCard } from "@/components/feed/LiveNowCard";
+import { LiveDiscoverCard } from "@/components/feed/LiveDiscoverCard";
 import { MiniLivePlayerBar } from "@/components/feed/MiniLivePlayerBar";
 import { PopularUsersCard } from "@/components/feed/PopularUsersCard";
 import { PostComposer } from "@/components/feed/PostComposer";
@@ -13,13 +14,14 @@ import { StoriesRail } from "@/components/feed/StoriesRail";
 import type { FeedTab } from "@/lib/feed/mock-data";
 import type { TrendingCommunity } from "@/components/feed/FeedDiscoverRail";
 
-/** Desktop intelligence rail — AI Assistant, Live now, Popular Users. */
+/** Desktop intelligence rail — AI Assistant, Live now, Popular Users, Live & Discover. */
 function FeedRightRail() {
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <AIAssistantPanel />
       <LiveNowCard />
       <PopularUsersCard />
+      <LiveDiscoverCard />
     </div>
   );
 }

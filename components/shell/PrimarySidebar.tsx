@@ -143,6 +143,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
   const [communities, setCommunities] = useState<CommunityRow[]>([]);
   const [pinned, setPinned] = useState<CommunityRow[]>([]);
   const [ownedCommunities, setOwnedCommunities] = useState<CommunityRow[]>([]);
+  const [communitiesLoading, setCommunitiesLoading] = useState(true);
   const [user, setUser] = useState(userProp ?? null);
 
   useEffect(() => {
@@ -172,8 +173,10 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
         setCommunities([]);
         setPinned([]);
         setOwnedCommunities([]);
+        setCommunitiesLoading(false);
         return;
       }
+      setCommunitiesLoading(true);
       const supabase = createClient();
       const { data: { user: authUser } } = await supabase.auth.getUser();
       const authUserId = feedUser?.id ?? authUser?.id;
@@ -181,6 +184,7 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
         setCommunities([]);
         setPinned([]);
         setOwnedCommunities([]);
+        setCommunitiesLoading(false);
         return;
       }
 
@@ -268,8 +272,9 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
       } catch {
         /* optional */
       }
+      if (!cancelled) setCommunitiesLoading(false);
     }
-    load();
+    void load();
     return () => { cancelled = true; };
   }, [userProp, isAuthenticated, feedUser?.id]);
 
@@ -376,7 +381,16 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
                   <div className="mx-3 my-1.5 border-t border-gray-100" />
                 </>
               ) : null}
-              {communities.length === 0 ? (
+              {communitiesLoading ? (
+                <div className="space-y-2 px-3 py-1" aria-busy="true" aria-label="Loading communities">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      <span className="h-7 w-7 animate-pulse rounded-lg bg-gray-100" />
+                      <span className="h-3 flex-1 animate-pulse rounded bg-gray-100" />
+                    </div>
+                  ))}
+                </div>
+              ) : communities.length === 0 ? (
                 <p className="px-3 py-2 text-[12px] text-gray-400">
                   No communities joined yet
                 </p>

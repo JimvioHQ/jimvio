@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Activity, Calendar, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HubAvatar } from "../hub-ui";
@@ -556,12 +556,238 @@ export function LayoutPanel({
 export function SettingsPanel({
   mode,
   onMode,
+  title,
+  onSaveTitle,
+  canEditTitle,
+  audioDevices = [],
+  videoDevices = [],
+  activeAudioId,
+  activeVideoId,
+  onSwitchMic,
+  onSwitchCam,
+  micOn,
+  camOn,
+  onToggleMic,
+  onToggleCam,
+  sharing,
+  onStartShare,
+  onStopShare,
+  chatEnabled = true,
+  onChatEnabled,
+  canManageChat = false,
 }: {
   mode: StudioMode;
   onMode: (m: StudioMode) => void;
+  title?: string;
+  onSaveTitle?: (next: string) => Promise<void> | void;
+  canEditTitle?: boolean;
+  audioDevices?: { deviceId: string; label: string }[];
+  videoDevices?: { deviceId: string; label: string }[];
+  activeAudioId?: string | null;
+  activeVideoId?: string | null;
+  onSwitchMic?: (deviceId: string) => void;
+  onSwitchCam?: (deviceId: string) => void;
+  micOn?: boolean;
+  camOn?: boolean;
+  onToggleMic?: () => void;
+  onToggleCam?: () => void;
+  sharing?: boolean;
+  onStartShare?: () => void;
+  onStopShare?: () => void;
+  chatEnabled?: boolean;
+  onChatEnabled?: (enabled: boolean) => void;
+  canManageChat?: boolean;
 }) {
+  const [draftTitle, setDraftTitle] = useState(title ?? "");
+  const [titleBusy, setTitleBusy] = useState(false);
+  const [titleMsg, setTitleMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraftTitle(title ?? "");
+  }, [title]);
+
   return (
-    <div className="space-y-5 px-1">
+    <div className="space-y-5 px-1 pb-4">
+      {canEditTitle && onSaveTitle ? (
+        <div>
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
+            Live title
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={draftTitle}
+              maxLength={120}
+              onChange={(e) => setDraftTitle(e.target.value)}
+              className={cn(
+                "min-w-0 flex-1 rounded-xl border border-neutral-200 px-3 py-2 text-[13px] outline-none focus:border-accent",
+                FOCUS_RING
+              )}
+              aria-label="Live title"
+            />
+            <button
+              type="button"
+              disabled={titleBusy}
+              onClick={() => {
+                void (async () => {
+                  setTitleBusy(true);
+                  setTitleMsg(null);
+                  try {
+                    await onSaveTitle(draftTitle);
+                    setTitleMsg("Saved");
+                  } catch (e) {
+                    setDraftTitle(title ?? "");
+                    setTitleMsg(e instanceof Error ? e.message : "Save failed");
+                  } finally {
+                    setTitleBusy(false);
+                  }
+                })();
+              }}
+              className={cn(
+                "rounded-xl bg-neutral-900 px-3 py-2 text-[12px] font-semibold text-white disabled:opacity-60",
+                FOCUS_RING
+              )}
+            >
+              {titleBusy ? "…" : "Save"}
+            </button>
+          </div>
+          {titleMsg ? (
+            <p className="mt-1.5 text-[11px] text-neutral-500" role="status">
+              {titleMsg}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div>
+        <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
+          Audio
+        </p>
+        <div className="space-y-1.5">
+          {onToggleMic ? (
+            <button
+              type="button"
+              onClick={onToggleMic}
+              className={cn(
+                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
+                FOCUS_RING
+              )}
+            >
+              Microphone
+              <span className="text-[11px] font-semibold text-neutral-500">
+                {micOn ? "On" : "Off"}
+              </span>
+            </button>
+          ) : null}
+          {audioDevices.length > 0 && onSwitchMic ? (
+            <select
+              value={activeAudioId ?? audioDevices[0]?.deviceId ?? ""}
+              onChange={(e) => onSwitchMic(e.target.value)}
+              aria-label="Select microphone"
+              className={cn(
+                "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[12px]",
+                FOCUS_RING
+              )}
+            >
+              {audioDevices.map((d) => (
+                <option key={d.deviceId} value={d.deviceId}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="px-1 text-[12px] text-neutral-400">
+              Enable mic to list devices.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
+          Video
+        </p>
+        <div className="space-y-1.5">
+          {onToggleCam ? (
+            <button
+              type="button"
+              onClick={onToggleCam}
+              className={cn(
+                "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
+                FOCUS_RING
+              )}
+            >
+              Camera
+              <span className="text-[11px] font-semibold text-neutral-500">
+                {camOn ? "On" : "Off"}
+              </span>
+            </button>
+          ) : null}
+          {videoDevices.length > 0 && onSwitchCam ? (
+            <select
+              value={activeVideoId ?? videoDevices[0]?.deviceId ?? ""}
+              onChange={(e) => onSwitchCam(e.target.value)}
+              aria-label="Select camera"
+              className={cn(
+                "w-full rounded-xl border border-neutral-200 bg-white px-3 py-2 text-[12px]",
+                FOCUS_RING
+              )}
+            >
+              {videoDevices.map((d) => (
+                <option key={d.deviceId} value={d.deviceId}>
+                  {d.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="px-1 text-[12px] text-neutral-400">
+              Enable camera to list devices.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {(onStartShare || onStopShare) && (
+        <div>
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
+            Screen share
+          </p>
+          <button
+            type="button"
+            onClick={sharing ? onStopShare : onStartShare}
+            className={cn(
+              "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
+              FOCUS_RING
+            )}
+          >
+            {sharing ? "Stop sharing" : "Share screen"}
+            <span className="text-[11px] font-semibold text-neutral-500">
+              {sharing ? "Active" : "Off"}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {canManageChat && onChatEnabled ? (
+        <div>
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
+            Chat
+          </p>
+          <button
+            type="button"
+            onClick={() => onChatEnabled(!chatEnabled)}
+            className={cn(
+              "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[13px] hover:bg-neutral-50",
+              FOCUS_RING
+            )}
+          >
+            Allow chat
+            <span className="text-[11px] font-semibold text-neutral-500">
+              {chatEnabled ? "On" : "Off"}
+            </span>
+          </button>
+        </div>
+      ) : null}
+
       <div>
         <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-neutral-400">
           Workspace mode

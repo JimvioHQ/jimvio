@@ -133,7 +133,7 @@ export function OverviewSpacesPanel({
     );
   }
 
-  const displaySecondary = secondary;
+  const displaySecondary = canManage ? secondary : [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -150,7 +150,7 @@ export function OverviewSpacesPanel({
           />
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#fd5000]">
-              Primary Space
+              Space
             </p>
             <h3 className="mt-1 truncate text-[18px] font-semibold text-gray-900 group-hover:text-[#fd5000]">
               {primary.name}
@@ -170,7 +170,7 @@ export function OverviewSpacesPanel({
         <>
           {primary ? (
             <h3 className="text-[13px] font-semibold uppercase tracking-wide text-gray-500">
-              {canManage ? "All spaces" : "More spaces"}
+              Legacy spaces (admin)
             </h3>
           ) : null}
           <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

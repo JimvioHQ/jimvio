@@ -250,6 +250,28 @@ export function useLiveSession(initialSessionId?: string | null) {
     await refresh(session.id);
   }, [session, refresh]);
 
+  const updateTitle = useCallback(
+    async (title: string) => {
+      if (!session) throw new Error("No live session");
+      const previous = session.title;
+      const optimistic = title.trim().slice(0, 120);
+      setSession((s) => (s ? { ...s, title: optimistic } : s));
+      try {
+        const json = await sessionAction(session.id, {
+          action: "update-title",
+          title: optimistic,
+        });
+        const next = (json as { session?: LiveSessionRow }).session;
+        if (next) setSession(next);
+        return next ?? session;
+      } catch (e) {
+        setSession((s) => (s ? { ...s, title: previous } : s));
+        throw e;
+      }
+    },
+    [session]
+  );
+
   const startScheduled = useCallback(async () => {
     if (!session) return;
     await sessionAction(session.id, { action: "start" });
@@ -451,6 +473,7 @@ export function useLiveSession(initialSessionId?: string | null) {
     join,
     leave,
     endLive,
+    updateTitle,
     startScheduled,
     cancelScheduled,
     invite,
