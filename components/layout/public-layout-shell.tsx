@@ -43,6 +43,9 @@ export function PublicLayoutShell({
 }: PublicLayoutShellProps) {
   const pathname = usePathname();
   const isWorkspace = isWorkspacePublicRoute(pathname);
+  // `translate` on #main-content (even 0 0 via animation fill-mode) creates a
+  // containing block that disables position:sticky for Marketplace's sidebar.
+  const isMarketplaceListing = pathname === "/marketplace";
 
   if (isWorkspace) {
     return <>{children}</>;
@@ -60,7 +63,9 @@ export function PublicLayoutShell({
           tabIndex={-1}
           className="relative isolation-auto flex-1 pt-[var(--navbar-height)]"
           style={{
-            animation: "page-enter 220ms ease both",
+            animation: isMarketplaceListing
+              ? "page-enter-fade 220ms ease both"
+              : "page-enter 220ms ease both",
             overscrollBehaviorY: "contain",
           }}
         >
@@ -78,6 +83,10 @@ export function PublicLayoutShell({
         @keyframes page-enter {
           from { opacity: 0; translate: 0 6px; }
           to   { opacity: 1; translate: 0 0; }
+        }
+        @keyframes page-enter-fade {
+          from { opacity: 0; }
+          to   { opacity: 1; }
         }
         @keyframes navbar-shimmer {
           0%   { background-position: 200% 0; }

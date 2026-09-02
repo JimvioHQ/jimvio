@@ -958,10 +958,13 @@ export function MarketplacePageClient({
   const searchPending = productsLoading && search.trim() === debouncedSearch && debouncedSearch.length > 0;
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:gap-4">
-      {/* Sidebar — fixed in viewport while product grid scrolls */}
+    <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:gap-4">
+      {/* Stretch with the grid so sticky can pin; do not self-start this column. */}
       <div className="hidden lg:block lg:w-[15rem] lg:shrink-0">
-        <div className="sticky top-[calc(var(--navbar-height,64px)+0.75rem)] z-20 max-h-[calc(100dvh-var(--navbar-height,64px)-1.5rem)] overflow-y-auto overflow-x-hidden overscroll-contain pr-0.5 [scrollbar-width:thin]">
+        <div
+          data-marketplace-sidebar
+          className="lg:sticky lg:top-[calc(var(--navbar-height)+0.75rem)] lg:z-20 lg:max-h-[calc(100dvh-var(--navbar-height)-1.5rem)] lg:overflow-y-auto lg:overflow-x-clip lg:overscroll-contain"
+        >
           <Sidebar type={type} />
         </div>
       </div>
