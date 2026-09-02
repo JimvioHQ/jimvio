@@ -7,7 +7,7 @@ import {
   Home, GraduationCap, Layers,
   Plus, ChevronDown, ChevronRight, Flame,
   Hash,
-  MoreHorizontal, Star, UserPlus, ShieldCheck, Target,
+  MoreHorizontal, UserPlus, ShieldCheck, Target,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -302,11 +302,6 @@ function Sidebar({
 }) {
   const router = useRouter();
   const [createSpaceOpen, setCreateSpaceOpen] = useState(false);
-  const isPremium =
-    membership?.plan_type === "monthly" ||
-    membership?.plan_type === "yearly" ||
-    membership?.plan_type === "lifetime" ||
-    (membership?.plan_type != null && membership.plan_type !== "free");
   const canCreateSpace = hasCapability(
     resolveWorkspaceRole({
       userId: currentUserId,
@@ -544,25 +539,6 @@ function Sidebar({
       </div>
 
       <div className="h-px bg-border mx-2 flex-shrink-0" />
-
-      {/* Premium upsell */}
-      {!isPremium && (
-        <div className="flex-shrink-0 mx-2 mt-3 p-3 rounded-lg bg-gradient-to-br from-[#fd5000] to-[#ff8c42] text-white">
-          <div className="flex items-center gap-2 mb-1.5">
-            <Star className="w-4 h-4 fill-white" />
-            <span className="text-[13px] font-bold">Go Premium</span>
-          </div>
-          <p className="text-[11px] text-white/80 mb-2.5 leading-snug">
-            Unlock exclusive tools, higher earnings and more.
-          </p>
-          <button
-            type="button"
-            className="w-full py-1.5 rounded-md bg-white text-[#fd5000] text-[12px] font-bold hover:bg-white/90 transition-colors"
-          >
-            Upgrade Now
-          </button>
-        </div>
-      )}
     </div>
   );
 }

@@ -68,6 +68,7 @@ export function GroupsList({
   groups,
   view,
   communitySlug,
+  communityMemberCount,
   selectedIds,
   onToggleSelect,
   onAction,
@@ -76,11 +77,18 @@ export function GroupsList({
   groups: OwnerGroupListItem[];
   view: GroupViewMode;
   communitySlug: string;
+  communityMemberCount?: number;
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
   onAction: (id: string, action: OwnerGroupAction) => void;
   onDragReorder: (orderedIds: string[]) => void;
 }) {
+  function memberDisplay(g: OwnerGroupListItem) {
+    if (typeof communityMemberCount === "number" && communityMemberCount > 0) {
+      return communityMemberCount;
+    }
+    return g.memberCount;
+  }
   function onDragStart(e: React.DragEvent, id: string) {
     e.dataTransfer.setData("text/group-id", id);
     e.dataTransfer.effectAllowed = "move";
@@ -102,12 +110,10 @@ export function GroupsList({
 
   if (groups.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-[var(--color-border)] px-6 py-16 text-center">
-        <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-          No groups match your filters
-        </p>
-        <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
-          Create a group to organize members, channels, and collaboration.
+      <div className="rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-16 text-center">
+        <p className="text-sm font-semibold text-[#111827]">No spaces yet</p>
+        <p className="mt-1 text-[13px] text-[#64748B]">
+          Create your first Space to start conversations and organize your community.
         </p>
       </div>
     );
@@ -166,7 +172,7 @@ export function GroupsList({
                   </div>
                 </td>
                 <td className="px-3 py-3">{GROUP_PRIVACY_LABELS[g.privacy]}</td>
-                <td className="px-3 py-3">{g.memberCount}</td>
+                <td className="px-3 py-3">{memberDisplay(g).toLocaleString()}</td>
                 <td className="px-3 py-3">{g.channelCount}</td>
                 <td className="px-3 py-3">{formatDate(g.createdAt)}</td>
                 <td className="px-3 py-3">{formatDate(g.lastActivityAt)}</td>
@@ -262,18 +268,12 @@ export function GroupsList({
             <div className="grid grid-cols-2 gap-2 text-[12px] text-[var(--color-text-muted)]">
               <div>
                 <span className="font-semibold text-[var(--color-text-primary)]">
-                  {g.memberCount}
+                  {memberDisplay(g).toLocaleString()}
                 </span>{" "}
                 members
               </div>
-              <div>
-                <span className="font-semibold text-[var(--color-text-primary)]">
-                  {g.channelCount}
-                </span>{" "}
-                channels
-              </div>
-              <div>Created {formatDate(g.createdAt)}</div>
               <div>Active {formatDate(g.lastActivityAt)}</div>
+              <div className="col-span-2">Created {formatDate(g.createdAt)}</div>
             </div>
 
             {g.moderators.length > 0 && (
@@ -285,16 +285,16 @@ export function GroupsList({
               </p>
             )}
 
-            <div className="flex items-center justify-between pt-1">
-              <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-text-muted)]">
-                <GripVertical className="h-3.5 w-3.5" /> Drag to reorder
-              </span>
-              <Button asChild size="sm" variant="outline" className="h-8 text-xs">
-                <Link
-                  href={sectionPath(`groups/${g.id}`, communitySlug)}
-                >
+            <div className="flex items-center gap-2 pt-1">
+              <Button asChild size="sm" className="h-8 flex-1 text-xs">
+                <Link href={`/communities/${encodeURIComponent(communitySlug)}/spaces/${encodeURIComponent(g.slug)}`}>
+                  Open Space
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="h-8 flex-1 text-xs">
+                <Link href={sectionPath(`spaces/${g.id}`, communitySlug)}>
                   <Settings2 className="mr-1 h-3.5 w-3.5" />
-                  Settings
+                  Manage
                 </Link>
               </Button>
             </div>

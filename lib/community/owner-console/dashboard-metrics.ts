@@ -64,37 +64,36 @@ export function buildOwnerDashboardMetrics(
 
 export function buildManageDashboardMetrics(
   community: OwnerCommunitySummary,
-  options?: { reports?: number; live?: number; postCount?: number | null }
+  options?: {
+    reports?: number;
+    live?: number;
+    postCount?: number | null;
+    spacesCount?: number;
+  }
 ): OwnerDashboardMetric[] {
   const slug = community.slug;
   const link = (section: string) => manageCommunityHref(slug, section);
   const members = community.memberCount ?? 0;
   const reports = options?.reports ?? 0;
   const live = options?.live ?? 0;
-  const posts = options?.postCount;
+  const spaces = options?.spacesCount ?? 0;
 
-  const metrics: OwnerDashboardMetric[] = [
+  return [
     {
       id: "members",
       label: "Members",
-      value: members,
+      value: members.toLocaleString(),
       hint: "Community members",
       tone: "accent",
       href: link("members"),
     },
-  ];
-
-  if (posts != null) {
-    metrics.push({
-      id: "health",
-      label: "Posts",
-      value: posts,
-      hint: "Published posts",
-      href: link("content"),
-    });
-  }
-
-  metrics.push(
+    {
+      id: "communities",
+      label: "Spaces",
+      value: spaces,
+      hint: spaces === 1 ? "Primary Space" : "Active Spaces",
+      href: link("spaces"),
+    },
     {
       id: "live",
       label: "Live",
@@ -109,8 +108,6 @@ export function buildManageDashboardMetrics(
       hint: reports > 0 ? "Open moderation items" : "All clear",
       tone: reports > 0 ? "warn" : "default",
       href: link("moderation"),
-    }
-  );
-
-  return metrics.slice(0, 5);
+    },
+  ];
 }

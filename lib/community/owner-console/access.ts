@@ -14,6 +14,7 @@ import {
   OWNER_CONSOLE_HUB,
   type OwnerCommunitySummary,
 } from "./nav";
+import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 
 export type ManageableCommunityRow = {
   id: string;
@@ -22,6 +23,7 @@ export type ManageableCommunityRow = {
   avatar_url: string | null;
   member_count: number | null;
   owner_id: string;
+  settings?: unknown;
 };
 
 export async function listOwnedCommunities(
@@ -30,7 +32,7 @@ export async function listOwnedCommunities(
 ): Promise<ManageableCommunityRow[]> {
   const { data, error } = await supabase
     .from("communities")
-    .select("id, name, slug, avatar_url, member_count, owner_id")
+    .select("id, name, slug, avatar_url, member_count, owner_id, settings")
     .eq("owner_id", userId)
     .order("name");
   if (error) return [];
@@ -54,7 +56,11 @@ export async function listManageableCommunities(
       name: c.name,
       slug: c.slug,
       avatarUrl: c.avatar_url,
-      memberCount: c.member_count ?? 0,
+      memberCount: resolveCommunityMemberCount({
+        slug: c.slug,
+        member_count: c.member_count,
+        settings: c.settings,
+      }),
       role: "owner",
     });
   }
@@ -62,7 +68,7 @@ export async function listManageableCommunities(
   const { data: memberships } = await supabase
     .from("community_memberships")
     .select(
-      "role, status, community_id, communities!inner(id, name, slug, avatar_url, member_count, owner_id)"
+      "role, status, community_id, communities!inner(id, name, slug, avatar_url, member_count, owner_id, settings)"
     )
     .eq("user_id", userId)
     .eq("status", "active")
@@ -94,7 +100,11 @@ export async function listManageableCommunities(
       name: c.name,
       slug: c.slug,
       avatarUrl: c.avatar_url,
-      memberCount: c.member_count ?? 0,
+      memberCount: resolveCommunityMemberCount({
+        slug: c.slug,
+        member_count: c.member_count,
+        settings: c.settings,
+      }),
       role,
     });
   }

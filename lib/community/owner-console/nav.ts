@@ -172,7 +172,7 @@ export const OWNER_NAV_ITEMS: Record<OwnerConsoleSectionId, OwnerNavItem> = {
   ),
   moderation: navItem(
     "moderation",
-    "Reports",
+    "Moderation",
     "moderation",
     "moderation.view",
     "Reports, queues, and safety",
@@ -232,27 +232,55 @@ export const OWNER_NAV_SECTIONS: OwnerNavSection[] = [
   },
   {
     id: "manage",
-    label: "Manage Community",
+    label: "Manage",
     collapsible: true,
-    items: ["settings", "members", "roles", "moderation"],
+    items: ["spaces", "members", "roles"],
   },
   {
     id: "content",
-    label: "Manage Content",
+    label: "Content",
     collapsible: true,
-    items: ["spaces", "content", "courses", "events", "live"],
+    items: ["content", "courses", "events", "live"],
   },
   {
-    id: "growth",
-    label: "Growth & Engagement",
+    id: "community",
+    label: "Community",
     collapsible: true,
-    items: ["analytics", "ai"],
+    items: ["settings", "analytics", "moderation"],
   },
   {
     id: "tools",
     label: "Tools",
     collapsible: true,
-    items: ["commerce", "automations", "integrations", "security", "audit"],
+    items: ["commerce", "automations", "integrations", "security", "audit", "ai"],
+  },
+];
+
+/** Lean manage-mode navigation (no Tools clutter). */
+export const MANAGE_NAV_SECTIONS: OwnerNavSection[] = [
+  {
+    id: "overview",
+    label: "Overview",
+    collapsible: false,
+    items: ["overview"],
+  },
+  {
+    id: "manage",
+    label: "Manage",
+    collapsible: true,
+    items: ["spaces", "members", "roles"],
+  },
+  {
+    id: "content",
+    label: "Content",
+    collapsible: true,
+    items: ["content", "courses", "events", "live"],
+  },
+  {
+    id: "community",
+    label: "Community",
+    collapsible: true,
+    items: ["settings", "analytics", "moderation"],
   },
 ];
 
@@ -414,6 +442,7 @@ export const OWNER_QUICK_ACTIONS: OwnerQuickAction[] = [
     label: "Create Space",
     href: ({ slug }) => ownerConsoleHref(slug, "spaces", { action: "create" }),
     capability: "group.manage",
+    primary: true,
   },
   {
     id: "community_settings",

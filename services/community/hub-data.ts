@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { aggregateMemberPoints, buildPointsSnapshot, levelFromTotalPoints, progressPercentInLevel } from "@/lib/community/points";
 import { isCallSignalingMessage, isTechnicalFeedBody } from "@/lib/community/message-signaling";
+import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 
 const ONLINE_WINDOW_MS = 15 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -1618,7 +1619,7 @@ export async function getCommunityOverviewStats(
     supabase
       .from("communities")
       .select(
-        "slug, name, description, long_description, tagline, cover_image, avatar_url, is_private, is_featured, is_free, category, tags, member_count, post_count, owner_id, created_at, owner:profiles!communities_owner_id_fkey(id, full_name, avatar_url, username)"
+        "slug, name, description, long_description, tagline, cover_image, avatar_url, is_private, is_featured, is_free, category, tags, member_count, post_count, owner_id, created_at, settings, owner:profiles!communities_owner_id_fkey(id, full_name, avatar_url, username)"
       )
       .eq("id", communityId)
       .maybeSingle(),
@@ -1784,10 +1785,14 @@ export async function getCommunityOverviewStats(
   const tags = (Array.isArray(community?.tags) ? community.tags : []).filter(
     (t): t is string => typeof t === "string" && t.length > 0
   );
-  const memberCount =
-    typeof community?.member_count === "number" && community.member_count > 0
-      ? community.member_count
-      : memberCountRes.count ?? 0;
+  const memberCount = resolveCommunityMemberCount({
+    slug: community?.slug,
+    member_count:
+      typeof community?.member_count === "number" && community.member_count > 0
+        ? community.member_count
+        : memberCountRes.count ?? 0,
+    settings: (community as { settings?: unknown } | null)?.settings,
+  });
   const postCount = community?.post_count ?? 0;
 
   const parsedRules = (community?.long_description ?? community?.description ?? "")

@@ -17,6 +17,7 @@ import {
   OWNER_CONSOLE_HUB,
   OWNER_NAV_ITEMS,
   OWNER_NAV_SECTIONS,
+  MANAGE_NAV_SECTIONS,
   useOwnerConsoleUiStore,
   type OwnerConsoleBadges,
   type OwnerConsoleSectionId,
@@ -80,6 +81,7 @@ export function OwnerConsoleSidebar({
 
   const consoleBase = communitySlug ? hrefSection() : OWNER_CONSOLE_HUB;
   const isManage = consoleMode === "manage";
+  const navSections = isManage ? MANAGE_NAV_SECTIONS : OWNER_NAV_SECTIONS;
 
   const navBody = (
     <div className="flex h-full flex-col">
@@ -114,8 +116,18 @@ export function OwnerConsoleSidebar({
       {/* Management identity */}
       {!collapsed && communitySlug && communityName ? (
         <div className="border-b border-[#E5E7EB] px-3 py-3">
+          {isManage ? (
+            <Link
+              href={`/communities/${encodeURIComponent(communitySlug)}`}
+              onClick={() => setMobileOpen(false)}
+              className="mb-2 inline-flex items-center gap-1 text-[11px] font-medium text-[#64748B] transition hover:text-[#111827]"
+            >
+              <ChevronLeft className="h-3 w-3" aria-hidden />
+              Back to Feed
+            </Link>
+          ) : null}
           <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#9CA3AF]">
-            {isManage ? "Manage Community" : "Manage"}
+            Community
           </p>
           <p className="mt-0.5 truncate text-[14px] font-semibold text-[#111827]">
             {communityName}
@@ -163,7 +175,7 @@ export function OwnerConsoleSidebar({
         className="min-h-0 flex-1 overflow-y-auto px-2 py-3"
         aria-label="Community management sections"
       >
-        {OWNER_NAV_SECTIONS.map((section) => {
+        {navSections.map((section) => {
           const items = section.items.filter((id) => visibleIds.includes(id));
           if (items.length === 0) return null;
           if (section.id === "overview") return null;

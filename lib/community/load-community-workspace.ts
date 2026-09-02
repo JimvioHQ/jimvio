@@ -5,6 +5,7 @@ import { getCommunityOverviewStats, type CommunityOverviewStats } from "@/servic
 import type { WorkspaceSpaceRow, PointsSnapshot } from "@/components/community/workspace-context";
 import { communityIsRestrictedToMembers } from "@/lib/community/join-policy";
 import { resolvePrimarySpace } from "@/lib/community/workspace/primary-space";
+import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 
 export type CommunityWorkspacePayload = {
   community: {
@@ -45,7 +46,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
   const supabase = await createClient();
   const { data: community } = await supabase
     .from("communities")
-    .select("id, slug, name, avatar_url, member_count, owner_id, cover_image, is_private, tagline, visibility, visibility_mode, archived_at")
+    .select("id, slug, name, avatar_url, member_count, owner_id, cover_image, is_private, tagline, visibility, visibility_mode, archived_at, settings")
     .eq("slug", slug)
     .eq("is_active", true)
     .maybeSingle();
@@ -183,6 +184,17 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
   const primarySpace = resolvePrimarySpace(allSpacesWithRooms);
   const spacesWithRooms = primarySpace ? [primarySpace] : allSpacesWithRooms.slice(0, 1);
 
+  const displayMemberCount = resolveCommunityMemberCount({
+    slug: community.slug,
+    member_count: community.member_count,
+    settings: (community as { settings?: unknown }).settings,
+  });
+
+  const spacesForUi = spacesWithRooms.map((s) => ({
+    ...s,
+    member_count: displayMemberCount > 0 ? displayMemberCount : s.member_count,
+  }));
+
   const points: PointsSnapshot | null = pointsRes.data
     ? buildPointsSnapshot(
         pointsRes.data.total_points ?? 0,
@@ -191,8 +203,15 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
       )
     : null;
 
+  const { settings: _settings, ...communityPublic } = community as typeof community & {
+    settings?: unknown;
+  };
+
   return {
-    community,
+    community: {
+      ...communityPublic,
+      member_count: displayMemberCount,
+    },
     currentUserId: user?.id ?? "",
     membership:
       membership?.role && membership?.status
@@ -208,7 +227,7 @@ export const loadCommunityWorkspace = cache(async function loadCommunityWorkspac
     isAdmin,
     profile: profileRes.data,
     points,
-    spacesWithRooms,
+    spacesWithRooms: spacesForUi,
     overview,
     ownerName: ownerRes.data?.full_name ?? ownerRes.data?.username ?? null,
     joinedAt: membership?.created_at ?? null,

@@ -162,7 +162,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
     return (
       <div className="flex items-center justify-center py-20 text-sm text-[var(--color-text-muted)]">
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-        Loading group settings…
+        Loading Space settings…
       </div>
     );
   }
@@ -197,8 +197,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
           </h1>
           <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
             {GROUP_STATUS_LABELS[group.status]} ·{" "}
-            {GROUP_PRIVACY_LABELS[group.privacy]} · {group.memberCount} members ·{" "}
-            {group.channelCount} rooms
+            {GROUP_PRIVACY_LABELS[group.privacy]} · {group.memberCount.toLocaleString()} members
           </p>
         </div>
         {saving && (
@@ -445,7 +444,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
             <ul className="divide-y divide-[var(--color-border)] rounded-xl border border-[var(--color-border)]">
               {staff.length === 0 && (
                 <li className="px-4 py-8 text-center text-sm text-[var(--color-text-muted)]">
-                  No group moderators yet
+                  No Space moderators yet
                 </li>
               )}
               {staff.map((s) => (
@@ -545,7 +544,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
                         setMembers((prev) =>
                           prev.filter((x) => x.userId !== m.userId)
                         );
-                        toast.success("Removed from group");
+                        toast.success("Removed from Space");
                       }}
                     >
                       Remove
@@ -683,30 +682,30 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
         {tab === "danger" && (
           <div className="max-w-xl space-y-4">
             <DangerCard
-              title="Archive group"
-              description="Hide the group from active directories. Can be restored later."
+              title="Archive Space"
+              description="Hide the Space from active directories. Can be restored later."
               actionLabel="Archive"
               disabled={group.isSystem || group.status === "archived"}
               onAction={() => void runAction("archive")}
             />
             {group.status === "archived" && (
               <DangerCard
-                title="Restore group"
-                description="Return this group to the active directory."
+                title="Restore Space"
+                description="Return this Space to the active directory."
                 actionLabel="Restore"
                 onAction={() => void runAction("restore")}
               />
             )}
             <DangerCard
-              title="Delete group"
-              description="Soft-delete (archive). Hard delete permanently removes the group and its channels."
+              title="Delete Space"
+              description="Soft-delete (archive). Hard delete permanently removes the Space."
               actionLabel="Delete"
               destructive
               disabled={group.isSystem}
               onAction={() => {
                 if (
                   window.confirm(
-                    `Delete “${group.name}”? Soft delete archives the group.`
+                    `Delete “${group.name}”? Soft delete archives the Space.`
                   )
                 ) {
                   void runAction("delete");
@@ -715,7 +714,7 @@ export function GroupSettingsPage({ groupId }: { groupId: string }) {
             />
             <DangerCard
               title="Hard delete"
-              description="Permanently remove this group. This cannot be undone."
+              description="Permanently remove this Space. This cannot be undone."
               actionLabel="Hard delete"
               destructive
               disabled={group.isSystem}

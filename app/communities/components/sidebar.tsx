@@ -601,7 +601,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/lib/auth/actions";
-import { HubPremiumCard, HubUserCard } from "@/components/community/hub/hub-ui";
 import { aggregateMemberPoints } from "@/lib/community/points";
 import { HUB_AUTH_NAV_IDS, buildHubLoginUrl } from "@/lib/community/hub-auth";
 import { useFeedUser } from "@/lib/feed/use-feed-user";
@@ -1196,15 +1195,7 @@ function SidebarContent({
 
                 {!collapsed && isAuthenticated !== false && (
                     <div style={{ padding: "8px", display: "flex", flexDirection: "column", gap: 8 }}>
-                        <HubPremiumCard />
-                        {/* <HubUserCard
-                            name={userCard?.name ?? (username ? username.replace(/_/g, " ") : "Member")}
-                            level={`Level ${userCard?.level ?? 1} · Creator`}
-                            xp={userCard?.xp ?? 0}
-                            xpMax={userCard?.xpMax ?? 1}
-                            avatarUrl={userCard?.avatarUrl}
-                            username={username || undefined}
-                        /> */}
+                        {/* Premium upgrade lives in Settings / subscribe — keep sidebar clean */}
                     </div>
                 )}
             </div>

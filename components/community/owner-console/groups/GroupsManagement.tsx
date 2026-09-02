@@ -72,7 +72,7 @@ export function GroupsManagement() {
           Spaces management requires Owner or Admin
         </p>
         <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
-          Your current role ({role}) does not include group.manage.
+          Your current role ({role}) cannot manage Spaces.
         </p>
       </div>
     );
@@ -82,6 +82,16 @@ export function GroupsManagement() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-[18px] font-semibold tracking-tight text-[#111827]">
+            Spaces
+          </h1>
+          <p className="mt-0.5 text-[13px] text-[#64748B]">
+            Organize conversations and collaboration for {community.name}
+          </p>
+        </div>
+      </div>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-muted)]" />
@@ -217,6 +227,7 @@ export function GroupsManagement() {
           groups={groups}
           view={view}
           communitySlug={community.slug}
+          communityMemberCount={community.memberCount}
           selectedIds={selectedIds}
           onToggleSelect={toggleSelect}
           onAction={(id, action) => void runAction(id, action)}

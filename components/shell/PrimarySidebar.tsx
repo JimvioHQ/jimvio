@@ -432,23 +432,6 @@ export function PrimarySidebar({ activeItem, user: userProp, className }: Primar
           )}
         </div>
 
-        <div className="mx-3 mb-3 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 p-4 text-white">
-          <div className="mb-2 flex items-center gap-2">
-            <Crown className="h-4 w-4" />
-            <span className="text-sm font-semibold">Go Premium</span>
-          </div>
-          <ul className="mb-3 space-y-1 text-xs text-orange-100">
-            <li>• Unlimited live sessions</li>
-            <li>• Advanced analytics</li>
-            <li>• Priority support</li>
-          </ul>
-          <button
-            type="button"
-            className="w-full rounded-lg bg-white py-2 text-xs font-semibold text-orange-600 transition-colors hover:bg-orange-50"
-          >
-            Upgrade Now
-          </button>
-        </div>
       </div>
     </aside>
   );

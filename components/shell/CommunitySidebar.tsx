@@ -291,22 +291,6 @@ function SidebarBody({
             })
           )}
         </nav>
-
-        <div className="mt-auto px-1 pb-2">
-          <div className="rounded-2xl border border-[var(--color-accent)]/20 bg-gradient-to-br from-[var(--color-accent-light)] to-[var(--color-surface)] px-3.5 py-4">
-            <p className="text-[13px] font-bold text-[var(--color-text-primary)]">Go Premium</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--color-text-muted)]">
-              Unlock exclusive Spaces and live sessions.
-            </p>
-            <Link
-              href={`${base}/subscribe`}
-              onClick={onNavigate}
-              className="mt-2.5 inline-flex min-h-11 items-center text-[12px] font-semibold text-[#fd5000] transition-colors hover:text-[#e04700] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fd5000]/40"
-            >
-              Upgrade now →
-            </Link>
-          </div>
-        </div>
       </div>
 
       {communityId && (

@@ -75,34 +75,31 @@ export function OwnerDashboardMetricCard({
   const Icon = METRIC_ICONS[metric.id] ?? ShieldCheck;
   const body = (
     <>
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[12px] font-medium text-[#64748B]">{metric.label}</p>
         <div
           className={cn(
-            "flex h-9 w-9 items-center justify-center rounded-xl",
+            "flex h-7 w-7 items-center justify-center rounded-lg",
             metric.tone === "warn"
               ? "bg-amber-50 text-amber-600"
               : metric.tone === "success"
                 ? "bg-emerald-50 text-emerald-600"
                 : metric.tone === "accent"
                   ? "bg-[#FF5A1F]/10 text-[#FF5A1F]"
-                  : "bg-[#F3F4F6] text-[#4B5563]"
+                  : "bg-[#F3F4F6] text-[#64748B]"
           )}
         >
-          <Icon className="h-4 w-4" aria-hidden />
+          <Icon className="h-3.5 w-3.5" aria-hidden />
         </div>
       </div>
-      <p className="mt-3 text-[12px] font-medium text-[#6B7280]">{metric.label}</p>
-      <p className="mt-0.5 text-2xl font-semibold tracking-tight text-[#111827]">
+      <p className="mt-2 text-xl font-semibold tracking-tight text-[#111827] tabular-nums">
         {metric.value}
       </p>
-      {metric.hint ? (
-        <p className="mt-1 text-[11px] text-[#9CA3AF]">{metric.hint}</p>
-      ) : null}
     </>
   );
 
   const cardClass =
-    "block rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition duration-200 hover:border-[#FF5A1F]/30 hover:shadow-[0_8px_24px_rgba(16,24,40,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40";
+    "block rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3 shadow-[0_1px_2px_rgba(16,24,40,0.03)] transition duration-200 hover:border-[#FF5A1F]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5A1F]/40";
 
   if (metric.href) {
     return (
@@ -146,8 +143,11 @@ export function OwnerQuickActionsGrid({
 }) {
   const { hrefSection } = useOwnerConsole();
   const actions = OWNER_QUICK_ACTIONS.filter(
-    (a) => a.primary && hasCapability(role, a.capability)
-  ).slice(0, 8);
+    (a) =>
+      a.primary &&
+      a.id !== "create_community" &&
+      hasCapability(role, a.capability)
+  ).slice(0, 7);
 
   return (
     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
@@ -275,6 +275,7 @@ export function OwnerDashboardShell({
         ? buildManageDashboardMetrics(community, {
             reports: badges.reports,
             live: badges.live,
+            spacesCount: spaces.length,
           })
         : buildOwnerDashboardMetrics(community, {
             communitiesCount: communities.length,
@@ -321,10 +322,10 @@ export function OwnerDashboardShell({
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <header className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:p-6">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 gap-4">
-            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-[#F3F4F6] ring-2 ring-white shadow-sm">
+      <header className="rounded-2xl border border-[#E5E7EB] bg-white px-4 py-4 shadow-[0_1px_2px_rgba(16,24,40,0.04)] sm:px-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-[#F3F4F6] ring-1 ring-[#E5E7EB]">
               {community.avatarUrl ? (
                 <Image
                   src={community.avatarUrl}
@@ -334,42 +335,29 @@ export function OwnerDashboardShell({
                   unoptimized
                 />
               ) : (
-                <span className="flex h-full w-full items-center justify-center text-xl font-bold text-[#FF5A1F]">
+                <span className="flex h-full w-full items-center justify-center text-lg font-bold text-[#FF5A1F]">
                   {community.name[0]}
                 </span>
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#FF5A1F]">
-                Manage Community
-              </p>
-              <h1 className="mt-0.5 text-2xl font-semibold tracking-tight text-[#111827] sm:text-[1.65rem]">
+              <h1 className="truncate text-[18px] font-semibold tracking-tight text-[#111827] sm:text-[20px]">
                 {community.name}
               </h1>
-              <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-[#6B7280]">
-                Manage all aspects of your community from one place.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-[#4B5563]">
+              <p className="mt-0.5 text-[13px] text-[#64748B]">
+                <span className="font-medium capitalize text-[#111827]">{role}</span>
+                <span className="mx-1.5 text-[#D1D5DB]">·</span>
                 <span>
-                  <strong className="font-semibold text-[#111827]">
-                    {community.memberCount.toLocaleString()}
-                  </strong>{" "}
-                  members
+                  {community.memberCount.toLocaleString()} members
                 </span>
-                <span className="text-[#D1D5DB]">·</span>
-                <span className="font-medium capitalize">{role}</span>
-                <span className="text-[#D1D5DB]">·</span>
-                <span className="truncate text-[#6B7280]">
-                  /communities/{community.slug}
-                </span>
-              </div>
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {workspaceHref ? (
               <Link
                 href={workspaceHref}
-                className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-[#FAFAFB] px-4 text-[13px] font-semibold text-[#111827] transition hover:border-[#FF5A1F]/40 hover:bg-white"
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3.5 text-[12px] font-semibold text-[#111827] transition hover:bg-[#F8FAFC]"
               >
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                 View Community
@@ -378,7 +366,7 @@ export function OwnerDashboardShell({
             <button
               type="button"
               onClick={() => void shareCommunity()}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-4 text-[13px] font-semibold text-[#111827] transition hover:bg-[#FAFAFB]"
+              className="inline-flex h-9 items-center gap-2 rounded-xl border border-[#E5E7EB] bg-white px-3.5 text-[12px] font-semibold text-[#111827] transition hover:bg-[#F8FAFC]"
             >
               <Share2 className="h-3.5 w-3.5" aria-hidden />
               Share
@@ -386,7 +374,7 @@ export function OwnerDashboardShell({
             {hasCapability(role, "analytics.view") ? (
               <Link
                 href={hrefSection("analytics")}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#FF5A1F] px-4 text-[13px] font-semibold text-white shadow-sm shadow-[#FF5A1F]/25 transition hover:bg-[#F04E14]"
+                className="inline-flex h-9 items-center gap-2 rounded-xl bg-[#FF5A1F] px-3.5 text-[12px] font-semibold text-white transition hover:bg-[#e54e1a]"
               >
                 <BarChart3 className="h-3.5 w-3.5" aria-hidden />
                 Analytics
@@ -400,7 +388,7 @@ export function OwnerDashboardShell({
       {metrics.length > 0 ? (
         <section
           aria-label="Key metrics"
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5"
+          className="grid grid-cols-2 gap-2.5 sm:grid-cols-4"
         >
           {metrics.map((m) => (
             <OwnerDashboardMetricCard key={m.id} metric={m} />
