@@ -136,6 +136,8 @@ export class LiveKitRoomTransport {
   private disposed = false;
   private localPreview: MediaStream | null = null;
   private preferLocalStage = false;
+  /** Session host user id — stage always prioritizes this participant for viewers. */
+  private hostIdentity: string | null = null;
   private resyncGeneration = 0;
   private remoteStreamCache = new Map<string, MediaStream>();
   private syncQueue: Promise<void> = Promise.resolve();
@@ -148,15 +150,25 @@ export class LiveKitRoomTransport {
 
   snapshot(): LiveKitRoomSnapshot {
     const remotes = this.listRemotes();
+    const hostRemote = this.hostIdentity
+      ? remotes.find((r) => r.identity === this.hostIdentity)
+      : null;
     const stageFromRemote =
+      hostRemote?.screenStream ??
       remotes.find((r) => r.role === "host" && r.screenStream)?.screenStream ??
       remotes.find((r) => r.role === "cohost" && r.screenStream)?.screenStream ??
       remotes.find((r) => r.screenStream)?.screenStream ??
+      hostRemote?.cameraStream ??
       remotes.find((r) => r.role === "host" && r.cameraStream)?.cameraStream ??
       remotes.find((r) => r.cameraStream)?.cameraStream ??
       null;
     const active =
+      (this.hostIdentity && this.speakingIds.has(this.hostIdentity)
+        ? this.hostIdentity
+        : null) ??
       [...this.speakingIds][0] ??
+      this.hostIdentity ??
+      hostRemote?.identity ??
       remotes.find((r) => r.sharing || r.camOn)?.identity ??
       null;
 
@@ -187,6 +199,12 @@ export class LiveKitRoomTransport {
   setPreferLocalStage(prefer: boolean): void {
     if (this.preferLocalStage === prefer) return;
     this.preferLocalStage = prefer;
+    this.emit();
+  }
+
+  setHostIdentity(identity: string | null): void {
+    if (this.hostIdentity === identity) return;
+    this.hostIdentity = identity;
     this.emit();
   }
 

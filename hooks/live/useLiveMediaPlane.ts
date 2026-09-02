@@ -83,6 +83,14 @@ export function useLiveMediaPlane(enabled = true) {
     return (await planeRef.current?.switchCamera(deviceId)) ?? false;
   }, []);
 
+  const flipCamera = useCallback(async () => {
+    return (await planeRef.current?.flipCamera()) ?? false;
+  }, []);
+
+  const releaseMedia = useCallback(async () => {
+    await planeRef.current?.releaseMedia();
+  }, []);
+
   const switchMicrophone = useCallback(async (deviceId: string) => {
     return (await planeRef.current?.switchMicrophone(deviceId)) ?? false;
   }, []);
@@ -144,6 +152,7 @@ export function useLiveMediaPlane(enabled = true) {
     toggleMic,
     toggleCamera,
     switchCamera,
+    flipCamera,
     switchMicrophone,
     startScreenShare,
     stopScreenShare,
@@ -153,6 +162,7 @@ export function useLiveMediaPlane(enabled = true) {
     resumeRecording,
     stopRecording,
     recover,
+    releaseMedia,
     plane: planeRef,
   };
 }

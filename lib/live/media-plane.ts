@@ -57,6 +57,7 @@ export class LiveMediaPlane {
   private deviceHandler: (() => void) | null = null;
   private disposed = false;
   private shareStarting = false;
+  private facingMode: "user" | "environment" | null = "user";
 
   subscribe(fn: Listener): () => void {
     this.listeners.add(fn);
@@ -256,7 +257,67 @@ export class LiveMediaPlane {
   }
 
   async switchCamera(deviceId: string): Promise<boolean> {
+    this.facingMode = null;
     return this.enableCamera(deviceId);
+  }
+
+  /** Toggle front/back camera on mobile (facingMode). */
+  async flipCamera(): Promise<boolean> {
+    this.lastError = null;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      this.lastError = "Camera unavailable";
+      this.emit();
+      return false;
+    }
+    const nextFacing: "user" | "environment" =
+      this.facingMode === "user" ? "environment" : "user";
+    this.facingMode = nextFacing;
+    this.activeVideoId = null;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: nextFacing } },
+        audio: false,
+      });
+      const vt = stream.getVideoTracks()[0];
+      if (!vt) {
+        stream.getTracks().forEach((t) => t.stop());
+        this.lastError = "Camera unavailable";
+        this.emit();
+        return false;
+      }
+      if (this.camStream) {
+        this.camStream.getVideoTracks().forEach((t) => {
+          t.stop();
+          this.camStream?.removeTrack(t);
+        });
+        this.camStream.addTrack(vt);
+        stream.getTracks().filter((t) => t !== vt).forEach((t) => t.stop());
+      } else {
+        this.camStream = new MediaStream([vt]);
+      }
+      this.camEnabled = true;
+      this.permissionDenied.video = false;
+      this.emit();
+      return true;
+    } catch (err) {
+      this.lastError = err instanceof Error ? err.message : "Camera flip failed";
+      this.emit();
+      return false;
+    }
+  }
+
+  /** Stop all local media (end live / leave). */
+  async releaseMedia(): Promise<void> {
+    this.stopScreenShare();
+    await this.disableCamera();
+    this.setMicEnabled(false);
+    if (this.camStream) {
+      this.camStream.getAudioTracks().forEach((t) => {
+        t.stop();
+        this.camStream?.removeTrack(t);
+      });
+    }
+    this.emit();
   }
 
   async switchMicrophone(deviceId: string): Promise<boolean> {

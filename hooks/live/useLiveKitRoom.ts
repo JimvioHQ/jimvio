@@ -43,6 +43,8 @@ export function useLiveKitRoom(opts: {
   sharing?: boolean;
   /** Prefer local preview on stage when hosting. */
   preferLocalStage?: boolean;
+  /** Host user id — viewers always see host on main stage. */
+  hostIdentity?: string | null;
 }) {
   const {
     sessionId,
@@ -53,6 +55,7 @@ export function useLiveKitRoom(opts: {
     shareStream = null,
     sharing = false,
     preferLocalStage = true,
+    hostIdentity = null,
   } = opts;
 
   const transportRef = useRef<LiveKitRoomTransport | null>(null);
@@ -131,6 +134,10 @@ export function useLiveKitRoom(opts: {
     transportRef.current?.setPreferLocalStage(preferLocalStage);
     transportRef.current?.setLocalPreview(localStage);
   }, [preferLocalStage, sharing, shareStream, localAvStream, camOn, micOn]);
+
+  useEffect(() => {
+    transportRef.current?.setHostIdentity(hostIdentity ?? null);
+  }, [hostIdentity]);
 
   const reconnect = useCallback(async () => {
     if (!sessionId) return;

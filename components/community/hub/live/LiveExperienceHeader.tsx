@@ -30,6 +30,7 @@ export function LiveExperienceHeader({
   canEditTitle = false,
   onSaveTitle,
   backHref = "/communities/live",
+  onBack,
 }: {
   title: string;
   immersive?: boolean;
@@ -45,6 +46,8 @@ export function LiveExperienceHeader({
   onSaveTitle?: (next: string) => Promise<void> | void;
   onOpenChat?: () => void;
   backHref?: string;
+  /** When set, back uses this handler instead of navigation link (e.g. confirm before leaving live). */
+  onBack?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(title);
@@ -88,20 +91,38 @@ export function LiveExperienceHeader({
       )}
     >
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        <Link
-          href={backHref}
-          className={cn(
-            "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-            MOTION_COLORS,
-            immersive
-              ? "text-white/70 hover:bg-white/10 hover:text-white"
-              : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
-            FOCUS_RING
-          )}
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-        </Link>
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className={cn(
+              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+              MOTION_COLORS,
+              immersive
+                ? "text-white/70 hover:bg-white/10 hover:text-white"
+                : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
+              FOCUS_RING
+            )}
+            aria-label="Back"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          </button>
+        ) : (
+          <Link
+            href={backHref}
+            className={cn(
+              "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+              MOTION_COLORS,
+              immersive
+                ? "text-white/70 hover:bg-white/10 hover:text-white"
+                : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
+              FOCUS_RING
+            )}
+            aria-label="Back"
+          >
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+          </Link>
+        )}
 
         {editing ? (
           <div className="flex min-w-0 flex-1 items-center gap-1.5">

@@ -1,17 +1,18 @@
 "use client";
 
 import {
+  FlipHorizontal2,
   Heart,
   MessageSquare,
   Mic,
   MicOff,
   MoreHorizontal,
+  PhoneOff,
   ScreenShare,
-  Settings,
   Share2,
+  Square,
   Video,
   VideoOff,
-  Volume2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FOCUS_RING, MOTION } from "./studio-ui";
@@ -59,12 +60,14 @@ export function LiveMobileDock({
   onMic,
   onCam,
   onShare,
-  onAudio,
-  onSettings,
+  onStopShare,
+  onFlipCamera,
   onChat,
   onReact,
   onShareLink,
   onMore,
+  onEndLive,
+  onLeave,
 }: {
   isHost: boolean;
   micOn?: boolean;
@@ -73,13 +76,20 @@ export function LiveMobileDock({
   onMic?: () => void;
   onCam?: () => void;
   onShare?: () => void;
-  onAudio?: () => void;
-  onSettings?: () => void;
+  onStopShare?: () => void;
+  onFlipCamera?: () => void;
   onChat?: () => void;
   onReact?: () => void;
   onShareLink?: () => void;
   onMore?: () => void;
+  onEndLive?: () => void;
+  onLeave?: () => void;
 }) {
+  const handleShare = () => {
+    if (sharing) onStopShare?.();
+    else onShare?.();
+  };
+
   return (
     <div
       className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:hidden"
@@ -95,14 +105,22 @@ export function LiveMobileDock({
             <DockAction label="Camera" onClick={onCam} active={camOn} danger={!camOn}>
               {camOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
             </DockAction>
-            <DockAction label="Share" onClick={onShare} active={sharing}>
-              <ScreenShare className="h-5 w-5" />
+            {onFlipCamera ? (
+              <DockAction label="Flip" onClick={onFlipCamera}>
+                <FlipHorizontal2 className="h-5 w-5" />
+              </DockAction>
+            ) : null}
+            <DockAction label={sharing ? "Stop" : "Share"} onClick={handleShare} active={sharing}>
+              {sharing ? <Square className="h-5 w-5" /> : <ScreenShare className="h-5 w-5" />}
             </DockAction>
-            <DockAction label="Audio" onClick={onAudio}>
-              <Volume2 className="h-5 w-5" />
+            <DockAction label="Link" onClick={onShareLink}>
+              <Share2 className="h-5 w-5" />
             </DockAction>
-            <DockAction label="Settings" onClick={onSettings}>
-              <Settings className="h-5 w-5" />
+            <DockAction label="More" onClick={onMore}>
+              <MoreHorizontal className="h-5 w-5" />
+            </DockAction>
+            <DockAction label="End" onClick={onEndLive} danger>
+              <PhoneOff className="h-5 w-5" />
             </DockAction>
           </>
         ) : (
@@ -119,6 +137,11 @@ export function LiveMobileDock({
             <DockAction label="More" onClick={onMore}>
               <MoreHorizontal className="h-5 w-5" />
             </DockAction>
+            {onLeave ? (
+              <DockAction label="Leave" onClick={onLeave} danger>
+                <PhoneOff className="h-5 w-5" />
+              </DockAction>
+            ) : null}
           </>
         )}
       </div>
