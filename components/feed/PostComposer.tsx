@@ -58,6 +58,12 @@ const AUDIENCE_OPTIONS: { id: Audience; label: string }[] = [
 
 const LINK_RE = /https?:\/\/[^\s]+/i;
 
+export type PublishedPostResult = {
+  postId?: string;
+  communitySlug?: string | null;
+  communityId?: string | null;
+};
+
 export function PostComposer({
   initialCommunitySlug = null,
   variant = "inline",
@@ -66,7 +72,7 @@ export function PostComposer({
   /** Prefill community from `?community=slug` on /create/post */
   initialCommunitySlug?: string | null;
   variant?: "inline" | "page";
-  onPublished?: (postId?: string) => void;
+  onPublished?: (result: PublishedPostResult) => void;
 } = {}) {
   const router = useRouter();
   const { user, isLoading, isAuthenticated } = useFeedUser();
@@ -113,7 +119,13 @@ export function PostComposer({
           .in("id", ids)
           .eq("is_active", true);
         if (cancelled || !comms?.length) return;
-        const options = comms as CommunityOption[];
+        const byId = new Map(
+          (comms as CommunityOption[]).map((c) => [c.id, c] as const)
+        );
+        // Preserve membership recency order from the query above.
+        const options = ids
+          .map((id) => byId.get(id))
+          .filter((c): c is CommunityOption => Boolean(c));
         setCommunities(options);
         const bySlug = initialCommunitySlug
           ? options.find((c) => c.slug === initialCommunitySlug)
@@ -246,6 +258,11 @@ export function PostComposer({
       return;
     }
 
+    if (!communityId) {
+      toast.error("Select a community before publishing");
+      return;
+    }
+
     setSaving(true);
     try {
       const images = readyMedia.filter((m) => m.kind === "image").map((m) => m.url);
@@ -266,6 +283,11 @@ export function PostComposer({
                 : images.length > 0
                   ? "photo"
                   : "discussion";
+
+      const selectedSlug =
+        communities.find((c) => c.id === communityId)?.slug ??
+        initialCommunitySlug ??
+        null;
 
       const res = await fetch("/api/posts/feed", {
         method: "POST",
@@ -297,10 +319,17 @@ export function PostComposer({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        toast.error(err.error ?? "Failed to post");
+        const message =
+          typeof err?.error === "string" && err.error.length < 180 && !/sql|postgres|stack/i.test(err.error)
+            ? err.error
+            : "Failed to post";
+        toast.error(message);
         return;
       }
-      const created = (await res.json().catch(() => ({}))) as { post?: { id?: string } };
+      const created = (await res.json().catch(() => ({}))) as {
+        post?: { id?: string; community_id?: string };
+        community?: { id?: string; slug?: string | null };
+      };
       setBody("");
       setMedia([]);
       setPollOptions(["", ""]);
@@ -310,7 +339,15 @@ export function PostComposer({
       if (!isPage) setExpanded(false);
       if (user?.id) clearLocalDraft(draftStorageKey(user.id, communityId));
       toast.success(asDraft ? "Draft saved" : "Post published");
-      if (!asDraft) onPublished?.(created.post?.id);
+      if (!asDraft) {
+        const communitySlug = created.community?.slug ?? selectedSlug;
+        onPublished?.({
+          postId: created.post?.id,
+          communitySlug,
+          communityId: created.community?.id ?? created.post?.community_id ?? communityId,
+        });
+        router.refresh();
+      }
     } catch {
       toast.error("Network error");
     } finally {

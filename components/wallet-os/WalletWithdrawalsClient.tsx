@@ -94,7 +94,7 @@ export function WalletWithdrawalsClient() {
   return (
     <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8">
       <WalletSectionHeading
-        eyebrow="Jimvio Wallet OS"
+        eyebrow="Jimvio Wallet"
         title="Withdrawals"
         description="One place to withdraw everything you've earned, however you like to get paid."
         action={

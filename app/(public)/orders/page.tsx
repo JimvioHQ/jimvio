@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-   ShoppingCart, Search, Package, Truck, CheckCircle, XCircle,
+   Search, Package, Truck, CheckCircle, XCircle,
    Clock, MessageSquare, Download, ShoppingBag, ArrowLeft,
    MoreVertical, Loader2, ChevronRight, AlertCircle, Star,
    RefreshCcw, RotateCcw, MapPin, ExternalLink, Filter,
@@ -21,8 +21,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { updateOrderStatus } from "@/lib/actions/marketplace";
 import { toast } from "sonner";
-import { PageHeader, Th, StatusPill, EmptyState, RowArrow } from "@/components/ui/admin";
-import { Tile } from "@/components/ui/admin-tile";
+import { Th, StatusPill, EmptyState, RowArrow } from "@/components/ui/admin";
 import { DashboardFilterChip } from "@/components/dashboard/dashboard-filter-chip";
 import { Input } from "@/components/ui/input";
 
@@ -744,21 +743,29 @@ export default function BuyerOrdersPage() {
             />
          )}
 
-         <div className="space-y-6 pb-16">
-            <PageHeader
-               eyebrow="Dashboard · Commerce"
-               title="Orders"
-               subtitle={`${orders.length} order${orders.length !== 1 ? "s" : ""} placed`}
-               actions={
+         <div className="space-y-8 pb-16">
+            <div className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#111113_0%,#1c1917_55%,#2a1810_100%)] px-5 py-6 text-white shadow-[0_20px_50px_-28px_rgba(0,0,0,0.55)] sm:px-8 sm:py-8">
+               <div
+                  aria-hidden
+                  className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(253,80,0,0.45),transparent_70%)] blur-2xl"
+               />
+               <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="min-w-0">
+                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Jimvio Commerce</p>
+                     <h1 className="mt-2 text-[28px] font-semibold tracking-tight sm:text-[34px]">Orders</h1>
+                     <p className="mt-1.5 text-[13.5px] text-white/60">
+                        {orders.length} order{orders.length !== 1 ? "s" : ""} · track purchases, payments, and delivery
+                     </p>
+                  </div>
                   <Link
                      href="/marketplace"
-                     className="inline-flex h-9 items-center gap-2 rounded-md px-3.5 text-[12.5px] font-medium bg-[var(--color-surface)] ring-1 ring-[var(--color-border)] text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)]"
+                     className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[#fd5000] px-4 text-[13px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(253,80,0,0.8)] transition hover:bg-[#e84800]"
                   >
-                     <ShoppingBag className="h-3.5 w-3.5" />
+                     <ShoppingBag className="h-4 w-4" />
                      Browse store
                   </Link>
-               }
-            />
+               </div>
+            </div>
 
             {fetchError && (
                <ErrorBanner onRetry={() => {
@@ -768,24 +775,41 @@ export default function BuyerOrdersPage() {
                }} />
             )}
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-               <div className="col-span-2 sm:col-span-1 relative">
-                  <Tile
-                     label="Total spent"
-                     value={dominantCurrency ? formatMoney(dominantCurrency[1], dominantCurrency[0]) : formatMoney(0, "USD")}
-                     sublabel={spendByCurrency.length > 1 ? `${spendByCurrency.length} currencies` : "Paid orders"}
-                     icon={ShoppingCart}
-                  />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+               <div className="col-span-2 sm:col-span-1 relative rounded-2xl bg-[var(--color-surface)] p-4 ring-1 ring-[var(--color-border)] shadow-[0_1px_2px_rgba(16,15,14,0.04)]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">Total spent</p>
+                  <p className="mt-2 text-[22px] font-semibold tracking-tight text-[var(--color-text-primary)]">
+                     {dominantCurrency ? formatMoney(dominantCurrency[1], dominantCurrency[0]) : formatMoney(0, "USD")}
+                  </p>
+                  <p className="mt-1 text-[11.5px] text-[var(--color-text-muted)]">
+                     {spendByCurrency.length > 1 ? `${spendByCurrency.length} currencies` : "Across your orders"}
+                  </p>
                   {spendByCurrency.length > 1 && (
                      <div className="absolute bottom-3 right-3">
                         <SpendBreakdown spendByCurrency={spendByCurrency} formatMoney={formatMoney} />
                      </div>
                   )}
                </div>
-               <Tile label="Active" value={String(activeOrders)} sublabel="In progress" icon={Package} tone={activeOrders > 0 ? "warn" : "default"} />
-               <Tile label="Completed" value={String(completedOrders)} sublabel="Delivered" icon={CheckCircle} tone="success" />
-               <Tile label="Cancelled" value={String(cancelledOrders)} sublabel="Stopped" icon={XCircle} tone={cancelledOrders > 0 ? "danger" : "default"} />
-               <Tile label="Refunded" value={String(refundedOrders)} sublabel="Returned" icon={RefreshCcw} />
+               <div className="rounded-2xl bg-[var(--color-surface)] p-4 ring-1 ring-[var(--color-border)]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">Active</p>
+                  <p className="mt-2 text-[22px] font-semibold text-[var(--color-text-primary)]">{activeOrders}</p>
+                  <p className="mt-1 text-[11.5px] text-amber-600">In progress</p>
+               </div>
+               <div className="rounded-2xl bg-[var(--color-surface)] p-4 ring-1 ring-[var(--color-border)]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">Completed</p>
+                  <p className="mt-2 text-[22px] font-semibold text-[var(--color-text-primary)]">{completedOrders}</p>
+                  <p className="mt-1 text-[11.5px] text-emerald-600">Delivered</p>
+               </div>
+               <div className="rounded-2xl bg-[var(--color-surface)] p-4 ring-1 ring-[var(--color-border)]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">Cancelled</p>
+                  <p className="mt-2 text-[22px] font-semibold text-[var(--color-text-primary)]">{cancelledOrders}</p>
+                  <p className="mt-1 text-[11.5px] text-[var(--color-text-muted)]">Stopped</p>
+               </div>
+               <div className="rounded-2xl bg-[var(--color-surface)] p-4 ring-1 ring-[var(--color-border)]">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">Refunded</p>
+                  <p className="mt-2 text-[22px] font-semibold text-[var(--color-text-primary)]">{refundedOrders}</p>
+                  <p className="mt-1 text-[11.5px] text-[var(--color-text-muted)]">Returned</p>
+               </div>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -795,8 +819,7 @@ export default function BuyerOrdersPage() {
                      icon={<Search className="pointer-events-none h-3.5 w-3.5 text-[var(--color-text-muted)]" />}
                      onChange={e => setSearch(e.target.value)}
                      placeholder="Search by order #, product, or vendor…"
-                     className="h-9 w-full bg-[var(--color-surface)] pl-9 pr-4 text-[13px] text-[var(--color-text-primary)] 
-                     outline-none placeholder:text-[var(--color-text-muted)]"
+                     className="h-11 w-full rounded-xl bg-[var(--color-surface)] pl-9 pr-4 text-[13px] text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)] ring-1 ring-[var(--color-border)]"
                   />
                   {search && (
                      <button
@@ -808,7 +831,7 @@ export default function BuyerOrdersPage() {
                      </button>
                   )}
                </div>
-               <div className="flex gap-2 overflow-x-auto scrollbar-none">
+               <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
                   {FILTERS.map(f => {
                      const count =
                         f === "All" ? orders.length :

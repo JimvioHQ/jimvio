@@ -51,7 +51,7 @@ export function WalletAnalyticsClient() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8">
       <WalletSectionHeading
-        eyebrow="Jimvio Wallet OS"
+        eyebrow="Jimvio Wallet"
         title="Analytics"
         description="Income vs. expenses, revenue by module, and how your earnings are trending."
         className="mb-6"

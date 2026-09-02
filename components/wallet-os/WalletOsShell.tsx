@@ -33,7 +33,7 @@ export const WALLET_OS_NAV: WalletNavItem[] = [
   { href: "/wallet/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/wallet/withdrawals", label: "Withdrawals", icon: LandmarkIcon },
   { href: "/wallet/deposits", label: "Deposits", icon: RefreshCcw },
-  { href: "/wallet/escrow", label: "Escrow", icon: Lock },
+  { href: "/wallet/escrow", label: "Reserved", icon: Lock },
   { href: "/wallet/subscriptions", label: "Subscriptions", icon: Receipt },
   { href: "/wallet/rewards", label: "Rewards", icon: Gift },
   { href: "/wallet/invoices", label: "Invoices", icon: Fingerprint },
@@ -54,7 +54,7 @@ function WordMark() {
         <WalletIcon className="h-4 w-4" />
       </span>
       <div className="min-w-0 leading-tight">
-        <p className="truncate text-[13.5px] font-semibold text-white">Wallet OS</p>
+        <p className="truncate text-[13.5px] font-semibold text-white">Wallet</p>
         <p className="truncate text-[10.5px] font-medium uppercase tracking-[0.14em] text-white/40">Jimvio</p>
       </div>
     </div>
@@ -103,18 +103,18 @@ export function WalletOsShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="mt-4 flex flex-col gap-1 border-t border-white/[0.06] px-2.5 pt-4">
             <Link
-              href="/wallet"
+              href="/orders"
               className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12.5px] font-medium text-white/45 transition-colors hover:bg-white/[0.05] hover:text-white/80"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Classic wallet
+              Orders
             </Link>
             <Link
               href="/identity/wallet"
               className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12.5px] font-medium text-white/45 transition-colors hover:bg-white/[0.05] hover:text-white/80"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Identity wallet
+              Identity
             </Link>
           </div>
         </aside>
@@ -145,11 +145,11 @@ export function WalletOsShell({ children }: { children: React.ReactNode }) {
               </div>
               <div className="mt-4 flex flex-col gap-1 border-t border-white/[0.06] px-2.5 pt-4">
                 <Link
-                  href="/wallet"
+                  href="/orders"
                   className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[12.5px] font-medium text-white/45 hover:bg-white/[0.05] hover:text-white/80"
                 >
                   <ArrowLeft className="h-3.5 w-3.5" />
-                  Classic wallet
+                  Orders
                 </Link>
               </div>
             </aside>
@@ -169,15 +169,15 @@ export function WalletOsShell({ children }: { children: React.ReactNode }) {
             </button>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-muted)]">
-                Jimvio Wallet OS
+                Jimvio Wallet
               </p>
               <p className="truncate text-[14px] font-semibold text-[var(--color-text-primary)]">{activeItem?.label ?? "Wallet"}</p>
             </div>
             <Link
-              href="/wallet"
+              href="/wallet/transactions"
               className="shrink-0 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--color-text-primary)]"
             >
-              Classic
+              Activity
             </Link>
           </div>
 

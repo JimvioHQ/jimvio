@@ -26,7 +26,7 @@ export const NL_SUGGESTION_CHIPS: SuggestionChip[] = [
 export const ACTION_SUGGESTION_CHIPS: SuggestionChip[] = [
   { id: "chip-cmd-create-ugc-campaign", type: "command", label: "Create UGC Campaign", commandId: "create-ugc-campaign" },
   { id: "chip-cmd-start-live", type: "command", label: "Start Live", commandId: "start-live" },
-  { id: "chip-cmd-open-wallet-os", type: "command", label: "Open Wallet OS", commandId: "open-wallet-os" },
+  { id: "chip-cmd-open-wallet-os", type: "command", label: "Open Wallet", commandId: "open-wallet-os" },
   { id: "chip-cmd-open-ai", type: "command", label: "Ask Jimvio AI", commandId: "open-ai" },
 ];
 

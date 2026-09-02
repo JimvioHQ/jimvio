@@ -54,7 +54,7 @@ export function WalletRewardsClient() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8">
       <WalletSectionHeading
-        eyebrow="Jimvio Wallet OS"
+        eyebrow="Jimvio Wallet"
         title="Rewards"
         description="Points, bonuses, and perks earned from activity across Jimvio."
         className="mb-6"

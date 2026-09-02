@@ -569,7 +569,13 @@ export async function POST(req: NextRequest) {
     .select("*, profiles!community_posts_author_id_fkey(full_name, avatar_url, username)")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (error) {
+    console.error("POST /api/posts/feed insert failed", error.message);
+    return NextResponse.json(
+      { error: "Could not publish post. Please try again." },
+      { status: 400 }
+    );
+  }
 
   if (isPublished) {
     revalidatePath("/communities");
@@ -580,5 +586,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ post: data });
+  return NextResponse.json({
+    post: data,
+    community: destCommunity?.slug
+      ? { id: communityId, slug: destCommunity.slug }
+      : { id: communityId, slug: null },
+  });
 }

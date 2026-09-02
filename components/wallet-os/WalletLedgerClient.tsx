@@ -63,7 +63,7 @@ const CATEGORY_META: Record<LedgerCategory, { label: string; icon: React.Compone
   affiliate: { label: "Affiliate", icon: Users2, color: "#8A6DF0" },
   community: { label: "Community", icon: Sparkles, color: "#D6A400" },
   orders: { label: "Orders", icon: Package, color: "#1C8A44" },
-  escrow: { label: "Escrow", icon: Lock, color: "#2560B0" },
+  escrow: { label: "Reserved", icon: Lock, color: "#2560B0" },
   rewards: { label: "Rewards", icon: Gift, color: "#C2570D" },
   refunds: { label: "Refunds", icon: RefreshCcw, color: "#9A6B00" },
   fees: { label: "Fees", icon: Receipt, color: "#736C60" },
@@ -76,7 +76,7 @@ const FILTERS: Array<{ id: "all" | LedgerCategory; label: string }> = [
   { id: "affiliate", label: "Affiliate" },
   { id: "community", label: "Community" },
   { id: "orders", label: "Orders" },
-  { id: "escrow", label: "Escrow" },
+  { id: "escrow", label: "Reserved" },
   { id: "rewards", label: "Rewards" },
   { id: "refunds", label: "Refunds" },
   { id: "fees", label: "Fees" },
@@ -134,7 +134,7 @@ export function WalletLedgerClient() {
   return (
     <div className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8">
       <WalletSectionHeading
-        eyebrow="Jimvio Wallet OS"
+        eyebrow="Jimvio Wallet"
         title="Transactions"
         description="A professional ledger of every credit, debit and fee across Marketplace, UGC, Affiliate and Community."
         action={

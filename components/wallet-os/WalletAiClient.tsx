@@ -32,7 +32,7 @@ interface WalletAiResponse {
 
 const FALLBACK_SUGGESTIONS = [
   "How much did I earn this month?",
-  "When will my escrow funds release?",
+  "When will my reserved funds release?",
   "What's my best-performing income source?",
   "Help me plan a withdrawal",
 ];
@@ -83,9 +83,9 @@ export function WalletAiClient() {
   return (
     <div className="mx-auto max-w-4xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8">
       <WalletSectionHeading
-        eyebrow="Jimvio Wallet OS"
+        eyebrow="Jimvio Wallet"
         title="AI Assistant"
-        description="Ask about balances, earnings trends, escrow timing, or the best time to withdraw."
+        description="Ask about balances, earnings trends, reserved funds timing, or the best time to withdraw."
         className="mb-6"
       />
 

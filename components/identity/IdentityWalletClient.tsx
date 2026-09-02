@@ -127,7 +127,7 @@ export function IdentityWalletClient() {
           </Link>
           <Link href="/wallet">
             <IdentityButton>
-              <WalletIcon className="h-4 w-4" /> Open Wallet OS
+              <WalletIcon className="h-4 w-4" /> Open Wallet
             </IdentityButton>
           </Link>
         </div>
@@ -172,7 +172,7 @@ export function IdentityWalletClient() {
             This is a unified view of your Identity earnings. For the full experience — analytics, escrow, rewards,
             invoices and more — open{" "}
             <Link href="/wallet" className="font-semibold underline underline-offset-2">
-              Wallet OS
+              Wallet
             </Link>
             , or manage withdrawals directly in your{" "}
             <Link href={data.withdrawalUrl} className="font-semibold underline underline-offset-2">

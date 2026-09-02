@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback } from "react";
 import { ArrowLeft } from "lucide-react";
-import { PostComposer } from "@/components/feed/PostComposer";
+import { PostComposer, type PublishedPostResult } from "@/components/feed/PostComposer";
 
 function UploadPostPageInner() {
   const router = useRouter();
@@ -12,12 +12,16 @@ function UploadPostPageInner() {
   const communitySlug = searchParams.get("community");
 
   const onPublished = useCallback(
-    (postId?: string) => {
-      if (communitySlug) {
-        router.push(`/communities/${communitySlug}${postId ? `?post=${postId}` : ""}`);
+    (result: PublishedPostResult) => {
+      const slug = result.communitySlug?.trim() || communitySlug;
+      if (slug) {
+        const qs = result.postId ? `?post=${encodeURIComponent(result.postId)}` : "";
+        router.push(`/communities/${encodeURIComponent(slug)}/feed${qs}`);
+        router.refresh();
         return;
       }
-      router.push(postId ? `/communities?post=${postId}` : "/communities");
+      router.push(result.postId ? `/communities?post=${encodeURIComponent(result.postId)}` : "/communities");
+      router.refresh();
     },
     [communitySlug, router]
   );
@@ -25,7 +29,7 @@ function UploadPostPageInner() {
   return (
     <div className="space-y-4">
       <Link
-        href={communitySlug ? `/communities/${communitySlug}` : "/communities"}
+        href={communitySlug ? `/communities/${communitySlug}/feed` : "/communities"}
         className="inline-flex items-center gap-1.5 text-[13px] font-medium text-gray-600 hover:text-[#fd5000]"
       >
         <ArrowLeft className="h-4 w-4" />

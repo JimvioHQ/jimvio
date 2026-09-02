@@ -58,7 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   { id: "events", label: "Events", href: "/communities/events", icon: Calendar },
   { id: "leaderboard", label: "Leaderboard", href: "/communities/leaderboard", icon: Crown },
   { id: "notifications", label: "Notifications", href: "/communities/notifications", icon: Bell },
-  { id: "wallet", label: "Wallet", href: "/communities/wallet", icon: Wallet },
+  { id: "wallet", label: "Wallet", href: "/wallet", icon: Wallet },
 ];
 
 const GUEST_PROFILE = {
@@ -108,7 +108,7 @@ export function resolveSidebarActiveItem(pathname: string): SidebarItem {
   if (pathname.startsWith("/communities/profile") || pathname.startsWith("/identity") || pathname.startsWith("/u/")) {
     return "profile";
   }
-  if (pathname.startsWith("/communities/wallet")) return "wallet";
+  if (pathname === "/wallet" || pathname.startsWith("/wallet/")) return "wallet";
   if (pathname.startsWith("/communities/settings")) return "settings";
   return "feed";
 }

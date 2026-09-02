@@ -82,7 +82,7 @@ export function WalletDepositsClient() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8">
       <WalletSectionHeading
-        eyebrow="Jimvio Wallet OS"
+        eyebrow="Jimvio Wallet"
         title="Deposits"
         description="Fund your wallet directly, or track incoming funding requests."
         className="mb-6"

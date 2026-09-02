@@ -78,7 +78,7 @@ export function WalletSecurityClient() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8">
       <WalletSectionHeading
-        eyebrow="Jimvio Wallet OS"
+        eyebrow="Jimvio Wallet"
         title="Security"
         description="Protect your wallet with a PIN, two-factor authentication, and device oversight."
         className="mb-6"

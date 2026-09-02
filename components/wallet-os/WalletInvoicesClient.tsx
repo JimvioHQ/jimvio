@@ -58,7 +58,7 @@ export function WalletInvoicesClient() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pt-8">
       <WalletSectionHeading
-        eyebrow="Jimvio Wallet OS"
+        eyebrow="Jimvio Wallet"
         title="Invoices & statements"
         description="Monthly wallet statements and downloadable receipts for every payout."
         action={

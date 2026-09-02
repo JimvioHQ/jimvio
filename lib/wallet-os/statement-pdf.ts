@@ -43,7 +43,7 @@ export function buildWalletStatementPdf(input: WalletStatementInput): Promise<Bu
     const { overview } = input;
 
     doc.font(PDF_FONT_BOLD).fontSize(22).fillColor(BRAND).text("Jimvio Wallet");
-    doc.font(PDF_FONT_REGULAR).fontSize(10).fillColor(MUTED).text(s("Wallet OS Statement"));
+    doc.font(PDF_FONT_REGULAR).fontSize(10).fillColor(MUTED).text(s("Wallet Statement"));
     doc.moveDown(0.6);
 
     const generatedAt = input.generatedAt ?? new Date();
@@ -59,7 +59,7 @@ export function buildWalletStatementPdf(input: WalletStatementInput): Promise<Bu
       ["Available balance", fmt(overview.available, overview.currency)],
       ["Pending balance", fmt(overview.pending, overview.currency)],
       ["Locked balance", fmt(overview.locked, overview.currency)],
-      ["Escrow balance", fmt(overview.escrow, overview.currency)],
+      ["Reserved balance", fmt(overview.escrow, overview.currency)],
       ["Rewards balance", fmt(overview.rewards, overview.currency)],
       ["Total earned", fmt(overview.totalEarned, overview.currency)],
       ["Total paid out", fmt(overview.totalPaid, overview.currency)],
@@ -126,7 +126,7 @@ export function buildWalletStatementPdf(input: WalletStatementInput): Promise<Bu
           .font(PDF_FONT_REGULAR)
           .fontSize(8)
           .fillColor(MUTED)
-          .text(s("Jimvio Wallet OS — statement generated for informational purposes only."), left, footerY, {
+          .text(s("Jimvio Wallet — statement generated for informational purposes only."), left, footerY, {
             width: pageWidth,
           });
       }

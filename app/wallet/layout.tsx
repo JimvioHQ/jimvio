@@ -4,10 +4,10 @@ import { WalletOsShell } from "@/components/wallet-os/WalletOsShell";
 
 export const metadata: Metadata = {
   title: {
-    template: "%s · Jimvio Wallet OS",
-    default: "Jimvio Wallet OS",
+    template: "%s · Jimvio Wallet",
+    default: "Jimvio Wallet",
   },
-  description: "One operating system for everything you earn, hold, and move on Jimvio.",
+  description: "Manage your Jimvio balance, transactions, withdrawals, and deposits.",
 };
 
 export default function WalletLayout({ children }: { children: React.ReactNode }) {

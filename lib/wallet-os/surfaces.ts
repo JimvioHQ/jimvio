@@ -22,7 +22,7 @@ export const WALLET_SURFACE_FILTERS: WalletSurfaceFilter[] = [
   { value: "affiliate", label: "Affiliate" },
   { value: "community", label: "Community" },
   { value: "orders", label: "Orders" },
-  { value: "escrow", label: "Escrow" },
+  { value: "escrow", label: "Reserved" },
   { value: "rewards", label: "Rewards" },
   { value: "refunds", label: "Refunds" },
   { value: "fees", label: "Fees" },

@@ -62,7 +62,7 @@ export default async function IdentitySettingsPage() {
     {
       href: "/wallet",
       title: "Wallet",
-      description: "Balances, escrow, analytics, rewards and AI — the full Jimvio Wallet OS.",
+      description: "Balances, reserved funds, analytics, rewards and AI — Jimvio Wallet.",
       icon: Wallet,
     },
     {
