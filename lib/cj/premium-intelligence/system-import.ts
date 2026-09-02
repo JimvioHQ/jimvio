@@ -72,7 +72,10 @@ function detailVariants(detail: Record<string, unknown> | null): Array<Record<st
  * Does not activate — publish worker handles activation.
  * Re-imports when an existing draft has no publishable images.
  */
-export async function ensureCjProductImported(pid: string): Promise<string | null> {
+export async function ensureCjProductImported(
+  pid: string,
+  options?: { fetchDetail?: boolean }
+): Promise<string | null> {
   const db = getCatalogDB();
   const existing = await resolveProductId(pid);
 
@@ -95,10 +98,12 @@ export async function ensureCjProductImported(pid: string): Promise<string | nul
     .maybeSingle();
 
   let detail: Record<string, unknown> | null = null;
-  try {
-    detail = await fetchCjDetail(pid);
-  } catch {
-    detail = null;
+  if (options?.fetchDetail !== false) {
+    try {
+      detail = await fetchCjDetail(pid);
+    } catch {
+      detail = null;
+    }
   }
 
   if (detail) {
@@ -182,8 +187,28 @@ export async function ensureCjProductImported(pid: string): Promise<string | nul
       updated_at: new Date().toISOString(),
     }).eq("pid", pid);
 
+    const { data: imported } = await supabase
+      .from("products")
+      .select("inventory_quantity")
+      .eq("id", result.productId)
+      .maybeSingle();
+    const catalogStock = Number(raw.stock ?? 0);
+    if (catalogStock > 0 && Number(imported?.inventory_quantity ?? 0) <= 0) {
+      await supabase
+        .from("products")
+        .update({
+          inventory_quantity: catalogStock,
+          track_inventory: true,
+        })
+        .eq("id", result.productId);
+    }
+
     return result.productId;
-  } catch {
+  } catch (err) {
+    console.error(
+      `[CJ import] ensureCjProductImported failed pid=${pid}:`,
+      err instanceof Error ? err.message : err
+    );
     return existing ?? null;
   }
 }

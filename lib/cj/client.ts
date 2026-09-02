@@ -30,24 +30,143 @@ export async function getCJToken(supabase: SupabaseClient): Promise<string> {
     return getOrRefreshAccessToken(supabase);
 }
 
-/** Read CJ vendor id from platform_settings.cj_vendor_id.value.vendor_id, or env fallback */
-export async function getCJVendorId(supabase: SupabaseClient): Promise<string> {
-    const envVendor = process.env.CJ_VENDOR_ID;
-    if (envVendor) return envVendor;
+const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CJ_VENDOR_SLUG = "jimvio-dropshipping";
 
+function isUuid(value: unknown): value is string {
+    return typeof value === "string" && UUID_RE.test(value);
+}
+
+let cachedCjVendorId: string | null = null;
+
+function asVendorIdCandidate(value: unknown): string | null {
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    return isUuid(trimmed) ? trimmed : null;
+}
+
+async function vendorExists(
+    supabase: SupabaseClient,
+    vendorId: string
+): Promise<boolean> {
+    const { data, error } = await supabase
+        .from("vendors")
+        .select("id")
+        .eq("id", vendorId)
+        .maybeSingle();
+    return !error && Boolean(data?.id);
+}
+
+async function readPlatformSettingsVendorId(
+    supabase: SupabaseClient
+): Promise<string | null> {
     const { data, error } = await supabase
         .from("platform_settings")
         .select("value")
         .eq("key", "cj_vendor_id")
-        .single();
+        .maybeSingle();
 
+    if (error) return null;
     const row = data as { value?: { vendor_id?: string } } | null;
-    if (error || !row?.value?.vendor_id) {
-        throw new Error(
-            "CJ vendor id not configured. Set CJ_VENDOR_ID env var or update platform_settings where key = 'cj_vendor_id'."
+    return asVendorIdCandidate(row?.value?.vendor_id);
+}
+
+async function persistPlatformSettingsVendorId(
+    supabase: SupabaseClient,
+    vendorId: string
+): Promise<void> {
+    const { error } = await supabase.from("platform_settings").upsert(
+        {
+            key: "cj_vendor_id",
+            value: { vendor_id: vendorId },
+        },
+        { onConflict: "key" }
+    );
+    if (error) {
+        console.warn(
+            `[CJ] Failed to persist platform_settings.cj_vendor_id: ${error.message}`
         );
     }
-    return row.value.vendor_id;
+}
+
+/**
+ * Resolve the Jimvio `vendors.id` used for CJ Dropshipping products.
+ *
+ * Candidates are accepted only when they exist in `vendors`.
+ * A stale CJ_VENDOR_ID env value must never be inserted as products.vendor_id.
+ */
+export async function getCJVendorId(supabase: SupabaseClient): Promise<string> {
+    if (cachedCjVendorId) return cachedCjVendorId;
+
+    const envVendor = asVendorIdCandidate(process.env.CJ_VENDOR_ID);
+    if (envVendor) {
+        if (await vendorExists(supabase, envVendor)) {
+            cachedCjVendorId = envVendor;
+            return envVendor;
+        }
+        console.warn(
+            `[CJ] Ignoring CJ_VENDOR_ID from env — ${envVendor} is not a vendors.id`
+        );
+    } else if (process.env.CJ_VENDOR_ID?.trim()) {
+        console.warn(
+            "[CJ] Ignoring CJ_VENDOR_ID from env — value is not a UUID vendors.id"
+        );
+    }
+
+    const settingsVendor = await readPlatformSettingsVendorId(supabase);
+    if (settingsVendor && (await vendorExists(supabase, settingsVendor))) {
+        cachedCjVendorId = settingsVendor;
+        return settingsVendor;
+    }
+    if (settingsVendor) {
+        console.warn(
+            `[CJ] Ignoring platform_settings.cj_vendor_id — ${settingsVendor} is not a vendors.id`
+        );
+    }
+
+    const { data: bySlug } = await supabase
+        .from("vendors")
+        .select("id")
+        .eq("business_slug", CJ_VENDOR_SLUG)
+        .maybeSingle();
+    if (bySlug?.id && isUuid(bySlug.id)) {
+        await persistPlatformSettingsVendorId(supabase, bySlug.id);
+        cachedCjVendorId = bySlug.id;
+        return bySlug.id;
+    }
+
+    const { data: byName } = await supabase
+        .from("vendors")
+        .select("id")
+        .ilike("business_name", "%dropship%")
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+    if (byName?.id && isUuid(byName.id)) {
+        await persistPlatformSettingsVendorId(supabase, byName.id);
+        cachedCjVendorId = byName.id;
+        return byName.id;
+    }
+
+    const { data: fromProduct } = await supabase
+        .from("products")
+        .select("vendor_id")
+        .eq("source", "cj")
+        .is("deleted_at", null)
+        .not("vendor_id", "is", null)
+        .limit(1)
+        .maybeSingle();
+    const mappedVendor = asVendorIdCandidate(fromProduct?.vendor_id);
+    if (mappedVendor && (await vendorExists(supabase, mappedVendor))) {
+        await persistPlatformSettingsVendorId(supabase, mappedVendor);
+        cachedCjVendorId = mappedVendor;
+        return mappedVendor;
+    }
+
+    throw new Error(
+        "CJ vendor id not configured. Set CJ_VENDOR_ID to an existing vendors.id UUID, or update platform_settings where key = 'cj_vendor_id'."
+    );
 }
 
 /**

@@ -22,6 +22,7 @@ import { advanceOrderFulfillment } from "@/lib/order-fulfillment/advance-order-s
 import { mapCjFulfillmentToOrderStatus } from "@/lib/payments/order-payment-utils";
 import type { OrderStatusValue } from "@/lib/payments/record-status-change";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { getCJVendorId } from "@/lib/cj/client";
 import {
   scheduleFromWebhookFields,
   scheduleProductRemoval,
@@ -35,8 +36,6 @@ function createClient() {
         getSupabaseSecretKey()
     );
 }
-
-// ─── CJ payload types ─────────────────────────────────────────────────────────
 
 type CJMessageType = "INSERT" | "UPDATE" | "DELETE" | "ORDER_CONNNECTED";
 type CJType =
@@ -103,10 +102,6 @@ type CJStockParams = Record<string, CJStockEntry[]>;
 type CJWebhookPayload = CJWebhookBase & {
     params: CJProductParams | CJVariantParams | CJStockParams | Record<string, unknown>;
 };
-
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-const VENDOR_ID = process.env.CJ_VENDOR_ID ?? "";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -574,8 +569,12 @@ export async function POST(req: Request): Promise<Response> {
         );
     }
 
-    if (!VENDOR_ID) {
-        console.error("[CJ webhook] CJ_VENDOR_ID env var not set");
+    let vendorId: string;
+    try {
+        vendorId = await getCJVendorId(supabase);
+    } catch (err) {
+        const message = err instanceof Error ? err.message : "CJ vendor id not configured";
+        console.error("[CJ webhook] CJ vendor mapping failed:", message);
         return Response.json(
             { ok: false, error: "Server misconfiguration" },
             { status: 503 }
@@ -621,7 +620,7 @@ export async function POST(req: Request): Promise<Response> {
             const { success, productId, error } = await upsertCJProduct(
                 supabase,
                 product,
-                VENDOR_ID,
+                vendorId,
             );
 
             if (!success) {

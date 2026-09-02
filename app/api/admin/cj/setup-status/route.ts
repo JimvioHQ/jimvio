@@ -1,4 +1,4 @@
-import { getServiceClient } from "@/lib/cj/client";
+import { getServiceClient, getCJVendorId } from "@/lib/cj/client";
 import { requireAdmin } from "@/lib/auth/api-helpers";
 
 export const dynamic = "force-dynamic";
@@ -7,47 +7,41 @@ export async function GET(): Promise<Response> {
   const auth = await requireAdmin();
   if ("error" in auth && auth.error) return auth.error;
 
-  const envVendor = process.env.CJ_VENDOR_ID?.trim();
-  if (envVendor) {
-    return Response.json({
-      vendorConfigured: true,
-      source: "env",
-      vendorId: envVendor,
-      instructions: null,
-    });
-  }
-
   try {
     const supabase = getServiceClient();
-    const { data, error } = await supabase
-      .from("platform_settings")
-      .select("value")
-      .eq("key", "cj_vendor_id")
+    const vendorId = await getCJVendorId(supabase);
+    const envVendor = process.env.CJ_VENDOR_ID?.trim();
+    const source =
+      envVendor && envVendor === vendorId ? "env" : "platform_settings";
+
+    const { data: vendor } = await supabase
+      .from("vendors")
+      .select("id, business_name, business_slug")
+      .eq("id", vendorId)
       .maybeSingle();
 
-    const vendorId = (data as { value?: { vendor_id?: string } } | null)?.value
-      ?.vendor_id?.trim();
-
-    if (!error && vendorId) {
-      return Response.json({
-        vendorConfigured: true,
-        source: "platform_settings",
-        vendorId,
-        instructions: null,
-      });
-    }
-
+    return Response.json({
+      vendorConfigured: true,
+      source,
+      vendorId,
+      vendor: vendor ?? null,
+      instructions: null,
+    });
+  } catch (err) {
+    const supabase = getServiceClient();
     const { data: vendorRow } = await supabase
       .from("vendors")
-      .select("id, name, slug")
-      .ilike("name", "%cj%")
+      .select("id, business_name, business_slug")
+      .ilike("business_name", "%dropship%")
       .limit(5);
 
     return Response.json({
       vendorConfigured: false,
       source: null,
       message:
-        "CJ vendor id not configured. Import Intelligence catalog sync works without it; publishing requires a vendor id.",
+        err instanceof Error
+          ? err.message
+          : "CJ vendor id not configured. Import Intelligence catalog sync works without it; publishing requires a vendor id.",
       instructions: {
         optionA: {
           title: "Environment variable (recommended for local dev)",
@@ -68,18 +62,6 @@ ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;`,
           hint:
             "Query vendors table for your CJ dropshipping vendor row, or create one in Admin → Vendors.",
           sampleVendors: vendorRow ?? [],
-        },
-      },
-    });
-  } catch {
-    return Response.json({
-      vendorConfigured: false,
-      message:
-        "CJ vendor id not configured. Set CJ_VENDOR_ID env var or platform_settings.cj_vendor_id.",
-      instructions: {
-        optionA: {
-          title: "Environment variable",
-          steps: ['CJ_VENDOR_ID="<vendors.id UUID>" in .env.local'],
         },
       },
     });
