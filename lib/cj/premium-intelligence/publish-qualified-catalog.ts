@@ -3,15 +3,26 @@
  * import + system-publish pipeline. Does not replace auto-publish scoring.
  */
 
-import { getServiceClient } from "@/lib/cj/client";
+import { getCJToken, getServiceClient } from "@/lib/cj/client";
 import { ensureCjProductImported } from "./system-import";
 import { publishProductSystem } from "./system-publish";
 import { updateIntelligence } from "./catalog-repository";
 import type { CatalogTier } from "./types";
+import { catalogVariantRecords } from "@/lib/cj/catalog-variants";
+import { normalizeCjVid } from "@/lib/cj/variant-vid";
+import {
+  extractVideosFromHtml,
+  mergeProductVideoUrls,
+  normalizeCjVideoUrls,
+} from "@/lib/cj/product-videos";
+import { fetchCjProductVideoUrls } from "@/lib/cj/fetch-product-videos";
+import { syncProductVideos } from "@/lib/product-videos";
 
 export const QUALIFIED_PUBLISH_TARGET = 1000;
 export const QUALIFIED_PUBLISH_BATCH_SIZE = 100;
 export const QUALIFIED_VIDEO_TARGET = 400;
+export const CURATED_PUBLISH_TARGET = 300;
+export const CURATED_VIDEO_TARGET = 150;
 
 type CandidateRow = {
   pid: string;
@@ -31,6 +42,8 @@ type CandidateRow = {
   image: string | null;
   sku: string | null;
   category_name: string | null;
+  has_catalog_vid: boolean;
+  payload_videos: string[];
 };
 
 export interface QualifiedPublishStats {
@@ -46,6 +59,8 @@ export interface QualifiedPublishStats {
   verifiedSuppliers: number;
   trending: number;
   inStock: number;
+  publishedVideo: number;
+  publishedNoVideo: number;
   failures: Array<{ pid: string; error: string }>;
 }
 
@@ -53,6 +68,9 @@ export interface QualifiedPublishOptions {
   target?: number;
   batchSize?: number;
   dryRun?: boolean;
+  additionalOnly?: boolean;
+  videoTarget?: number;
+  videoDiscoveryBudget?: number;
   onBatch?: (stats: QualifiedPublishStats, batchIndex: number) => void;
 }
 
@@ -111,6 +129,8 @@ function emptyStats(): QualifiedPublishStats {
     verifiedSuppliers: 0,
     trending: 0,
     inStock: 0,
+    publishedVideo: 0,
+    publishedNoVideo: 0,
     failures: [],
   };
 }
@@ -140,10 +160,14 @@ function diversifyCandidates(
   }
   for (const list of byFamily.values()) {
     list.sort((a, b) => {
-      const videoDelta = Number(Boolean(b.has_video)) - Number(Boolean(a.has_video));
-      if (videoDelta !== 0) return videoDelta;
       const verifiedDelta = Number(isVerified(b)) - Number(isVerified(a));
       if (verifiedDelta !== 0) return verifiedDelta;
+      const trendingDelta = Number(isTrending(b)) - Number(isTrending(a));
+      if (trendingDelta !== 0) return trendingDelta;
+      const videoDelta = Number(Boolean(b.has_video) || b.payload_videos.length > 0) - Number(Boolean(a.has_video) || a.payload_videos.length > 0);
+      if (videoDelta !== 0) return videoDelta;
+      const descDelta = Number(b.description_length ?? 0) - Number(a.description_length ?? 0);
+      if (descDelta !== 0) return descDelta;
       return Number(b.orders ?? 0) - Number(a.orders ?? 0);
     });
   }
@@ -233,7 +257,7 @@ async function fetchIntelligenceByFilter(
 
 async function fetchIntelligencePage(limit: number): Promise<IntelRow[]> {
   const [videoRows, trendingRows, verifiedRows, warehouseRows] = await Promise.all([
-    fetchIntelligenceByFilter("video", Math.min(500, limit)),
+    fetchIntelligenceByFilter("video", Math.min(1500, limit)),
     fetchIntelligenceByFilter("trending", limit),
     fetchIntelligenceByFilter("verified", limit),
     fetchIntelligenceByFilter("warehouse", limit),
@@ -244,6 +268,25 @@ async function fetchIntelligencePage(limit: number): Promise<IntelRow[]> {
     if (row.pid) byPid.set(row.pid, row);
   }
   return [...byPid.values()];
+}
+
+async function fetchMappedPids(): Promise<Set<string>> {
+  const db = getServiceClient();
+  const pids = new Set<string>();
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await db
+      .from("cj_product_map")
+      .select("cj_pid")
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const page = data ?? [];
+    for (const row of page) {
+      if (typeof row.cj_pid === "string" && row.cj_pid) pids.add(row.cj_pid);
+    }
+    if (page.length < pageSize) break;
+  }
+  return pids;
 }
 
 async function fetchRawByPids(pids: string[]): Promise<Map<string, Record<string, unknown>>> {
@@ -264,12 +307,19 @@ async function fetchRawByPids(pids: string[]): Promise<Map<string, Record<string
   return byPid;
 }
 
-async function fetchCandidatePool(limit = 4000): Promise<CandidateRow[]> {
+async function fetchCandidatePool(
+  limit = 4000,
+  options: { excludeMapped?: boolean } = {}
+): Promise<CandidateRow[]> {
   const intelRows = await fetchIntelligencePage(limit);
-  const rawByPid = await fetchRawByPids(intelRows.map((row) => row.pid));
+  const mappedPids = options.excludeMapped ? await fetchMappedPids() : new Set<string>();
+  const unmappedIntel = options.excludeMapped
+    ? intelRows.filter((row) => !mappedPids.has(row.pid) && !row.linked_product_id)
+    : intelRows;
+  const rawByPid = await fetchRawByPids(unmappedIntel.map((row) => row.pid));
 
   const mapped: CandidateRow[] = [];
-  for (const row of intelRows) {
+  for (const row of unmappedIntel) {
     const rawRow = rawByPid.get(row.pid);
     if (!rawRow) continue;
     const payload = (rawRow.raw_payload as Record<string, unknown> | null) ?? {};
@@ -278,10 +328,17 @@ async function fetchCandidatePool(limit = 4000): Promise<CandidateRow[]> {
       (typeof payload.threeCategoryName === "string" && payload.threeCategoryName) ||
       (typeof payload.twoCategoryName === "string" && payload.twoCategoryName) ||
       "";
+    const payloadVideos = mergeProductVideoUrls(
+      normalizeCjVideoUrls(payload.productVideo),
+      normalizeCjVideoUrls(payload.videoList),
+      normalizeCjVideoUrls(payload.videoUrl),
+      typeof payload.description === "string" ? extractVideosFromHtml(payload.description) : [],
+    );
+    const hasCatalogVid = catalogVariantRecords(payload).some((variant) => Boolean(normalizeCjVid(variant.vid)));
 
     mapped.push({
       pid: row.pid,
-      has_video: row.has_video,
+      has_video: row.has_video === true || payloadVideos.length > 0,
       supplier_verified: row.supplier_verified,
       verified_warehouse: row.verified_warehouse,
       trending: row.trending,
@@ -297,6 +354,8 @@ async function fetchCandidatePool(limit = 4000): Promise<CandidateRow[]> {
       image: typeof rawRow.image === "string" ? rawRow.image : null,
       sku: typeof rawRow.sku === "string" ? rawRow.sku : null,
       category_name: categoryName,
+      has_catalog_vid: hasCatalogVid,
+      payload_videos: payloadVideos,
     });
   }
 
@@ -305,8 +364,12 @@ async function fetchCandidatePool(limit = 4000): Promise<CandidateRow[]> {
     if (Number(row.stock) <= 0 || Number(row.sell_price) <= 0) return false;
     const goodImages = Number(row.image_count ?? 0) >= 3 || httpImage(row.image);
     if (!goodImages) return false;
+    if (Number(row.description_length ?? 0) < 40) return false;
+    const hasVideo = Boolean(row.has_video) || row.payload_videos.length > 0;
+    if (!row.has_catalog_vid && !hasVideo) return false;
+    if (hasVideo) return true;
     if (!isVerified(row)) return false;
-    if (!isTrending(row) && row.has_video !== true) return false;
+    if (!isTrending(row)) return false;
     return true;
   });
 }
@@ -327,11 +390,65 @@ async function productHasStoredVideo(productId: string): Promise<boolean> {
   return (count ?? 0) > 0;
 }
 
+async function persistCandidateVideos(
+  productId: string,
+  candidate: CandidateRow,
+  fetchRemote: boolean
+): Promise<boolean> {
+  const supabase = getServiceClient();
+  const urls = [...candidate.payload_videos];
+
+  if (fetchRemote && urls.length === 0) {
+    try {
+      const token = await getCJToken(supabase);
+      const { videos } = await fetchCjProductVideoUrls(token, candidate.pid, {
+        productVideo: candidate.payload_videos,
+        videoList: candidate.payload_videos,
+      });
+      urls.push(...videos);
+    } catch (err) {
+      console.warn(
+        `[CJ publish] video lookup skipped for ${candidate.pid}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
+
+  const unique = mergeProductVideoUrls(urls);
+  if (unique.length === 0) {
+    return productHasStoredVideo(productId);
+  }
+
+  const result = await syncProductVideos(supabase, productId, unique);
+  if (result.error) {
+    console.warn(`[CJ publish] video sync failed for ${candidate.pid}:`, result.error);
+    return productHasStoredVideo(productId);
+  }
+  return true;
+}
+
+async function mergeIntelligenceFlags(productId: string, candidate: CandidateRow): Promise<void> {
+  const supabase = getServiceClient();
+  const { data: product } = await supabase
+    .from("products")
+    .select("source_metadata")
+    .eq("id", productId)
+    .maybeSingle();
+  const meta =
+    product?.source_metadata && typeof product.source_metadata === "object" && !Array.isArray(product.source_metadata)
+      ? { ...(product.source_metadata as Record<string, unknown>) }
+      : {};
+  if (isVerified(candidate)) meta.cj_supplier_verified = true;
+  if (candidate.trending === true) meta.cj_trending = true;
+  await supabase.from("products").update({ source_metadata: meta }).eq("id", productId);
+}
+
 async function importAndPublishPid(
   pid: string,
   stats: QualifiedPublishStats,
-  candidate: CandidateRow
-): Promise<void> {
+  candidate: CandidateRow,
+  options: { requireVideo?: boolean; additionalOnly?: boolean; enforceVideoMix?: boolean } = {}
+): Promise<"published" | "skipped" | "failed"> {
   const supabase = getServiceClient();
 
   const { data: mapped } = await supabase
@@ -353,13 +470,15 @@ async function importAndPublishPid(
       if (existing.status === "active" && existing.is_active) {
         stats.duplicates += 1;
         stats.skipped += 1;
-        if (await productHasStoredVideo(existing.id)) stats.withVideo += 1;
-        if (isVerified(candidate)) stats.verifiedSuppliers += 1;
-        if (isTrending(candidate)) stats.trending += 1;
-        if (Number(existing.inventory_quantity ?? 0) > 0 || Number(candidate.stock ?? 0) > 0) {
-          stats.inStock += 1;
+        if (!options.additionalOnly) {
+          if (await productHasStoredVideo(existing.id)) stats.withVideo += 1;
+          if (isVerified(candidate)) stats.verifiedSuppliers += 1;
+          if (isTrending(candidate)) stats.trending += 1;
+          if (Number(existing.inventory_quantity ?? 0) > 0 || Number(candidate.stock ?? 0) > 0) {
+            stats.inStock += 1;
+          }
         }
-        return;
+        return "skipped";
       }
     }
   }
@@ -370,14 +489,14 @@ async function importAndPublishPid(
   if (!importedId) {
     stats.failed += 1;
     stats.failures.push({ pid, error: "Import returned no product id" });
-    return;
+    return "failed";
   }
   productId = importedId;
   stats.imported += 1;
 
   const { data: product, error: fetchErr } = await supabase
     .from("products")
-    .select("id, status, is_active, images, inventory_quantity, vendor_id, price, description, deleted_at")
+    .select("id, status, is_active, images, inventory_quantity, vendor_id, price, description, deleted_at, source_metadata")
     .eq("id", productId)
     .maybeSingle();
 
@@ -387,17 +506,35 @@ async function importAndPublishPid(
       pid,
       error: fetchErr?.message ?? "Imported product not found",
     });
-    return;
+    return "failed";
   }
 
   if (!hasPublishableImages(product.images)) {
     stats.skipped += 1;
-    return;
+    return "skipped";
   }
 
   if (Number(product.price ?? 0) <= 0) {
     stats.skipped += 1;
-    return;
+    return "skipped";
+  }
+
+  const { count: vidCount } = await supabase
+    .from("product_variants")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", productId)
+    .not("cj_vid", "is", null);
+  if ((vidCount ?? 0) <= 0) {
+    stats.skipped += 1;
+    return "skipped";
+  }
+
+  const descriptionText = typeof product.description === "string"
+    ? product.description.replace(/<[^>]+>/g, " ").trim()
+    : "";
+  if (descriptionText.length < 40 && Number(candidate.description_length ?? 0) < 40) {
+    stats.skipped += 1;
+    return "skipped";
   }
 
   if (Number(product.inventory_quantity ?? 0) <= 0 && Number(candidate.stock ?? 0) > 0) {
@@ -410,19 +547,37 @@ async function importAndPublishPid(
       .eq("id", productId);
   }
 
+  const storedVideo = await persistCandidateVideos(productId, candidate, false);
+
+  if (options.enforceVideoMix) {
+    if (options.requireVideo && !storedVideo) {
+      stats.skipped += 1;
+      return "skipped";
+    }
+    if (!options.requireVideo && storedVideo) {
+      stats.skipped += 1;
+      return "skipped";
+    }
+  }
+
+  await mergeIntelligenceFlags(productId, candidate);
+
   const published = await publishProductSystem(productId);
   if (!published.success) {
     stats.failed += 1;
     stats.failures.push({ pid, error: published.error ?? "Publish failed" });
-    return;
+    return "failed";
   }
 
   stats.published += 1;
   if (isVerified(candidate)) stats.verifiedSuppliers += 1;
   if (isTrending(candidate)) stats.trending += 1;
   stats.inStock += 1;
-  if (await productHasStoredVideo(productId)) {
+  if (storedVideo) {
     stats.withVideo += 1;
+    stats.publishedVideo += 1;
+  } else {
+    stats.publishedNoVideo += 1;
   }
 
   const nextTier: CatalogTier =
@@ -436,47 +591,143 @@ async function importAndPublishPid(
     catalog_tier: nextTier,
     auto_publish_status: "READY",
     auto_publish_ready: true,
+    ...(storedVideo ? { has_video: true } : {}),
+    ...(candidate.supplier_verified === true ? { supplier_verified: true } : {}),
+    ...(candidate.trending === true ? { trending: true } : {}),
   });
+
+  return "published";
+}
+
+async function discoverRemoteVideos(
+  candidates: CandidateRow[],
+  needed: number,
+  budget: number,
+  onProgress?: (found: number, scanned: number) => void
+): Promise<CandidateRow[]> {
+  if (needed <= 0 || budget <= 0) return [];
+  const supabase = getServiceClient();
+  const token = await getCJToken(supabase);
+  const found: CandidateRow[] = [];
+  let scanned = 0;
+
+  for (const row of candidates) {
+    if (found.length >= needed || scanned >= budget) break;
+    scanned += 1;
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      const { videos } = await fetchCjProductVideoUrls(token, row.pid);
+      if (videos.length === 0) continue;
+      found.push({
+        ...row,
+        has_video: true,
+        payload_videos: mergeProductVideoUrls(row.payload_videos, videos),
+      });
+      onProgress?.(found.length, scanned);
+    } catch {
+      /* keep scanning; do not invent videos */
+    }
+  }
+
+  return found;
 }
 
 export async function publishQualifiedCjCatalog(
   options: QualifiedPublishOptions = {}
 ): Promise<QualifiedPublishStats> {
   const target = options.target ?? QUALIFIED_PUBLISH_TARGET;
+  const videoTarget = options.videoTarget;
+  const noVideoTarget = videoTarget != null ? Math.max(0, target - videoTarget) : null;
   const batchSize = options.batchSize ?? QUALIFIED_PUBLISH_BATCH_SIZE;
+  const additionalOnly = options.additionalOnly === true;
   const stats = emptyStats();
 
-  const pool = await fetchCandidatePool(Math.max(4000, target * 4));
+  const pool = await fetchCandidatePool(Math.max(4000, target * 6), {
+    excludeMapped: additionalOnly,
+  });
   stats.evaluated = pool.length;
 
-  const selected = diversifyCandidates(pool, target);
+  const videoPool = pool.filter((row) => row.has_video || row.payload_videos.length > 0);
+  const noVideoPool = pool.filter((row) => !row.has_video && row.payload_videos.length === 0);
+
+  const selectedVideo = videoTarget != null
+    ? diversifyCandidates(videoPool, Math.max(videoTarget * 3, videoTarget))
+    : [];
+  const selectedNoVideo = noVideoTarget != null
+    ? diversifyCandidates(noVideoPool, Math.max(noVideoTarget * 3, noVideoTarget))
+    : diversifyCandidates(pool, target * 3);
+  const selected = videoTarget != null ? [...selectedVideo, ...selectedNoVideo] : selectedNoVideo;
   stats.selected = selected.length;
 
   if (options.dryRun) {
-    stats.withVideo = selected.filter((row) => row.has_video).length;
+    stats.withVideo = (videoTarget != null ? selectedVideo : selected).filter(
+      (row) => row.has_video || row.payload_videos.length > 0
+    ).length;
+    stats.publishedVideo = Math.min(videoTarget ?? stats.withVideo, stats.withVideo);
+    stats.publishedNoVideo = videoTarget != null
+      ? Math.min(noVideoTarget ?? 0, selectedNoVideo.length)
+      : selected.length - stats.publishedVideo;
     stats.verifiedSuppliers = selected.filter(isVerified).length;
     stats.trending = selected.filter(isTrending).length;
     stats.inStock = selected.filter((row) => Number(row.stock) > 0).length;
     return stats;
   }
 
-  let batchIndex = 0;
-  for (let i = 0; i < selected.length; i += batchSize) {
-    const batch = selected.slice(i, i + batchSize);
-    batchIndex += 1;
-    for (const row of batch) {
-      stats.processed += 1;
-      try {
-        await importAndPublishPid(row.pid, stats, row);
-      } catch (err) {
-        stats.failed += 1;
-        stats.failures.push({
-          pid: row.pid,
-          error: err instanceof Error ? err.message : String(err),
-        });
+  const publishBatch = async (
+    rows: CandidateRow[],
+    requireVideo: boolean,
+    quota: number | null
+  ) => {
+    let batchIndex = 0;
+    for (let i = 0; i < rows.length; i += batchSize) {
+      if (quota != null) {
+        const published = requireVideo ? stats.publishedVideo : stats.publishedNoVideo;
+        if (published >= quota) break;
       }
+      const batch = rows.slice(i, i + batchSize);
+      batchIndex += 1;
+      for (const row of batch) {
+        if (quota != null) {
+          const published = requireVideo ? stats.publishedVideo : stats.publishedNoVideo;
+          if (published >= quota) break;
+        }
+        stats.processed += 1;
+        try {
+          await importAndPublishPid(row.pid, stats, row, {
+            requireVideo,
+            additionalOnly,
+            enforceVideoMix: videoTarget != null,
+          });
+        } catch (err) {
+          stats.failed += 1;
+          stats.failures.push({
+            pid: row.pid,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+      options.onBatch?.(stats, batchIndex);
     }
-    options.onBatch?.(stats, batchIndex);
+  };
+
+  if (videoTarget != null) {
+    await publishBatch(selectedVideo, true, videoTarget);
+
+    if (stats.publishedVideo < videoTarget) {
+      const discoverySource = noVideoPool.filter(
+        (row) => isVerified(row) && isTrending(row) && !selectedVideo.some((v) => v.pid === row.pid)
+      );
+      const discovered = await discoverRemoteVideos(
+        discoverySource,
+        videoTarget - stats.publishedVideo,
+        options.videoDiscoveryBudget ?? 200
+      );
+      await publishBatch(discovered, true, videoTarget);
+    }
+
+    await publishBatch(selectedNoVideo, false, noVideoTarget);
+  } else {
+    await publishBatch(selected, false, target);
   }
 
   return stats;

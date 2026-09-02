@@ -16,6 +16,7 @@ import { requiresPurchasableVariantSelection } from "@/lib/products/storefront-v
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { filterStorefrontVariants } from "@/lib/products/storefront-variants";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
+import { ProductSignalBadges } from "@/components/marketplace/product-signal-badges";
 import type { Tables } from "@/types/supabase";
 
 export type DbVariant = Tables<"product_variants">;
@@ -492,7 +493,6 @@ function ProductCard({
   const productHref = `/marketplace/${p.slug}${activeVariant ? `?variant=${activeVariant.id}` : ""}`;
   const prefetchHref = () => prefetchProductHref(router, `/marketplace/${p.slug}`);
 
-  const isVerifiedVendor = p.vendors?.verification_status === "verified";
   const ratingValue = typeof p.rating === "number" ? p.rating : null;
 
   return (
@@ -641,15 +641,10 @@ function ProductCard({
       {/* ── Info ── */}
       <div className="pointer-events-none relative z-[2] flex min-h-0 flex-1 flex-col gap-1.5 p-2.5 pt-2">
         <div
-          className="flex min-h-[14px] items-center gap-2 text-[9px] font-semibold"
+          className="flex min-h-[14px] flex-col gap-1 text-[9px] font-semibold"
           style={{ color: "var(--color-text-muted)" }}
         >
-          {isVerifiedVendor ? (
-            <span className="inline-flex items-center gap-0.5 text-[var(--color-accent)]">
-              <CheckCircle2 className="size-2.5 shrink-0" />
-              Verified
-            </span>
-          ) : null}
+          <ProductSignalBadges product={p as never} />
           {ratingValue != null && ratingValue > 0 ? (
             <span className="inline-flex items-center gap-0.5">
               <Star className="size-2.5 shrink-0 fill-amber-400 text-amber-400" />

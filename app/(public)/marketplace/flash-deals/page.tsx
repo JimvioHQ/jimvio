@@ -3,8 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { FlashDealsPageClient } from "@/components/marketplace/new/FlashDealsPageClient";
 import type { DbProduct } from "@/lib/utils";
 import { pageMetadata } from "@/lib/seo";
+import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos";
+import {
+  HOMEPAGE_FLASH_DEALS_LIMIT,
+  resolveMarketplaceFlashDeals,
+} from "@/lib/marketplace/homepage-ranking";
 
 export const metadata: Metadata = pageMetadata("deals");
+
+const FLASH_SALE_LIMIT = 48;
 
 export default async function MarketplaceFlashDealsPage() {
   const supabase = await createClient();
@@ -15,18 +22,34 @@ export default async function MarketplaceFlashDealsPage() {
       id, name, slug, price, compare_at_price, currency, images, product_type,
       status, is_flash_deal, discount_label, shipping_from,
       delivery_time, affiliate_commission_rate, view_count, sale_count,
-      sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id
+      sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
+      inventory_quantity, source_metadata, is_active, auto_unpublished, deleted_at, created_at,
+      vendors(id, verification_status)
     `)
-    .eq("is_flash_deal", true)
     .eq("status", "active")
     .eq("is_active", true)
     .is("deleted_at", null)
     .order("view_count", { ascending: false })
-    .limit(24);
+    .limit(200);
+
+  const pool = (data ?? []) as unknown as DbProduct[];
+  const videoMap = await fetchProductVideosMap(
+    supabase,
+    pool.map((p) => p.id),
+  );
+  const videoIds = new Set(
+    [...videoMap.entries()].filter(([, videos]) => videos.length > 0).map(([id]) => id),
+  );
+  const ranked = resolveMarketplaceFlashDeals(
+    pool,
+    pool.length,
+    Math.max(FLASH_SALE_LIMIT, HOMEPAGE_FLASH_DEALS_LIMIT),
+    videoIds,
+  );
 
   return (
-    <div className="mx-auto w-full max-w-8xl min-w-0 px-4 py-4 sm:px-6">
-      <FlashDealsPageClient initialDeals={(data ?? []) as DbProduct[]} />
+    <div className="mx-auto w-full min-w-0 max-w-8xl px-4 py-4 sm:px-6">
+      <FlashDealsPageClient initialDeals={attachProductVideos(ranked, videoMap)} />
     </div>
   );
 }

@@ -24,6 +24,7 @@ type OrderItemRow = {
   product_source: string;
   cj_vid: string | null;
   variant_weight: number | null;
+  source_metadata: Record<string, unknown> | null;
 };
 
 type OrderRow = {
@@ -56,9 +57,23 @@ function redirectWithError(code: string, detail?: string): never {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function metaString(meta: unknown, key: string): string | null {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+  const value = (meta as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function metaNumber(meta: unknown, key: string): number | null {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+  const value = Number((meta as Record<string, unknown>)[key]);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 function flattenOrderItems(rawItems: any[]): OrderItemRow[] {
   return (rawItems ?? []).map((item) => {
     const variant = Array.isArray(item.product_variants) ? item.product_variants[0] : item.product_variants;
+    const itemMeta = item.source_metadata ?? null;
+    const variantMeta = variant?.source_metadata ?? null;
     return {
       id: item.id,
       product_id: item.product_id ?? null,
@@ -72,8 +87,17 @@ function flattenOrderItems(rawItems: any[]): OrderItemRow[] {
       pricing_type: item.pricing_type ?? null,
       billing_period: item.billing_period ?? null,
       product_source: item.product_source ?? "vendor",
-      cj_vid: variant?.cj_vid ?? null,
-      variant_weight: variant?.weight ?? null,
+      cj_vid:
+        variant?.cj_vid ??
+        metaString(variantMeta, "cj_vid") ??
+        metaString(itemMeta, "cj_vid") ??
+        null,
+      variant_weight:
+        variant?.weight ??
+        metaNumber(variantMeta, "cj_weight") ??
+        metaNumber(itemMeta, "cj_weight") ??
+        null,
+      source_metadata: itemMeta,
     };
   });
 }
@@ -103,8 +127,8 @@ const ORDER_SELECT = `
     id, product_id, variant_id, product_name, product_image,
     quantity, unit_price, total_price,
     product_type, pricing_type, billing_period,
-    product_source,
-    product_variants (cj_vid, weight, length, width, height)
+    product_source, source_metadata,
+    product_variants (cj_vid, weight, length, width, height, source_metadata)
   )
 ` as const;
 

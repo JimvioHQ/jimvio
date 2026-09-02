@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DbProduct } from "@/lib/utils";
 import { attachProductVideos, fetchProductVideosMap } from "@/lib/product-videos";
 import {
-  dedupeProductsById,
   dedupeProductsByIdentity,
   ensureNonEmptyCollection,
   HOMEPAGE_FLASH_DEALS_LIMIT,
@@ -71,11 +70,12 @@ const PRODUCT_SELECT = `
   delivery_time, affiliate_commission_rate, view_count, sale_count,
   sold_count, claimed_pct, rating, review_count, is_free_shipping, vendor_id, category_id,
   created_at, auto_unpublished, deleted_at,
+  inventory_quantity, source_metadata,
   vendors(id, verification_status)
 `;
 
 /** First-paint pool only — full catalog is loaded via pagination / Load more. */
-const FIRST_PAINT_POOL_LIMIT = 48;
+const FIRST_PAINT_POOL_LIMIT = 80;
 
 export async function fetchCategoriesForType(
   supabase: SupabaseLike,
@@ -133,7 +133,7 @@ async function fetchMarketplaceProductPool(
 
   const listingCount = countRes.count ?? 0;
   let pool = resolveMarketplaceProductPool(
-    dedupeProductsByIdentity((dataRes.data ?? []) as DbProduct[]),
+    dedupeProductsByIdentity((dataRes.data ?? []) as unknown as DbProduct[]),
     visibilitySets,
     listingCount,
   );
@@ -155,7 +155,7 @@ async function fetchMarketplaceProductPool(
     }
 
     pool = resolveMarketplaceProductPool(
-      dedupeProductsByIdentity((fallback ?? []) as DbProduct[]),
+      dedupeProductsByIdentity((fallback ?? []) as unknown as DbProduct[]),
       visibilitySets,
       listingCount,
     );
@@ -180,14 +180,22 @@ export async function fetchMarketplacePageBundle(
     fetchCategoriesForType(supabase, typeFilter),
   ]);
 
-  let flashDeals = resolveMarketplaceFlashDeals(pool, listingCount);
+  const poolVideoMap = await fetchProductVideosMap(
+    supabase,
+    pool.map((p) => p.id),
+  );
+  const videoIds = new Set(
+    [...poolVideoMap.entries()].filter(([, videos]) => videos.length > 0).map(([id]) => id),
+  );
+
+  let flashDeals = resolveMarketplaceFlashDeals(pool, listingCount, HOMEPAGE_FLASH_DEALS_LIMIT, videoIds);
   const flashIds = new Set(flashDeals.map((p) => p.id));
   const trendingPool =
     pool.filter((p) => !flashIds.has(p.id)).length > 0
       ? pool.filter((p) => !flashIds.has(p.id))
       : pool;
   const rankedTrending = dedupeProductsByIdentity(
-    sortByHomepagePriority(trendingPool),
+    sortByHomepagePriority(trendingPool, videoIds),
   );
   let trendingProducts = rankedTrending.slice(0, pageSize);
 
@@ -196,30 +204,32 @@ export async function fetchMarketplacePageBundle(
     trendingPool,
     (items) =>
       dedupeProductsByIdentity(
-        sortByHomepagePriority(items).slice(0, pageSize),
+        sortByHomepagePriority(items, videoIds).slice(0, pageSize),
       ),
     pageSize,
     listingCount,
   );
 
-  // Do not inflate SSR to the full catalog — Load more / client pagination fills the rest.
-  // (Previously Math.max(pageSize, listingCount) shipped the entire catalog in the RSC flight.)
-
-  const videoMap = await fetchProductVideosMap(
-    supabase,
-    dedupeProductsById([...flashDeals, ...trendingProducts]).map((p) => p.id),
-  );
+  const slimIntel = (meta: unknown) => {
+    if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+    const record = meta as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    if (record.cj_supplier_verified === true) out.cj_supplier_verified = true;
+    if (record.cj_trending === true) out.cj_trending = true;
+    if (Number(record.cj_verified_warehouse) === 1) out.cj_verified_warehouse = 1;
+    return Object.keys(out).length > 0 ? out : null;
+  };
 
   const slim = (products: typeof trendingProducts) =>
     products.map((p) => ({
       ...p,
       images: slimListingImages(p.images, 2, 400),
-      source_metadata: null,
+      source_metadata: slimIntel(p.source_metadata),
     }));
 
   return {
-    flashDeals: slim(attachProductVideos(flashDeals, videoMap)),
-    trending: slim(attachProductVideos(trendingProducts, videoMap)),
+    flashDeals: slim(attachProductVideos(flashDeals, poolVideoMap)),
+    trending: slim(attachProductVideos(trendingProducts, poolVideoMap)),
     categories,
     listingCount,
   };

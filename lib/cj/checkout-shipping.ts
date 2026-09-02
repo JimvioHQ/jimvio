@@ -1,5 +1,7 @@
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 import { sanitizeShippingMethodName } from "@/lib/cj/customer-facing";
+import { normalizeCountryCode } from "@/lib/geo/buyer-country";
+import { usableCjVid } from "@/lib/cj/variant-vid";
 import type { CJShippingOption } from "@/types/checkout";
 
 const CJ_BASE =
@@ -169,53 +171,162 @@ async function getExchangeRate(
   }
 }
 
-export async function fetchCjCheckoutFreightRates(params: {
-  destCountryCode: string;
-  products: CjFreightProduct[];
-  orderCurrency?: string;
-}): Promise<{ rates: CJShippingOption[]; fxRate: number }> {
-  const { destCountryCode, products, orderCurrency = "USD" } = params;
+const FREIGHT_TIMEOUT_MS = 20_000;
+const FREIGHT_RETRY_DELAY_MS = 700;
 
-  const validProducts = products.filter((item) => item.vid && item.quantity > 0);
-  if (!validProducts.length) {
-    throw new Error("No valid CJ variants found for shipping calculation");
+export class CheckoutShippingCoverageError extends Error {
+  readonly kind = "no_coverage" as const;
+  constructor(message = "NO_COVERAGE") {
+    super(message);
+    this.name = "CheckoutShippingCoverageError";
   }
+}
 
-  const token = await getOrRefreshAccessToken();
-  const totalWeight = validProducts.reduce(
+export function isCheckoutShippingCoverageError(
+  error: unknown
+): error is CheckoutShippingCoverageError {
+  return error instanceof CheckoutShippingCoverageError;
+}
+
+function isNoCoverageMessage(message: string): boolean {
+  return /no logistic|not support|unsupported destination|cannot find|no available|no shipping|not available|unable to calculate|no route|endCountry/i.test(
+    message
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isTransientFreightFailure(status: number, message: string): boolean {
+  if (status === 429 || status >= 500) return true;
+  return /timeout|timed out|abort|network|fetch failed|econnreset|etimedout/i.test(
+    message
+  );
+}
+
+export function toCheckoutFreightProducts(
+  items: Array<{ vid?: string | null; quantity: number; weight?: number | null }>
+): CjFreightProduct[] {
+  const products: CjFreightProduct[] = [];
+  for (const item of items) {
+    const vid = usableCjVid(item.vid);
+    if (!vid || item.quantity <= 0) continue;
+    const product: CjFreightProduct = { vid, quantity: item.quantity };
+    if (typeof item.weight === "number" && Number.isFinite(item.weight) && item.weight > 0) {
+      product.weight = item.weight;
+    }
+    products.push(product);
+  }
+  return products;
+}
+
+function freightBody(destCountryCode: string, products: CjFreightProduct[]) {
+  const lines = products.map((item) => {
+    const row: { vid: string; quantity: number; weight?: number } = {
+      vid: item.vid,
+      quantity: item.quantity,
+    };
+    if (item.weight && item.weight > 0) row.weight = item.weight;
+    return row;
+  });
+
+  const totalWeight = products.reduce(
     (sum, item) => sum + (item.weight ?? 0) * item.quantity,
     0
   );
 
+  const body: Record<string, unknown> = {
+    startCountryCode: "CN",
+    endCountryCode: destCountryCode,
+    products: lines,
+  };
+  if (totalWeight > 0) body.weight = totalWeight;
+  return body;
+}
+
+async function requestCjFreight(
+  token: string,
+  destCountryCode: string,
+  products: CjFreightProduct[]
+): Promise<{ rows: CjFreightRow[]; message: string; ok: boolean; status: number }> {
   const res = await fetch(`${CJ_BASE}/logistic/freightCalculate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "CJ-Access-Token": token,
     },
-    body: JSON.stringify({
-      startCountryCode: "CN",
-      endCountryCode: destCountryCode,
-      products: validProducts.map((item) => ({
-        vid: item.vid,
-        quantity: item.quantity,
-        weight: item.weight && item.weight > 0 ? item.weight : 100,
-      })),
-      weight: totalWeight > 0 ? totalWeight : 100,
-    }),
-    signal: AbortSignal.timeout(8000),
+    body: JSON.stringify(freightBody(destCountryCode, products)),
+    signal: AbortSignal.timeout(FREIGHT_TIMEOUT_MS),
   });
 
-  const json = await res.json().catch(() => ({} as { data?: CjFreightRow[]; message?: string; result?: boolean }));
+  const json = (await res.json().catch(() => ({}))) as {
+    data?: CjFreightRow[];
+    message?: string;
+    result?: boolean;
+  };
+  const message = json?.message ?? `HTTP ${res.status}`;
+  const ok = res.ok && json?.result !== false;
+  const rows = Array.isArray(json?.data) ? json.data : [];
+  return { rows, message, ok, status: res.status };
+}
 
-  if (!res.ok || json?.result === false) {
-    const msg = json?.message ?? `HTTP ${res.status}`;
-    throw new Error(`CJ shipping API error: ${msg}`);
+export async function fetchCjCheckoutFreightRates(params: {
+  destCountryCode: string;
+  products: CjFreightProduct[];
+  orderCurrency?: string;
+}): Promise<{ rates: CJShippingOption[]; fxRate: number; unavailable?: boolean }> {
+  const destCountryCode = normalizeCountryCode(params.destCountryCode) ?? "";
+  const orderCurrency = params.orderCurrency || "USD";
+  const validProducts = toCheckoutFreightProducts(params.products);
+
+  if (!destCountryCode) {
+    throw new Error("A valid destination country is required");
+  }
+  if (!validProducts.length) {
+    throw new Error("Please choose your product options before checkout.");
   }
 
-  const raw: CjFreightRow[] = Array.isArray(json?.data) ? json.data : [];
-  const fxRate = await getExchangeRate("USD", orderCurrency);
-  const rates = normalizeCjFreightRows(raw, orderCurrency, fxRate);
+  const token = await getOrRefreshAccessToken();
+  let lastMessage = "";
+  let lastStatus = 0;
 
-  return { rates, fxRate };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const result = await requestCjFreight(token, destCountryCode, validProducts);
+      lastMessage = result.message;
+      lastStatus = result.status;
+
+      if (result.ok) {
+        const fxRate = await getExchangeRate("USD", orderCurrency);
+        const rates = normalizeCjFreightRows(result.rows, orderCurrency, fxRate);
+        return { rates, fxRate, unavailable: rates.length === 0 };
+      }
+
+      if (isNoCoverageMessage(result.message)) {
+        throw new CheckoutShippingCoverageError(result.message);
+      }
+
+      if (attempt === 0 && isTransientFreightFailure(result.status, result.message)) {
+        await sleep(FREIGHT_RETRY_DELAY_MS);
+        continue;
+      }
+
+      throw new Error(result.message || "Shipping quote failed");
+    } catch (error) {
+      if (isCheckoutShippingCoverageError(error)) throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      lastMessage = message;
+      if (attempt === 0 && isTransientFreightFailure(lastStatus, message)) {
+        await sleep(FREIGHT_RETRY_DELAY_MS);
+        continue;
+      }
+      if (isNoCoverageMessage(message)) {
+        throw new CheckoutShippingCoverageError(message);
+      }
+      throw error instanceof Error ? error : new Error(message);
+    }
+  }
+
+  throw new Error(lastMessage || "Shipping quote failed");
 }

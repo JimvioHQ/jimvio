@@ -25,7 +25,7 @@ import { getCartProductIds, getFollowedVendorIds } from "@/lib/actions/marketpla
 import { ProductCardClient } from "@/components/marketplace/product-card-client";
 import { FollowButton } from "@/components/marketplace/follow-button";
 import { notFound, redirect } from "next/navigation";
-import { formatFollowerCount, storefrontFollowerCount } from "@/lib/marketplace/store-display";
+import { formatFollowerCount, storefrontFollowerCount, storefrontLogoSrc } from "@/lib/marketplace/store-display";
 import { constructMetadata, truncateDescription } from "@/lib/seo";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 
@@ -121,8 +121,8 @@ export default async function VendorStorePage({ params }: PageProps) {
             <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-8 shadow-xl">
               <div className="flex flex-col md:flex-row gap-8 items-start">
                 <div className="h-32 w-32 rounded-2xl bg-[var(--color-surface)] dark:bg-[var(--color-surface)] shadow-lg border border-[var(--color-border)] p-2 shrink-0">
-                  {vendor.business_logo ? (
-                    <img src={vendor.business_logo} alt={vendor.business_name} className="w-full h-full object-cover rounded-xl" />
+                  {storefrontLogoSrc(vendor) ? (
+                    <img src={storefrontLogoSrc(vendor)!} alt={vendor.business_name} className="w-full h-full object-contain rounded-xl" />
                   ) : (
                     <div className="w-full h-full bg-[var(--color-accent-light)] flex items-center justify-center text-4xl font-black text-[var(--color-accent)]">
                       {vendor.business_name.charAt(0)}

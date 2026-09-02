@@ -4,6 +4,7 @@ import {
   formatFollowerCount,
   formatFollowersLabel,
   storefrontFollowerCount,
+  storefrontLogoSrc,
 } from "./store-display";
 
 describe("storefront follower display", () => {
@@ -18,5 +19,16 @@ describe("storefront follower display", () => {
     );
     assert.equal(formatFollowerCount(1300), "1.3K");
     assert.equal(formatFollowersLabel(1300), "1.3K Followers");
+  });
+
+  it("uses the official Jimvio mark for Jimvio Store when no logo is uploaded", () => {
+    assert.equal(
+      storefrontLogoSrc({ business_slug: "jimvio-store", business_logo: null }),
+      "/jimvio-logo-mark.png",
+    );
+    assert.equal(
+      storefrontLogoSrc({ business_slug: "other-shop", business_logo: null }),
+      null,
+    );
   });
 });

@@ -535,6 +535,8 @@ export type DbProduct = {
   review_count: number | null;
   is_free_shipping: boolean | null;
   category_id: string | null;
+  inventory_quantity?: number | null;
+  source_metadata?: unknown;
 };
 
 export function fmtPrice(amount: number | null | undefined): string {

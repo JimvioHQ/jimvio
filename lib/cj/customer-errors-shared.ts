@@ -2,6 +2,10 @@
 export const CJ_CUSTOMER_MESSAGES = {
     shippingRates:
         "We couldn't load shipping options for your address. Please try again or contact support.",
+    shippingTimeout:
+        "Shipping quotes are taking longer than usual. Please try again.",
+    shippingUnavailable:
+        "Shipping isn't available to this destination for the items in your order. Try a different address or contact support.",
     shippingSave:
         "We couldn't save your delivery choice. Please try again.",
     checkout:

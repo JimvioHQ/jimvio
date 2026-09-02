@@ -22,7 +22,7 @@ import {
   selectUniqueTrendingProducts,
 } from "./homepage-ranking";
 
-const POOL_LIMIT = 120;
+const POOL_LIMIT = 200;
 
 /** Empty sets → published-active fallback (same SSR path as marketplace). */
 const SSR_VISIBILITY_SETS: MarketplaceVisibilitySets = {
@@ -41,7 +41,7 @@ const HOMEPAGE_PRODUCT_SELECT = `
   delivery_time, affiliate_commission_rate, sale_count, view_count,
   rating, review_count, is_free_shipping, vendor_id, category_id,
   created_at, auto_unpublished, deleted_at, sku, source,
-  published_by_admin_override,
+  published_by_admin_override, inventory_quantity, source_metadata,
   vendors(id, verification_status)
 `;
 
@@ -109,17 +109,20 @@ async function fetchPhysicalProductPool(): Promise<{
   return { pool, total };
 }
 
-async function attachVideos(products: DbProduct[]): Promise<DbProduct[]> {
-  if (products.length === 0) return [];
-  const supabase = createAdminClient();
-  const videoMap = await fetchProductVideosMap(
-    supabase,
-    products.map((p) => p.id),
-  );
-  return attachProductVideos(products, videoMap);
+function slimIntelFlags(meta: unknown): Record<string, unknown> | null {
+  if (!meta || typeof meta !== "object" || Array.isArray(meta)) return null;
+  const record = meta as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  if (record.cj_supplier_verified === true) out.cj_supplier_verified = true;
+  if (record.cj_trending === true) out.cj_trending = true;
+  if (Number(record.cj_verified_warehouse) === 1) out.cj_verified_warehouse = 1;
+  if (record.cj_has_video === true && Array.isArray(record.cj_videos) && record.cj_videos.length > 0) {
+    out.cj_has_video = true;
+  }
+  return Object.keys(out).length > 0 ? out : null;
 }
 
-/** Server entry for `/` — trending (24), flash deals (12), hero product. */
+/** Server entry for `/` — trending (24), flash deals (24), hero product. */
 async function buildHomepageProductBundle(): Promise<HomepageProductBundle> {
   const { pool, total } = await fetchPhysicalProductPool();
 
@@ -127,20 +130,30 @@ async function buildHomepageProductBundle(): Promise<HomepageProductBundle> {
     return { trending: [], flashDeals: [], hero: null, total };
   }
 
+  const supabase = createAdminClient();
+  const poolVideoMap = await fetchProductVideosMap(
+    supabase,
+    pool.map((p) => p.id),
+  );
+  const videoIds = new Set(
+    [...poolVideoMap.entries()].filter(([, videos]) => videos.length > 0).map(([id]) => id),
+  );
+
   let flashDeals = dedupeProductsByIdentity(
-    selectFlashDeals(pool, HOMEPAGE_FLASH_DEALS_LIMIT),
+    selectFlashDeals(pool, HOMEPAGE_FLASH_DEALS_LIMIT, videoIds),
   );
   const flashIds = new Set(flashDeals.map((p) => p.id));
   const trendingPool = pool.filter((p) => !flashIds.has(p.id));
   let trending = selectUniqueTrendingProducts(
     trendingPool.length > 0 ? trendingPool : pool,
     HOMEPAGE_TRENDING_LIMIT,
+    videoIds,
   );
 
   flashDeals = ensureNonEmptyCollection(
     flashDeals,
     pool,
-    (items) => dedupeProductsByIdentity(selectFlashDeals(items, HOMEPAGE_FLASH_DEALS_LIMIT)),
+    (items) => dedupeProductsByIdentity(selectFlashDeals(items, HOMEPAGE_FLASH_DEALS_LIMIT, videoIds)),
     HOMEPAGE_FLASH_DEALS_LIMIT,
     total,
   );
@@ -151,6 +164,7 @@ async function buildHomepageProductBundle(): Promise<HomepageProductBundle> {
       selectUniqueTrendingProducts(
         items,
         HOMEPAGE_TRENDING_LIMIT,
+        videoIds,
       ),
     HOMEPAGE_TRENDING_LIMIT,
     total,
@@ -164,7 +178,7 @@ async function buildHomepageProductBundle(): Promise<HomepageProductBundle> {
     trending = dedupeProductsByIdentity([...trending, ...fill]);
   }
 
-  const heroPick = selectHeroProduct(pool);
+  const heroPick = selectHeroProduct(pool, videoIds);
 
   const ids = dedupeProductsByIdentity([
     ...trending,
@@ -172,14 +186,14 @@ async function buildHomepageProductBundle(): Promise<HomepageProductBundle> {
     ...(heroPick ? [heroPick as unknown as DbProduct] : []),
   ]);
 
-  const enriched = await attachVideos(ids);
+  const enriched = attachProductVideos(ids, poolVideoMap);
   const byId = new Map(enriched.map((p) => [p.id, p]));
 
   const slim = <T extends DbProduct>(p: T): T =>
     ({
       ...p,
       images: slimListingImages(p.images, 3, 480),
-      source_metadata: null,
+      source_metadata: slimIntelFlags(p.source_metadata),
     }) as T;
 
   return {
@@ -196,7 +210,7 @@ async function buildHomepageProductBundle(): Promise<HomepageProductBundle> {
 
 export const getHomepageProductBundle = unstable_cache(
   buildHomepageProductBundle,
-  ["homepage-product-bundle-v4"],
+  ["homepage-product-bundle-v5"],
   { revalidate: 120 },
 );
 

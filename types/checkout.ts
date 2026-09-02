@@ -16,6 +16,7 @@ interface CheckoutExperienceProps {
 
 export type CartItem = {
     id: string;
+    product_id?: string | null;
     product_name: string;
     product_image: string | null;
     quantity: number;

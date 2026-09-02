@@ -17,6 +17,7 @@ import { CurrencyCode } from "@/lib/currency/config";
 import { useCurrency } from "@/context/CurrencyContext";
 import { PLATFORM_SETTINGS_DEFAULTS } from "@/lib/platform-settings-shared";
 import { formatFollowersLabel, storefrontFollowerCount } from "@/lib/marketplace/store-display";
+import { productHasTrendingSignal, productHasVerifiedSupplier } from "@/lib/marketplace/product-signals";
 
 const DEFAULT_AFFILIATE_RATE =
   PLATFORM_SETTINGS_DEFAULTS.fees.default_affiliate_commission_percent;
@@ -53,14 +54,19 @@ export function ProductTitleBadges({
     sold_count?: number | null;
     view_count?: number | null;
     delivery_time?: string | null;
+    source_metadata?: unknown;
+    inventory_quantity?: number | null;
   };
   isFreeShipping?: boolean;
   variant?: "physical" | "digital";
 }) {
   const sales = product.sale_count ?? product.sold_count ?? 0;
-  const isVerifiedSupplier = vendor?.verification_status === "verified";
+  const isVerifiedSupplier = productHasVerifiedSupplier({
+    vendors: vendor,
+    source_metadata: product.source_metadata,
+  });
   const isBestseller = sales >= 100;
-  const isTrending = (product.view_count ?? 0) >= 500 || sales >= 50;
+  const isTrending = productHasTrendingSignal(product);
   const showFastShipping = variant === "physical";
 
   if (variant === "physical") {

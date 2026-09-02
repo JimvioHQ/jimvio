@@ -14,9 +14,10 @@ import {
   isRenderableImageSrc,
   normalizeImages,
 } from "@/lib/utils";
-import { addToCart, getCartProductIds, toggleWishlist } from "@/lib/actions/marketplace";
+import { addToCart, getCartProductIds, toggleWishlist } from "@/lib/actions/marketplace-storefront";
 import { useCartStore } from "@/lib/store/use-cart-store";
 import { ProductCardVideoMedia } from "@/components/marketplace/product-card-video-media";
+import { ProductSignalBadges } from "@/components/marketplace/product-signal-badges";
 import type { TrendingProductCardProduct } from "@/components/marketplace/new/TrendingProductsClient";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
 
@@ -240,6 +241,7 @@ export function HomepageFlashDealCard({ p }: { p: TrendingProductCardProduct }) 
       </div>
 
       <div className="pointer-events-none relative z-[2] flex min-h-0 flex-1 flex-col gap-1.5 p-2.5 pt-2">
+        <ProductSignalBadges product={p as never} />
         <h3
           className="line-clamp-2 min-h-[2.6em] text-[12px] font-semibold leading-snug tracking-[-0.01em] text-[var(--color-text-primary)]"
           title={p.name}

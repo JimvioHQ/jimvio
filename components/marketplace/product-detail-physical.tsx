@@ -25,7 +25,7 @@ import {
   type ProductVariant,
 } from "@/components/marketplace/variant-selector";
 import { filterStorefrontVariants, requiresPurchasableVariantSelection } from "@/lib/products/storefront-variants";
-import { formatFollowersLabel, formatFollowerCount, storefrontFollowerCount } from "@/lib/marketplace/store-display";
+import { formatFollowersLabel, formatFollowerCount, storefrontFollowerCount, storefrontLogoSrc } from "@/lib/marketplace/store-display";
 import { useCurrency } from "@/context/CurrencyContext";
 import {
   ProductBreadcrumb, SaveShareBar,
@@ -883,8 +883,14 @@ function VendorSectionCard({ vendor, followedVendorIds }: { vendor: any; followe
             href={`/vendors/${vendor.business_slug}`}
             className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-secondary)] transition-[border-color,transform] duration-200 hover:scale-[1.02] hover:border-[var(--color-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]/35 focus-visible:ring-offset-2"
           >
-            {vendor.business_logo ? (
-              <img src={vendor.business_logo} className="w-full h-full object-cover" alt="" loading="lazy" />
+            {storefrontLogoSrc(vendor) ? (
+              <Image
+                src={storefrontLogoSrc(vendor)!}
+                alt={vendor.business_name ?? "Store"}
+                width={44}
+                height={44}
+                className="h-full w-full object-contain p-0.5"
+              />
             ) : (
               <ShoppingBag className="h-4 w-4 text-[var(--color-text-muted)]" />
             )}

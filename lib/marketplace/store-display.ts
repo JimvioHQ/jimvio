@@ -1,3 +1,17 @@
+export const JIMVIO_STORE_SLUG = "jimvio-store";
+export const JIMVIO_STORE_LOGO_SRC = "/jimvio-logo-mark.png";
+
+/** Official Jimvio mark — used when the Jimvio Store row has no uploaded logo. */
+export function storefrontLogoSrc(vendor: {
+  business_logo?: string | null;
+  business_slug?: string | null;
+} | null | undefined): string | null {
+  const uploaded = vendor?.business_logo?.trim();
+  if (uploaded) return uploaded;
+  if (vendor?.business_slug === JIMVIO_STORE_SLUG) return JIMVIO_STORE_LOGO_SRC;
+  return null;
+}
+
 /** Customer-facing store follower count: social-proof baseline, never below real follows. */
 export function storefrontFollowerCount(vendor: {
   follower_count?: number | null;

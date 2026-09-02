@@ -17,6 +17,7 @@ import { CheckoutTrustSignals } from "@/components/growth/CheckoutTrustSignals";
 import { updatePendingOrdersShipping } from "@/lib/actions/checkout";
 import { useCurrency } from "@/context/CurrencyContext";
 import { CJ_CUSTOMER_MESSAGES, sanitizeCustomerError } from "@/lib/cj/customer-errors-shared";
+import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 
 
 import type { CartItem, CartOrder, CJShippingOption, PaymentApiResponse } from "@/types";
@@ -227,30 +228,24 @@ export function CheckoutExperience({
 
             // Build the CJ payload with proper vids and weights
             const products = cjItems.map((item) => ({
+               productId: item.product_id ?? undefined,
+               variantId: item.variant_id ?? undefined,
                cjVid: getCJVid(item) ?? undefined,
                quantity: item.quantity,
                weight: getCJWeight(item) ?? undefined,
             }));
 
-            const missing = products.filter((p) => !p.cjVid);
-            if (missing.length > 0) {
-               throw new Error(
-                  "Please choose your product options before checkout."
-               );
-            }
-            const missingWeight = products.filter((p) => !p.weight);
-            if (missingWeight.length > 0) {
-               console.warn(
-                  "[shipping rates] items missing weight; default will be used:",
-                  missingWeight,
-               );
-            }
+            const destCountryCode =
+               normalizeCountryCode(shipping.countryCode) ??
+               normalizeCountryCode(countryCode) ??
+               "RW";
 
             const res = await fetch("/api/cj/shipping-rates", {
                method: "POST",
                headers: { "Content-Type": "application/json" },
                body: JSON.stringify({
-                  destCountryCode: countryCode,
+                  destCountryCode,
+                  orderCurrency: currency,
                   cartItems: products
                }),
             });
@@ -279,6 +274,10 @@ export function CheckoutExperience({
             if (opts.length > 0) {
                const cheapest = opts.reduce((a, b) => (a.priceUSD <= b.priceUSD ? a : b));
                setCjSelected(cheapest);
+               setCjError("");
+            } else {
+               setCjSelected(null);
+               setCjError("");
             }
             setStage("delivery");
          } catch (e) {

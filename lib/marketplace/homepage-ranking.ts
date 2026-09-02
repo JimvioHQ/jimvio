@@ -7,9 +7,14 @@ import {
   filterProductsForCustomers,
   type MarketplaceVisibilitySets,
 } from "@/lib/cj/premium-intelligence/marketplace-filter";
+import {
+  productHasTrendingSignal,
+  productHasVerifiedSupplier,
+  productIsInStock,
+} from "@/lib/marketplace/product-signals";
 
 export const HOMEPAGE_TRENDING_LIMIT = 24;
-export const HOMEPAGE_FLASH_DEALS_LIMIT = 12;
+export const HOMEPAGE_FLASH_DEALS_LIMIT = 24;
 
 export type RankableMarketplaceProduct = {
   id: string;
@@ -31,6 +36,7 @@ export type RankableMarketplaceProduct = {
   source?: string | null;
   source_metadata?: unknown;
   published_by_admin_override?: boolean | null;
+  inventory_quantity?: number | null;
 };
 
 function isPublishedActive(p: RankableMarketplaceProduct): boolean {
@@ -70,7 +76,9 @@ export function computeHomepagePriorityScore(
   if (isPublishedActive(product)) score += 1_000;
 
   if (hasVideo) score += 120;
-  if (product.vendors?.verification_status === "verified") score += 80;
+  if (productHasVerifiedSupplier(product)) score += 90;
+  if (productHasTrendingSignal(product)) score += 110;
+  if (productIsInStock(product)) score += 50;
 
   const rating = Number(product.rating ?? 0);
   score += rating * 15;
@@ -235,17 +243,20 @@ export function selectFlashDeals<T extends RankableMarketplaceProduct>(
 ): T[] {
   if (!pool.length) return [];
 
-  const flash = pool.filter((p) => p.is_flash_deal === true);
+  const inStock = pool.filter(productIsInStock);
+  const rankedPool = inStock.length > 0 ? inStock : pool;
+
+  const flash = rankedPool.filter((p) => p.is_flash_deal === true);
   if (flash.length > 0) {
     return sortByHomepagePriority(flash, videoIds).slice(0, limit);
   }
 
-  const discounted = pool.filter(hasDiscount);
+  const discounted = rankedPool.filter(hasDiscount);
   if (discounted.length > 0) {
     return sortByHomepagePriority(discounted, videoIds).slice(0, limit);
   }
 
-  return sortByHomepagePriority(pool, videoIds).slice(0, limit);
+  return sortByHomepagePriority(rankedPool, videoIds).slice(0, limit);
 }
 
 export function selectHeroProduct<T extends RankableMarketplaceProduct>(
