@@ -123,8 +123,8 @@ export function PostComposer({
           (comms as CommunityOption[]).map((c) => [c.id, c] as const)
         );
         // Preserve membership recency order from the query above.
-        const options = ids
-          .map((id) => byId.get(id))
+        const options = (ids as string[])
+          .map((id: string) => byId.get(id))
           .filter((c): c is CommunityOption => Boolean(c));
         setCommunities(options);
         const bySlug = initialCommunitySlug
