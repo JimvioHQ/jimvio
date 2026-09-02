@@ -374,7 +374,7 @@ export default function HubLayout({ children }: { children: React.ReactNode }) {
                         type="button"
                         onClick={() => openCommandCenter()}
                         aria-label="Search"
-                        className="grid min-h-11 min-w-11 shrink-0 place-items-center rounded-full text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] min-[1060px]:hidden"
+                        className="hidden"
                     >
                         <Search className="h-[18px] w-[18px]" />
                     </button>

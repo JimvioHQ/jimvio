@@ -132,7 +132,7 @@ async function buildAndReturnPaymentLink({
       customerPhone: profile.phone ?? "",
       orderDescription: `Order ${order.order_number ?? orderId.slice(0, 8)}`,
       paymentOptions: "card,applepay,googlepay",
-      channel: "sms",
+      // Card-only USD checkout — SMS channel with bad/local phone breaks link creation.
     });
   } catch (linkErr) {
     const reason = linkErr instanceof Error ? linkErr.message : String(linkErr);

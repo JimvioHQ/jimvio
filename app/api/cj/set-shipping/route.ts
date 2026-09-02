@@ -5,6 +5,7 @@ import { CJ_CUSTOMER_MESSAGES, logCjInternalError, sanitizeCustomerError } from 
 import {
     fetchCjCheckoutFreightRates,
     findMatchingCheckoutShippingRate,
+    toCheckoutFreightProducts,
     type CheckoutShippingSelection,
     type CjFreightProduct,
 } from "@/lib/cj/checkout-shipping";
@@ -58,7 +59,7 @@ async function buildProductsFromVariants(
     );
 
     const skipped: string[] = [];
-    const products = cartItems
+    const rawProducts = cartItems
         .map((item): CjFreightProduct | null => {
             const variant = variantMap.get(item.variantId);
             if (!variant?.cj_vid) {
@@ -68,10 +69,13 @@ async function buildProductsFromVariants(
             return {
                 vid: variant.cj_vid,
                 quantity: item.quantity,
-                weight: variant.weight > 0 ? variant.weight : 100,
+                // Match /api/cj/shipping-rates: never invent a default weight.
+                ...(variant.weight > 0 ? { weight: variant.weight } : {}),
             };
         })
         .filter((product): product is CjFreightProduct => product !== null);
+
+    const products = toCheckoutFreightProducts(rawProducts);
 
     if (!products.length) {
         throw new Error("No valid CJ variants found for shipping calculation");

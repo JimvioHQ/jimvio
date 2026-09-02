@@ -543,6 +543,7 @@ export function CheckoutExperience({
                               loading={cjLoading}
                               error={cjError}
                               formatMoney={formatMoney}
+                              onRetry={() => void advanceFromShipping()}
                            />
                            <button
                               type="button"

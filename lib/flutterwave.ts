@@ -120,7 +120,10 @@ function formatPhone(phone: string | undefined): string | undefined {
   const cleaned = phone.replace(/[^\d+]/g, "").trim();
   if (!cleaned) return undefined;
   if (cleaned.startsWith("+")) return cleaned;
-  if (cleaned.startsWith("0")) return `+250${cleaned.slice(1)}`;
+  // Already looks international (country code + number).
+  if (cleaned.length >= 11) return `+${cleaned}`;
+  // Short local numbers: treat as Rwanda only when clearly local.
+  if (cleaned.startsWith("0") && cleaned.length <= 10) return `+250${cleaned.slice(1)}`;
   if (cleaned.length >= 9 && cleaned.length <= 10) return `+250${cleaned}`;
   return `+${cleaned}`;
 }
@@ -195,7 +198,8 @@ export async function createFlutterwavePaymentLink(
   if (!Number.isFinite(raw) || raw <= 0) {
     throw new FlutterwaveError("Invalid payment amount", 400);
   }
-  const amount = Math.max(minAmount, raw);
+  // Flutterwave expects 2dp for USD/card rails.
+  const amount = Math.round(Math.max(minAmount, raw) * 100) / 100;
   const phone = formatPhone(params.customerPhone);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getNowPaymentsIpnSecret, verifyNowPaymentsSignature } from "@/lib/nowpayments";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
 import { confirmUgcEscrowPayment } from "@/lib/ugc/confirm-escrow-payment";
 import {
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      if (ord?.payment_status === "completed") {
+      if (isOrderPaymentComplete(ord?.payment_status)) {
         if (eventId) await markWebhookProcessed(supabase, eventId, oid);
         continue;
       }
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
           .from("orders")
           .update({ payment_status: "failed", status: "cancelled", updated_at: paidAtIso })
           .eq("id", oid)
-          .neq("payment_status", "completed");
+          .not("payment_status", "in", '("paid","completed")');
         if (eventId) await markWebhookProcessed(supabase, eventId, oid);
         continue;
       }

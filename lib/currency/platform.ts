@@ -53,6 +53,12 @@ export function marketplacePaymentErrorMessage(
     if (/amount|minimum|invalid/i.test(text)) {
       return "The payment amount could not be submitted. Please review your order and try again.";
     }
+    if (/not configured|secret|api key|credential/i.test(text)) {
+      return "This payment method is temporarily unavailable. Please choose another method.";
+    }
+    if (/phone|customer/i.test(text)) {
+      return "We could not start payment with the customer details on this order. Please update your phone or email and try again.";
+    }
     return "This payment method could not start. Please try another method or try again shortly.";
   }
   return null;

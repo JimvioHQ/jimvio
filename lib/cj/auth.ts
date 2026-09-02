@@ -138,9 +138,9 @@ async function saveCredentials(
     }
 }
 
-export async function getOrRefreshAccessToken(
-    supabase?: SupabaseClient
-): Promise<string> {
+let accessTokenInFlight: Promise<string> | null = null;
+
+async function resolveAccessToken(supabase?: SupabaseClient): Promise<string> {
     const client = supabase ?? getServiceClient();
     const stored = await readStoredCredentials(client);
 
@@ -152,12 +152,10 @@ export async function getOrRefreshAccessToken(
         ? Date.parse(stored.refresh_token_expires_at)
         : 0;
 
-    // 1. Still good
     if (stored.access_token && accessExp - now > REFRESH_LEAD_TIME_MS) {
         return stored.access_token;
     }
 
-    // 2. Try refresh
     if (stored.refresh_token && refreshExp > now) {
         try {
             const resp = await fetchRefreshedAccessToken(stored.refresh_token);
@@ -172,12 +170,31 @@ export async function getOrRefreshAccessToken(
         }
     }
 
-    // 3. Bootstrap fresh
     const apiKey = await getApiKey(client);
     const resp = await fetchNewAccessToken(apiKey);
     await saveCredentials(client, resp, apiKey);
     console.log("[CJ auth] New token acquired via apiKey");
     return resp.accessToken;
+}
+
+export async function getOrRefreshAccessToken(
+    supabase?: SupabaseClient
+): Promise<string> {
+    const client = supabase ?? getServiceClient();
+    const stored = await readStoredCredentials(client);
+    const now = Date.now();
+    const accessExp = stored.access_token_expires_at
+        ? Date.parse(stored.access_token_expires_at)
+        : 0;
+    if (stored.access_token && accessExp - now > REFRESH_LEAD_TIME_MS) {
+        return stored.access_token;
+    }
+
+    if (accessTokenInFlight) return accessTokenInFlight;
+    accessTokenInFlight = resolveAccessToken(client).finally(() => {
+        accessTokenInFlight = null;
+    });
+    return accessTokenInFlight;
 }
 
 /**

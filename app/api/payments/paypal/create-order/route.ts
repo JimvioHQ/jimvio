@@ -7,6 +7,7 @@ import { createPayPalOrder } from "@/lib/paypal";
 import { orderTotalsForUsdGateway } from "@/lib/money";
 import { requireSessionUser, notFoundIfInvalidId } from "@/lib/auth/require-session";
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
+import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 export const dynamic = "force-dynamic";
 
 const supabase = createClient(
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const { data: order, error } = await supabase
       .from("orders")
-      .select("id, order_number, total_amount, currency, payment_status, buyer_id")
+      .select("id, order_number, total_amount, currency, payment_status, buyer_id, paypal_order_id")
       .eq("id", orderId)
       .eq("buyer_id", session.user.id)
       .single();
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    if (order.payment_status === "paid" || order.payment_status === "completed") {
+    if (isOrderPaymentComplete(order.payment_status)) {
       return NextResponse.json({ error: "Order already paid" }, { status: 400 });
     }
 
@@ -47,6 +48,16 @@ export async function POST(req: NextRequest) {
       req.headers.get("origin") ||
       process.env.NEXT_PUBLIC_APP_URL ||
       "https://jimvio.com";
+
+    // Idempotent reuse: if we already created a PayPal order for this Jimvio order, resume it.
+    if (order.paypal_order_id) {
+      const approvalUrl = `https://www.paypal.com/checkoutnow?token=${encodeURIComponent(order.paypal_order_id)}`;
+      return NextResponse.json({
+        paypalOrderId: order.paypal_order_id,
+        approvalUrl,
+        reused: true,
+      });
+    }
 
     const paypalTotals = orderTotalsForUsdGateway(Number(order.total_amount), order.currency);
     const { orderId: paypalOrderId, approvalUrl } = await createPayPalOrder({

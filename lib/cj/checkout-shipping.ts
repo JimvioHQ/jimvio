@@ -1,4 +1,4 @@
-import { getOrRefreshAccessToken } from "@/lib/cj/auth";
+import { forceRefreshFromApiKey, getOrRefreshAccessToken } from "@/lib/cj/auth";
 import { sanitizeShippingMethodName } from "@/lib/cj/customer-facing";
 import { isCjApiQuotaError } from "@/lib/cj/customer-errors-shared";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
@@ -180,12 +180,16 @@ const freightQuoteCache = new Map<
   { expiresAt: number; rates: CJShippingOption[]; fxRate: number; unavailable?: boolean }
 >();
 
-function freightQuoteCacheKey(destCountryCode: string, products: CjFreightProduct[]): string {
+function freightQuoteCacheKey(
+  destCountryCode: string,
+  products: CjFreightProduct[],
+  orderCurrency = "USD"
+): string {
   const lines = products
     .map((item) => `${item.vid}:${item.quantity}:${item.weight ?? ""}`)
     .sort()
     .join("|");
-  return `${destCountryCode}::${lines}`;
+  return `${destCountryCode}::${orderCurrency.toUpperCase()}::${lines}`;
 }
 
 export class CheckoutShippingCoverageError extends Error {
@@ -263,7 +267,7 @@ async function requestCjFreight(
   token: string,
   destCountryCode: string,
   products: CjFreightProduct[]
-): Promise<{ rows: CjFreightRow[]; message: string; ok: boolean; status: number }> {
+): Promise<{ rows: CjFreightRow[]; message: string; ok: boolean; status: number; authFailed?: boolean }> {
   const res = await fetch(`${CJ_BASE}/logistic/freightCalculate`, {
     method: "POST",
     headers: {
@@ -278,11 +282,16 @@ async function requestCjFreight(
     data?: CjFreightRow[];
     message?: string;
     result?: boolean;
+    code?: number | string;
   };
   const message = json?.message ?? `HTTP ${res.status}`;
-  const ok = res.ok && json?.result !== false;
+  const authFailed =
+    res.status === 401 ||
+    res.status === 403 ||
+    /access.?token|unauthorized|token.*(invalid|expired|expire)/i.test(message);
+  const ok = res.ok && json?.result !== false && !authFailed;
   const rows = Array.isArray(json?.data) ? json.data : [];
-  return { rows, message, ok, status: res.status };
+  return { rows, message, ok, status: res.status, authFailed };
 }
 
 export async function fetchCjCheckoutFreightRates(params: {
@@ -301,7 +310,7 @@ export async function fetchCjCheckoutFreightRates(params: {
     throw new Error("Please choose your product options before checkout.");
   }
 
-  const cacheKey = freightQuoteCacheKey(destCountryCode, validProducts);
+  const cacheKey = freightQuoteCacheKey(destCountryCode, validProducts, orderCurrency);
   const cached = freightQuoteCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
     return {
@@ -311,9 +320,10 @@ export async function fetchCjCheckoutFreightRates(params: {
     };
   }
 
-  const token = await getOrRefreshAccessToken();
+  let token = await getOrRefreshAccessToken();
   let lastMessage = "";
   let lastStatus = 0;
+  let didAuthRefresh = false;
 
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -321,12 +331,21 @@ export async function fetchCjCheckoutFreightRates(params: {
       lastMessage = result.message;
       lastStatus = result.status;
 
+      if (result.authFailed && !didAuthRefresh) {
+        didAuthRefresh = true;
+        const refreshed = await forceRefreshFromApiKey();
+        token = refreshed.accessToken;
+        attempt -= 1;
+        continue;
+      }
+
       if (result.ok) {
         const fxRate = await getExchangeRate("USD", orderCurrency);
         const rates = normalizeCjFreightRows(result.rows, orderCurrency, fxRate);
         const payload = { rates, fxRate, unavailable: rates.length === 0 };
+        // Cache successful quotes; keep empty coverage briefly so we don't thrash CJ points.
         freightQuoteCache.set(cacheKey, {
-          expiresAt: Date.now() + FREIGHT_CACHE_TTL_MS,
+          expiresAt: Date.now() + (rates.length === 0 ? 60_000 : FREIGHT_CACHE_TTL_MS),
           ...payload,
         });
         return payload;

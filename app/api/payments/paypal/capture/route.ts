@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { capturePayPalOrder } from "@/lib/paypal";
 import { finalizeOrderPayment } from "@/lib/payments/finalize-order-payment";
+import { isOrderPaymentComplete } from "@/lib/payments/order-payment-utils";
 import { isUuid } from "@/lib/auth/platform-admin";
 
 import { getSupabaseSecretKey, getSupabaseUrl } from "@/lib/supabase/service-role";
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Already completed (webhook arrived first) — go straight to success
-    if (order.payment_status === "completed") {
+    if (isOrderPaymentComplete(order.payment_status)) {
       return NextResponse.redirect(`${appUrl}/checkout/success?order=${orderId}`);
     }
 

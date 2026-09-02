@@ -162,7 +162,7 @@ export function AppTopNav({
           type="button"
           onClick={() => openCommandCenter()}
           aria-label="Search"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-secondary)] hover:text-[var(--color-text-primary)] min-[1060px]:hidden"
+          className="hidden"
         >
           <Search className="h-[17px] w-[17px]" />
         </button>
