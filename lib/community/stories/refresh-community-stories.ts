@@ -57,9 +57,11 @@ export async function refreshCommunityStories(): Promise<RefreshResult> {
 
   const { data: communities, error: commError } = await admin
     .from("communities")
-    .select("id, owner_id, name, avatar_url, cover_image, is_active, privacy")
+    .select("id, owner_id, name, avatar_url, cover_image, is_active, is_private, visibility, visibility_mode, archived_at, is_featured, member_count")
     .eq("is_active", true)
-    .in("privacy", ["public", "private"])
+    .or("is_private.eq.false,is_private.is.null")
+    .order("is_featured", { ascending: false })
+    .order("member_count", { ascending: false })
     .limit(BATCH_LIMIT);
 
   if (commError || !communities?.length) {
@@ -67,6 +69,16 @@ export async function refreshCommunityStories(): Promise<RefreshResult> {
   }
 
   for (const community of communities) {
+    // Skip archived / non-public visibility when present
+    if ((community as { archived_at?: string | null }).archived_at) {
+      result.skipped_no_content += 1;
+      continue;
+    }
+    const visibility = String((community as { visibility?: string | null }).visibility ?? "public");
+    if (visibility === "private" || visibility === "hidden") {
+      result.skipped_no_content += 1;
+      continue;
+    }
     result.scanned += 1;
     const communityId = community.id as string;
     const ownerId = community.owner_id as string | null;

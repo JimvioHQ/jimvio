@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { safeMediaUrl } from "@/lib/media/optimize-url";
+import { PRIORITY_POPULAR_USERNAMES } from "@/lib/community/discovery-priorities";
 
 export const POPULAR_USER_COUNT = 5;
 
@@ -154,6 +155,43 @@ export async function loadFeedSidebarPopularUsers(
         verified: Boolean(profile.is_verified),
         href: profileHref(profile.username, profile.id),
       });
+    }
+  }
+
+  // Product-level priority inclusion for real active profiles (no fabricated followers).
+  if (PRIORITY_POPULAR_USERNAMES.length) {
+    const { data: priorityProfiles } = (await admin
+      .from("profiles")
+      .select("id, full_name, username, avatar_url, follower_count, is_verified, is_active")
+      .in("username", [...PRIORITY_POPULAR_USERNAMES])
+      .eq("is_active", true)) as { data: ProfileRow[] | null };
+
+    for (const profile of priorityProfiles ?? []) {
+      if (!profile.id || profile.id === excludeUserId) continue;
+      if (seen.has(profile.id)) continue;
+      const name = displayName(profile.full_name, profile.username);
+      if (!name || !profile.username?.trim()) continue;
+
+      const entry: FeedSidebarPopularUser = {
+        userId: profile.id,
+        name,
+        username: profile.username.trim(),
+        avatarUrl: isValidAvatar(profile.avatar_url)
+          ? mediaUrlOrNull(profile.avatar_url, 96)
+          : null,
+        followerCount: Math.max(Number(profile.follower_count ?? 0) || 0, 0),
+        verified: Boolean(profile.is_verified),
+        href: profileHref(profile.username, profile.id),
+      };
+
+      // Prefer a visible slot near the top without inventing engagement.
+      if (candidates.length < POPULAR_USER_COUNT) {
+        candidates.unshift(entry);
+      } else {
+        candidates.splice(Math.min(1, candidates.length), 0, entry);
+        candidates.pop();
+      }
+      seen.add(profile.id);
     }
   }
 

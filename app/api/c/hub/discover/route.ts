@@ -5,10 +5,12 @@ import {
   isCommunityVerified,
 } from "@/lib/community/trending-score";
 import { communityIsPubliclyDiscoverable } from "@/lib/community/join-policy";
+import { PRIORITY_TRENDING_COMMUNITY_SLUGS } from "@/lib/community/discovery-priorities";
 import {
   loadFeedSidebarLiveNow,
   loadFeedSidebarPopularUsers,
 } from "@/lib/feed/load-feed-sidebar";
+import { resolveCommunityMemberCount } from "@/lib/community/member-count";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +30,12 @@ type TrendingCommunityRow = {
   trending_score: number | null;
 };
 
-function mapCommunity(row: TrendingCommunityRow) {
-  const memberCount = Number(row.member_count ?? 0) || 0;
+function mapCommunity(row: TrendingCommunityRow & { settings?: unknown }) {
+  const memberCount = resolveCommunityMemberCount({
+    slug: row.slug,
+    member_count: row.member_count,
+    settings: row.settings,
+  });
   const onlineMembers = Number(row.online_members ?? 0) || 0;
   const verified = isCommunityVerified({
     is_featured: row.is_featured,
@@ -180,13 +186,14 @@ export async function GET() {
     const ids = trendingRows.map((row) => row.id);
     const { data: copyRows } = await supabase
       .from("communities")
-      .select("id, tagline, description")
+      .select("id, tagline, description, settings")
       .in("id", ids);
     const copyById = new Map(
       ((copyRows ?? []) as Array<{
         id: string;
         tagline: string | null;
         description: string | null;
+        settings?: unknown;
       }>).map((row) => [row.id, row])
     );
     trendingRows = trendingRows.map((row) => {
@@ -196,13 +203,59 @@ export async function GET() {
             ...row,
             tagline: row.tagline ?? copy.tagline,
             description: row.description ?? copy.description,
+            settings: (row as { settings?: unknown }).settings ?? copy.settings,
           }
         : row;
     });
   }
 
+  // Ensure priority featured communities appear when publicly discoverable.
+  if (PRIORITY_TRENDING_COMMUNITY_SLUGS.length) {
+    const missing = PRIORITY_TRENDING_COMMUNITY_SLUGS.filter(
+      (slug) => !trendingRows.some((row) => row.slug === slug)
+    );
+    if (missing.length) {
+      const { data: priorityRows } = await supabase
+        .from("communities")
+        .select(
+          "id, name, slug, category, tagline, description, cover_image, avatar_url, member_count, post_count, is_featured, is_private, is_active, visibility, visibility_mode, archived_at, settings"
+        )
+        .in("slug", missing)
+        .eq("is_active", true);
+      for (const raw of priorityRows ?? []) {
+        if (!communityIsPubliclyDiscoverable(raw)) continue;
+        const scored: TrendingCommunityRow & { settings?: unknown } = {
+          id: raw.id,
+          name: raw.name,
+          slug: raw.slug,
+          category: raw.category,
+          tagline: raw.tagline,
+          description: raw.description,
+          cover_image: raw.cover_image,
+          avatar_url: raw.avatar_url,
+          member_count: raw.member_count,
+          post_count: raw.post_count,
+          is_featured: raw.is_featured,
+          online_members: 0,
+          trending_score: communityTrendingScore({
+            member_count: raw.member_count,
+            post_count: raw.post_count,
+            is_featured: raw.is_featured,
+            recent_posts: 0,
+            recent_joins: 0,
+            online_members: 0,
+          }),
+          settings: (raw as { settings?: unknown }).settings,
+        };
+        trendingRows = [scored, ...trendingRows].slice(0, 8);
+      }
+    }
+  }
+
   return NextResponse.json({
-    communities: trendingRows.map(mapCommunity),
+    communities: trendingRows.map((row) =>
+      mapCommunity(row as TrendingCommunityRow & { settings?: unknown })
+    ),
     live: liveRows.map((s) => ({
       id: s.id,
       title: s.title,
