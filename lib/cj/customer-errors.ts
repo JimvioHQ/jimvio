@@ -1,6 +1,7 @@
 export {
     CJ_CUSTOMER_MESSAGES,
     containsCjInternalDetail,
+    isCjApiQuotaError,
     sanitizeCustomerError,
     sanitizeOrderTimelineNote,
 } from "@/lib/cj/customer-errors-shared";

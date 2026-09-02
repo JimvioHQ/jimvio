@@ -4,6 +4,8 @@ export const CJ_CUSTOMER_MESSAGES = {
         "We couldn't load shipping options for your address. Please try again or contact support.",
     shippingTimeout:
         "Shipping quotes are taking longer than usual. Please try again.",
+    shippingQuota:
+        "Shipping quotes are temporarily unavailable from the carrier. Please try again in a little while.",
     shippingUnavailable:
         "Shipping isn't available to this destination for the items in your order. Try a different address or contact support.",
     shippingSave:
@@ -49,7 +51,8 @@ const INTERNAL_PATTERNS: RegExp[] = [
     /retry FAILED/i,
     /forwarded to/i,
     /wallet balance/i,
-    /insufficient.*wallet/i,
+    /insufficient.*api points/i,
+    /api points/i,
 ];
 
 export function containsCjInternalDetail(message: string): boolean {
@@ -58,8 +61,20 @@ export function containsCjInternalDetail(message: string): boolean {
     return INTERNAL_PATTERNS.some((pattern) => pattern.test(text));
 }
 
+export function isCjApiQuotaError(raw: unknown): boolean {
+    const message =
+        raw instanceof Error
+            ? raw.message
+            : typeof raw === "string"
+              ? raw
+              : "";
+    return /insufficient api points|remaining:\s*0.*required|\bapi points\b/i.test(message);
+}
+
 /** Return a customer-safe message. Detailed CJ errors should be logged separately for admins. */
 export function sanitizeCustomerError(raw: unknown, fallback: string): string {
+    if (isCjApiQuotaError(raw)) return CJ_CUSTOMER_MESSAGES.shippingQuota;
+
     const message =
         raw instanceof Error
             ? raw.message

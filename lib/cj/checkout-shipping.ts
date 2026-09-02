@@ -1,5 +1,6 @@
 import { getOrRefreshAccessToken } from "@/lib/cj/auth";
 import { sanitizeShippingMethodName } from "@/lib/cj/customer-facing";
+import { isCjApiQuotaError } from "@/lib/cj/customer-errors-shared";
 import { normalizeCountryCode } from "@/lib/geo/buyer-country";
 import { usableCjVid } from "@/lib/cj/variant-vid";
 import type { CJShippingOption } from "@/types/checkout";
@@ -173,6 +174,19 @@ async function getExchangeRate(
 
 const FREIGHT_TIMEOUT_MS = 20_000;
 const FREIGHT_RETRY_DELAY_MS = 700;
+const FREIGHT_CACHE_TTL_MS = 10 * 60 * 1000;
+const freightQuoteCache = new Map<
+  string,
+  { expiresAt: number; rates: CJShippingOption[]; fxRate: number; unavailable?: boolean }
+>();
+
+function freightQuoteCacheKey(destCountryCode: string, products: CjFreightProduct[]): string {
+  const lines = products
+    .map((item) => `${item.vid}:${item.quantity}:${item.weight ?? ""}`)
+    .sort()
+    .join("|");
+  return `${destCountryCode}::${lines}`;
+}
 
 export class CheckoutShippingCoverageError extends Error {
   readonly kind = "no_coverage" as const;
@@ -287,6 +301,16 @@ export async function fetchCjCheckoutFreightRates(params: {
     throw new Error("Please choose your product options before checkout.");
   }
 
+  const cacheKey = freightQuoteCacheKey(destCountryCode, validProducts);
+  const cached = freightQuoteCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return {
+      rates: cached.rates,
+      fxRate: cached.fxRate,
+      unavailable: cached.unavailable,
+    };
+  }
+
   const token = await getOrRefreshAccessToken();
   let lastMessage = "";
   let lastStatus = 0;
@@ -300,7 +324,16 @@ export async function fetchCjCheckoutFreightRates(params: {
       if (result.ok) {
         const fxRate = await getExchangeRate("USD", orderCurrency);
         const rates = normalizeCjFreightRows(result.rows, orderCurrency, fxRate);
-        return { rates, fxRate, unavailable: rates.length === 0 };
+        const payload = { rates, fxRate, unavailable: rates.length === 0 };
+        freightQuoteCache.set(cacheKey, {
+          expiresAt: Date.now() + FREIGHT_CACHE_TTL_MS,
+          ...payload,
+        });
+        return payload;
+      }
+
+      if (isCjApiQuotaError(result.message)) {
+        throw new Error(result.message);
       }
 
       if (isNoCoverageMessage(result.message)) {
@@ -317,6 +350,9 @@ export async function fetchCjCheckoutFreightRates(params: {
       if (isCheckoutShippingCoverageError(error)) throw error;
       const message = error instanceof Error ? error.message : String(error);
       lastMessage = message;
+      if (isCjApiQuotaError(message)) {
+        throw error instanceof Error ? error : new Error(message);
+      }
       if (attempt === 0 && isTransientFreightFailure(lastStatus, message)) {
         await sleep(FREIGHT_RETRY_DELAY_MS);
         continue;

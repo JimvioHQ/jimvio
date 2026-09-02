@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { CJ_CUSTOMER_MESSAGES, logCjInternalError, sanitizeCustomerError } from "@/lib/cj/customer-errors";
+import { CJ_CUSTOMER_MESSAGES, isCjApiQuotaError, logCjInternalError, sanitizeCustomerError } from "@/lib/cj/customer-errors";
 import {
   fetchCjCheckoutFreightRates,
   isCheckoutShippingCoverageError,
@@ -201,12 +201,16 @@ export async function POST(req: NextRequest) {
             message: "Failed to fetch CJ shipping rates during checkout",
             error: e,
         });
-        const fallback = /timeout|abort|timed out/i.test(
-            e instanceof Error ? e.message : String(e)
-        )
-            ? CJ_CUSTOMER_MESSAGES.shippingTimeout
-            : CJ_CUSTOMER_MESSAGES.shippingRates;
+        const quota = isCjApiQuotaError(e);
+        const fallback = quota
+            ? CJ_CUSTOMER_MESSAGES.shippingQuota
+            : /timeout|abort|timed out/i.test(e instanceof Error ? e.message : String(e))
+              ? CJ_CUSTOMER_MESSAGES.shippingTimeout
+              : CJ_CUSTOMER_MESSAGES.shippingRates;
         const message = sanitizeCustomerError(e, fallback);
-        return NextResponse.json({ success: false, error: message }, { status: 500 });
+        return NextResponse.json(
+            { success: false, error: message },
+            { status: quota ? 503 : 500 }
+        );
     }
 }
