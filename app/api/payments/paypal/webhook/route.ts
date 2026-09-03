@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
 
   const { data: order } = await supabase
     .from("orders")
-    .select("id, payment_status, buyer_id, total_amount, currency")
+    .select("id, payment_status, buyer_id, total_amount, currency, paypal_order_id")
     .eq("id", jimvioOrderId)
     .maybeSingle();
 
@@ -174,6 +174,41 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Prefer capture id lock; also remapped from paypal_order_id if present.
+    if (order.paypal_order_id && order.paypal_order_id !== captureId) {
+      await supabase
+        .from("transactions")
+        .update({
+          provider_transaction_id: captureId,
+          status: "pending",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("provider_transaction_id", order.paypal_order_id)
+        .eq("provider", "paypal")
+        .eq("status", "pending");
+    }
+
+    const { data: lockRow } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("provider_transaction_id", captureId)
+      .maybeSingle();
+    if (!lockRow) {
+      await supabase.from("transactions").insert({
+        user_id: order.buyer_id,
+        order_id: order.id,
+        type: "payment",
+        amount: expectedAmount,
+        currency: expectedCurrency,
+        status: "pending",
+        provider: "paypal",
+        provider_transaction_id: captureId,
+        reference: captureId,
+        description: `PayPal capture ${captureId}`,
+        metadata: { purpose: "order_payment", source: "webhook_lock" },
+      });
+    }
+
     await finalizeOrderPayment(supabase, order.id, {
       providerTransactionId: captureId,
       providerReference: captureId,

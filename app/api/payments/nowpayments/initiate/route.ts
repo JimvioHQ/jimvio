@@ -79,6 +79,35 @@ export async function POST(req: NextRequest) {
       buyerEmail:    buyerProfile?.email || '',
     })
 
+    const invoiceId = String(result.invoiceId || `nowp-inv-${primaryOrderId}-${Date.now()}`)
+
+    // Pending transaction enables audit trail. IPN uses payment_id as
+    // provider_transaction_id; we also store invoice_id for reconciliation.
+    for (const o of orders) {
+      const lineAmount = Number(o.total_amount || 0)
+      const lineTotals = orderTotalsForUsdGateway(lineAmount, o.currency)
+      const { error: txInsertError } = await supabase.from('transactions').insert({
+        user_id: session.user.id,
+        order_id: o.id,
+        type: 'payment',
+        amount: lineTotals.amount,
+        currency: lineTotals.currency,
+        status: 'pending',
+        provider: 'nowpayments',
+        provider_transaction_id: `nowp-invoice-${invoiceId}-${o.id}`,
+        reference: invoiceId,
+        description: `NOWPayments invoice for order ${o.order_number || o.id.slice(0, 8)}`,
+        metadata: {
+          invoice_url: result.invoiceUrl,
+          invoice_id: invoiceId,
+          purpose: 'order_payment',
+        },
+      })
+      if (txInsertError) {
+        console.warn('[NowPayments Initiate] pending tx insert failed', o.id, txInsertError.message)
+      }
+    }
+
     // Save payment provider to all orders
     await supabase
       .from('orders')

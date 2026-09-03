@@ -87,9 +87,45 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${appUrl}/checkout/cancel?reason=amount_mismatch`);
     }
 
+    // Bind pending create-order row (PayPal order id) to capture id for finalize lock.
+    if (captureId && token !== captureId) {
+      await supabase
+        .from("transactions")
+        .update({
+          provider_transaction_id: captureId,
+          status: "pending",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("provider_transaction_id", token)
+        .eq("provider", "paypal")
+        .eq("status", "pending");
+    }
+
+    const lockId = captureId ?? token;
+    const { data: lockRow } = await supabase
+      .from("transactions")
+      .select("id")
+      .eq("provider_transaction_id", lockId)
+      .maybeSingle();
+    if (!lockRow) {
+      await supabase.from("transactions").insert({
+        user_id: order.buyer_id,
+        order_id: orderId,
+        type: "payment",
+        amount: expectedAmount,
+        currency: expectedCurrency,
+        status: "pending",
+        provider: "paypal",
+        provider_transaction_id: lockId,
+        reference: token,
+        description: `PayPal capture ${lockId}`,
+        metadata: { purpose: "order_payment", source: "capture_lock" },
+      });
+    }
+
     // Finalize — idempotent, handles vendor wallet + notifications + Shopify
     await finalizeOrderPayment(supabase, orderId, {
-      providerTransactionId: captureId ?? token,
+      providerTransactionId: lockId,
       providerReference: token,
       paidAtIso: new Date().toISOString(),
       notifyUserId: order.buyer_id ?? null,

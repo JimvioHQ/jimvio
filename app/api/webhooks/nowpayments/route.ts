@@ -145,6 +145,40 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Bind pending initiate row (invoice ref) to IPN payment_id for finalize lock.
+      await supabase
+        .from("transactions")
+        .update({
+          provider_transaction_id: txId,
+          status: "pending",
+          updated_at: paidAtIso,
+        })
+        .eq("order_id", oid)
+        .eq("provider", "nowpayments")
+        .eq("status", "pending")
+        .like("provider_transaction_id", "nowp-invoice-%");
+
+      const { data: lockRow } = await supabase
+        .from("transactions")
+        .select("id")
+        .eq("provider_transaction_id", txId)
+        .maybeSingle();
+      if (!lockRow) {
+        await supabase.from("transactions").insert({
+          order_id: oid,
+          user_id: ord.buyer_id,
+          type: "payment",
+          amount: expectedAmount,
+          currency: expectedCurrency,
+          status: "pending",
+          provider: "nowpayments",
+          provider_transaction_id: txId,
+          reference: txId,
+          description: `NOWPayments payment ${txId}`,
+          metadata: { purpose: "order_payment", source: "ipn_lock" },
+        });
+      }
+
       try {
         await finalizeOrderPayment(supabase, oid, {
           providerTransactionId: txId,

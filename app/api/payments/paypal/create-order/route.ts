@@ -49,14 +49,33 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_APP_URL ||
       "https://jimvio.com";
 
-    // Idempotent reuse: if we already created a PayPal order for this Jimvio order, resume it.
+    // Idempotent reuse only when PayPal order still matches Jimvio total.
     if (order.paypal_order_id) {
-      const approvalUrl = `https://www.paypal.com/checkoutnow?token=${encodeURIComponent(order.paypal_order_id)}`;
-      return NextResponse.json({
-        paypalOrderId: order.paypal_order_id,
-        approvalUrl,
-        reused: true,
-      });
+      try {
+        const { getPayPalOrder } = await import("@/lib/paypal");
+        const existing = await getPayPalOrder(order.paypal_order_id);
+        const unit = (existing as {
+          purchase_units?: Array<{ amount?: { value?: string; currency_code?: string } }>;
+        }).purchase_units?.[0];
+        const existingAmount = unit?.amount?.value != null ? Number(unit.amount.value) : null;
+        const existingCurrency = (unit?.amount?.currency_code || "").toUpperCase();
+        const expected = orderTotalsForUsdGateway(Number(order.total_amount), order.currency);
+        if (
+          existingAmount != null &&
+          existingCurrency &&
+          Math.abs(existingAmount - expected.amount) <= 0.05 &&
+          existingCurrency === expected.currency.toUpperCase()
+        ) {
+          const approvalUrl = `https://www.paypal.com/checkoutnow?token=${encodeURIComponent(order.paypal_order_id)}`;
+          return NextResponse.json({
+            paypalOrderId: order.paypal_order_id,
+            approvalUrl,
+            reused: true,
+          });
+        }
+      } catch (reuseErr) {
+        console.warn("[PayPal create-order] reuse check failed; creating new order", reuseErr);
+      }
     }
 
     const paypalTotals = orderTotalsForUsdGateway(Number(order.total_amount), order.currency);
@@ -88,6 +107,20 @@ export async function POST(req: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .in("id", orderIdsToUpdate);
+
+    await supabase.from("transactions").insert({
+      user_id: session.user.id,
+      order_id: orderId,
+      type: "payment",
+      amount: paypalTotals.amount,
+      currency: paypalTotals.currency,
+      status: "pending",
+      provider: "paypal",
+      provider_transaction_id: paypalOrderId,
+      reference: paypalOrderId,
+      description: `PayPal order ${paypalOrderId}`,
+      metadata: { purpose: "order_payment" },
+    });
 
     return NextResponse.json({ approvalUrl, paypalOrderId });
   } catch (err) {

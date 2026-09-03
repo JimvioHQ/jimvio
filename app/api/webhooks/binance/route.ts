@@ -145,8 +145,19 @@ export async function POST(req: NextRequest) {
         });
     }
 
-    // ── 5. Find the order ─────────────────────────────────────────────────────
-    const { data: order, error: orderError } = await supabase
+    // ── 5. Find the order (metadata first, then transactions fallback) ────────
+    let order: {
+        id: string;
+        buyer_id: string | null;
+        vendor_id: string | null;
+        total_amount: number | null;
+        currency: string | null;
+        payment_status: string | null;
+        status: string | null;
+        metadata: unknown;
+    } | null = null;
+
+    const { data: orderByMeta, error: orderError } = await supabase
         .from("orders")
         .select(
             "id, buyer_id, vendor_id, total_amount, currency, payment_status, status, metadata"
@@ -168,6 +179,69 @@ export async function POST(req: NextRequest) {
             { returnCode: "FAIL", returnMessage: "DB error on order lookup" },
             { status: 500 }
         );
+    }
+
+    order = orderByMeta;
+
+    if (!order) {
+        const { data: txRow } = await supabase
+            .from("transactions")
+            .select("order_id, amount, currency")
+            .eq("provider_transaction_id", data.merchantTradeNo)
+            .eq("provider", "binance")
+            .maybeSingle();
+
+        if (txRow?.order_id) {
+            const { data: orderByTx, error: orderByTxError } = await supabase
+                .from("orders")
+                .select(
+                    "id, buyer_id, vendor_id, total_amount, currency, payment_status, status, metadata"
+                )
+                .eq("id", txRow.order_id)
+                .maybeSingle();
+
+            if (orderByTxError) {
+                console.error("[binance-webhook] order fetch via tx failed", {
+                    merchantTradeNo: data.merchantTradeNo,
+                    error: orderByTxError,
+                });
+                await supabase
+                    .from("webhook_events")
+                    .update({ status: "error", error: orderByTxError.message })
+                    .eq("id", webhookEvent.id);
+                return NextResponse.json(
+                    { returnCode: "FAIL", returnMessage: "DB error on order lookup" },
+                    { status: 500 }
+                );
+            }
+
+            order = orderByTx;
+            if (order) {
+                console.info("[binance-webhook] order resolved via transactions", {
+                    orderId: order.id,
+                    merchantTradeNo: data.merchantTradeNo,
+                });
+                // Repair missing metadata so subsequent webhooks resolve faster.
+                const prevMeta =
+                    order.metadata && typeof order.metadata === "object" && !Array.isArray(order.metadata)
+                        ? (order.metadata as Record<string, unknown>)
+                        : {};
+                await supabase
+                    .from("orders")
+                    .update({
+                        metadata: {
+                            ...prevMeta,
+                            binance_merchant_trade_no: data.merchantTradeNo,
+                            binance_pay_amount:
+                                prevMeta.binance_pay_amount ?? txRow.amount ?? order.total_amount,
+                            binance_pay_currency:
+                                prevMeta.binance_pay_currency ?? txRow.currency ?? "USDT",
+                        },
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq("id", order.id);
+            }
+        }
     }
 
     if (!order) {

@@ -91,24 +91,29 @@ assert(
 );
 assert(
   binanceWh.includes("finalizeOrderPayment") &&
-    binanceWh.includes("amount mismatch"),
-  "Binance webhook must verify amount and finalize"
-);
-assert(
-  flwWh.includes("finalizeOrderPayment"),
-  "Flutterwave webhook must finalizeOrderPayment"
-);
-assert(
-  nowWh.includes("finalizeOrderPayment") &&
-    nowWh.includes("amount mismatch") &&
-    nowWh.includes("paymentAmountsMatch"),
-  "NOWPayments webhook must verify amount and finalizeOrderPayment"
+    binanceWh.includes("amount mismatch") &&
+    binanceWh.includes("order resolved via transactions"),
+  "Binance webhook must verify amount, resolve via tx fallback, and finalize"
 );
 assert(
   flwWh.includes("finalizeOrderPayment") &&
     flwWh.includes("completeWalletDepositByReference") &&
     flwWh.includes("verifiedAmount"),
   "Flutterwave webhook must finalize orders and verify deposit amounts"
+);
+assert(
+  nowWh.includes("finalizeOrderPayment") &&
+    nowWh.includes("amount mismatch") &&
+    nowWh.includes("paymentAmountsMatch") &&
+    nowWh.includes("nowp-invoice-"),
+  "NOWPayments webhook must verify amount, bind invoice lock, and finalize"
+);
+const nowLegacy = read("app/api/nowpayments/ipn/route.ts");
+assert(
+  nowLegacy.includes("paymentAmountsMatch") &&
+    nowLegacy.includes("finalizeOrderPayment") &&
+    nowLegacy.includes('paymentProvider: "nowpayments"'),
+  "Legacy NOWPayments IPN must match canonical amount+finalize guarantees"
 );
 const paypalCapture = read("app/api/payments/paypal/capture/route.ts");
 const paypalWh = read("app/api/payments/paypal/webhook/route.ts");

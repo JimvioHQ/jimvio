@@ -502,10 +502,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     .eq("id", orderId);
 
   if (updateError) {
-    console.warn(
-      "[binance/create] order metadata update failed (non-fatal, tx row exists)",
+    console.error(
+      "[binance/create] order metadata update failed — webhook will use transactions fallback",
       updateError
     );
+    // Soft-fail: transaction row already binds merchantTradeNo → order_id.
+    // Webhook resolves via provider_transaction_id when metadata is missing.
   }
 
   // ── 12. Record status changes ──────────────────────────────────────────────
